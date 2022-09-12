@@ -17,7 +17,7 @@ jobs:
       - uses: abatilo/actions-poetry@v2.1.3
       - name: Setup Regtest
         run: |
-          docker build -t lnbits-legend .
+          docker build -t lnbitsdocker/lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
           chmod +x ./tests
@@ -56,7 +56,7 @@ jobs:
       - uses: abatilo/actions-poetry@v2.1.3
       - name: Setup Regtest
         run: |
-          docker build -t lnbits-legend .
+          docker build -t lnbitsdocker/lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
           chmod +x ./tests
@@ -97,7 +97,7 @@ jobs:
       - uses: abatilo/actions-poetry@v2.1.3
       - name: Setup Regtest
         run: |
-          docker build -t lnbits-legend .
+          docker build -t lnbitsdocker/lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
           chmod +x ./tests

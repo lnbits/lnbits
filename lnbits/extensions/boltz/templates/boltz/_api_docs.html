@@ -1,0 +1,236 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="About Boltz"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <img
+        src="https://boltz.exchange/static/media/Shape.6c1a92b3.svg"
+        alt=""
+      />
+      <img
+        src="https://boltz.exchange/static/media/Boltz.02fb7acb.svg"
+        style="padding: 5px 9px"
+        alt=""
+      />
+      <h5 class="text-subtitle1 q-my-none">
+        Boltz.exchange: Do onchain to offchain and vice-versa swaps
+      </h5>
+      <p>
+        Submarine and Reverse Submarine Swaps on LNbits via boltz.exchange
+        API<br />
+      </p>
+      <p>
+        Link :
+        <a target="_blank" href="https://boltz.exchange"
+          >https://boltz.exchange
+        </a>
+      </p>
+      <p>
+        <a
+          target="_blank"
+          href="https://github.com/lnbits/lnbits-legend/tree/main/lnbits/extensions/boltz"
+          >More details</a
+        >
+      </p>
+      <p>
+        <small
+          >Created by,
+          <a target="_blank" href="https://github.com/dni">dni</a></small
+        >
+      </p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="GET swap/reverse">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /boltz/api/v1/swap/reverse</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON list of reverse submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/reverse -H "X-Api-Key:
+          {{ user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="POST swap/reverse"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">POST</span>
+          /boltz/api/v1/swap/reverse</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"wallet": &lt;string&gt;, "onchain_address": &lt;string&gt;,
+          "amount": &lt;integer&gt;, "instant_settlement":
+          &lt;boolean&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON create a reverse-submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ root_url }}/boltz/api/v1/swap/reverse -H "X-Api-Key:
+          {{ user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET swap">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-light-blue">GET</span> /boltz/api/v1/swap</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON list of submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="POST swap">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">POST</span> /boltz/api/v1/swap</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"wallet": &lt;string&gt;, "refund_address": &lt;string&gt;,
+          "amount": &lt;integer&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON create a submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ root_url }}/boltz/api/v1/swap -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET swap/refund">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">POST</span>
+          /boltz/api/v1/swap/refund/{swap_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON submarine swap</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/refund/{swap_id} -H
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET swap/status">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">POST</span>
+          /boltz/api/v1/swap/status/{swap_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (text/plain)
+        </h5>
+        <code>swap status</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/status/{swap_id} -H
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET swap/check">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /boltz/api/v1/swap/check</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON pending swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/check -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET boltz-config">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /boltz/api/v1/swap/boltz</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (text/plain)
+        </h5>
+        <code>JSON boltz config</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/boltz -H "X-Api-Key: {{
+          user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET mempool-url">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /boltz/api/v1/swap/mempool</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (text/plain)
+        </h5>
+        <code>mempool url</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/swap/mempool -H "X-Api-Key:
+          {{ user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

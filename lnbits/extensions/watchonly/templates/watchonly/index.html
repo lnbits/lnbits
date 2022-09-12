@@ -136,6 +136,7 @@
         :adminkey="g.user.wallets[0].adminkey"
         :serial-signer-ref="$refs.serialSigner"
         :sats-denominated="config.sats_denominated"
+        @broadcast-done="handleBroadcastSuccess"
       ></payment>
       <!-- todo: no more utxos.data -->
     </div>
@@ -176,7 +177,7 @@
           dense
           size="ms"
           icon="content_copy"
-          @click="copyText(props.row.address)"
+          @click="copyText(currentAddress.address)"
           class="q-ml-sm"
         ></q-btn>
 
@@ -248,5 +249,8 @@
 <script src="{{ url_for('watchonly_static', path='components/payment/payment.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/serial-signer/serial-signer.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/serial-port-config/serial-port-config.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/crypto/noble-secp256k1.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/crypto/aes.js') }}"></script>
+
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

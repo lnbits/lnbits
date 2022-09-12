@@ -69,3 +69,13 @@ try:
     )
 except:
     LNBITS_COMMIT = "unknown"
+
+
+BOLTZ_NETWORK = env.str("BOLTZ_NETWORK", default="main")
+BOLTZ_URL = env.str("BOLTZ_URL", default="https://boltz.exchange/api")
+BOLTZ_MEMPOOL_SPACE_URL = env.str(
+    "BOLTZ_MEMPOOL_SPACE_URL", default="https://mempool.space"
+)
+BOLTZ_MEMPOOL_SPACE_URL_WS = env.str(
+    "BOLTZ_MEMPOOL_SPACE_URL_WS", default="wss://mempool.space"
+)

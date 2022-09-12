@@ -65,12 +65,30 @@ def get_ssl_context(cert_path: str):
     return context
 
 
-def parse_checking_id(checking_id: str) -> bytes:
+def b64_to_bytes(checking_id: str) -> bytes:
     return base64.b64decode(checking_id.replace("_", "/"))
 
 
-def stringify_checking_id(r_hash: bytes) -> str:
+def bytes_to_b64(r_hash: bytes) -> str:
     return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
+
+
+def hex_to_b64(hex_str: str) -> str:
+    try:
+        return base64.b64encode(bytes.fromhex(hex_str)).decode()
+    except ValueError:
+        return ""
+
+
+def hex_to_bytes(hex_str: str) -> bytes:
+    try:
+        return bytes.fromhex(hex_str)
+    except:
+        return b""
+
+
+def bytes_to_hex(b: bytes) -> str:
+    return b.hex()
 
 
 # Due to updated ECDSA generated tls.cert we need to let gprc know that
@@ -153,7 +171,7 @@ class LndWallet(Wallet):
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
 
-        checking_id = stringify_checking_id(resp.r_hash)
+        checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
@@ -168,9 +186,9 @@ class LndWallet(Wallet):
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
         except RpcError as exc:
-            return PaymentResponse(False, "", 0, None, exc._details)
+            return PaymentResponse(False, None, None, None, exc._details)
         except Exception as exc:
-            return PaymentResponse(False, "", 0, None, str(exc))
+            return PaymentResponse(False, None, None, None, str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {
@@ -180,29 +198,31 @@ class LndWallet(Wallet):
             3: False,  # FAILED
         }
 
-        if resp.status in [0, 1, 3]:
-            fee_msat = 0
-            preimage = ""
-            checking_id = ""
-        elif resp.status == 2:  # SUCCEEDED
-            fee_msat = resp.htlcs[-1].route.total_fees_msat
-            preimage = resp.payment_preimage
-            checking_id = resp.payment_hash
+        fee_msat = None
+        preimage = None
+        checking_id = resp.payment_hash
+
+        if resp.status:  # SUCCEEDED
+            fee_msat = -resp.htlcs[-1].route.total_fees_msat
+            preimage = bytes_to_hex(resp.payment_preimage)
+
         return PaymentResponse(
             statuses[resp.status], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r_hash = parse_checking_id(checking_id)
+            r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
                 raise binascii.Error
         except binascii.Error:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
             return PaymentStatus(None)
-
-        resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+        try:
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+        except RpcError as exc:
+            return PaymentStatus(None)
         if resp.settled:
             return PaymentStatus(True)
 
@@ -213,18 +233,13 @@ class LndWallet(Wallet):
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
         try:
-            r_hash = parse_checking_id(checking_id)
+            r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
                 raise binascii.Error
         except binascii.Error:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
             return PaymentStatus(None)
-
-        # for some reason our checking_ids are in base64 but the payment hashes
-        # returned here are in hex, lnd is weird
-        checking_id = checking_id.replace("_", "/")
-        checking_id = base64.b64decode(checking_id).hex()
 
         resp = self.routerpc.TrackPaymentV2(
             router.TrackPaymentRequest(payment_hash=r_hash)
@@ -240,6 +255,12 @@ class LndWallet(Wallet):
 
         try:
             async for payment in resp:
+                if statuses[payment.htlcs[-1].status]:
+                    return PaymentStatus(
+                        True,
+                        -payment.htlcs[-1].route.total_fees_msat,
+                        bytes_to_hex(payment.htlcs[-1].preimage),
+                    )
                 return PaymentStatus(statuses[payment.htlcs[-1].status])
         except:  # most likely the payment wasn't found
             return PaymentStatus(None)
@@ -248,13 +269,13 @@ class LndWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
-            request = ln.InvoiceSubscription()
             try:
+                request = ln.InvoiceSubscription()
                 async for i in self.rpc.SubscribeInvoices(request):
                     if not i.settled:
                         continue
 
-                    checking_id = stringify_checking_id(i.r_hash)
+                    checking_id = bytes_to_hex(i.r_hash)
                     yield checking_id
             except Exception as exc:
                 logger.error(

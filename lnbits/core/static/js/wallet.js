@@ -232,6 +232,9 @@ new Vue({
         generateChart(this.$refs.canvas, this.payments)
       })
     },
+    focusInput(el) {
+      this.$nextTick(() => this.$refs[el].focus())
+    },
     showReceiveDialog: function () {
       this.receive.show = true
       this.receive.status = 'pending'
@@ -243,6 +246,7 @@ new Vue({
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
+      this.focusInput('setAmount')
     },
     showParseDialog: function () {
       this.parse.show = true

@@ -123,18 +123,15 @@ class LndRestWallet(Wallet):
 
         if r.is_error or r.json().get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
-        payment_hash = data["payment_hash"]
-        checking_id = payment_hash
+        checking_id = base64.b64decode(data["payment_hash"]).hex()
         fee_msat = int(data["payment_route"]["total_fees_msat"])
         preimage = base64.b64decode(data["payment_preimage"]).hex()
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        checking_id = checking_id.replace("_", "/")
-
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth
@@ -151,10 +148,18 @@ class LndRestWallet(Wallet):
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
+        # convert checking_id from hex to base64 and some LND magic
+        try:
+            checking_id = base64.urlsafe_b64encode(bytes.fromhex(checking_id)).decode(
+                "ascii"
+            )
+        except ValueError:
+            return PaymentStatus(None)
+
         url = f"{self.endpoint}/v2/router/track/{checking_id}"
 
         # check payment.status:
-        # https://api.lightning.community/rest/index.html?python#peersynctype
+        # https://api.lightning.community/?python=#paymentpaymentstatus
         statuses = {
             "UNKNOWN": None,
             "IN_FLIGHT": None,
@@ -178,7 +183,11 @@ class LndRestWallet(Wallet):
                             return PaymentStatus(None)
                         payment = line.get("result")
                         if payment is not None and payment.get("status"):
-                            return PaymentStatus(statuses[payment["status"]])
+                            return PaymentStatus(
+                                paid=statuses[payment["status"]],
+                                fee_msat=payment.get("fee_msat"),
+                                preimage=payment.get("payment_preimage"),
+                            )
                         else:
                             return PaymentStatus(None)
                     except:
@@ -187,10 +196,9 @@ class LndRestWallet(Wallet):
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = self.endpoint + "/v1/invoices/subscribe"
-
         while True:
             try:
+                url = self.endpoint + "/v1/invoices/subscribe"
                 async with httpx.AsyncClient(
                     timeout=None, headers=self.auth, verify=self.cert
                 ) as client:

@@ -1,4 +1,6 @@
 const PSBT_BASE64_PREFIX = 'cHNidP8'
+
+const COMMAND_PING = '/ping'
 const COMMAND_PASSWORD = '/password'
 const COMMAND_PASSWORD_CLEAR = '/password-clear'
 const COMMAND_SEND_PSBT = '/psbt'
@@ -10,8 +12,24 @@ const COMMAND_RESTORE = '/restore'
 const COMMAND_CONFIRM_NEXT = '/confirm-next'
 const COMMAND_CANCEL = '/cancel'
 const COMMAND_XPUB = '/xpub'
+const COMMAND_PAIR = '/pair'
+const COMMAND_LOG = '/log'
+const COMMAND_CHECK_PAIRING = '/check-pairing'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
+const PAIRING_CONTROL_TEXT = 'lnbits'
+
+const HWW_DEFAULT_CONFIG = Object.freeze({
+  name: '',
+  buttonOnePin: '',
+  buttonTwoPin: '',
+  baudRate: 9600,
+  bufferSize: 255,
+  dataBits: 8,
+  flowControl: 'none',
+  parity: 'none',
+  stopBits: 1
+})
 
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
@@ -180,4 +198,12 @@ function findAccountPathIssues(path = '') {
     if (p[i].endsWith('')) p[i] = p[i].substring(0, p[i].length - 1)
     if (isNaN(p[i])) return `${p[i]} is not a valid value`
   }
+}
+
+function asciiToUint8Array(str) {
+  var chars = []
+  for (var i = 0; i < str.length; ++i) {
+    chars.push(str.charCodeAt(i))
+  }
+  return new Uint8Array(chars)
 }

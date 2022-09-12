@@ -39,6 +39,10 @@ async function history(path) {
               label: 'Date',
               field: 'date',
               sortable: true
+            },
+            {
+              name: 'txId',
+              field: 'txId'
             }
           ],
           exportColums: [

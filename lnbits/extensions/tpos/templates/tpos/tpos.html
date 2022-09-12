@@ -183,6 +183,12 @@
           ></q-btn>
         </div>
         <div class="row q-mt-lg">
+          <q-btn
+            outline
+            color="grey"
+            @click="copyText(invoiceDialog.data.payment_request)"
+            >Copy invoice</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>
