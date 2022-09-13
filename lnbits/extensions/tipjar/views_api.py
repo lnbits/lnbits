@@ -57,7 +57,7 @@ async def api_create_tip(data: createTips):
     name = name.replace('"', "''")
     if not name:
         name = "Anonymous"
-    description = f'"{name}": {message}'
+    description = f"{name}: {message}"
     charge = await create_charge(
         user=charge_details["user"],
         data=CreateCharge(

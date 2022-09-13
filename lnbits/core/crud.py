@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from loguru import logger
+
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
@@ -113,7 +115,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    await (conn or db).execute(
+    return await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?
@@ -325,6 +327,7 @@ async def delete_expired_invoices(
           AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
         """
     )
+    logger.debug(f"Checking expiry of {len(rows)} invoices")
     for (payment_request,) in rows:
         try:
             invoice = bolt11.decode(payment_request)
@@ -334,7 +337,9 @@ async def delete_expired_invoices(
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
-
+        logger.debug(
+            f"Deleting expired invoice: {invoice.payment_hash} (expired: {expiration_date})"
+        )
         await (conn or db).execute(
             """
             DELETE FROM apipayments
@@ -363,6 +368,11 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
+
+    # todo: add this when tests are fixed
+    # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    # assert previous_payment is None, "Payment already exists"
+
     await (conn or db).execute(
         """
         INSERT INTO apipayments
@@ -400,6 +410,40 @@ async def update_payment_status(
         "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
         (pending, checking_id),
     )
+
+
+async def update_payment_details(
+    checking_id: str,
+    pending: Optional[bool] = None,
+    fee: Optional[int] = None,
+    preimage: Optional[str] = None,
+    new_checking_id: Optional[str] = None,
+    conn: Optional[Connection] = None,
+) -> None:
+
+    set_clause: List[str] = []
+    set_variables: List[Any] = []
+
+    if new_checking_id is not None:
+        set_clause.append("checking_id = ?")
+        set_variables.append(new_checking_id)
+    if pending is not None:
+        set_clause.append("pending = ?")
+        set_variables.append(pending)
+    if fee is not None:
+        set_clause.append("fee = ?")
+        set_variables.append(fee)
+    if preimage is not None:
+        set_clause.append("preimage = ?")
+        set_variables.append(preimage)
+
+    set_variables.append(checking_id)
+
+    await (conn or db).execute(
+        f"UPDATE apipayments SET {', '.join(set_clause)} WHERE checking_id = ?",
+        tuple(set_variables),
+    )
+    return
 
 
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:

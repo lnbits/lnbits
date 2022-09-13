@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import logging
+import signal
 import sys
 import traceback
 import warnings
@@ -17,7 +18,6 @@ from loguru import logger
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
-from .commands import db_migrate, handle_assets
 from .core import core_app
 from .core.views.generic import core_html_routes
 from .helpers import (
@@ -76,7 +76,11 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
-        if "text/html" in request.headers["accept"]:
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
             return template_renderer().TemplateResponse(
                 "error.html",
                 {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
@@ -93,7 +97,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     check_funding_source(app)
     register_assets(app)
     register_routes(app)
-    # register_commands(app)
     register_async_tasks(app)
     register_exception_handlers(app)
 
@@ -103,16 +106,27 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
     async def check_wallet_status():
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+        def signal_handler(signal, frame):
+            logger.debug(f"SIGINT received, terminating LNbits.")
+            sys.exit(1)
+
+        signal.signal(signal.SIGINT, signal_handler)
         while True:
-            error_message, balance = await WALLET.status()
-            if not error_message:
-                break
-            logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
-                RuntimeWarning,
-            )
+            try:
+                error_message, balance = await WALLET.status()
+                if not error_message:
+                    break
+                logger.error(
+                    f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                    RuntimeWarning,
+                )
+            except:
+                pass
             logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
+        signal.signal(signal.SIGINT, original_sigint_handler)
         logger.info(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
@@ -144,12 +158,6 @@ def register_routes(app: FastAPI) -> None:
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
-
-
-def register_commands(app: FastAPI):
-    """Register Click commands."""
-    app.cli.add_command(db_migrate)
-    app.cli.add_command(handle_assets)
 
 
 def register_assets(app: FastAPI):
@@ -193,7 +201,11 @@ def register_exception_handlers(app: FastAPI):
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
 
-        if "text/html" in request.headers["accept"]:
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": err}
             )

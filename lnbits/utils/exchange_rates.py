@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 import httpx
 from loguru import logger
@@ -227,10 +227,10 @@ async def btc_price(currency: str) -> float:
         "TO": currency.upper(),
         "to": currency.lower(),
     }
-    rates = []
-    tasks = []
+    rates: List[float] = []
+    tasks: List[asyncio.Task] = []
 
-    send_channel = asyncio.Queue()
+    send_channel: asyncio.Queue = asyncio.Queue()
 
     async def controller():
         failures = 0

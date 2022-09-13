@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter
+from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -10,6 +11,14 @@ db = Database("ext_satspay")
 
 
 satspay_ext: APIRouter = APIRouter(prefix="/satspay", tags=["satspay"])
+
+satspay_static_files = [
+    {
+        "path": "/satspay/static",
+        "app": StaticFiles(directory="lnbits/extensions/satspay/static"),
+        "name": "satspay_static",
+    }
+]
 
 
 def satspay_renderer():

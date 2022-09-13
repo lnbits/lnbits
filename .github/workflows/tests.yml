@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -24,8 +24,28 @@ jobs:
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
+        run: make test-venv
+  sqlite:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: abatilo/actions-poetry@v2.1.3
+      - name: Install dependencies
+        env:
+          VIRTUAL_ENV: ./venv
+          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
+        run: |
+          poetry install
+      - name: Run tests
         run: make test
-  venv-postgres:
+  postgres:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -44,22 +64,17 @@ jobs:
           --health-retries 5
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: abatilo/actions-poetry@v2.1.3
       - name: Install dependencies
-        env: 
-          VIRTUAL_ENV: ./venv
-          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
-          python -m venv ${{ env.VIRTUAL_ENV }}
-          ./venv/bin/python -m pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
+          poetry install
       - name: Run tests
         env:
           LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
@@ -68,21 +83,3 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
-  pipenv-sqlite:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7, 3.8, 3.9]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          pip install pipenv
-          pipenv install --dev
-          pipenv install importlib-metadata
-      - name: Run tests
-        run: make test-pipenv

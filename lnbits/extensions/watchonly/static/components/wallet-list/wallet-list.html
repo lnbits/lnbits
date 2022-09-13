@@ -1,0 +1,232 @@
+<div>
+  <q-card>
+    <q-card-section>
+      <div class="row items-center no-wrap q-mb-md">
+        <div class="col-4">
+          <q-btn-dropdown
+            split
+            unelevated
+            label="Add Wallet Account"
+            color="primary"
+            @click="showAddAccountDialog"
+          >
+            <q-list>
+              <q-item @click="showAddAccountDialog" clickable v-close-popup>
+                <q-item-section>
+                  <q-item-label>New Account</q-item-label>
+                  <q-item-label caption
+                    >Enter account Xpub or Descriptor</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+              <q-item @click="getXpubFromDevice" clickable v-close-popup>
+                <q-item-section>
+                  <q-item-label>From Hardware Device</q-item-label>
+                  <q-item-label caption>
+                    Get Xpub from a Hardware Device</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </div>
+        <div class="col-4 q-pl-lg"></div>
+        <div class="col-4 q-pl-lg">
+          <q-input
+            borderless
+            dense
+            debounce="300"
+            v-model="filter"
+            placeholder="Search"
+          >
+            <template v-slot:append>
+              <q-icon name="search"></q-icon>
+            </template>
+          </q-input>
+        </div>
+      </div>
+      <q-table
+        flat
+        dense
+        :data="walletAccounts"
+        row-key="id"
+        :columns="walletsTable.columns"
+        :pagination.sync="walletsTable.pagination"
+        :filter="filter"
+      >
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th
+              v-for="col in props.cols"
+              :key="col.name"
+              :props="props"
+              auto-width
+            >
+              {{ col.label }}
+            </q-th>
+            <q-th auto-width></q-th>
+          </q-tr>
+        </template>
+        <template v-slot:body="props">
+          <q-tr :props="props">
+            <q-td auto-width>
+              <q-btn
+                size="sm"
+                color="accent"
+                round
+                dense
+                @click="props.row.expanded= !props.row.expanded"
+                :icon="props.row.expanded? 'remove' : 'add'"
+              />
+            </q-td>
+            <q-td key="new">
+              <q-badge
+                size="lg"
+                color="secondary"
+                class="q-mr-md cursor-pointer"
+                @click="openGetFreshAddressDialog(props.row.id)"
+              >
+                New Receive Address
+              </q-badge>
+            </q-td>
+
+            <q-td key="title" :props="props" :class="">
+              <div>{{props.row.title}}</div>
+            </q-td>
+            <q-td key="amount" :props="props" :class="">
+              <div>{{getAmmountForWallet(props.row.id)}}</div>
+            </q-td>
+            <q-td key="type" :props="props" :class="">
+              <div>{{props.row.type}}</div>
+            </q-td>
+            <q-td key="id" :props="props" :class="">
+              <div>{{props.row.id}}</div>
+            </q-td>
+          </q-tr>
+          <q-tr v-show="props.row.expanded" :props="props">
+            <q-td colspan="100%">
+              <div class="row items-center q-mt-md q-mb-lg">
+                <div class="col-2 q-pr-lg"></div>
+                <div class="col-4 q-pr-lg">
+                  <q-btn
+                    unelevated
+                    color="secondary"
+                    @click="openGetFreshAddressDialog(props.row.id)"
+                    >New Receive Address</q-btn
+                  >
+                </div>
+                <div class="col-4">
+                  {{getAccountDescription(props.row.type)}}
+                </div>
+                <div class="col-2 q-pr-lg"></div>
+              </div>
+
+              <div class="row items-center no-wrap q-mb-md">
+                <div class="col-2 q-pr-lg">Master Pubkey:</div>
+                <div class="col-8">
+                  <q-input
+                    v-model="props.row.masterpub"
+                    filled
+                    readonly
+                    type="textarea"
+                  />
+                </div>
+                <div class="col-2 q-pr-lg"></div>
+              </div>
+              <div class="row items-center no-wrap q-mb-md">
+                <div class="col-2 q-pr-lg">Last Address Index:</div>
+                <div class="col-8">
+                  <span v-if="props.row.address_no >= 0"
+                    >{{props.row.address_no}}</span
+                  >
+                  <span v-if="props.row.address_no < 0">none</span>
+                </div>
+                <div class="col-2 q-pr-lg"></div>
+              </div>
+              <div class="row items-center no-wrap q-mb-md">
+                <div class="col-2 q-pr-lg">Fingerprint:</div>
+                <div class="col-8">{{props.row.fingerprint}}</div>
+                <div class="col-2 q-pr-lg"></div>
+              </div>
+              <div class="row items-center q-mt-md q-mb-lg">
+                <div class="col-2 q-pr-lg"></div>
+                <div class="col-4 q-pr-lg">
+                  <q-btn
+                    unelevated
+                    color="pink"
+                    icon="cancel"
+                    @click="deleteWalletAccount(props.row.id)"
+                    >Delete</q-btn
+                  >
+                </div>
+                <div class="col-4"></div>
+                <div class="col-2 q-pr-lg"></div>
+              </div>
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </q-card-section>
+  </q-card>
+
+  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="addWalletAccount" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.title"
+          type="text"
+          label="Title"
+        ></q-input>
+        <q-input
+          v-if="!formDialog.useSerialPort"
+          filled
+          type="textarea"
+          v-model="formDialog.data.masterpub"
+          height="50px"
+          autogrow
+          label="Account Extended Public Key; xpub, ypub, zpub; Bitcoin Descriptor"
+        ></q-input>
+        <q-select
+          v-if="formDialog.useSerialPort"
+          filled
+          dense
+          emit-value
+          v-model="formDialog.addressType"
+          :options="addressTypeOptions"
+          label="Address Type"
+          @input="handleAddressTypeChanged"
+        ></q-select>
+
+        <q-input
+          v-if="formDialog.useSerialPort"
+          filled
+          type="text"
+          v-model="accountPath"
+          height="50px"
+          autogrow
+          label="Account Path"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            label="Add Watch-Only Account"
+            :disable="
+                (formDialog.data.masterpub == null && accountPath == null)||
+                formDialog.data.title == null || showCreating"
+            type="submit"
+          >
+          </q-btn>
+          <q-spinner v-if="showCreating" color="primary" size="2em"></q-spinner>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>

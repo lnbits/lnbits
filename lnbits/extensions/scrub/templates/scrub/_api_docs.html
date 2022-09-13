@@ -1,0 +1,136 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="List scrubs">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">GET</span> /scrub/api/v1/links</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;pay_link_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url }}scrub/api/v1/links?all_wallets=true
+          -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Get a scrub">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /scrub/api/v1/links/&lt;scrub_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code
+          >{"id": &lt;string&gt;, "wallet": &lt;string&gt;, "description":
+          &lt;string&gt;, "payoraddress": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url }}scrub/api/v1/links/&lt;pay_id&gt;
+          -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Create a scrub">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-green">POST</span> /scrub/api/v1/links</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"wallet": &lt;string&gt;, "description": &lt;string&gt;,
+          "payoraddress": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code
+          >{"id": &lt;string&gt;, "wallet": &lt;string&gt;, "description":
+          &lt;string&gt;, "payoraddress": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url }}scrub/api/v1/links -d '{"wallet":
+          &lt;string&gt;, "description": &lt;string&gt;, "payoraddress":
+          &lt;string&gt;}' -H "Content-type: application/json" -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Update a scrub">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">PUT</span>
+          /scrub/api/v1/links/&lt;pay_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"wallet": &lt;string&gt;, "description": &lt;string&gt;,
+          "payoraddress": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code
+          >{"id": &lt;string&gt;, "wallet": &lt;string&gt;, "description":
+          &lt;string&gt;, "payoraddress": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.base_url }}scrub/api/v1/links/&lt;pay_id&gt;
+          -d '{"wallet": &lt;string&gt;, "description": &lt;string&gt;,
+          "payoraddress": &lt;string&gt;}' -H "Content-type: application/json"
+          -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete a scrub"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-pink">DELETE</span>
+          /scrub/api/v1/links/&lt;pay_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
+        <code></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.base_url
+          }}scrub/api/v1/links/&lt;pay_id&gt; -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

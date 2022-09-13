@@ -427,6 +427,7 @@
           :options="receive.units"
         ></q-select>
         <q-input
+          ref="setAmount"
           filled
           dense
           v-model.number="receive.data.amount"
@@ -688,7 +689,7 @@
     </q-card>
   </q-dialog>
   <q-tabs
-    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
     active-class="px-0"
     indicator-color="transparent"
   >

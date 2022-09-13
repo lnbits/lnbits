@@ -130,10 +130,7 @@ async def lndhub_gettxs(
         offset=offset,
         exclude_uncheckable=True,
     ):
-        await payment.set_pending(
-            (await WALLET.get_payment_status(payment.checking_id)).pending
-        )
-        await asyncio.sleep(0.1)
+        await payment.check_status()
 
     return [
         {
@@ -181,7 +178,6 @@ async def lndhub_getuserinvoices(
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
-        await asyncio.sleep(0.1)
 
     return [
         {

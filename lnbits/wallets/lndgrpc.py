@@ -2,10 +2,11 @@ imports_ok = True
 try:
     import grpc
     from google import protobuf
+    from grpc import RpcError
 except ImportError:  # pragma: nocover
     imports_ok = False
 
-
+import asyncio
 import base64
 import binascii
 import hashlib
@@ -19,6 +20,8 @@ from .macaroon import AESCipher, load_macaroon
 if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
     import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
+    import lnbits.wallets.lnd_grpc_files.router_pb2 as router
+    import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 
 from .base import (
     InvoiceResponse,
@@ -62,12 +65,30 @@ def get_ssl_context(cert_path: str):
     return context
 
 
-def parse_checking_id(checking_id: str) -> bytes:
+def b64_to_bytes(checking_id: str) -> bytes:
     return base64.b64decode(checking_id.replace("_", "/"))
 
 
-def stringify_checking_id(r_hash: bytes) -> str:
+def bytes_to_b64(r_hash: bytes) -> str:
     return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
+
+
+def hex_to_b64(hex_str: str) -> str:
+    try:
+        return base64.b64encode(bytes.fromhex(hex_str)).decode()
+    except ValueError:
+        return ""
+
+
+def hex_to_bytes(hex_str: str) -> bytes:
+    try:
+        return bytes.fromhex(hex_str)
+    except:
+        return b""
+
+
+def bytes_to_hex(b: bytes) -> str:
+    return b.hex()
 
 
 # Due to updated ECDSA generated tls.cert we need to let gprc know that
@@ -111,6 +132,7 @@ class LndWallet(Wallet):
             f"{self.endpoint}:{self.port}", composite_creds
         )
         self.rpc = lnrpc.LightningStub(channel)
+        self.routerpc = routerrpc.RouterStub(channel)
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -118,6 +140,8 @@ class LndWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
+        except RpcError as exc:
+            return StatusResponse(str(exc._details), 0)
         except Exception as exc:
             return StatusResponse(str(exc), 0)
 
@@ -128,11 +152,15 @@ class LndWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         params: Dict = {"value": amount, "expiry": 600, "private": True}
-
         if description_hash:
-            params["description_hash"] = description_hash  # as bytes directly
+            params["description_hash"] = description_hash
+        elif unhashed_description:
+            params["description_hash"] = hashlib.sha256(
+                unhashed_description
+            ).digest()  # as bytes directly
         else:
             params["memo"] = memo or ""
 
@@ -143,27 +171,69 @@ class LndWallet(Wallet):
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
 
-        checking_id = stringify_checking_id(resp.r_hash)
+        checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
-        resp = await self.rpc.SendPaymentSync(req)
+        # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
+        req = router.SendPaymentRequest(
+            payment_request=bolt11,
+            fee_limit_msat=fee_limit_msat,
+            timeout_seconds=30,
+            no_inflight_updates=True,
+        )
+        try:
+            resp = await self.routerpc.SendPaymentV2(req).read()
+        except RpcError as exc:
+            return PaymentResponse(False, None, None, None, exc._details)
+        except Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
 
-        if resp.payment_error:
-            return PaymentResponse(False, "", 0, None, resp.payment_error)
+        # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
+        statuses = {
+            0: None,  # NON_EXISTENT
+            1: None,  # IN_FLIGHT
+            2: True,  # SUCCEEDED
+            3: False,  # FAILED
+        }
 
-        r_hash = hashlib.sha256(resp.payment_preimage).digest()
-        checking_id = stringify_checking_id(r_hash)
-        fee_msat = resp.payment_route.total_fees_msat
-        preimage = resp.payment_preimage.hex()
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        fee_msat = None
+        preimage = None
+        checking_id = resp.payment_hash
+
+        if resp.status:  # SUCCEEDED
+            fee_msat = -resp.htlcs[-1].route.total_fees_msat
+            preimage = bytes_to_hex(resp.payment_preimage)
+
+        return PaymentResponse(
+            statuses[resp.status], checking_id, fee_msat, preimage, None
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r_hash = parse_checking_id(checking_id)
+            r_hash = hex_to_bytes(checking_id)
+            if len(r_hash) != 32:
+                raise binascii.Error
+        except binascii.Error:
+            # this may happen if we switch between backend wallets
+            # that use different checking_id formats
+            return PaymentStatus(None)
+        try:
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+        except RpcError as exc:
+            return PaymentStatus(None)
+        if resp.settled:
+            return PaymentStatus(True)
+
+        return PaymentStatus(None)
+
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        """
+        This routine checks the payment status using routerpc.TrackPaymentV2.
+        """
+        try:
+            r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
                 raise binascii.Error
         except binascii.Error:
@@ -171,27 +241,44 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentStatus(None)
 
-        resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        if resp.settled:
-            return PaymentStatus(True)
+        resp = self.routerpc.TrackPaymentV2(
+            router.TrackPaymentRequest(payment_hash=r_hash)
+        )
+
+        # HTLCAttempt.HTLCStatus:
+        # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+        statuses = {
+            0: None,  # IN_FLIGHT
+            1: True,  # "SUCCEEDED"
+            2: False,  # "FAILED"
+        }
+
+        try:
+            async for payment in resp:
+                if statuses[payment.htlcs[-1].status]:
+                    return PaymentStatus(
+                        True,
+                        -payment.htlcs[-1].route.total_fees_msat,
+                        bytes_to_hex(payment.htlcs[-1].preimage),
+                    )
+                return PaymentStatus(statuses[payment.htlcs[-1].status])
+        except:  # most likely the payment wasn't found
+            return PaymentStatus(None)
 
         return PaymentStatus(None)
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(True)
-
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        request = ln.InvoiceSubscription()
-        try:
-            async for i in self.rpc.SubscribeInvoices(request):
-                if not i.settled:
-                    continue
+        while True:
+            try:
+                request = ln.InvoiceSubscription()
+                async for i in self.rpc.SubscribeInvoices(request):
+                    if not i.settled:
+                        continue
 
-                checking_id = stringify_checking_id(i.r_hash)
-                yield checking_id
-        except error:
-            logger.error(error)
-
-        logger.error(
-            "lost connection to lnd InvoiceSubscription, please restart lnbits."
-        )
+                    checking_id = bytes_to_hex(i.r_hash)
+                    yield checking_id
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
