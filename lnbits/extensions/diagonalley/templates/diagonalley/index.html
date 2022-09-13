@@ -669,6 +669,80 @@
       </q-card-section>
     </q-card>
 
+    <q-card v-if="markets.length">
+      <!-- MARKETPLACES TABLE -->
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Marketplaces</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportStallsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="markets"
+          row-key="id"
+          :columns="marketTable.columns"
+          :pagination.sync="marketTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="storefront"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/diagonalley/' + props.row.id"
+                  target="_blank"
+                ></q-btn>
+                <q-tooltip> Link to pass to stall relay </q-tooltip>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openStallUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteStall(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
     <q-card>
       <!-- ZONES TABLE -->
       <q-card-section>
@@ -817,6 +891,17 @@
 
   const mapMarkets = obj => {
     obj._data = _.clone(obj)
+    obj.stores = []
+    LNbits.api
+      .request('GET', `/diagonalley/api/v1/markets/${obj.id}/stalls`, null)
+      .then(response => {
+        if (response.data) {
+          obj.stores = response.data.map(s => s.name).toString()
+        }
+      })
+      .catch(error => {
+        LNbits.utils.notifyApiError(error)
+      })
     return obj
   }
 
@@ -832,6 +917,7 @@
         products: [],
         orders: [],
         stalls: [],
+        markets: [],
         zones: [],
         zoneOptions: [],
         customerKeys: [],
@@ -1009,6 +1095,31 @@
               align: 'left',
               label: 'Private key',
               field: 'privatekey'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        marketTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'name',
+              align: 'left',
+              label: 'Name',
+              field: 'name'
+            },
+            {
+              name: 'stores',
+              align: 'left',
+              label: 'Stores',
+              field: 'stores'
             }
           ],
           pagination: {
@@ -1517,12 +1628,14 @@
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
+              console.log(this.markets)
             }
           })
           .catch(error => {
             LNbits.utils.notifyApiError(error)
           })
       },
+
       openShopUpdateDialog: function (linkId) {
         var self = this
         var link = _.findWhere(self.markets, {id: linkId})

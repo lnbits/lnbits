@@ -1,5 +1,6 @@
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
+from typing import List
 from uuid import uuid4
 
 from fastapi import Request
@@ -33,6 +34,7 @@ from .crud import (
     delete_diagonalley_stall,
     delete_diagonalley_zone,
     get_diagonalley_market,
+    get_diagonalley_market_stalls,
     get_diagonalley_markets,
     get_diagonalley_order,
     get_diagonalley_order_details,
@@ -42,6 +44,7 @@ from .crud import (
     get_diagonalley_products,
     get_diagonalley_stall,
     get_diagonalley_stalls,
+    get_diagonalley_stalls_by_ids,
     get_diagonalley_zone,
     get_diagonalley_zones,
     update_diagonalley_market,
@@ -426,7 +429,8 @@ async def api_diagonalley_stall_order(
 
 
 @diagonalley_ext.get("/api/v1/markets")
-async def api_diagonalley_orders(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_markets(wallet: WalletTypeInfo = Depends(get_key_type)):
+    # await get_diagonalley_market_stalls(market_id="FzpWnMyHQMcRppiGVua4eY")
     try:
         return [
             market.dict()
@@ -435,6 +439,12 @@ async def api_diagonalley_orders(wallet: WalletTypeInfo = Depends(get_key_type))
     except:
         return {"message": "We could not retrieve the markets."}
 
+
+@diagonalley_ext.get("/api/v1/markets/{market_id}/stalls")
+async def api_diagonalley_market_stalls(market_id: str):
+    stall_ids = await get_diagonalley_market_stalls(market_id)
+    return stall_ids
+    
 
 @diagonalley_ext.post("/api/v1/markets")
 @diagonalley_ext.put("/api/v1/markets/{market_id}")
