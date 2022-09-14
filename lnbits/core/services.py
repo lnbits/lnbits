@@ -30,6 +30,7 @@ from .crud import (
     check_internal,
     create_payment,
     delete_payment,
+    get_standalone_payment,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
@@ -155,6 +156,19 @@ async def cancel_hold_invoice(
     )
     if not ok:
         raise InvoiceFailure("Unexpected backend error.")
+
+    return True
+
+async def subscribe_hold_invoice(
+    *,
+    wallet_id: str,
+    payment_hash: bytes,
+    conn: Optional[Connection] = None,
+) -> bool:
+    payment = await get_standalone_payment(payment_hash, incoming=True)
+    asyncio.create_task(WALLET.hold_invoices_stream(
+        payment_hash=payment_hash, webhook=payment.webhook
+    ))
 
     return True
 

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import codecs
 import hashlib
 import json
 from os import getenv
@@ -287,3 +288,38 @@ class LndRestWallet(Wallet):
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def hold_invoices_stream(self, payment_hash: str, webhook: str):
+        try:
+            hex = codecs.decode(payment_hash, 'hex')
+            rhash = base64.urlsafe_b64encode(hex)
+            url = f"{self.endpoint}/v2/invoices/subscribe/{rhash.decode()}"
+            async with httpx.AsyncClient(
+                timeout=None, headers=self.auth, verify=self.cert
+            ) as client:
+                async with client.stream("GET", url) as r:
+                    async for line in r.aiter_lines():
+                        try:
+                            inv = json.loads(line)["result"]
+                            if inv["state"] != 'ACCEPTED' and inv["state"] != 'CANCELED':
+                                continue
+                        except:
+                            continue
+
+                        # dispatch webhook
+                        inv['payment_hash'] = payment_hash
+                        await LndRestWallet.dispatch_hold_webhook(webhook, inv)
+
+        except Exception as exc:
+            logger.error(
+                f"lost connection to lnd hold invoices stream: '{exc}', retrying in 5 seconds"
+            )
+            await asyncio.sleep(5)
+
+    async def dispatch_hold_webhook(webhook, inv):
+        async with httpx.AsyncClient() as client:
+            try:
+                logger.debug("sending hold webhook", webhook, str(inv))
+                await client.post(webhook, json=inv, timeout=40)  # type: ignore
+            except (httpx.ConnectError, httpx.RequestError):
+                logger.debug("error sending hold webhook")

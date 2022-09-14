@@ -53,6 +53,7 @@ from ..services import (
     create_hold_invoice,
     settle_hold_invoice,
     cancel_hold_invoice,
+    subscribe_hold_invoice,
     pay_invoice,
     perform_lnurlauth,
 )
@@ -277,6 +278,8 @@ async def api_payments_create_hold_invoice(data: CreateInvoiceData, wallet: Wall
 
     invoice = bolt11.decode(payment_request)
 
+    await api_payments_subscribe_invoice(wallet=wallet, payment_hash=data.hash)
+
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
         if "lnurl_balance_check" in data:
@@ -345,6 +348,22 @@ async def api_payments_cancel_invoice(payment_hash: str, wallet: Wallet):
 
     return {
         "cancel_result": str(cancel_result),
+    }
+
+async def api_payments_subscribe_invoice(payment_hash: str, wallet: Wallet):
+    try:
+        subscribe_result = await subscribe_hold_invoice(wallet_id=wallet.id, payment_hash=payment_hash)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
+    except PaymentFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
+
+    return {
+        "subscribe_result": str(subscribe_result),
     }
 
 async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
