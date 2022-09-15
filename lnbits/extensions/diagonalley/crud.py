@@ -201,12 +201,15 @@ async def get_diagonalley_stalls(wallet_ids: Union[str, List[str]]) -> List[Stal
     )
     return [Stalls(**row) for row in rows]
 
-async def get_diagonalley_stalls_by_ids(stall_ids: Union[str, List[str]]) -> List[Stalls]:
+
+async def get_diagonalley_stalls_by_ids(
+    stall_ids: Union[str, List[str]]
+) -> List[Stalls]:
     q = ",".join(["?"] * len(stall_ids))
     rows = await db.fetchall(
         f"SELECT * FROM diagonalley.stalls WHERE id IN ({q})", (*stall_ids,)
     )
-    return [Stalls(**row) for row in rows]    
+    return [Stalls(**row) for row in rows]
 
 
 async def delete_diagonalley_stall(stall_id: str) -> None:
@@ -353,10 +356,10 @@ async def get_diagonalley_market(market_id: str) -> Optional[Market]:
 async def get_diagonalley_market_stalls(market_id: str):
     rows = await db.fetchall(
         "SELECT * FROM diagonalley.market_stalls WHERE marketid = ?", (market_id,)
-    )   
+    )
 
-    ids =  [row["stallid"] for row in rows]
-    
+    ids = [row["stallid"] for row in rows]
+
     return await get_diagonalley_stalls_by_ids(ids)
 
 

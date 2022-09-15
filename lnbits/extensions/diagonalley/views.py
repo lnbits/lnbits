@@ -64,15 +64,17 @@ async def display(request: Request, stall_id):
 @diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
 async def display(request: Request, market_id):
     market = await get_diagonalley_market(market_id)
-    
+
     if not market:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Marketplace doesn't exist."
         )
-    
+
     stalls = await get_diagonalley_market_stalls(market_id)
     stalls_ids = [stall.id for stall in stalls]
-    products = [product.dict() for product in await get_diagonalley_products(stalls_ids)]
+    products = [
+        product.dict() for product in await get_diagonalley_products(stalls_ids)
+    ]
 
     return diagonalley_renderer().TemplateResponse(
         "diagonalley/market.html",
@@ -80,6 +82,6 @@ async def display(request: Request, market_id):
             "request": request,
             "market": market,
             "stalls": [stall.dict() for stall in stalls],
-            "products": products
+            "products": products,
         },
     )

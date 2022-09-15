@@ -444,7 +444,7 @@ async def api_diagonalley_markets(wallet: WalletTypeInfo = Depends(get_key_type)
 async def api_diagonalley_market_stalls(market_id: str):
     stall_ids = await get_diagonalley_market_stalls(market_id)
     return stall_ids
-    
+
 
 @diagonalley_ext.post("/api/v1/markets")
 @diagonalley_ext.put("/api/v1/markets/{market_id}")
