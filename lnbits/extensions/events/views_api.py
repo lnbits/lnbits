@@ -24,7 +24,6 @@ from .crud import (
     get_ticket,
     get_tickets,
     reg_ticket,
-    set_ticket_paid,
     update_event,
 )
 
