@@ -13,6 +13,8 @@ from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
 
 from ...core.crud import get_wallet
 from .crud import (
+    get_diagonalley_market,
+    get_diagonalley_market_stalls,
     get_diagonalley_products,
     get_diagonalley_stall,
     get_diagonalley_zone,
@@ -59,20 +61,25 @@ async def display(request: Request, stall_id):
     )
 
 
-# @diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
-# async def display(request: Request, stall_id):
-#     stalls = await get_diagonalley_stall(stall_id)
-#     products = await get_diagonalley_products(stall_id)
+@diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
+async def display(request: Request, market_id):
+    market = await get_diagonalley_market(market_id)
+    
+    if not market:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Marketplace doesn't exist."
+        )
+    
+    stalls = await get_diagonalley_market_stalls(market_id)
+    stalls_ids = [stall.id for stall in stalls]
+    products = [product.dict() for product in await get_diagonalley_products(stalls_ids)]
 
-#     if not stall:
-#         raise HTTPException(
-#             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
-#         )
-#     return diagonalley_renderer().TemplateResponse(
-#         "diagonalley/stall.html",
-#         {
-#             "request": request,
-#             "stall": stall.dict(),
-#             "products": [product.dict() for product in products]
-#         },
-#     )
+    return diagonalley_renderer().TemplateResponse(
+        "diagonalley/market.html",
+        {
+            "request": request,
+            "market": market,
+            "stalls": [stall.dict() for stall in stalls],
+            "products": products
+        },
+    )
