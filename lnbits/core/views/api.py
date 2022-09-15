@@ -440,7 +440,7 @@ class SettleInvoice(BaseModel):
 async def api_payments_settle(
     data: SettleInvoice, wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
-    if wallet.wallet_type > 0 and wallet.wallet_type < 2:
+    if wallet.wallet_type > -1 and wallet.wallet_type < 2:
         # invoice or admin key
         return await api_payments_settle_invoice(data.preimage, wallet.wallet)
     else:
