@@ -174,7 +174,7 @@ class Payment(BaseModel):
             logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )
-            await self.delete()
+            await self.delete(conn)
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
@@ -182,10 +182,10 @@ class Payment(BaseModel):
             await self.update_status(status, conn=conn)
         return status
 
-    async def delete(self) -> None:
+    async def delete(self, conn: Optional[Connection] = None) -> None:
         from .crud import delete_payment
 
-        await delete_payment(self.checking_id)
+        await delete_payment(self.checking_id, conn=conn)
 
 
 class BalanceCheck(BaseModel):
