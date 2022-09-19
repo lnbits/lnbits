@@ -825,6 +825,7 @@ async function serialSigner(path) {
       handleShowSeedResponse: function (res = '') {
         const [pos, word] = res.trim().split(' ')
         this.hww.seedWord = `${pos}. ${word}`
+        this.hww.seedWordPosition = pos
       },
       hwwRestore: async function () {
         try {
