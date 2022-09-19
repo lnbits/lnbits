@@ -5,7 +5,7 @@ animals = [
     "duck",
     "eagle",
     "flamingo",
-    "gorila",
+    "gorilla",
     "hamster",
     "iguana",
     "jaguar",
