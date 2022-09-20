@@ -22,6 +22,7 @@ async function serialSigner(path) {
           showPassword: false,
           mnemonic: null,
           showMnemonic: false,
+          quickMnemonicInput: false,
           passphrase: null,
           showPassphrase: false,
           hasPassphrase: false,
@@ -173,6 +174,10 @@ async function serialSigner(path) {
       },
       isAuthenticated: function () {
         return this.hww.authenticated
+      },
+
+      seedInputDone: function (mnemonic) {
+        this.hww.mnemonic = mnemonic
       },
       isAuthenticating: function () {
         if (this.isAuthenticated()) return false

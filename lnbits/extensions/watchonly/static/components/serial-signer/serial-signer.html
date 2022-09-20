@@ -375,18 +375,17 @@
   </q-dialog>
 
   <q-dialog v-model="showConsole" position="top">
-
     <q-card class="q-pa-lg q-pt-xl">
       <div class="row q-mt-lg q-mb-lg">
         <div class="col">
-        <q-badge
-          class="text-subtitle2 float-right"
-          color="yellow"
-          text-color="black"
-        >
-          Open the browser Developer Console for more Details!
-        </q-badge>
-      </div>
+          <q-badge
+            class="text-subtitle2 float-right"
+            color="yellow"
+            text-color="black"
+          >
+            Open the browser Developer Console for more Details!
+          </q-badge>
+        </div>
       </div>
 
       <q-input
@@ -460,26 +459,37 @@
         >
           For test purposes only. Do not enter word list with real funds!!!
         </q-badge>
-        <br /><br /><br />
-        <span>Enter new word list separated by space</span>
-        <q-input
-          v-model.trim="hww.mnemonic"
-          filled
-          :type="hww.showMnemonic ? 'text' : 'password'"
-          filled
-          dense
-          label="Word List"
-        >
-          <template v-slot:append>
-            <q-icon
-              :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
-              class="cursor-pointer"
-              @click="hww.showMnemonic = !hww.showMnemonic"
-            />
-          </template>
-        </q-input>
+        <br />
+        <q-toggle
+          label="Enter word list separated by space"
+          color="secodary"
+          v-model="hww.quickMnemonicInput"
+        ></q-toggle>
         <br />
 
+        <div v-if="hww.quickMnemonicInput">
+          <q-input
+            v-model.trim="hww.mnemonic"
+            filled
+            :type="hww.showMnemonic ? 'text' : 'password'"
+            filled
+            dense
+            label="Word List"
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
+                class="cursor-pointer"
+                @click="hww.showMnemonic = !hww.showMnemonic"
+              />
+            </template>
+          </q-input>
+        </div>
+
+        <seed-input v-else @on-seed-input-done="seedInputDone"></seed-input>
+        <br />
+        <q-separator></q-separator>
+        <br />
         <span>Enter new password (8 numbers/letters)</span>
         <q-input
           v-model.trim="hww.password"

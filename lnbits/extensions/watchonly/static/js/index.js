@@ -7,6 +7,7 @@ const watchOnly = async () => {
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
   await feeRate('static/components/fee-rate/fee-rate.html')
+  await seedInput('static/components/seed-input/seed-input.html')
   await sendTo('static/components/send-to/send-to.html')
   await payment('static/components/payment/payment.html')
   await serialSigner('static/components/serial-signer/serial-signer.html')
