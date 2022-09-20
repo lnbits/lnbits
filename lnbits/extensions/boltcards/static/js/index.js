@@ -398,7 +398,7 @@ new Vue({
       let cards = _.findWhere(this.cards, {id: cardId})
 
       LNbits.utils
-        .confirmDialog('Are you sure you want to delete this card')
+        .confirmDialog('Are you sure you want to delete this card? Without access to the card keys you won\'t be able to reset them in the future!')
         .onOk(function () {
           LNbits.api
             .request(

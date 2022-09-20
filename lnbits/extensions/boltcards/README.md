@@ -6,7 +6,7 @@ This extension allows you to link your Bolt Card (or other compatible NXP NTAG d
 
 **Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
-***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [bolt-nfc-android-app](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes. It's available from Google Play [here](https://play.google.com/store/apps/details?id=com.lightningnfcapp).
+***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [Boltcard NFC Card Creator](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes. It's available from Google Play [here](https://play.google.com/store/apps/details?id=com.lightningnfcapp).
 
 ## About the keys
 
@@ -16,11 +16,11 @@ Up to five 16-byte keys can be stored on the card, numbered from 00 to 04. In th
 
 - One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
 
-The key #00, K0 (also know as auth key) is skipped to be used as authentification key. It is not needed by this extension, but should be filled in order to write the keys in cooperation with bolt-nfc-android-app. In this case also K3 is set to same value as K1 and K4 as K2, so all keys are changed from default values. Keep that in your mind in case you need to reset the keys manually.
+The key #00, K0 (also know as auth key) is skipped to be used as authentification key. It is not needed by this extension, but should be filled in order to write the keys in cooperation with Boltcard NFC Card Creator. In this case also K3 is set to same value as K1 and K4 as K2, so all keys are changed from default values. Keep that in your mind in case you need to reset the keys manually.
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
-## Setting the card - bolt-nfc-android-app (easy way)
+## Setting the card - Boltcard NFC Card Creator (easy way)
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
 - Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{external_id}`
