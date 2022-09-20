@@ -328,7 +328,7 @@ async def delete_expired_invoices(
         """
     )
     logger.debug(f"Checking expiry of {len(rows)} invoices")
-    for (payment_request,) in rows:
+    for i, (payment_request,) in enumerate(rows):
         try:
             invoice = bolt11.decode(payment_request)
         except:
@@ -338,7 +338,7 @@ async def delete_expired_invoices(
         if expiration_date > datetime.datetime.utcnow():
             continue
         logger.debug(
-            f"Deleting expired invoice: {invoice.payment_hash} (expired: {expiration_date})"
+            f"Deleting expired invoice {i}/{len(rows)}: {invoice.payment_hash} (expired: {expiration_date})"
         )
         await (conn or db).execute(
             """
