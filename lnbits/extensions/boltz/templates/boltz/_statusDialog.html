@@ -1,0 +1,33 @@
+<q-dialog v-model="statusDialog.show" position="top">
+  <q-card v-if="statusDialog.data" class="q-pa-lg lnbits__dialog-card">
+    <div>
+      {% raw %}
+      <b>Status: </b> {{ statusDialog.data.status }} <br />
+      <b>Wallet: </b> {{ statusDialog.data.wallet }} <br />
+      <b>Boltz Status: </b> {{ statusDialog.data.boltz }} <br />
+      <b>Mempool Status: </b> {{ statusDialog.data.mempool }} <br />
+      <b>Blockheight timeout: </b> {{ statusDialog.data.timeout_block_height
+      }} <br />
+      {% endraw %}
+    </div>
+    <div class="row q-mt-lg q-gutter-sm">
+      <q-btn
+        outline
+        color="grey"
+        @click="refundSwap(statusDialog.data.swap_id)"
+        v-if="!statusDialog.data.reverse"
+        class="q-ml-sm"
+        >Refund
+      </q-btn>
+      <q-btn
+        outline
+        color="grey"
+        @click="downloadRefundFile(statusDialog.data.swap_id)"
+        v-if="!statusDialog.data.reverse"
+        class="q-ml-sm"
+        >Download refundfile</q-btn
+      >
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+    </div>
+  </q-card>
+</q-dialog>

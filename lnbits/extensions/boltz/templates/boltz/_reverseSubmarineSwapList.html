@@ -1,0 +1,72 @@
+<q-card>
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Reverse Swaps (Out)</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportReverseSubmarineSwapCSV"
+          >Export to CSV</q-btn
+        >
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="reverseSubmarineSwaps"
+      row-key="id"
+      :columns="reverseSubmarineSwapTable.columns"
+      :pagination.sync="reverseSubmarineSwapTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td style="width: 10%">
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="info"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openStatusDialog(props.row.id, true)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open swap status info</q-tooltip
+              >
+            </q-btn>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="flip_to_front"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openMempool(props.row.id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open tx on mempool.space</q-tooltip
+              >
+            </q-btn>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>

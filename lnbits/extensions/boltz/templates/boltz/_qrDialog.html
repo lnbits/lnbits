@@ -1,0 +1,31 @@
+<q-dialog v-model="qrCodeDialog.show" position="top">
+  <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+    <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+      <qrcode
+        :value="qrCodeDialog.data.bip21"
+        :options="{width: 800}"
+        class="rounded-borders"
+      ></qrcode>
+    </q-responsive>
+    <div>
+      {% raw %}
+      <b>Bitcoin On-Chain TX</b><br />
+      <b>Expected amount (sats): </b> {{ qrCodeDialog.data.expected_amount }}
+      <br />
+      <b>Expected amount (btc): </b> {{ qrCodeDialog.data.expected_amount_btc
+      }} <br />
+      <b>Onchain Address: </b> {{ qrCodeDialog.data.address }} <br />
+      {% endraw %}
+    </div>
+    <div class="row q-mt-lg q-gutter-sm">
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText(qrCodeDialog.data.address, 'Onchain address copied to clipboard!')"
+        class="q-ml-sm"
+        >Copy On-Chain Address</q-btn
+      >
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+    </div>
+  </q-card>
+</q-dialog>

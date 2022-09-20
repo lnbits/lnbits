@@ -25,6 +25,16 @@
           </q-tooltip>
         </q-btn>
         <q-btn
+          label="Auto Reverse Swap (Out)"
+          unelevated
+          color="primary"
+          @click="autoReverseSubmarineSwapDialog.show = true"
+        >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+            Automatically send offchain funds to onchain address (LN -> BTC) with a predefined threshold
+          </q-tooltip>
+        </q-btn>
+        <q-btn
           label="Check Swaps"
           icon="cached"
           unelevated
@@ -37,165 +47,9 @@
         </q-btn>
       </q-card-section>
     </q-card>
-    <q-card>
-      <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Swaps (In)</h5>
-          </div>
-          <div class="col-auto">
-            <q-btn flat color="grey" @click="exportSubmarineSwapCSV"
-              >Export to CSV</q-btn
-            >
-          </div>
-        </div>
-        <q-table
-          dense
-          flat
-          :data="submarineSwaps"
-          row-key="id"
-          :columns="submarineSwapTable.columns"
-          :pagination.sync="submarineSwapTable.pagination"
-        >
-          {% raw %}
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td style="width: 10%">
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="visibility"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.id)"
-                >
-                  <q-tooltip
-                    class="bg-grey-8"
-                    anchor="bottom left"
-                    self="top left"
-                    >open swap onchain details</q-tooltip
-                  >
-                </q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="info"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openStatusDialog(props.row.id)"
-                >
-                  <q-tooltip
-                    class="bg-grey-8"
-                    anchor="bottom left"
-                    self="top left"
-                    >open swap status info</q-tooltip
-                  >
-                </q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="flip_to_front"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openMempool(props.row.id)"
-                >
-                  <q-tooltip
-                    class="bg-grey-8"
-                    anchor="bottom left"
-                    self="top left"
-                    >open tx on mempool.space</q-tooltip
-                  >
-                </q-btn>
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
-              </q-td>
-            </q-tr>
-          </template>
-          {% endraw %}
-        </q-table>
-      </q-card-section>
-    </q-card>
-    <q-card>
-      <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Reverse Swaps (Out)</h5>
-          </div>
-          <div class="col-auto">
-            <q-btn flat color="grey" @click="exportReverseSubmarineSwapCSV"
-              >Export to CSV</q-btn
-            >
-          </div>
-        </div>
-        <q-table
-          dense
-          flat
-          :data="reverseSubmarineSwaps"
-          row-key="id"
-          :columns="reverseSubmarineSwapTable.columns"
-          :pagination.sync="reverseSubmarineSwapTable.pagination"
-        >
-          {% raw %}
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td style="width: 10%">
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="info"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openStatusDialog(props.row.id, true)"
-                >
-                  <q-tooltip
-                    class="bg-grey-8"
-                    anchor="bottom left"
-                    self="top left"
-                    >open swap status info</q-tooltip
-                  >
-                </q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="flip_to_front"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openMempool(props.row.id)"
-                >
-                  <q-tooltip
-                    class="bg-grey-8"
-                    anchor="bottom left"
-                    self="top left"
-                    >open tx on mempool.space</q-tooltip
-                  >
-                </q-btn>
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
-              </q-td>
-            </q-tr>
-          </template>
-          {% endraw %}
-        </q-table>
-      </q-card-section>
-    </q-card>
+    {% include "boltz/_submarineSwapList.html" %}
+    {% include "boltz/_reverseSubmarineSwapList.html" %}
+    {% include "boltz/_autoReverseSwapList.html" %}
   </div>
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
@@ -208,325 +62,12 @@
       </q-card-section>
     </q-card>
   </div>
-  <q-dialog v-model="submarineSwapDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendSubmarineSwapFormData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="submarineSwapDialog.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-          :disable="submarineSwapDialog.data.id ? true : false"
-        >
-        </q-select>
-
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="submarineSwapDialog.data.amount"
-          :label="amountLabel()"
-          type="number"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="submarineSwapDialog.data.refund_address"
-          type="string"
-          label="Onchain address to receive funds if swap fails"
-        ></q-input>
-        <div class="row q-mt-lg">
-          <q-btn
-            v-if="submarineSwapDialog.data.id"
-            unelevated
-            color="primary"
-            type="submit"
-            label="Update Swap"
-          ></q-btn>
-          <q-btn
-            v-else
-            unelevated
-            color="primary"
-            :disable="disableSubmarineSwapDialog()"
-            type="submit"
-            label="Create Swap (IN)"
-          ></q-btn>
-          <q-btn
-            v-close-popup
-            flat
-            color="grey"
-            class="q-ml-auto"
-            @click="resetSubmarineSwapDialog"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="reverseSubmarineSwapDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendReverseSubmarineSwapFormData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="reverseSubmarineSwapDialog.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-          :disable="reverseSubmarineSwapDialog.data.id ? true : false"
-        >
-        </q-select>
-
-        <q-input
-          filled
-          dense
-          emit-value
-          :label="amountLabel()"
-          v-model.trim="reverseSubmarineSwapDialog.data.amount"
-          type="number"
-        ></q-input>
-        <div class="row">
-          <div class="col">
-            <q-checkbox
-              v-model="reverseSubmarineSwapDialog.data.instant_settlement"
-              value="false"
-              label="Instant settlement"
-            >
-              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Create Onchain TX when transaction is in mempool, but not
-                confirmed yet.
-              </q-tooltip>
-            </q-checkbox>
-          </div>
-        </div>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="reverseSubmarineSwapDialog.data.onchain_address"
-          type="string"
-          label="Onchain address to receive funds"
-        ></q-input>
-        <div class="row q-mt-lg">
-          <q-btn
-            v-if="reverseSubmarineSwapDialog.data.id"
-            unelevated
-            color="primary"
-            type="submit"
-            label="Update Swap"
-          ></q-btn>
-          <q-btn
-            v-else
-            unelevated
-            color="primary"
-            :disable="disableReverseSubmarineSwapDialog()"
-            type="submit"
-            label="Create Reverse Swap (OUT)"
-          ></q-btn>
-          <q-btn
-            v-close-popup
-            flat
-            color="grey"
-            class="q-ml-auto"
-            @click="resetReverseSubmarineSwapDialog"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="qrCodeDialog.show" position="top">
-    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
-      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-        <qrcode
-          :value="qrCodeDialog.data.bip21"
-          :options="{width: 800}"
-          class="rounded-borders"
-        ></qrcode>
-      </q-responsive>
-      <div>
-        {% raw %}
-        <b>Bitcoin On-Chain TX</b><br />
-        <b>Expected amount (sats): </b> {{ qrCodeDialog.data.expected_amount }}
-        <br />
-        <b>Expected amount (btc): </b> {{ qrCodeDialog.data.expected_amount_btc
-        }} <br />
-        <b>Onchain Address: </b> {{ qrCodeDialog.data.address }} <br />
-        {% endraw %}
-      </div>
-      <div class="row q-mt-lg q-gutter-sm">
-        <q-btn
-          outline
-          color="grey"
-          @click="copyText(qrCodeDialog.data.address, 'Onchain address copied to clipboard!')"
-          class="q-ml-sm"
-          >Copy On-Chain Address</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="statusDialog.show" position="top">
-    <q-card v-if="statusDialog.data" class="q-pa-lg lnbits__dialog-card">
-      <div>
-        {% raw %}
-        <b>Status: </b> {{ statusDialog.data.status }} <br />
-        <b>Wallet: </b> {{ statusDialog.data.wallet }} <br />
-        <b>Boltz Status: </b> {{ statusDialog.data.boltz }} <br />
-        <b>Mempool Status: </b> {{ statusDialog.data.mempool }} <br />
-        <b>Blockheight timeout: </b> {{ statusDialog.data.timeout_block_height
-        }} <br />
-        {% endraw %}
-      </div>
-      <div class="row q-mt-lg q-gutter-sm">
-        <q-btn
-          outline
-          color="grey"
-          @click="refundSwap(statusDialog.data.swap_id)"
-          v-if="!statusDialog.data.reverse"
-          class="q-ml-sm"
-          >Refund
-        </q-btn>
-        <q-btn
-          outline
-          color="grey"
-          @click="downloadRefundFile(statusDialog.data.swap_id)"
-          v-if="!statusDialog.data.reverse"
-          class="q-ml-sm"
-          >Download refundfile</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="allStatusDialog.show" maximized position="top">
-    <q-card v-if="allStatusDialog.data" class="q-pa-lg lnbits__dialog-card">
-      <h5>pending swaps</h5>
-      <q-table
-        dense
-        flat
-        :data="allStatusDialog.data.swaps"
-        row-key="id"
-        :columns="allStatusTable.columns"
-        :rows-per-page-options="[0]"
-      >
-        {% raw %}
-        <template v-slot:header="props">
-          <q-tr :props="props">
-            <q-th auto-width></q-th>
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-              {{ col.label }}
-            </q-th>
-          </q-tr>
-        </template>
-        <template v-slot:body="props">
-          <q-tr :props="props">
-            <q-td style="width: 10%">
-              <q-btn
-                unelevated
-                dense
-                size="xs"
-                icon="cached"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="refundSwap(props.row.swap_id)"
-              >
-                <q-tooltip
-                  class="bg-grey-8"
-                  anchor="bottom left"
-                  self="top left"
-                  >refund swap</q-tooltip
-                >
-              </q-btn>
-              <q-btn
-                unelevated
-                dense
-                size="xs"
-                icon="download"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="downloadRefundFile(props.row.swap_id)"
-              >
-                <q-tooltip
-                  class="bg-grey-8"
-                  anchor="bottom left"
-                  self="top left"
-                  >dowload refund file</q-tooltip
-                >
-              </q-btn>
-              <q-btn
-                unelevated
-                dense
-                size="xs"
-                icon="flip_to_front"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="openMempool(props.row.swap_id)"
-              >
-                <q-tooltip
-                  class="bg-grey-8"
-                  anchor="bottom left"
-                  self="top left"
-                  >open tx on mempool.space</q-tooltip
-                >
-              </q-btn>
-            </q-td>
-            <q-td v-for="col in props.cols" :key="col.name" :props="props">
-              {{ col.value }}
-            </q-td>
-          </q-tr>
-        </template>
-        {% endraw %}
-      </q-table>
-      <h5>pending reverse swaps</h5>
-      <q-table
-        dense
-        flat
-        :data="allStatusDialog.data.reverse_swaps"
-        row-key="id"
-        :columns="allStatusTable.columns"
-        :rows-per-page-options="[0]"
-      >
-        {% raw %}
-        <template v-slot:header="props">
-          <q-tr :props="props">
-            <q-th auto-width></q-th>
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-              {{ col.label }}
-            </q-th>
-          </q-tr>
-        </template>
-        <template v-slot:body="props">
-          <q-tr :props="props">
-            <q-td style="width: 10%">
-              <q-btn
-                unelevated
-                dense
-                size="xs"
-                icon="flip_to_front"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="openMempool(props.row.swap_id)"
-              >
-                <q-tooltip
-                  class="bg-grey-8"
-                  anchor="bottom left"
-                  self="top left"
-                  >open tx on mempool.space</q-tooltip
-                >
-              </q-btn>
-            </q-td>
-            <q-td v-for="col in props.cols" :key="col.name" :props="props">
-              {{ col.value }}
-            </q-td>
-          </q-tr>
-        </template>
-        {% endraw %}
-      </q-table>
-      <div class="row q-mt-lg q-gutter-sm">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+  {% include "boltz/_submarineSwapDialog.html" %}
+  {% include "boltz/_reverseSubmarineSwapDialog.html" %}
+  {% include "boltz/_autoReverseSwapDialog.html" %}
+  {% include "boltz/_qrDialog.html" %}
+  {% include "boltz/_statusDialog.html" %}
+  {% include "boltz/_checkSwapDialog.html" %}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -540,12 +81,19 @@
         boltzConfig: {},
         submarineSwaps: [],
         reverseSubmarineSwaps: [],
+        autoReverseSubmarineSwaps: [],
         statuses: [],
         submarineSwapDialog: {
           show: false,
           data: {}
         },
         reverseSubmarineSwapDialog: {
+          show: false,
+          data: {
+            instant_settlement: true
+          }
+        },
+        autoReverseSubmarineSwapDialog: {
           show: false,
           data: {
             instant_settlement: true
@@ -559,7 +107,7 @@
           show: false,
           data: {}
         },
-        allStatusDialog: {
+        checkSwapDialog: {
           show: false,
           data: {}
         },
@@ -593,6 +141,60 @@
               name: 'timeout_block_height',
               align: 'left',
               label: 'block height',
+              field: 'timeout_block_height'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        autoReverseSubmarineSwapTable: {
+          columns: [
+            {
+              name: 'time',
+              align: 'left',
+              label: 'time',
+              field: 'time',
+              sortable: true,
+              format: function (val, row) {
+                return new Date(val * 1000).toUTCString()
+              }
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'wallet',
+              field: data => {
+                let wallet = _.findWhere(this.g.user.wallets, {
+                  id: data.wallet
+                })
+                if (wallet) {
+                  return wallet.name
+                }
+              }
+            },
+            {
+              name: 'status',
+              align: 'left',
+              label: 'status',
+              field: 'status'
+            },
+            {
+              name: 'boltz_id',
+              align: 'left',
+              label: 'boltz id',
+              field: 'boltz_id'
+            },
+            {
+              name: 'onchain_amount',
+              align: 'left',
+              label: 'onchain amount',
+              field: 'onchain_amount'
+            },
+            {
+              name: 'timeout_block_height',
+              align: 'left',
+              label: 'timeout block height',
               field: 'timeout_block_height'
             }
           ],
@@ -754,6 +356,19 @@
           data.amount > limits.max
         )
       },
+      disableAutoReverseSubmarineSwapDialog() {
+        const data = this.autoReverseSubmarineSwapDialog.data
+        let limits = this.getLimits()
+        return (
+          data.onchain_address == null ||
+          data.onchain_address.search(
+            /^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/
+          ) !== 0 ||
+          data.wallet == null ||
+          data.amount < limits.min ||
+          data.amount > limits.max
+        )
+      },
       downloadRefundFile(swapId) {
         let swap = _.findWhere(this.submarineSwaps, {id: swapId})
         let json = {
@@ -850,7 +465,7 @@
         }
       },
       resetAllStatusDialog() {
-        this.allStatusDialog = {
+        this.checkSwapDialog = {
           show: false,
           data: {}
         }
@@ -867,12 +482,25 @@
           data: {}
         }
       },
+      resetAutoReverseSubmarineSwapDialog() {
+        this.autoReverseSubmarineSwapDialog = {
+          show: false,
+          data: {}
+        }
+      },
       sendReverseSubmarineSwapFormData() {
         let wallet = _.findWhere(this.g.user.wallets, {
           id: this.reverseSubmarineSwapDialog.data.wallet
         })
         let data = this.reverseSubmarineSwapDialog.data
         this.createReverseSubmarineSwap(wallet, data)
+      },
+      sendAutoReverseSubmarineSwapFormData() {
+        let wallet = _.findWhere(this.g.user.wallets, {
+          id: this.autoReverseSubmarineSwapDialog.data.wallet
+        })
+        let data = this.autoReverseSubmarineSwapDialog.data
+        this.createAutoReverseSubmarineSwap(wallet, data)
       },
       sendSubmarineSwapFormData() {
         let wallet = _.findWhere(this.g.user.wallets, {
@@ -926,6 +554,22 @@
             LNbits.utils.notifyApiError(error)
           })
       },
+      createAutoReverseSubmarineSwap(wallet, data) {
+        LNbits.api
+          .request(
+            'POST',
+            '/boltz/api/v1/swap/reverse/auto',
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(res => {
+            this.autoReverseSubmarineSwaps.unshift(res.data)
+            this.resetAutoReverseSubmarineSwapDialog()
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       getSubmarineSwap() {
         LNbits.api
           .request(
@@ -949,6 +593,20 @@
           )
           .then(response => {
             this.reverseSubmarineSwaps = response.data
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getAutoReverseSubmarineSwap() {
+        LNbits.api
+          .request(
+            'GET',
+            '/boltz/api/v1/swap/reverse/auto?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.autoReverseSubmarineSwaps = response.data
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -984,11 +642,11 @@
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
-            this.allStatusDialog.data = {
+            this.checkSwapDialog.data = {
               swaps: _.where(res.data, {reverse: false}),
               reverse_swaps: _.where(res.data, {reverse: true})
             }
-            this.allStatusDialog.show = true
+            this.checkSwapDialog.show = true
           })
           .catch(error => {
             console.log('error', error)
@@ -1001,6 +659,7 @@
       this.getBoltzConfig()
       this.getSubmarineSwap()
       this.getReverseSubmarineSwap()
+      this.getAutoReverseSubmarineSwap()
     }
   })
 </script>

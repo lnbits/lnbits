@@ -1,0 +1,125 @@
+<q-dialog v-model="checkSwapDialog.show" maximized position="top">
+  <q-card v-if="checkSwapDialog.data" class="q-pa-lg lnbits__dialog-card">
+    <h5>pending swaps</h5>
+    <q-table
+      dense
+      flat
+      :data="checkSwapDialog.data.swaps"
+      row-key="id"
+      :columns="allStatusTable.columns"
+      :rows-per-page-options="[0]"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td style="width: 10%">
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="cached"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="refundSwap(props.row.swap_id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >refund swap</q-tooltip
+              >
+            </q-btn>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="download"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="downloadRefundFile(props.row.swap_id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >dowload refund file</q-tooltip
+              >
+            </q-btn>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="flip_to_front"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openMempool(props.row.swap_id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open tx on mempool.space</q-tooltip
+              >
+            </q-btn>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+    <h5>pending reverse swaps</h5>
+    <q-table
+      dense
+      flat
+      :data="checkSwapDialog.data.reverse_swaps"
+      row-key="id"
+      :columns="allStatusTable.columns"
+      :rows-per-page-options="[0]"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td style="width: 10%">
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="flip_to_front"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openMempool(props.row.swap_id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open tx on mempool.space</q-tooltip
+              >
+            </q-btn>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+    <div class="row q-mt-lg q-gutter-sm">
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+    </div>
+  </q-card>
+</q-dialog>

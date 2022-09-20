@@ -1,0 +1,87 @@
+<q-card>
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Swaps (In)</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportSubmarineSwapCSV"
+          >Export to CSV</q-btn
+        >
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="submarineSwaps"
+      row-key="id"
+      :columns="submarineSwapTable.columns"
+      :pagination.sync="submarineSwapTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td style="width: 10%">
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="visibility"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openQrCodeDialog(props.row.id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open swap onchain details</q-tooltip
+              >
+            </q-btn>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="info"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openStatusDialog(props.row.id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open swap status info</q-tooltip
+              >
+            </q-btn>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="flip_to_front"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="openMempool(props.row.id)"
+            >
+              <q-tooltip
+                class="bg-grey-8"
+                anchor="bottom left"
+                self="top left"
+                >open tx on mempool.space</q-tooltip
+              >
+            </q-btn>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>

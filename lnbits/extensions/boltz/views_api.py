@@ -25,19 +25,23 @@ from .boltz import (
     get_swap_status,
 )
 from .crud import (
+    create_auto_reverse_submarine_swap,
     create_reverse_submarine_swap,
     create_submarine_swap,
     get_pending_reverse_submarine_swaps,
     get_pending_submarine_swaps,
     get_reverse_submarine_swap,
     get_reverse_submarine_swaps,
+    get_auto_reverse_submarine_swaps,
     get_submarine_swap,
     get_submarine_swaps,
     update_swap_status,
 )
 from .models import (
+    CreateAutoReverseSubmarineSwap,
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
+    AutoReverseSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
@@ -183,7 +187,7 @@ async def api_submarineswap_create(
 @boltz_ext.get(
     "/api/v1/swap/reverse",
     name=f"boltz.get /swap/reverse",
-    summary="get a list of reverse swaps a swap",
+    summary="get a list of reverse swaps",
     description="""
         This endpoint gets a list of reverse swaps.
     """,
@@ -241,6 +245,45 @@ async def api_reverse_submarineswap_create(
         raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
 
     swap = await create_reverse_submarine_swap(swap_data)
+    return swap.dict()
+
+@boltz_ext.get(
+    "/api/v1/swap/reverse/auto",
+    name=f"boltz.get /swap/reverse/auto",
+    summary="get a list of auto reverse swaps",
+    description="""
+        This endpoint gets a list of auto reverse swaps.
+    """,
+    response_description="list of auto reverse swaps",
+    dependencies=[Depends(get_key_type)],
+    response_model=List[AutoReverseSubmarineSwap],
+)
+async def api_auto_reverse_submarineswap(
+    g: WalletTypeInfo = Depends(get_key_type),  # type:ignore
+    all_wallets: bool = Query(False),
+):
+    wallet_ids = [g.wallet.id]
+    if all_wallets:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    return [swap.dict() for swap in await get_auto_reverse_submarine_swaps(wallet_ids)]
+
+
+@boltz_ext.post(
+    "/api/v1/swap/reverse/auto",
+    status_code=status.HTTP_201_CREATED,
+    name=f"boltz.post /swap/reverse/auto",
+    summary="create a auto reverse submarine swap",
+    description="""
+        This endpoint creates a auto reverse submarine swap
+    """,
+    response_description="create auto reverse swap",
+    response_model=AutoReverseSubmarineSwap,
+)
+async def api_auto_reverse_submarineswap_create(
+    data: CreateAutoReverseSubmarineSwap,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    swap = await create_auto_reverse_submarine_swap(data)
     return swap.dict()
 
 

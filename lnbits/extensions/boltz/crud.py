@@ -6,15 +6,13 @@ from starlette.exceptions import HTTPException
 
 from . import db
 from .models import (
+    CreateAutoReverseSubmarineSwap,
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
+    AutoReverseSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-
-"""
-Submarine Swaps
-"""
 
 
 async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[SubmarineSwap]:
@@ -140,7 +138,7 @@ async def get_all_pending_reverse_submarine_swaps() -> List[ReverseSubmarineSwap
     return [ReverseSubmarineSwap(**row) for row in rows]
 
 
-async def get_reverse_submarine_swap(swap_id) -> SubmarineSwap:
+async def get_reverse_submarine_swap(swap_id) -> ReverseSubmarineSwap:
     row = await db.fetchone(
         "SELECT * FROM boltz.reverse_submarineswap WHERE id = ?", (swap_id,)
     )
@@ -189,6 +187,56 @@ async def create_reverse_submarine_swap(
         ),
     )
     return await get_reverse_submarine_swap(swap.id)
+
+
+async def get_auto_reverse_submarine_swaps(
+    wallet_ids: Union[str, List[str]]
+) -> List[AutoReverseSubmarineSwap]:
+    if isinstance(wallet_ids, str):
+        wallet_ids = [wallet_ids]
+
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM boltz.auto_reverse_submarineswap WHERE wallet IN ({q}) order by time DESC",
+        (*wallet_ids,),
+    )
+
+    return [AutoReverseSubmarineSwap(**row) for row in rows]
+
+
+async def get_auto_reverse_submarine_swap(swap_id) -> AutoReverseSubmarineSwap:
+    row = await db.fetchone(
+        "SELECT * FROM boltz.auto_reverse_submarineswap WHERE id = ?", (swap_id,)
+    )
+    return AutoReverseSubmarineSwap(**row) if row else None
+
+
+async def create_auto_reverse_submarine_swap(
+    swap: AutoReverseSubmarineSwap,
+) -> Optional[AutoReverseSubmarineSwap]:
+
+    await db.execute(
+        """
+        INSERT INTO boltz.auto_reverse_submarineswap (
+            id,
+            wallet,
+            status,
+            instant_settlement,
+            threshold,
+            amount
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            swap.id,
+            swap.wallet,
+            swap.status,
+            swap.instant_settlement,
+            swap.threshold,
+            swap.amount,
+        ),
+    )
+    return await get_auto_reverse_submarine_swap(swap.id)
 
 
 async def update_swap_status(swap_id: str, status: str):
