@@ -253,7 +253,7 @@
         name="check"
         transition-show="fade"
         class="text-light-green"
-        style="font-size: 40em"
+        style="font-size: min(90vw, 40em)"
       ></q-icon>
     </q-dialog>
   </q-page>
@@ -294,6 +294,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        hasNFC: false,
         nfcTagReading: false,
         invoiceDialog: {
           show: false,
@@ -370,7 +371,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options.length) {
+        if (this.tip_options && this.tip_options.length) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -413,9 +414,6 @@
                     dialog.show = false
 
                     self.complete.show = true
-                    setTimeout(function () {
-                      self.complete.show = false
-                    }, 5000)
                   }
                 })
             }, 3000)
