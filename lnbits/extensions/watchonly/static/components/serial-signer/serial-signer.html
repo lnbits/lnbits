@@ -375,7 +375,20 @@
   </q-dialog>
 
   <q-dialog v-model="showConsole" position="top">
+
     <q-card class="q-pa-lg q-pt-xl">
+      <div class="row q-mt-lg q-mb-lg">
+        <div class="col">
+        <q-badge
+          class="text-subtitle2 float-right"
+          color="yellow"
+          text-color="black"
+        >
+          Open the browser Developer Console for more Details!
+        </q-badge>
+      </div>
+      </div>
+
       <q-input
         filled
         dense
@@ -386,7 +399,6 @@
         cols="200"
         label="Console"
       ></q-input>
-
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
