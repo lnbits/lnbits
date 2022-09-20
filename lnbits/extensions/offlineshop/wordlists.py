@@ -11,7 +11,7 @@ animals = [
     "jaguar",
     "koala",
     "llama",
-    "macaroni penguim",
+    "macaroni penguin",
     "numbat",
     "octopus",
     "platypus",
