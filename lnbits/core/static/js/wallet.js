@@ -675,14 +675,14 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = this.paymentsTable.columns
-      columns.unshift({
+      const exportColumns = [...this.paymentsTable.columns]
+      exportColumns.unshift({
         name: 'pending',
         align: 'left',
         label: 'Pending',
         field: 'pending'
       })
-      LNbits.utils.exportCSV(columns, this.payments)
+      LNbits.utils.exportCSV(exportColumns, this.payments)
     }
   },
   watch: {
