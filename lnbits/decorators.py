@@ -239,16 +239,12 @@ async def check_user_exists(usr: UUID4) -> User:
     if LNBITS_ADMIN_UI:
         LNBITS_ADMIN_USERS = g().admin_conf.admin_users
         LNBITS_ALLOWED_USERS = g().admin_conf.allowed_users
-    try:
-        if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
-            )
-    except:
-        pass
-    try:
-        if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
-            g().user.admin = True
+    if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+        )
+    if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
+        g().user.admin = True
     except:
         pass
     return g().user
