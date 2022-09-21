@@ -13,7 +13,7 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import cashu_ext
-from .crud import create_cashu, delete_cashu, get_cashu, get_cashus
+from .crud import create_cashu, delete_cashu, get_cashu, get_cashus, update_cashu_keys
 from .models import Cashu, Pegs, PayLnurlWData
 
 
@@ -32,6 +32,16 @@ async def api_cashus(
 async def api_cashu_create(
     data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    cashu = await create_cashu(wallet_id=wallet.wallet.id, data=data)
+    logger.debug(cashu)
+    return cashu.dict()
+
+@cashu_ext.post("/api/v1/cashus/upodatekeys", status_code=HTTPStatus.CREATED)
+async def api_cashu_update_keys(
+    data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    cashu = await get_cashu(data.id)
+
     cashu = await create_cashu(wallet_id=wallet.wallet.id, data=data)
     logger.debug(cashu)
     return cashu.dict()

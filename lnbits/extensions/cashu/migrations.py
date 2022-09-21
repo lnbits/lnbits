@@ -11,8 +11,9 @@ async def m001_initial(db):
             tickershort TEXT NOT NULL,
             fraction BOOL,
             maxsats INT,
-            coins INT
-            
+            coins INT,
+            prvkey TEXT NOT NULL,
+            pubkey TEXT NOT NULL
         );
     """
     )
