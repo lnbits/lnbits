@@ -245,6 +245,4 @@ async def check_user_exists(usr: UUID4) -> User:
         )
     if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
         g().user.admin = True
-    except:
-        pass
     return g().user
