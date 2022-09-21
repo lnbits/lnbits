@@ -116,6 +116,7 @@
                     >New Receive Address</q-btn
                   >
                 </div>
+
                 <div class="col-4">
                   {{getAccountDescription(props.row.type)}}
                 </div>
@@ -124,15 +125,56 @@
 
               <div class="row items-center no-wrap q-mb-md">
                 <div class="col-2 q-pr-lg">Master Pubkey:</div>
-                <div class="col-8">
-                  <q-input
-                    v-model="props.row.masterpub"
-                    filled
-                    readonly
-                    type="textarea"
-                  />
+                <div class="col-7 q-pr-lg">
+                  <q-input v-model="props.row.masterpub" filled readonly />
                 </div>
-                <div class="col-2 q-pr-lg"></div>
+                <div class="col-1">
+                  <q-btn
+                    unelevated
+                    dense
+                    size="md"
+                    icon="qr_code"
+                    :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                    @click="openQrCodeDialog(props.row.masterpub)"
+                  ></q-btn>
+                </div>
+                <div class="col-2 q-pr-lg">
+                  <q-btn
+                    outline
+                    color="grey"
+                    icon="content_copy"
+                    @click="copyText(props.row.masterpub)"
+                    class="q-ml-sm"
+                  ></q-btn>
+                </div>
+              </div>
+              <div
+                v-if="props.row.meta?.xpub"
+                class="row items-center no-wrap q-mb-md"
+              >
+                <div class="col-2 q-pr-lg">XPub:</div>
+                <div class="col-7 q-pr-lg">
+                  <q-input v-model="props.row.meta.xpub" filled readonly />
+                </div>
+                <div class="col-1">
+                  <q-btn
+                    unelevated
+                    dense
+                    size="md"
+                    icon="qr_code"
+                    :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                    @click="openQrCodeDialog(props.row.meta.xpub)"
+                  ></q-btn>
+                </div>
+                <div class="col-2 q-pr-lg">
+                  <q-btn
+                    outline
+                    color="grey"
+                    icon="content_copy"
+                    @click="copyText(props.row.meta.xpub)"
+                    class="q-ml-sm"
+                  ></q-btn>
+                </div>
               </div>
               <div class="row items-center no-wrap q-mb-md">
                 <div class="col-2 q-pr-lg">Last Address Index:</div>
@@ -227,6 +269,17 @@
           >
         </div>
       </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="showQrCodeDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeValue"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
     </q-card>
   </q-dialog>
 </div>

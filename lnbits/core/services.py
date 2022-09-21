@@ -28,7 +28,7 @@ from . import db
 from .crud import (
     check_internal,
     create_payment,
-    delete_payment,
+    delete_wallet_payment,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
@@ -221,7 +221,7 @@ async def pay_invoice(
             logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_payment(temp_id, conn=conn)
+                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
             raise PaymentFailure(
                 f"payment failed: {payment.error_message}"
                 or "payment failed, but backend didn't give us an error message"
