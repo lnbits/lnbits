@@ -97,6 +97,13 @@
               <q-badge v-if="props.row.isChange" color="orange" class="q-mr-md">
                 change
               </q-badge>
+              <q-badge
+                v-if="props.row.accountType === 'p2tr'"
+                color="yellow"
+                text-color="black"
+              >
+                taproot
+              </q-badge>
             </div>
           </q-td>
 

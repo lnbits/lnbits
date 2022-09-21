@@ -104,6 +104,18 @@ async function payment(path) {
             })
             return
           }
+          const p2trUtxo = this.utxos.find(
+            u => u.selected && u.accountType === 'p2tr'
+          )
+          if (p2trUtxo) {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Taproot Signing not supported yet!',
+              caption: 'Please manually deselect the Taproot UTXOs',
+              timeout: 10000
+            })
+            return
+          }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()
             const authenticated = await this.serialSignerRef.isAuthenticating()
