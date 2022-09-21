@@ -13,7 +13,8 @@ class Cashu(BaseModel):
     fraction: bool = Query(None)
     maxsats: int = Query(0)
     coins: int = Query(0)
-    
+    prvkey: str = Query(None)
+    pubkey: str = Query(None)
 
     @classmethod
     def from_row(cls, row: Row) -> "TPoS":
