@@ -45,6 +45,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_auto_swaps(db):
     await db.execute(
         """

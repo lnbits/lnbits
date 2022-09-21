@@ -28,20 +28,20 @@ from .crud import (
     create_auto_reverse_submarine_swap,
     create_reverse_submarine_swap,
     create_submarine_swap,
+    get_auto_reverse_submarine_swaps,
     get_pending_reverse_submarine_swaps,
     get_pending_submarine_swaps,
     get_reverse_submarine_swap,
     get_reverse_submarine_swaps,
-    get_auto_reverse_submarine_swaps,
     get_submarine_swap,
     get_submarine_swaps,
     update_swap_status,
 )
 from .models import (
+    AutoReverseSubmarineSwap,
     CreateAutoReverseSubmarineSwap,
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
-    AutoReverseSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
@@ -246,6 +246,7 @@ async def api_reverse_submarineswap_create(
 
     swap = await create_reverse_submarine_swap(swap_data)
     return swap.dict()
+
 
 @boltz_ext.get(
     "/api/v1/swap/reverse/auto",

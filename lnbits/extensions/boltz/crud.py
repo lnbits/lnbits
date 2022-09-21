@@ -6,10 +6,10 @@ from starlette.exceptions import HTTPException
 
 from . import db
 from .models import (
+    AutoReverseSubmarineSwap,
     CreateAutoReverseSubmarineSwap,
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
-    AutoReverseSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
 )

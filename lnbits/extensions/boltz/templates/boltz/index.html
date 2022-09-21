@@ -31,7 +31,8 @@
           @click="autoReverseSubmarineSwapDialog.show = true"
         >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Automatically send offchain funds to onchain address (LN -> BTC) with a predefined threshold
+            Automatically send offchain funds to onchain address (LN -> BTC)
+            with a predefined threshold
           </q-tooltip>
         </q-btn>
         <q-btn
@@ -47,9 +48,9 @@
         </q-btn>
       </q-card-section>
     </q-card>
-    {% include "boltz/_submarineSwapList.html" %}
-    {% include "boltz/_reverseSubmarineSwapList.html" %}
-    {% include "boltz/_autoReverseSwapList.html" %}
+    {% include "boltz/_submarineSwapList.html" %} {% include
+    "boltz/_reverseSubmarineSwapList.html" %} {% include
+    "boltz/_autoReverseSwapList.html" %}
   </div>
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
@@ -62,12 +63,11 @@
       </q-card-section>
     </q-card>
   </div>
-  {% include "boltz/_submarineSwapDialog.html" %}
-  {% include "boltz/_reverseSubmarineSwapDialog.html" %}
-  {% include "boltz/_autoReverseSwapDialog.html" %}
-  {% include "boltz/_qrDialog.html" %}
-  {% include "boltz/_statusDialog.html" %}
-  {% include "boltz/_checkSwapDialog.html" %}
+  {% include "boltz/_submarineSwapDialog.html" %} {% include
+  "boltz/_reverseSubmarineSwapDialog.html" %} {% include
+  "boltz/_autoReverseSwapDialog.html" %} {% include "boltz/_qrDialog.html" %} {%
+  include "boltz/_statusDialog.html" %} {% include "boltz/_checkSwapDialog.html"
+  %}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
