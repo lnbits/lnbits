@@ -133,12 +133,19 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User does not exist."}
             )
-        if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
-            return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": "User not authorized."}
-            )
-        if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
-            user.admin = True
+        try:
+            if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
+                return template_renderer().TemplateResponse(
+                    "error.html", {"request": request, "err": "User not authorized."}
+                )
+        except:
+            pass
+            
+        try:
+            if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
+                user.admin = True
+        except:
+            pass
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore
             wallet = user.wallets[0]  # type: ignore
