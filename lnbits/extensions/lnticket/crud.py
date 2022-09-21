@@ -1,11 +1,12 @@
-from lnbits.core.models import Wallet
 from typing import List, Optional, Union
 
+import httpx
+
+from lnbits.core.models import Wallet
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateFormData, CreateTicketData, Tickets, Forms
-import httpx
+from .models import CreateFormData, CreateTicketData, Forms, Tickets
 
 
 async def create_ticket(

@@ -2,10 +2,23 @@
 %} {% block scripts %} {{ window_vars(user) }}
 <script src="/core/static/js/extensions.js"></script>
 {% endblock %} {% block page %}
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-sm-3 col-xs-8 q-ml-auto">
+    <q-input v-model="searchTerm" label="Search extensions">
+      <q-icon
+        v-if="searchTerm !== ''"
+        name="close"
+        @click="searchTerm = ''"
+        class="cursor-pointer q-mt-lg"
+      />
+    </q-input>
+  </div>
+</div>
+
 <div class="row q-col-gutter-md">
   <div
     class="col-6 col-md-4 col-lg-3"
-    v-for="extension in g.extensions"
+    v-for="extension in filteredExtensions"
     :key="extension.code"
   >
     <q-card>

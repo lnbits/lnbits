@@ -1,9 +1,9 @@
-from typing import NamedTuple
 from sqlite3 import Row
+from typing import NamedTuple, Optional
+
 from fastapi.param_functions import Query
-from pydantic.main import BaseModel
 from pydantic import BaseModel
-from typing import Optional
+from pydantic.main import BaseModel
 
 
 class CreateJukeLinkData(BaseModel):

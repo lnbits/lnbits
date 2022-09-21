@@ -28,14 +28,16 @@ class ExtensionManager:
             settings.LNBITS_DISABLED_EXTENSIONS = g().admin_conf.disabled_ext
             settings.LNBITS_ADMIN_EXTENSIONS = g().admin_conf.admin_ext
         self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
-        self._admin_only: List[str] = [x.strip(' ') for x in settings.LNBITS_ADMIN_EXTENSIONS]
+        self._admin_only: List[str] = [
+            x.strip(" ") for x in settings.LNBITS_ADMIN_EXTENSIONS
+        ]
         self._extension_folders: List[str] = [
             x[1] for x in os.walk(os.path.join(settings.LNBITS_PATH, "extensions"))
         ][0]
 
     @property
     def extensions(self) -> List[Extension]:
-        output = []
+        output: List[Extension] = []
 
         if "all" in self._disabled:
             return output
@@ -175,7 +177,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]
         )
     )
-        
+
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
     t.env.globals["HIDE_API"] = settings.LNBITS_HIDE_API

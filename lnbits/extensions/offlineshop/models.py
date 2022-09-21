@@ -1,14 +1,16 @@
-import json
 import base64
 import hashlib
+import json
 from collections import OrderedDict
+from sqlite3 import Row
+from typing import Dict, List, Optional
 
-from typing import Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
 from starlette.requests import Request
+
 from .helpers import totp
 
 shop_counters: Dict = {}
@@ -86,8 +88,16 @@ class Item(BaseModel):
     description: str
     image: Optional[str]
     enabled: bool
-    price: int
+    price: float
     unit: str
+    fiat_base_multiplier: int
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Item":
+        data = dict(row)
+        if data["unit"] != "sat" and data["fiat_base_multiplier"]:
+            data["price"] /= data["fiat_base_multiplier"]
+        return cls(**data)
 
     def lnurl(self, req: Request) -> str:
         return lnurl_encode(req.url_for("offlineshop.lnurl_response", item_id=self.id))

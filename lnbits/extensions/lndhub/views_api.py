@@ -1,6 +1,5 @@
-import time
 import asyncio
-
+import time
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
 
@@ -13,7 +12,7 @@ from lnbits import bolt11
 from lnbits.core.crud import delete_expired_invoices, get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
-from lnbits.settings import WALLET, LNBITS_SITE_TITLE
+from lnbits.settings import LNBITS_SITE_TITLE, WALLET
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
@@ -131,10 +130,7 @@ async def lndhub_gettxs(
         offset=offset,
         exclude_uncheckable=True,
     ):
-        await payment.set_pending(
-            (await WALLET.get_payment_status(payment.checking_id)).pending
-        )
-        await asyncio.sleep(0.1)
+        await payment.check_status()
 
     return [
         {
@@ -182,7 +178,6 @@ async def lndhub_getuserinvoices(
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
-        await asyncio.sleep(0.1)
 
     return [
         {

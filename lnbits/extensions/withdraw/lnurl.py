@@ -1,13 +1,13 @@
 import json
 import traceback
-import httpx
-
 from datetime import datetime
 from http import HTTPStatus
 
+import httpx
 import shortuuid  # type: ignore
 from fastapi import HTTPException
 from fastapi.param_functions import Query
+from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse  # type: ignore
 
@@ -33,7 +33,9 @@ async def api_lnurl_response(request: Request, unique_hash):
         )
 
     if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent."
+        )
     url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
     withdrawResponse = {
         "tag": "withdrawRequest",
@@ -51,7 +53,11 @@ async def api_lnurl_response(request: Request, unique_hash):
 
 @withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", name="withdraw.api_lnurl_callback")
 async def api_lnurl_callback(
-    unique_hash, request: Request, k1: str = Query(...), pr: str = Query(...), id_unique_hash=None
+    unique_hash,
+    request: Request,
+    k1: str = Query(...),
+    pr: str = Query(...),
+    id_unique_hash=None,
 ):
     link = await get_withdraw_link_by_hash(unique_hash)
     now = int(datetime.now().timestamp())
@@ -61,7 +67,9 @@ async def api_lnurl_callback(
         )
 
     if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent."
+        )
 
     if link.k1 != k1:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Bad request.")
@@ -84,7 +92,7 @@ async def api_lnurl_callback(
                 if id_unique_hash == shortuuid.uuid(name=tohash):
                     found = True
                     useslist.pop(ind)
-                    usescsv = ','.join(useslist)
+                    usescsv = ",".join(useslist)
             if not found:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
@@ -106,7 +114,7 @@ async def api_lnurl_callback(
         await update_withdraw_link(link.id, **changes)
 
         payment_request = pr
-        
+
         payment_hash = await pay_invoice(
             wallet_id=link.wallet,
             payment_request=payment_request,
@@ -128,13 +136,13 @@ async def api_lnurl_callback(
                     )
                 except Exception as exc:
                     # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
-                    print("Caught exception when dispatching webhook url:", exc)
+                    logger.error("Caught exception when dispatching webhook url:", exc)
 
         return {"status": "OK"}
 
     except Exception as e:
         await update_withdraw_link(link.id, **changesback)
-        print(traceback.format_exc())
+        logger.error(traceback.format_exc())
         return {"status": "ERROR", "reason": "Link not working"}
 
 
@@ -155,7 +163,9 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
         )
 
     if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent."
+        )
 
     useslist = link.usescsv.split(",")
     found = False

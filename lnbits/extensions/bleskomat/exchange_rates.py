@@ -1,6 +1,7 @@
-import httpx
 import json
 import os
+
+import httpx
 
 fiat_currencies = json.load(
     open(

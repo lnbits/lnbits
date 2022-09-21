@@ -135,15 +135,7 @@
         var self = this
         axios
 
-          .post(
-            '/events/api/v1/tickets/' + '{{ event_id }}/{{ event_price }}',
-            {
-              event: '{{ event_id }}',
-              event_name: '{{ event_name }}',
-              name: self.formDialog.data.name,
-              email: self.formDialog.data.email
-            }
-          )
+          .get('/events/api/v1/tickets/' + '{{ event_id }}')
           .then(function (response) {
             self.paymentReq = response.data.payment_request
             self.paymentCheck = response.data.payment_hash
@@ -161,7 +153,17 @@
 
             paymentChecker = setInterval(function () {
               axios
-                .get('/events/api/v1/tickets/' + self.paymentCheck)
+                .post(
+                  '/events/api/v1/tickets/' +
+                    '{{ event_id }}/' +
+                    self.paymentCheck,
+                  {
+                    event: '{{ event_id }}',
+                    event_name: '{{ event_name }}',
+                    name: self.formDialog.data.name,
+                    email: self.formDialog.data.email
+                  }
+                )
                 .then(function (res) {
                   if (res.data.paid) {
                     clearInterval(paymentChecker)

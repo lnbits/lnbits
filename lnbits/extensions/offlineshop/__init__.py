@@ -9,7 +9,7 @@ db = Database("ext_offlineshop")
 offlineshop_static_files = [
     {
         "path": "/offlineshop/static",
-        "app": StaticFiles(directory="lnbits/extensions/offlineshop/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/offlineshop/static")]),
         "name": "offlineshop_static",
     }
 ]

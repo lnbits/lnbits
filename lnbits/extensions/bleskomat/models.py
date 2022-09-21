@@ -3,11 +3,12 @@ import time
 from typing import Dict
 
 from fastapi.params import Query
+from loguru import logger
 from pydantic import BaseModel, validator
 from starlette.requests import Request
 
 from lnbits import bolt11
-from lnbits.core.services import pay_invoice, PaymentFailure
+from lnbits.core.services import PaymentFailure, pay_invoice
 
 from . import db
 from .exchange_rates import exchange_rate_providers, fiat_currencies
@@ -125,7 +126,7 @@ class BleskomatLnurl(BaseModel):
                 except (ValueError, PermissionError, PaymentFailure) as e:
                     raise LnurlValidationError("Failed to pay invoice: " + str(e))
                 except Exception as e:
-                    print(str(e))
+                    logger.error(str(e))
                     raise LnurlValidationError("Unexpected error")
 
     async def use(self, conn) -> bool:

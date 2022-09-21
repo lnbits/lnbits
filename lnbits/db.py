@@ -5,6 +5,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
+from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
@@ -139,7 +140,7 @@ class Database(Compat):
                     f"LNBITS_DATA_FOLDER named {LNBITS_DATA_FOLDER} was not created"
                     f" - please 'mkdir {LNBITS_DATA_FOLDER}' and try again"
                 )
-
+        logger.trace(f"database {self.type} added for {self.name}")
         self.schema = self.name
         if self.name.startswith("ext_"):
             self.schema = self.name[4:]

@@ -9,7 +9,7 @@ db = Database("ext_withdraw")
 withdraw_static_files = [
     {
         "path": "/withdraw/static",
-        "app": StaticFiles(directory="lnbits/extensions/withdraw/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/withdraw/static")]),
         "name": "withdraw_static",
     }
 ]

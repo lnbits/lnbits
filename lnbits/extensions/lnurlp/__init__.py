@@ -12,7 +12,7 @@ db = Database("ext_lnurlp")
 lnurlp_static_files = [
     {
         "path": "/lnurlp/static",
-        "app": StaticFiles(directory="lnbits/extensions/lnurlp/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/lnurlp/static")]),
         "name": "lnurlp_static",
     }
 ]

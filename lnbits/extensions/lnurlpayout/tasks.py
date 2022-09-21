@@ -2,6 +2,7 @@ import asyncio
 from http import HTTPStatus
 
 import httpx
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
@@ -27,7 +28,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     try:
         # Check its got a payout associated with it
         lnurlpayout_link = await get_lnurlpayout_from_wallet(payment.wallet_id)
-        print("LNURLpayout", lnurlpayout_link)
+        logger.debug("LNURLpayout", lnurlpayout_link)
         if lnurlpayout_link:
 
             # Check the wallet balance is more than the threshold

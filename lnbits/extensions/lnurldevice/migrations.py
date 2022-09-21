@@ -38,7 +38,7 @@ async def m001_initial(db):
 
 async def m002_redux(db):
     """
-    Moves everything from lnurlpos to lnurldevices
+    Moves everything from lnurlpos to lnurldevice
     """
     try:
         for row in [

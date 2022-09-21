@@ -1,5 +1,6 @@
 import asyncio
 import json
+
 import httpx
 
 from lnbits.core import db as core_db
@@ -19,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "lnurlp" != payment.extra.get("tag"):
+    if payment.extra.get("tag") != "lnurlp":
         # not an lnurlp invoice
         return
 

@@ -3,6 +3,7 @@ import math
 import traceback
 from http import HTTPStatus
 
+from loguru import logger
 from starlette.requests import Request
 
 from . import bleskomat_ext
@@ -122,7 +123,7 @@ async def api_bleskomat_lnurl(req: Request):
     except LnurlHttpError as e:
         return {"status": "ERROR", "reason": str(e)}
     except Exception as e:
-        print(str(e))
+        logger.error(str(e))
         return {"status": "ERROR", "reason": "Unexpected error"}
 
     return {"status": "OK"}

@@ -179,6 +179,11 @@ Vue.component('lnbits-extension-list', {
 
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
+  data: function () {
+    return {
+      LNBITS_DENOMINATION: LNBITS_DENOMINATION
+    }
+  },
   template: `
     <div class="q-py-md" style="text-align: left">
       <div class="row justify-center q-mb-md">

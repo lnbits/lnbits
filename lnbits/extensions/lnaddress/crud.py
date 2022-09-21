@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from typing import List, Optional, Union
 
+from loguru import logger
+
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -186,9 +188,9 @@ async def purge_addresses(domain_id: str):
         )  # give user 1 day to topup is address
 
         if not paid and pay_expire:
-            print("DELETE UNP_PAY_EXP", r["username"])
+            logger.debug("DELETE UNP_PAY_EXP", r["username"])
             await delete_address(r["id"])
 
         if paid and expired:
-            print("DELETE PAID_EXP", r["username"])
+            logger.debug("DELETE PAID_EXP", r["username"])
             await delete_address(r["id"])

@@ -124,7 +124,8 @@ new Vue({
         description,
         image,
         price,
-        unit
+        unit,
+        fiat_base_multiplier: unit == 'sat' ? 1 : 100
       }
 
       try {

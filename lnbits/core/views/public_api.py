@@ -4,6 +4,7 @@ from http import HTTPStatus
 from urllib.parse import urlparse
 
 from fastapi import HTTPException
+from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
@@ -45,7 +46,7 @@ async def api_public_payment_longpolling(payment_hash):
 
     payment_queue = asyncio.Queue(0)
 
-    print("adding standalone invoice listener", payment_hash, payment_queue)
+    logger.debug("adding standalone invoice listener", payment_hash, payment_queue)
     api_invoice_listeners.append(payment_queue)
 
     response = None

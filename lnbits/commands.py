@@ -3,10 +3,9 @@ import importlib
 import os
 import re
 import warnings
-from typing import Optional
 
 import click
-from genericpath import exists
+from loguru import logger
 
 from .core import db as core_db
 from .core import migrations as core_migrations
@@ -98,7 +97,7 @@ async def migrate_databases():
             if match:
                 version = int(match.group(1))
                 if version > current_versions.get(db_name, 0):
-                    print(f"running migration {db_name}.{version}")
+                    logger.debug(f"running migration {db_name}.{version}")
                     await migrate(db)
 
                     if db.schema == None:
@@ -139,4 +138,4 @@ async def migrate_databases():
         async with ext_db.connect() as ext_conn:
             await run_migration(ext_conn, ext_migrations)
 
-    print("  ✔️ All migrations done.")
+    logger.info("✔️ All migrations done.")

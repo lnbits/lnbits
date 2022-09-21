@@ -17,10 +17,26 @@ Tests
 
 This project has unit tests that help prevent regressions. Before you can run the tests, you must install a few dependencies:
 ```bash
-./venv/bin/pip install pytest pytest-asyncio requests trio mock
+poetry install
+npm i
 ```
 
 Then to run the tests:
 ```bash
 make test
+```
+
+Run formatting:
+```bash
+make format
+```
+
+Run mypy checks:
+```bash
+poetry run mypy
+```
+
+Run everything:
+```bash
+make all
 ```

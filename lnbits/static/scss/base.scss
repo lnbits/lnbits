@@ -141,3 +141,9 @@ video {
 .text-wrap {
     word-break: break-word;
 }
+
+.q-card {
+  code {
+    overflow-wrap: break-word;
+  }
+}

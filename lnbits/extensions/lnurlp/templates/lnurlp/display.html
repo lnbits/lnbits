@@ -14,10 +14,17 @@
             </q-responsive>
           </a>
         </div>
-        <div class="row q-mt-lg">
+        <div class="row q-mt-lg q-gutter-sm">
           <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
             >Copy LNURL</q-btn
           >
+          <q-btn
+            outline
+            color="grey"
+            icon="nfc"
+            @click="writeNfcTag(' {{ lnurl }} ')"
+            :disable="nfcTagWriting"
+          ></q-btn>
         </div>
       </q-card-section>
     </q-card>

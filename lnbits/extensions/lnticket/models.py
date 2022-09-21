@@ -1,4 +1,5 @@
 from typing import Optional
+
 from fastapi.param_functions import Query
 from pydantic import BaseModel
 

@@ -1,20 +1,22 @@
-import time
 import asyncio
+import time
 import traceback
 from http import HTTPStatus
-from typing import List, Callable
+from typing import Callable, List
 
 from fastapi.exceptions import HTTPException
+from loguru import logger
 
-from lnbits.settings import WALLET
 from lnbits.core.crud import (
-    get_payments,
-    get_standalone_payment,
     delete_expired_invoices,
     get_balance_checks,
+    get_payments,
+    get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
+from lnbits.settings import WALLET
 
+from .core import db
 
 deferred_async: List[Callable] = []
 
@@ -37,9 +39,9 @@ async def catch_everything_and_restart(func):
     except asyncio.CancelledError:
         raise  # because we must pass this up
     except Exception as exc:
-        print("caught exception in background task:", exc)
-        print(traceback.format_exc())
-        print("will restart the task in 5 seconds.")
+        logger.error("caught exception in background task:", exc)
+        logger.error(traceback.format_exc())
+        logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
         await catch_everything_and_restart(func)
 
@@ -66,7 +68,7 @@ async def webhook_handler():
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-internal_invoice_queue = asyncio.Queue(0)
+internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 
 async def internal_invoice_listener():
@@ -77,26 +79,43 @@ async def internal_invoice_listener():
 
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        print("> got a payment notification", checking_id)
+        logger.info("> got a payment notification", checking_id)
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def check_pending_payments():
-    await delete_expired_invoices()
-
     outgoing = True
     incoming = True
 
     while True:
-        for payment in await get_payments(
-            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-            complete=False,
-            pending=True,
-            outgoing=outgoing,
-            incoming=incoming,
-            exclude_uncheckable=True,
-        ):
-            await payment.check_pending()
+        async with db.connect() as conn:
+            logger.debug(
+                f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
+            )
+            start_time: float = time.time()
+            pending_payments = await get_payments(
+                since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+                complete=False,
+                pending=True,
+                outgoing=outgoing,
+                incoming=incoming,
+                exclude_uncheckable=True,
+                conn=conn,
+            )
+            for payment in pending_payments:
+                await payment.check_status(conn=conn)
+
+            logger.debug(
+                f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
+            )
+            # we delete expired invoices once upon the first pending check
+            if incoming:
+                logger.debug("Task: deleting all expired invoices")
+                start_time: float = time.time()
+                await delete_expired_invoices(conn=conn)
+                logger.debug(
+                    f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
+                )
 
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
@@ -116,6 +135,7 @@ async def perform_balance_checks():
 async def invoice_callback_dispatcher(checking_id: str):
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
+        logger.trace("sending invoice callback for payment", checking_id)
         await payment.set_pending(False)
         for send_chan in invoice_listeners:
             await send_chan.put(payment)

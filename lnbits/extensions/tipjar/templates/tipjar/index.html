@@ -322,11 +322,7 @@
         var self = this
 
         LNbits.api
-          .request(
-            'GET',
-            '/tipjar/api/v1/tips',
-            this.g.user.wallets[0].inkey
-          )
+          .request('GET', '/tipjar/api/v1/tips', this.g.user.wallets[0].inkey)
           .then(function (response) {
             self.tips = response.data.map(function (obj) {
               return mapTipJar(obj)

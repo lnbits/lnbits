@@ -1,13 +1,18 @@
-import json
-import hmac
 import hashlib
-from lnbits.helpers import url_for
+import hmac
+import json
+from sqlite3 import Row
+from typing import Dict, List, NamedTuple, Optional
+
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
-from typing import List, NamedTuple, Optional, Dict
-from sqlite3 import Row
+from loguru import logger
 from pydantic import BaseModel
+
+from lnbits.db import Connection
+from lnbits.helpers import url_for
 from lnbits.settings import WALLET
+from lnbits.wallets.base import PaymentStatus
 
 
 class Wallet(BaseModel):
@@ -103,6 +108,8 @@ class Payment(BaseModel):
 
     @property
     def tag(self) -> Optional[str]:
+        if self.extra is None:
+            return ""
         return self.extra.get("tag")
 
     @property
@@ -123,8 +130,21 @@ class Payment(BaseModel):
 
     @property
     def is_uncheckable(self) -> bool:
-        return self.checking_id.startswith("temp_") or self.checking_id.startswith(
-            "internal_"
+        return self.checking_id.startswith("internal_")
+
+    async def update_status(
+        self,
+        status: PaymentStatus,
+        conn: Optional[Connection] = None,
+    ) -> None:
+        from .crud import update_payment_details
+
+        await update_payment_details(
+            checking_id=self.checking_id,
+            pending=status.pending,
+            fee=status.fee_msat,
+            preimage=status.preimage,
+            conn=conn,
         )
 
     async def set_pending(self, pending: bool) -> None:
@@ -132,28 +152,40 @@ class Payment(BaseModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_pending(self) -> None:
+    async def check_status(
+        self,
+        conn: Optional[Connection] = None,
+    ) -> PaymentStatus:
         if self.is_uncheckable:
-            return
+            return PaymentStatus(None)
+
+        logger.debug(
+            f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
+        )
 
         if self.is_out:
             status = await WALLET.get_payment_status(self.checking_id)
         else:
             status = await WALLET.get_invoice_status(self.checking_id)
 
-        if self.is_out and status.failed:
-            print(f" - deleting outgoing failed payment {self.checking_id}: {status}")
-            await self.delete()
-        elif not status.pending:
-            print(
-                f" - marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
-            )
-            await self.set_pending(status.pending)
+        logger.debug(f"Status: {status}")
 
-    async def delete(self) -> None:
+        if self.is_out and status.failed:
+            logger.warning(
+                f"Deleting outgoing failed payment {self.checking_id}: {status}"
+            )
+            await self.delete(conn)
+        elif not status.pending:
+            logger.info(
+                f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
+            )
+            await self.update_status(status, conn=conn)
+        return status
+
+    async def delete(self, conn: Optional[Connection] = None) -> None:
         from .crud import delete_payment
 
-        await delete_payment(self.checking_id)
+        await delete_payment(self.checking_id, conn=conn)
 
 
 class BalanceCheck(BaseModel):
