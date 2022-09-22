@@ -141,6 +141,8 @@ async def get_key_type(
 
     if LNBITS_ADMIN_UI:
         LNBITS_ADMIN_USERS = g().admin_conf.admin_users
+    else:
+        LNBITS_ADMIN_USERS = []
 
     for typenr, WalletChecker in zip(
         [0, 1], [WalletAdminKeyChecker, WalletInvoiceKeyChecker]
@@ -239,6 +241,10 @@ async def check_user_exists(usr: UUID4) -> User:
     if LNBITS_ADMIN_UI:
         LNBITS_ADMIN_USERS = g().admin_conf.admin_users
         LNBITS_ALLOWED_USERS = g().admin_conf.allowed_users
+    else:
+        LNBITS_ADMIN_USERS = []
+        LNBITS_ALLOWED_USERS = []
+
     if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
