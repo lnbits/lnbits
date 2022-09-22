@@ -385,12 +385,9 @@
           </q-list>
         </q-card-section>
       </q-card>
-      {% endif %} {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD =
-      ADS.split(';') %}
+      {% endif %} {% if AD_SPACE %} {% for AD in AD_SPACE %}
       <q-card>
-        <a href="{{ AD[0] }}"
-          ><img width="100%" src="{{ AD[1] }}"
-        /></a> </q-card
+        <img style="padding: 9px" width="100%" src="{{ AD }}" /> </q-card
       >{% endfor %} {% endif %}
     </div>
   </div>
