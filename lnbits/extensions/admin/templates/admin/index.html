@@ -1221,7 +1221,7 @@
       addAdminUser() {
         let addUser = this.data.admin_users_add
         let admin_users = this.data.admin.admin_users
-        if (addUser.length && !admin_users.includes(addUser)) {
+        if (addUser && addUser.length && !admin_users.includes(addUser)) {
           admin_users.push(addUser)
           this.data.admin.admin_users = admin_users
           this.data.admin_users_add = ''
@@ -1234,7 +1234,7 @@
       addAllowedUser() {
         let addUser = this.data.allowed_users_add
         let allowed_users = this.data.admin.allowed_users
-        if (addUser.length && !allowed_users.includes(addUser)) {
+        if (addUser && addUser.length && !allowed_users.includes(addUser)) {
           allowed_users.push(addUser)
           this.data.admin.allowed_users = allowed_users
           this.data.allowed_users_add = ''
@@ -1336,7 +1336,6 @@
           custom_logo,
           ad_space
         } = this.data.admin
-        //console.log("this", this.data.admin)
         let data = {
           admin_users: admin_users.toString(),
           allowed_users: allowed_users.toString(),
