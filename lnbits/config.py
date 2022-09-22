@@ -6,17 +6,19 @@ from typing import List, Optional
 from pydantic import BaseSettings, Field
 
 wallets_module = importlib.import_module("lnbits.wallets")
-wallet_class = getattr(    
+wallet_class = getattr(
     wallets_module, getenv("LNBITS_BACKEND_WALLET_CLASS", "VoidWallet")
 )
 
 WALLET = wallet_class()
 
+
 def list_parse_fallback(v):
     try:
         return json.loads(v)
     except Exception as e:
-        return v.replace(' ','').split(',')
+        return v.replace(" ", "").split(",")
+
 
 class Settings(BaseSettings):
     admin_ui: bool = Field(default=True, env="LNBITS_ADMIN_UI")
@@ -24,7 +26,9 @@ class Settings(BaseSettings):
     admin_users: List[str] = Field(default_factory=list, env="LNBITS_ADMIN_USERS")
     allowed_users: List[str] = Field(default_factory=list, env="LNBITS_ALLOWED_USERS")
     admin_ext: List[str] = Field(default_factory=list, env="LNBITS_ADMIN_EXTENSIONS")
-    disabled_ext: List[str] = Field(default_factory=list, env="LNBITS_DISABLED_EXTENSIONS")
+    disabled_ext: List[str] = Field(
+        default_factory=list, env="LNBITS_DISABLED_EXTENSIONS"
+    )
     funding_source: str = Field(default="VoidWallet", env="LNBITS_BACKEND_WALLET_CLASS")
     # ops
     data_folder: str = Field(default=None, env="LNBITS_DATA_FOLDER")
@@ -37,10 +41,17 @@ class Settings(BaseSettings):
     denomination: str = Field(default="sats", env="LNBITS_DENOMINATION")
     # Change theme
     site_title: str = Field(default="LNbits", env="LNBITS_SITE_TITLE")
-    site_tagline: str = Field(default="free and open-source lightning wallet", env="LNBITS_SITE_TAGLINE")
+    site_tagline: str = Field(
+        default="free and open-source lightning wallet", env="LNBITS_SITE_TAGLINE"
+    )
     site_description: str = Field(default=None, env="LNBITS_SITE_DESCRIPTION")
-    default_wallet_name: str = Field(default="LNbits wallet", env="LNBITS_DEFAULT_WALLET_NAME")
-    theme: List[str] = Field(default=["classic, flamingo, mint, salvador, monochrome, autumn"], env="LNBITS_THEME_OPTIONS")
+    default_wallet_name: str = Field(
+        default="LNbits wallet", env="LNBITS_DEFAULT_WALLET_NAME"
+    )
+    theme: List[str] = Field(
+        default=["classic, flamingo, mint, salvador, monochrome, autumn"],
+        env="LNBITS_THEME_OPTIONS",
+    )
     custom_logo: str = Field(default=None, env="LNBITS_CUSTOM_LOGO")
     ad_space: List[str] = Field(default_factory=list, env="LNBITS_AD_SPACE")
     # .env
@@ -48,7 +59,7 @@ class Settings(BaseSettings):
     debug: Optional[str]
     host: Optional[str]
     port: Optional[str]
-    lnbits_path: Optional[str] = path.dirname(path.realpath(__file__))  
+    lnbits_path: Optional[str] = path.dirname(path.realpath(__file__))
 
     # @validator('admin_users', 'allowed_users', 'admin_ext', 'disabled_ext', pre=True)
     # def validate(cls, val):

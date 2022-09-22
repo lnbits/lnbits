@@ -157,11 +157,13 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     url = f"{base}{endpoint}{url_params}"
     return url
 
+
 def removeEmptyString(arr):
     return list(filter(None, arr))
 
+
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
-    if(settings.LNBITS_ADMIN_UI):
+    if settings.LNBITS_ADMIN_UI:
         _ = g().admin_conf
         settings.LNBITS_AD_SPACE = _.ad_space
         settings.LNBITS_HIDE_API = _.hide_api
@@ -170,8 +172,8 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         settings.LNBITS_SITE_TAGLINE = _.site_tagline
         settings.LNBITS_SITE_DESCRIPTION = _.site_description
         settings.LNBITS_THEME_OPTIONS = _.theme
-        settings.LNBITS_CUSTOM_LOGO = _.custom_logo       
-    
+        settings.LNBITS_CUSTOM_LOGO = _.custom_logo
+
     t = Jinja2Templates(
         loader=jinja2.FileSystemLoader(
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]

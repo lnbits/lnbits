@@ -235,7 +235,7 @@ async def check_user_exists(usr: UUID4) -> User:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="User  does not exist."
         )
-    
+
     if LNBITS_ADMIN_UI:
         LNBITS_ADMIN_USERS = g().admin_conf.admin_users
         LNBITS_ALLOWED_USERS = g().admin_conf.allowed_users

@@ -39,6 +39,7 @@ from ..services import pay_invoice, redeem_lnurl_withdraw
 
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 
+
 @core_html_routes.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return FileResponse("lnbits/core/static/favicon.ico")
