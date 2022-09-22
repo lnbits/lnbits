@@ -452,6 +452,15 @@ async def delete_payment(checking_id: str, conn: Optional[Connection] = None) ->
     )
 
 
+async def delete_wallet_payment(
+    checking_id: str, wallet_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        "DELETE FROM apipayments WHERE checking_id = ? AND wallet = ?",
+        (checking_id, wallet_id),
+    )
+
+
 async def check_internal(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[str]:
