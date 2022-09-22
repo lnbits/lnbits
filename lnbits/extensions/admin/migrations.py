@@ -7,7 +7,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 
 async def get_admin_user():
-    if conf.admin_users[0]:
+    if len(conf.admin_users) > 0:
         return conf.admin_users[0]
     from lnbits.core.crud import create_account, get_user
 
