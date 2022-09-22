@@ -15,7 +15,7 @@ async function serialSigner(path) {
         receivedData: '',
         config: {},
         decryptionKey: null,
-        sharedSecret: null, // todo: store in secure local storage
+        sharedSecret: null,
 
         hww: {
           password: null,
@@ -57,13 +57,16 @@ async function serialSigner(path) {
 
     computed: {
       pairedDevices: {
+        cache: false,
         get: function () {
+          console.log('### get pairedDevices')
           return (
             JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) ||
             []
           )
         },
         set: function (devices) {
+          console.log('### set pairedDevices', devices)
           window.localStorage.setItem(
             'lnbits-paired-devices',
             JSON.stringify(devices)
@@ -81,6 +84,7 @@ async function serialSigner(path) {
         await this.openSerialPort(this.config)
       },
       openSerialPort: async function (config = {baudRate: 9600}) {
+        console.log('### openSerialPort', config)
         if (!this.checkSerialPortSupported()) return false
         if (this.selectedPort) {
           this.$q.notify({
@@ -109,7 +113,10 @@ async function serialSigner(path) {
 
           // Wait for the serial port to open.
           await this.selectedPort.open(config)
+          // do not await
           this.startSerialPortReading()
+          // wait to init
+          sleep(1000)
 
           const textEncoder = new TextEncoderStream()
           this.writableStreamClosed = textEncoder.readable.pipeTo(
@@ -307,7 +314,11 @@ async function serialSigner(path) {
       },
       hwwPing: async function () {
         try {
+          console.log('### hwwPing 1', window.location.host)
+          // Send an empty ping. The serial port buffer might have some jubk data. Flush it.
+          await this.sendCommandClearText(COMMAND_PING)
           await this.sendCommandClearText(COMMAND_PING, [window.location.host])
+          console.log('### hwwPing 2')
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -582,7 +593,7 @@ async function serialSigner(path) {
       hwwCheckPairing: async function () {
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
         const encrypted = await this.encryptMessage(
-          this.sharedSecret,
+          this.sharedSecret, // todo: revisit
           iv,
           PAIRING_CONTROL_TEXT.length + ' ' + PAIRING_CONTROL_TEXT
         )
@@ -724,6 +735,7 @@ async function serialSigner(path) {
       },
       hwwHelp: async function () {
         try {
+          console.log('### cmd help')
           await this.sendCommandSecure(COMMAND_HELP)
           this.$q.notify({
             type: 'positive',
@@ -746,7 +758,7 @@ async function serialSigner(path) {
         } catch (error) {
           this.$q.notify({
             type: 'warning',
-            message: 'Failed to ask for help!',
+            message: 'Failed to wipe!',
             caption: `${error}`,
             timeout: 10000
           })
@@ -861,7 +873,13 @@ async function serialSigner(path) {
 
       sendCommandSecure: async function (command, attrs = []) {
         const message = [command].concat(attrs).join(' ')
+        console.log('### sendCommandSecure', message)
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
+        if (!this.sharedSecret || !this.sharedSecret.length) {
+          throw new Error(
+            `Secure connection not estabileshed. Tried to run command: ${command}`
+          )
+        }
         const encrypted = await this.encryptMessage(
           this.sharedSecret,
           iv,
@@ -874,6 +892,7 @@ async function serialSigner(path) {
       },
       sendCommandClearText: async function (command, attrs = []) {
         const message = [command].concat(attrs).join(' ')
+        console.log('### sendCommandClearText', message)
         await this.writer.write(message + '\n')
       },
       extractCommand: async function (value) {
