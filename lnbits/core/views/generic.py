@@ -124,6 +124,9 @@ async def wallet(
     if LNBITS_ADMIN_UI:
         LNBITS_ADMIN_USERS = g().admin_conf.admin_users
         LNBITS_ALLOWED_USERS = g().admin_conf.allowed_users
+    else:
+        LNBITS_ADMIN_USERS = []
+        LNBITS_ALLOWED_USERS = []
 
     if not user_id:
         user = await get_user((await create_account()).id)
