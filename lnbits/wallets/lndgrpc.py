@@ -198,16 +198,29 @@ class LndWallet(Wallet):
             3: False,  # FAILED
         }
 
+        failure_reasons = {
+            0: "No error given.",
+            1: "Payment timed out.",
+            2: "No route to destination.",
+            3: "Error.",
+            4: "Incorrect payment details.",
+            5: "Insufficient balance.",
+        }
+
         fee_msat = None
         preimage = None
-        checking_id = resp.payment_hash
+        error_message = None
+        checking_id = None
 
-        if resp.status:  # SUCCEEDED
+        if statuses[resp.status] == True:  # SUCCEEDED
             fee_msat = -resp.htlcs[-1].route.total_fees_msat
-            preimage = bytes_to_hex(resp.payment_preimage)
+            preimage = resp.payment_preimage
+            checking_id = resp.payment_hash
+        elif statuses[resp.status] == False:
+            error_message = failure_reasons[resp.failure_reason]
 
         return PaymentResponse(
-            statuses[resp.status], checking_id, fee_msat, preimage, None
+            statuses[resp.status], checking_id, fee_msat, preimage, error_message
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -245,23 +258,29 @@ class LndWallet(Wallet):
             router.TrackPaymentRequest(payment_hash=r_hash)
         )
 
-        # HTLCAttempt.HTLCStatus:
-        # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+        # # HTLCAttempt.HTLCStatus:
+        # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+        # htlc_statuses = {
+        #     0: None,  # IN_FLIGHT
+        #     1: True,  # "SUCCEEDED"
+        #     2: False,  # "FAILED"
+        # }
         statuses = {
-            0: None,  # IN_FLIGHT
-            1: True,  # "SUCCEEDED"
-            2: False,  # "FAILED"
+            0: None,  # NON_EXISTENT
+            1: None,  # IN_FLIGHT
+            2: True,  # SUCCEEDED
+            3: False,  # FAILED
         }
 
         try:
             async for payment in resp:
-                if statuses[payment.htlcs[-1].status]:
+                if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentStatus(
                         True,
                         -payment.htlcs[-1].route.total_fees_msat,
                         bytes_to_hex(payment.htlcs[-1].preimage),
                     )
-                return PaymentStatus(statuses[payment.htlcs[-1].status])
+                return PaymentStatus(statuses[payment.status])
         except:  # most likely the payment wasn't found
             return PaymentStatus(None)
 
