@@ -1,6 +1,0 @@
-{
-  "name": "Invoices",
-  "short_description": "Create invoices for your clients.",
-  "icon": "request_quote",
-  "contributors": ["leesalminen"]
-}

@@ -1,6 +1,0 @@
-{
-    "name": "User Manager",
-    "short_description": "Generate users and wallets",
-    "icon": "person_add",
-    "contributors": ["benarc"]
-}

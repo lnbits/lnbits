@@ -1,8 +1,0 @@
-{
-  "name": "SatsPay Server",
-  "short_description": "Create onchain and LN charges",
-  "icon": "payment",
-  "contributors": [
-    "arcbtc"
-  ]
-}

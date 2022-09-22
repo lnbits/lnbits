@@ -1,6 +1,0 @@
-{
-  "name": "LNURLDevice",
-  "short_description": "For offline LNURL devices",
-  "icon": "point_of_sale",
-  "contributors": ["arcbtc"]
-}
