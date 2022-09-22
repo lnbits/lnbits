@@ -5,6 +5,7 @@ import re
 import warnings
 
 import click
+from genericpath import exists
 from loguru import logger
 
 from .core import db as core_db
@@ -52,6 +53,7 @@ def bundle_vendored():
         with open(outputpath, "w") as f:
             f.write(output)
 
+
 async def get_admin_settings():
     from lnbits.extensions.admin.models import Admin
 
@@ -61,6 +63,7 @@ async def get_admin_settings():
         return False
 
     async with ext_db.connect() as conn:
+
         if conn.type == SQLITE:
             exists = await conn.fetchone(
                 "SELECT * FROM sqlite_master WHERE type='table' AND name='admin'"
@@ -69,13 +72,14 @@ async def get_admin_settings():
             exists = await conn.fetchone(
                 "SELECT * FROM information_schema.tables WHERE table_name = 'admin'"
             )
-        
+
         if not exists:
             return False
 
         row = await conn.fetchone("SELECT * from admin.admin")
 
     return Admin(**row) if row else None
+
 
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
