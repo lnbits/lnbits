@@ -56,6 +56,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
             "url": "https://raw.githubusercontent.com/lnbits/lnbits-legend/main/LICENSE",
         },
     )
+
     if lnbits.settings.LNBITS_ADMIN_UI:
         g().admin_conf = conf
         check_settings(app)
