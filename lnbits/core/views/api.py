@@ -671,7 +671,10 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
 
-    delta = node_balance - total_balance
+    if not error_message:
+        delta = node_balance - total_balance
+    else:
+        node_balance, delta = None, None
 
     return {
         "node_balance_msats": node_balance,
