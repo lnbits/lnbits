@@ -283,7 +283,7 @@
           v-model="toggleAdvanced"
           label="Show advanced options"
         ></q-toggle>
-        <div v-show="toggleAdvanced">
+        <div v-show="toggleAdvanced" class="q-gutter-y-md">
           <q-input
             filled
             dense
@@ -321,6 +321,14 @@
             <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
               >Zero if you don't know.</q-tooltip
             >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="cardDialog.data.webhook_url"
+            type="text"
+            label="Notification webhook"
+          >
           </q-input>
           <q-btn
             unelevated
@@ -380,6 +388,8 @@
         <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
         <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
         <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
+        <strong>Notification webhook:</strong> {{ qrCodeDialog.data.webhook_url
+        }}<br />
       </p>
       <br />
       <q-btn

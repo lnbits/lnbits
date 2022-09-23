@@ -30,6 +30,7 @@ class Card(BaseModel):
     prev_k1: str
     prev_k2: str
     otp: str
+    webhook_url: str
     time: int
 
     def from_row(cls, row: Row) -> "Card":
@@ -56,6 +57,7 @@ class CreateCardData(BaseModel):
     prev_k0: str = Query(ZERO_KEY)
     prev_k1: str = Query(ZERO_KEY)
     prev_k2: str = Query(ZERO_KEY)
+    webhook_url: str = Query(...)
 
 
 class Hit(BaseModel):

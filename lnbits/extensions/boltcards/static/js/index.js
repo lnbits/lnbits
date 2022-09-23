@@ -23,6 +23,7 @@ new Vue({
       cardDialog: {
         show: false,
         data: {
+          webhook_url: '',
           counter: 1,
           k0: '',
           k1: '',
@@ -270,7 +271,8 @@ new Vue({
         k1: card.k1,
         k2: card.k2,
         k3: card.k1,
-        k4: card.k2
+        k4: card.k2,
+        webhook_url: card.webhook_url
       }
       this.qrCodeDialog.show = true
     },
@@ -398,7 +400,9 @@ new Vue({
       let cards = _.findWhere(this.cards, {id: cardId})
 
       LNbits.utils
-        .confirmDialog('Are you sure you want to delete this card? Without access to the card keys you won\'t be able to reset them in the future!')
+        .confirmDialog(
+          "Are you sure you want to delete this card? Without access to the card keys you won't be able to reset them in the future!"
+        )
         .onOk(function () {
           LNbits.api
             .request(

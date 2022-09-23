@@ -27,9 +27,10 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             k0,
             k1,
             k2,
-            otp
+            otp,
+            webhook_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
@@ -45,6 +46,7 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             data.k1,
             data.k2,
             secrets.token_hex(16),
+            data.webhook_url,
         ),
     )
     card = await get_card(card_id)

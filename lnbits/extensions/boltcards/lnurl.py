@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Optional
 from urllib.parse import urlparse
 
+import httpx
 from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
@@ -119,12 +120,32 @@ async def lnurl_callback(
     invoice = bolt11.decode(pr)
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
     try:
-        await pay_invoice(
+        payment_hash = await pay_invoice(
             wallet_id=card.wallet,
             payment_request=pr,
             max_sat=card.tx_limit,
             extra={"tag": "boltcard", "tag": hit.id},
         )
+
+        if card.webhook_url:
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.post(
+                        card.webhook_url,
+                        json={
+                            "notification": "card_payment",
+                            "payment_hash": payment_hash,
+                            "payment_request": pr,
+                            "card_external_id": card.external_id,
+                            "card_name": card.card_name,
+                            "amount": int(invoice.amount_msat / 1000),
+                        },
+                        timeout=40,
+                    )
+                except Exception as exc:
+                    # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
+                    logger.error("Caught exception when dispatching webhook url:", exc)
+
         return {"status": "OK"}
     except:
         return {"status": "ERROR", "reason": f"Payment failed"}
