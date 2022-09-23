@@ -115,7 +115,7 @@ async def api_update_wallet(
 async def api_payments(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
 ):
     pendingPayments = await get_payments(
         wallet_id=wallet.wallet.id,
@@ -267,7 +267,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    wallet: WalletTypeInfo = Depends(require_invoice_key), X_API_Key: str = Header(default=None),
     invoiceData: CreateInvoiceData = Body(...),  # type: ignore
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
@@ -299,7 +299,7 @@ class CreateLNURLData(BaseModel):
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
-    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     domain = urlparse(data.callback).netloc
 
@@ -402,7 +402,7 @@ async def subscribe(request: Request, wallet: Wallet):
 
 @core_app.get("/api/v1/payments/sse")
 async def api_payments_sse(
-    request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    request: Request, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     return EventSourceResponse(
         subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
@@ -454,7 +454,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
 
 
 @core_app.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     try:
         url = lnurl.decode(code)
         domain = urlparse(url).netloc
@@ -601,7 +601,7 @@ class Callback(BaseModel):
 
 @core_app.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
-    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     err = await perform_lnurlauth(callback.callback, wallet=wallet)
     if err:
@@ -662,7 +662,7 @@ async def img(request: Request, data):
 
 
 @core_app.get("/api/v1/audit/")
-async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"

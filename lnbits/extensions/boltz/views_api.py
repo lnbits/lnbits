@@ -3,7 +3,7 @@ from http import HTTPStatus
 from typing import List
 
 import httpx
-from fastapi import status
+from fastapi import status, Header
 from fastapi.encoders import jsonable_encoder
 from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
@@ -160,7 +160,7 @@ async def api_submarineswap_refund(
 )
 async def api_submarineswap_create(
     data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),  # type: ignore
 ):
     try:
         swap_data = await create_swap(data)
@@ -218,7 +218,7 @@ async def api_reverse_submarineswap(
 )
 async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
 ):
 
     if not await check_balance(data):
@@ -257,7 +257,7 @@ async def api_reverse_submarineswap_create(
     },
 )
 async def api_swap_status(
-    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
+    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)  # type: ignore
 ):
     swap = await get_submarine_swap(swap_id) or await get_reverse_submarine_swap(
         swap_id

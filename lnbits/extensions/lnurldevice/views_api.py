@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
+from fastapi import Request, Header
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
@@ -33,7 +33,7 @@ async def api_list_currencies_available():
 @lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_create_or_update(
     data: createLnurldevice,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     lnurldevice_id: str = Query(None),
 ):
     if not lnurldevice_id:
@@ -45,7 +45,7 @@ async def api_lnurldevice_create_or_update(
 
 
 @lnurldevice_ext.get("/api/v1/lnurlpos")
-async def api_lnurldevices_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurldevices_retrieve(wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
         return [
@@ -58,7 +58,7 @@ async def api_lnurldevices_retrieve(wallet: WalletTypeInfo = Depends(get_key_typ
 @lnurldevice_ext.get("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_retrieve(
     request: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
     lnurldevice_id: str = Query(None),
 ):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
@@ -73,7 +73,7 @@ async def api_lnurldevice_retrieve(
 
 @lnurldevice_ext.delete("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_delete(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     lnurldevice_id: str = Query(None),
 ):
     lnurldevice = await get_lnurldevice(lnurldevice_id)

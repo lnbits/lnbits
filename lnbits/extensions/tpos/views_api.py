@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 import httpx
-from fastapi import Query
+from fastapi import Query, Header
 from fastapi.params import Depends
 from lnurl import decode as decode_lnurl
 from loguru import logger
@@ -19,7 +19,7 @@ from .models import CreateTposData, PayLnurlWData
 
 @tpos_ext.get("/api/v1/tposs", status_code=HTTPStatus.OK)
 async def api_tposs(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
@@ -30,7 +30,7 @@ async def api_tposs(
 
 @tpos_ext.post("/api/v1/tposs", status_code=HTTPStatus.CREATED)
 async def api_tpos_create(
-    data: CreateTposData, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateTposData, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     tpos = await create_tpos(wallet_id=wallet.wallet.id, data=data)
     return tpos.dict()
@@ -38,7 +38,7 @@ async def api_tpos_create(
 
 @tpos_ext.delete("/api/v1/tposs/{tpos_id}")
 async def api_tpos_delete(
-    tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+    tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     tpos = await get_tpos(tpos_id)
 

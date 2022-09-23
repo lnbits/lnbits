@@ -6,7 +6,7 @@ from typing import Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, Header
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -289,7 +289,7 @@ async def redeem_lnurl_withdraw(
 
 async def perform_lnurlauth(
     callback: str,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     conn: Optional[Connection] = None,
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)

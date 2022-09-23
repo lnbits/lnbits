@@ -3,7 +3,7 @@ import json
 from http import HTTPStatus
 
 import httpx
-from fastapi import Request
+from fastapi import Request, Header
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
@@ -30,7 +30,7 @@ from .models import CreateJukeboxPayment, CreateJukeLinkData
 @jukebox_ext.get("/api/v1/jukebox")
 async def api_get_jukeboxs(
     req: Request,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     all_wallets: bool = Query(False),
 ):
     wallet_user = wallet.wallet.user
@@ -72,7 +72,7 @@ async def api_check_credentials_callbac(
 
 @jukebox_ext.get("/api/v1/jukebox/{juke_id}")
 async def api_check_credentials_check(
-    juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+    juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     jukebox = await get_jukebox(juke_id)
     return jukebox
@@ -83,7 +83,7 @@ async def api_check_credentials_check(
 async def api_create_update_jukebox(
     data: CreateJukeLinkData,
     juke_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
 ):
     if juke_id:
         jukebox = await update_jukebox(data, juke_id=juke_id)
@@ -94,7 +94,7 @@ async def api_create_update_jukebox(
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
 async def api_delete_item(
-    juke_id=None, wallet: WalletTypeInfo = Depends(require_admin_key)
+    juke_id=None, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     await delete_jukebox(juke_id)
     try:

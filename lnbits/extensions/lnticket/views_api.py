@@ -1,7 +1,7 @@
 import re
 from http import HTTPStatus
 
-from fastapi import Query
+from fastapi import Query, Header
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -30,7 +30,7 @@ from .crud import (
 
 @lnticket_ext.get("/api/v1/forms")
 async def api_forms_get(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -43,7 +43,7 @@ async def api_forms_get(
 @lnticket_ext.post("/api/v1/forms", status_code=HTTPStatus.CREATED)
 @lnticket_ext.put("/api/v1/forms/{form_id}")
 async def api_form_create(
-    data: CreateFormData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateFormData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     if form_id:
         form = await get_form(form_id)
@@ -65,7 +65,7 @@ async def api_form_create(
 
 
 @lnticket_ext.delete("/api/v1/forms/{form_id}")
-async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     form = await get_form(form_id)
 
     if not form:
@@ -86,7 +86,7 @@ async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type
 
 @lnticket_ext.get("/api/v1/tickets")
 async def api_tickets(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -148,7 +148,7 @@ async def api_ticket_send_ticket(payment_hash):
 
 
 @lnticket_ext.delete("/api/v1/tickets/{ticket_id}")
-async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     ticket = await get_ticket(ticket_id)
 
     if not ticket:

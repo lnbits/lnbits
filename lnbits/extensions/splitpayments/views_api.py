@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
+from fastapi import Request, Header
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -13,7 +13,7 @@ from .models import Target, TargetPut
 
 
 @splitpayments_ext.get("/api/v1/targets")
-async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)):
     targets = await get_targets(wallet.wallet.id)
     return [target.dict() for target in targets] or []
 

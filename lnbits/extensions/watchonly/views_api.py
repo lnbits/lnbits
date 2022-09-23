@@ -6,7 +6,7 @@ from embit import finalizer, script
 from embit.ec import PublicKey
 from embit.psbt import PSBT, DerivationPath
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
-from fastapi import Query, Request
+from fastapi import Query, Request, Header
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -44,7 +44,7 @@ from .models import (
 
 @watchonly_ext.get("/api/v1/wallet")
 async def api_wallets_retrieve(
-    network: str = Query("Mainnet"), wallet: WalletTypeInfo = Depends(get_key_type)
+    network: str = Query("Mainnet"), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
 
     try:
@@ -58,7 +58,7 @@ async def api_wallets_retrieve(
 
 @watchonly_ext.get("/api/v1/wallet/{wallet_id}")
 async def api_wallet_retrieve(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     w_wallet = await get_watch_wallet(wallet_id)
 

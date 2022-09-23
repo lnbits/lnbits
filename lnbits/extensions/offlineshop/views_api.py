@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import Query
+from fastapi import Query, Header
 from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from pydantic.main import BaseModel
@@ -31,7 +31,7 @@ async def api_list_currencies_available():
 
 @offlineshop_ext.get("/api/v1/offlineshop")
 async def api_shop_from_wallet(
-    r: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    r: Request, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     items = await get_items(shop.id)
@@ -59,7 +59,7 @@ class CreateItemsData(BaseModel):
 @offlineshop_ext.post("/api/v1/offlineshop/items")
 @offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
 async def api_add_or_update_item(
-    data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     if data.unit != "sat":
@@ -90,7 +90,7 @@ async def api_add_or_update_item(
 
 
 @offlineshop_ext.delete("/api/v1/offlineshop/items/{item_id}")
-async def api_delete_item(item_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_delete_item(item_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     await delete_item_from_shop(shop.id, item_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -103,7 +103,7 @@ class CreateMethodData(BaseModel):
 
 @offlineshop_ext.put("/api/v1/offlineshop/method")
 async def api_set_method(
-    data: CreateMethodData, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateMethodData, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     method = data.method
 

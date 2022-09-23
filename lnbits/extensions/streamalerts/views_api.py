@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from fastapi import Header
 from fastapi.params import Depends, Query
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -37,7 +38,7 @@ from .crud import (
 
 @streamalerts_ext.post("/api/v1/services")
 async def api_create_service(
-    data: CreateService, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateService, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     """Create a service, which holds data about how/where to post donations"""
     try:

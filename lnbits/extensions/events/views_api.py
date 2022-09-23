@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi.params import Depends, Header
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
@@ -32,7 +32,7 @@ from .crud import (
 
 @events_ext.get("/api/v1/events")
 async def api_events(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -45,7 +45,7 @@ async def api_events(
 @events_ext.post("/api/v1/events")
 @events_ext.put("/api/v1/events/{event_id}")
 async def api_event_create(
-    data: CreateEvent, event_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateEvent, event_id=None, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     if event_id:
         event = await get_event(event_id)
@@ -66,7 +66,7 @@ async def api_event_create(
 
 
 @events_ext.delete("/api/v1/events/{event_id}")
-async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     event = await get_event(event_id)
     if not event:
         raise HTTPException(
@@ -86,7 +86,7 @@ async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_typ
 
 @events_ext.get("/api/v1/tickets")
 async def api_tickets(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -143,7 +143,7 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
 
 
 @events_ext.delete("/api/v1/tickets/{ticket_id}")
-async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(

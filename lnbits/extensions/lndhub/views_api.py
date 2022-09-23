@@ -2,7 +2,7 @@ import asyncio
 import time
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
-
+from fastapi import Header
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from pydantic import BaseModel
@@ -79,7 +79,7 @@ class Invoice(BaseModel):
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(require_admin_key)
+    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     try:
         await pay_invoice(

@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Header
 from loguru import logger
 from starlette.exceptions import HTTPException
 
@@ -21,7 +21,7 @@ from .exchange_rates import fetch_fiat_exchange_rate
 
 @bleskomat_ext.get("/api/v1/bleskomats")
 async def api_bleskomats(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -34,7 +34,7 @@ async def api_bleskomats(
 
 @bleskomat_ext.get("/api/v1/bleskomat/{bleskomat_id}")
 async def api_bleskomat_retrieve(
-    bleskomat_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+    bleskomat_id, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     bleskomat = await get_bleskomat(bleskomat_id)
 
@@ -51,7 +51,7 @@ async def api_bleskomat_retrieve(
 @bleskomat_ext.put("/api/v1/bleskomat/{bleskomat_id}")
 async def api_bleskomat_create_or_update(
     data: CreateBleskomat,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
     bleskomat_id=None,
 ):
     try:
@@ -84,7 +84,7 @@ async def api_bleskomat_create_or_update(
 
 @bleskomat_ext.delete("/api/v1/bleskomat/{bleskomat_id}")
 async def api_bleskomat_delete(
-    bleskomat_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+    bleskomat_id, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     bleskomat = await get_bleskomat(bleskomat_id)
 
