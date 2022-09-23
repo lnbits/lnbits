@@ -404,10 +404,6 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    if wallet is None or wallet.wallet is None:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-        )
     return EventSourceResponse(
         subscribe_wallet_invoices(request, wallet.wallet),
         ping=20,

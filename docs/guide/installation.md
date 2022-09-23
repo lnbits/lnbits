@@ -10,7 +10,9 @@ You can choose between four package managers, `poetry`, `nix` and `venv`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: poetry
+## Option 1 (recommended): poetry
+
+If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -26,12 +28,11 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
 poetry env use python3.9
 poetry install --no-dev
+poetry run python build.py
 
 mkdir data
 cp .env.example .env
-sudo nano .env # set funding source
-
-
+nano .env # set funding source
 ```
 
 #### Running the server
@@ -176,13 +177,15 @@ Problems installing? These commands have helped us install LNbits.
 ```sh
 sudo apt install pkg-config libffi-dev libpq-dev
 
+# build essentials for debian/ubuntu
+sudo apt install python3.9-dev gcc build-essential
+
 # if the secp256k1 build fails:
-# if you used venv
-./venv/bin/pip install setuptools wheel
 # if you used poetry
 poetry add setuptools wheel
-# build essentials for debian/ubuntu
-sudo apt install python3-dev gcc build-essential
+
+# if you used venv
+./venv/bin/pip install setuptools wheel
 ```
 
 ### Optional: PostgreSQL database

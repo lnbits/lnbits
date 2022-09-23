@@ -155,7 +155,7 @@ async def check_pending_payments():
                 conn=conn,
             )
             for payment in pending_payments:
-                await payment.check_status()
+                await payment.check_status(conn=conn)
 
             logger.debug(
                 f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
