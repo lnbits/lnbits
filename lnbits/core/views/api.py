@@ -59,7 +59,7 @@ from ..tasks import api_invoice_listeners
 
 
 @core_app.get("/api/v1/wallet")
-async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
     if wallet.wallet_type == 0:
         return {
             "id": wallet.wallet.id,
@@ -72,7 +72,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @core_app.put("/api/v1/wallet/balance/{amount}")
 async def api_update_balance(
-    amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
+    amount: int, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
 ):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
@@ -101,7 +101,7 @@ async def api_update_balance(
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
-    new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+    new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
 ):
     await update_wallet(wallet.wallet.id, new_name)
     return {
