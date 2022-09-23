@@ -2,6 +2,7 @@ import asyncio
 import binascii
 import hashlib
 import json
+import time
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
@@ -27,7 +28,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE
+from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -39,6 +40,7 @@ from ..crud import (
     create_payment,
     get_payments,
     get_standalone_payment,
+    get_total_balance,
     get_wallet,
     get_wallet_for_key,
     save_balance_check,
@@ -657,3 +659,26 @@ async def img(request: Request, data):
             "Expires": "0",
         },
     )
+
+
+@core_app.get("/api/v1/audit/")
+async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
+    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
+        )
+
+    total_balance = await get_total_balance()
+    error_message, node_balance = await WALLET.status()
+
+    if not error_message:
+        delta = node_balance - total_balance
+    else:
+        node_balance, delta = None, None
+
+    return {
+        "node_balance_msats": node_balance,
+        "lnbits_balance_msats": total_balance,
+        "delta_msats": delta,
+        "timestamp": int(time.time()),
+    }
