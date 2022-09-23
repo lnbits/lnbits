@@ -21,10 +21,7 @@ The key #00, K0 (also know as auth key) is skipped to be used as authentificatio
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
 ## Setting the card - Boltcard NFC Card Creator (easy way)
-
-- Read the card with the app. Note UID so you can fill it in the extension later.
-- Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{external_id}`
-    - `{external_id}` should be replaced with the External ID found in the LNBits dialog.
+Updated for v0.1.1
 
 - Add new card in the extension. 
     - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
@@ -32,14 +29,16 @@ The key #00, K0 (also know as auth key) is skipped to be used as authentificatio
     - Set a card name. This is just for your reference inside LNBits.
     - Set the card UID. This is the unique identifier on your NFC card and is 7 bytes.
         - If on an Android device with a newish version of Chrome, you can click the icon next to the input and tap your card to autofill this field.
+        - Otherwise read it with the Android app (Advanced -> Read NFC) and paste it to the field.
     - Advanced Options
         - Card Keys (k0, k1, k2) will be automatically generated if not explicitly set.
-            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in default (empty) state.
-            - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead. 
+            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in default (empty) state (this is unsecure).
+            - GENERATE KEY button fill the keys randomly.  
     - Click CREATE CARD button
-- Click the QR code button next to a card to view its details. Backup the keys! You can scan the QR code with the Android app to import the keys. 
-- Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. You can then paste this into the Android app to import the keys.
-- Tap the NFC card to write the keys to the card.
+- Click the QR code button next to a card to view its details. Backup the keys now! They'll be comfortable in your password manager.
+    - Now you can scan the QR code with the Android app (Create Bolt Card -> SCAN QR CODE). 
+    - Or you can Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. Then paste it into the Android app (Create Bolt Card -> PASTE AUTH URL).
+- Click WRITE CARD NOW and tap the NFC card to set it up. DO NOT REMOVE THE CARD PREMATURELY! 
 
 ## Setting the card - computer (hard way)
 
@@ -69,4 +68,4 @@ Then fill up the card parameters in the extension. Card Auth key (K0) can be fil
 - Save & Write
 - Scan with compatible Wallet
 
-This app afaik cannot change the keys. If you cannot change them any other way, leave them empty in the extension dialog and remember you're not secure. Card Auth key (K0) can be omitted anyway. Initical counter can be 0.
+This app afaik cannot change the keys. If you cannot change them any other way, leave them empty in the extension dialog and remember you're not secured. Card Auth key (K0) can be omitted anyway. Initical counter can be 0.
