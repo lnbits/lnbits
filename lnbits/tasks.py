@@ -16,6 +16,8 @@ from lnbits.core.crud import (
 from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.settings import WALLET
 
+from .core import db
+
 deferred_async: List[Callable] = []
 
 
@@ -86,24 +88,34 @@ async def check_pending_payments():
     incoming = True
 
     while True:
-        logger.debug(
-            f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
-        )
-        for payment in await get_payments(
-            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-            complete=False,
-            pending=True,
-            outgoing=outgoing,
-            incoming=incoming,
-            exclude_uncheckable=True,
-        ):
-            await payment.check_status()
-        logger.debug("Task: pending payments check finished")
-        # we delete expired invoices once upon the first pending check
-        if incoming:
-            logger.debug("Task: deleting all expired invoices")
-            await delete_expired_invoices()
-        logger.debug("Task: expired invoice deletion finished")
+        async with db.connect() as conn:
+            logger.debug(
+                f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
+            )
+            start_time: float = time.time()
+            pending_payments = await get_payments(
+                since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+                complete=False,
+                pending=True,
+                outgoing=outgoing,
+                incoming=incoming,
+                exclude_uncheckable=True,
+                conn=conn,
+            )
+            for payment in pending_payments:
+                await payment.check_status(conn=conn)
+
+            logger.debug(
+                f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
+            )
+            # we delete expired invoices once upon the first pending check
+            if incoming:
+                logger.debug("Task: deleting all expired invoices")
+                start_time: float = time.time()
+                await delete_expired_invoices(conn=conn)
+                logger.debug(
+                    f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
+                )
 
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
