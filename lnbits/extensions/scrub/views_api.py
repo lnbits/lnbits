@@ -24,7 +24,8 @@ from .models import CreateScrubLink
 @scrub_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 async def api_links(
     req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -44,7 +45,10 @@ async def api_links(
 
 @scrub_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_retrieve(
-    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    r: Request,
+    link_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     link = await get_scrub_link(link_id)
 
@@ -66,7 +70,8 @@ async def api_link_retrieve(
 async def api_scrub_create_or_update(
     data: CreateScrubLink,
     link_id=None,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     if link_id:
         link = await get_scrub_link(link_id)
@@ -95,7 +100,11 @@ async def api_scrub_create_or_update(
 
 
 @scrub_ext.delete("/api/v1/links/{link_id}")
-async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)):
+async def api_link_delete(
+    link_id,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
+):
     link = await get_scrub_link(link_id)
 
     if not link:

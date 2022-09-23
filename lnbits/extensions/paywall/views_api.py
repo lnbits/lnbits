@@ -14,7 +14,9 @@ from .models import CheckPaywallInvoice, CreatePaywall, CreatePaywallInvoice
 
 @paywall_ext.get("/api/v1/paywalls")
 async def api_paywalls(
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None), all_wallets: bool = Query(False)
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
+    all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -26,7 +28,9 @@ async def api_paywalls(
 
 @paywall_ext.post("/api/v1/paywalls")
 async def api_paywall_create(
-    data: CreatePaywall, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    data: CreatePaywall,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     paywall = await create_paywall(wallet_id=wallet.wallet.id, data=data)
     return paywall.dict()
@@ -34,7 +38,9 @@ async def api_paywall_create(
 
 @paywall_ext.delete("/api/v1/paywalls/{paywall_id}")
 async def api_paywall_delete(
-    paywall_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    paywall_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     paywall = await get_paywall(paywall_id)
 

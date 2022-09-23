@@ -24,7 +24,8 @@ from .models import CreateWithdrawData
 @withdraw_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 async def api_links(
     req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -47,7 +48,10 @@ async def api_links(
 
 @withdraw_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_retrieve(
-    link_id, request: Request, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    link_id,
+    request: Request,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     link = await get_withdraw_link(link_id, 0)
 
@@ -69,7 +73,8 @@ async def api_link_create_or_update(
     req: Request,
     data: CreateWithdrawData,
     link_id: str = None,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     if data.uses > 250:
         raise HTTPException(detail="250 uses max.", status_code=HTTPStatus.BAD_REQUEST)
@@ -114,7 +119,11 @@ async def api_link_create_or_update(
 
 
 @withdraw_ext.delete("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)):
+async def api_link_delete(
+    link_id,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
+):
     link = await get_withdraw_link(link_id)
 
     if not link:
@@ -133,7 +142,10 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admi
 
 @withdraw_ext.get("/api/v1/links/{the_hash}/{lnurl_id}", status_code=HTTPStatus.OK)
 async def api_hash_retrieve(
-    the_hash, lnurl_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    the_hash,
+    lnurl_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     hashCheck = await get_hash_check(the_hash, lnurl_id)
     return hashCheck

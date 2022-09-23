@@ -160,7 +160,8 @@ async def api_submarineswap_refund(
 )
 async def api_submarineswap_create(
     data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),  # type: ignore
 ):
     try:
         swap_data = await create_swap(data)
@@ -218,7 +219,8 @@ async def api_reverse_submarineswap(
 )
 async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
 
     if not await check_balance(data):

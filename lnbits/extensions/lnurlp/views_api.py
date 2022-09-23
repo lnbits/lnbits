@@ -29,7 +29,8 @@ async def api_list_currencies_available():
 @lnurlp_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 async def api_links(
     req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -52,7 +53,10 @@ async def api_links(
 
 @lnurlp_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_retrieve(
-    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    r: Request,
+    link_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     link = await get_pay_link(link_id)
 
@@ -75,7 +79,8 @@ async def api_link_create_or_update(
     data: CreatePayLinkData,
     request: Request,
     link_id=None,
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
 
     if data.min > data.max:
@@ -122,7 +127,11 @@ async def api_link_create_or_update(
 
 
 @lnurlp_ext.delete("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
+async def api_link_delete(
+    link_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
+):
     link = await get_pay_link(link_id)
 
     if not link:

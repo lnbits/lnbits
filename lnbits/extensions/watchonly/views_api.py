@@ -44,7 +44,9 @@ from .models import (
 
 @watchonly_ext.get("/api/v1/wallet")
 async def api_wallets_retrieve(
-    network: str = Query("Mainnet"), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    network: str = Query("Mainnet"),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
 
     try:
@@ -58,7 +60,9 @@ async def api_wallets_retrieve(
 
 @watchonly_ext.get("/api/v1/wallet/{wallet_id}")
 async def api_wallet_retrieve(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    wallet_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     w_wallet = await get_watch_wallet(wallet_id)
 

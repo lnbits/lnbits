@@ -79,7 +79,9 @@ class Invoice(BaseModel):
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
+    r_invoice: Invoice,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     try:
         await pay_invoice(

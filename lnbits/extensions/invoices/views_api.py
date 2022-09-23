@@ -29,7 +29,9 @@ from .models import CreateInvoiceData, UpdateInvoiceData
 
 @invoices_ext.get("/api/v1/invoices", status_code=HTTPStatus.OK)
 async def api_invoices(
-    all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    all_wallets: bool = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
@@ -58,7 +60,9 @@ async def api_invoice(invoice_id: str):
 
 @invoices_ext.post("/api/v1/invoice", status_code=HTTPStatus.CREATED)
 async def api_invoice_create(
-    data: CreateInvoiceData, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    data: CreateInvoiceData,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     invoice = await create_invoice_internal(wallet_id=wallet.wallet.id, data=data)
     items = await create_invoice_items(invoice_id=invoice.id, data=data.items)
@@ -71,7 +75,8 @@ async def api_invoice_create(
 async def api_invoice_update(
     data: UpdateInvoiceData,
     invoice_id: str,
-    wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     invoice = await update_invoice_internal(wallet_id=wallet.wallet.id, data=data)
     items = await update_invoice_items(invoice_id=invoice.id, data=data.items)

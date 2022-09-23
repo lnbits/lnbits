@@ -38,7 +38,9 @@ from .crud import (
 
 @streamalerts_ext.post("/api/v1/services")
 async def api_create_service(
-    data: CreateService, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    data: CreateService,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     """Create a service, which holds data about how/where to post donations"""
     try:

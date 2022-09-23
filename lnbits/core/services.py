@@ -289,7 +289,8 @@ async def redeem_lnurl_withdraw(
 
 async def perform_lnurlauth(
     callback: str,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
     conn: Optional[Connection] = None,
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)

@@ -24,7 +24,9 @@ from .tasks import on_invoice_paid
 
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts", status_code=HTTPStatus.OK)
 async def api_lnurlpayouts(
-    all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    all_wallets: bool = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
@@ -35,7 +37,9 @@ async def api_lnurlpayouts(
 
 @lnurlpayout_ext.post("/api/v1/lnurlpayouts", status_code=HTTPStatus.CREATED)
 async def api_lnurlpayout_create(
-    data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    data: CreateLnurlPayoutData,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     if await get_lnurlpayout_from_wallet(wallet.wallet.id):
         raise HTTPException(
@@ -65,7 +69,9 @@ async def api_lnurlpayout_create(
 
 @lnurlpayout_ext.delete("/api/v1/lnurlpayouts/{lnurlpayout_id}")
 async def api_lnurlpayout_delete(
-    lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)
+    lnurlpayout_id: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
 
@@ -85,7 +91,9 @@ async def api_lnurlpayout_delete(
 
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts/{lnurlpayout_id}", status_code=HTTPStatus.OK)
 async def api_lnurlpayout_check(
-    lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    lnurlpayout_id: str,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
     ## THIS

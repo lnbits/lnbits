@@ -28,7 +28,9 @@ from .models import CreateCharge
 
 @satspay_ext.post("/api/v1/charge")
 async def api_charge_create(
-    data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key), X_API_Key: str = Header(default=None)
+    data: CreateCharge,
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    X_API_Key: str = Header(default=None),
 ):
     charge = await create_charge(user=wallet.wallet.user, data=data)
     return {
@@ -42,7 +44,8 @@ async def api_charge_create(
 @satspay_ext.put("/api/v1/charge/{charge_id}")
 async def api_charge_update(
     data: CreateCharge,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
     charge_id=None,
 ):
     charge = await update_charge(charge_id=charge_id, data=data)
@@ -50,7 +53,10 @@ async def api_charge_update(
 
 
 @satspay_ext.get("/api/v1/charges")
-async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
+async def api_charges_retrieve(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
+):
     try:
         return [
             {
@@ -67,7 +73,9 @@ async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type), X
 
 @satspay_ext.get("/api/v1/charge/{charge_id}")
 async def api_charge_retrieve(
-    charge_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)
+    charge_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
 ):
     charge = await get_charge(charge_id)
 
@@ -85,7 +93,11 @@ async def api_charge_retrieve(
 
 
 @satspay_ext.delete("/api/v1/charge/{charge_id}")
-async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_type), X_API_Key: str = Header(default=None)):
+async def api_charge_delete(
+    charge_id,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    X_API_Key: str = Header(default=None),
+):
     charge = await get_charge(charge_id)
 
     if not charge:

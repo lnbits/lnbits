@@ -47,7 +47,8 @@ async def api_card_create_or_update(
     #    req: Request,
     data: CreateCardData,
     card_id: str = None,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     try:
         if len(bytes.fromhex(data.uid)) != 7:
@@ -105,7 +106,8 @@ async def api_card_create_or_update(
 async def enable_card(
     card_id,
     enable,
-    wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
 ):
     card = await get_card(card_id)
     if not card:
@@ -117,7 +119,11 @@ async def enable_card(
 
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
-async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key), X_API_Key: str = Header(default=None)):
+async def api_card_delete(
+    card_id,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    X_API_Key: str = Header(default=None),
+):
     card = await get_card(card_id)
 
     if not card:
