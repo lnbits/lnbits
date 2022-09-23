@@ -1,0 +1,80 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block scripts %} {{ window_vars(user) }}
+<script src="/core/static/js/v2.extensions.js"></script>
+{% endblock %} {% block page %}
+<div class="row q-col-gutter-md q-mb-md">
+  <q-input v-model="searchTerm" label="Search extensions">
+    <q-icon
+      v-if="searchTerm !== ''"
+      name="close"
+      @click="searchTerm = ''"
+      class="cursor-pointer q-mt-lg"
+    />
+  </q-input>
+  <div>
+    <q-checkbox v-model="showInstalled" label="Show Installed" />
+  </div>
+  <div>
+    <q-checkbox v-model="showAvailable" label="Show Available" />
+  </div>
+</div>
+
+<div class="row q-col-gutter-md">
+  <div
+    class="col-6 col-md-4 col-lg-3"
+    v-for="extension in filteredExtensions"
+    :key="extension.code"
+  >
+    <q-card>
+      <q-card-section>
+        <q-icon
+          :name="extension.icon"
+          color="grey-5"
+          style="font-size: 4rem"
+        ></q-icon>
+        {% raw %}
+        <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
+        <small>{{ extension.shortDescription }} </small>{% endraw %}
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-actions>
+        <div v-if="extension.isInstalled && extension.isEnabled">
+          <q-btn
+            flat
+            color="primary"
+            type="a"
+            :href="[extension.url, '?usr=', g.user.id].join('')"
+            >Open</q-btn
+          >
+          <q-btn
+            flat
+            color="grey-5"
+            type="a"
+            :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&disable=', extension.code].join('')"
+          >
+            Disable</q-btn
+          >
+        </div>
+          <q-btn v-else-if="extension.isInstalled && !extension.isEnabled"
+            flat
+            color="grey-5"
+            type="a"
+            :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
+          >
+            Enable
+        </q-btn>
+        <q-btn
+          v-else
+          flat
+          color="primary"
+          type="a"
+          :href="[g.base_url, '/api/v1/extensions/install/', extension.code, '?usr=', g.user.id].join('')"
+        >
+          Install
+        </q-btn>
+      </q-card-actions>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %}

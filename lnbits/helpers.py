@@ -20,6 +20,7 @@ class Extension(NamedTuple):
     icon: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
+    isInstalled: bool = True
 
 
 class ExtensionManager:

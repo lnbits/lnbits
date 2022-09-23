@@ -133,12 +133,12 @@ Vue.component('lnbits-extension-list', {
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item clickable tag="a" :href="['/extensions?usr=', user.id].join('')">
+      <q-item clickable tag="a" :href="['/v2/extensions?usr=', user.id].join('')">
         <q-item-section side>
           <q-icon name="clear_all" color="grey-5" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption">Manage extensions</q-item-label>
+          <q-item-label lines="1" class="text-caption">Manage extensions (V2)</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>

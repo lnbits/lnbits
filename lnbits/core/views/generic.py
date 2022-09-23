@@ -96,6 +96,20 @@ async def extensions(
 
 
 @core_html_routes.get(
+    "/v2/extensions",
+    name="core.v2.extensions",
+    response_class=HTMLResponse,
+)
+async def extensions(
+    request: Request,
+    user: User = Depends(check_user_exists),  # type: ignore
+):
+    return template_renderer().TemplateResponse(
+        "core/v2.extensions.html", {"request": request, "user": user.dict()}
+    )
+
+
+@core_html_routes.get(
     "/wallet",
     response_class=HTMLResponse,
     description="""

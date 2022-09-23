@@ -382,3 +382,9 @@ async def check_transaction_status(
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
+
+
+async def install_extension(extension_id):
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"http://127.0.0.1:8000/ext/get/{extension_id}")
+        print(r)
