@@ -314,7 +314,7 @@
             unelevated
             color="primary"
             type="submit"
-            >Update Store</q-btn
+            >Update Stall</q-btn
           >
           <q-btn
             v-else
@@ -323,7 +323,7 @@
             :disable="stallDialog.data.wallet == null
               || stallDialog.data.shippingzones == null"
             type="submit"
-            >Create Store</q-btn
+            >Create Stall</q-btn
           >
           <q-btn
             v-close-popup
@@ -363,21 +363,25 @@
           v-if="zones.length > 0"
           color="primary"
           @click="openStallDialog()"
-          >+ Store
-          <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
         >
         <q-btn
           unelevated
           v-else
           color="primary"
           @click="errorMessage('First set shipping zone(s).')"
-          >+ Store
-          <q-tooltip> Create a store to list products on </q-tooltip></q-btn
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
         >
         <q-btn unelevated color="primary" @click="marketDialog.show = true"
-          >Launch frontend shop (not Nostr)
+          >Create Market
           <q-tooltip>
-            Makes a simple frontend shop for your stalls</q-tooltip
+            Makes a simple frontend shop for your stalls (not NOSTR)</q-tooltip
           ></q-btn
         >
       </q-card-section>
@@ -596,11 +600,11 @@
     </q-card>
 
     <q-card>
-      <!-- STORES TABLE -->
+      <!-- STALLS TABLE -->
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Stores</h5>
+            <h5 class="text-subtitle1 q-my-none">Market Stalls</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportStallsCSV"
@@ -1030,7 +1034,7 @@
             {
               name: 'stall',
               align: 'left',
-              label: 'Store',
+              label: 'Stall',
               field: 'stall'
             },
             {
@@ -1118,7 +1122,7 @@
             {
               name: 'stores',
               align: 'left',
-              label: 'Stores',
+              label: 'Stalls',
               field: 'stores'
             }
           ],
