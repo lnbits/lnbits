@@ -1,8 +1,8 @@
 import asyncio
 
 from lnbits.core.models import Payment
-from lnbits.tasks import register_invoice_listener
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import register_invoice_listener
 
 from .crud import update_jukebox_payment
 

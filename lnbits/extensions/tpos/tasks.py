@@ -4,11 +4,8 @@ import json
 from lnbits.core import db as core_db
 from lnbits.core.crud import create_payment
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import get_current_extension_name, urlsafe_short_hash
 from lnbits.tasks import internal_invoice_queue, register_invoice_listener
-
-from lnbits.helpers import get_current_extension_name
-
 
 from .crud import get_tpos
 

@@ -4,8 +4,8 @@ from loguru import logger
 
 from lnbits.core.models import Payment
 from lnbits.extensions.satspay.crud import check_address_balance, get_charge
-from lnbits.tasks import register_invoice_listener
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import register_invoice_listener
 
 # from .crud import get_ticket, set_ticket_paid
 

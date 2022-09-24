@@ -4,13 +4,12 @@ from typing import Dict
 import httpx
 from loguru import logger
 
-from lnbits.tasks import register_invoice_listener, SseListenersDict
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import SseListenersDict, register_invoice_listener
 
 from . import db
 from .crud import get_balance_notify
 from .models import Payment
-
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"

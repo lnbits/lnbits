@@ -8,7 +8,7 @@ from typing import AsyncGenerator, Dict, Optional
 from environs import Env  # type: ignore
 from loguru import logger
 
-from ..bolt11 import decode, encode, Invoice
+from ..bolt11 import Invoice, decode, encode
 from .base import (
     InvoiceResponse,
     PaymentResponse,

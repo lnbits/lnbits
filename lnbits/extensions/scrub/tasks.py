@@ -9,8 +9,8 @@ from fastapi import HTTPException
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
-from lnbits.tasks import register_invoice_listener
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import register_invoice_listener
 
 from .crud import get_scrub_by_wallet
 

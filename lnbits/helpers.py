@@ -189,8 +189,9 @@ def get_current_extension_name() -> str:
     """
     Returns the name of the extension that calls this method.
     """
-    import json, os
     import inspect
+    import json
+    import os
 
     callee_filepath = inspect.stack()[1].filename
     callee_dirname, callee_filename = os.path.split(callee_filepath)

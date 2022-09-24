@@ -7,8 +7,8 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
-from lnbits.tasks import register_invoice_listener
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
 from .views import updater
