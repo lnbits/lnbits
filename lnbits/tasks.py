@@ -54,29 +54,28 @@ async def send_push_promise(a, b) -> None:
 class SseListenersDict(dict):
     """
     A dict of sse listeners.
-    It will refuse to add duplicate listeners.
     """
 
     def __init__(self, name: str = None):
         self.name = name or "sse_listener"
 
     def __setitem__(self, key, value):
-        if key in self:
-            logger.warning(f"sse: key {key} already in {self.name}. skipping.")
-            return  # don't add duplicate listeners
+        # if key in self:
+        #     logger.warning(f"sse: key {key} already in {self.name}. skipping.")
+        #     return  # don't add duplicate listeners
 
-        if value in self.values():
-            logger.warning(f"sse: value {value} already in {self.name}. skipping.")
-            return  # don't add duplicate listeners
+        # if value in self.values():
+        #     logger.warning(f"sse: value {value} already in {self.name}. skipping.")
+        #     return  # don't add duplicate listeners
 
         assert type(key) == str, f"{key} is not a string"
         assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
         logger.debug(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
-        return dict.__setitem__(self, key, value)
+        return super().__setitem__(key, value)
 
     def __delitem__(self, key):
         logger.debug(f"sse: removing listener from {self.name}. len = {len(self)-1}")
-        return dict.__delitem__(self, key)
+        return super().__delitem__(key)
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
