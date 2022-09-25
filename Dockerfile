@@ -12,7 +12,7 @@ WORKDIR /app
 COPY . .
 
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev --no-root
+RUN poetry install --only main --no-root
 RUN poetry run python build.py
 
 ENV LNBITS_PORT="5000"
