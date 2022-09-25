@@ -1,19 +1,12 @@
-import base64
-import hashlib
-import hmac
 import json
 import secrets
 from http import HTTPStatus
-from io import BytesIO
-from typing import Optional
 from urllib.parse import urlparse
 
-import httpx
 from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends, Query
-from lnurl import Lnurl, LnurlWithdrawResponse
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from loguru import logger
@@ -34,7 +27,6 @@ from .crud import (
     get_hit,
     get_hits_today,
     spend_hit,
-    update_card,
     update_card_counter,
     update_card_otp,
 )
@@ -120,31 +112,25 @@ async def lnurl_callback(
     invoice = bolt11.decode(pr)
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
     try:
-        payment_hash = await pay_invoice(
+        webhook = (
+            (
+                card.webhook_url,
+                {
+                    "notification": "card_payment",
+                    "card_external_id": card.external_id,
+                    "card_name": card.card_name,
+                },
+            )
+            if card.webhook_url
+            else None
+        )
+        await pay_invoice(
             wallet_id=card.wallet,
             payment_request=pr,
             max_sat=card.tx_limit,
             extra={"tag": "boltcard", "tag": hit.id},
+            webhook=webhook,
         )
-
-        if card.webhook_url:
-            async with httpx.AsyncClient() as client:
-                try:
-                    r = await client.post(
-                        card.webhook_url,
-                        json={
-                            "notification": "card_payment",
-                            "payment_hash": payment_hash,
-                            "payment_request": pr,
-                            "card_external_id": card.external_id,
-                            "card_name": card.card_name,
-                            "amount": int(invoice.amount_msat / 1000),
-                        },
-                        timeout=40,
-                    )
-                except Exception as exc:
-                    # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
-                    logger.error("Caught exception when dispatching webhook url:", exc)
 
         return {"status": "OK"}
     except:

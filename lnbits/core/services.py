@@ -2,7 +2,7 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -102,6 +102,7 @@ async def pay_invoice(
     extra: Optional[Dict] = None,
     description: str = "",
     conn: Optional[Connection] = None,
+    webhook: Optional[Union[str, tuple]] = None,
 ) -> str:
     """
     Pay a Lightning invoice.
@@ -230,6 +231,34 @@ async def pay_invoice(
             logger.warning(
                 f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
             )
+
+    if type(webhook) is str:
+        webhook_url = webhook
+    elif type(webhook) is tuple:
+        webhook_url = webhook[0]
+        additionals = webhook[1]
+    else:
+        webhook_url = None
+
+    if webhook_url:
+        async with httpx.AsyncClient() as client:
+            try:
+                json = {
+                    "payment_hash": invoice.payment_hash,
+                    "payment_request": payment_request,
+                    "amount": int(invoice.amount_msat / 1000),
+                }
+                if type(additionals) is dict:
+                    json.update(additionals)
+
+                r = await client.post(
+                    webhook_url,
+                    json=json,
+                    timeout=40,
+                )
+            except Exception as exc:
+                # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
+                logger.error("Caught exception when dispatching webhook url:", exc)
 
     return invoice.payment_hash
 
