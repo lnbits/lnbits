@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+
+  lnbits:
+    container_name: lnbits-legend
+    build: .
+    ports:
+      - 5000:5000
+    volumes:
+      - ${PWD}/.env:/app/.env
+      - ${PWD}/data/:/app/data
+      - ${PWD}/.secret/:/app/.secret

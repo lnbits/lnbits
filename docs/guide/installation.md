@@ -87,6 +87,8 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 
 ## Option 4: Docker
 
+Edit the .env file to set the funding source.
+
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend
@@ -96,13 +98,26 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
 
+### Docker Compose
+
+In addition to running from the single Docker command above, you can also use Docker Compose.
+
+If you need to pass in a `macaroon.admin` or `tls.cert` file, rename the `.secret.example` folder to `.secret` and place the files there.
+
+Run with
+
+```sh
+docker compose up --build -d
+```
+
+
 ## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
 
-First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required).
 
-Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/).
 
 After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
 
@@ -127,7 +142,7 @@ fly launch
 
 You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
 
-You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
 Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
 
@@ -150,7 +165,7 @@ kill_timeout = 30
   PORT=5000
   LNBITS_FORCE_HTTPS=true
   LNBITS_DATA_FOLDER="/data"
-  
+
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
 ...
 
