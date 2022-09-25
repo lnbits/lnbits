@@ -232,6 +232,7 @@ async def pay_invoice(
                 f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
             )
 
+    additionals = None
     if type(webhook) is str:
         webhook_url = webhook
     elif type(webhook) is tuple:
