@@ -18,20 +18,6 @@ from lnbits.settings import WALLET
 
 from .core import db
 
-# calle 2022-08-12: this is zombie code that does nothing
-# I am uncommenting it and let's see if someone complains.
-# deferred_async: List[Callable] = []
-
-# def record_async(func: Callable) -> Callable:
-#     def recorder(state):
-#         deferred_async.append(func)
-
-#     return recorder
-
-# async def run_deferred_async():
-#     for func in deferred_async:
-#         asyncio.create_task(catch_everything_and_restart(func))
-
 
 async def catch_everything_and_restart(func):
     try:

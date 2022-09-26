@@ -374,7 +374,11 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
     logger.debug(f"adding sse listener for wallet: {this_wallet_id}")
-    api_invoice_listeners[this_wallet_id] = payment_queue
+
+    if not this_wallet_id in api_invoice_listeners:
+        api_invoice_listeners[this_wallet_id] = payment_queue
+    else:
+        payment_queue = api_invoice_listeners[this_wallet_id]
 
     send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
