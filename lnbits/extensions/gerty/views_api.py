@@ -10,6 +10,7 @@ from loguru import logger
 from starlette.exceptions import HTTPException
 
 
+from lnbits.core.crud import get_wallet_for_key
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment, api_wallet
@@ -20,7 +21,7 @@ from . import gerty_ext
 from .crud import create_gerty, update_gerty, delete_gerty, get_gerty, get_gertys
 from .models import Gerty
 
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 from ...settings import LNBITS_PATH
 
 
@@ -100,36 +101,59 @@ async def api_gerty_json(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
         )
     gertyReturn = []
+
+    # Get Wallet info
+    wallets = ['wallets']
     if gerty.lnbits_wallets != "":
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
-            logger.debug(lnbits_wallet)
-            walletPrint = await api_wallet(wallet=lnbits_wallet)
-            gertyReturn.wallets.append(walletPrint)
-            #logger.debug(walletPrint)
-    logger.debug(gertyReturn)
+            wallet = await get_wallet_for_key(key=lnbits_wallet)
+            wallets.append({
+                "name": wallet.name,
+                "balance": wallet.balance_msat,
+            })
+    gertyReturn.append(wallets)
 
+    #Get Satoshi quotes
+    satoshi = ['sats_quote']
     if gerty.sats_quote:
-        gertyReturn.append(await api_gerty_satoshi())
+        satoshi.append(await api_gerty_satoshi())
+    gertyReturn.append(satoshi)
 
+    #Get Exchange Value
+    exchange = ['exchange']
     if gerty.exchange != "":
         try:
-            gertyReturn.append(await fiat_amount_as_satoshis(1, gerty.exchange))
+            exchange.append({
+                "fiat": gerty.exchange,
+                "amount": await satoshis_amount_as_fiat(100000000, gerty.exchange),
+            })
         except:
             pass
+    gertyReturn.append(exchange)
+
+    onchain = ['onchain']
     if gerty.onchain_stats:
         async with httpx.AsyncClient() as client:
+            difficulty = ['difficulty']
             r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
-            gertyReturn.append({"difficulty-adjustment": json.dumps(r)})
+            difficulty.append(r.json())
+            onchain.append(difficulty)
+            mempool = ['mempool']
             r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/mempool-blocks")
-            gertyReturn.append({"mempool-blocks": json.dumps(r)})
+            mempool.append(r.json())
+            onchain.append(mempool)
+            threed = ['threed']
             r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/3d")
-            gertyReturn.append({"3d": json.dumps(r)})
+            threed.append(r.json())
+            onchain.append(threed)
+    gertyReturn.append(onchain)
 
-    if gerty.ln_sats:
+    ln = ['ln']
+    if gerty.ln_stats:
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/lightning/statistics/latest")
-            gertyReturn.append({"latest": json.dumps(r)})
-    logger.debug(gertyReturn)
+            ln.append(r.json())
+    gertyReturn.append(ln)
     return gertyReturn
 
 
