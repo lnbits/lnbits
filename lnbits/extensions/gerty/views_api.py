@@ -160,6 +160,6 @@ async def api_gerty_json(
             if r:
                 ln.append(r.json())
 
-    return {"wallets":wallets, "sats_quote":satoshi, "exchange":exchange, "onchain":onchain, "ln":ln}
+    return {"name":gerty.name, "wallets":wallets, "sats_quote":satoshi, "exchange":exchange, "onchain":onchain, "ln":ln}
 
 

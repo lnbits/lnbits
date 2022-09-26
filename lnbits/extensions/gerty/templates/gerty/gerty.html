@@ -1,50 +1,53 @@
 {% extends "public.html" %}  {% block toolbar_title %} {{ gerty.name }}{% endblock %}{% block page %}
-<div class="q-pa-md">
-<div class="row  q-col-gutter-md" >{% raw %}
-  <div class="col q-pr-sm" v-for="gertywallet in gertywallets" style="max-width:400px">
-    <div class="q-item q-item-type row no-wrap q-pa-none" :style="`background-color: ${walletColors[0].first}`">
-      <div class="q-item__section column  q-pa-lg q-mr-none text-white q-item__section--side justify-center" :style="`background-color: ${walletColors[0].second}`" >
+{% raw %}
+<div class="q-pa-md row items-start q-gutter-md">
+  <q-card unelevated flat  class="q-pa-none text-body1 blockquote" style="background: none !important;">
+    "{{gerty.sats_quote[0].text}}" <br/>~ Satoshi {{gerty.sats_quote[0].date}}
+</q-card>
+</div>
+<div class="q-pa-md row items-start q-gutter-md">
+  <q-card unelevated flat class="q-pa-none" style="background: none !important;">
+    <q-card-section class="text-h1 q-pa-none">
+      {{gerty.exchange[0].amount.toFixed(2)}} {{gerty.exchange[0].fiat}}
+    </q-card-section>
+  </q-card>
+<q-card v-for="gertywallet in gertywallets" style="width:380px" flat>
+  <q-card-section horizontal class="q-pa-none" :style="`background-color: ${gertywallet.color1}`">
+    <q-card-section class="q-pa-none">
+      <div class="q-item__section column  q-pa-lg q-mr-none text-white q-item__section--side justify-center" :style="`background-color: ${gertywallet.color2}`" >
         <i aria-hidden="true" role="presentation" class="material-icons q-icon notranslate text-white" style="font-size: 50px;">sentiment_satisfied</i></div>  
-        <div class="q-item__section column  q-pa-md q-ml-none  text-white q-item__section--main justify-center" style="min-width:200px;">
-          <div class="q-item__label text-white text-h6 text-weight-bolder">{{gertywallet.amount}}</div><div class="q-item__label">Wallet: <b>{{gertywallet.name}}</b></div>
-        </div>{% endraw %}
-      </div>
-  </div>
-</div>
-</div>
-<div class="row q-col-gutter-md justify-center">  
+    </q-card-section>
 
+    <div class="q-item__section column  q-pa-md q-ml-none  text-white q-item__section--main justify-center" style="min-width:200px;">
+      <div class="q-item__label text-white text-h6 text-weight-bolder">{{gertywallet.amount}}</div><div class="q-item__label"><b>{{gertywallet.name}}</b></div>
+    </div>
+  </q-card-section>
+</q-card>
+</div>
 
-  <div class="col-12 col-sm-6 col-md-5 col-lg-4">
+<div class="row q-col-gutter-md ">  
+  <div v-if="gerty.onchain[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
     <q-card class="q-pa-lg">
+     <p class="text-h4">Onchain Stats</p>
       <q-card-section class="q-pa-none">
         <div class="row q-mt-lg q-gutter-sm">
-          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
-            >Copy LNURL</q-btn
-          >
-          <q-btn
-            outline
-            color="grey"
-            icon="nfc"
-            @click="writeNfcTag(' {{ lnurl }} ')"
-            :disable="nfcTagWriting"
-          ></q-btn>
+          {{gerty.onchain}}
         </div>
       </q-card-section>
     </q-card>
   </div>
-  <div class="col-12 col-sm-6 col-md-5 col-lg-4 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-mb-sm q-mt-none">Gerty</h6>
-        <p class="q-my-none">Use an LNURL compatible bitcoin wallet to pay.</p>
-      </q-card-section>
+  <div v-if="gerty.ln[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
+    <q-card class="q-pa-lg">
+     <p class="text-h4">LN Stats</p>
       <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
+        <div class="row q-mt-lg q-gutter-sm">
+          {{gerty.ln}}
+        </div>
       </q-card-section>
     </q-card>
   </div>
 </div>
+{% endraw %}
 {% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -54,7 +57,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        gerty: "",
+        gerty: {{ gerty | tojson }},
         walletColors: [
           {first: "#3f51b5",
           second: "#1a237e"},
@@ -71,30 +74,22 @@
           {first: "#4caf50",
           second: "#1b5e20"}
         ],
-        gertywallets: [{
-          name:"poo",
-          amount:"200"
-        },
-        {
-          name:"poo",
-          amount:"200"
-        }]
+        gertywallets: []
       }
     },
     methods: {
 
     },
     created: function () {
-      this.gerty = {{ gerty | tojson }}
       console.log(this.gerty)
 
-      if(this.gerty.wallets){
-        for (let i = 0; i < this.gerty.wallets.length; i++) {
-          this.gertywallets[i].name = this.gerty.wallets.name
-          this.gertywallets[i].amount = this.gerty.wallets.amount
-          this.gertywallets[i].color1 = this.walletColors[i].first
-          this.gertywallets[i].color2 = this.walletColors[i].second
-        }
+      for (let i = 0; i < this.gerty.wallets.length; i++) {
+          this.gertywallets[i] = {
+            "name":this.gerty.wallets[i].name,
+            "amount":this.gerty.wallets[i].balance/1000 + " Sats",
+            "color1":this.walletColors[i].first,
+            "color2":this.walletColors[i].second
+          }
       }
       console.log(this.gertywallets)
     }
