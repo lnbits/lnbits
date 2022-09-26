@@ -16,6 +16,8 @@ from .views_api import api_gerty_json
 
 import json
 
+from loguru import logger
+
 templates = Jinja2Templates(directory="templates")
 
 @gerty_ext.get("/", response_class=HTMLResponse)

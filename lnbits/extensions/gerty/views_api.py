@@ -103,7 +103,7 @@ async def api_gerty_json(
     gertyReturn = []
 
     # Get Wallet info
-    wallets = ['wallets']
+    wallets = []
     if gerty.lnbits_wallets != "":
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
             wallet = await get_wallet_for_key(key=lnbits_wallet)
@@ -113,18 +113,16 @@ async def api_gerty_json(
                     "balance": wallet.balance_msat,
                     "inkey": wallet.inkey,
                 })
-        gertyReturn.append(wallets)
 
     #Get Satoshi quotes
-    satoshi = ['sats_quote']
+    satoshi = []
     if gerty.sats_quote:
         quote = await api_gerty_satoshi()
         if quote:
             satoshi.append(await api_gerty_satoshi())
-        gertyReturn.append(satoshi)
 
     #Get Exchange Value
-    exchange = ['exchange']
+    exchange = []
     if gerty.exchange != "":
         try:
             amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
@@ -135,35 +133,33 @@ async def api_gerty_json(
                 })
         except:
             pass
-        gertyReturn.append(exchange)
 
-    onchain = ['onchain']
+    onchain = []
     if gerty.onchain_stats and isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
-            difficulty = ['difficulty']
+            difficulty = []
             r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
             if r:
                 difficulty.append(r.json())
-                onchain.append(difficulty)
-            mempool = ['mempool']
+                onchain.append({"difficulty":difficulty})
+            mempool = []
             r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/mempool-blocks")
             if r:
                 mempool.append(r.json())
-                onchain.append(mempool)
-            threed = ['threed']
+                onchain.append({"mempool":mempool})
+            threed = []
             r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/3d")
             if r:
                 threed.append(r.json())
-                onchain.append(threed)
-        gertyReturn.append(onchain)
+                onchain.append({"threed":threed})
 
-    ln = ['ln']
+    ln = []
     if gerty.ln_stats and isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/lightning/statistics/latest")
             if r:
                 ln.append(r.json())
-                gertyReturn.append(ln)
-    return gertyReturn
+
+    return {"wallets":wallets, "sats_quote":satoshi, "exchange":exchange, "onchain":onchain, "ln":ln}
 
 

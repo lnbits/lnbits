@@ -54,7 +54,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        gertyName: '{{gerty.name}}',
+        gerty: "",
         walletColors: [
           {first: "#3f51b5",
           second: "#1a237e"},
@@ -85,10 +85,18 @@
 
     },
     created: function () {
+      this.gerty = {{ gerty | tojson }}
       console.log(this.gerty)
-   //   if(){
-      
-   //   }
+
+      if(this.gerty.wallets){
+        for (let i = 0; i < this.gerty.wallets.length; i++) {
+          this.gertywallets[i].name = this.gerty.wallets.name
+          this.gertywallets[i].amount = this.gerty.wallets.amount
+          this.gertywallets[i].color1 = this.walletColors[i].first
+          this.gertywallets[i].color2 = this.walletColors[i].second
+        }
+      }
+      console.log(this.gertywallets)
     }
   })
 </script>
