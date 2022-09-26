@@ -119,6 +119,9 @@ async def lnurl_callback(
                     "notification": "card_payment",
                     "card_external_id": card.external_id,
                     "card_name": card.card_name,
+                    "card_otp": card.otp[
+                        -16:
+                    ],  # actually only half of the OTP is sent (full otp reveals the keys)
                 },
             )
             if card.webhook_url

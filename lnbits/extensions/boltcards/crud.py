@@ -114,8 +114,14 @@ async def get_card_by_external_id(external_id: str) -> Optional[Card]:
     return Card.parse_obj(card)
 
 
-async def get_card_by_otp(otp: str) -> Optional[Card]:
-    row = await db.fetchone("SELECT * FROM boltcards.cards WHERE otp = ?", (otp,))
+async def get_card_by_otp(otp: str, half: bool = False) -> Optional[Card]:
+    if half and len(otp) == 16:
+        otp = "%" + otp
+        row = await db.fetchone(
+            "SELECT * FROM boltcards.cards WHERE otp LIKE ?", (otp,)
+        )
+    else:
+        row = await db.fetchone("SELECT * FROM boltcards.cards WHERE otp = ?", (otp,))
     if not row:
         return None
 

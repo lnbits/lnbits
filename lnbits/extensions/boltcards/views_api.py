@@ -15,11 +15,13 @@ from .crud import (
     delete_card,
     enable_disable_card,
     get_card,
+    get_card_by_otp,
     get_card_by_uid,
     get_cards,
     get_hits,
     get_refunds,
     update_card,
+    update_card_otp,
 )
 from .models import CreateCardData
 
@@ -109,6 +111,22 @@ async def enable_card(
         raise HTTPException(detail="Not your card.", status_code=HTTPStatus.FORBIDDEN)
     card = await enable_disable_card(enable=enable, id=card_id)
     return card.dict()
+
+
+@boltcards_ext.post("/api/v1/disablecard")
+async def disble_card_with_otp(a):
+    if len(a) < 16:
+        raise HTTPException(detail="Invalid OTP.", status_code=HTTPStatus.BAD_REQUEST)
+    card = await get_card_by_otp(a, half=True)
+    if not card:
+        raise HTTPException(detail="No card found.", status_code=HTTPStatus.NOT_FOUND)
+
+    new_otp = secrets.token_hex(16)
+    await update_card_otp(new_otp, card.id)
+
+    card = await enable_disable_card(enable=False, id=card.id)
+
+    return {"status": "OK"}
 
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
