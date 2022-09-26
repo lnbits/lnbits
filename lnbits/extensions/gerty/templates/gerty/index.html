@@ -47,9 +47,19 @@
                   dense
                   size="xs"
                   icon="sentiment_satisfied"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  color="green"
                   type="a"
                   :href="props.row.gerty"
+                  target="_blank"
+                ><q-tooltip>Launch software Gerty</q-tooltip></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="code"
+                  color="pink"
+                  type="a"
+                  :href="props.row.gertyJson"
                   target="_blank"
                 ><q-tooltip>Launch software Gerty</q-tooltip></q-btn>
               </q-td>
@@ -138,6 +148,12 @@
           :options="currencyOptions"
           label="Exchange rate"
         ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.mempool_endpoint"
+          label="Mempool link"
+        ><q-tooltip>Used for getting onchain/ln stats</q-tooltip></q-input>
         <q-toggle
           v-model="formDialog.data.sats_quote"
           label="Satoshi Quotes"
@@ -184,6 +200,7 @@
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.gerty = ['/gerty/', obj.id].join('')
+    obj.gertyJson = ['/gerty/api/v1/gerty/', obj.id].join('')
     return obj
   }
 
@@ -390,6 +407,12 @@
               field: 'sats_quote'
             },
             {
+              name: 'mempool_endpoint',
+              align: 'left',
+              label: 'Mempool Endpoint',
+              field: 'mempool_endpoint'
+            },
+            {
               name: 'onchain_stats',
               align: 'left',
               label: 'Onchain Stats',
@@ -411,7 +434,8 @@
           data: {sats_quote: false,
           onchain_stats: false,
           ln_stats: false,
-          lnbits_wallets:[]}
+          lnbits_wallets:[],
+          mempool_endpoint: "https://mempool.space"}
         }
       }
     },
@@ -420,7 +444,8 @@
         this.formDialog.data = {sats_quote: false,
           onchain_stats: false,
           ln_stats: false,
-          lnbits_wallets:[]}
+          lnbits_wallets:[],
+          mempool_endpoint: "https://mempool.space"}
       },
       getGertys: function () {
         var self = this
@@ -443,6 +468,7 @@
         this.formDialog.data.wallet = gerty.wallet
         this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
         this.formDialog.data.exchange = gerty.exchange,
+        this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
         this.formDialog.data.sats_quote = Boolean(gerty.sats_quote)
         this.formDialog.data.onchain_stats = Boolean(gerty.onchain_stats)
         this.formDialog.data.ln_stats = Boolean(gerty.ln_stats)
@@ -469,6 +495,7 @@
           lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
           sats_quote: this.formDialog.data.sats_quote,
           exchange: this.formDialog.data.exchange,
+          mempool_endpoint: this.formDialog.data.mempool_endpoint,
           onchain_stats: this.formDialog.data.onchain_stats, 
           ln_stats: this.formDialog.data.ln_stats
         }
