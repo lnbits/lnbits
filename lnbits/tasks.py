@@ -45,14 +45,6 @@ class SseListenersDict(dict):
         self.name = name or "sse_listener"
 
     def __setitem__(self, key, value):
-        # if key in self:
-        #     logger.warning(f"sse: key {key} already in {self.name}. skipping.")
-        #     return  # don't add duplicate listeners
-
-        # if value in self.values():
-        #     logger.warning(f"sse: value {value} already in {self.name}. skipping.")
-        #     return  # don't add duplicate listeners
-
         assert type(key) == str, f"{key} is not a string"
         assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
         logger.debug(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
@@ -61,6 +53,12 @@ class SseListenersDict(dict):
     def __delitem__(self, key):
         logger.debug(f"sse: removing listener from {self.name}. len = {len(self)-1}")
         return super().__delitem__(key)
+
+    _RaiseKeyError = object()  # singleton for no-default behavior
+
+    def pop(self, key, v=_RaiseKeyError) -> None:
+        logger.debug(f"sse: removing listener from {self.name}. len = {len(self)-1}")
+        return super().pop(key)
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
@@ -71,9 +69,9 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     A method intended for extensions (and core/tasks.py) to call when they want to be notified about
     new invoice payments incoming. Will emit all incoming payments.
     """
-    name = name or f"no_name_{time.time()}"
-    logger.debug(f"sse: registering invoice listener {name}")
-    invoice_listeners[name] = send_chan
+    name_unique = f"{name or 'no_name'}_{time.time()}"
+    logger.debug(f"sse: registering invoice listener {name_unique}")
+    invoice_listeners[name_unique] = send_chan
 
 
 async def webhook_handler():

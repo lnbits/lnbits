@@ -9,13 +9,15 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
+import async_timeout
+import time
 from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse
+from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
@@ -373,34 +375,39 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    logger.debug(f"adding sse listener for wallet: {this_wallet_id}")
-
-    if not this_wallet_id in api_invoice_listeners:
-        api_invoice_listeners[this_wallet_id] = payment_queue
-    else:
-        payment_queue = api_invoice_listeners[this_wallet_id]
+    uid = f"{this_wallet_id}__{time.time()}"
+    logger.debug(f"adding sse listener for wallet: {uid}")
+    api_invoice_listeners[uid] = payment_queue
 
     send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
-            payment: Payment = await payment_queue.get()
-            if payment.wallet_id == this_wallet_id:
-                logger.debug("sse listener: payment receieved", payment)
-                await send_queue.put(("payment-received", payment))
+            try:
+                async with async_timeout.timeout(1):
+                    payment: Payment = await payment_queue.get()
+                    if payment.wallet_id == this_wallet_id:
+                        logger.debug("sse listener: payment receieved", payment)
+                        await send_queue.put(("payment-received", payment))
+            except asyncio.TimeoutError:
+                pass
 
-    asyncio.create_task(payment_received())
+    task = asyncio.create_task(payment_received())
 
     try:
         while True:
+            if await request.is_disconnected():
+                await request.close()
+                break
             typ, data = await send_queue.get()
-
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
 
             yield dict(data=jdata, event=typ)
-
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as e:
+        logger.debug(f"CancelledError on listener {uid}: {e}")
+        api_invoice_listeners.pop(uid)
+        task.cancel()
         return
 
 
