@@ -1,6 +1,9 @@
 import asyncio
 import json
+import os
+import zipfile
 from binascii import unhexlify
+from http.client import HTTPException
 from io import BytesIO
 from typing import Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
@@ -13,14 +16,8 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
-from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.requestvars import g
+from lnbits.decorators import WalletTypeInfo, require_admin_key
+from lnbits.helpers import url_for
 from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -386,5 +383,60 @@ def fee_reserve(amount_msat: int) -> int:
 
 async def install_extension(extension_id):
     async with httpx.AsyncClient() as client:
-        r = await client.get(f"http://127.0.0.1:8000/ext/get/{extension_id}")
-        print(r)
+        base_url = "http://127.0.0.1:8000"
+        r = await client.get(f"{base_url}/ext/get/{extension_id}")
+
+        if r.status_code != 200:
+            raise HTTPException(status_code=404, detail="Unable to fetch extension")
+
+        # get the latest version from the response
+        version = r.json()["versions"][-1]
+        print(version)
+
+        url = f"{base_url}/version/download/{version['id']}"
+
+        # For now we assume that the source files are in a .zip file.
+        # File sizes should be quite small => no writing to disk is needed.
+        with tempfile.NamedTemporaryFile() as file:
+            with httpx.stream("GET", url) as response:
+                if response.status_code != 200:
+                    logger.error(
+                        f"Unable to download extension file: {response.reason_phrase}"
+                    )
+
+                    raise HTTPException(
+                        status_code=404,
+                        detail="Unable to download extension file. Check log file for more info.",
+                    )
+
+                total = int(response.headers["Content-Length"])
+                print(f"Downloading file from {url} with {total} bytes")
+
+                for chunk in response.iter_bytes():
+                    file.write(chunk)
+                    num_bytes_downloaded = response.num_bytes_downloaded
+                    print(f"Downloaded {num_bytes_downloaded} of {total} bytes")
+
+                print(f"Downloaded {num_bytes_downloaded} bytes")
+
+                with zipfile.ZipFile(file) as zip:
+                    # for now, we assume that the zip file has exactly one root folder
+                    folder_name = zip.namelist()[0]
+
+                    # check if path exists relative to the current working directory
+                    if os.path.exists(f"lnbits/extensions/{folder_name}"):
+                        # delete the folder if it exists
+                        os.rmdir(f"lnbits/extensions/{folder_name}")
+
+                    # extract the zip file
+                    zip.extractall("lnbits/extensions/")
+
+                # try:
+                #     # restart LNbits
+                #     os.execv(sys.argv[0], sys.argv)
+                # except PermissionError as e:
+                #     logger.error(f"Unable to restart LNbits: {e}")
+                #     raise HTTPException(
+                #         status_code=500,
+                #         detail="Unable to restart LNbits and activate the extension. Check log file for more info.",
+                #     )

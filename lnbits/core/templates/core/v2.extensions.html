@@ -33,8 +33,14 @@
           style="font-size: 4rem"
         ></q-icon>
         {% raw %}
+        <div v-if="extension.latestVersion">
+          <small>Version {{ extension.latestVersion }} </small>
+        </div>
+        <div v-else>
+          <small>System Extension</small>
+        </div>
         <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
-        <small>{{ extension.shortDescription }} </small>{% endraw %}
+        <medium>{{ extension.shortDescription }} </medium>{% endraw %}
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
@@ -55,13 +61,14 @@
             Disable</q-btn
           >
         </div>
-          <q-btn v-else-if="extension.isInstalled && !extension.isEnabled"
-            flat
-            color="grey-5"
-            type="a"
-            :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
-          >
-            Enable
+        <q-btn
+          v-else-if="extension.isInstalled && !extension.isEnabled"
+          flat
+          color="grey-5"
+          type="a"
+          :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
+        >
+          Enable
         </q-btn>
         <q-btn
           v-else

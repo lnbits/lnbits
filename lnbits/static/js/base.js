@@ -129,7 +129,8 @@ window.LNbits = {
           'icon',
           'contributors',
           'hidden',
-          'isInstalled'
+          'isInstalled',
+          'latestVersion'
         ],
         data
       )
