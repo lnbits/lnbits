@@ -91,17 +91,13 @@ async def api_gerty_satoshi():
     
 @gerty_ext.get("/api/v1/gerty/{gerty_id}")
 async def api_gerty_json(
-    gerty_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+    gerty_id: str
 ):
     gerty = await get_gerty(gerty_id)
+    logger.debug(gerty.wallet)
     if not gerty:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
-        )
-    if gerty.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Come on, seriously, this isn't your Gerty!",
         )
     gertyReturn = []
     if gerty.lnbits_wallets != "":

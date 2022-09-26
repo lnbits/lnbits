@@ -6,12 +6,13 @@ async def m001_initial(db):
         """
         CREATE TABLE gerty.gertys (
             id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
             wallet TEXT NOT NULL,
-            lnbits_wallets TEXT NOT NULL,
-            sats_quote BOOL NOT NULL,
-            exchange TEXT NOT NULL,
-            onchain_sats BOOL NOT NULL,
-            ln_stats BOOL NOT NULL
+            lnbits_wallets TEXT,
+            sats_quote BOOL,
+            exchange TEXT,
+            onchain_stats BOOL,
+            ln_stats BOOL
         );
     """
     )

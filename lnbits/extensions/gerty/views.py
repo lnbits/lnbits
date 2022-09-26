@@ -21,3 +21,11 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "gerty/index.html", {"request": request, "user": user.dict()}
     )
 
+@gerty_ext.get("/{gerty_id}", response_class=HTMLResponse)
+async def display(request: Request, gerty_id):
+    gerty = await get_gerty(gerty_id)
+    if not gerty:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
+        )
+    return lnurlp_renderer().TemplateResponse("gerty/gerty.html", ctx)

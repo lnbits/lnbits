@@ -9,7 +9,6 @@
         >
       </q-card-section>
     </q-card>
-
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
@@ -137,7 +136,7 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="formDialog.data.walletOptions == null || formDialog.data.name == null"
+            :disable="formDialog.data.wallet == null || formDialog.data.name == null"
             type="submit"
             >Create Gerty</q-btn
           >
@@ -383,7 +382,7 @@
         formDialog: {
           show: false,
           data: {sats_quote: false,
-          onchain_sats: false,
+          onchain_stats: false,
           ln_stats: false}
         }
       }
@@ -396,11 +395,10 @@
       },
       getGertys: function () {
         var self = this
-
         LNbits.api
           .request(
             'GET',
-            '/gerty/api/v1/gertys?all_wallets=true',
+            '/gerty/api/v1/gerty?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -412,20 +410,19 @@
       createGerty: function () {
         var data = {
           name: this.formDialog.data.name,
-          currency: this.formDialog.data.currency,
-          tip_options: this.formDialog.data.tip_options
-            ? JSON.stringify(
-                this.formDialog.data.tip_options.map(str => parseInt(str))
-              )
-            : JSON.stringify([]),
-          tip_wallet: this.formDialog.data.tip_wallet || ''
+          wallet: this.formDialog.data.wallet,
+          lnbits_wallets: this.formDialog.data.lnbits_wallets,
+          sats_quote: this.formDialog.data.sats_quote,
+          exchange: this.formDialog.data.exchange,
+          onchain_sats: this.formDialog.data.onchain_sats,
+          ln_stats: this.formDialog.data.ln_stats
         }
         var self = this
 
         LNbits.api
           .request(
             'POST',
-            '/gerty/api/v1/gertys',
+            '/gerty/api/v1/gerty',
             _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
               .inkey,
             data
@@ -448,7 +445,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/gerty/api/v1/gertys/' + gertyId,
+                '/gerty/api/v1/gerty/' + gertyId,
                 _.findWhere(self.g.user.wallets, {id: gerty.wallet}).adminkey
               )
               .then(function (response) {
