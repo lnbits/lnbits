@@ -12,6 +12,9 @@ from lnbits.settings import LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE
 
 from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
+from .views_api import api_gerty_json
+
+import json
 
 templates = Jinja2Templates(directory="templates")
 
@@ -28,4 +31,5 @@ async def display(request: Request, gerty_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
         )
-    return lnurlp_renderer().TemplateResponse("gerty/gerty.html", ctx)
+    gertyData = await api_gerty_json(gerty_id)
+    return gerty_renderer().TemplateResponse("gerty/gerty.html", {"request": request, "gerty": gertyData})

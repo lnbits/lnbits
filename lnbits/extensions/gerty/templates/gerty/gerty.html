@@ -1,19 +1,23 @@
-{% extends "public.html" %} {% block page %}
-<div class="row q-col-gutter-md justify-center">
+{% extends "public.html" %}  {% block toolbar_title %} {{ gerty.name }}{% endblock %}{% block page %}
+<div class="q-pa-md">
+<div class="row  q-col-gutter-md" >{% raw %}
+  <div class="col q-pr-sm" v-for="gertywallet in gertywallets" style="max-width:400px">
+    <div class="q-item q-item-type row no-wrap q-pa-none" :style="`background-color: ${walletColors[0].first}`">
+      <div class="q-item__section column  q-pa-lg q-mr-none text-white q-item__section--side justify-center" :style="`background-color: ${walletColors[0].second}`" >
+        <i aria-hidden="true" role="presentation" class="material-icons q-icon notranslate text-white" style="font-size: 50px;">sentiment_satisfied</i></div>  
+        <div class="q-item__section column  q-pa-md q-ml-none  text-white q-item__section--main justify-center" style="min-width:200px;">
+          <div class="q-item__label text-white text-h6 text-weight-bolder">{{gertywallet.amount}}</div><div class="q-item__label">Wallet: <b>{{gertywallet.name}}</b></div>
+        </div>{% endraw %}
+      </div>
+  </div>
+</div>
+</div>
+<div class="row q-col-gutter-md justify-center">  
+
+
   <div class="col-12 col-sm-6 col-md-5 col-lg-4">
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
-        <div class="text-center">
-          <a href="lightning:{{ lnurl }}">
-            <q-responsive :ratio="1" class="q-mx-md">
-              <qrcode
-                value="{{ lnurl }}"
-                :options="{width: 800}"
-                class="rounded-borders"
-              ></qrcode>
-            </q-responsive>
-          </a>
-        </div>
         <div class="row q-mt-lg q-gutter-sm">
           <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
             >Copy LNURL</q-btn
@@ -37,7 +41,6 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "lnurlp/_lnurl.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
@@ -48,7 +51,45 @@
 
   new Vue({
     el: '#vue',
-    mixins: [windowMixin]
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        gertyName: '{{gerty.name}}',
+        walletColors: [
+          {first: "#3f51b5",
+          second: "#1a237e"},
+          {first: "#9c27b0",
+          second: "#4a148c"},
+          {first: "#e91e63",
+          second: "#880e4f"},
+          {first: "#009688",
+          second: "#004d40"},
+          {first: "#ff9800",
+          second: "#e65100"},
+          {first: "#2196f3",
+          second: "#0d47a1"},
+          {first: "#4caf50",
+          second: "#1b5e20"}
+        ],
+        gertywallets: [{
+          name:"poo",
+          amount:"200"
+        },
+        {
+          name:"poo",
+          amount:"200"
+        }]
+      }
+    },
+    methods: {
+
+    },
+    created: function () {
+      console.log(this.gerty)
+   //   if(){
+      
+   //   }
+    }
   })
 </script>
 {% endblock %}

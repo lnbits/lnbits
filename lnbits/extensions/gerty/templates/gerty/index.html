@@ -35,6 +35,7 @@
                 {{ col.label }}
               </q-th>
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
             </q-tr>
           </template>
 
@@ -45,16 +46,26 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="launch"
+                  icon="sentiment_satisfied"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
                   :href="props.row.gerty"
                   target="_blank"
-                ></q-btn>
+                ><q-tooltip>Launch software Gerty</q-tooltip></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ (col.name == 'tip_options' && col.value ?
                 JSON.parse(col.value).join(", ") : col.value) }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateformDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -90,7 +101,7 @@
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="createGerty" class="q-gutter-md">
+      <q-form @submit="sendFormDataGerty" class="q-gutter-md">
         <q-input
           filled
           dense
@@ -106,12 +117,19 @@
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
-        <q-input
+        <q-select
           filled
+          multiple
           dense
-          v-model.trim="formDialog.data.lnbits_wallets"
-          label="Wallets to watch (invoice keys, seperated by comma)"
-        ></q-input>
+          emit-value
+          v-model="formDialog.data.lnbits_wallets"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          new-value-mode="add-unique"
+          label="Wallets to watch"
+          ><q-tooltip>Hit enter to add values</q-tooltip></q-select>
         <q-select
           filled
           dense
@@ -138,8 +156,17 @@
             color="primary"
             :disable="formDialog.data.wallet == null || formDialog.data.name == null"
             type="submit"
+            class="q-mr-md"
             >Create Gerty</q-btn
           >
+          <q-btn
+          v-if="formDialog.data.id"
+          unelevated
+          color="primary"
+          :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+          type="submit"
+          >Update Gerty</q-btn
+        >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -383,15 +410,17 @@
           show: false,
           data: {sats_quote: false,
           onchain_stats: false,
-          ln_stats: false}
+          ln_stats: false,
+          lnbits_wallets:[]}
         }
       }
     },
     methods: {
       closeFormDialog: function () {
         this.formDialog.data = {sats_quote: false,
-          onchain_sats: false,
-          ln_stats: false}
+          onchain_stats: false,
+          ln_stats: false,
+          lnbits_wallets:[]}
       },
       getGertys: function () {
         var self = this
@@ -407,14 +436,40 @@
             })
           })
       },
+      updateformDialog: function (formId) {
+        var gerty = _.findWhere(this.gertys, {id: formId})
+        this.formDialog.data.id = gerty.id
+        this.formDialog.data.name = gerty.name
+        this.formDialog.data.wallet = gerty.wallet
+        this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
+        this.formDialog.data.exchange = gerty.exchange,
+        this.formDialog.data.sats_quote = Boolean(gerty.sats_quote)
+        this.formDialog.data.onchain_stats = Boolean(gerty.onchain_stats)
+        this.formDialog.data.ln_stats = Boolean(gerty.ln_stats)
+        this.formDialog.show = true
+      },
+      sendFormDataGerty: function () {
+        var self = this
+        if (self.formDialog.data.id) {
+          this.updateGerty(
+            self.g.user.wallets[0].adminkey,
+            self.formDialog.data
+          )
+        } else {
+          this.createGerty(
+            self.g.user.wallets[0].adminkey,
+            self.formDialog.data
+          )
+        }
+      },
       createGerty: function () {
         var data = {
           name: this.formDialog.data.name,
           wallet: this.formDialog.data.wallet,
-          lnbits_wallets: this.formDialog.data.lnbits_wallets,
+          lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
           sats_quote: this.formDialog.data.sats_quote,
           exchange: this.formDialog.data.exchange,
-          onchain_sats: this.formDialog.data.onchain_sats,
+          onchain_stats: this.formDialog.data.onchain_stats, 
           ln_stats: this.formDialog.data.ln_stats
         }
         var self = this
@@ -428,6 +483,27 @@
             data
           )
           .then(function (response) {
+            self.gertys.push(mapGerty(response.data))
+            self.formDialog.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateGerty: function (wallet, data) {
+        var self = this
+        data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
+        LNbits.api
+          .request(
+            'PUT',
+            '/gerty/api/v1/gerty/' + data.id,
+            wallet,
+            data
+          )
+          .then(function (response) {
+            self.gertys = _.reject(self.gertys, function (obj) {
+              return obj.id == data.id
+            })
             self.gertys.push(mapGerty(response.data))
             self.formDialog.show = false
           })

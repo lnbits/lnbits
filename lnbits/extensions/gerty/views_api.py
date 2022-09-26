@@ -12,12 +12,12 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
-from lnbits.core.views.api import api_payment
+from lnbits.core.views.api import api_payment, api_wallet
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from fastapi.templating import Jinja2Templates
 
 from . import gerty_ext
-from .crud import create_gerty, delete_gerty, get_gerty, get_gertys
+from .crud import create_gerty, update_gerty, delete_gerty, get_gerty, get_gertys
 from .models import Gerty
 
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -101,8 +101,13 @@ async def api_gerty_json(
         )
     gertyReturn = []
     if gerty.lnbits_wallets != "":
-        gertyReturn.append(gerty.lnbitsWallets)
-    
+        for lnbits_wallet in json.loads(gerty.lnbits_wallets):
+            logger.debug(lnbits_wallet)
+            walletPrint = await api_wallet(wallet=lnbits_wallet)
+            gertyReturn.wallets.append(walletPrint)
+            #logger.debug(walletPrint)
+    logger.debug(gertyReturn)
+
     if gerty.sats_quote:
         gertyReturn.append(await api_gerty_satoshi())
 
@@ -111,7 +116,7 @@ async def api_gerty_json(
             gertyReturn.append(await fiat_amount_as_satoshis(1, gerty.exchange))
         except:
             pass
-    if gerty.onchain_sats:
+    if gerty.onchain_stats:
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
             gertyReturn.append({"difficulty-adjustment": json.dumps(r)})
@@ -124,7 +129,7 @@ async def api_gerty_json(
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/lightning/statistics/latest")
             gertyReturn.append({"latest": json.dumps(r)})
-
+    logger.debug(gertyReturn)
     return gertyReturn
 
 

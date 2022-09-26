@@ -9,6 +9,7 @@ async def m001_initial(db):
             name TEXT NOT NULL,
             wallet TEXT NOT NULL,
             lnbits_wallets TEXT,
+            mempool_endpoint TEXT,
             sats_quote BOOL,
             exchange TEXT,
             onchain_stats BOOL,
