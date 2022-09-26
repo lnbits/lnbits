@@ -29,9 +29,17 @@
   <div v-if="gerty.onchain[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
     <q-card class="q-pa-lg">
      <p class="text-h4">Onchain Stats</p>
+     Difficulty Progress Percent
+     <q-linear-progress size="20px" :value="gerty.onchain[0].difficulty[0].progressPercent/100" color="primary" class="q-mt-sm">
+      <div class="absolute-full flex flex-center">
+        <q-badge color="white" text-color="accent" :label="gerty.onchain[0].difficulty[0].progressPercent.toFixed() + '%'" />
+      </div>
+    </q-linear-progress>
+
       <q-card-section class="q-pa-none">
-        <div class="row q-mt-lg q-gutter-sm">
-          {{gerty.onchain}}
+        <div class="row q-mt-lg q-gutter-sm text-h6">
+          Current difficulty: {{gerty.onchain[2].threed[0].currentDifficulty}}
+          Current hashrate: {{gerty.onchain[2].threed[0].currentHashrate}}
         </div>
       </q-card-section>
     </q-card>
