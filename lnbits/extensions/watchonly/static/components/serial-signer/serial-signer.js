@@ -230,8 +230,9 @@ async function serialSigner(path) {
             while (true) {
               const {value, done} = await readStringUntil('\n')
               if (value) {
-                this.handleSerialPortResponse(value)
-                this.updateSerialPortConsole(value)
+                const {command, commandData} = await this.extractCommand(value)
+                this.handleSerialPortResponse(command, commandData)
+                this.updateSerialPortConsole(command)
               }
               if (done) return
             }
@@ -245,8 +246,7 @@ async function serialSigner(path) {
           }
         }
       },
-      handleSerialPortResponse: async function (value) {
-        const {command, commandData} = await this.extractCommand(value)
+      handleSerialPortResponse: async function (command, commandData) {
         this.logPublicCommandsResponse(command, commandData)
 
         switch (command) {
@@ -287,7 +287,7 @@ async function serialSigner(path) {
             )
             break
           default:
-            console.log(`   %c${value}`, 'background: #222; color: red')
+            console.log(`   %c${command}`, 'background: #222; color: red')
         }
       },
       logPublicCommandsResponse: function (command, commandData) {
