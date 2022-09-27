@@ -839,7 +839,7 @@ cffi = ">=1.3.0"
 
 [[package]]
 name = "setuptools"
-version = "65.4.0"
+version = "64.0.3"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
@@ -1051,7 +1051,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "2e0a681abdbe69bca76301cad4cfb146eae204c4891f940e53d558819850745e"
+content-hash = "44f21d48f626f4630fc52d32c22d4337525fb232737b21fe803ba22b53b66327"
 
 [metadata.files]
 aiofiles = [
@@ -1799,8 +1799,8 @@ secp256k1 = [
     {file = "secp256k1-0.14.0.tar.gz", hash = "sha256:82c06712d69ef945220c8b53c1a0d424c2ff6a1f64aee609030df79ad8383397"},
 ]
 setuptools = [
-    {file = "setuptools-65.4.0-py3-none-any.whl", hash = "sha256:c2d2709550f15aab6c9110196ea312f468f41cd546bceb24127a1be6fdcaeeb1"},
-    {file = "setuptools-65.4.0.tar.gz", hash = "sha256:a8f6e213b4b0661f590ccf40de95d28a177cd747d098624ad3f69c40287297e9"},
+    {file = "setuptools-64.0.3-py3-none-any.whl", hash = "sha256:194b74f2c2d1800268fe2d857d99981e7c04d010de3099f04ee45ebec535e560"},
+    {file = "setuptools-64.0.3.tar.gz", hash = "sha256:3bcaf6e27ad3b0f643ba0a48c5ab9eca930c3eb51df0e068f4826ab880c394ea"},
 ]
 shortuuid = [
     {file = "shortuuid-1.0.1-py3-none-any.whl", hash = "sha256:492c7402ff91beb1342a5898bd61ea953985bf24a41cd9f247409aa2e03c8f77"},
