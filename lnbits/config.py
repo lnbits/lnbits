@@ -75,5 +75,4 @@ class Settings(BaseSettings):
 
 
 conf = Settings()
-print(conf)
 WALLET = wallet_class()
