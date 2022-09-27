@@ -65,6 +65,14 @@
                           :options="data.funding_source"
                         ></q-select>
                         <br />
+                        <div>
+                          <q-btn
+                            class="q-mt-md float-right"
+                            label="Restart Server"
+                            color="primary"
+                            @click="restartServer"
+                          ></q-btn>
+                        </div>
                       </div>
                       <div class="col-12">
                         <p>Fee reserve</p>
@@ -89,7 +97,7 @@
                             ></q-input>
                           </div>
                         </div>
-                        <br />
+
                       </div>
                     </div>
                   </div>
@@ -1256,6 +1264,24 @@
       removeAdSpace(ad) {
         let spaces = this.data.admin.ad_space
         this.data.admin.ad_space = spaces.filter(s => s !== ad)
+      },
+      restartServer() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/admin/restart/',
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Success! Restarted Server',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       topupWallet() {
         LNbits.api
