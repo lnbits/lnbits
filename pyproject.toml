@@ -76,7 +76,7 @@ mypy = "^0.971"
 types-protobuf = "^3.19.22"
 
 [build-system]
-requires = ["setuptools", "poetry-core>=1.0.0", "pyScss"]
+requires = ["poetry-core>=1.0.0", "pyScss"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
