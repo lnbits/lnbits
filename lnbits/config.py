@@ -17,7 +17,11 @@ def list_parse_fallback(v):
     try:
         return json.loads(v)
     except Exception as e:
-        return v.replace(" ", "").split(",")
+        replaced = v.replace(" ", "")
+        if replaced:
+            return replaced.split(",")
+        else:
+            return []
 
 
 class Settings(BaseSettings):
@@ -48,10 +52,7 @@ class Settings(BaseSettings):
     default_wallet_name: str = Field(
         default="LNbits wallet", env="LNBITS_DEFAULT_WALLET_NAME"
     )
-    theme: List[str] = Field(
-        default=["classic, flamingo, mint, salvador, monochrome, autumn"],
-        env="LNBITS_THEME_OPTIONS",
-    )
+    theme: List[str] = Field(default_factory=list, env="LNBITS_THEME_OPTIONS")
     custom_logo: str = Field(default=None, env="LNBITS_CUSTOM_LOGO")
     ad_space: List[str] = Field(default_factory=list, env="LNBITS_AD_SPACE")
     # .env
@@ -74,4 +75,5 @@ class Settings(BaseSettings):
 
 
 conf = Settings()
+print(conf)
 WALLET = wallet_class()
