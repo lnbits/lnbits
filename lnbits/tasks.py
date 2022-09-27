@@ -1,5 +1,6 @@
 import asyncio
 import time
+import uuid
 import traceback
 from http import HTTPStatus
 from typing import Callable, Dict, List
@@ -42,7 +43,7 @@ class SseListenersDict(dict):
     """
 
     def __init__(self, name: str = None):
-        self.name = name or "sse_listener"
+        self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
 
     def __setitem__(self, key, value):
         assert type(key) == str, f"{key} is not a string"
