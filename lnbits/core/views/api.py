@@ -377,7 +377,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    uid = f"{this_wallet_id}__{str(uuid.uuid4())[:8]}"
+    uid = f"{this_wallet_id}_{str(uuid.uuid4())[:8]}"
     logger.debug(f"adding sse listener for wallet: {uid}")
     api_invoice_listeners[uid] = payment_queue
 

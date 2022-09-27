@@ -70,7 +70,7 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     A method intended for extensions (and core/tasks.py) to call when they want to be notified about
     new invoice payments incoming. Will emit all incoming payments.
     """
-    name_unique = f"{name or 'no_name'}_{time.time()}"
+    name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
     logger.debug(f"sse: registering invoice listener {name_unique}")
     invoice_listeners[name_unique] = send_chan
 
