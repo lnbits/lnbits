@@ -610,10 +610,10 @@ async function serialSigner(path) {
         }
       },
       handleCheckPairingResponse: async function (res = '') {
-        const [statusCode, encryptedMessage] = res.split(' ')
+        const [statusCode, message] = res.split(' ')
         switch (statusCode) {
           case '0':
-            const controlText = await this.decryptData(encryptedMessage)
+            const controlText = await this.decryptData(message)
             if (controlText == PAIRING_CONTROL_TEXT) {
               this.$q.notify({
                 type: 'positive',
@@ -628,6 +628,16 @@ async function serialSigner(path) {
                 timeout: 10000
               })
             }
+            break
+          case '1':
+            this.closeSerialPort()
+            this.$q.notify({
+              type: 'warning',
+              message:
+                'Re-pairing failed. Remove (forget) device and try again!',
+              caption: `Error: ${message}`,
+              timeout: 10000
+            })
             break
           default:
             // noting to do here yet
