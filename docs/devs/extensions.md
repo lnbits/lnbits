@@ -28,17 +28,45 @@ Going over the example extension's structure:
 Adding new dependencies
 -----------------------
 
-If for some reason your extensions needs a new python package to work, you can add a new package using Pipenv:
+If for some reason your extensions needs a new python package to work, you can add a new package using `venv`, or `poerty`:
 
 ```sh
-$ pipenv install new_package_name
+$ poetry add <package>
+# or
+$ ./venv/bin/pip install <package>
 ```
 
-This will create a new entry in the `Pipenv` file.
 **But we need an extra step to make sure LNbits doesn't break in production.**
-All tests and deployments should run against the `requirements.txt` file so every time a new package is added
-it is necessary to run the Pipenv `lock` command and manually update the requirements file:
+Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry`.
+`nix` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
 
-```sh
-$ pipenv lock -r
+
+SQLite to PostgreSQL migration
+-----------------------
+
+LNbits currently supports SQLite and PostgreSQL databases. There is a migration script `tools/conv.py` that helps users migrate from SQLite to PostgreSQL. This script also copies all extension databases to the new backend.
+
+### Adding mock data to `mock_data.zip`
+
+`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.sqlite3` file. Unzip `tests/data/mock_data.zip`, add `your_extension.sqlite3`, updated `database.sqlite3` and zip it again. Add the updated `mock_data.zip` to your PR.
+
+### running migration locally
+you will need a running postgres database
+
+#### create lnbits user for migration database
+```console
+sudo su - postgres -c "psql -c 'CREATE ROLE lnbits LOGIN PASSWORD 'lnbits';'"
+```
+#### create migration database
+```console
+sudo su - postgres -c "psql -c 'CREATE DATABASE migration;'"
+```
+#### run the migration
+```console
+make test-migration
+```
+sudo su - postgres -c "psql -c 'CREATE ROLE lnbits LOGIN PASSWORD 'lnbits';'"
+#### clean migration database afterwards, fails if you try again
+```console
+sudo su - postgres -c "psql -c 'DROP DATABASE IF EXISTS migration;'"
 ```

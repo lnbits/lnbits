@@ -5,7 +5,7 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import check_invoice_status, create_invoice
+from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.subdomains.models import CreateDomain, CreateSubdomain
 
@@ -161,7 +161,7 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
 async def api_subdomain_send_subdomain(payment_hash):
     subdomain = await get_subdomain(payment_hash)
     try:
-        status = await check_invoice_status(subdomain.wallet, payment_hash)
+        status = await check_transaction_status(subdomain.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
         return {"paid": False}

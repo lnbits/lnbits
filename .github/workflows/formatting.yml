@@ -7,30 +7,19 @@ on:
     branches: [ main ]
 
 jobs:
-  black:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt-get install python3-venv
-      - run: python3 -m venv venv
-      - run: ./venv/bin/pip install black
-      - run: make checkblack
-  isort:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+      - uses: abatilo/actions-poetry@v2.1.3
+      - name: Install packages
+        run: poetry install
+      - name: Check black
+        run: make checkblack
+      - name: Check isort
+        run: make checkisort
       - uses: actions/setup-node@v3
-      - run: sudo apt-get install python3-venv
-      - run: python3 -m venv venv
-      - run: ./venv/bin/pip install isort
-      - run: make checkisort
-            
-  prettier:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: sudo apt-get install python3-venv
-      - run: python3 -m venv venv
-      - run: npm install prettier
-      - run: ./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js
+      - name: Check prettier
+        run: |
+          npm install prettier
+          make checkprettier

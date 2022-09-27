@@ -1,0 +1,77 @@
+<div class="row items-center no-wrap q-mb-md">
+  <div class="col-12">
+    <q-table
+      flat
+      dense
+      hide-header
+      :data="data"
+      :columns="paymentTable.columns"
+      :pagination.sync="paymentTable.pagination"
+    >
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <div class="row no-wrap">
+            <div class="col-1">
+              <q-btn
+                flat
+                dense
+                size="l"
+                @click="deletePaymentAddress(props.row)"
+                icon="cancel"
+                color="pink"
+                class="q-mt-sm"
+              ></q-btn>
+            </div>
+            <div class="col-7 q-pr-lg">
+              <q-input
+                filled
+                dense
+                v-model.trim="props.row.address"
+                type="text"
+                label="Address"
+                :rules="[val => !!val || 'Field is required']"
+                @input="handleOutputsChange"
+              ></q-input>
+            </div>
+            <div class="col-3 q-pr-lg">
+              <q-input
+                filled
+                dense
+                v-model.number="props.row.amount"
+                type="number"
+                step="1"
+                label="Amount (sats)"
+                :rules="[val => !!val || 'Field is required', val => +val > DUST_LIMIT || 'Amount to small (below dust limit)']"
+                @input="handleOutputsChange"
+              ></q-input>
+            </div>
+            <div class="col-1">
+              <q-btn outline color="grey" @click="sendMaxToAddress(props.row)"
+                >Max</q-btn
+              >
+            </div>
+          </div>
+        </q-tr>
+      </template>
+    </q-table>
+    <div class="row items-center no-wrap">
+      <div class="col-3 q-pr-lg">
+        <q-btn
+          unelevated
+          color="secondary"
+          @click="addPaymentAddress"
+          class="btn-full"
+          >Add</q-btn
+        >
+      </div>
+      <div class="col-9">
+        <div class="float-right">
+          <span>Payed Amount: </span>
+          <span class="text-subtitle2 q-ml-lg">
+            {{satBtc(getTotalPaymentAmount())}}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

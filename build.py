@@ -1,12 +1,13 @@
-import warnings
-import subprocess
 import glob
 import os
+import subprocess
+import warnings
 from os import path
-from typing import Any, List, NamedTuple, Optional
 from pathlib import Path
+from typing import Any, List, NamedTuple, Optional
 
 LNBITS_PATH = path.dirname(path.realpath(__file__)) + "/lnbits"
+
 
 def get_js_vendored(prefer_minified: bool = False) -> List[str]:
     paths = get_vendored(".js", prefer_minified)
@@ -71,6 +72,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 def url_for_vendored(abspath: str) -> str:
     return "/" + os.path.relpath(abspath, LNBITS_PATH)
 
+
 def transpile_scss():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -79,6 +81,7 @@ def transpile_scss():
         with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
             with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
                 css.write(compile_string(scss.read()))
+
 
 def bundle_vendored():
     for getfiles, outputpath in [
@@ -96,15 +99,7 @@ def bundle_vendored():
 def build():
     transpile_scss()
     bundle_vendored()
-#    root = Path("lnbits/static/foo")
-#    root.mkdir(parents=True)
-#    root.joinpath("example.css").write_text("")
+
 
 if __name__ == "__main__":
-   build()
-
-#def build(setup_kwargs):
-#    """Build """
-#    transpile_scss()
-#    bundle_vendored()
-#    subprocess.run(["ls", "-la", "./lnbits/static"])
+    build()

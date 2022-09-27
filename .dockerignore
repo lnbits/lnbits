@@ -6,6 +6,10 @@ tests
 venv
 tools
 
+lnbits/static/css/*
+lnbits/static/bundle.js
+lnbits/static/bundle.css
+
 *.md
 *.log
 
