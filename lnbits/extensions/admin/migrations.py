@@ -23,6 +23,8 @@ async def get_admin_user():
 
 
 async def m001_create_admin_table(db):
+
+
     # users/server
     user = await get_admin_user()
     admin_users = ",".join(conf.admin_users)
@@ -78,7 +80,7 @@ async def m001_create_admin_table(db):
     await db.execute(
         """
         INSERT INTO admin.admin (
-            "user", 
+            "user",
             admin_users,
             allowed_users,
             admin_ext,
@@ -125,9 +127,6 @@ async def m001_create_admin_table(db):
             ad_space,
         ),
     )
-
-
-async def m001_create_funding_table(db):
 
     funding_wallet = getenv("LNBITS_BACKEND_WALLET_CLASS")
 
