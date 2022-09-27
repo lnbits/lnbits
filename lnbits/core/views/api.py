@@ -386,11 +386,10 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     async def payment_received() -> None:
         while True:
             try:
-                async with async_timeout.timeout(1):
-                    payment: Payment = await payment_queue.get()
-                    if payment.wallet_id == this_wallet_id:
-                        logger.debug("sse listener: payment receieved", payment)
-                        await send_queue.put(("payment-received", payment))
+                payment: Payment = await payment_queue.get()
+                if payment.wallet_id == this_wallet_id:
+                    logger.debug("sse listener: payment receieved", payment)
+                    await send_queue.put(("payment-received", payment))
             except asyncio.TimeoutError:
                 pass
 
