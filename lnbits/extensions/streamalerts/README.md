@@ -18,7 +18,7 @@ In the "Whitelist Users" field, input the username of a Twitch account you contr
 For now, simply set the "Redirect URI" to `http://localhost`, you will change this soon.
 Then, hit create:  
 ![image](https://user-images.githubusercontent.com/28876473/127759264-ae91539a-5694-4096-a478-80eb02b7b594.png)  
-1. In LNbits, enable the Stream Alerts extension and optionally the SatsPayServer (to observe donations directly) and Watch Only (to accept on-chain donations) extenions:  
+1. In LNbits, enable the Stream Alerts extension and optionally the SatsPayServer (to observe donations directly) and Onchain Wallet (watch-only) (to accept on-chain donations) extenions:
 ![image](https://user-images.githubusercontent.com/28876473/127759486-0e3420c2-c498-4bf9-932e-0abfa17bd478.png)  
 1. Create a "NEW SERVICE" using the button. Fill in all the information (you get your Client ID and Secret from the Streamlabs App page):  
 ![image](https://user-images.githubusercontent.com/28876473/127759512-8e8b4e90-2a64-422a-bf0a-5508d0630bed.png)  

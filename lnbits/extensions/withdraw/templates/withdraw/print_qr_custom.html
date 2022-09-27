@@ -9,7 +9,10 @@
         <img src="{{custom_url}}" alt="..." />
         <span>{{ amt }} sats</span>
         <div class="lnurlw">
-          <qrcode :value="'{{one}}'" :options="{width: 95, margin: 1}"></qrcode>
+          <qrcode
+            :value="theurl + '/?lightning={{one}}'"
+            :options="{width: 95, margin: 1}"
+          ></qrcode>
         </div>
       </div>
       {% endfor %}

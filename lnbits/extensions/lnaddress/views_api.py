@@ -6,7 +6,7 @@ from fastapi.params import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import check_invoice_status, create_invoice
+from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.lnaddress.models import CreateAddress, CreateDomain
 
@@ -229,7 +229,7 @@ async def api_address_send_address(payment_hash):
     address = await get_address(payment_hash)
     domain = await get_domain(address.domain)
     try:
-        status = await check_invoice_status(domain.wallet, payment_hash)
+        status = await check_transaction_status(domain.wallet, payment_hash)
         is_paid = not status.pending
     except Exception as e:
         return {"paid": False, "error": str(e)}

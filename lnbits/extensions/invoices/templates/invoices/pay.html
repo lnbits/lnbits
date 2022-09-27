@@ -1,0 +1,430 @@
+{% extends "public.html" %} {% block toolbar_title %} Invoice
+<q-btn
+  flat
+  dense
+  size="md"
+  @click.prevent="urlDialog.show = true"
+  icon="share"
+  color="white"
+></q-btn>
+<q-btn
+  flat
+  dense
+  size="md"
+  @click.prevent="printInvoice()"
+  icon="print"
+  color="white"
+></q-btn>
+{% endblock %} {% from "macros.jinja" import window_vars with context %} {%
+block page %}
+<link rel="stylesheet" href="/invoices/static/css/pay.css" />
+<div id="invoicePage">
+  <div class="row q-gutter-y-md">
+    <div class="col-md-6 col-sm-12 col-xs-12">
+      <q-card>
+        <q-card-section>
+          <p>
+            <b>Invoice</b>
+          </p>
+
+          <q-list bordered separator>
+            <q-item clickable v-ripple>
+              <q-item-section><b>ID</b></q-item-section>
+              <q-item-section style="word-break: break-all"
+                >{{ invoice_id }}</q-item-section
+              >
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Created At</b></q-item-section>
+              <q-item-section
+                >{{ datetime.utcfromtimestamp(invoice.time).strftime('%Y-%m-%d
+                %H:%M') }}</q-item-section
+              >
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Status</b></q-item-section>
+              <q-item-section>
+                <span>
+                  <q-badge color=""> {{ invoice.status }} </q-badge>
+                </span>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Total</b></q-item-section>
+              <q-item-section>
+                {{ "{:0,.2f}".format(invoice_total / 100) }} {{ invoice.currency
+                }}
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Paid</b></q-item-section>
+              <q-item-section>
+                <div class="row" style="align-items: center">
+                  <div class="col-sm-6">
+                    {{ "{:0,.2f}".format(payments_total / 100) }} {{
+                    invoice.currency }}
+                  </div>
+                  <div class="col-sm-6" id="payButtonContainer">
+                    {% if payments_total < invoice_total %}
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      @click="formDialog.show = true"
+                      v-if="status == 'open'"
+                    >
+                      Pay Invoice
+                    </q-btn>
+                    {% endif %}
+                  </div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <div class="col-md-6 col-sm-12 col-xs-12">
+      <q-card>
+        <q-card-section>
+          <p>
+            <b>Bill To</b>
+          </p>
+
+          <q-list bordered separator>
+            <q-item clickable v-ripple>
+              <q-item-section><b>Company Name</b></q-item-section>
+              <q-item-section>{{ invoice.company_name }}</q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Name</b></q-item-section>
+              <q-item-section
+                >{{ invoice.first_name }} {{ invoice.last_name
+                }}</q-item-section
+              >
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Address</b></q-item-section>
+              <q-item-section>{{ invoice.address }}</q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Email</b></q-item-section>
+              <q-item-section>{{ invoice.email }}</q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple>
+              <q-item-section><b>Phone</b></q-item-section>
+              <q-item-section>{{ invoice.phone }}</q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
+
+  <div class="clear"></div>
+
+  <div class="row">
+    <div class="col-12 col-md">
+      <q-card>
+        <q-card-section>
+          <p>
+            <b>Items</b>
+          </p>
+
+          <q-list bordered separator>
+            {% if invoice_items %}
+            <q-item clickable v-ripple>
+              <q-item-section><b>Item</b></q-item-section>
+              <q-item-section side><b>Amount</b></q-item-section>
+            </q-item>
+            {% endif %} {% for item in invoice_items %}
+            <q-item clickable v-ripple>
+              <q-item-section><b>{{item.description}}</b></q-item-section>
+              <q-item-section side>
+                {{ "{:0,.2f}".format(item.amount / 100) }} {{ invoice.currency
+                }}
+              </q-item-section>
+            </q-item>
+            {% endfor %} {% if not invoice_items %} No Invoice Items {% endif %}
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
+
+  <div class="clear"></div>
+
+  <div class="row">
+    <div class="col-12 col-md">
+      <q-card>
+        <q-card-section>
+          <p>
+            <b>Payments</b>
+          </p>
+
+          <q-list bordered separator>
+            {% if invoice_payments %}
+            <q-item clickable v-ripple>
+              <q-item-section><b>Date</b></q-item-section>
+              <q-item-section side><b>Amount</b></q-item-section>
+            </q-item>
+            {% endif %} {% for item in invoice_payments %}
+            <q-item clickable v-ripple>
+              <q-item-section
+                ><b
+                  >{{ datetime.utcfromtimestamp(item.time).strftime('%Y-%m-%d
+                  %H:%M') }}</b
+                ></q-item-section
+              >
+              <q-item-section side>
+                {{ "{:0,.2f}".format(item.amount / 100) }} {{ invoice.currency
+                }}
+              </q-item-section>
+            </q-item>
+            {% endfor %} {% if not invoice_payments %} No Invoice Payments {%
+            endif %}
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
+
+  <div class="clear"></div>
+
+  <div class="row q-gutter-y-md q-gutter-md" id="printQrCode">
+    <div class="col-12 col-md">
+      <div class="text-center">
+        <p><b>Scan to View & Pay Online!</b></p>
+        <qrcode
+          value="{{ request.url }}"
+          :options="{width: 200}"
+          class="rounded-borders"
+        ></qrcode>
+      </div>
+    </div>
+  </div>
+
+  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="createPayment" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.payment_amount"
+          :rules="[val => val >= 0.01 || 'Minimum amount is 0.01']"
+          min="0.01"
+          label="Payment Amount"
+          placeholder="4.20"
+        >
+          <template v-slot:append>
+            <span style="font-size: 12px"> {{ invoice.currency }} </span>
+          </template>
+        </q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="formDialog.data.payment_amount == null"
+            type="submit"
+            >Create Payment</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog
+    v-model="qrCodeDialog.show"
+    position="top"
+    @hide="closeQrCodeDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
+      <a :href="'lightning:' + qrCodeDialog.data.payment_request">
+        <q-responsive :ratio="1" class="q-mx-xs">
+          <qrcode
+            :value="qrCodeDialog.data.payment_request"
+            :options="{width: 400}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+      </a>
+      <br />
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText('lightning:' + qrCodeDialog.data.payment_request, 'Invoice copied to clipboard!')"
+        >Copy Invoice</q-btn
+      >
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="urlDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          value="{{ request.url }}"
+          :options="{width: 400}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
+      <div class="text-center q-mb-xl">
+        <p style="word-break: break-all">{{ request.url }}</p>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText('{{ request.url }}', 'Invoice Pay URL copied to clipboard!')"
+          >Copy URL</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  var mapInvoice = function (obj) {
+    obj.time = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+
+    return obj
+  }
+
+  var mapInvoiceItems = function (obj) {
+    obj.amount = parseFloat(obj.amount / 100).toFixed(2)
+
+    return obj
+  }
+
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        invoice_id: '{{ invoice.id }}',
+        wallet: '{{ invoice.wallet }}',
+        currency: '{{ invoice.currency }}',
+        status: '{{ invoice.status }}',
+        qrCodeDialog: {
+          data: {
+            payment_request: null,
+          },
+          show: false,
+        },
+        formDialog: {
+          data: {
+            payment_amount: parseFloat({{invoice_total - payments_total}} / 100).toFixed(2)
+          },
+          show: false,
+        },
+        urlDialog: {
+          show: false,
+        },
+      }
+    },
+    methods: {
+      printInvoice: function() {
+        window.print()
+      },
+      closeFormDialog: function() {
+        this.formDialog.show = false
+      },
+      closeQrCodeDialog: function() {
+        this.qrCodeDialog.show = false
+      },
+      createPayment: function () {
+        var self = this
+        var qrCodeDialog = this.qrCodeDialog
+        var formDialog = this.formDialog
+        var famount = parseInt(formDialog.data.payment_amount * 100)
+
+        axios
+          .post('/invoices/api/v1/invoice/' + this.invoice_id + '/payments', null, {
+            params: {
+              famount: famount,
+            }
+          })
+          .then(function (response) {
+            formDialog.show = false
+            formDialog.data = {}
+
+            qrCodeDialog.data = response.data
+            qrCodeDialog.show = true
+
+            console.log(qrCodeDialog.data)
+
+            qrCodeDialog.dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+
+            qrCodeDialog.paymentChecker = setInterval(function () {
+              axios
+                .get(
+                  '/invoices/api/v1/invoice/' +
+                    self.invoice_id +
+                    '/payments/' +
+                    response.data.payment_hash
+                )
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(qrCodeDialog.paymentChecker)
+                    qrCodeDialog.dismissMsg()
+                    qrCodeDialog.show = false
+
+                    setTimeout(function () {
+                      window.location.reload()
+                    }, 500)
+                  }
+                })
+            }, 3000)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+    },
+    computed: {
+      statusBadgeColor: function() {
+        switch(this.status) {
+          case 'draft':
+            return 'gray'
+            break
+
+          case 'open':
+            return 'blue'
+            break
+
+          case 'paid':
+            return 'green'
+            break
+
+          case 'canceled':
+            return 'red'
+            break
+        }
+      },
+    },
+    created: function () {
+
+    }
+  })
+</script>
+{% endblock %}

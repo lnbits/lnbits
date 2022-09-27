@@ -1,0 +1,80 @@
+<div>
+  <div v-if="done">
+    <div class="row">
+      <div class="col-12">Seed Input Done</div>
+    </div>
+  </div>
+  <div v-else>
+    <div class="row">
+      <div class="col-3 q-pt-sm">Word Count</div>
+      <div class="col-6 q-pr-lg">
+        <q-select
+          filled
+          dense
+          v-model="wordCount"
+          type="number"
+          label="Word Count"
+          :options="wordCountOptions"
+          @input="initWords"
+        ></q-select>
+      </div>
+      <div class="col-3 q-pr-lg"></div>
+    </div>
+    <div class="row">
+      <div class="col-3 q-pr-lg"></div>
+      <div class="col-6">Enter word at position: {{actualPosition}}</div>
+      <div class="col-3 q-pr-lg"></div>
+    </div>
+    <div class="row">
+      <div class="col-3 q-pr-lg">
+        <q-btn
+          v-if="currentPosition > 0"
+          @click="previousPosition"
+          unelevated
+          class="btn-full"
+          color="secondary"
+          >Previous</q-btn
+        >
+      </div>
+      <div class="col-6 q-pr-lg">
+        <q-select
+          filled
+          dense
+          use-input
+          hide-selected
+          fill-input
+          input-debounce="0"
+          v-model="currentWord"
+          :options="options"
+          @filter="filterFn"
+          @input-value="setModel"
+        ></q-select>
+      </div>
+
+      <div class="col-3 q-pr-lg">
+        <q-btn
+          v-if="currentPosition < wordCount - 1"
+          @click="nextPosition"
+          unelevated
+          class="btn-full"
+          color="secondary"
+          >Next</q-btn
+        >
+        <q-btn
+          v-else
+          @click="seedInputDone"
+          unelevated
+          class="btn-full"
+          color="primary"
+          >Done</q-btn
+        >
+      </div>
+      <q-linear-progress
+        :value="currentPosition / (wordCount -1)"
+        size="5px"
+        color="primary"
+        class="q-mt-sm"
+      ></q-linear-progress>
+    </div>
+  </div>
+</div>

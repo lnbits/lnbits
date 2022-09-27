@@ -427,6 +427,7 @@
           :options="receive.units"
         ></q-select>
         <q-input
+          ref="setAmount"
           filled
           dense
           v-model.number="receive.data.amount"
@@ -688,7 +689,7 @@
     </q-card>
   </q-dialog>
   <q-tabs
-    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
     active-class="px-0"
     indicator-color="transparent"
   >
@@ -709,7 +710,7 @@
     <q-card class="q-pa-lg">
       <h6 class="q-my-md text-primary">Warning</h6>
       <p>
-        Login functionality to be released in v0.2, for now,
+        Login functionality to be released in a future update, for now,
         <strong
           >make sure you bookmark this page for future access to your
           wallet</strong

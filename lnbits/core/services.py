@@ -21,18 +21,20 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, WALLET
+from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
 from .crud import (
     check_internal,
     create_payment,
-    delete_payment,
+    delete_wallet_payment,
     get_wallet,
     get_wallet_payment,
+    update_payment_details,
     update_payment_status,
 )
+from .models import Payment
 
 try:
     from typing import TypedDict  # type: ignore
@@ -54,6 +56,7 @@ async def create_invoice(
     amount: int,  # in satoshis
     memo: str,
     description_hash: Optional[bytes] = None,
+    unhashed_description: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
@@ -65,7 +68,10 @@ async def create_invoice(
     wallet = FAKE_WALLET if internal else WALLET
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
-        amount=amount, memo=invoice_memo, description_hash=description_hash
+        amount=amount,
+        memo=invoice_memo,
+        description_hash=description_hash,
+        unhashed_description=unhashed_description,
     )
     if not ok:
         raise InvoiceFailure(error_message or "unexpected backend error.")
@@ -97,11 +103,20 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
+    """
+    Pay a Lightning invoice.
+    First, we create a temporary payment in the database with fees set to the reserve fee.
+    We then check whether the balance of the payer would go negative.
+    We then attempt to pay the invoice through the backend.
+    If the payment is successful, we update the payment in the database with the payment details.
+    If the payment is unsuccessful, we delete the temporary payment.
+    If the payment is still in flight, we hope that some other process will regularly check for the payment.
+    """
     invoice = bolt11.decode(payment_request)
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
-        temp_id = f"temp_{urlsafe_short_hash()}"
-        internal_id = f"internal_{urlsafe_short_hash()}"
+        temp_id = invoice.payment_hash
+        internal_id = f"internal_{invoice.payment_hash}"
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
@@ -109,18 +124,15 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         # put all parameters that don't change here
-        PaymentKwargs = TypedDict(
-            "PaymentKwargs",
-            {
-                "wallet_id": str,
-                "payment_request": str,
-                "payment_hash": str,
-                "amount": int,
-                "memo": str,
-                "extra": Optional[Dict],
-            },
-        )
-        payment_kwargs: PaymentKwargs = dict(
+        class PaymentKwargs(TypedDict):
+            wallet_id: str
+            payment_request: str
+            payment_hash: str
+            amount: int
+            memo: str
+            extra: Optional[Dict]
+
+        payment_kwargs: PaymentKwargs = PaymentKwargs(
             wallet_id=wallet_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
@@ -159,7 +171,7 @@ async def pay_invoice(
             logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
-                    f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
@@ -184,30 +196,41 @@ async def pay_invoice(
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
+
+        if payment.checking_id and payment.checking_id != temp_id:
+            logger.warning(
+                f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
+            )
+
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id:
-            logger.debug(f"creating final payment {payment.checking_id}")
+        if payment.checking_id and payment.ok != False:
+            # payment.ok can be True (paid) or None (pending)!
+            logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
-                await create_payment(
-                    checking_id=payment.checking_id,
+                await update_payment_details(
+                    checking_id=temp_id,
+                    pending=payment.ok != True,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
-                    pending=payment.ok == None,
+                    new_checking_id=payment.checking_id,
                     conn=conn,
-                    **payment_kwargs,
                 )
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_payment(temp_id, conn=conn)
-        else:
-            logger.debug(f"backend payment failed, no checking_id {temp_id}")
+                logger.debug(f"payment successful {payment.checking_id}")
+        elif payment.checking_id is None and payment.ok == False:
+            # payment failed
+            logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_payment(temp_id, conn=conn)
+                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
             raise PaymentFailure(
-                payment.error_message
+                f"Payment failed: {payment.error_message}"
                 or "Payment failed, but backend didn't give us an error message."
             )
-        logger.debug(f"payment successful {payment.checking_id}")
+        else:
+            logger.warning(
+                f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
+            )
+
     return invoice.payment_hash
 
 
@@ -272,6 +295,7 @@ async def perform_lnurlauth(
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
+
     key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
@@ -339,26 +363,22 @@ async def perform_lnurlauth(
             )
 
 
-async def check_invoice_status(
+async def check_transaction_status(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
-    payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    payment: Optional[Payment] = await get_wallet_payment(
+        wallet_id, payment_hash, conn=conn
+    )
     if not payment:
         return PaymentStatus(None)
-    status = await WALLET.get_invoice_status(payment.checking_id)
     if not payment.pending:
-        return status
-    if payment.is_out and status.failed:
-        logger.info(f"deleting outgoing failed payment {payment.checking_id}: {status}")
-        await payment.delete()
-    elif not status.pending:
-        logger.info(
-            f"marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
-        )
-        await payment.set_pending(status.pending)
+        # note: before, we still checked the status of the payment again
+        return PaymentStatus(True)
+
+    status: PaymentStatus = await payment.check_status()
     return status
 
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(2000, int(amount_msat * 0.01))
+    return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))

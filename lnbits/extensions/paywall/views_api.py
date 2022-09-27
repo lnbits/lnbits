@@ -4,7 +4,7 @@ from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import check_invoice_status, create_invoice
+from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import paywall_ext
@@ -87,7 +87,7 @@ async def api_paywal_check_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
         )
     try:
-        status = await check_invoice_status(paywall.wallet, payment_hash)
+        status = await check_transaction_status(paywall.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
         return {"paid": False}

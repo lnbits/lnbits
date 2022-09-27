@@ -1,16 +1,18 @@
+import secrets
+
 import pytest
 import pytest_asyncio
-import secrets
+
 from lnbits.core.crud import get_wallet
-from lnbits.settings import HOST, PORT
 from lnbits.extensions.bleskomat.crud import get_bleskomat_lnurl
 from lnbits.extensions.bleskomat.helpers import (
     generate_bleskomat_lnurl_signature,
     query_to_signing_payload,
 )
+from lnbits.settings import HOST, PORT
 from tests.conftest import client
-from tests.helpers import credit_wallet
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
+from tests.helpers import credit_wallet, is_regtest
 from tests.mocks import WALLET
 
 
@@ -95,6 +97,7 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
 async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]
@@ -114,6 +117,7 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
 async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]
