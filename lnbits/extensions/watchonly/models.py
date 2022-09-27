@@ -9,6 +9,7 @@ class CreateWallet(BaseModel):
     masterpub: str = Query("")
     title: str = Query("")
     network: str = "Mainnet"
+    meta: str = "{}"
 
 
 class WalletAccount(BaseModel):
@@ -21,6 +22,7 @@ class WalletAccount(BaseModel):
     balance: int
     type: Optional[str] = ""
     network: str = "Mainnet"
+    meta: str = "{}"
 
     @classmethod
     def from_row(cls, row: Row) -> "WalletAccount":

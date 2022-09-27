@@ -74,6 +74,7 @@ const mapWalletAccount = function (o) {
           'YYYY-MM-DD HH:mm'
         )
       : '',
+    meta: o.meta ? JSON.parse(o.meta) : null,
     label: o.title,
     expanded: false
   })

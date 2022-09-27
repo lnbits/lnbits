@@ -7,6 +7,7 @@ const watchOnly = async () => {
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
   await feeRate('static/components/fee-rate/fee-rate.html')
+  await seedInput('static/components/seed-input/seed-input.html')
   await sendTo('static/components/send-to/send-to.html')
   await payment('static/components/payment/payment.html')
   await serialSigner('static/components/serial-signer/serial-signer.html')
@@ -172,10 +173,6 @@ const watchOnly = async () => {
         this.$refs.paymentRef.updateSignedPsbt(psbtBase64)
       },
 
-      //################### SERIAL PORT ###################
-
-      //################### HARDWARE WALLET ###################
-
       //################### UTXOs ###################
       scanAllAddresses: async function () {
         await this.refreshAddresses()
@@ -227,7 +224,7 @@ const watchOnly = async () => {
             newAddr => !this.addresses.find(a => a.address === newAddr.address)
           )
 
-          const lastAcctiveAddress =
+          const lastActiveAddress =
             uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() ||
             {}
 
@@ -237,7 +234,7 @@ const watchOnly = async () => {
             a.gapLimitExceeded =
               !a.isChange &&
               a.addressIndex >
-                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+                lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
           })
           this.addresses.push(...uniqueAddresses)
         }
@@ -379,6 +376,26 @@ const watchOnly = async () => {
       },
       showAddressDetails: function (addressData) {
         this.openQrCodeDialog(addressData)
+      },
+      showAddressDetailsWithConfirmation: function ({addressData, wallet}) {
+        this.showAddressDetails(addressData)
+        if (this.$refs.serialSigner.isConnected()) {
+          if (this.$refs.serialSigner.isAuthenticated()) {
+            if (wallet.meta?.accountPath) {
+              const branchIndex = addressData.isChange ? 1 : 0
+              const path =
+                wallet.meta.accountPath +
+                `/${branchIndex}/${addressData.addressIndex}`
+              this.$refs.serialSigner.hwwShowAddress(path, addressData.address)
+            }
+          } else {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Please login in order to confirm address on device',
+              timeout: 10000
+            })
+          }
+        }
       },
       initUtxos: function (addresses) {
         if (!this.fetchedUtxos && addresses.length) {
