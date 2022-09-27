@@ -5,9 +5,8 @@ from loguru import logger
 
 from lnbits.core.models import Payment
 from lnbits.core.services import check_transaction_status
-from lnbits.tasks import register_invoice_listener
 from lnbits.helpers import get_current_extension_name
-
+from lnbits.tasks import register_invoice_listener
 
 from .boltz import (
     create_claim_tx,

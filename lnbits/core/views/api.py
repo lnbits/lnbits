@@ -2,16 +2,16 @@ import asyncio
 import binascii
 import hashlib
 import json
+import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
+import async_timeout
 import httpx
 import pyqrcode
-import async_timeout
-import time
 from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
