@@ -10,8 +10,33 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
     gerty_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO gerty.gertys (id, name, wallet, lnbits_wallets, mempool_endpoint, sats_quote, exchange, onchain_stats, ln_stats)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO gerty.gertys (
+        id,
+        name,
+        wallet,
+        lnbits_wallets,
+        mempool_endpoint,
+        exchange,
+        show_lnbits_wallets_balance,
+        show_sats_quote,
+        show_pieter_wuille_facts,
+        show_exchange_market_rate,
+        show_onchain_difficulty_epoch_progress,
+        show_onchain_difficulty_retarget_date,
+        show_onchain_difficulty_blocks_remaining,
+        show_onchain_difficulty_epoch_time_remaining,
+        show_onchain_mempool_recommended_fees,
+        show_onchain_mempool_number_of_tx,
+        show_mining_current_hash_rate,
+        show_mining_current_difficulty,
+        show_lightning_channel_count,
+        show_lightning_node_count,
+        show_lightning_tor_node_count,
+        show_lightning_clearnet_nodes,
+        show_lightning_unannounced_nodes,
+        show_lightning_average_channel_capacity
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             gerty_id,
@@ -19,10 +44,25 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
             data.wallet,
             data.lnbits_wallets,
             data.mempool_endpoint,
-            data.sats_quote,
             data.exchange,
-            data.onchain_stats,
-            data.ln_stats,
+            data.show_lnbits_wallets_balance,
+            data.show_sats_quote,
+            data.show_pieter_wuille_facts,
+            data.show_exchange_market_rate,
+            data.show_onchain_difficulty_epoch_progress,
+            data.show_onchain_difficulty_retarget_date,
+            data.show_onchain_difficulty_blocks_remaining,
+            data.show_onchain_difficulty_epoch_time_remaining,
+            data.show_onchain_mempool_recommended_fees,
+            data.show_onchain_mempool_number_of_tx,
+            data.show_mining_current_hash_rate,
+            data.show_mining_current_difficulty,
+            data.show_lightning_channel_count,
+            data.show_lightning_node_count,
+            data.show_lightning_tor_node_count,
+            data.show_lightning_clearnet_nodes,
+            data.show_lightning_unannounced_nodes,
+            data.show_lightning_average_channel_capacity
         ),
     )
 
