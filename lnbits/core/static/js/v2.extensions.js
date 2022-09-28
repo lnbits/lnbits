@@ -7,7 +7,9 @@ new Vue({
       registryExtensions: null,
       allExtensions: null,
       showInstalled: true,
-      showAvailable: true
+      showAvailable: true,
+      installingExtension: false,
+      installingExtensionName: null
     }
   },
   async mounted() {
@@ -34,7 +36,8 @@ new Vue({
             isEnabled: false,
             isInstalled: isInstalled,
             latestVersion:
-              e.versions[e.versions.length - 1].semver.split('_')[1]
+              e.versions[e.versions.length - 1].semver.split('_')[1],
+            requiresRestart: false
           }
         })
       )
@@ -43,8 +46,6 @@ new Vue({
       this.filteredExtensions = [
         ...new Map(this.allExtensions.map(m => [m.name, m])).values()
       ]
-
-      console.log(this.filteredExtensions)
     } else {
       alert('HTTP-Error: ' + res.status)
     }
@@ -72,5 +73,32 @@ new Vue({
       }
     }
   },
-  mixins: [windowMixin]
+  mixins: [windowMixin],
+  methods: {
+    async installExtension(extension, user_id) {
+      this.installingExtension = true
+      this.installingExtensionCode = extension.code
+
+      // await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const url = `http://localhost:5000/api/v1/extensions/install/${extension.code}?usr=${user_id}`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+      if (data['success']) {
+        this.filteredExtensions.find(
+          e => e.code == extension.code
+        ).requiresRestart = true
+      }
+
+      this.installingExtension = false
+      this.installingExtensionCode = null
+    }
+  }
 })

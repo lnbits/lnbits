@@ -661,7 +661,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get(
+@core_app.post(
     "/api/v1/extensions/install/{extension_id}",
     name="core.api.v1.extensions.install",
     response_class=JSONResponse,

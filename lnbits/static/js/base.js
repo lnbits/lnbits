@@ -130,7 +130,8 @@ window.LNbits = {
           'contributors',
           'hidden',
           'isInstalled',
-          'latestVersion'
+          'latestVersion',
+          'requiresRestart'
         ],
         data
       )

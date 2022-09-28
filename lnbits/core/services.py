@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import tempfile
 import zipfile
 from binascii import unhexlify
 from http.client import HTTPException

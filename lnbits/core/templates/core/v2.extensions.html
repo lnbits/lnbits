@@ -40,7 +40,7 @@
           <small>System Extension</small>
         </div>
         <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
-        <medium>{{ extension.shortDescription }} </medium>{% endraw %}
+        <small>{{ extension.shortDescription }} </small>{% endraw %}
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
@@ -70,12 +70,22 @@
         >
           Enable
         </q-btn>
+        <div
+          v-else-if="installingExtension && extension.code === installingExtensionCode"
+        >
+          <q-spinner-cube color="primary" size="2em" />
+        </div>
+        <div v-else-if="extension.requiresRestart">
+          <font style="color: orange" size="3"> Restart Required </font>
+          <q-icon name="warning" color="orange" size="2.5em" />
+        </div>
         <q-btn
           v-else
           flat
           color="primary"
           type="a"
-          :href="[g.base_url, '/api/v1/extensions/install/', extension.code, '?usr=', g.user.id].join('')"
+          :disable="installingExtension"
+          @click="installExtension(extension, g.user.id)"
         >
           Install
         </q-btn>
