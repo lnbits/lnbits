@@ -1,7 +1,8 @@
+import json
 from http import HTTPStatus
 from typing import List
 
-from fastapi import Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from loguru import logger
@@ -11,6 +12,7 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
+from lnbits.extensions.diagonalley.notifier import Notifier
 
 from .crud import (
     get_diagonalley_market,
@@ -32,24 +34,8 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "diagonalley/index.html", {"request": request, "user": user.dict()}
     )
 
-@diagonalley_ext.get("/chat", response_class=HTMLResponse)
-async def chat_page(request: Request, merch: str =  Query(...), order: str = Query(...)):
-    stall = await get_diagonalley_stall(merch)
-    orders = await get_diagonalley_order_details(order)
 
-    logger.debug(f"ORDER: {orders}")
-        
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/chat.html",
-        {
-            "request": request,
-            "stall": {"id": stall.id, "name": stall.name, "publickey": stall.publickey, "wallet": stall.wallet },
-            "orders": [details.dict() for details in orders]
-        },
-    )
-
-
-@diagonalley_ext.get("/{stall_id}", response_class=HTMLResponse)
+@diagonalley_ext.get("/stalls/{stall_id}", response_class=HTMLResponse)
 async def display(request: Request, stall_id):
     stall = await get_diagonalley_stall(stall_id)
     products = await get_diagonalley_products(stall_id)
@@ -103,30 +89,55 @@ async def display(request: Request, market_id):
         },
     )
 
+
+@diagonalley_ext.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request, merch: str = Query(...), order: str = Query(...)):
+    stall = await get_diagonalley_stall(merch)
+    _order = await get_diagonalley_order_details(order)
+
+    return diagonalley_renderer().TemplateResponse(
+        "diagonalley/chat.html",
+        {
+            "request": request,
+            "stall": {
+                "id": stall.id,
+                "name": stall.name,
+                "publickey": stall.publickey,
+                "wallet": stall.wallet,
+            },
+            "order": [details.dict() for details in _order],
+        },
+    )
+
+
 ##################WEBSOCKET ROUTES########################
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
+# Initialize Notifier:
+notifier = Notifier()
 
-    async def connect(self, websocket: WebSocket, order_id: str):
-        await websocket.accept()
-        websocket.id = order_id
-        self.active_connections.append(websocket)
+@diagonalley_ext.websocket("/ws/{room_name}")
+async def websocket_endpoint(
+    websocket: WebSocket, room_name: str, background_tasks: BackgroundTasks
+):
+    await notifier.connect(websocket, room_name)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            d = json.loads(data)
+            d["room_name"] = room_name
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+            room_members = (
+                notifier.get_members(room_name)
+                if notifier.get_members(room_name) is not None
+                else []
+            )
 
-    async def send_personal_message(self, message: str, order_id: str):
-        for connection in self.active_connections:
-            if connection.id == order_id:
-                await connection.send_text(message)
+            if websocket not in room_members:
+                print("Sender not in room member: Reconnecting...")
+                await notifier.connect(websocket, room_name)
 
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+            await notifier._notify(f"{data}", room_name)
 
-
-manager = ConnectionManager()
-
+    except WebSocketDisconnect:
+        notifier.remove(websocket, room_name)
 

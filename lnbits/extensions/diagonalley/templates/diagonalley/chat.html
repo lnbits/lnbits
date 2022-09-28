@@ -45,13 +45,15 @@
       <q-card-section>
         {% raw %}
         <h6 class="text-subtitle1 q-my-none">{{ stall.name }}</h6>
-        <p @click="copyText(stall.publickey)">
+        <p @click="copyText(stall.publickey)" style="width: max-content">
           Public Key: {{ sliceKey(stall.publickey) }}
-          <q-tooltip>{{ stall.publickey }}</q-tooltip>
+          <q-tooltip>Click to copy</q-tooltip>
         </p>
         {% endraw %}
+      </q-card-section>
+      <q-card-section v-if="user">
         <q-form @submit="" class="q-gutter-md">
-          <q-select
+          <!-- <q-select
             filled
             dense
             emit-value
@@ -60,16 +62,16 @@
             label="Merchant"
             hint="Select a merchant you've opened an order to"
           ></q-select>
-          <br />
+          <br /> -->
           <q-select
             filled
             dense
             emit-value
-            v-model="model"
-            :options="mockOrder"
+            v-model="selectedOrder"
+            :options="user.orders"
             label="Order"
             hint="Select an order from this merchant"
-            :disabled="!this.model"
+            @input="val => { changeOrder() }"
           ></q-select>
         </q-form>
       </q-card-section>
@@ -79,16 +81,26 @@
           Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
           quasi.
         </p>
-        <div class="text-center q-mb-lg">
-          <a :href="'lightning:'">
-            <q-responsive :ratio="1" class="q-mx-xl">
-              <qrcode
-                :value="cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b"
-                :options="{width: 340}"
-                class="rounded-borders"
-              ></qrcode>
-            </q-responsive>
-          </a>
+        <div v-if="user?.keys" class="row">
+          <div
+            class="col-6"
+            v-for="type in ['publickey', 'privatekey']"
+            v-bind:key="type"
+          >
+            <div class="text-center q-mb-lg">
+              {% raw %}
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="user.keys[type]"
+                  :options="{width: 250}"
+                  class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>{{ user.keys[type] }}</q-tooltip>
+              </q-responsive>
+              <p>{{ type == 'publickey' ? 'Public Key' : 'Private Key' }}</p>
+              {% endraw %}
+            </div>
+          </div>
         </div>
         <p>
           Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
@@ -123,7 +135,9 @@
         showMessages: false,
         messages: {},
         stall: null,
+        selectedOrder: null,
         orders: [],
+        user: null,
         // Mock data
         model: null,
         mockMerch: ['Google', 'Facebook', 'Twitter', 'Apple', 'Oracle'],
@@ -136,29 +150,108 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      sendMessage() {
+      sendMessage(e) {
         let message = {
           key: Date.now(),
           text: this.newMessage,
           from: 'me'
         }
-        this.$set(this.messages, message.key, message)
+        ws.send(JSON.stringify(message))
 
         this.clearMessage()
+        e.preventDefault()
       },
       sliceKey(key) {
         if (!key) return ''
         return `${key.slice(0, 4)}...${key.slice(-4)}`
+      },
+      async generateKeys() {
+        await LNbits.api
+          .request('GET', '/diagonalley/api/v1/keys', null)
+          .then(response => {
+            if (response.data) {
+              let data = {
+                keys: {
+                  privatekey: response.data.privkey,
+                  publickey: response.data.pubkey
+                }
+              }
+              this.user = data
+              console.log('Keys done', this.user)
+              return
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      changeOrder() {
+        console.log(this.selectedOrder)
+      },
+      startChat(room_name) {
+        if (location.protocol == 'https:') {
+          ws_scheme = 'wss://'
+        } else {
+          ws_scheme = 'ws://'
+        }
+        ws = new WebSocket(
+          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+        )
+
+        function checkWebSocket(event) {
+          if (ws.readyState === WebSocket.CLOSED) {
+            console.log('WebSocket CLOSED: Reopening')
+            ws = new WebSocket(
+              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+            )
+          }
+        }
+
+        ws.onmessage = event => {
+          let event_data = JSON.parse(event.data)
+
+          this.$set(this.messages, event_data.key, event_data)
+          this.$q.localStorage.set()
+        }
+
+        this.ws = ws
       }
     },
-    created() {
-      let stall = JSON.parse('{{ stall | tojson }}')
-      let orders = JSON.parse('{{ orders | tojson }}')
+    async created() {
+      this.stall = JSON.parse('{{ stall | tojson }}')
 
-      this.stall = stall
-      this.orders = orders
-      console.log(stall)
-      console.log(orders)
+      let order_details = JSON.parse('{{ order | tojson }}')
+      let order_id = order_details[0].order_id
+
+      let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+
+      try {
+        if (data) {
+          this.user = data
+          //add chat key (merchant pubkey) if not set
+          if (!this.user.chats[`${this.stall.publickey}`]) {
+            this.$set(this.user.chats, this.stall.publickey, [])
+          }
+          //this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+        } else {
+          // generate keys
+          await this.generateKeys()
+          // populate user data
+          this.user.chats = {
+            [`${this.stall.publickey}`]: []
+          }
+          this.user.orders = []
+        }
+
+        this.order_details = order_details
+        this.user.orders = [...new Set([...this.user.orders, order_id])]
+        this.selectedOrder = order_id
+
+        this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+        this.startChat(order_id)
+      } catch (e) {
+        console.error(e)
+      }
     }
   })
 </script>

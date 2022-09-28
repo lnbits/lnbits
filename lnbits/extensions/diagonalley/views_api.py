@@ -469,14 +469,15 @@ async def api_diagonalley_stall_create(
 
     return market.dict()
 
+
 ## KEYS
 
+
 @diagonalley_ext.get("/api/v1/keys")
-async def api_diagonalley_generate_keys(wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_generate_keys():
     private_key = PrivateKey()
     public_key = private_key.pubkey.serialize().hex()
     while not public_key.startswith("02"):
         private_key = PrivateKey()
         public_key = private_key.pubkey.serialize().hex()
     return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
-
