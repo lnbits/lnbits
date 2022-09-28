@@ -115,6 +115,7 @@ async def chat_page(request: Request, merch: str = Query(...), order: str = Quer
 # Initialize Notifier:
 notifier = Notifier()
 
+
 @diagonalley_ext.websocket("/ws/{room_name}")
 async def websocket_endpoint(
     websocket: WebSocket, room_name: str, background_tasks: BackgroundTasks
@@ -140,4 +141,3 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         notifier.remove(websocket, room_name)
-
