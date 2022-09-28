@@ -1,6 +1,7 @@
 from http import HTTPStatus
+from typing import List
 
-from fastapi import Request
+from fastapi import Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from loguru import logger
@@ -11,10 +12,10 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
 
-from ...core.crud import get_wallet
 from .crud import (
     get_diagonalley_market,
     get_diagonalley_market_stalls,
+    get_diagonalley_order_details,
     get_diagonalley_products,
     get_diagonalley_stall,
     get_diagonalley_zone,
@@ -29,6 +30,22 @@ templates = Jinja2Templates(directory="templates")
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return diagonalley_renderer().TemplateResponse(
         "diagonalley/index.html", {"request": request, "user": user.dict()}
+    )
+
+@diagonalley_ext.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request, merch: str =  Query(...), order: str = Query(...)):
+    stall = await get_diagonalley_stall(merch)
+    orders = await get_diagonalley_order_details(order)
+
+    logger.debug(f"ORDER: {orders}")
+        
+    return diagonalley_renderer().TemplateResponse(
+        "diagonalley/chat.html",
+        {
+            "request": request,
+            "stall": {"id": stall.id, "name": stall.name, "publickey": stall.publickey, "wallet": stall.wallet },
+            "orders": [details.dict() for details in orders]
+        },
     )
 
 
@@ -85,3 +102,31 @@ async def display(request: Request, market_id):
             "products": products,
         },
     )
+
+##################WEBSOCKET ROUTES########################
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, order_id: str):
+        await websocket.accept()
+        websocket.id = order_id
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, order_id: str):
+        for connection in self.active_connections:
+            if connection.id == order_id:
+                await connection.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
