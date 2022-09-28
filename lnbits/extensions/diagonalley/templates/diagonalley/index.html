@@ -253,28 +253,32 @@
         >
         </q-select>
         <!-- NOSTR -->
-        <!-- <div class="row">
+        <div class="row">
           <div class="col-5">
-            <q-btn unelevated @onclick="generateKeys" color="primary">Generate keys</q-btn>
+            <q-btn unelevated @click="generateKeys" color="primary"
+              >Generate keys</q-btn
+            >
           </div>
           <div class="col-5">
-            <q-btn unelevated @onclick="restoreKeys" color="primary">Restore keys</q-btn>
+            <q-btn unelevated @click="restoreKeys" color="primary"
+              >Restore keys</q-btn
+            >
           </div>
         </div>
         <q-input
-          v-if="stallDialog.restorekeys"
+          v-if="keys"
           filled
           dense
           v-model.trim="stallDialog.data.publickey"
           label="Public Key"
         ></q-input>
         <q-input
-          v-if="stallDialog.restorekeys"
+          v-if="keys"
           filled
           dense
           v-model.trim="stallDialog.data.privatekey"
           label="Private Key"
-        ></q-input> -->
+        ></q-input>
         <q-select
           :options="zoneOptions"
           filled
@@ -863,6 +867,7 @@
 </div> -->
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
+
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
@@ -918,6 +923,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        keys: null,
         products: [],
         orders: [],
         stalls: [],
@@ -1197,24 +1203,43 @@
         this[dialog].show = false
         this[dialog].data = {}
       },
-      generateKeys: function () {
-        var self = this
+      generateKeys() {
         LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/keys',
-            self.g.user.wallets[0].adminkey
+            this.g.user.wallets[0].adminkey
           )
-          .then(function (response) {
+          .then(response => {
             if (response.data) {
-              self.keys = response.data.map(mapKeys)
+              this.keys = response.data
+              this.stallDialog.data.publickey = this.keys.pubkey
+              this.stallDialog.data.privatekey = this.keys.privkey
+              this.$q.localStorage.set(
+                `lnbits.diagonalley.${this.g.user.id}`,
+                this.keys
+              )
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      restoreKeys: function () {},
+      restoreKeys() {
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+          this.stallDialog.data.publickey = this.keys.pubkey
+          this.stallDialog.data.privatekey = this.keys.privkey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No keys found.'
+          })
+        }
+      },
       capitalizeFirstLetter: function (string) {
         return string.charAt(0).toUpperCase() + string.slice(1)
       },
@@ -1827,7 +1852,6 @@
           'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
           'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'
         ]
-        console.log(_.pick(this.g.user, 'id'))
       }
     }
   })

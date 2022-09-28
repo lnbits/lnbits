@@ -7,6 +7,7 @@ from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from loguru import logger
+from secp256k1 import PrivateKey, PublicKey
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -467,3 +468,15 @@ async def api_diagonalley_stall_create(
         await create_diagonalley_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()
+
+## KEYS
+
+@diagonalley_ext.get("/api/v1/keys")
+async def api_diagonalley_generate_keys(wallet: WalletTypeInfo = Depends(require_admin_key)):
+    private_key = PrivateKey()
+    public_key = private_key.pubkey.serialize().hex()
+    while not public_key.startswith("02"):
+        private_key = PrivateKey()
+        public_key = private_key.pubkey.serialize().hex()
+    return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
+
