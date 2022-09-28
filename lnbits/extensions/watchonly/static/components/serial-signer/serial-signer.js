@@ -923,6 +923,7 @@ async function serialSigner(path) {
       },
       decryptData: async function (value) {
         if (!this.sharedSecret) {
+          console.log('/error Secure session not established!')
           return '/error Secure session not established!'
         }
         try {
@@ -943,6 +944,7 @@ async function serialSigner(path) {
             .trim()
           return command
         } catch (error) {
+          console.log('/error Failed to decrypt message from device!')
           return '/error Failed to decrypt message from device!'
         }
       },
