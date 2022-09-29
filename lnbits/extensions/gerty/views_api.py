@@ -126,19 +126,6 @@ async def api_gerty_json(
     text = await get_screen_text(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
-
-    # Get Exchange Value
-    exchange = []
-    # if gerty.exchange != "":
-    #     try:
-    #         amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
-    #         if amount:
-    #             exchange.append({
-    #                 "fiat": gerty.exchange,
-    #                 "amount": amount,
-    #             })
-    #     except:
-    #         pass
     #
     # onchain = []
     # if gerty.onchain_stats and isinstance(gerty.mempool_endpoint, str):
@@ -198,7 +185,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "fun_pieter_wuille_facts":
         text = await get_pieter_wuille_fact()
     elif screen_slug == "fun_exchange_market_rate":
-        text = await get_placeholder_text()
+        text = await get_exchange_rate(gerty)
     elif screen_slug == "onchain_difficulty_epoch_progress":
         text = await get_placeholder_text()
     elif screen_slug == "onchain_difficulty_retarget_date":
@@ -268,6 +255,20 @@ async def get_pieter_wuille_fact():
     if quote:
         text.append(get_text_item_dict(quote, 16))
         text.append(get_text_item_dict("Pieter Wuille facts", 12))
+    return text
+
+# Get Exchange Value
+async def get_exchange_rate(gerty):
+    text = []
+    if gerty.exchange != "":
+        try:
+            amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
+            if amount:
+                price = ('{0} {1}').format(("{:,}".format(math.ceil(amount))), gerty.exchange)
+                text.append(get_text_item_dict(price, 40))
+                text.append(get_text_item_dict("Current BTC price", 12))
+        except:
+            pass
     return text
 
 # A helper function get a nicely formated dict for the text
