@@ -46,6 +46,14 @@ new Vue({
       this.filteredExtensions = [
         ...new Map(this.allExtensions.map(m => [m.name, m])).values()
       ]
+
+      // sync enabled status
+      this.g.user.extensions.forEach(e => {
+        var ext = this.filteredExtensions.find(
+          filteredExt => filteredExt.name == e
+        )
+        if (ext) ext.isEnabled = true
+      })
     } else {
       alert('HTTP-Error: ' + res.status)
     }
@@ -77,7 +85,7 @@ new Vue({
   methods: {
     async installExtension(extension, user_id) {
       this.installingExtension = true
-      this.installingExtensionCode = extension.code
+      this.installingExtensionName = extension.name
 
       // await new Promise(resolve => setTimeout(resolve, 2000))
 
@@ -98,7 +106,51 @@ new Vue({
       }
 
       this.installingExtension = false
-      this.installingExtensionCode = null
+      this.installingExtensionName = null
+    },
+    async enableExtension(extension_name, user_id) {
+      this.installingExtension = true
+      this.installingExtensionName = extension_name
+
+      const url = `http://localhost:5000/api/v1/extensions/enable/${extension_name}?usr=${user_id}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (res.status == 200) {
+        this.filteredExtensions.find(
+          e => e.name == extension_name
+        ).isEnabled = true
+      }
+
+      this.installingExtension = false
+      this.installingExtensionName = null
+    },
+    async disableExtension(extension_name, user_id) {
+      this.installingExtension = true
+      this.installingExtensionName = extension_name
+
+      const url = `http://localhost:5000/api/v1/extensions/disable/${extension_name}?usr=${user_id}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (res.status == 200) {
+        this.filteredExtensions.find(
+          e => e.name == extension_name
+        ).isEnabled = false
+      }
+
+      this.installingExtension = false
+      this.installingExtensionName = null
     }
   }
 })

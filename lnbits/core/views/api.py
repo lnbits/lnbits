@@ -19,7 +19,30 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.responses import JSONResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
+from lnbits.core import core_app, db
+from lnbits.core.crud import (
+    create_payment,
+    get_payments,
+    get_standalone_payment,
+    get_wallet,
+    get_wallet_for_key,
+    save_balance_check,
+    update_payment_status,
+    update_wallet,
+)
 from lnbits.core.models import Payment, User, Wallet
+from lnbits.core.services import (
+    InvoiceFailure,
+    PaymentFailure,
+    check_transaction_status,
+    create_invoice,
+    disable_extension,
+    enable_extension,
+    install_extension,
+    pay_invoice,
+    perform_lnurlauth,
+)
+from lnbits.core.tasks import api_invoice_listeners
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
@@ -34,28 +57,6 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
-
-from .. import core_app, db
-from ..crud import (
-    create_payment,
-    get_payments,
-    get_standalone_payment,
-    get_wallet,
-    get_wallet_for_key,
-    save_balance_check,
-    update_payment_status,
-    update_wallet,
-)
-from ..services import (
-    InvoiceFailure,
-    PaymentFailure,
-    check_transaction_status,
-    create_invoice,
-    install_extension,
-    pay_invoice,
-    perform_lnurlauth,
-)
-from ..tasks import api_invoice_listeners
 
 
 @core_app.get("/api/v1/wallet")
@@ -672,6 +673,8 @@ async def extensions(
     extension_id: str = Path(..., description="Name of the extension to install"),  # type: ignore
 ):
     try:
+        # TODO: remove me
+        await asyncio.sleep(1)
         await install_extension(extension_id)
         return {"success": True}
     except Exception as e:
@@ -682,3 +685,45 @@ async def extensions(
 
     # TODO: implement a SSE endpoint to stream the installation progress
     # asyncio.create_task(install_extension(extension_id))
+
+
+@core_app.post(
+    "/api/v1/extensions/enable/{extension_name}",
+    name="core.api.v1.extensions.enable",
+    response_class=JSONResponse,
+)
+async def enable_extension_path(
+    user: User = Depends(check_user_exists),  # type: ignore
+    extension_name: str = Path(..., description="Name of the extension to enable"),  # type: ignore
+):
+    try:
+        # TODO: remove me
+        await asyncio.sleep(2)
+        await enable_extension(extension_name, user)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": f"Failed to install extension: {e}"},
+        )
+
+
+@core_app.post(
+    "/api/v1/extensions/disable/{extension_name}",
+    name="core.api.v1.extensions.disable",
+    response_class=JSONResponse,
+)
+async def disable_extension_path(
+    user: User = Depends(check_user_exists),  # type: ignore
+    extension_name: str = Path(..., description="Name of the extension to disable"),  # type: ignore
+):
+    try:
+        # TODO: remove me
+        await asyncio.sleep(1)
+        await disable_extension(extension_name, user)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": f"Failed to install extension: {e}"},
+        )

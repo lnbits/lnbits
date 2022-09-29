@@ -16,14 +16,8 @@ from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
 
 from lnbits import bolt11
-from lnbits.db import Connection
-from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.helpers import url_for
-from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
-from lnbits.wallets.base import PaymentResponse, PaymentStatus
-
-from . import db
-from .crud import (
+from lnbits.core import db
+from lnbits.core.crud import (
     check_internal,
     create_payment,
     delete_wallet_payment,
@@ -31,8 +25,14 @@ from .crud import (
     get_wallet_payment,
     update_payment_details,
     update_payment_status,
+    update_user_extension,
 )
-from .models import Payment
+from lnbits.core.models import Payment
+from lnbits.db import Connection
+from lnbits.decorators import WalletTypeInfo, require_admin_key
+from lnbits.helpers import get_valid_extensions, url_for
+from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
+from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 try:
     from typing import TypedDict  # type: ignore
@@ -441,3 +441,31 @@ async def install_extension(extension_id):
                 #         status_code=500,
                 #         detail="Unable to restart LNbits and activate the extension. Check log file for more info.",
                 #     )
+
+
+async def enable_extension(extension_name, user):
+    logger.info(f"Enabling extension: {extension_name} for user {user.id}")
+    exts = get_valid_extensions()
+
+    for e in exts:
+        if e.name == extension_name:
+            await update_user_extension(
+                user_id=user.id, extension=extension_name, active=True
+            )
+            return
+
+    raise HTTPException(status_code=404, detail="Extension not found")
+
+
+async def disable_extension(extension_name, user):
+    logger.info(f"Disabling extension: {extension_name} for user {user.id}")
+    exts = get_valid_extensions()
+
+    for e in exts:
+        if e.name == extension_name:
+            await update_user_extension(
+                user_id=user.id, extension=extension_name, active=False
+            )
+            return
+
+    raise HTTPException(status_code=404, detail="Extension not found")

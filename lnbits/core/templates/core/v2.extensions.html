@@ -44,11 +44,14 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
-        <div v-if="extension.isInstalled && extension.isEnabled">
+        <div
+          v-if="extension.isInstalled && extension.isEnabled && extension.name !== installingExtensionName"
+        >
           <q-btn
             flat
             color="primary"
             type="a"
+            :disable="installingExtension"
             :href="[extension.url, '?usr=', g.user.id].join('')"
             >Open</q-btn
           >
@@ -56,22 +59,24 @@
             flat
             color="grey-5"
             type="a"
-            :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&disable=', extension.code].join('')"
+            :disable="installingExtension"
+            @click="disableExtension(extension.name, g.user.id)"
           >
             Disable</q-btn
           >
         </div>
         <q-btn
-          v-else-if="extension.isInstalled && !extension.isEnabled"
+          v-else-if="extension.isInstalled && !extension.isEnabled && extension.name !== installingExtensionName"
           flat
           color="grey-5"
           type="a"
-          :href="['{{ url_for('core.v2.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
+          :disable="installingExtension"
+          @click="enableExtension(extension.name, g.user.id)"
         >
           Enable
         </q-btn>
         <div
-          v-else-if="installingExtension && extension.code === installingExtensionCode"
+          v-else-if="installingExtension && extension.name === installingExtensionName"
         >
           <q-spinner-cube color="primary" size="2em" />
         </div>
