@@ -122,13 +122,6 @@ async def api_gerty_json(
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
 
-    # Get Satoshi quotes
-    satoshi = []
-    # if gerty.sats_quote:
-    #     quote = await api_gerty_satoshi()
-    #     if quote:
-    #         satoshi.append(await api_gerty_satoshi())
-
     # Get Exchange Value
     exchange = []
     # if gerty.exchange != "":
@@ -180,12 +173,13 @@ async def api_gerty_json(
             "group": get_screen_slug_by_index(p, enabled_screens),
             "text": text
         }
-
     }
 
+# Get a screen slug by its position in the screens_list
 def get_screen_slug_by_index(index: int, screens_list):
     return list(screens_list)[index]
 
+# Get a list of text items for the screen number
 async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     screen_slug = get_screen_slug_by_index(screen_num, screens_list)
     # first get the relevant slug from the display_preferences
@@ -195,7 +189,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     if screen_slug == "lnbits_wallets_balance":
         text = await get_lnbits_wallet_balances(gerty)
     elif screen_slug == "fun_satoshi_quotes":
-        text = await get_placeholder_text()
+        text = await get_satoshi_quotes()
     elif screen_slug == "fun_pieter_wuille_facts":
         text = await get_placeholder_text()
     elif screen_slug == "fun_exchange_market_rate":
@@ -247,16 +241,31 @@ async def get_lnbits_wallet_balances(gerty):
 
 async def get_placeholder_text():
     return [
-        {
-            "value": "Some placeholder text",
-            "size": 16,
-            "x": 10,
-            "y": 10,
-        },
-        {
-            "value": "Some placeholder text",
-            "size": 16,
-            "x": 10,
-            "y": 50,
-        }
+        get_text_item_dict("Some placeholder text", 16, 10, 50),
+        get_text_item_dict("Some placeholder text", 16, 10, 50)
     ]
+
+async def get_satoshi_quotes():
+    # Get Satoshi quotes
+    text = []
+    quote = await api_gerty_satoshi()
+    if quote:
+        if quote['text']:
+            text.append(get_text_item_dict(quote['text'], 16))
+        if quote['date']:
+            text.append(get_text_item_dict(quote['date'], 12))
+
+    return text
+
+# A helper function get a nicely formated dict for the text
+def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
+    text = {
+        "value": text,
+        "size": font_size
+    }
+    if x_pos is None and y_pos is None:
+        text['position'] = 'center'
+    else:
+        text['x'] = x_pos
+        text['y'] = y_pos
+    return text
