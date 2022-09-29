@@ -204,8 +204,10 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
 async def get_lnbits_wallet_balances(gerty):
     # Get Wallet info
     wallets = []
+    text = []
     if gerty.lnbits_wallets != "":
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
+
             wallet = await get_wallet_for_key(key=lnbits_wallet)
             logger.debug(wallet)
             if wallet:
@@ -214,7 +216,9 @@ async def get_lnbits_wallet_balances(gerty):
                     "balance": wallet.balance_msat,
                     "inkey": wallet.inkey,
                 })
-    return wallets
+                text.append(get_text_item_dict(wallet.name, 20))
+                text.append(get_text_item_dict(wallet.balance, 60))
+    return text
 
 
 async def get_placeholder_text():
@@ -253,8 +257,8 @@ async def get_exchange_rate(gerty):
             amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
             if amount:
                 price = ('{0} {1}').format(format_number(amount), gerty.exchange)
-                text.append(get_text_item_dict(price, 60))
                 text.append(get_text_item_dict("Current BTC price", 12))
+                text.append(get_text_item_dict(price, 60))
         except:
             pass
     return text
@@ -287,21 +291,21 @@ async def get_onchain_stat(stat_slug: str, gerty):
                 r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
                 if stat_slug == "onchain_difficulty_epoch_progress":
                     stat = round(r.json()['progressPercent'])
-                    text.append(get_text_item_dict("{0}%".format(stat), 60))
                     text.append(get_text_item_dict("Progress through current difficulty epoch", 16))
+                    text.append(get_text_item_dict("{0}%".format(stat), 60))
                 elif stat_slug == "onchain_difficulty_retarget_date":
                     stat = r.json()['estimatedRetargetDate']
                     dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
-                    text.append(get_text_item_dict(dt, 60))
                     text.append(get_text_item_dict("Estimated date of next difficulty adjustment", 16))
+                    text.append(get_text_item_dict(dt, 60))
                 elif stat_slug == "onchain_difficulty_blocks_remaining":
                     stat = r.json()['remainingBlocks']
-                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
                     text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
+                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
                 elif stat_slug == "onchain_difficulty_epoch_time_remaining":
                     stat = r.json()['remainingTime']
-                    text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
                     text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
+                    text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
     return text
 
 async def get_mempool_stat(stat_slug: str, gerty):
@@ -314,8 +318,8 @@ async def get_mempool_stat(stat_slug: str, gerty):
                 r = await client.get(gerty.mempool_endpoint + "/api/mempool")
                 if stat_slug == "mempool_tx_count":
                     stat = round(r.json()['count'])
-                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
                     text.append(get_text_item_dict("Transactions in the mempool", 16))
+                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
     return text
 
 def get_date_suffix(dayNumber):
