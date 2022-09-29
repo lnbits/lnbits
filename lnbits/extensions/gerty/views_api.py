@@ -9,7 +9,6 @@ from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-
 from lnbits.core.crud import get_wallet_for_key
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -45,6 +44,7 @@ async def api_link_create_or_update(
 ):
     if gerty_id:
         gerty = await get_gerty(gerty_id)
+        logger.debug(gerty)
         if not gerty:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist"
