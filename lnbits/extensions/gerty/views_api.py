@@ -118,7 +118,7 @@ async def api_gerty_json(
             enabled_screen_count += 1
             enabled_screens.append(screen_slug)
 
-    get_screen_text(p, enabled_screens)
+    text = await get_screen_text(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
 
@@ -176,43 +176,87 @@ async def api_gerty_json(
             "name": gerty.name
         },
         "screen": {
-            "slug": "x",
-            "group": "x",
-            "text": [
-                {
-                    "value": "Craig Steven Wright is a liar and\na fraud",
-                    "size": 20,
-                    "x": 20,
-                    "y": 70
-                }
-            ],
+            "slug": get_screen_slug_by_index(p, enabled_screens),
+            "group": get_screen_slug_by_index(p, enabled_screens),
+            "text": text
         }
 
     }
 
-def get_screen_text(screen_num: int, display_preferences: dict):
+def get_screen_slug_by_index(index: int, screens_list):
+    return list(screens_list)[index]
+
+async def get_screen_text(screen_num: int, screens_list: dict, gerty):
+    screen_slug = get_screen_slug_by_index(screen_num, screens_list)
     # first get the relevant slug from the display_preferences
-    screen_slug = list(display_preferences)[screen_num]
-    # logger.debug('screen_slug')
-    # logger.debug(screen_slug)
+    logger.debug('screen_slug')
+    logger.debug(screen_slug)
+    # text = []
     if screen_slug == "lnbits_wallets_balance":
+        text = await get_lnbits_wallet_balances(gerty)
+    elif screen_slug == "fun_satoshi_quotes":
+        text = await get_placeholder_text()
+    elif screen_slug == "fun_pieter_wuille_facts":
+        text = await get_placeholder_text()
+    elif screen_slug == "fun_exchange_market_rate":
+        text = await get_placeholder_text()
+    elif screen_slug == "onchain_difficulty_epoch_progress":
+        text = await get_placeholder_text()
+    elif screen_slug == "onchain_difficulty_retarget_date":
+        text = await get_placeholder_text()
+    elif screen_slug == "onchain_difficulty_blocks_remaining":
+        text = await get_placeholder_text()
+    elif screen_slug == "onchain_difficulty_epoch_time_remaining":
+        text = await get_placeholder_text()
+    elif screen_slug == "mempool_recommended_fees":
+        text = await get_placeholder_text()
+    elif screen_slug == "mempool_tx_count":
+        text = await get_placeholder_text()
+    elif screen_slug == "mining_current_hash_rate":
+        text = await get_placeholder_text()
+    elif screen_slug == "mining_current_difficulty":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_channel_count":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_node_count":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_tor_node_count":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_clearnet_nodes":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_unannounced_nodes":
+        text = await get_placeholder_text()
+    elif screen_slug == "lightning_average_channel_capacity":
+        text = await get_placeholder_text()
+    return text
 
-    return screen_slug
-
-def get_lnbits_wallet_balances(gerty):
+async def get_lnbits_wallet_balances(gerty):
     # Get Wallet info
     wallets = []
     if gerty.lnbits_wallets != "":
-        logger.debug("wallets")
-        logger.debug(gerty.lnbits_wallets)
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
             wallet = await get_wallet_for_key(key=lnbits_wallet)
+            logger.debug(wallet)
             if wallet:
                 wallets.append({
                     "name": wallet.name,
                     "balance": wallet.balance_msat,
                     "inkey": wallet.inkey,
                 })
-            logger.debug(lnbits_wallet)
     return wallets
 
+async def get_placeholder_text():
+    return [
+        {
+            "value": "Some placeholder text",
+            "size": 16,
+            "x": 10,
+            "y": 10,
+        },
+        {
+            "value": "Some placeholder text",
+            "size": 16,
+            "x": 10,
+            "y": 50,
+        }
+    ]
