@@ -181,7 +181,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "mempool_recommended_fees":
         text = await get_placeholder_text()
     elif screen_slug == "mempool_tx_count":
-        text = await get_placeholder_text()
+        text = await get_mempool_stat(screen_slug, gerty)
     elif screen_slug == "mining_current_hash_rate":
         text = await get_placeholder_text()
     elif screen_slug == "mining_current_difficulty":
@@ -302,6 +302,20 @@ async def get_onchain_stat(stat_slug: str, gerty):
                     stat = r.json()['remainingTime']
                     text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
                     text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
+    return text
+
+async def get_mempool_stat(stat_slug: str, gerty):
+    text = []
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            if (
+                    stat_slug == "mempool_tx_count"
+            ):
+                r = await client.get(gerty.mempool_endpoint + "/api/mempool")
+                if stat_slug == "mempool_tx_count":
+                    stat = round(r.json()['count'])
+                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 40))
+                    text.append(get_text_item_dict("Transactions in the mempool", 16))
     return text
 
 def get_date_suffix(dayNumber):
