@@ -3,7 +3,11 @@ const CACHE_VERSION = 1
 const CURRENT_CACHE = `lnbits-${CACHE_VERSION}-`
 
 const getApiKey = request => {
-  return request.headers.get('X-Api-Key') || 'none'
+  let api_key = request.headers.get('X-Api-Key')
+  if (!api_key || api_key == 'undefined') {
+    api_key = 'no_api_key'
+  }
+  return api_key
 }
 
 // on activation we clean up the previously registered service workers
@@ -28,6 +32,9 @@ self.addEventListener('activate', evt =>
 self.addEventListener('fetch', event => {
   // Skip cross-origin requests, like those for Google Analytics.
   if (
+    !event.request.url.startsWith(
+      self.location.origin + '/api/v1/payments/sse'
+    ) &&
     event.request.url.startsWith(self.location.origin) &&
     event.request.method == 'GET'
   ) {
