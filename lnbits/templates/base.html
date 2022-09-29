@@ -61,6 +61,17 @@
           >
             <span> OFFLINE </span>
           </q-badge>
+          <q-btn
+          dense
+          flat
+          round
+          @click="notificationToggle"
+          icon="notifications"
+          size="sm"
+        >
+          <q-tooltip>Allow notifications</q-tooltip>
+        </q-btn>
+
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
