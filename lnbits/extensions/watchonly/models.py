@@ -80,6 +80,7 @@ class CreatePsbt(BaseModel):
 class ExtractPsbt(BaseModel):
     psbtBase64 = ""  # // todo snake case
     inputs: List[TransactionInput]
+    network = "Mainnet"
 
 
 class SignedTransaction(BaseModel):
