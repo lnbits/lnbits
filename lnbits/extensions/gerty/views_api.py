@@ -100,7 +100,7 @@ async def api_gerty_wuille():
     return data['facts'][random.randint(0, (len(data['facts']) - 1))]
 
 
-@gerty_ext.get("/api/v1/gerty/{gerty_id}")
+@gerty_ext.get("/api/v1/gerty/{gerty_id}/{p}")
 async def api_gerty_json(
         gerty_id: str,
         p: int = None  # page number
