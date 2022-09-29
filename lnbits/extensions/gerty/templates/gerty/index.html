@@ -31,7 +31,7 @@
                         <template v-slot:header="props">
                             <q-tr :props="props">
                                 <q-th auto-width></q-th>
-                                <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                                <q-th v-for="col in props.cols" :key="col.name" :props="props" :class="`col__${col.name} text-truncate elipsis`">
                                     {{ col.label }}
                                 </q-th>
                                 <q-th auto-width></q-th>
@@ -164,15 +164,17 @@
                     </q-input>
 
                     <p>Use the toggles below to control what your Gerty will display</p>
+
                     <q-expansion-item
                             expand-separator
                             icon="perm_identity"
-                            label="LNbits wallets"
+                            label="LNbits Wallets"
                     >
                         <q-toggle
-                                v-model="formDialog.data.show_lnbits_wallets_balance"
+                                v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
                                 label="Show LNbits wallet balances"
                         ></q-toggle>
+
                     </q-expansion-item>
                     <q-expansion-item
                             expand-separator
@@ -180,19 +182,19 @@
                             label="The Fun Stuff"
                     >
                         <q-toggle
-                                v-model="formDialog.data.show_sats_quote"
+                                v-model="formDialog.data.display_preferences.satoshi_quotes"
                                 label="Satoshi Quotes"
                         >
                             <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
                         </q-toggle>
                         <q-toggle
-                                v-model="formDialog.data.show_pieter_wuille_facts"
+                                v-model="formDialog.data.display_preferences.pieter_wuille_facts"
                                 label="Pieter Wuille Facts"
                         >
                             <q-tooltip>Show accurate facts about Pieter Wuille</q-tooltip>
                         </q-toggle>
                         <q-toggle
-                                v-model="formDialog.data.show_exchange_market_rate"
+                                v-model="formDialog.data.display_preferences.exchange_market_rate"
                                 label="Current dirty fiat to BTC  price"
                         ></q-toggle>
                     </q-expansion-item>
@@ -202,22 +204,22 @@
                             label="Onchain Information"
                     >
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_difficulty_epoch_progress"
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_progress"
                                 label="Percent of current difficulty epoch complete"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_difficulty_retarget_date"
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_retarget_date"
                                 label="Estimated retarget date"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_difficulty_blocks_remaining"
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_blocks_remaining"
                                 label="Blocks until next difficulty adjustment"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_difficulty_epoch_time_remaining"
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining"
                                 label="Estimated time until next difficulty adjustment"
                         ></q-toggle>
                     </q-expansion-item>
@@ -228,12 +230,12 @@
                     >
 
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_mempool_recommended_fees"
+                                v-model="formDialog.data.display_preferences.onchain_mempool_recommended_fees"
                                 label="Recommended fees"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_onchain_mempool_number_of_tx"
+                                v-model="formDialog.data.display_preferences.mempool_tx_count"
                                 label="Number of transactions in the mempool"
                         ></q-toggle>
                     </q-expansion-item>
@@ -244,12 +246,12 @@
                             label="Mining Data"
                     >
                         <q-toggle
-                                v-model="formDialog.data.show_mining_current_hash_rate"
+                                v-model="formDialog.data.display_preferences.mining_current_hash_rate"
                                 label="Current mining hashrate"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_mining_current_difficulty"
+                                v-model="formDialog.data.display_preferences.mining_current_difficulty"
                                 label="Current mining difficulty"
                         ></q-toggle>
                     </q-expansion-item>
@@ -260,32 +262,32 @@
                             label="Lightning Network"
                     >
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_channel_count"
-                                label="Channel count"
+                                v-model="formDialog.data.display_preferences.lightning_channel_count"
+                        label="Channel count"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_node_count"
+                                v-model="formDialog.data.display_preferences.lightning_node_count"
                                 label="Number of nodes"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_tor_node_count"
+                                v-model="formDialog.data.display_preferences.lightning_tor_node_count"
                                 label="Number of Tor nodes"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_clearnet_nodes"
+                                v-model="formDialog.data.display_preferences.lightning_clearnet_nodes"
                                 label="Number of clearnet nodes"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_unannounced_nodes"
+                                v-model="formDialog.data.display_preferences.lightning_unannounced_nodes"
                                 label="Number of unannounced nodes"
                         ></q-toggle>
 
                         <q-toggle
-                                v-model="formDialog.data.show_lightning_average_channel_capacity"
+                                v-model="formDialog.data.display_preferences.lightning_average_channel_capacity"
                                 label="Average channel capacity"
                         ></q-toggle>
                     </q-expansion-item>
@@ -524,31 +526,13 @@
                                 name: 'exchange',
                                 align: 'left',
                                 label: 'Exchange',
-                                field: 'exchange'
-                            },
-                            {
-                                name: 'sats_quote',
-                                align: 'left',
-                                label: 'Sats Quote',
-                                field: 'sats_quote'
+                                field: 'exchange',
                             },
                             {
                                 name: 'mempool_endpoint',
                                 align: 'left',
                                 label: 'Mempool Endpoint',
                                 field: 'mempool_endpoint'
-                            },
-                            {
-                                name: 'onchain_stats',
-                                align: 'left',
-                                label: 'Onchain Stats',
-                                field: 'onchain_stats'
-                            },
-                            {
-                                name: 'ln_stats',
-                                align: 'left',
-                                label: 'LN Stats',
-                                field: 'ln_stats'
                             }
                         ],
                         pagination: {
@@ -558,23 +542,42 @@
                     formDialog: {
                         show: false,
                         data: {
-                            sats_quote: false,
-                            onchain_stats: false,
-                            ln_stats: false,
+                            display_preferences: {
+                                lnbits_wallets_balance: true,
+                                satoshi_quotes: true,
+                                pieter_wuille_facts: true,
+                                exchange_market_rate: true,
+                                onchain_difficulty_epoch_progress: true,
+                                onchain_difficulty_retarget_date: true,
+                                onchain_difficulty_blocks_remaining: true,
+                                onchain_difficulty_epoch_time_remaining: true,
+                                onchain_mempool_recommended_fees: true,
+                                mempool_tx_count: true,
+                                mining_current_hash_rate: true,
+                                mining_current_difficulty: true,
+                                lightning_channel_count: true,
+                                lightning_node_count: true,
+                                lightning_tor_node_count: true,
+                                lightning_clearnet_nodes: true,
+                                lightning_unannounced_nodes: true,
+                                lightning_average_channel_capacity: true,
+                            },
                             lnbits_wallets: [],
-                            mempool_endpoint: "https://mempool.space"
+                            mempool_endpoint: "https://mempool.space",
                         }
                     }
                 }
             },
+            mounted() {
+                      console.log('this.formDialog', this.formDialog.data.display_preferences)
+
+            },
             methods: {
                 closeFormDialog: function () {
                     this.formDialog.data = {
-                        sats_quote: false,
-                        onchain_stats: false,
-                        ln_stats: false,
                         lnbits_wallets: [],
-                        mempool_endpoint: "https://mempool.space"
+                        mempool_endpoint: "https://mempool.space",
+                        display_preferences: {},
                     }
                 },
                 getGertys: function () {
@@ -593,28 +596,29 @@
                 },
                 updateformDialog: function (formId) {
                     var gerty = _.findWhere(this.gertys, {id: formId})
+                    console.log('gerty.display_preferences', gerty.display_preferences)
                     this.formDialog.data.id = gerty.id
                     this.formDialog.data.name = gerty.name
                     this.formDialog.data.wallet = gerty.wallet
                     this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
                     this.formDialog.data.exchange = gerty.exchange,
-                        this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
-                        this.formDialog.data.sats_quote = Boolean(gerty.sats_quote)
-                    this.formDialog.data.onchain_stats = Boolean(gerty.onchain_stats)
-                    this.formDialog.data.ln_stats = Boolean(gerty.ln_stats)
+                    this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
+                    this.formDialog.data.display_preferences = JSON.parse(gerty.display_preferences),
                     this.formDialog.show = true
+
+                                        console.log('updateformDialog', this.formDialog.data)
                 },
                 sendFormDataGerty: function () {
-                    var self = this
-                    if (self.formDialog.data.id) {
+                    if (this.formDialog.data.id) {
                         this.updateGerty(
-                            self.g.user.wallets[0].adminkey,
-                            self.formDialog.data
+                            this.g.user.wallets[0].adminkey,
+                            this.formDialog.data
                         )
                     } else {
+                        {#console.log('sendFormDataGerty', this.formDialog.data)#}
                         this.createGerty(
-                            self.g.user.wallets[0].adminkey,
-                            self.formDialog.data
+                            this.g.user.wallets[0].adminkey,
+                            this.formDialog.data
                         )
                     }
                 },
@@ -623,12 +627,11 @@
                         name: this.formDialog.data.name,
                         wallet: this.formDialog.data.wallet,
                         lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
-                        sats_quote: this.formDialog.data.sats_quote,
                         exchange: this.formDialog.data.exchange,
                         mempool_endpoint: this.formDialog.data.mempool_endpoint,
-                        onchain_stats: this.formDialog.data.onchain_stats,
-                        ln_stats: this.formDialog.data.ln_stats
+                        display_preferences: JSON.stringify(this.formDialog.data.display_preferences)
                     }
+                    console.log('createGerty', data)
                     var self = this
 
                     LNbits.api
@@ -650,6 +653,7 @@
                 updateGerty: function (wallet, data) {
                     var self = this
                     data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
+                    data.display_preferences = JSON.stringify(this.formDialog.data.display_preferences)
                     LNbits.api
                         .request(
                             'PUT',
@@ -703,3 +707,11 @@
         })
     </script>
 {% endblock %}
+
+{% block styles %}
+<style>
+.col__display_preferences {
+    border: 1px solid red
+}
+</style>
+{%  endblock %}
