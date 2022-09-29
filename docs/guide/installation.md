@@ -313,7 +313,7 @@ Assuming your LNbits is running on port `5000` add:
 yourdomain.com {
   handle /api/v1/payments/sse* {
     reverse_proxy 0.0.0.0:5000 {
-      header_up X-Forwarded-Host legend.lnbits.com
+      header_up X-Forwarded-Host yourdomain.com
       transport http {
          keepalive off
          compression off
@@ -321,7 +321,7 @@ yourdomain.com {
     }
   }
   reverse_proxy 0.0.0.0:5000 {
-    header_up X-Forwarded-Host legend.lnbits.com
+    header_up X-Forwarded-Host yourdomain.com
   }
 }
 ```
