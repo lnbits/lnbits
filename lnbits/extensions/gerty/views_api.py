@@ -102,7 +102,7 @@ async def api_gerty_wuille():
 @gerty_ext.get("/api/v1/gerty/{gerty_id}")
 async def api_gerty_json(
         gerty_id: str,
-        p: int = None # page number
+        p: int = None  # page number
 ):
     gerty = await get_gerty(gerty_id)
 
@@ -126,25 +126,6 @@ async def api_gerty_json(
     text = await get_screen_text(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
-    #
-    # onchain = []
-    # if gerty.onchain_stats and isinstance(gerty.mempool_endpoint, str):
-    #     async with httpx.AsyncClient() as client:
-    #         difficulty = []
-    #         r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
-    #         if r:
-    #             difficulty.append(r.json())
-    #             onchain.append({"difficulty":difficulty})
-    #         mempool = []
-    #         r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/mempool-blocks")
-    #         if r:
-    #             mempool.append(r.json())
-    #             onchain.append({"mempool":mempool})
-    #         threed = []
-    #         r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/3d")
-    #         if r:
-    #             threed.append(r.json())
-    #             onchain.append({"threed":threed})
 
     # ln = []
     # if gerty.ln_stats and isinstance(gerty.mempool_endpoint, str):
@@ -167,9 +148,11 @@ async def api_gerty_json(
         }
     }
 
+
 # Get a screen slug by its position in the screens_list
 def get_screen_slug_by_index(index: int, screens_list):
     return list(screens_list)[index]
+
 
 # Get a list of text items for the screen number
 async def get_screen_text(screen_num: int, screens_list: dict, gerty):
@@ -187,7 +170,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "fun_exchange_market_rate":
         text = await get_exchange_rate(gerty)
     elif screen_slug == "onchain_difficulty_epoch_progress":
-        text = await get_placeholder_text()
+        text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_retarget_date":
         text = await get_placeholder_text()
     elif screen_slug == "onchain_difficulty_blocks_remaining":
@@ -216,6 +199,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
         text = await get_placeholder_text()
     return text
 
+
 async def get_lnbits_wallet_balances(gerty):
     # Get Wallet info
     wallets = []
@@ -231,11 +215,13 @@ async def get_lnbits_wallet_balances(gerty):
                 })
     return wallets
 
+
 async def get_placeholder_text():
     return [
         get_text_item_dict("Some placeholder text", 16, 10, 50),
         get_text_item_dict("Some placeholder text", 16, 10, 50)
     ]
+
 
 async def get_satoshi_quotes():
     # Get Satoshi quotes
@@ -257,6 +243,7 @@ async def get_pieter_wuille_fact():
         text.append(get_text_item_dict("Pieter Wuille facts", 12))
     return text
 
+
 # Get Exchange Value
 async def get_exchange_rate(gerty):
     text = []
@@ -271,6 +258,7 @@ async def get_exchange_rate(gerty):
             pass
     return text
 
+
 # A helper function get a nicely formated dict for the text
 def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
     text = {
@@ -282,4 +270,18 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     else:
         text['x'] = x_pos
         text['y'] = y_pos
+    return text
+
+
+async def get_onchain_stat(stat_slug: str, gerty):
+    text = []
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            if stat_slug == "onchain_difficulty_epoch_progress":
+        #         # or stat_slug == "onchain_difficulty_retarget_date" or stat_slug == "onchain_difficulty_blocks_remaining" or stat_slug == "onchain_difficulty_epoch_time_remaining"
+                r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
+                if stat_slug == "onchain_difficulty_epoch_progress":
+                    progressPercent = math.ceil(r.json()['progressPercent'])
+                    text.append(get_text_item_dict("{0}%".format(progressPercent), 40))
+                    text.append(get_text_item_dict("Progress through current difficulty epoch", 16))
     return text
