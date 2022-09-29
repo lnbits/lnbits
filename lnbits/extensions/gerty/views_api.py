@@ -138,7 +138,7 @@ async def api_gerty_json(
     return {
         "settings": {
             "refreshTime": gerty.refresh_time,
-            "requestTimestamp": math.ceil(time.time()),
+            "requestTimestamp": round(time.time()),
             "nextScreenNumber": next_screen_number,
             "name": gerty.name
         },
@@ -177,7 +177,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_difficulty_blocks_remaining":
         text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_epoch_time_remaining":
-        text = await get_placeholder_text()
+        text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "mempool_recommended_fees":
         text = await get_placeholder_text()
     elif screen_slug == "mempool_tx_count":
@@ -286,7 +286,7 @@ async def get_onchain_stat(stat_slug: str, gerty):
             ):
                 r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
                 if stat_slug == "onchain_difficulty_epoch_progress":
-                    stat = math.ceil(r.json()['progressPercent'])
+                    stat = round(r.json()['progressPercent'])
                     text.append(get_text_item_dict("{0}%".format(stat), 40))
                     text.append(get_text_item_dict("Progress through current difficulty epoch", 16))
                 elif stat_slug == "onchain_difficulty_retarget_date":
@@ -298,6 +298,10 @@ async def get_onchain_stat(stat_slug: str, gerty):
                     stat = r.json()['remainingBlocks']
                     text.append(get_text_item_dict("{0}".format(format_number(stat)), 40))
                     text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
+                elif stat_slug == "onchain_difficulty_epoch_time_remaining":
+                    stat = r.json()['remainingTime']
+                    text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
+                    text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
     return text
 
 def get_date_suffix(dayNumber):
@@ -308,4 +312,26 @@ def get_date_suffix(dayNumber):
 
 # format a number for nice display output
 def format_number(number):
-    return ("{:,}".format(math.ceil(number)))
+    return ("{:,}".format(round(number)))
+
+
+def get_time_remaining(seconds, granularity=2):
+
+    intervals = (
+        ('weeks', 604800),  # 60 * 60 * 24 * 7
+        ('days', 86400),  # 60 * 60 * 24
+        ('hours', 3600),  # 60 * 60
+        ('minutes', 60),
+        ('seconds', 1),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip('s')
+            result.append("{} {}".format(round(value), name))
+    return ', '.join(result[:granularity])
