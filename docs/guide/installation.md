@@ -292,7 +292,7 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
-## Setting up a Caddy reverse proxy with automatic https
+## Reverse proxy with automatic https using Caddy
 
 Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
 
@@ -308,7 +308,7 @@ Create a Caddyfile
 ```
 sudo nano Caddyfile
 ```
-Assuming your LNbits is running on port `5000`:
+Assuming your LNbits is running on port `5000` add:
 ```
 yourdomain.com {
   handle /api/v1/payments/sse* {
