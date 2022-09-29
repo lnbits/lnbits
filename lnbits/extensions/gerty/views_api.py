@@ -173,9 +173,9 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_difficulty_epoch_progress":
         text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_retarget_date":
-        text = await get_onchain_stat("onchain_difficulty_retarget_date", gerty)
+        text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_blocks_remaining":
-        text = await get_placeholder_text()
+        text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_epoch_time_remaining":
         text = await get_placeholder_text()
     elif screen_slug == "mempool_recommended_fees":
@@ -252,7 +252,7 @@ async def get_exchange_rate(gerty):
         try:
             amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
             if amount:
-                price = ('{0} {1}').format(("{:,}".format(math.ceil(amount))), gerty.exchange)
+                price = ('{0} {1}').format(format_number(amount), gerty.exchange)
                 text.append(get_text_item_dict(price, 40))
                 text.append(get_text_item_dict("Current BTC price", 12))
         except:
@@ -294,6 +294,10 @@ async def get_onchain_stat(stat_slug: str, gerty):
                     dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
                     text.append(get_text_item_dict(dt, 40))
                     text.append(get_text_item_dict("Estimated date of next difficulty adjustment", 16))
+                elif stat_slug == "onchain_difficulty_blocks_remaining":
+                    stat = r.json()['remainingBlocks']
+                    text.append(get_text_item_dict("{0}".format(format_number(stat)), 40))
+                    text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 16))
     return text
 
 def get_date_suffix(dayNumber):
@@ -301,3 +305,7 @@ def get_date_suffix(dayNumber):
         return "th"
     else:
         return ["st", "nd", "rd"][dayNumber % 10 - 1]
+
+# format a number for nice display output
+def format_number(number):
+    return ("{:,}".format(math.ceil(number)))
