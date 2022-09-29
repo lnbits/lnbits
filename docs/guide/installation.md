@@ -292,7 +292,9 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
-## Running using Caddy reverse proxy with automatic https
+## Setting up a Caddy reverse proxy with automatic https
+
+USe Caddy to easily make your LNbits install accessible over clearnet with a domain and https cert.
 
 Point your domain at the IP of the server you're running LNbits on, by making an `A` record.
 
