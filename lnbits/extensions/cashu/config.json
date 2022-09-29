@@ -1,6 +1,6 @@
 {
-  "name": "Cashu Ecash",
-  "short_description": "Ecash mints with LN peg in/out",
-  "icon": "approval",
-  "contributors": ["shinobi", "arcbtc", "calle"]
+  "name": "Cashu Mint",
+  "short_description": "Chaumian Ecash mint",
+  "icon": "donut_small_rounded",
+  "contributors": ["calle"]
 }
