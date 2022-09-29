@@ -5,6 +5,7 @@ import httpx
 import random
 import os
 import time
+from datetime import datetime
 from fastapi import Query
 from fastapi.params import Depends
 from lnurl import decode as decode_lnurl
@@ -172,7 +173,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_difficulty_epoch_progress":
         text = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_retarget_date":
-        text = await get_placeholder_text()
+        text = await get_onchain_stat("onchain_difficulty_retarget_date", gerty)
     elif screen_slug == "onchain_difficulty_blocks_remaining":
         text = await get_placeholder_text()
     elif screen_slug == "onchain_difficulty_epoch_time_remaining":
@@ -277,11 +278,26 @@ async def get_onchain_stat(stat_slug: str, gerty):
     text = []
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
-            if stat_slug == "onchain_difficulty_epoch_progress":
-        #         # or stat_slug == "onchain_difficulty_retarget_date" or stat_slug == "onchain_difficulty_blocks_remaining" or stat_slug == "onchain_difficulty_epoch_time_remaining"
+            if (
+                    stat_slug == "onchain_difficulty_epoch_progress" or
+                    stat_slug == "onchain_difficulty_retarget_date" or
+                    stat_slug == "onchain_difficulty_blocks_remaining" or
+                    stat_slug == "onchain_difficulty_epoch_time_remaining"
+            ):
                 r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
                 if stat_slug == "onchain_difficulty_epoch_progress":
-                    progressPercent = math.ceil(r.json()['progressPercent'])
-                    text.append(get_text_item_dict("{0}%".format(progressPercent), 40))
+                    stat = math.ceil(r.json()['progressPercent'])
+                    text.append(get_text_item_dict("{0}%".format(stat), 40))
                     text.append(get_text_item_dict("Progress through current difficulty epoch", 16))
+                elif stat_slug == "onchain_difficulty_retarget_date":
+                    stat = r.json()['estimatedRetargetDate']
+                    dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
+                    text.append(get_text_item_dict(dt, 40))
+                    text.append(get_text_item_dict("Estimated date of next difficulty adjustment", 16))
     return text
+
+def get_date_suffix(dayNumber):
+    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
+        return "th"
+    else:
+        return ["st", "nd", "rd"][dayNumber % 10 - 1]
