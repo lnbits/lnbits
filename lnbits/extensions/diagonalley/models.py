@@ -107,3 +107,16 @@ class Market(BaseModel):
 
 class CreateMarketStalls(BaseModel):
     stallid: str
+
+
+class ChatMessage(BaseModel):
+    id: str
+    msg: str
+    pubkey: str
+    id_conversation: str
+    timestamp: int
+
+class CreateChatMessage(BaseModel):
+    msg: str = Query(..., min_length=1)
+    pubkey: str = Query(...)
+    room_name: str = Query(...)

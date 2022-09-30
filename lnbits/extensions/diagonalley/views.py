@@ -12,9 +12,11 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
+from lnbits.extensions.diagonalley.models import CreateChatMessage
 from lnbits.extensions.diagonalley.notifier import Notifier
 
 from .crud import (
+    create_chat_message,
     get_diagonalley_market,
     get_diagonalley_market_stalls,
     get_diagonalley_order_details,
@@ -136,8 +138,8 @@ async def websocket_endpoint(
             if websocket not in room_members:
                 print("Sender not in room member: Reconnecting...")
                 await notifier.connect(websocket, room_name)
-
-            await notifier._notify(f"{data}", room_name)
+                        
+            await notifier._notify(data, room_name)
 
     except WebSocketDisconnect:
         notifier.remove(websocket, room_name)

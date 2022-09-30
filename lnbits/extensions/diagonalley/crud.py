@@ -9,6 +9,7 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    CreateChatMessage,
     CreateMarket,
     CreateMarketStalls,
     Market,
@@ -405,3 +406,17 @@ async def create_diagonalley_market_stalls(
 
 async def update_diagonalley_market(market_id):
     pass
+
+async def create_chat_message(data: CreateChatMessage):
+    print("DATA", data)
+    await db.execute(
+        """
+            INSERT INTO diagonalley.messages (msg, pubkey, id_conversation)
+            VALUES (?, ?, ?)
+            """,
+        (
+            data.msg,
+            data.pubkey,
+            data.room_name,
+        ),
+    )

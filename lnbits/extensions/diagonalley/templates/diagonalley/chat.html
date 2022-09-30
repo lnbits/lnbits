@@ -7,12 +7,12 @@
           <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
           <div class="chat-messages">
             <q-chat-message
-              :key="key"
-              v-for="(message, key) in messages"
-              :name="message.from == 'me' ? 'me' : 'merchant'"
-              :text="[message.text]"
-              :sent="message.from == 'me' ? true : false"
-              :bg-color="message.from == 'me' ? 'white' : 'light-green-2'"
+              :key="index"
+              v-for="(message, index) in messages"
+              :name="message.pubkey == user.keys.publickey ? 'me' : 'merchant'"
+              :text="[message.msg]"
+              :sent="message.pubkey == user.keys.publickey ? true : false"
+              :bg-color="message.pubkey == user.keys.publickey ? 'white' : 'light-green-2'"
             />
           </div>
         </div>
@@ -125,6 +125,9 @@
 </div>
 {% endblock %} {% block scripts %}
 <script>
+  const mapChatMsg = obj => {
+    return
+  }
   Vue.component(VueQrcode.name, VueQrcode)
   new Vue({
     el: '#vue',
@@ -150,16 +153,14 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      sendMessage(e) {
+      sendMessage() {
         let message = {
-          key: Date.now(),
-          text: this.newMessage,
-          from: 'me'
+          msg: this.newMessage,
+          pubkey: this.user.keys.publickey
         }
         ws.send(JSON.stringify(message))
 
         this.clearMessage()
-        e.preventDefault()
       },
       sliceKey(key) {
         if (!key) return ''
@@ -210,8 +211,8 @@
         ws.onmessage = event => {
           let event_data = JSON.parse(event.data)
 
-          this.$set(this.messages, event_data.key, event_data)
-          this.$q.localStorage.set()
+          this.$set(this.messages, Date.now(), event_data)
+          console.log(this.messages)
         }
 
         this.ws = ws

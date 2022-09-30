@@ -4,10 +4,14 @@ Create a class Notifier that will handle messages
 and delivery to the specific person
 """
 
+import json
 from collections import defaultdict
 
 from fastapi import WebSocket
 from loguru import logger
+
+from lnbits.extensions.diagonalley.crud import create_chat_message
+from lnbits.extensions.diagonalley.models import CreateChatMessage
 
 
 class Notifier:
@@ -74,6 +78,12 @@ class Notifier:
 
     async def _notify(self, message: str, room_name: str):
         """Notifier"""
+
+        d = json.loads(message)
+        d["room_name"] = room_name
+        db_msg = CreateChatMessage.parse_obj(d)
+        print("NOT:", db_msg)
+        await create_chat_message(data=db_msg)
 
         remaining_sessions = []
         while len(self.sessions[room_name]) > 0:
