@@ -1,575 +1,793 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %}
-<div class="row q-col-gutter-md">
-  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New Gerty</q-btn
-        >
-      </q-card-section>
-    </q-card>
-    <q-card>
-      <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Gerty</h5>
-          </div>
-          <div class="col-auto">
-            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
-          </div>
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context %} {% block page %}
+    <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+            <q-card>
+                <q-card-section>
+                    <q-btn unelevated color="primary" @click="formDialog.show = true"
+                    >New Gerty
+                    </q-btn
+                    >
+                </q-card-section>
+            </q-card>
+            <q-card>
+                <q-card-section>
+                    <div class="row items-center no-wrap q-mb-md">
+                        <div class="col">
+                            <h5 class="text-subtitle1 q-my-none">Gerty</h5>
+                        </div>
+                        <div class="col-auto">
+                            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+                        </div>
+                    </div>
+                    <q-table
+                            dense
+                            flat
+                            :data="gertys"
+                            row-key="id"
+                            :columns="gertysTable.columns"
+                            :pagination.sync="gertysTable.pagination"
+                    >
+                        {% raw %}
+                        <template v-slot:header="props">
+                            <q-tr :props="props">
+                                <q-th auto-width></q-th>
+                                <q-th v-for="col in props.cols" :key="col.name" :props="props"
+                                      :class="`col__${col.name} text-truncate elipsis`">
+                                    {{ col.label }}
+                                </q-th>
+                                <q-th auto-width></q-th>
+                                <q-th auto-width></q-th>
+                            </q-tr>
+                        </template>
+
+                        <template v-slot:body="props">
+                            <q-tr :props="props">
+                                <q-td auto-width>
+                                    <q-btn
+                                            unelevated
+                                            dense
+                                            size="xs"
+                                            icon="sentiment_satisfied"
+                                            color="green"
+                                            type="a"
+                                            :href="props.row.gerty"
+                                            target="_blank"
+                                    >
+                                        <q-tooltip>Launch software Gerty</q-tooltip>
+                                    </q-btn>
+                                    <q-btn
+                                            unelevated
+                                            dense
+                                            size="xs"
+                                            icon="code"
+                                            color="pink"
+                                            type="a"
+                                            :href="props.row.gertyJson"
+                                            target="_blank"
+                                    >
+                                        <q-tooltip>Launch software Gerty</q-tooltip>
+                                    </q-btn>
+                                </q-td>
+                                <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                                    {{ (col.name == 'tip_options' && col.value ?
+                                    JSON.parse(col.value).join(", ") : col.value) }}
+                                </q-td>
+                                <q-td auto-width>
+                                    <q-btn
+                                            flat
+                                            dense
+                                            size="xs"
+                                            @click="updateformDialog(props.row.id)"
+                                            icon="edit"
+                                            color="light-blue"
+                                    ></q-btn>
+                                </q-td>
+                                <q-td auto-width>
+                                    <q-btn
+                                            flat
+                                            dense
+                                            size="xs"
+                                            @click="deleteGerty(props.row.id)"
+                                            icon="cancel"
+                                            color="pink"
+                                    ></q-btn>
+                                </q-td>
+                            </q-tr>
+                        </template>
+                        {% endraw %}
+                    </q-table>
+                </q-card-section>
+            </q-card>
         </div>
-        <q-table
-          dense
-          flat
-          :data="gertys"
-          row-key="id"
-          :columns="gertysTable.columns"
-          :pagination.sync="gertysTable.pagination"
-        >
-          {% raw %}
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
-              <q-th auto-width></q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
 
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="sentiment_satisfied"
-                  color="green"
-                  type="a"
-                  :href="props.row.gerty"
-                  target="_blank"
-                ><q-tooltip>Launch software Gerty</q-tooltip></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="code"
-                  color="pink"
-                  type="a"
-                  :href="props.row.gertyJson"
-                  target="_blank"
-                ><q-tooltip>Launch software Gerty</q-tooltip></q-btn>
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ (col.name == 'tip_options' && col.value ?
-                JSON.parse(col.value).join(", ") : col.value) }}
-              </q-td>
-              <q-td auto-width>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="updateformDialog(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
-                ></q-btn>
-              </q-td>
-              <q-td auto-width>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteGerty(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                ></q-btn>
-              </q-td>
-            </q-tr>
-          </template>
-          {% endraw %}
-        </q-table>
-      </q-card-section>
-    </q-card>
-  </div>
-
-  <div class="col-12 col-md-5 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Gerty extension</h6>
-      </q-card-section>
-      <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
-        <q-list>
-          {% include "gerty/_api_docs.html" %}
-        </q-list>
-      </q-card-section>
-    </q-card>
-  </div>
-
-  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="sendFormDataGerty" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.name"
-          label="Name"
-          placeholder="Son of Gerty"
-        ></q-input>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialog.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        ></q-select>
-        <q-select
-          filled
-          multiple
-          dense
-          emit-value
-          v-model="formDialog.data.lnbits_wallets"
-          use-input
-          use-chips
-          multiple
-          hide-dropdown-icon
-          new-value-mode="add-unique"
-          label="Invoice keys of wallets to watch"
-          ><q-tooltip>Hit enter to add values</q-tooltip></q-select>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialog.data.exchange"
-          :options="currencyOptions"
-          label="Exchange rate"
-        ></q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.mempool_endpoint"
-          label="Mempool link"
-        ><q-tooltip>Used for getting onchain/ln stats</q-tooltip></q-input>
-        <q-toggle
-          v-model="formDialog.data.sats_quote"
-          label="Satoshi Quotes"
-        ><q-tooltip>Gets random quotes from satoshi</q-tooltip></q-toggle>
-        <q-toggle
-          v-model="formDialog.data.onchain_stats"
-          label="Onchain Statistics"
-        ><q-tooltip>Gets Onchain Statistics</q-tooltip></q-toggle>
-        <q-toggle
-          v-model="formDialog.data.ln_stats"
-          label="LN Statistics"
-        ><q-tooltip>Gets Lightning-Network Statistics</q-tooltip></q-toggle>
-        <div class="row q-mt-lg">
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="formDialog.data.wallet == null || formDialog.data.name == null"
-            type="submit"
-            class="q-mr-md"
-            >Create Gerty</q-btn
-          >
-          <q-btn
-          v-if="formDialog.data.id"
-          unelevated
-          color="primary"
-          :disable="formDialog.data.wallet == null || formDialog.data.name == null"
-          type="submit"
-          >Update Gerty</q-btn
-        >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
+        <div class="col-12 col-md-5 q-gutter-y-md">
+            <q-card>
+                <q-card-section>
+                    <h6 class="text-subtitle1 q-my-none">{{ SITE_TITLE }} Gerty extension</h6>
+                </q-card-section>
+                <q-card-section class="q-pa-none">
+                    <q-separator></q-separator>
+                    <q-list>
+                        {% include "gerty/_api_docs.html" %}
+                    </q-list>
+                </q-card-section>
+            </q-card>
         </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-</div>
+
+        <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+            <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+                <q-form @submit="sendFormDataGerty" class="q-gutter-md">
+                    <q-input
+                            filled
+                            dense
+                            v-model.trim="formDialog.data.name"
+                            label="Name"
+                            placeholder="Son of Gerty"
+                    ></q-input>
+                    <q-select
+                            filled
+                            dense
+                            emit-value
+                            v-model="formDialog.data.wallet"
+                            :options="g.user.walletOptions"
+                            label="Wallet *"
+                    ></q-select>
+                    <q-select
+                            filled
+                            multiple
+                            dense
+                            emit-value
+                            v-model="formDialog.data.lnbits_wallets"
+                            use-input
+                            use-chips
+                            multiple
+                            hide-dropdown-icon
+                            new-value-mode="add-unique"
+                            label="Invoice keys of wallets to watch"
+                    >
+                        <q-tooltip>Hit enter to add values</q-tooltip>
+                    </q-select>
+                    <q-select
+                            filled
+                            dense
+                            emit-value
+                            v-model="formDialog.data.exchange"
+                            :options="currencyOptions"
+                            label="Exchange rate"
+                    ></q-select>
+                    <q-input
+                            filled
+                            dense
+                            v-model.trim="formDialog.data.mempool_endpoint"
+                            label="Mempool link"
+                    >
+                        <q-tooltip>Used for getting onchain/ln stats</q-tooltip>
+                    </q-input>
+
+                    <q-input
+                            filled
+                            dense
+                            v-model.trim="formDialog.data.refresh_time"
+                            label="Refresh time in seconds"
+                    >
+                        <q-tooltip>The amount of time in seconds between screen updates</q-tooltip>
+                    </q-input>
+
+                    <p>Use the toggles below to control what your Gerty will display</p>
+
+                    <q-expansion-item
+                            expand-separator
+                            icon="perm_identity"
+                            label="LNbits Wallets"
+                    >
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
+                                label="Show LNbits wallet balances"
+                        ></q-toggle>
+
+                    </q-expansion-item>
+                    <q-expansion-item
+                            expand-separator
+                            icon="celebration"
+                            label="The Fun Stuff"
+                    >
+                        <q-toggle
+                                v-model="toggleStates.fun"
+                                label="Toggle all"
+                        >
+                            <q-tooltip>Toggle all</q-tooltip>
+                        </q-toggle>
+                        <br>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
+                                label="Satoshi Quotes"
+                        >
+                            <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
+                        </q-toggle>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.fun_pieter_wuille_facts"
+                                label="Pieter Wuille Facts"
+                        >
+                            <q-tooltip>Show accurate facts about Pieter Wuille</q-tooltip>
+                        </q-toggle>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
+                                label="Current dirty fiat to BTC  price"
+                        ></q-toggle>
+                    </q-expansion-item>
+                    <q-expansion-item
+                            expand-separator
+                            icon="link"
+                            label="Onchain Information"
+                    >
+                        <q-toggle
+                                v-model="toggleStates.onchain"
+                                label="Toggle all"
+                        >
+                            <q-tooltip>Toggle all</q-tooltip>
+                        </q-toggle>
+                        <br>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_progress"
+                                label="Percent of current difficulty epoch complete"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_retarget_date"
+                                label="Estimated retarget date"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_blocks_remaining"
+                                label="Blocks until next difficulty adjustment"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining"
+                                label="Estimated time until next difficulty adjustment"
+                        ></q-toggle>
+                    </q-expansion-item>
+                    <q-expansion-item
+                            expand-separator
+                            icon="psychology"
+                            label="The Mempool"
+                    >
+                        <q-toggle
+                                v-model="toggleStates.mempool"
+                                label="Toggle all"
+                        >
+                            <q-tooltip>Toggle all</q-tooltip>
+                        </q-toggle>
+                        <br>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.mempool_recommended_fees"
+                                label="Recommended fees"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.mempool_tx_count"
+                                label="Number of transactions in the mempool"
+                        ></q-toggle>
+                    </q-expansion-item>
+
+                    <q-expansion-item
+                            expand-separator
+                            icon="money"
+                            label="Mining Data"
+                    >
+                        <q-toggle
+                                v-model="toggleStates.mining"
+                                label="Toggle all"
+                        >
+                            <q-tooltip>Toggle all</q-tooltip>
+                        </q-toggle>
+                        <br>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.mining_current_hash_rate"
+                                label="Current mining hashrate"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.mining_current_difficulty"
+                                label="Current mining difficulty"
+                        ></q-toggle>
+                    </q-expansion-item>
+
+                    <q-expansion-item
+                            expand-separator
+                            icon="bolt"
+                            label="Lightning Network"
+                    >
+                        <q-toggle
+                                v-model="toggleStates.lightning"
+                                label="Toggle all"
+                        >
+                            <q-tooltip>Toggle all</q-tooltip>
+                        </q-toggle>
+                        <br>
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_channel_count"
+                                label="Channel count"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_node_count"
+                                label="Number of nodes"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_tor_node_count"
+                                label="Number of Tor nodes"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_clearnet_nodes"
+                                label="Number of clearnet nodes"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_unannounced_nodes"
+                                label="Number of unannounced nodes"
+                        ></q-toggle>
+
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.lightning_average_channel_capacity"
+                                label="Average channel capacity"
+                        ></q-toggle>
+                    </q-expansion-item>
+                    <div class="row q-mt-lg">
+                        <q-btn
+                                unelevated
+                                color="primary"
+                                :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+                                type="submit"
+                                class="q-mr-md"
+                        >Create Gerty
+                        </q-btn
+                        >
+                        <q-btn
+                                v-if="formDialog.data.id"
+                                unelevated
+                                color="primary"
+                                :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+                                type="submit"
+                        >Update Gerty
+                        </q-btn
+                        >
+                        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                        >Cancel
+                        </q-btn
+                        >
+                    </div>
+                </q-form>
+            </q-card>
+        </q-dialog>
+    </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script>
-  var mapGerty = function (obj) {
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.gerty = ['/gerty/', obj.id].join('')
-    obj.gertyJson = ['/gerty/api/v1/gerty/', obj.id].join('')
-    return obj
-  }
+    <script>
+        var mapGerty = function (obj) {
+            obj.date = Quasar.utils.date.formatDate(
+                new Date(obj.time * 1000),
+                'YYYY-MM-DD HH:mm'
+            )
+            obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+            obj.gerty = ['/gerty/', obj.id].join('')
+            obj.gertyJson = ['/gerty/api/v1/gerty/', obj.id].join('')
+            return obj
+        }
 
-  new Vue({
-    el: '#vue',
-    mixins: [windowMixin],
-    data: function () {
-      return {
-        gertys: [],
-        currencyOptions: [
-          'USD',
-          'EUR',
-          'GBP',
-          'AED',
-          'AFN',
-          'ALL',
-          'AMD',
-          'ANG',
-          'AOA',
-          'ARS',
-          'AUD',
-          'AWG',
-          'AZN',
-          'BAM',
-          'BBD',
-          'BDT',
-          'BGN',
-          'BHD',
-          'BIF',
-          'BMD',
-          'BND',
-          'BOB',
-          'BRL',
-          'BSD',
-          'BTN',
-          'BWP',
-          'BYN',
-          'BZD',
-          'CAD',
-          'CDF',
-          'CHF',
-          'CLF',
-          'CLP',
-          'CNH',
-          'CNY',
-          'COP',
-          'CRC',
-          'CUC',
-          'CUP',
-          'CVE',
-          'CZK',
-          'DJF',
-          'DKK',
-          'DOP',
-          'DZD',
-          'EGP',
-          'ERN',
-          'ETB',
-          'EUR',
-          'FJD',
-          'FKP',
-          'GBP',
-          'GEL',
-          'GGP',
-          'GHS',
-          'GIP',
-          'GMD',
-          'GNF',
-          'GTQ',
-          'GYD',
-          'HKD',
-          'HNL',
-          'HRK',
-          'HTG',
-          'HUF',
-          'IDR',
-          'ILS',
-          'IMP',
-          'INR',
-          'IQD',
-          'IRR',
-          'IRT',
-          'ISK',
-          'JEP',
-          'JMD',
-          'JOD',
-          'JPY',
-          'KES',
-          'KGS',
-          'KHR',
-          'KMF',
-          'KPW',
-          'KRW',
-          'KWD',
-          'KYD',
-          'KZT',
-          'LAK',
-          'LBP',
-          'LKR',
-          'LRD',
-          'LSL',
-          'LYD',
-          'MAD',
-          'MDL',
-          'MGA',
-          'MKD',
-          'MMK',
-          'MNT',
-          'MOP',
-          'MRO',
-          'MUR',
-          'MVR',
-          'MWK',
-          'MXN',
-          'MYR',
-          'MZN',
-          'NAD',
-          'NGN',
-          'NIO',
-          'NOK',
-          'NPR',
-          'NZD',
-          'OMR',
-          'PAB',
-          'PEN',
-          'PGK',
-          'PHP',
-          'PKR',
-          'PLN',
-          'PYG',
-          'QAR',
-          'RON',
-          'RSD',
-          'RUB',
-          'RWF',
-          'SAR',
-          'SBD',
-          'SCR',
-          'SDG',
-          'SEK',
-          'SGD',
-          'SHP',
-          'SLL',
-          'SOS',
-          'SRD',
-          'SSP',
-          'STD',
-          'SVC',
-          'SYP',
-          'SZL',
-          'THB',
-          'TJS',
-          'TMT',
-          'TND',
-          'TOP',
-          'TRY',
-          'TTD',
-          'TWD',
-          'TZS',
-          'UAH',
-          'UGX',
-          'USD',
-          'UYU',
-          'UZS',
-          'VEF',
-          'VES',
-          'VND',
-          'VUV',
-          'WST',
-          'XAF',
-          'XAG',
-          'XAU',
-          'XCD',
-          'XDR',
-          'XOF',
-          'XPD',
-          'XPF',
-          'XPT',
-          'YER',
-          'ZAR',
-          'ZMW',
-          'ZWL'
-        ],
-        gertysTable: {
-          columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {name: 'name', align: 'left', label: 'Name', field: 'name'},
-            {
-              name: 'lnbits_wallets',
-              align: 'left',
-              label: 'Wallets',
-              field: 'lnbits_wallets'
+        new Vue({
+            el: '#vue',
+            mixins: [windowMixin],
+            data: function () {
+                return {
+                    toggleStates: {
+                        fun: true,
+                        onchain: true,
+                        mempool: true,
+                        mining: true,
+                        lightning: true
+                    },
+                    oldToggleStates: {},
+                    gertys: [],
+                    currencyOptions: [
+                        'USD',
+                        'EUR',
+                        'GBP',
+                        'AED',
+                        'AFN',
+                        'ALL',
+                        'AMD',
+                        'ANG',
+                        'AOA',
+                        'ARS',
+                        'AUD',
+                        'AWG',
+                        'AZN',
+                        'BAM',
+                        'BBD',
+                        'BDT',
+                        'BGN',
+                        'BHD',
+                        'BIF',
+                        'BMD',
+                        'BND',
+                        'BOB',
+                        'BRL',
+                        'BSD',
+                        'BTN',
+                        'BWP',
+                        'BYN',
+                        'BZD',
+                        'CAD',
+                        'CDF',
+                        'CHF',
+                        'CLF',
+                        'CLP',
+                        'CNH',
+                        'CNY',
+                        'COP',
+                        'CRC',
+                        'CUC',
+                        'CUP',
+                        'CVE',
+                        'CZK',
+                        'DJF',
+                        'DKK',
+                        'DOP',
+                        'DZD',
+                        'EGP',
+                        'ERN',
+                        'ETB',
+                        'EUR',
+                        'FJD',
+                        'FKP',
+                        'GBP',
+                        'GEL',
+                        'GGP',
+                        'GHS',
+                        'GIP',
+                        'GMD',
+                        'GNF',
+                        'GTQ',
+                        'GYD',
+                        'HKD',
+                        'HNL',
+                        'HRK',
+                        'HTG',
+                        'HUF',
+                        'IDR',
+                        'ILS',
+                        'IMP',
+                        'INR',
+                        'IQD',
+                        'IRR',
+                        'IRT',
+                        'ISK',
+                        'JEP',
+                        'JMD',
+                        'JOD',
+                        'JPY',
+                        'KES',
+                        'KGS',
+                        'KHR',
+                        'KMF',
+                        'KPW',
+                        'KRW',
+                        'KWD',
+                        'KYD',
+                        'KZT',
+                        'LAK',
+                        'LBP',
+                        'LKR',
+                        'LRD',
+                        'LSL',
+                        'LYD',
+                        'MAD',
+                        'MDL',
+                        'MGA',
+                        'MKD',
+                        'MMK',
+                        'MNT',
+                        'MOP',
+                        'MRO',
+                        'MUR',
+                        'MVR',
+                        'MWK',
+                        'MXN',
+                        'MYR',
+                        'MZN',
+                        'NAD',
+                        'NGN',
+                        'NIO',
+                        'NOK',
+                        'NPR',
+                        'NZD',
+                        'OMR',
+                        'PAB',
+                        'PEN',
+                        'PGK',
+                        'PHP',
+                        'PKR',
+                        'PLN',
+                        'PYG',
+                        'QAR',
+                        'RON',
+                        'RSD',
+                        'RUB',
+                        'RWF',
+                        'SAR',
+                        'SBD',
+                        'SCR',
+                        'SDG',
+                        'SEK',
+                        'SGD',
+                        'SHP',
+                        'SLL',
+                        'SOS',
+                        'SRD',
+                        'SSP',
+                        'STD',
+                        'SVC',
+                        'SYP',
+                        'SZL',
+                        'THB',
+                        'TJS',
+                        'TMT',
+                        'TND',
+                        'TOP',
+                        'TRY',
+                        'TTD',
+                        'TWD',
+                        'TZS',
+                        'UAH',
+                        'UGX',
+                        'USD',
+                        'UYU',
+                        'UZS',
+                        'VEF',
+                        'VES',
+                        'VND',
+                        'VUV',
+                        'WST',
+                        'XAF',
+                        'XAG',
+                        'XAU',
+                        'XCD',
+                        'XDR',
+                        'XOF',
+                        'XPD',
+                        'XPF',
+                        'XPT',
+                        'YER',
+                        'ZAR',
+                        'ZMW',
+                        'ZWL'
+                    ],
+                    gertysTable: {
+                        columns: [
+                            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+                            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+                            {
+                                name: 'lnbits_wallets',
+                                align: 'left',
+                                label: 'Wallets',
+                                field: 'lnbits_wallets'
+                            },
+                            {
+                                name: 'exchange',
+                                align: 'left',
+                                label: 'Exchange',
+                                field: 'exchange',
+                            },
+                            {
+                                name: 'mempool_endpoint',
+                                align: 'left',
+                                label: 'Mempool Endpoint',
+                                field: 'mempool_endpoint'
+                            }
+                        ],
+                        pagination: {
+                            rowsPerPage: 10
+                        }
+                    },
+                    formDialog: {
+                        show: false,
+                        data: {
+                            display_preferences: {
+                                lnbits_wallets_balance: true,
+                                fun_satoshi_quotes: true,
+                                fun_pieter_wuille_facts: true,
+                                fun_exchange_market_rate: true,
+                                onchain_difficulty_epoch_progress: true,
+                                onchain_difficulty_retarget_date: true,
+                                onchain_difficulty_blocks_remaining: true,
+                                onchain_difficulty_epoch_time_remaining: true,
+                                mempool_recommended_fees: true,
+                                mempool_tx_count: true,
+                                mining_current_hash_rate: true,
+                                mining_current_difficulty: true,
+                                lightning_channel_count: true,
+                                lightning_node_count: true,
+                                lightning_tor_node_count: true,
+                                lightning_clearnet_nodes: true,
+                                lightning_unannounced_nodes: true,
+                                lightning_average_channel_capacity: true,
+                            },
+                            lnbits_wallets: [],
+                            mempool_endpoint: "https://mempool.space",
+                            refresh_time: 300,
+                        }
+                    }
+                }
             },
-            {
-              name: 'exchange',
-              align: 'left',
-              label: 'Exchange',
-              field: 'exchange'
+            mounted() {
+                console.log('this.formDialog', this.formDialog.data.display_preferences)
+
             },
-            {
-              name: 'sats_quote',
-              align: 'left',
-              label: 'Sats Quote',
-              field: 'sats_quote'
+            methods: {
+                closeFormDialog: function () {
+                    this.formDialog.data = {
+                        lnbits_wallets: [],
+                        mempool_endpoint: "https://mempool.space",
+                        refresh_time: 300,
+                        display_preferences: {},
+                    }
+                },
+                getGertys: function () {
+                    var self = this
+                    LNbits.api
+                        .request(
+                            'GET',
+                            '/gerty/api/v1/gerty?all_wallets=true',
+                            this.g.user.wallets[0].inkey
+                        )
+                        .then(function (response) {
+                            self.gertys = response.data.map(function (obj) {
+                                return mapGerty(obj)
+                            })
+                        })
+                },
+                updateformDialog: function (formId) {
+                    var gerty = _.findWhere(this.gertys, {id: formId})
+                    console.log('gerty.display_preferences', gerty.display_preferences)
+                    this.formDialog.data.id = gerty.id
+                    this.formDialog.data.name = gerty.name
+                    this.formDialog.data.wallet = gerty.wallet
+                    this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
+                    this.formDialog.data.exchange = gerty.exchange,
+                    this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
+                    this.formDialog.data.refresh_time = gerty.refresh_time,
+                    this.formDialog.data.display_preferences = JSON.parse(gerty.display_preferences),
+                    this.formDialog.show = true
+                },
+                sendFormDataGerty: function () {
+                    if (this.formDialog.data.id) {
+                        this.updateGerty(
+                            this.g.user.wallets[0].adminkey,
+                            this.formDialog.data
+                        )
+                    } else {
+                        {#console.log('sendFormDataGerty', this.formDialog.data)#}
+                        this.createGerty(
+                            this.g.user.wallets[0].adminkey,
+                            this.formDialog.data
+                        )
+                    }
+                },
+                createGerty: function () {
+                    var data = {
+                        name: this.formDialog.data.name,
+                        wallet: this.formDialog.data.wallet,
+                        lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
+                        exchange: this.formDialog.data.exchange,
+                        mempool_endpoint: this.formDialog.data.mempool_endpoint,
+                        refresh_time: this.formDialog.data.refresh_time,
+                        display_preferences: JSON.stringify(this.formDialog.data.display_preferences)
+                    }
+                    console.log('createGerty', data)
+                    var self = this
+
+                    LNbits.api
+                        .request(
+                            'POST',
+                            '/gerty/api/v1/gerty',
+                            _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
+                                .inkey,
+                            data
+                        )
+                        .then(function (response) {
+                            self.gertys.push(mapGerty(response.data))
+                            self.formDialog.show = false
+                        })
+                        .catch(function (error) {
+                            LNbits.utils.notifyApiError(error)
+                        })
+                },
+                updateGerty: function (wallet, data) {
+                    var self = this
+                    data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
+                    data.display_preferences = JSON.stringify(this.formDialog.data.display_preferences)
+                    LNbits.api
+                        .request(
+                            'PUT',
+                            '/gerty/api/v1/gerty/' + data.id,
+                            wallet,
+                            data
+                        )
+                        .then(function (response) {
+                            self.gertys = _.reject(self.gertys, function (obj) {
+                                return obj.id == data.id
+                            })
+                            self.gertys.push(mapGerty(response.data))
+                            self.formDialog.show = false
+                        })
+                        .catch(function (error) {
+                            LNbits.utils.notifyApiError(error)
+                        })
+                },
+                deleteGerty: function (gertyId) {
+                    var self = this
+                    var gerty = _.findWhere(this.gertys, {id: gertyId})
+
+                    LNbits.utils
+                        .confirmDialog('Are you sure you want to delete this Gerty?')
+                        .onOk(function () {
+                            LNbits.api
+                                .request(
+                                    'DELETE',
+                                    '/gerty/api/v1/gerty/' + gertyId,
+                                    _.findWhere(self.g.user.wallets, {id: gerty.wallet}).adminkey
+                                )
+                                .then(function (response) {
+                                    self.gertys = _.reject(self.gertys, function (obj) {
+                                        return obj.id == gertyId
+                                    })
+                                })
+                                .catch(function (error) {
+                                    LNbits.utils.notifyApiError(error)
+                                })
+                        })
+                },
+                exportCSV: function () {
+                    LNbits.utils.exportCSV(this.gertysTable.columns, this.gertys)
+                }
             },
-            {
-              name: 'mempool_endpoint',
-              align: 'left',
-              label: 'Mempool Endpoint',
-              field: 'mempool_endpoint'
+            created: function () {
+                if (this.g.user.wallets.length) {
+                    this.getGertys()
+                }
             },
-            {
-              name: 'onchain_stats',
-              align: 'left',
-              label: 'Onchain Stats',
-              field: 'onchain_stats'
-            },
-            {
-              name: 'ln_stats',
-              align: 'left',
-              label: 'LN Stats',
-              field: 'ln_stats'
+            watch: {
+                toggleStates: {
+                    handler(toggleStatesValue) {
+                        // Switch all the toggles in each section to the relevant state
+                        for (const [toggleKey, toggleValue] of Object.entries(toggleStatesValue)) {
+                            if (this.oldToggleStates[toggleKey] !== toggleValue) {
+                                for (const [dpKey, dpValue] of Object.entries(this.formDialog.data.display_preferences)) {
+                                    if (dpKey.indexOf(toggleKey) === 0) {
+                                        this.formDialog.data.display_preferences[dpKey] = toggleValue
+                                    }
+                                }
+                            }
+                        }
+                        // This is a weird hack we have to use to get VueJS to persist the previous toggle state between
+                        // watches. VueJS passes the old and new values by reference so when comparing objects they
+                        // will have the same values unless we do this
+                        this.oldToggleStates = JSON.parse(JSON.stringify(toggleStatesValue))
+                    },
+                    deep: true
+                }
             }
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        formDialog: {
-          show: false,
-          data: {sats_quote: false,
-          onchain_stats: false,
-          ln_stats: false,
-          lnbits_wallets:[],
-          mempool_endpoint: "https://mempool.space"}
-        }
-      }
-    },
-    methods: {
-      closeFormDialog: function () {
-        this.formDialog.data = {sats_quote: false,
-          onchain_stats: false,
-          ln_stats: false,
-          lnbits_wallets:[],
-          mempool_endpoint: "https://mempool.space"}
-      },
-      getGertys: function () {
-        var self = this
-        LNbits.api
-          .request(
-            'GET',
-            '/gerty/api/v1/gerty?all_wallets=true',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.gertys = response.data.map(function (obj) {
-              return mapGerty(obj)
-            })
-          })
-      },
-      updateformDialog: function (formId) {
-        var gerty = _.findWhere(this.gertys, {id: formId})
-        this.formDialog.data.id = gerty.id
-        this.formDialog.data.name = gerty.name
-        this.formDialog.data.wallet = gerty.wallet
-        this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
-        this.formDialog.data.exchange = gerty.exchange,
-        this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
-        this.formDialog.data.sats_quote = Boolean(gerty.sats_quote)
-        this.formDialog.data.onchain_stats = Boolean(gerty.onchain_stats)
-        this.formDialog.data.ln_stats = Boolean(gerty.ln_stats)
-        this.formDialog.show = true
-      },
-      sendFormDataGerty: function () {
-        var self = this
-        if (self.formDialog.data.id) {
-          this.updateGerty(
-            self.g.user.wallets[0].adminkey,
-            self.formDialog.data
-          )
-        } else {
-          this.createGerty(
-            self.g.user.wallets[0].adminkey,
-            self.formDialog.data
-          )
-        }
-      },
-      createGerty: function () {
-        var data = {
-          name: this.formDialog.data.name,
-          wallet: this.formDialog.data.wallet,
-          lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
-          sats_quote: this.formDialog.data.sats_quote,
-          exchange: this.formDialog.data.exchange,
-          mempool_endpoint: this.formDialog.data.mempool_endpoint,
-          onchain_stats: this.formDialog.data.onchain_stats, 
-          ln_stats: this.formDialog.data.ln_stats
-        }
-        var self = this
+        })
+    </script>
+{% endblock %}
 
-        LNbits.api
-          .request(
-            'POST',
-            '/gerty/api/v1/gerty',
-            _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
-              .inkey,
-            data
-          )
-          .then(function (response) {
-            self.gertys.push(mapGerty(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      updateGerty: function (wallet, data) {
-        var self = this
-        data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
-        LNbits.api
-          .request(
-            'PUT',
-            '/gerty/api/v1/gerty/' + data.id,
-            wallet,
-            data
-          )
-          .then(function (response) {
-            self.gertys = _.reject(self.gertys, function (obj) {
-              return obj.id == data.id
-            })
-            self.gertys.push(mapGerty(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      deleteGerty: function (gertyId) {
-        var self = this
-        var gerty = _.findWhere(this.gertys, {id: gertyId})
-
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this Gerty?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/gerty/api/v1/gerty/' + gertyId,
-                _.findWhere(self.g.user.wallets, {id: gerty.wallet}).adminkey
-              )
-              .then(function (response) {
-                self.gertys = _.reject(self.gertys, function (obj) {
-                  return obj.id == gertyId
-                })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-      exportCSV: function () {
-        LNbits.utils.exportCSV(this.gertysTable.columns, this.gertys)
-      }
-    },
-    created: function () {
-      if (this.g.user.wallets.length) {
-        this.getGertys()
-      }
-    }
-  })
-</script>
+{% block styles %}
+    <style>
+        .col__display_preferences {
+            border: 1px solid red
+        }
+    </style>
 {% endblock %}

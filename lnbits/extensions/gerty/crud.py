@@ -10,8 +10,16 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
     gerty_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO gerty.gertys (id, name, wallet, lnbits_wallets, mempool_endpoint, sats_quote, exchange, onchain_stats, ln_stats)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO gerty.gertys (
+        id,
+        name,
+        wallet,
+        lnbits_wallets,
+        mempool_endpoint,
+        exchange,
+        display_preferences
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             gerty_id,
@@ -19,10 +27,8 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
             data.wallet,
             data.lnbits_wallets,
             data.mempool_endpoint,
-            data.sats_quote,
             data.exchange,
-            data.onchain_stats,
-            data.ln_stats,
+            data.display_preferences
         ),
     )
 
