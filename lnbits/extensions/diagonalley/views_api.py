@@ -487,9 +487,10 @@ async def api_diagonalley_generate_keys():
 
 ## MESSAGES/CHAT
 
+
 @diagonalley_ext.get("/api/v1/chat/messages/{room_name}")
 async def api_get_latest_chat_msg(room_name: str, all_messages: bool = Query(False)):
-    if(all_messages):
+    if all_messages:
         messages = await get_diagonalley_chat_messages(room_name)
     else:
         messages = await get_diagonalley_latest_chat_messages(room_name)

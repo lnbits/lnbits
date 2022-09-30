@@ -116,6 +116,7 @@ class ChatMessage(BaseModel):
     id_conversation: str
     timestamp: int
 
+
 class CreateChatMessage(BaseModel):
     msg: str = Query(..., min_length=1)
     pubkey: str = Query(...)

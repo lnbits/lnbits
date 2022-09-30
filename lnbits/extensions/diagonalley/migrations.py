@@ -114,6 +114,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_add_chat_messages(db):
     """
     Initial chat messages table.
@@ -135,5 +136,9 @@ async def m002_add_chat_messages(db):
     """
     Create indexes for message fetching 
     """
-    await db.execute("CREATE INDEX idx_messages_timestamp ON diagonalley.messages (timestamp DESC)")
-    await db.execute("CREATE INDEX idx_messages_conversations ON diagonalley.messages (id_conversation)")
+    await db.execute(
+        "CREATE INDEX idx_messages_timestamp ON diagonalley.messages (timestamp DESC)"
+    )
+    await db.execute(
+        "CREATE INDEX idx_messages_conversations ON diagonalley.messages (id_conversation)"
+    )
