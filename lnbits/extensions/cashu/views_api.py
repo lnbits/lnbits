@@ -1,4 +1,6 @@
 from http import HTTPStatus
+from secp256k1 import PublicKey
+from typing import Union
 
 import httpx
 from fastapi import Query
@@ -14,8 +16,9 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import cashu_ext
 from .crud import create_cashu, delete_cashu, get_cashu, get_cashus, update_cashu_keys
-from .models import Cashu, Pegs, PayLnurlWData
+from .models import Cashu, Pegs, CheckPayload, MeltPayload, MintPayloads, SplitPayload
 
+import .ledger
 
 @cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
 async def api_cashus(
@@ -168,3 +171,65 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
         logger.error(exc)
         return {"paid": False}
     return status
+
+
+#################CASHU STUFF###################
+
+@cashu_ext.get("/keys")
+def keys():
+    """Get the public keys of the mint"""
+    return ledger.get_pubkeys()
+
+
+@cashu_ext.get("/mint")
+async def request_mint(amount: int = 0):
+    """Request minting of tokens. Server responds with a Lightning invoice."""
+    payment_request, payment_hash = await ledger.request_mint(amount)
+    print(f"Lightning invoice: {payment_request}")
+    return {"pr": payment_request, "hash": payment_hash}
+
+
+@cashu_ext.post("/mint")
+async def mint(payloads: MintPayloads, payment_hash: Union[str, None] = None):
+    amounts = []
+    B_s = []
+    for payload in payloads.blinded_messages:
+        amounts.append(payload.amount)
+        B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+    try:
+        promises = await ledger.mint(B_s, amounts, payment_hash=payment_hash)
+        return promises
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+@cashu_ext.post("/melt")
+async def melt(payload: MeltPayload):
+
+    ok, preimage = await ledger.melt(payload.proofs, payload.amount, payload.invoice)
+    return {"paid": ok, "preimage": preimage}
+
+
+@cashu_ext.post("/check")
+async def check_spendable(payload: CheckPayload):
+    return await ledger.check_spendable(payload.proofs)
+
+
+@cashu_ext.post("/split")
+async def split(payload: SplitPayload):
+    """
+    Requetst a set of tokens with amount "total" to be split into two
+    newly minted sets with amount "split" and "total-split".
+    """
+    proofs = payload.proofs
+    amount = payload.amount
+    output_data = payload.output_data.blinded_messages
+    try:
+        split_return = await ledger.split(proofs, amount, output_data)
+    except Exception as exc:
+        return {"error": str(exc)}
+    if not split_return:
+        """There was a problem with the split"""
+        raise Exception("could not split tokens.")
+    fst_promises, snd_promises = split_return
+    return {"fst": fst_promises, "snd": snd_promises}
