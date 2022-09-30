@@ -1,0 +1,353 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="hedgeDialog.show = true"
+          >Bind Wallet</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Hedged Wallets</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exporthedgesCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="hedges"
+          row-key="id"
+          :columns="hedgesTable.columns"
+          :pagination.sync="hedgesTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="send"
+                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteHedgedWallet(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Hedge extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "hedge/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="hedgeDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendHedgeData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="hedgeDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <div class="row">
+          <div class="col">
+            <div v-if="walletLinks.length > 0">
+              <q-checkbox v-model="hedgeDialog.data.chain" label="Chain" />
+            </div>
+            <div v-else>
+              <q-checkbox :value="false" label="Chain" disabled>
+                <q-tooltip>
+                  Watch-Only extension MUST be activated and have a wallet
+                </q-tooltip>
+              </q-checkbox>
+            </div>
+          </div>
+        </div>
+        <div v-if="hedgeDialog.data.chain">
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="hedgeDialog.data.onchain"
+            :options="walletLinks"
+            label="Chain Wallet"
+          />
+        </div>
+        <q-input
+          filled
+          dense
+          v-model.trim="hedgeDialog.data.ticker"
+          type="text"
+          label="Ticker *"
+          v-model="tickerDefault"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="hedgeDialog.data.hedgeuri"
+          type="url"
+          label="Hedge Service URI"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="hedgeDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Binding</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="hedgeDialog.data.ticker == null"
+            type="submit"
+            >Bind Wallet</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapHedgedWallet = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.displayUrl = ['/hedge/info/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        hedges: [],
+        walletLinks: [],
+        hedgesTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'ticker',
+              align: 'left',
+              label: 'Ticker',
+              field: 'ticker'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'onchain address',
+              align: 'left',
+              label: 'Onchain Address',
+              field: 'onchain'
+            },
+            {
+              name: 'hedgeuri',
+              align: 'left',
+              label: 'Hedge Host:Port',
+              field: 'hedgeuri'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        hedgeDialog: {
+          show: false,
+          chain: false,
+          data: {
+            ticker: "USD",
+            hedgeuri: "http://localhost:8081",
+          }
+        }
+      }
+    },
+    computed: {
+      tickerDefault: {
+        get() {
+          return this.hedgeDialog.data.ticker;
+        },
+        set(val) {
+          this.hedgeDialog.data.ticker = val;
+        },
+      },
+      hedgeDefault: {
+        get() {
+          return this.hedgeDialog.data.hedgeuri;
+        },
+        set(val) {
+          this.hedgeDialog.data.hedgeuri = val;
+        },
+      },
+    },
+    methods: {
+      getWalletLinks: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/wallet',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            for (i = 0; i < response.data.length; i++) {
+              self.walletLinks.push(response.data[i].id)
+            }
+            return
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getHedgedWallets: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/hedge/api/v1/hedges',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.hedges = response.data.map(function (obj) {
+              return mapHedgedWallet(obj)
+            })
+          })
+      },
+      sendHedgeData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.hedgeDialog.data.wallet
+        })
+        var data = this.hedgeDialog.data
+
+        this.createHedgedWallet(wallet, data)
+      },
+
+      createHedgedWallet: function (wallet, data) {
+        var self = this
+        LNbits.api
+          .request('POST', '/hedge/api/v1/hedges', wallet.inkey, data)
+          .then(function (response) {
+            self.hedges.push(mapHedgedWallet(response.data))
+            self.hedgeDialog.show = false
+            self.hedgeDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updatehedgeDialog: function (hedgeId) {
+        var link = _.findWhere(this.hedges, {id: hedgeId})
+        console.log(link.id)
+        this.hedgeDialog.data.id = link.id
+        this.hedgeDialog.data.wallet = link.wallet
+        this.hedgeDialog.data.ticker = link.ticker
+        this.hedgeDialog.data.hedgeuri = link.hedgeuri
+        this.hedgeDialog.show = true
+      },
+      deleteHedgedWallet: function (hedgesId) {
+        var self = this
+        var hedges = _.findWhere(this.hedges, {id: hedgesId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this hedge link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/hedge/api/v1/hedges/' + hedgesId,
+                _.findWhere(self.g.user.wallets, {id: hedges.wallet}).inkey
+              )
+              .then(function (response) {
+                self.hedges = _.reject(self.hedges, function (obj) {
+                  return obj.id == hedgesId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exporthedgesCSV: function () {
+        LNbits.utils.exportCSV(this.hedgesTable.columns, this.hedges)
+      }
+    },
+
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getWalletLinks()
+        this.getHedgedWallets()
+      }
+    }
+  })
+</script>
+{% endblock %}

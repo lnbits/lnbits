@@ -1,0 +1,32 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h5 class="q-my-none">Hedge Information</h5>
+        <h6 class="q-my-none">Wallet {{ wallet }}</h6>
+        <br />
+        <q-card-section class="q-pa-none">
+          <q-separator></q-separator>
+          <q-list> Hedge host {{ host }} </q-list>
+          <q-list> Ticker {{ ticker }} </q-list>
+          <q-list> Balance sats {{ stats["channels_sats"] }} </q-list>
+          <q-list> Balance USD {{ "$%.2f"|format(stats["channels_usd"]) }} </q-list>
+          <q-list> Position USD {{ stats["position_usd"] }} </q-list>
+        </q-card-section>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {}
+    }
+  })
+</script>
+{% endblock %}

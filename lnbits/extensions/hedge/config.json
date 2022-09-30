@@ -1,0 +1,6 @@
+{
+    "name": "Hedge",
+    "short_description": "Create synthetic stablecoins while receiving payments!",
+    "icon": "currency_exchange",
+    "contributors": ["Standard Sats"]
+}
