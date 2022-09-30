@@ -125,8 +125,13 @@
 </div>
 {% endblock %} {% block scripts %}
 <script>
-  const mapChatMsg = obj => {
-    return
+  const mapChatMsg = msg => {
+    let obj = {}
+    obj.timestamp = {
+      msg: msg,
+      pubkey: pubkey
+    }
+    return obj
   }
   Vue.component(VueQrcode.name, VueQrcode)
   new Vue({
@@ -186,6 +191,29 @@
             LNbits.utils.notifyApiError(error)
           })
       },
+      async getMessages(room_name, all = false) {
+        await LNbits.api
+          .request(
+            'GET',
+            `/diagonalley/api/v1/chat/messages/${room_name}${
+              all ? '?all_messages=true' : ''
+            }`
+          )
+          .then(response => {
+            if (response.data) {
+              console.log(response.data)
+              response.data.reverse().map(m => {
+                this.$set(this.messages, m.timestamp * 1000, {
+                  msg: m.msg,
+                  pubkey: m.pubkey
+                })
+              })
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       changeOrder() {
         console.log(this.selectedOrder)
       },
@@ -212,7 +240,6 @@
           let event_data = JSON.parse(event.data)
 
           this.$set(this.messages, Date.now(), event_data)
-          console.log(this.messages)
         }
 
         this.ws = ws
@@ -230,8 +257,8 @@
         if (data) {
           this.user = data
           //add chat key (merchant pubkey) if not set
-          if (!this.user.chats[`${this.stall.publickey}`]) {
-            this.$set(this.user.chats, this.stall.publickey, [])
+          if (!this.user.chats[`${order_id}`]) {
+            this.$set(this.user.chats, order_id, [])
           }
           //this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         } else {
@@ -239,7 +266,7 @@
           await this.generateKeys()
           // populate user data
           this.user.chats = {
-            [`${this.stall.publickey}`]: []
+            [`${order_id}`]: []
           }
           this.user.orders = []
         }
@@ -247,6 +274,8 @@
         this.order_details = order_details
         this.user.orders = [...new Set([...this.user.orders, order_id])]
         this.selectedOrder = order_id
+
+        await this.getMessages(order_id)
 
         this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         this.startChat(order_id)

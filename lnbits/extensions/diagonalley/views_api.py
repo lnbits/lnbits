@@ -34,6 +34,8 @@ from .crud import (
     delete_diagonalley_product,
     delete_diagonalley_stall,
     delete_diagonalley_zone,
+    get_diagonalley_chat_messages,
+    get_diagonalley_latest_chat_messages,
     get_diagonalley_market,
     get_diagonalley_market_stalls,
     get_diagonalley_markets,
@@ -481,3 +483,15 @@ async def api_diagonalley_generate_keys():
         private_key = PrivateKey()
         public_key = private_key.pubkey.serialize().hex()
     return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
+
+
+## MESSAGES/CHAT
+
+@diagonalley_ext.get("/api/v1/chat/messages/{room_name}")
+async def api_get_latest_chat_msg(room_name: str, all_messages: bool = Query(False)):
+    if(all_messages):
+        messages = await get_diagonalley_chat_messages(room_name)
+    else:
+        messages = await get_diagonalley_latest_chat_messages(room_name)
+
+    return messages

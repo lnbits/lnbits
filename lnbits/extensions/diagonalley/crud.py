@@ -9,6 +9,7 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    ChatMessage,
     CreateChatMessage,
     CreateMarket,
     CreateMarketStalls,
@@ -420,3 +421,18 @@ async def create_chat_message(data: CreateChatMessage):
             data.room_name,
         ),
     )
+
+async def get_diagonalley_latest_chat_messages(room_name: str):
+    rows = await db.fetchall(
+        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC LIMIT 20", (room_name,)
+    )
+
+    return [ChatMessage(**row) for row in rows]
+
+async def get_diagonalley_chat_messages(room_name: str):
+    rows = await db.fetchall(
+        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC", (room_name,)
+    )
+
+    return [ChatMessage(**row) for row in rows]
+    
