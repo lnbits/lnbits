@@ -227,3 +227,24 @@ class EclairWallet(Wallet):
                     f"lost connection to eclair invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        while True:
+            try:
+                async with connect(
+                    self.ws_url,
+                    extra_headers=[("Authorization", self.auth["Authorization"])],
+                ) as ws:
+                    while True:
+                        message = await ws.recv()
+                        message = json.loads(message)
+
+                        if message and message["type"] == "payment-sent":
+                            yield message["paymentHash"]
+
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to eclair invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)

@@ -51,6 +51,7 @@ async def send_push_promise(a, b) -> None:
 
 
 invoice_listeners: List[asyncio.Queue] = []
+payment_listeners: List[asyncio.Queue] = []
 
 
 def register_invoice_listener(send_chan: asyncio.Queue):
@@ -59,6 +60,14 @@ def register_invoice_listener(send_chan: asyncio.Queue):
     new invoice payments incoming.
     """
     invoice_listeners.append(send_chan)
+
+
+def register_payment_listener(send_chan: asyncio.Queue):
+    """
+    A method intended for extensions to call when they want to be notified about
+    new outgoing payments.
+    """
+    payment_listeners.append(send_chan)
 
 
 async def webhook_handler():
@@ -74,13 +83,19 @@ internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 async def internal_invoice_listener():
     while True:
         checking_id = await internal_invoice_queue.get()
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        asyncio.create_task(payment_callback_dispatcher(checking_id))
 
 
-async def invoice_listener():
+async def incoming_payment_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        logger.info("> got a payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        logger.info("> got incoming payment notification", checking_id)
+        asyncio.create_task(payment_callback_dispatcher(checking_id))
+
+
+async def outgoing_payment_listener():
+    async for checking_id in WALLET.sent_payments_stream():
+        logger.info("> got outgoing payment notification", checking_id)
+        asyncio.create_task(payment_callback_dispatcher(checking_id))
 
 
 async def check_pending_payments():
@@ -132,10 +147,17 @@ async def perform_balance_checks():
         await asyncio.sleep(60 * 60 * 6)  # every 6 hours
 
 
-async def invoice_callback_dispatcher(checking_id: str):
-    payment = await get_standalone_payment(checking_id, incoming=True)
+async def payment_callback_dispatcher(checking_id: str):
+    payment = await get_standalone_payment(checking_id)
     if payment and payment.is_in:
         logger.trace("sending invoice callback for payment", checking_id)
         await payment.set_pending(False)
         for send_chan in invoice_listeners:
             await send_chan.put(payment)
+    elif payment and payment.is_out:
+        logger.trace("sending invoice callback for payment", checking_id)
+        await payment.set_pending(False)
+        for send_chan in payment_listeners:
+            await send_chan.put(payment)
+    else:
+        pass

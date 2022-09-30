@@ -33,7 +33,8 @@ from .tasks import (
     catch_everything_and_restart,
     check_pending_payments,
     internal_invoice_listener,
-    invoice_listener,
+    incoming_payment_listener,
+    outgoing_payment_listener,
     run_deferred_async,
     webhook_handler,
 )
@@ -182,7 +183,8 @@ def register_async_tasks(app):
     async def listeners():
         loop = asyncio.get_event_loop()
         loop.create_task(catch_everything_and_restart(check_pending_payments))
-        loop.create_task(catch_everything_and_restart(invoice_listener))
+        loop.create_task(catch_everything_and_restart(incoming_payment_listener))
+        loop.create_task(catch_everything_and_restart(outgoing_payment_listener))
         loop.create_task(catch_everything_and_restart(internal_invoice_listener))
         await register_task_listeners()
         await run_deferred_async()

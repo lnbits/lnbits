@@ -231,3 +231,6 @@ class SparkWallet(Wallet):
 
             logger.error("lost connection to spark /stream, retrying in 5 seconds")
             await asyncio.sleep(5)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

@@ -218,3 +218,6 @@ class LndRestWallet(Wallet):
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

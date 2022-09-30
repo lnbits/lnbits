@@ -156,3 +156,6 @@ class LNPayWallet(Wallet):
                 await self.queue.put(lntx_id)
 
         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

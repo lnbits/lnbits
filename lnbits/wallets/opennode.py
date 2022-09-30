@@ -154,3 +154,6 @@ class OpenNodeWallet(Wallet):
 
         await self.queue.put(charge_id)
         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

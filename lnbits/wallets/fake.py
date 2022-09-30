@@ -105,3 +105,6 @@ class FakeWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

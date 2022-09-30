@@ -166,3 +166,6 @@ class ClicheWallet(Wallet):
                 )
                 await asyncio.sleep(5)
                 continue
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

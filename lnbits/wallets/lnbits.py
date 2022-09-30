@@ -167,3 +167,6 @@ class LNbitsWallet(Wallet):
                 "lost connection to lnbits /payments/sse, retrying in 5 seconds"
             )
             await asyncio.sleep(5)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

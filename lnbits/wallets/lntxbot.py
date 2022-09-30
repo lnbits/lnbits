@@ -155,3 +155,6 @@ class LntxbotWallet(Wallet):
                 "lost connection to lntxbot /payments/stream, retrying in 5 seconds"
             )
             await asyncio.sleep(5)
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

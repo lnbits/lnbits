@@ -83,6 +83,10 @@ class Wallet(ABC):
     def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         pass
 
+    @abstractmethod
+    def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        pass
+
 
 class Unsupported(Exception):
     pass

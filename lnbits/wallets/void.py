@@ -39,3 +39,6 @@ class VoidWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         yield ""
+
+    async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
+        yield ""
