@@ -1,6 +1,7 @@
 import math
 from http import HTTPStatus
 import json
+import textwrap
 import httpx
 import random
 import os
@@ -267,8 +268,30 @@ async def get_exchange_rate(gerty):
 
 # A helper function get a nicely formated dict for the text
 def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
+    # Get line size by font size
+    line_width = 60
+    if font_size <= 12:
+        line_width = 80
+    elif font_size <= 15:
+        line_width = 60
+    elif font_size <= 20:
+        line_width = 40
+    elif font_size <= 40:
+        line_width = 30
+    else:
+        line_width = 20
+
+    #  wrap the text
+    wrapper = textwrap.TextWrapper(width=line_width)
+    word_list = wrapper.wrap(text=text)
+
+    multilineText = '\n'.join(word_list)
+
+    # logger.debug('multilineText')
+    # logger.debug(multilineText)
+
     text = {
-        "value": text,
+        "value": multilineText,
         "size": font_size
     }
     if x_pos is None and y_pos is None:
