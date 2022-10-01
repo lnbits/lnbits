@@ -271,9 +271,9 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     # Get line size by font size
     line_width = 60
     if font_size <= 12:
-        line_width = 80
+        line_width = 75
     elif font_size <= 15:
-        line_width = 60
+        line_width = 58
     elif font_size <= 20:
         line_width = 40
     elif font_size <= 40:
