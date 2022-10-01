@@ -228,7 +228,6 @@ class EclairWallet(Wallet):
                 )
                 await asyncio.sleep(5)
 
-
     async def sent_payments_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
