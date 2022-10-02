@@ -91,7 +91,7 @@ async def api_gerty_delete(
 async def api_gerty_satoshi():
     with open(os.path.join(LNBITS_PATH, 'extensions/gerty/static/satoshi.json')) as fd:
         satoshiQuotes = json.load(fd)
-    return satoshiQuotes[random.randint(0, 100)]
+    return satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
 
 
 @gerty_ext.get("/api/v1/gerty/pieterwielliequote", status_code=HTTPStatus.OK)
