@@ -89,10 +89,16 @@ async def api_gerty_delete(
 
 @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
 async def api_gerty_satoshi():
+    maxQuoteLength = 353;
     with open(os.path.join(LNBITS_PATH, 'extensions/gerty/static/satoshi.json')) as fd:
         satoshiQuotes = json.load(fd)
-    return satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
-
+    quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
+    # logger.debug(quote.text)
+    if len(quote["text"]) > maxQuoteLength:
+        logger.debug("Quote is too long, getting another")
+        return await api_gerty_satoshi()
+    else:
+        return quote
 
 @gerty_ext.get("/api/v1/gerty/pieterwielliequote", status_code=HTTPStatus.OK)
 async def api_gerty_wuille():
@@ -284,9 +290,10 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
     word_list = wrapper.wrap(text=text)
+    logger.debug("number of chars = {0}".format(len(text)))
 
     multilineText = '\n'.join(word_list)
-    logger.debug("number of lines = {0}".format(len(word_list)))
+    # logger.debug("number of lines = {0}".format(len(word_list)))
 
     # logger.debug('multilineText')
     # logger.debug(multilineText)
