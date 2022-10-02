@@ -242,7 +242,7 @@ async def get_satoshi_quotes():
     quote = await api_gerty_satoshi()
     if quote:
         if quote['text']:
-            text.append(get_text_item_dict(quote['text'], 12))
+            text.append(get_text_item_dict(quote['text'], 15))
         if quote['date']:
             text.append(get_text_item_dict("Satoshi Nakamoto - {0}".format(quote['date']), 15))
     return text
