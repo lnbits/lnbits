@@ -258,8 +258,8 @@ async def get_exchange_rate(gerty):
         try:
             amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
             if amount:
-                price = ('{0} {1}').format(format_number(amount), gerty.exchange)
-                text.append(get_text_item_dict("Current BTC price", 15))
+                price = format_number(amount)
+                text.append(get_text_item_dict("Current {0}/BTC price".format(gerty.exchange), 15))
                 text.append(get_text_item_dict(price, 80))
         except:
             pass
@@ -360,7 +360,7 @@ def format_number(number):
 def get_time_remaining(seconds, granularity=2):
 
     intervals = (
-        ('weeks', 604800),  # 60 * 60 * 24 * 7
+        # ('weeks', 604800),  # 60 * 60 * 24 * 7
         ('days', 86400),  # 60 * 60 * 24
         ('hours', 3600),  # 60 * 60
         ('minutes', 60),
