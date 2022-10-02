@@ -89,7 +89,7 @@ async def api_gerty_delete(
 
 @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
 async def api_gerty_satoshi():
-    maxQuoteLength = 353;
+    maxQuoteLength = 186;
     with open(os.path.join(LNBITS_PATH, 'extensions/gerty/static/satoshi.json')) as fd:
         satoshiQuotes = json.load(fd)
     quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
@@ -293,7 +293,7 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     logger.debug("number of chars = {0}".format(len(text)))
 
     multilineText = '\n'.join(word_list)
-    # logger.debug("number of lines = {0}".format(len(word_list)))
+    logger.debug("number of lines = {0}".format(len(word_list)))
 
     # logger.debug('multilineText')
     # logger.debug(multilineText)
