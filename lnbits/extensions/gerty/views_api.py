@@ -286,6 +286,7 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     word_list = wrapper.wrap(text=text)
 
     multilineText = '\n'.join(word_list)
+    logger.debug("number of lines = {0}".format(len(word_list)))
 
     # logger.debug('multilineText')
     # logger.debug(multilineText)
