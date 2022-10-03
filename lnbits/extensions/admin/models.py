@@ -29,36 +29,36 @@ class UpdateAdminSettings(BaseModel):
     ad_space: str = Query(None)
 
 
-class Admin(BaseModel):
-    # users
-    user: str
-    admin_users: Optional[str]
-    allowed_users: Optional[str]
-    admin_ext: Optional[str]
-    disabled_ext: Optional[str]
-    funding_source: Optional[str]
-    # ops
-    data_folder: Optional[str]
-    database_url: Optional[str]
-    force_https: bool = Field(default=True)
-    reserve_fee_min: Optional[int]
-    reserve_fee_pct: Optional[float]
-    service_fee: float = Optional[float]
-    hide_api: bool = Field(default=False)
-    # Change theme
-    site_title: Optional[str]
-    site_tagline: Optional[str]
-    site_description: Optional[str]
-    default_wallet_name: Optional[str]
-    denomination: str = Field(default="sats")
-    theme: Optional[str]
-    custom_logo: Optional[str]
-    ad_space: Optional[str]
+# class Admin(BaseModel):
+#     # users
+#     user: str
+#     admin_users: Optional[str]
+#     allowed_users: Optional[str]
+#     admin_ext: Optional[str]
+#     disabled_ext: Optional[str]
+#     funding_source: Optional[str]
+#     # ops
+#     data_folder: Optional[str]
+#     database_url: Optional[str]
+#     force_https: bool = Field(default=True)
+#     reserve_fee_min: Optional[int]
+#     reserve_fee_pct: Optional[float]
+#     service_fee: float = Optional[float]
+#     hide_api: bool = Field(default=False)
+#     # Change theme
+#     site_title: Optional[str]
+#     site_tagline: Optional[str]
+#     site_description: Optional[str]
+#     default_wallet_name: Optional[str]
+#     denomination: str = Field(default="sats")
+#     theme: Optional[str]
+#     custom_logo: Optional[str]
+#     ad_space: Optional[str]
 
-    @classmethod
-    def from_row(cls, row: Row) -> "Admin":
-        data = dict(row)
-        return cls(**data)
+#     @classmethod
+#     def from_row(cls, row: Row) -> "Admin":
+#         data = dict(row)
+#         return cls(**data)
 
 
 class Funding(BaseModel):

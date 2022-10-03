@@ -2,10 +2,11 @@ from typing import List
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
+from lnbits.settings import Settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
-from .models import Admin, Funding
+from .models import Funding
 
 
 async def update_wallet_balance(wallet_id: str, amount: int) -> str:
@@ -23,26 +24,26 @@ async def update_wallet_balance(wallet_id: str, amount: int) -> str:
     )
     # manually send this for now
     await internal_invoice_queue.put(internal_id)
-    return payment
 
 
-async def update_admin(user: str, **kwargs) -> Admin:
+async def update_settings(user: str, **kwargs) -> Settings:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     # print("UPDATE", q)
     await db.execute(
-        f'UPDATE admin.admin SET {q} WHERE "user" = ?', (*kwargs.values(), user)
+        f'UPDATE admin.settings SET {q} WHERE "user" = ?', (*kwargs.values(), user)
     )
-    row = await db.fetchone('SELECT * FROM admin.admin WHERE "user" = ?', (user,))
+    row = await db.fetchone('SELECT * FROM admin.settings WHERE "user" = ?', (user,))
     assert row, "Newly updated settings couldn't be retrieved"
-    return Admin(**row) if row else None
-
-
-async def get_admin() -> Admin:
-    row = await db.fetchone("SELECT * FROM admin.admin")
-    return Admin(**row) if row else None
+    return Settings(**row) if row else None
 
 
 async def update_funding(data: Funding) -> Funding:
+    await db.execute(
+        """
+        UPDATE admin.settings SET funding_source = ? WHERE user = ?
+        """,
+        (data.backend_wallet, data.user),
+    )
     await db.execute(
         """
         UPDATE admin.funding
@@ -69,5 +70,4 @@ async def update_funding(data: Funding) -> Funding:
 
 async def get_funding() -> List[Funding]:
     rows = await db.fetchall("SELECT * FROM admin.funding")
-
     return [Funding(**row) for row in rows]

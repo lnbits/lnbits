@@ -1,0 +1,96 @@
+<q-tab-panel name="users">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none">User Management</h6>
+    <br />
+    <p class="q-my-none">
+      Super Admin: {% raw %}{{this.data.settings.lnbits_admin_users[0]}}{%
+      endraw %}
+    </p>
+    <br />
+    <div>
+      <p>Admin Users</p>
+      <q-input
+        filled
+        v-model="data.admin_users_add"
+        @keydown.enter="addAdminUser"
+        type="text"
+        label="User ID"
+        hint="Users with admin privileges"
+      >
+        <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+      </q-input>
+      <div>
+        {% raw %}
+        <q-chip
+          v-for="user in data.settings.lnbits_admin_users.slice(1)"
+          :key="user"
+          removable
+          @remove="removeAdminUser(user)"
+          color="primary"
+          text-color="white"
+        >
+          {{ user }}
+        </q-chip>
+        {% endraw %}
+      </div>
+      <br />
+    </div>
+    <div>
+      <p>Allowed Users</p>
+      <q-input
+        filled
+        v-model="data.allowed_users_add"
+        @keydown.enter="addAllowedUser"
+        type="text"
+        label="User ID"
+        hint="Only these users can use LNbits"
+      >
+        <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+      </q-input>
+      <div>
+        {% raw %}
+        <q-chip
+          v-for="user in data.settings.lnbits_allowed_users"
+          :key="user"
+          removable
+          @remove="removeAllowedUser(user)"
+          color="primary"
+          text-color="white"
+        >
+          {{ user }}
+        </q-chip>
+        {% endraw %}
+      </div>
+      <br />
+    </div>
+    <div class="row q-col-gutter-md">
+      <div class="col-12 col-md-6">
+        <p>Admin Extensions</p>
+        <q-select
+          filled
+          v-model="data.settings.admin_extensions"
+          multiple
+          hint="Extensions only user with admin privileges can use"
+          :options="options"
+          label="Admin extensions"
+        ></q-select>
+        <br />
+      </div>
+      <div class="col-12 col-md-6">
+        <p>Disabled Extensions</p>
+        <q-select
+          filled
+          v-model="data.settings.lnbits_disabled_extensions"
+          multiple
+          hint="Disable extensions *amilk disabled by default as resource heavy"
+          :options="options"
+          label="Disable extensions"
+        ></q-select>
+        <br />
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn unelevated color="primary" type="submit">Save</q-btn>
+    </div>
+  </q-card-section>
+</q-tab-panel>
