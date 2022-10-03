@@ -25,7 +25,6 @@ from .helpers import (
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
-    removeEmptyString,
     template_renderer,
     url_for_vendored,
 )

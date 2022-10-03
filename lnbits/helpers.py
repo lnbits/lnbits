@@ -153,10 +153,6 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def removeEmptyString(arr):
-    return list(filter(None, arr))
-
-
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
 
     t = Jinja2Templates(
