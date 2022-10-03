@@ -16,14 +16,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.requestvars import g
-from lnbits.settings import (
-    LNBITS_ADMIN_UI,
-    LNBITS_ADMIN_USERS,
-    LNBITS_ALLOWED_USERS,
-    LNBITS_CUSTOM_LOGO,
-    LNBITS_SITE_TITLE,
-    SERVICE_FEE,
-)
+from lnbits.settings import settings
 
 from ...helpers import get_valid_extensions
 from ..crud import (
@@ -119,14 +112,6 @@ async def wallet(
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
     wallet_name = nme
-    service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
-
-    if LNBITS_ADMIN_UI:
-        LNBITS_ADMIN_USERS = g().admin_conf.admin_users
-        LNBITS_ALLOWED_USERS = g().admin_conf.allowed_users
-    else:
-        LNBITS_ADMIN_USERS = []
-        LNBITS_ALLOWED_USERS = []
 
     if not user_id:
         user = await get_user((await create_account()).id)
@@ -137,11 +122,14 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User does not exist."}
             )
-        if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
+        if (
+            len(settings.lnbits_allowed_users) > 0
+            and user_id not in settings.lnbits_allowed_users
+        ):
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
-        if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
+        if user_id in settings.lnbits_admin_users:
             user.admin = True
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore
@@ -172,7 +160,7 @@ async def wallet(
             "request": request,
             "user": user.dict(),  # type: ignore
             "wallet": userwallet.dict(),
-            "service_fee": service_fee,
+            "service_fee": settings.lnbits_service_fee,
             "web_manifest": f"/manifest/{user.id}.webmanifest",  # type: ignore
         },
     )
@@ -194,7 +182,7 @@ async def lnurl_full_withdraw(request: Request):
         "k1": "0",
         "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
         "maxWithdrawable": wallet.withdrawable_balance,
-        "defaultDescription": f"{LNBITS_SITE_TITLE} balance withdraw from {wallet.id[0:5]}",
+        "defaultDescription": f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}",
         "balanceCheck": url_for("/withdraw", external=True, usr=user.id, wal=wallet.id),
     }
 
@@ -293,12 +281,12 @@ async def manifest(usr: str):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     return {
-        "short_name": LNBITS_SITE_TITLE,
-        "name": LNBITS_SITE_TITLE + " Wallet",
+        "short_name": settings.lnbits_site_title,
+        "name": settings.lnbits_site_title + " Wallet",
         "icons": [
             {
-                "src": LNBITS_CUSTOM_LOGO
-                if LNBITS_CUSTOM_LOGO
+                "src": settings.lnbits_custom_logo
+                if settings.lnbits_custom_logo
                 else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",

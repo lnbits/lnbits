@@ -6,9 +6,9 @@ from typing import Any, List, NamedTuple, Optional
 import jinja2
 import shortuuid  # type: ignore
 
-import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
+from lnbits.settings import settings
 
 
 class Extension(NamedTuple):
@@ -24,15 +24,10 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self):
-        if settings.LNBITS_ADMIN_UI:
-            settings.LNBITS_DISABLED_EXTENSIONS = g().admin_conf.disabled_ext
-            settings.LNBITS_ADMIN_EXTENSIONS = g().admin_conf.admin_ext
-        self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
-        self._admin_only: List[str] = [
-            x.strip(" ") for x in settings.LNBITS_ADMIN_EXTENSIONS
-        ]
+        self._disabled: List[str] = settings.lnbits_disabled_extensions
+        self._admin_only: List[str] = settings.lnbits_admin_extensions
         self._extension_folders: List[str] = [
-            x[1] for x in os.walk(os.path.join(settings.LNBITS_PATH, "extensions"))
+            x[1] for x in os.walk(os.path.join(settings.lnbits_path, "extensions"))
         ][0]
 
     @property
@@ -48,7 +43,7 @@ class ExtensionManager:
             try:
                 with open(
                     os.path.join(
-                        settings.LNBITS_PATH, "extensions", extension, "config.json"
+                        settings.lnbits_path, "extensions", extension, "config.json"
                     )
                 ) as json_file:
                     config = json.load(json_file)
@@ -120,7 +115,7 @@ def get_css_vendored(prefer_minified: bool = False) -> List[str]:
 def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
     paths: List[str] = []
     for path in glob.glob(
-        os.path.join(settings.LNBITS_PATH, "static/vendor/**"), recursive=True
+        os.path.join(settings.lnbits_path, "static/vendor/**"), recursive=True
     ):
         if path.endswith(".min" + ext):
             # path is minified
@@ -146,7 +141,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 
 
 def url_for_vendored(abspath: str) -> str:
-    return "/" + os.path.relpath(abspath, settings.LNBITS_PATH)
+    return "/" + os.path.relpath(abspath, settings.lnbits_path)
 
 
 def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
@@ -163,16 +158,6 @@ def removeEmptyString(arr):
 
 
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
-    if settings.LNBITS_ADMIN_UI:
-        _ = g().admin_conf
-        settings.LNBITS_AD_SPACE = _.ad_space
-        settings.LNBITS_HIDE_API = _.hide_api
-        settings.LNBITS_SITE_TITLE = _.site_title
-        settings.LNBITS_DENOMINATION = _.denomination
-        settings.LNBITS_SITE_TAGLINE = _.site_tagline
-        settings.LNBITS_SITE_DESCRIPTION = _.site_description
-        settings.LNBITS_THEME_OPTIONS = _.theme
-        settings.LNBITS_CUSTOM_LOGO = _.custom_logo
 
     t = Jinja2Templates(
         loader=jinja2.FileSystemLoader(
@@ -180,20 +165,21 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         )
     )
 
-    if settings.LNBITS_AD_SPACE:
-        t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
-    t.env.globals["HIDE_API"] = settings.LNBITS_HIDE_API
-    t.env.globals["SITE_TITLE"] = settings.LNBITS_SITE_TITLE
-    t.env.globals["LNBITS_DENOMINATION"] = settings.LNBITS_DENOMINATION
-    t.env.globals["SITE_TAGLINE"] = settings.LNBITS_SITE_TAGLINE
-    t.env.globals["SITE_DESCRIPTION"] = settings.LNBITS_SITE_DESCRIPTION
-    t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
-    t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
-    t.env.globals["EXTENSIONS"] = get_valid_extensions()
-    if settings.LNBITS_CUSTOM_LOGO:
-        t.env.globals["USE_CUSTOM_LOGO"] = settings.LNBITS_CUSTOM_LOGO
+    if settings.lnbits_ad_space:
+        t.env.globals["AD_SPACE"] = settings.lnbits_ad_space
 
-    if settings.DEBUG:
+    t.env.globals["HIDE_API"] = settings.lnbits_hide_api
+    t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
+    t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
+    t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
+    t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
+    t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
+    t.env.globals["LNBITS_VERSION"] = settings.lnbits_commit
+    t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    if settings.lnbits_custom_logo:
+        t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
+
+    if settings.debug:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
         t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
     else:

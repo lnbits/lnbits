@@ -8,7 +8,7 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
+from lnbits.settings import settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -63,8 +63,8 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
-        if LNBITS_ADMIN_USERS
+        admin=user["id"] in settings.lnbits_admin_users
+        if settings.lnbits_admin_users
         else False,
     )
 
@@ -99,7 +99,7 @@ async def create_wallet(
         """,
         (
             wallet_id,
-            wallet_name or DEFAULT_WALLET_NAME,
+            wallet_name or settings.lnbits_default_wallet_name,
             user_id,
             uuid4().hex,
             uuid4().hex,

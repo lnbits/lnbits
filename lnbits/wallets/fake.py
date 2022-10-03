@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import random
 from datetime import datetime
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
-from environs import Env  # type: ignore
 from loguru import logger
+
+from lnbits.settings import settings
 
 from ..bolt11 import Invoice, decode, encode
 from .base import (
@@ -16,9 +16,6 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-
-env = Env()
-env.read_env()
 
 
 class FakeWallet(Wallet):
@@ -47,7 +44,7 @@ class FakeWallet(Wallet):
     ) -> InvoiceResponse:
         # we set a default secret since FakeWallet is used for internal=True invoices
         # and the user might not have configured a secret yet
-
+        secret = settings.fake_wallet_secret
         data: Dict = {
             "out": False,
             "amount": amount,
