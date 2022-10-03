@@ -12,7 +12,7 @@ import time
 import click
 import uvicorn
 
-from lnbits.settings import settings
+from lnbits.settings import settings, set_cli_settings
 
 
 @click.command(
@@ -29,6 +29,9 @@ from lnbits.settings import settings
 @click.pass_context
 def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload: bool):
     """Launched with `poetry run lnbits` at root level"""
+
+    set_cli_settings(host=host, port=port)
+
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server
     d = dict()
     for a in ctx.args:
@@ -44,17 +47,16 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload:
             d[a.strip("--")] = True  # argument like --key
 
     while True:
-        # loop = asyncio.new_event_loop()
         config = uvicorn.Config(
             "lnbits.__main__:app",
             port=port,
             host=host,
             reload=reload,
-            # loop=loop,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             **d
         )
+
         server = uvicorn.Server(config=config)
         process = mp.Process(target=server.run)
         process.start()
