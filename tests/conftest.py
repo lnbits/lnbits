@@ -28,7 +28,7 @@ def app(event_loop):
     # use redefined version of the event loop for scope="session"
     # loop = asyncio.get_event_loop()
     loop = event_loop
-    loop.run_until_complete(migrate_databases())
+    #loop.run_until_complete(migrate_databases())
     yield app
     # # get the current event loop and gracefully stop any running tasks
     # loop = event_loop

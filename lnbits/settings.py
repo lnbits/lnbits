@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
     )
     lnbits_custom_logo: str = Field(default=None)
-    lnbits_ad_space: List[str]
+    lnbits_ad_space: List[str] = Field(default=[])
 
     # ops
     lnbits_data_folder: str = Field(default="./data")
