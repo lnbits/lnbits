@@ -4,6 +4,7 @@ import sqlite3
 from typing import List
 
 import psycopg2
+
 from lnbits.settings import settings
 
 # Python script to migrate an LNbits SQLite DB to Postgres

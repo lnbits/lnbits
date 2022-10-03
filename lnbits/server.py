@@ -12,7 +12,7 @@ import time
 import click
 import uvicorn
 
-from lnbits.settings import settings, set_cli_settings
+from lnbits.settings import set_cli_settings, settings
 
 
 @click.command(

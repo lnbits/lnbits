@@ -151,9 +151,11 @@ if not settings.lnbits_admin_ui:
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
+
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
+
 
 async def check_admin_settings():
     if settings.lnbits_admin_ui:
