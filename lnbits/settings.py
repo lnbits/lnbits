@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     lnbits_admin_ui: bool = Field(default=False)
 
     # .env
-    debug: Optional[bool]
-    host: Optional[str]
-    port: Optional[int]
+    debug: bool = Field(default=False)
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=5000)
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
 
@@ -132,14 +132,18 @@ class Settings(BaseSettings):
 settings = Settings()
 
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
-settings.lnbits_commit = (
-    subprocess.check_output(
-        ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
-        stderr=subprocess.DEVNULL,
+
+try:
+    settings.lnbits_commit = (
+        subprocess.check_output(
+            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        )
+        .strip()
+        .decode("ascii")
     )
-    .strip()
-    .decode("ascii")
-)
+except:
+    settings.lnbits_commit = "docker"
 
 
 if not settings.lnbits_admin_ui:
@@ -147,6 +151,9 @@ if not settings.lnbits_admin_ui:
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
+def set_cli_settings(**kwargs):
+    for key, value in kwargs.items():
+        setattr(settings, key, value)
 
 async def check_admin_settings():
     if settings.lnbits_admin_ui:
@@ -196,16 +203,18 @@ async def check_admin_settings():
 
                 admin = Settings(**row)
 
-                logger.debug(f"Admin settings:")
                 for key, value in admin.dict(exclude_none=True).items():
                     if not key in read_only_variables:
                         try:
                             setattr(settings, key, value)
-                            logger.debug(f"{key}: {value}")
                         except:
                             logger.error(
                                 f"error overriding setting: {key}, value: {value}"
                             )
+
+                logger.debug(f"Admin settings:")
+                for key, value in settings.dict(exclude_none=True).items():
+                    logger.debug(f"{key}: {value}")
 
                 http = "https" if settings.lnbits_force_https else "http"
                 user = settings.lnbits_admin_users[0]
