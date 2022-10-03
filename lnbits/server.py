@@ -1,9 +1,16 @@
+import asyncio
+import uvloop
+uvloop.install()
+
+import contextlib
+import multiprocessing as mp
+import sys
 import time
 
 import click
 import uvicorn
 
-from lnbits.settings import HOST, PORT
+from lnbits.settings import settings
 
 
 @click.command(
@@ -12,12 +19,13 @@ from lnbits.settings import HOST, PORT
         allow_extra_args=True,
     )
 )
-@click.option("--port", default=PORT, help="Port to listen on")
-@click.option("--host", default=HOST, help="Host to run LNBits on")
+@click.option("--port", default=settings.port, help="Port to listen on")
+@click.option("--host", default=settings.host, help="Host to run LNBits on")
+@click.option("--reload", is_flag=True, help="Reload LNBits on changes in code")
 @click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
 @click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
 @click.pass_context
-def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str):
+def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload: bool):
     """Launched with `poetry run lnbits` at root level"""
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server
     d = dict()
@@ -33,17 +41,31 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str):
         else:
             d[a.strip("--")] = True  # argument like --key
 
-    config = uvicorn.Config(
-        "lnbits.__main__:app",
-        port=port,
-        host=host,
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile,
-        **d
-    )
-    server = uvicorn.Server(config)
-    server.run()
+    while True:
+        # loop = asyncio.new_event_loop()
+        config = uvicorn.Config(
+            "lnbits.__main__:app",
+            port=port,
+            host=host,
+            reload=reload,
+            # loop=loop,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile,
+            **d
+        )
+        server = uvicorn.Server(config=config)
+        process = mp.Process(target=server.run)
+        process.start()
+        server_restart.wait()
+        server_restart.clear()
+        server.should_exit = True
+        server.force_exit = True
+        process.terminate()
+        process.join()
+        time.sleep(3)
 
+
+server_restart = mp.Event()
 
 if __name__ == "__main__":
     main()

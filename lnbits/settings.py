@@ -1,88 +1,220 @@
 import importlib
+import json
 import subprocess
 from os import path
-from typing import List
+from sqlite3 import Row
+from typing import List, Optional
 
-from environs import Env
+from loguru import logger
+from pydantic import BaseSettings, Field, validator
 
-env = Env()
-env.read_env()
+
+def list_parse_fallback(v):
+    try:
+        return json.loads(v)
+    except Exception as e:
+        replaced = v.replace(" ", "")
+        if replaced:
+            return replaced.split(",")
+        else:
+            return []
+
+
+read_only_variables = ["host", "port", "lnbits_commit"]
+
+
+class Settings(BaseSettings):
+
+    lnbits_admin_ui: bool = Field(default=False)
+
+    # .env
+    debug: Optional[bool]
+    host: Optional[str]
+    port: Optional[int]
+    lnbits_path: Optional[str] = path.dirname(path.realpath(__file__))
+    lnbits_commit: str = Field(default="unknown")
+
+    # users
+    lnbits_admin_users: List[str] = Field(default=[])
+    lnbits_allowed_users: List[str] = Field(default=[])
+    lnbits_admin_extensions: List[str] = Field(default=[])
+    lnbits_disabled_extensions: List[str] = Field(default=[])
+
+    # Change theme
+    lnbits_site_title: str = Field(default="LNbits")
+    lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
+    lnbits_site_description: str = Field(default=None)
+    lnbits_default_wallet_name: str = Field(default="LNbits wallet")
+    lnbits_theme_options: List[str] = Field(
+        default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
+    )
+    lnbits_custom_logo: str = Field(default=None)
+    lnbits_ad_space: List[str]
+
+    # ops
+    lnbits_data_folder: str = Field(default="./data")
+    lnbits_database_url: str = Field(default=None)
+    lnbits_force_https: bool = Field(default=True)
+    lnbits_reserve_fee_min: int = Field(default=4000)
+    lnbits_reserve_fee_percent: float = Field(default=1.0)
+    lnbits_service_fee: float = Field(default=0)
+    lnbits_hide_api: bool = Field(default=False)
+    lnbits_denomination: str = Field(default="sats")
+
+    # funding sources
+    lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+    lnbits_allowed_funding_sources: List[str] = Field(
+        default=[
+            "CLightningWallet",
+            "LndRestWallet",
+            "LndWallet",
+            "LntxbotWallet",
+            "LNPayWallet",
+            "LnbitsWallet",
+            "OpenNodeWallet",
+        ]
+    )
+    fake_wallet_secret: str = Field(default="ToTheMoon1")
+    lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
+    lnbits_key: Optional[str] = Field(default=None)
+    cliche_endpoint: Optional[str] = Field(default=None)
+    corelightning_rpc: Optional[str] = Field(default=None)
+    eclair_url: Optional[str] = Field(default=None)
+    eclair_pass: Optional[str] = Field(default=None)
+    lnd_rest_endpoint: Optional[str] = Field(default=None)
+    lnd_rest_cert: Optional[str] = Field(default=None)
+    lnd_rest_macaroon: Optional[str] = Field(default=None)
+    lnpay_api_endpoint: Optional[str] = Field(default=None)
+    lnpay_api_key: Optional[str] = Field(default=None)
+    lnpay_wallet_key: Optional[str] = Field(default=None)
+    lntxbot_api_endpoint: Optional[str] = Field(default=None)
+    lntxbot_key: Optional[str] = Field(default=None)
+    opennode_api_endpoint: Optional[str] = Field(default=None)
+    opennode_key: Optional[str] = Field(default=None)
+    spark_url: Optional[str] = Field(default=None)
+    spark_token: Optional[str] = Field(default=None)
+
+    # boltz
+    boltz_network: str = Field(default="main")
+    boltz_url: str = Field(default="https://boltz.exchange/api")
+    boltz_mempool_space_url: str = Field(default="https://mempool.space")
+    boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
+
+    @validator(
+        "lnbits_admin_users",
+        "lnbits_allowed_users",
+        "lnbits_theme_options",
+        "lnbits_ad_space",
+        "lnbits_admin_extensions",
+        "lnbits_disabled_extensions",
+        "lnbits_allowed_funding_sources",
+        pre=True,
+    )
+    def validate(cls, val):
+        if type(val) == str:
+            val = val.split(",") if val else []
+        return val
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Settings":
+        data = dict(row)
+        return cls(**data)
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
+
+
+settings = Settings()
+
+settings.lnbits_commit = (
+    subprocess.check_output(
+        ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
+        stderr=subprocess.DEVNULL,
+    )
+    .strip()
+    .decode("ascii")
+)
+
+
+if not settings.lnbits_admin_ui:
+    logger.debug(f"Enviroment Settings:")
+    for key, value in settings.dict(exclude_none=True).items():
+        logger.debug(f"{key}: {value}")
+
+
+async def check_admin_settings():
+    if settings.lnbits_admin_ui:
+        try:
+            ext_db = importlib.import_module(f"lnbits.extensions.admin").db
+        except:
+            logger.error("could not import module lnbits.extensions.admin database")
+            raise
+
+        async with ext_db.connect() as db:
+            try:
+                row = await db.fetchone("SELECT * FROM admin.settings")
+                if not row or len(row) == 0:
+                    logger.warning(
+                        "admin.settings empty. inserting new settings and creating admin account"
+                    )
+
+                    from lnbits.core.crud import create_account
+
+                    account = await create_account()
+                    settings.lnbits_admin_users.insert(0, account.id)
+                    keys = []
+                    values = ""
+                    for key, value in settings.dict(exclude_none=True).items():
+                        keys.append(key)
+                        if type(value) == list:
+                            joined = ",".join(value)
+                            values += f"'{joined}'"
+                        if type(value) == int or type(value) == float:
+                            values += str(value)
+                        if type(value) == bool:
+                            values += "true" if value else "false"
+                        if type(value) == str:
+                            value = value.replace("'", "")
+                            values += f"'{value}'"
+                        values += ","
+                    q = ", ".join(keys)
+                    v = values.rstrip(",")
+                    sql = f"INSERT INTO admin.settings ({q}) VALUES ({v})"
+                    await db.execute(sql)
+                    logger.warning(
+                        "initialized admin.settings from enviroment variables."
+                    )
+
+                    row = await db.fetchone("SELECT * FROM admin.settings")
+                    assert row, "Newly updated settings couldn't be retrieved"
+
+                admin = Settings(**row)
+
+                logger.debug(f"Admin settings:")
+                for key, value in admin.dict(exclude_none=True).items():
+                    if not key in read_only_variables:
+                        try:
+                            setattr(settings, key, value)
+                            logger.debug(f"{key}: {value}")
+                        except:
+                            logger.error(
+                                f"error overriding setting: {key}, value: {value}"
+                            )
+
+                http = "https" if settings.lnbits_force_https else "http"
+                user = settings.lnbits_admin_users[0]
+                logger.warning(
+                    f" ✔️ Access admin user account at: {http}://{settings.host}:{settings.port}/wallet?usr={user}"
+                )
+            except:
+                logger.warning("admin.settings tables does not exist.")
+                raise
+
 
 wallets_module = importlib.import_module("lnbits.wallets")
-wallet_class = getattr(
-    wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet")
-)
-
-DEBUG = env.bool("DEBUG", default=False)
-
-HOST = env.str("HOST", default="127.0.0.1")
-PORT = env.int("PORT", default=5000)
-
-LNBITS_PATH = path.dirname(path.realpath(__file__))
-LNBITS_DATA_FOLDER = env.str(
-    "LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data")
-)
-LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
-
-LNBITS_ALLOWED_USERS: List[str] = [
-    x.strip(" ") for x in env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)
-]
-LNBITS_ADMIN_UI = env.bool("LNBITS_ADMIN_UI", default=False)
-LNBITS_ADMIN_USERS: List[str] = [
-    x.strip(" ") for x in env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
-]
-LNBITS_ADMIN_EXTENSIONS: List[str] = [
-    x.strip(" ") for x in env.list("LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str)
-]
-LNBITS_DISABLED_EXTENSIONS: List[str] = [
-    x.strip(" ")
-    for x in env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
-]
-
-LNBITS_AD_SPACE = [x.strip(" ") for x in env.list("LNBITS_AD_SPACE", default=[])]
-LNBITS_HIDE_API = env.bool("LNBITS_HIDE_API", default=False)
-LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
-LNBITS_DENOMINATION = env.str("LNBITS_DENOMINATION", default="sats")
-LNBITS_SITE_TAGLINE = env.str(
-    "LNBITS_SITE_TAGLINE", default="free and open-source lightning wallet"
-)
-LNBITS_SITE_DESCRIPTION = env.str("LNBITS_SITE_DESCRIPTION", default="")
-LNBITS_THEME_OPTIONS: List[str] = [
-    x.strip(" ")
-    for x in env.list(
-        "LNBITS_THEME_OPTIONS",
-        default="classic, flamingo, mint, salvador, monochrome, autumn",
-        subcast=str,
-    )
-]
-LNBITS_CUSTOM_LOGO = env.str("LNBITS_CUSTOM_LOGO", default="")
-
+wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
 WALLET = wallet_class()
 FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
-DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
-PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
-
-RESERVE_FEE_MIN = env.int("LNBITS_RESERVE_FEE_MIN", default=2000)
-RESERVE_FEE_PERCENT = env.float("LNBITS_RESERVE_FEE_PERCENT", default=1.0)
-SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
-
-try:
-    LNBITS_COMMIT = (
-        subprocess.check_output(
-            ["git", "-C", LNBITS_PATH, "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-        )
-        .strip()
-        .decode("ascii")
-    )
-except:
-    LNBITS_COMMIT = "unknown"
-
-
-BOLTZ_NETWORK = env.str("BOLTZ_NETWORK", default="main")
-BOLTZ_URL = env.str("BOLTZ_URL", default="https://boltz.exchange/api")
-BOLTZ_MEMPOOL_SPACE_URL = env.str(
-    "BOLTZ_MEMPOOL_SPACE_URL", default="https://mempool.space"
-)
-BOLTZ_MEMPOOL_SPACE_URL_WS = env.str(
-    "BOLTZ_MEMPOOL_SPACE_URL_WS", default="wss://mempool.space"
-)

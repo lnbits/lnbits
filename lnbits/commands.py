@@ -8,6 +8,8 @@ import click
 from genericpath import exists
 from loguru import logger
 
+from lnbits.settings import Settings, settings
+
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -17,7 +19,8 @@ from .helpers import (
     get_valid_extensions,
     url_for_vendored,
 )
-from .settings import LNBITS_PATH
+
+path = settings.lnbits_path
 
 
 @click.command("migrate")
@@ -36,15 +39,15 @@ def transpile_scss():
         warnings.simplefilter("ignore")
         from scss.compiler import compile_string  # type: ignore
 
-        with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
-            with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
+        with open(os.path.join(path, "static/scss/base.scss")) as scss:
+            with open(os.path.join(path, "static/css/base.css"), "w") as css:
                 css.write(compile_string(scss.read()))
 
 
 def bundle_vendored():
     for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
-        (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
+        (get_js_vendored, os.path.join(path, "static/bundle.js")),
+        (get_css_vendored, os.path.join(path, "static/bundle.css")),
     ]:
         output = ""
         for path in getfiles():
@@ -52,33 +55,6 @@ def bundle_vendored():
                 output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
         with open(outputpath, "w") as f:
             f.write(output)
-
-
-async def get_admin_settings():
-    from lnbits.extensions.admin.models import Admin
-
-    try:
-        ext_db = importlib.import_module(f"lnbits.extensions.admin").db
-    except:
-        return False
-
-    async with ext_db.connect() as conn:
-
-        if conn.type == SQLITE:
-            exists = await conn.fetchone(
-                "SELECT * FROM sqlite_master WHERE type='table' AND name='admin'"
-            )
-        elif conn.type in {POSTGRES, COCKROACH}:
-            exists = await conn.fetchone(
-                "SELECT * FROM information_schema.tables WHERE table_name = 'admin'"
-            )
-
-        if not exists:
-            return False
-
-        row = await conn.fetchone("SELECT * from admin.admin")
-
-    return Admin(**row) if row else None
 
 
 async def migrate_databases():
