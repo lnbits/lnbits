@@ -19,8 +19,8 @@ async def m001_initial(db):
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
             message TEXT NOT NULL,
-            sats INT NOT NULL,
-            tipjar INT NOT NULL,
+            sats {db.big_int} NOT NULL,
+            tipjar {db.big_int} NOT NULL,
             FOREIGN KEY(tipjar) REFERENCES {db.references_schema}TipJars(id)
         );
         """

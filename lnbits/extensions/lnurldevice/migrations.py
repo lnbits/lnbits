@@ -29,7 +29,7 @@ async def m001_initial(db):
             payhash TEXT,
             payload TEXT NOT NULL,
             pin INT,
-            sats INT, 
+            sats {db.big_int}, 
             timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
     """
