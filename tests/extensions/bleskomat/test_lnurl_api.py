@@ -9,7 +9,7 @@ from lnbits.extensions.bleskomat.helpers import (
     generate_bleskomat_lnurl_signature,
     query_to_signing_payload,
 )
-from lnbits.settings import HOST, PORT
+from lnbits.settings import settings
 from tests.conftest import client
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
 from tests.helpers import credit_wallet, is_regtest
@@ -90,7 +90,7 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
     assert data["minWithdrawable"] == 1000
     assert data["maxWithdrawable"] == 1000
     assert data["defaultDescription"] == "test valid sig"
-    assert data["callback"] == f"http://{HOST}:{PORT}/bleskomat/u"
+    assert data["callback"] == f"http://{settings.host}:{settings.port}/bleskomat/u"
     k1 = data["k1"]
     lnurl = await get_bleskomat_lnurl(secret=k1)
     assert lnurl
