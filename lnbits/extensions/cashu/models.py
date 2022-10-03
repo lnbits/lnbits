@@ -9,7 +9,7 @@ class Cashu(BaseModel):
     id: str = Query(None)
     name: str = Query(None)
     wallet: str = Query(None)
-    tickershort: str
+    tickershort: str = Query(None)
     fraction: bool = Query(None)
     maxsats: int = Query(0)
     coins: int = Query(0)
@@ -33,6 +33,13 @@ class Pegs(BaseModel):
 
 class PayLnurlWData(BaseModel):
     lnurl: str
+
+class Promises(BaseModel):
+    id: str
+    amount: int
+    B_b: str
+    C_b: str
+    cashu_id: str
 
 class Proof(BaseModel):
     amount: int

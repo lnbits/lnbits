@@ -22,7 +22,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "cashu/index.html", {"request": request, "user": user.dict()}
     )
 
-
 @cashu_ext.get("/wallet")
 async def cashu(request: Request):
     return cashu_renderer().TemplateResponse("cashu/wallet.html",{"request": request})
