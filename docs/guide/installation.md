@@ -292,6 +292,43 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
+## Reverse proxy with automatic https using Caddy
+
+Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
+
+Point your domain at the IP of the server you're running LNbits on, by making an `A` record.
+
+Install Caddy on the server
+https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+
+```
+sudo caddy stop
+```
+Create a Caddyfile
+```
+sudo nano Caddyfile
+```
+Assuming your LNbits is running on port `5000` add:
+```
+yourdomain.com {
+  handle /api/v1/payments/sse* {
+    reverse_proxy 0.0.0.0:5000 {
+      header_up X-Forwarded-Host yourdomain.com
+      transport http {
+         keepalive off
+         compression off
+      }
+    }
+  }
+  reverse_proxy 0.0.0.0:5000 {
+    header_up X-Forwarded-Host yourdomain.com
+  }
+}
+```
+Save and exit `CTRL + x`
+```
+sudo caddy start
+```
 
 ## Running behind an apache2 reverse proxy over https
 Install apache2 and enable apache2 mods

@@ -62,7 +62,7 @@ cffi = "1.15.0"
 websocket-client = "1.3.3"
 grpcio = "^1.49.1"
 protobuf = "^4.21.6"
-pyln-client = "^0.12.0"
+pyln-client = "0.11.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"
