@@ -131,6 +131,7 @@ async def api_gerty_json(
             enabled_screen_count += 1
             enabled_screens.append(screen_slug)
 
+    logger.debug("Screeens " + str(enabled_screens))
     text = await get_screen_text(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
@@ -170,6 +171,8 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     logger.debug('screen_slug')
     logger.debug(screen_slug)
     # text = []
+    if screen_slug == "dashboard":
+        text = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
         text = await get_lnbits_wallet_balances(gerty)
     elif screen_slug == "fun_satoshi_quotes":
@@ -206,6 +209,28 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
         text = await get_placeholder_text()
     elif screen_slug == "lightning_average_channel_capacity":
         text = await get_placeholder_text()
+    return text
+
+# Get the dashboard screen
+async def get_dashboard(gerty):
+    text = []
+    # XC rate
+    text.append(get_text_item_dict("19,255", 40, 145, 161))
+    text.append(get_text_item_dict("BTCUSD price", 15, 155, 199))
+    # balance
+    text.append(get_text_item_dict("Alice's wallet balance", 15, 524, 50))
+    text.append(get_text_item_dict("102,101", 40, 524, 126))
+    text.append(get_text_item_dict("Bob's wallet balance", 15, 524, 211))
+    text.append(get_text_item_dict("102", 40, 524, 286))
+
+    # Mempool fees
+    text.append(get_text_item_dict("756,885", 40, 115, 416))
+    text.append(get_text_item_dict("Current block height", 15, 115, 456))
+
+    # difficulty adjustment time
+    text.append(get_text_item_dict("7 days, 2 hours, 0 minutes", 15, 514, 390))
+    text.append(get_text_item_dict("until next difficulty adjustment", 12, 514, 420))
+
     return text
 
 
@@ -290,10 +315,10 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
     word_list = wrapper.wrap(text=text)
-    logger.debug("number of chars = {0}".format(len(text)))
+    # logger.debug("number of chars = {0}".format(len(text)))
 
     multilineText = '\n'.join(word_list)
-    logger.debug("number of lines = {0}".format(len(word_list)))
+    # logger.debug("number of lines = {0}".format(len(word_list)))
 
     # logger.debug('multilineText')
     # logger.debug(multilineText)

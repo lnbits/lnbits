@@ -175,6 +175,11 @@
 
                     <p>Use the toggles below to control what your Gerty will display</p>
 
+                    <q-toggle
+                                v-model="formDialog.data.display_preferences.dashboard"
+                                label="Show the dashboard"
+                        ></q-toggle>
+
                     <q-expansion-item
                             expand-separator
                             icon="perm_identity"
@@ -596,6 +601,7 @@
                         show: false,
                         data: {
                             display_preferences: {
+                                dashboard: true,
                                 lnbits_wallets_balance: true,
                                 fun_satoshi_quotes: true,
                                 fun_pieter_wuille_facts: true,
