@@ -8,7 +8,7 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
-            tickershort TEXT NOT NULL,
+            tickershort TEXT DEFAULT 'sats',
             fraction BOOL,
             maxsats INT,
             coins INT,
@@ -32,3 +32,32 @@ async def m001_initial(db):
     """
     )
 
+    """
+    Initial cashus table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE cashu.promises (
+            id TEXT PRIMARY KEY,
+            amount INT,
+            B_b TEXT NOT NULL,
+            C_b TEXT NOT NULL,
+            cashu_id TEXT NOT NULL
+        );
+    """
+    )
+
+    """
+    Initial cashus table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE cashu.proofs_used (
+            id TEXT PRIMARY KEY,
+            amount INT,
+            C TEXT NOT NULL,
+            secret TEXT NOT NULL,
+            cashu_id TEXT NOT NULL
+        );
+    """
+    )

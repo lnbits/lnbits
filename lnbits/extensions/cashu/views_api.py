@@ -15,10 +15,25 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import cashu_ext
-from .crud import create_cashu, delete_cashu, get_cashu, get_cashus, update_cashu_keys
-from .models import Cashu, Pegs, CheckPayload, MeltPayload, MintPayloads, SplitPayload, PayLnurlWData
+from .ledger import get_pubkeys, request_mint, mint
 
-from .ledger import Ledger, fee_reserve, amount_split, hash_to_point, step1_alice, step2_bob, step3_alice, verify
+from .crud import (
+    create_cashu, 
+    delete_cashu, 
+    get_cashu, 
+    get_cashus, 
+    update_cashu_keys
+)
+
+from .models import (
+    Cashu, 
+    Pegs, 
+    CheckPayload, 
+    MeltPayload, 
+    MintPayloads, 
+    SplitPayload, 
+    PayLnurlWData
+)
 
 @cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
 async def api_cashus(
@@ -173,50 +188,54 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
     return status
 
 
-#################CASHU STUFF###################
+########################################
+#################MINT###################
+########################################
 
 @cashu_ext.get("/keys")
-def keys():
+def keys(cashu_id: str):
     """Get the public keys of the mint"""
-    return ledger.get_pubkeys()
+    return get_pubkeys(cashu_id)
 
 
 @cashu_ext.get("/mint")
-async def request_mint(amount: int = 0):
+async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
     """Request minting of tokens. Server responds with a Lightning invoice."""
-    payment_request, payment_hash = await ledger.request_mint(amount)
+    payment_request, payment_hash = await request_mint(amount, cashu_id)
     print(f"Lightning invoice: {payment_request}")
     return {"pr": payment_request, "hash": payment_hash}
 
 
 @cashu_ext.post("/mint")
-async def mint(payloads: MintPayloads, payment_hash: Union[str, None] = None):
+async def mint_coins(payloads: MintPayloads, payment_hash: Union[str, None] = None, cashu_id: str = Query(None)):
     amounts = []
     B_s = []
     for payload in payloads.blinded_messages:
         amounts.append(payload.amount)
         B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+    promises = await mint(B_s, amounts, payment_hash, cashu_id)
+    logger.debug(promises)
     try:
-        promises = await ledger.mint(B_s, amounts, payment_hash=payment_hash)
+        promises = await mint(B_s, amounts, payment_hash, cashu_id)
         return promises
     except Exception as exc:
         return {"error": str(exc)}
 
 
 @cashu_ext.post("/melt")
-async def melt(payload: MeltPayload):
+async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
 
-    ok, preimage = await ledger.melt(payload.proofs, payload.amount, payload.invoice)
+    ok, preimage = await melt(payload.proofs, payload.amount, payload.invoice, cashu_id)
     return {"paid": ok, "preimage": preimage}
 
 
 @cashu_ext.post("/check")
-async def check_spendable(payload: CheckPayload):
-    return await ledger.check_spendable(payload.proofs)
+async def check_spendable_coins(payload: CheckPayload, cashu_id: str = Query(None)):
+    return await check_spendable(payload.proofs, cashu_id)
 
 
 @cashu_ext.post("/split")
-async def split(payload: SplitPayload):
+async def spli_coinst(payload: SplitPayload, cashu_id: str = Query(None)):
     """
     Requetst a set of tokens with amount "total" to be split into two
     newly minted sets with amount "split" and "total-split".
@@ -225,7 +244,7 @@ async def split(payload: SplitPayload):
     amount = payload.amount
     output_data = payload.output_data.blinded_messages
     try:
-        split_return = await ledger.split(proofs, amount, output_data)
+        split_return = await split(proofs, amount, output_data)
     except Exception as exc:
         return {"error": str(exc)}
     if not split_return:
