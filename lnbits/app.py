@@ -15,11 +15,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
-import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
-from .commands import get_admin_settings
-from .config import WALLET, conf
+from lnbits.settings import WALLET, check_admin_settings, settings
+
+from .commands import migrate_databases
 from .core import core_app
 from .core.views.generic import core_html_routes
 from .helpers import (
@@ -40,10 +40,8 @@ from .tasks import (
 )
 
 
-def create_app(config_object="lnbits.settings") -> FastAPI:
-    """Create application factory.
-    :param config_object: The configuration object to use.
-    """
+def create_app() -> FastAPI:
+
     configure_logger()
 
     app = FastAPI(
@@ -55,7 +53,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         },
     )
 
-    g().WALLET = WALLET
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
         "/core/static",
@@ -63,45 +60,18 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         name="core_static",
     )
 
-    if lnbits.settings.LNBITS_ADMIN_UI:
-        g().admin_conf = conf
-        check_settings(app)
-
-    g().WALLET = WALLET
-
     origins = ["*"]
 
     app.add_middleware(
         CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
     )
-    g().config = lnbits.settings
-    g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
 
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                "error.html",
-                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc.errors()},
-        )
+    g().config = settings
+    g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-    check_funding_source(app)
+    register_startup(app)
     register_assets(app)
     register_routes(app)
     register_async_tasks(app)
@@ -110,55 +80,31 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     return app
 
 
-def check_settings(app: FastAPI):
-    @app.on_event("startup")
-    async def check_settings_admin():
-        while True:
-            admin_set = await get_admin_settings()
-            if admin_set:
+async def check_funding_source() -> None:
+    # original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+    # def signal_handler(signal, frame):
+    #     logger.debug(f"SIGINT received, terminating LNbits.")
+    #     sys.exit(1)
+
+    # signal.signal(signal.SIGINT, signal_handler)
+    while True:
+        try:
+            error_message, balance = await WALLET.status()
+            if not error_message:
                 break
-            logger.info("Waiting for admin settings... retrying in 5 seconds!")
-            await asyncio.sleep(5)
-
-        admin_set.admin_users = removeEmptyString(admin_set.admin_users.split(","))
-        admin_set.allowed_users = removeEmptyString(admin_set.allowed_users.split(","))
-        admin_set.admin_ext = removeEmptyString(admin_set.admin_ext.split(","))
-        admin_set.disabled_ext = removeEmptyString(admin_set.disabled_ext.split(","))
-        admin_set.theme = removeEmptyString(admin_set.theme.split(","))
-        admin_set.ad_space = removeEmptyString(admin_set.ad_space.split(","))
-        g().admin_conf = conf.copy(update=admin_set.dict())
-        logger.info(
-            f"  ✔️ Access admin user account at: http://{lnbits.settings.HOST}:{lnbits.settings.PORT}/wallet?usr={admin_set.user}"
-        )
-
-
-def check_funding_source(app: FastAPI) -> None:
-    @app.on_event("startup")
-    async def check_wallet_status():
-        original_sigint_handler = signal.getsignal(signal.SIGINT)
-
-        def signal_handler(signal, frame):
-            logger.debug(f"SIGINT received, terminating LNbits.")
-            sys.exit(1)
-
-        signal.signal(signal.SIGINT, signal_handler)
-        while True:
-            try:
-                error_message, balance = await WALLET.status()
-                if not error_message:
-                    break
-                logger.error(
-                    f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
-                    RuntimeWarning,
-                )
-            except:
-                pass
-            logger.info("Retrying connection to backend in 5 seconds...")
-            await asyncio.sleep(5)
-        signal.signal(signal.SIGINT, original_sigint_handler)
-        logger.success(
-            f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
-        )
+            logger.error(
+                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                RuntimeWarning,
+            )
+        except:
+            pass
+        logger.info("Retrying connection to backend in 5 seconds...")
+        await asyncio.sleep(5)
+    # signal.signal(signal.SIGINT, original_sigint_handler)
+    logger.info(
+        f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
+    )
 
 
 def register_routes(app: FastAPI) -> None:
@@ -189,12 +135,46 @@ def register_routes(app: FastAPI) -> None:
             )
 
 
+def register_startup(app: FastAPI):
+    @app.on_event("startup")
+    async def lnbits_startup():
+
+        # 1. wait till migration is done
+        await migrate_databases()
+
+        # 2. setup admin settings
+        await check_admin_settings()
+
+        logger.info("Starting LNbits")
+        logger.info(f"Host: {settings.host}")
+        logger.info(f"Port: {settings.port}")
+        logger.info(f"Debug: {settings.debug}")
+        logger.info(f"Site title: {settings.lnbits_site_title}")
+        logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
+        logger.info(f"Data folder: {settings.lnbits_data_folder}")
+        logger.info(f"Git version: {settings.lnbits_commit}")
+
+        db_url = settings.lnbits_database_url
+        database = (
+            "PostgreSQL"
+            if db_url and db_url.startswith("postgres://")
+            else "CockroachDB"
+            if db_url and db_url.startswith("cockroachdb://")
+            else "SQLite"
+        )
+        logger.info(f"Database: {database}")
+        logger.info(f"Service fee: {settings.lnbits_service_fee}")
+
+        # 3. initialize funding source
+        await check_funding_source()
+
+
 def register_assets(app: FastAPI):
     """Serve each vendored asset separately or a bundle."""
 
     @app.on_event("startup")
     async def vendored_assets_variable():
-        if g().config.DEBUG:
+        if g().config.debug:
             g().VENDORED_JS = map(url_for_vendored, get_js_vendored())
             g().VENDORED_CSS = map(url_for_vendored, get_css_vendored())
         else:
@@ -244,10 +224,32 @@ def register_exception_handlers(app: FastAPI):
             content={"detail": err},
         )
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
+
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
+            return template_renderer().TemplateResponse(
+                "error.html",
+                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+            )
+
+        return JSONResponse(
+            status_code=HTTPStatus.NO_CONTENT,
+            content={"detail": exc.errors()},
+        )
+
 
 def configure_logger() -> None:
     logger.remove()
-    log_level: str = "DEBUG" if lnbits.settings.DEBUG else "INFO"
+    log_level: str = "DEBUG" if settings.debug else "INFO"
     formatter = Formatter()
     logger.add(sys.stderr, level=log_level, format=formatter.format)
 
@@ -259,7 +261,7 @@ class Formatter:
     def __init__(self):
         self.padding = 0
         self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
-        if lnbits.settings.DEBUG:
+        if settings.debug:
             self.fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
         else:
             self.fmt: str = self.minimal_fmt
