@@ -16,7 +16,6 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.tasks import register_task_listeners
-
 from lnbits.settings import WALLET, check_admin_settings, settings
 
 from .commands import migrate_databases
@@ -60,14 +59,13 @@ def create_app() -> FastAPI:
         name="core_static",
     )
 
-    origins = ["*"]
-
     app.add_middleware(
-        CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
+        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
 
+    # TODO: why those 2?
     g().config = settings
-    g().base_url = f"http://{settings.host}:{settings.port}"
+    # g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
@@ -86,7 +84,6 @@ async def check_funding_source() -> None:
     # def signal_handler(signal, frame):
     #     logger.debug(f"SIGINT received, terminating LNbits.")
     #     sys.exit(1)
-
     # signal.signal(signal.SIGINT, signal_handler)
     while True:
         try:
