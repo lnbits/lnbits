@@ -2,6 +2,13 @@
 %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
+    <q-btn label="Save" flat @click="updateSettings"></q-btn>
+    <q-btn label="Restart server" flat @click="restartServer"></q-btn>
+    <q-btn label="Reset to defaults" flat @click="restartServer"></q-btn>
+  </div>
+</div>
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
     <q-card>
       <div class="q-pa-md">
         <div class="q-gutter-y-md">
@@ -29,7 +36,7 @@
           </q-tabs>
         </div>
       </div>
-      <q-form @submit="UpdateLNbits">
+      <q-form>
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
           "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
@@ -42,68 +49,20 @@
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  const queryString = window.location.search
-  const urlParams = new URLSearchParams(queryString)
-  const usr = urlParams.get('usr')
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
       return {
-        wallet: {data: {}},
+        settings: {},
+        data: {},
+        wallet: {},
         cancel: {},
-        tab: 'funding',
-        data: {
-          funding_sources: [
-            'CLightningWallet',
-            'LndRestWallet',
-            'LndWallet',
-            'LntxbotWallet',
-            'LNPayWallet',
-            'LnbitsWallet',
-            'OpenNodeWallet'
-          ],
-        },
-        themes: [
-          'classic',
-          'bitcoin',
-          'flamingo',
-          'mint',
-          'autumn',
-          'monochrome',
-          'salvador'
-        ],
-        options: [
-          'bleskomat',
-          'captcha',
-          'events',
-          'example',
-          'livestream',
-          'lndhub',
-          'lnurlp',
-          'offlineshop',
-          'paywall',
-          'splitpayments',
-          'subdomains',
-          'tpos',
-          'usermanager',
-          'watchonly',
-          'withdraw',
-          'copilot',
-          'hivemind',
-          'jukebox',
-          'lnticket',
-          'ngrok',
-          'amilk'
-        ]
+        tab: 'funding'
       }
     },
     created: function () {
-      var self = this
-      if (usr != null) {
-        self.cancel.on = true
-      }
-      this.data.settings = JSON.parse('{{ settings | tojson|safe }}')
+      this.data.settings = JSON.parse('{{ settings|tojson|safe }}')
       this.data.balance = {{ balance|safe }}
       console.log(this.data.settings, this.data.balance)
     },
@@ -144,7 +103,7 @@
         }
       },
       removeAdSpace(ad) {
-        let spaces = this.data.admin.ad_space
+        let spaces = this.data.settings.lnbits_ad_space
         this.data.admin.ad_space = spaces.filter(s => s !== ad)
       },
       restartServer() {
@@ -168,111 +127,38 @@
       topupWallet() {
         LNbits.api
           .request(
-            'GET',
-            '/admin/api/v1/admin/' +
-              this.wallet.data.id +
-              '/' +
-              this.wallet.data.amount,
-            this.g.user.wallets[0].adminkey
+            'POST',
+            '/admin/api/v1/admin/topup/',
+            this.g.user.wallets[0].adminkey,
+            this.wallet.id,
+            this.wallet.amount,
           )
           .then(response => {
             this.$q.notify({
               type: 'positive',
               message:
                 'Success! Added ' +
-                this.wallet.data.amount +
+                this.wallet.amount +
                 ' to ' +
-                this.wallet.data.id,
+                this.wallet.id,
               icon: null
             })
-            this.wallet.data = {}
+            this.wallet = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-
-      createWallet: function () {
-        LNbits.href.createWallet(this.walletName)
-      },
-      addSource: function (source) {
-        var self = this
-        self.data.admin.edited.push(source)
-        console.log(self.data.admin.edited)
-      },
-      updateFunding(fund) {
-        let data = this.data.admin.funding.find(v => v.backend_wallet == fund)
-
+      updateSettings() {
+        let data = {}
         LNbits.api
           .request(
-            'POST',
-            '/admin/api/v1/admin/funding',
-            this.g.user.wallets[0].adminkey,
-            data
-          )
-          .then(response => {
-            //let wallet = response.data.backend_wallet
-            //this.data.admin.funding[wallet] = response.data
-            //this.data.admin.funding[wallet].endpoint = response.data.endpoint
-            //console.log(this.data.admin.funding)
-            //console.log(this.data.admin)
-            this.$q.notify({
-              type: 'positive',
-              message: `Success! ${response.data.backend_wallet} changed!`,
-              icon: null
-            })
-          })
-      },
-      UpdateLNbits() {
-        let {
-          admin_users,
-          allowed_users,
-          admin_ext,
-          disabled_ext,
-          funding_source,
-          force_https,
-          reserve_fee_min,
-          reserve_fee_pct,
-          service_fee,
-          hide_api,
-          site_title,
-          site_tagline,
-          site_description,
-          default_wallet_name,
-          denomination,
-          theme,
-          custom_logo,
-          ad_space
-        } = this.data.admin
-        let data = {
-          admin_users: admin_users.toString(),
-          allowed_users: allowed_users.toString(),
-          admin_ext: admin_ext.toString(),
-          disabled_ext: disabled_ext.toString(),
-          funding_source,
-          force_https,
-          reserve_fee_min,
-          reserve_fee_pct,
-          service_fee,
-          hide_api,
-          site_title,
-          site_tagline,
-          site_description,
-          default_wallet_name,
-          denomination,
-          theme: theme.toString(),
-          custom_logo: custom_logo.toString(),
-          ad_space: ad_space.toString()
-        }
-        LNbits.api
-          .request(
-            'POST',
+            'PUT',
             '/admin/api/v1/admin/',
             this.g.user.wallets[0].adminkey,
             data
           )
           .then(response => {
-            //console.log(response.data)
             this.$q.notify({
               type: 'positive',
               message: 'Success! Settings changed!',
@@ -281,15 +167,7 @@
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
-          })
-      },
-
-      processing: function () {
-        this.$q.notify({
-          timeout: 0,
-          message: 'Processing...',
-          icon: null
-        })
+          });
       }
     }
   })

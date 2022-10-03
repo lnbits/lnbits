@@ -68,10 +68,9 @@
         <p>Admin Extensions</p>
         <q-select
           filled
-          v-model="data.settings.admin_extensions"
+          v-model="data.settings.lnbits_admin_extensions"
           multiple
           hint="Extensions only user with admin privileges can use"
-          :options="options"
           label="Admin extensions"
         ></q-select>
         <br />
@@ -83,14 +82,10 @@
           v-model="data.settings.lnbits_disabled_extensions"
           multiple
           hint="Disable extensions *amilk disabled by default as resource heavy"
-          :options="options"
           label="Disable extensions"
         ></q-select>
         <br />
       </div>
-    </div>
-    <div class="row q-mt-lg">
-      <q-btn unelevated color="primary" type="submit">Save</q-btn>
     </div>
   </q-card-section>
 </q-tab-panel>

@@ -26,17 +26,8 @@
                 filled
                 v-model="data.settings.lnbits_backend_wallet_class"
                 hint="Select the active funding wallet"
-                :options="data.settings.lnbits_funding_sources"
+                :options="data.settings.lnbits_allowed_funding_sources"
               ></q-select>
-              <br />
-              <div>
-                <q-btn
-                  class="q-mt-md float-right"
-                  label="Restart Server"
-                  color="primary"
-                  @click="restartServer"
-                ></q-btn>
-              </div>
             </div>
             <div class="col-12">
               <p>Fee reserve</p>
@@ -72,7 +63,7 @@
                 dense
                 type="text"
                 filled
-                v-model="wallet.data.id"
+                v-model="wallet.id"
                 label="Wallet ID"
                 hint="Use the wallet ID to topup any wallet"
               ></q-input>
@@ -83,7 +74,7 @@
                 dense
                 type="number"
                 filled
-                v-model="wallet.data.amount"
+                v-model="wallet.amount"
                 label="Topup amount"
               ></q-input>
             </div>
@@ -100,59 +91,21 @@
         </div>
       </div>
       <p>Funding Sources</p>
-      {% raw %}
-      <q-list v-for="fund in data.settings.funding" :key="fund.id">
-        <q-expansion-item
-          expand-separator
-          icon="payments"
-          :label="fund.backend_wallet"
-        >
+      <q-list v-for="fund in data.settings.lnbits_allowed_funding_sources">
+        <q-expansion-item expand-separator icon="payments" :label="fund">
           <q-card>
             <q-card-section>
               <q-input
-                v-if="fund.endpoint"
                 filled
                 type="text"
-                v-model="fund.endpoint"
-                label="Endpoint"
+                v-model="data.settings.lnbits_backend_wallet_class"
+                label="Wallet class"
                 class="q-pr-md"
               ></q-input>
-              <q-input
-                v-if="fund.port"
-                filled
-                type="text"
-                v-model="fund.port"
-                label="Port"
-                class="q-pr-md"
-              ></q-input>
-              <q-input
-                v-if="fund.admin_key"
-                filled
-                type="text"
-                v-model="fund.admin_key"
-                label="Admin Key"
-                class="q-pr-md"
-              ></q-input>
-              <q-input
-                v-if="fund.cert"
-                filled
-                type="text"
-                v-model="fund.cert"
-                label="Location of your ssl cert"
-                class="q-pr-md"
-              ></q-input>
-              <q-btn
-                class="q-mt-md"
-                label="Save"
-                flat
-                color="primary"
-                @click="updateFunding(fund.backend_wallet)"
-              ></q-btn>
             </q-card-section>
           </q-card>
         </q-expansion-item>
       </q-list>
-      {% endraw %}
     </div>
   </q-card-section>
 </q-tab-panel>

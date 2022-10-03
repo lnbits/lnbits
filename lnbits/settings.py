@@ -20,7 +20,7 @@ def list_parse_fallback(v):
             return []
 
 
-read_only_variables = ["host", "port", "lnbits_commit"]
+read_only_variables = ["host", "port", "lnbits_commit", "lnbits_path"]
 
 
 class Settings(BaseSettings):
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     debug: Optional[bool]
     host: Optional[str]
     port: Optional[int]
-    lnbits_path: Optional[str] = path.dirname(path.realpath(__file__))
+    lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
 
     # users
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     # ops
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
-    lnbits_force_https: bool = Field(default=True)
+    lnbits_force_https: bool = Field(default=False)
     lnbits_reserve_fee_min: int = Field(default=4000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     lnbits_allowed_funding_sources: List[str] = Field(
         default=[
+            "VoidWallet",
+            "FakeWallet",
             "CLightningWallet",
             "LndRestWallet",
             "LndWallet",
@@ -129,6 +131,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 settings.lnbits_commit = (
     subprocess.check_output(
         ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
