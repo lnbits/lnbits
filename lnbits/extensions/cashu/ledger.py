@@ -1,22 +1,23 @@
 import hashlib
 from typing import List, Set
 
-from models import BlindedMessage, BlindedSignature, Invoice, Proof
+from .models import BlindedMessage, BlindedSignature, Invoice, Proof
 from secp256k1 import PublicKey, PrivateKey
+
+from fastapi import Query
 
 from lnbits.core.services import check_transaction_status, create_invoice
 
 class Ledger:
-    def __init__(self, secret_key: str, db: str, MAX_ORDER: int = Query(64)):
+    def __init__(self, secret_key: str, MAX_ORDER: int = Query(64)):
         self.proofs_used: Set[str] = set()
 
         self.master_key: str = secret_key
         self.keys: List[PrivateKey] = self._derive_keys(self.master_key)
         self.pub_keys: List[PublicKey] = self._derive_pubkeys(self.keys)
-        self.db: Database = Database("mint", db)
 
     async def load_used_proofs(self):
-        self.proofs_used = set(await get_proofs_used(db=self.db))
+        self.proofs_used = set(await get_proofs_used)
 
     @staticmethod
     def _derive_keys(master_key: str):
@@ -48,7 +49,7 @@ class Ledger:
         secret_key = self.keys[amount]  # Get the correct key
         C_ = step2_bob(B_, secret_key)
         await store_promise(
-            amount, B_=B_.serialize().hex(), C_=C_.serialize().hex(), db=self.db
+            amount, B_=B_.serialize().hex(), C_=C_.serialize().hex()
         )
         return BlindedSignature(amount=amount, C_=C_.serialize().hex())
 
@@ -126,7 +127,7 @@ class Ledger:
         self.proofs_used |= proof_msgs
         # store in db
         for p in proofs:
-            await invalidate_proof(p, db=self.db)
+            await invalidate_proof(p)
 
     # Public methods
     def get_pubkeys(self):
@@ -150,13 +151,13 @@ class Ledger:
         )
         if not payment_request or not payment_hash:
             raise Exception(f"Could not create Lightning invoice.")
-        await store_lightning_invoice(invoice, db=self.db)
+        await store_lightning_invoice(invoice)
         return payment_request, payment_hash
 
     async def mint(self, B_s: List[PublicKey], amounts: List[int], payment_hash=None):
         """Mints a promise for coins for B_."""
         # check if lightning invoice was paid
-        if payment_hash and not await check_transaction_status(ayment_hash)
+        if payment_hash and not await check_transaction_status(payment_hash):
             raise Exception("Lightning invoice not paid yet.")
 
         for amount in amounts:
@@ -224,7 +225,7 @@ class Ledger:
         return prom_fst, prom_snd
 
 
-#######FUNCTIONS###############
+##############FUNCTIONS###############
 def fee_reserve(amount_msat: int) -> int:
     """Function for calculating the Lightning fee reserve"""
     return max(
