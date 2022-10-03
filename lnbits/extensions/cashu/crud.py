@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Cashu, Pegs
+from .models import Cashu, Pegs, Proof
 
 from embit import script
 from embit import ec
@@ -76,9 +76,7 @@ async def delete_cashu(cashu_id: str) -> None:
 async def store_promise(
     amount: int,
     B_: str,
-    C_: str,
-    db: Database,
-    conn: Optional[Connection] = None,
+    C_: str
 ):
 
     await (conn or db).execute(
@@ -95,10 +93,7 @@ async def store_promise(
     )
 
 
-async def get_proofs_used(
-    db: Database,
-    conn: Optional[Connection] = None,
-):
+async def get_proofs_used():
 
     rows = await (conn or db).fetchall(
         """
@@ -109,9 +104,7 @@ async def get_proofs_used(
 
 
 async def invalidate_proof(
-    proof: Proof,
-    db: Database,
-    conn: Optional[Connection] = None,
+    proof: Proof
 ):
 
     # we add the proof and secret to the used list

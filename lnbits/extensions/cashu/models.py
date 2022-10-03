@@ -1,5 +1,5 @@
 from sqlite3 import Row
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Query
 from pydantic import BaseModel
@@ -31,6 +31,8 @@ class Pegs(BaseModel):
     def from_row(cls, row: Row) -> "TPoS":
         return cls(**dict(row))
 
+class PayLnurlWData(BaseModel):
+    lnurl: str
 
 class Proof(BaseModel):
     amount: int
