@@ -12,7 +12,7 @@ from lnbits import bolt11
 from lnbits.core.crud import delete_expired_invoices, get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
-from lnbits.settings import LNBITS_SITE_TITLE, WALLET
+from lnbits.settings import WALLET, settings
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
@@ -56,7 +56,7 @@ async def lndhub_addinvoice(
         _, pr = await create_invoice(
             wallet_id=wallet.wallet.id,
             amount=int(data.amt),
-            memo=data.memo or LNBITS_SITE_TITLE,
+            memo=data.memo or settings.lnbits_site_title,
             extra={"tag": "lndhub"},
         )
     except:

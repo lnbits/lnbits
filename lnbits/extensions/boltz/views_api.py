@@ -14,7 +14,7 @@ from starlette.requests import Request
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL
+from lnbits.settings import settings
 
 from . import boltz_ext
 from .boltz import (
@@ -55,7 +55,7 @@ from .utils import check_balance
     response_model=str,
 )
 async def api_mempool_url():
-    return BOLTZ_MEMPOOL_SPACE_URL
+    return settings.boltz_mempool_space_url
 
 
 # NORMAL SWAP
