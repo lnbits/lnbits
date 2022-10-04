@@ -11,8 +11,8 @@ from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL, BOLTZ_MEMPOOL_SPACE_URL_WS
 
 from .utils import req_wrap
 
-logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL: {BOLTZ_MEMPOOL_SPACE_URL}")
-logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL_WS: {BOLTZ_MEMPOOL_SPACE_URL_WS}")
+logger.trace(f"BOLTZ_MEMPOOL_SPACE_URL: {BOLTZ_MEMPOOL_SPACE_URL}")
+logger.trace(f"BOLTZ_MEMPOOL_SPACE_URL_WS: {BOLTZ_MEMPOOL_SPACE_URL_WS}")
 
 websocket_url = f"{BOLTZ_MEMPOOL_SPACE_URL_WS}/api/v1/ws"
 

@@ -48,17 +48,17 @@ class SseListenersDict(dict):
     def __setitem__(self, key, value):
         assert type(key) == str, f"{key} is not a string"
         assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
-        logger.debug(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
+        logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
         return super().__setitem__(key, value)
 
     def __delitem__(self, key):
-        logger.debug(f"sse: removing listener from {self.name}. len = {len(self)-1}")
+        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
         return super().__delitem__(key)
 
     _RaiseKeyError = object()  # singleton for no-default behavior
 
     def pop(self, key, v=_RaiseKeyError) -> None:
-        logger.debug(f"sse: removing listener from {self.name}. len = {len(self)-1}")
+        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
         return super().pop(key)
 
 
@@ -71,7 +71,7 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     new invoice payments incoming. Will emit all incoming payments.
     """
     name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
-    logger.debug(f"sse: registering invoice listener {name_unique}")
+    logger.trace(f"sse: registering invoice listener {name_unique}")
     invoice_listeners[name_unique] = send_chan
 
 
