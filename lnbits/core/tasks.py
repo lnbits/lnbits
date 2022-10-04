@@ -35,7 +35,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
     while True:
         payment = await invoice_paid_queue.get()
-        logger.debug("received invoice paid event")
+        logger.trace("received invoice paid event")
         # send information to sse channel
         await dispatch_api_invoice_listeners(payment)
 
