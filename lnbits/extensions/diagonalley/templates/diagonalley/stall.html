@@ -165,6 +165,17 @@
         <q-input
           filled
           dense
+          v-model.trim="checkoutDialog.data.pubkey"
+          label="Public key *optional"
+        >
+          <template v-slot:append>
+            <q-icon @click="getPubkey" name="settings_backup_restore" />
+            <q-tooltip>Click to restore saved public key</q-tooltip>
+          </template>
+        </q-input>
+        <q-input
+          filled
+          dense
           v-model.trim="checkoutDialog.data.address"
           label="Address"
         ></q-input>
@@ -206,7 +217,7 @@
           <q-btn
             v-close-popup
             flat
-            @click="checkoutDialog = {show: false, data: {}}"
+            @click="checkoutDialog = {show: false, data: {pubkey: ''}}"
             color="grey"
             class="q-ml-auto"
             >Cancel</q-btn
@@ -276,7 +287,9 @@
         cartMenu: [],
         checkoutDialog: {
           show: false,
-          data: {}
+          data: {
+            pubkey: ''
+          }
         },
         qrCodeDialog: {
           data: {
@@ -345,6 +358,18 @@
           return {id: item[0], ...item[1]}
         })
         console.log(this.cartMenu, this.cart)
+      },
+      getPubkey() {
+        let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+        if (data && data.keys.publickey) {
+          this.checkoutDialog.data.pubkey = data.keys.publickey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No public key stored!',
+            icon: 'settings_backup_restore'
+          })
+        }
       },
       placeOrder() {
         let dialog = this.checkoutDialog.data
