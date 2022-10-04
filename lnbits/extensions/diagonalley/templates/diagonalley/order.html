@@ -1,0 +1,351 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md flex">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <div class="chat-container q-pa-md">
+        <div class="chat-box">
+          <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
+          <div class="chat-messages">
+            <q-chat-message
+              :key="index"
+              v-for="(message, index) in messages"
+              :name="message.pubkey == user.keys.publickey ? 'me' : 'merchant'"
+              :text="[message.msg]"
+              :sent="message.pubkey == user.keys.publickey ? true : false"
+              :bg-color="message.pubkey == user.keys.publickey ? 'white' : 'light-green-2'"
+            />
+          </div>
+        </div>
+        <q-form @submit="sendMessage" class="full-width chat-input">
+          <q-input
+            ref="newMessage"
+            v-model="newMessage"
+            placeholder="Message"
+            class="full-width"
+            dense
+            outlined
+          >
+            <template>
+              <q-btn
+                round
+                dense
+                flat
+                type="submit"
+                icon="send"
+                color="primary"
+              />
+            </template>
+          </q-input>
+        </q-form>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-5 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        {% raw %}
+        <h6 class="text-subtitle1 q-my-none">{{ stall.name }}</h6>
+        <p @click="copyText(stall.publickey)" style="width: max-content">
+          Public Key: {{ sliceKey(stall.publickey) }}
+          <q-tooltip>Click to copy</q-tooltip>
+        </p>
+        {% endraw %}
+      </q-card-section>
+      <q-card-section v-if="user">
+        <q-form @submit="" class="q-gutter-md">
+          <!-- <q-select
+            filled
+            dense
+            emit-value
+            v-model="model"
+            :options="mockMerch"
+            label="Merchant"
+            hint="Select a merchant you've opened an order to"
+          ></q-select>
+          <br /> -->
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="selectedOrder"
+            :options="user.orders"
+            label="Order"
+            hint="Select an order from this merchant"
+            @input="val => { changeOrder() }"
+          ></q-select>
+        </q-form>
+      </q-card-section>
+      <q-card-section>
+        <q-list>
+          {% raw %}
+          <q-item clickable :key="p.id" v-for="p in products">
+            <q-item-section side>
+              <span>{{p.quantity}} x </span>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-avatar color="primary">
+                <img size="sm" :src="p.image" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ p.name }}</q-item-label>
+            </q-item-section>
+
+            <q-item-section side>
+              <span> {{p.price}} sats</span>
+            </q-item-section>
+          </q-item>
+          {% endraw %}
+        </q-list>
+      </q-card-section>
+      <q-card-section>
+        <q-separator></q-separator>
+        <p>
+          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
+          quasi.
+        </p>
+        <div v-if="user?.keys" class="row">
+          <div
+            class="col-6"
+            v-for="type in ['publickey', 'privatekey']"
+            v-bind:key="type"
+          >
+            <div class="text-center q-mb-lg">
+              {% raw %}
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="user.keys[type]"
+                  :options="{width: 250}"
+                  class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>{{ user.keys[type] }}</q-tooltip>
+              </q-responsive>
+              <p>{{ type == 'publickey' ? 'Public Key' : 'Private Key' }}</p>
+              {% endraw %}
+            </div>
+          </div>
+        </div>
+        <p>
+          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
+          quasi.
+        </p>
+      </q-card-section>
+      <q-card-section>
+        <q-separator></q-separator>
+        <div class="row q-mt-lg">
+          <q-btn outline color="grey" @click=""
+            >Backup keys
+            <q-tooltip>Download your keys</q-tooltip>
+          </q-btn>
+          <q-btn @click="" v-close-popup flat color="grey" class="q-ml-auto"
+            >Delete data
+            <q-tooltip>Delete all data from browser</q-tooltip>
+          </q-btn>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  const mapChatMsg = msg => {
+    let obj = {}
+    obj.timestamp = {
+      msg: msg,
+      pubkey: pubkey
+    }
+    return obj
+  }
+  Vue.component(VueQrcode.name, VueQrcode)
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        newMessage: '',
+        showMessages: false,
+        messages: {},
+        stall: null,
+        selectedOrder: null,
+        products: [],
+        orders: [],
+        user: null,
+        // Mock data
+        model: null,
+        mockMerch: ['Google', 'Facebook', 'Twitter', 'Apple', 'Oracle'],
+        mockOrder: ['1', '2', '3']
+      }
+    },
+    computed: {},
+    methods: {
+      clearMessage() {
+        this.newMessage = ''
+        this.$refs.newMessage.focus()
+      },
+      sendMessage() {
+        let message = {
+          msg: this.newMessage,
+          pubkey: this.user.keys.publickey
+        }
+        ws.send(JSON.stringify(message))
+
+        this.clearMessage()
+      },
+      sliceKey(key) {
+        if (!key) return ''
+        return `${key.slice(0, 4)}...${key.slice(-4)}`
+      },
+      async generateKeys() {
+        await LNbits.api
+          .request('GET', '/diagonalley/api/v1/keys', null)
+          .then(response => {
+            if (response.data) {
+              let data = {
+                keys: {
+                  privatekey: response.data.privkey,
+                  publickey: response.data.pubkey
+                }
+              }
+              this.user = data
+              return
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      async getMessages(room_name, all = false) {
+        await LNbits.api
+          .request(
+            'GET',
+            `/diagonalley/api/v1/chat/messages/${room_name}${
+              all ? '?all_messages=true' : ''
+            }`
+          )
+          .then(response => {
+            if (response.data) {
+              response.data.reverse().map(m => {
+                this.$set(this.messages, m.timestamp * 1000, {
+                  msg: m.msg,
+                  pubkey: m.pubkey
+                })
+              })
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      changeOrder() {
+        console.log(this.selectedOrder)
+      },
+      startChat(room_name) {
+        if (location.protocol == 'https:') {
+          ws_scheme = 'wss://'
+        } else {
+          ws_scheme = 'ws://'
+        }
+        ws = new WebSocket(
+          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+        )
+
+        function checkWebSocket(event) {
+          if (ws.readyState === WebSocket.CLOSED) {
+            console.log('WebSocket CLOSED: Reopening')
+            ws = new WebSocket(
+              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+            )
+          }
+        }
+
+        ws.onmessage = event => {
+          let event_data = JSON.parse(event.data)
+
+          this.$set(this.messages, Date.now(), event_data)
+        }
+
+        this.ws = ws
+      }
+    },
+    async created() {
+      this.stall = JSON.parse('{{ stall | tojson }}')
+      let order_details = JSON.parse('{{ order | tojson }}')
+      let products = JSON.parse('{{ products | tojson }}')
+
+      let order_id = '{{ order_id }}'
+
+      let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+
+      try {
+        if (data) {
+          this.user = data
+          //add chat key (merchant pubkey) if not set
+          if (!this.user.chats[`${order_id}`]) {
+            this.$set(this.user.chats, order_id, [])
+          }
+          //this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+        } else {
+          // generate keys
+          await this.generateKeys()
+          // populate user data
+          this.user.chats = {
+            [`${order_id}`]: []
+          }
+          this.user.orders = []
+        }
+
+        this.order_details = order_details
+        this.products = order_details.map(o => {
+          let product = products.find(p => p.id == o.product_id)
+          return {
+            quantity: o.quantity,
+            name: product.product,
+            image: product.image,
+            price: product.price
+          }
+        })
+
+        this.user.orders = [...new Set([...this.user.orders, order_id])]
+        this.selectedOrder = order_id
+
+        await this.getMessages(order_id)
+
+        this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+        this.startChat(order_id)
+        console.log(this.products)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  })
+</script>
+<style scoped>
+  .chat-container {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: calc(100vh - 133px);
+  }
+
+  .chat-box {
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .chat-messages {
+    width: auto;
+  }
+
+  .chat-other {
+  }
+
+  .chat-input {
+    position: relative;
+    display: flex;
+    align-items: end;
+    margin-top: 1rem;
+  }
+</style>
+{% endblock %}
