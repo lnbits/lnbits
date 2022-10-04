@@ -174,8 +174,8 @@ async def invoice_callback_dispatcher(checking_id: str):
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
-        logger.debug(f"sse sending invoice callback for payment {checking_id}")
+        logger.trace(f"sse sending invoice callback for payment {checking_id}")
         await payment.set_pending(False)
         for chan_name, send_chan in invoice_listeners.items():
-            logger.debug(f"sse sending to chan: {chan_name}")
+            logger.trace(f"sse sending to chan: {chan_name}")
             await send_chan.put(payment)
