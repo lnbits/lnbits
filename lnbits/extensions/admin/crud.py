@@ -6,7 +6,6 @@ from lnbits.settings import Settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
-from .models import Funding
 
 
 async def update_wallet_balance(wallet_id: str, amount: int) -> str:
@@ -29,45 +28,7 @@ async def update_wallet_balance(wallet_id: str, amount: int) -> str:
 async def update_settings(user: str, **kwargs) -> Settings:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     # print("UPDATE", q)
-    await db.execute(
-        f'UPDATE admin.settings SET {q} WHERE "user" = ?', (*kwargs.values(), user)
-    )
-    row = await db.fetchone('SELECT * FROM admin.settings WHERE "user" = ?', (user,))
+    await db.execute(f'UPDATE admin.settings SET {q}')
+    row = await db.fetchone('SELECT * FROM admin.settings')
     assert row, "Newly updated settings couldn't be retrieved"
     return Settings(**row) if row else None
-
-
-async def update_funding(data: Funding) -> Funding:
-    await db.execute(
-        """
-        UPDATE admin.settings SET funding_source = ? WHERE user = ?
-        """,
-        (data.backend_wallet, data.user),
-    )
-    await db.execute(
-        """
-        UPDATE admin.funding
-        SET backend_wallet = ?, endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?, balance = ?, selected = ?
-        WHERE id = ?
-        """,
-        (
-            data.backend_wallet,
-            data.endpoint,
-            data.port,
-            data.read_key,
-            data.invoice_key,
-            data.admin_key,
-            data.cert,
-            data.balance,
-            data.selected,
-            data.id,
-        ),
-    )
-    row = await db.fetchone('SELECT * FROM admin.funding WHERE "id" = ?', (data.id,))
-    assert row, "Newly updated settings couldn't be retrieved"
-    return Funding(**row) if row else None
-
-
-async def get_funding() -> List[Funding]:
-    rows = await db.fetchall("SELECT * FROM admin.funding")
-    return [Funding(**row) for row in rows]
