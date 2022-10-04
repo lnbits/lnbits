@@ -146,7 +146,7 @@ async def api_gerty_json(
     return {
         "settings": {
             "refreshTime": gerty.refresh_time,
-            "requestTimestamp": round(time.time()),
+            "requestTimestamp": datetime.fromtimestamp(time.time()).strftime("%e %b %Y at %H:%M"),
             "nextScreenNumber": next_screen_number,
             "showTextBoundRect": False,
             "name": gerty.name
