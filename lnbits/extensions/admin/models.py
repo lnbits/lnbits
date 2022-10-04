@@ -4,76 +4,22 @@ from typing import List, Optional
 from fastapi import Query
 from pydantic import BaseModel, Field
 
-
-class UpdateAdminSettings(BaseModel):
-    # users
-    admin_users: str = Query(None)
-    allowed_users: str = Query(None)
-    admin_ext: str = Query(None)
-    disabled_ext: str = Query(None)
-    funding_source: str = Query(None)
-    # ops
-    force_https: bool = Query(None)
-    reserve_fee_min: int = Query(None, ge=0)
-    reserve_fee_pct: float = Query(None, ge=0)
-    service_fee: float = Query(None, ge=0)
-    hide_api: bool = Query(None)
-    # Change theme
-    site_title: str = Query("LNbits")
-    site_tagline: str = Query("free and open-source lightning wallet")
-    site_description: str = Query(None)
-    default_wallet_name: str = Query("LNbits wallet")
-    denomination: str = Query("sats")
-    theme: str = Query(None)
-    custom_logo: str = Query(None)
-    ad_space: str = Query(None)
-
-
-# class Admin(BaseModel):
-#     # users
-#     user: str
-#     admin_users: Optional[str]
-#     allowed_users: Optional[str]
-#     admin_ext: Optional[str]
-#     disabled_ext: Optional[str]
-#     funding_source: Optional[str]
-#     # ops
-#     data_folder: Optional[str]
-#     database_url: Optional[str]
-#     force_https: bool = Field(default=True)
-#     reserve_fee_min: Optional[int]
-#     reserve_fee_pct: Optional[float]
-#     service_fee: float = Optional[float]
-#     hide_api: bool = Field(default=False)
-#     # Change theme
-#     site_title: Optional[str]
-#     site_tagline: Optional[str]
-#     site_description: Optional[str]
-#     default_wallet_name: Optional[str]
-#     denomination: str = Field(default="sats")
-#     theme: Optional[str]
-#     custom_logo: Optional[str]
-#     ad_space: Optional[str]
-
-#     @classmethod
-#     def from_row(cls, row: Row) -> "Admin":
-#         data = dict(row)
-#         return cls(**data)
-
-
-class Funding(BaseModel):
-    id: str
-    backend_wallet: str
-    endpoint: str = Query(None)
-    port: str = Query(None)
-    read_key: str = Query(None)
-    invoice_key: str = Query(None)
-    admin_key: str = Query(None)
-    cert: str = Query(None)
-    balance: int = Query(None)
-    selected: int
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Funding":
-        data = dict(row)
-        return cls(**data)
+class UpdateSettings(BaseModel):
+    lnbits_admin_users: str = Query(None)
+    lnbits_allowed_users: str = Query(None)
+    lnbits_admin_ext: str = Query(None)
+    lnbits_disabled_ext: str = Query(None)
+    lnbits_funding_source: str = Query(None)
+    lnbits_force_https: bool = Query(None)
+    lnbits_reserve_fee_min: int = Query(None, ge=0)
+    lnbits_reserve_fee_percent: float = Query(None, ge=0)
+    lnbits_service_fee: float = Query(None, ge=0)
+    lnbits_hide_api: bool = Query(None)
+    lnbits_site_title: str = Query("LNbits")
+    lnbits_site_tagline: str = Query("free and open-source lightning wallet")
+    lnbits_site_description: str = Query(None)
+    lnbits_default_wallet_name: str = Query("LNbits wallet")
+    lnbits_denomination: str = Query("sats")
+    lnbits_theme: str = Query(None)
+    lnbits_custom_logo: str = Query(None)
+    lnbits_ad_space: str = Query(None)

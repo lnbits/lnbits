@@ -12,7 +12,6 @@ from lnbits.requestvars import g
 from lnbits.settings import WALLET, settings
 
 from . import admin_ext, admin_renderer
-from .crud import get_funding
 
 templates = Jinja2Templates(directory="templates")
 
