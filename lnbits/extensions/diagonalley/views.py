@@ -20,6 +20,7 @@ from .crud import (
     get_diagonalley_market,
     get_diagonalley_market_stalls,
     get_diagonalley_order_details,
+    get_diagonalley_order_invoiceid,
     get_diagonalley_products,
     get_diagonalley_stall,
     get_diagonalley_zone,
@@ -92,13 +93,15 @@ async def display(request: Request, market_id):
     )
 
 
-@diagonalley_ext.get("/chat", response_class=HTMLResponse)
-async def chat_page(request: Request, merch: str = Query(...), order: str = Query(...)):
+@diagonalley_ext.get("/order", response_class=HTMLResponse)
+async def chat_page(request: Request, merch: str = Query(...), invoice_id: str = Query(...)):
     stall = await get_diagonalley_stall(merch)
-    _order = await get_diagonalley_order_details(order)
+    order = await get_diagonalley_order_invoiceid(invoice_id)
+    _order = await get_diagonalley_order_details(order.id)
+    products = await get_diagonalley_products(stall.id)
 
     return diagonalley_renderer().TemplateResponse(
-        "diagonalley/chat.html",
+        "diagonalley/order.html",
         {
             "request": request,
             "stall": {
@@ -107,7 +110,9 @@ async def chat_page(request: Request, merch: str = Query(...), order: str = Quer
                 "publickey": stall.publickey,
                 "wallet": stall.wallet,
             },
+            "order_id": order.id,
             "order": [details.dict() for details in _order],
+            "products": [product.dict() for product in products]
         },
     )
 

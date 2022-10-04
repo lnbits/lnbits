@@ -70,6 +70,7 @@ class createOrderDetails(BaseModel):
 
 class createOrder(BaseModel):
     wallet: str = Query(...)
+    username: str = Query(None)
     pubkey: str = Query(None)
     shippingzone: str = Query(...)
     address: str = Query(...)

@@ -408,6 +408,7 @@ async def create_diagonalley_market_stalls(
 async def update_diagonalley_market(market_id):
     pass
 
+### CHAT / MESSAGES
 
 async def create_chat_message(data: CreateChatMessage):
     print("DATA", data)
