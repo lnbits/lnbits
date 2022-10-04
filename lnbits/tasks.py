@@ -15,7 +15,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-from lnbits.settings import WALLET
+from lnbits.settings import WALLET, STARTUP_INVOICE_EXPIRY_CHECK
 
 from .core import db
 
@@ -144,7 +144,7 @@ async def check_pending_payments():
                 f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
             )
             # we delete expired invoices once upon the first pending check
-            if incoming:
+            if incoming and STARTUP_INVOICE_EXPIRY_CHECK:
                 logger.debug("Task: deleting all expired invoices")
                 start_time: float = time.time()
                 await delete_expired_invoices(conn=conn)
