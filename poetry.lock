@@ -652,7 +652,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "pyln-client"
-version = "0.12.1"
+version = "0.11.1"
 description = "Client library and plugin library for Core Lightning"
 category = "main"
 optional = false
@@ -1051,7 +1051,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "613027fa39bc0381612627229da5c8208bff31e3bb6bcb05f121b3fe082ee95f"
+content-hash = "72e4462285d0bc5e2cb83c88c613726beced959b268bd30b984d8baaeff178ea"
 
 [metadata.files]
 aiofiles = [
@@ -1692,8 +1692,8 @@ pyln-bolt7 = [
     {file = "pyln_bolt7-1.0.246-py3-none-any.whl", hash = "sha256:54d48ec27fdc8751762cb068b0a9f2757a58fb57933c6d8f8255d02c27eb63c5"},
 ]
 pyln-client = [
-    {file = "pyln-client-0.12.1.tar.gz", hash = "sha256:f14fa7947b65ecde2753984452441cf41b7b25b1a0ba7beced48786fa54d2bfe"},
-    {file = "pyln_client-0.12.1-py3-none-any.whl", hash = "sha256:6b500bcc49e4028d50692b962d9c9f7e9ede920d718f9b9412f04f7db0aa0e63"},
+    {file = "pyln-client-0.11.1.tar.gz", hash = "sha256:f5ea648840b030e2bbcf8c66ee72d25a5817f89854434a28d30e887547138c8e"},
+    {file = "pyln_client-0.11.1-py3-none-any.whl", hash = "sha256:497db443406b80c98c0434e2938eb1b2a17e88fd9aa63b018124068198df6141"},
 ]
 pyln-proto = [
     {file = "pyln-proto-0.12.0.tar.gz", hash = "sha256:3214d99d8385f2135a94937f0dc1da626a33b257e9ebc320841656edaefabbe5"},
