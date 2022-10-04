@@ -154,7 +154,7 @@ async def api_gerty_json(
         "screen": {
             "slug": get_screen_slug_by_index(p, enabled_screens),
             "group": get_screen_slug_by_index(p, enabled_screens),
-            "text": text
+            "areas": text
         }
     }
 
@@ -170,68 +170,77 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     # first get the relevant slug from the display_preferences
     logger.debug('screen_slug')
     logger.debug(screen_slug)
-    # text = []
     if screen_slug == "dashboard":
-        text = await get_dashboard(gerty)
+        areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
-        text = await get_lnbits_wallet_balances(gerty)
+        areas = await get_lnbits_wallet_balances(gerty)
     elif screen_slug == "fun_satoshi_quotes":
-        text = await get_satoshi_quotes()
+        areas = await get_satoshi_quotes()
     elif screen_slug == "fun_pieter_wuille_facts":
-        text = await get_pieter_wuille_fact()
+        areas = await get_pieter_wuille_fact()
     elif screen_slug == "fun_exchange_market_rate":
-        text = await get_exchange_rate(gerty)
+        areas = await get_exchange_rate(gerty)
     elif screen_slug == "onchain_difficulty_epoch_progress":
-        text = await get_onchain_stat(screen_slug, gerty)
+        areas = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_retarget_date":
-        text = await get_onchain_stat(screen_slug, gerty)
+        areas = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_blocks_remaining":
-        text = await get_onchain_stat(screen_slug, gerty)
+        areas = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "onchain_difficulty_epoch_time_remaining":
-        text = await get_onchain_stat(screen_slug, gerty)
+        areas = await get_onchain_stat(screen_slug, gerty)
     elif screen_slug == "mempool_recommended_fees":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "mempool_tx_count":
-        text = await get_mempool_stat(screen_slug, gerty)
+        areas = await get_mempool_stat(screen_slug, gerty)
     elif screen_slug == "mining_current_hash_rate":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "mining_current_difficulty":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_channel_count":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_node_count":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_tor_node_count":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_clearnet_nodes":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_unannounced_nodes":
-        text = await get_placeholder_text()
+        areas = await get_placeholder_text()
     elif screen_slug == "lightning_average_channel_capacity":
-        text = await get_placeholder_text()
-    return text
+        areas = await get_placeholder_text()
+
+    return areas
 
 # Get the dashboard screen
 async def get_dashboard(gerty):
-    text = []
+    screens = []
     # XC rate
-    text.append(get_text_item_dict("19,255", 40, 145, 161))
-    text.append(get_text_item_dict("BTCUSD price", 15, 155, 199))
+    text = []
+    amount = await satoshis_amount_as_fiat(100000000, gerty.exchange)
+    text.append(get_text_item_dict(format_number(amount), 40, 145, 161))
+    text.append(get_text_item_dict("BTC{0} price".format(gerty.exchange), 15, 155, 199))
+    screens.append(text)
     # balance
+    text = []
     text.append(get_text_item_dict("Alice's wallet balance", 15, 524, 50))
     text.append(get_text_item_dict("102,101", 40, 524, 126))
     text.append(get_text_item_dict("Bob's wallet balance", 15, 524, 211))
     text.append(get_text_item_dict("102", 40, 524, 286))
+    screens.append(text)
 
     # Mempool fees
-    text.append(get_text_item_dict("756,885", 40, 115, 416))
+    text = []
+    text.append(get_text_item_dict(format_number(await get_block_height(gerty)), 40, 115, 416))
     text.append(get_text_item_dict("Current block height", 15, 115, 456))
+    screens.append(text)
 
     # difficulty adjustment time
-    text.append(get_text_item_dict("7 days, 2 hours, 0 minutes", 15, 514, 390))
+    text = []
+    text.append(get_text_item_dict(await get_time_remaining_next_difficulty_adjustment(gerty), 15, 514, 390))
     text.append(get_text_item_dict("until next difficulty adjustment", 12, 514, 420))
+    screens.append(text)
 
-    return text
+    return screens
 
 
 async def get_lnbits_wallet_balances(gerty):
@@ -244,13 +253,13 @@ async def get_lnbits_wallet_balances(gerty):
             wallet = await get_wallet_for_key(key=lnbits_wallet)
             logger.debug(wallet)
             if wallet:
-                wallets.append({
-                    "name": wallet.name,
-                    "balance": wallet.balance_msat,
-                    "inkey": wallet.inkey,
-                })
+                # wallets.append({
+                #     "name": wallet.name,
+                #     "balance": wallet.balance_msat,
+                #     "inkey": wallet.inkey,
+                # })
                 text.append(get_text_item_dict(wallet.name, 20))
-                text.append(get_text_item_dict(wallet.balance, 40))
+                text.append(get_text_item_dict(format_number(wallet.balance_msat), 40))
     return text
 
 
@@ -364,6 +373,33 @@ async def get_onchain_stat(stat_slug: str, gerty):
                     text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 15))
                     text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
     return text
+
+
+async def get_time_remaining_next_difficulty_adjustment(gerty):
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
+            stat = r.json()['remainingTime']
+            time = get_time_remaining(stat / 1000, 3)
+    return time
+
+async def get_block_height(gerty):
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/blocks/tip/height")
+
+    return r.json()
+
+async def get_mempool_recommended_fees(gerty):
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/recommended")
+    return {
+        "high": r.fastestFee,
+        "medium": r.halfHourFee,
+        "low": r.economyFee,
+    }
+
 
 async def get_mempool_stat(stat_slug: str, gerty):
     text = []
