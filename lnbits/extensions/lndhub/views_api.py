@@ -12,7 +12,7 @@ from lnbits import bolt11
 from lnbits.core.crud import delete_expired_invoices, get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
-from lnbits.settings import WALLET, settings
+from lnbits.settings import get_wallet_class, settings
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
@@ -175,6 +175,7 @@ async def lndhub_getuserinvoices(
         offset=offset,
         exclude_uncheckable=True,
     ):
+        WALLET = get_wallet_class()
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )

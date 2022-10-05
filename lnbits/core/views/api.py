@@ -30,7 +30,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import WALLET, settings
+from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -682,7 +682,7 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
         )
-
+    WALLET = get_wallet_class()
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
 
