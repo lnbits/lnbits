@@ -1,7 +1,7 @@
 from http import HTTPStatus
-from loguru import logger
 
 from fastapi import Body, Depends, Request
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
@@ -13,18 +13,16 @@ from lnbits.requestvars import g
 from lnbits.server import server_restart
 from lnbits.settings import settings
 
-from .crud import update_settings, update_wallet_balance
+from .crud import delete_settings, update_settings, update_wallet_balance
 
 
-@admin_ext.get("/api/v1/admin/restart/", status_code=HTTPStatus.OK)
-async def api_restart_server(
-    user: User = Depends(check_admin)
-):
+@admin_ext.get("/api/v1/restart/", status_code=HTTPStatus.OK)
+async def api_restart_server(user: User = Depends(check_admin)):
     server_restart.set()
     return {"status": "Success"}
 
 
-@admin_ext.put("/api/v1/admin/topup/", status_code=HTTPStatus.OK)
+@admin_ext.put("/api/v1/topup/", status_code=HTTPStatus.OK)
 async def api_update_balance(
     wallet_id, topup_amount: int, user: User = Depends(check_admin)
 ):
@@ -32,7 +30,7 @@ async def api_update_balance(
         wallet = await get_wallet(wallet_id)
     except:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="wallet: {wallet_id} does not exist."
+            status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
         )
 
     await update_wallet_balance(wallet_id=wallet_id, amount=int(topup_amount))
@@ -40,13 +38,23 @@ async def api_update_balance(
     return {"status": "Success"}
 
 
-@admin_ext.put("/api/v1/admin/", status_code=HTTPStatus.OK)
-async def api_update_admin(
-    request: Request,
+@admin_ext.put("/api/v1/settings/", status_code=HTTPStatus.OK)
+async def api_update_settings(
     user: User = Depends(check_admin),
     data: UpdateSettings = Body(...),
 ):
-    updated = await update_settings(data)
-    g().settings = g().settings.copy(update=updated.dict())
-
+    await update_settings(data)
     return {"status": "Success"}
+
+
+@admin_ext.delete("/api/v1/settings/", status_code=HTTPStatus.OK)
+async def api_delete_settings(
+    user: User = Depends(check_admin),
+):
+    await delete_settings()
+    return {"status": "Success"}
+
+
+@admin_ext.get("/api/v1/backup/", status_code=HTTPStatus.OK)
+async def api_backup(user: User = Depends(check_admin)):
+    return {"status": "not implemented"}
