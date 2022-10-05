@@ -2,7 +2,6 @@ import asyncio
 import base64
 import hashlib
 import json
-from os import getenv
 from pydoc import describe
 from typing import AsyncGenerator, Dict, Optional
 
@@ -10,6 +9,7 @@ import httpx
 from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -25,7 +25,7 @@ class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     def __init__(self):
-        endpoint = getenv("LND_REST_ENDPOINT")
+        endpoint = settings.lnd_rest_endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
             "https://" + endpoint if not endpoint.startswith("http") else endpoint
@@ -33,14 +33,14 @@ class LndRestWallet(Wallet):
         self.endpoint = endpoint
 
         macaroon = (
-            getenv("LND_REST_MACAROON")
-            or getenv("LND_ADMIN_MACAROON")
-            or getenv("LND_REST_ADMIN_MACAROON")
-            or getenv("LND_INVOICE_MACAROON")
-            or getenv("LND_REST_INVOICE_MACAROON")
+            settings.lnd_rest_macaroon
+            or settings.lnd_admin_macaroon
+            or settings.lnd_rest_admin_macaroon
+            or settings.lnd_invoice_macaroon
+            or settings.lnd_rest_invoice_macaroon
         )
 
-        encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
+        encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
         if encrypted_macaroon:
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
@@ -48,7 +48,7 @@ class LndRestWallet(Wallet):
         self.macaroon = load_macaroon(macaroon)
 
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
-        self.cert = getenv("LND_REST_CERT", True)
+        self.cert = settings.lnd_rest_cert
 
     async def status(self) -> StatusResponse:
         try:

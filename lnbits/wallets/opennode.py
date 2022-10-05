@@ -1,7 +1,6 @@
 import asyncio
 import hmac
 from http import HTTPStatus
-from os import getenv
 from typing import AsyncGenerator, Optional
 
 import httpx
@@ -9,6 +8,7 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 
 from lnbits.helpers import url_for
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -24,13 +24,13 @@ class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
     def __init__(self):
-        endpoint = getenv("OPENNODE_API_ENDPOINT")
+        endpoint = settings.opennode_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
         key = (
-            getenv("OPENNODE_KEY")
-            or getenv("OPENNODE_ADMIN_KEY")
-            or getenv("OPENNODE_INVOICE_KEY")
+            settings.opennode_key
+            or settings.opennode_admin_key
+            or settings.opennode_invoice_key
         )
         self.auth = {"Authorization": key}
 
