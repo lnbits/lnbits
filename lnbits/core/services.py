@@ -21,7 +21,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, WALLET, settings
+from lnbits.settings import FAKE_WALLET, get_wallet_class, settings
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -65,7 +65,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet = FAKE_WALLET if internal else WALLET
+    wallet = FAKE_WALLET if internal else get_wallet_class()
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount,
@@ -193,6 +193,7 @@ async def pay_invoice(
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
+        WALLET = get_wallet_class()
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )

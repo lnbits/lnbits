@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.tasks import register_task_listeners
-from lnbits.settings import WALLET, check_admin_settings, settings
+from lnbits.settings import check_admin_settings, get_wallet_class, settings
 
 from .commands import migrate_databases
 from .core import core_app
@@ -78,12 +78,15 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
+
     # original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     # def signal_handler(signal, frame):
     #     logger.debug(f"SIGINT received, terminating LNbits.")
     #     sys.exit(1)
     # signal.signal(signal.SIGINT, signal_handler)
+
+    WALLET = get_wallet_class()
     while True:
         try:
             error_message, balance = await WALLET.status()

@@ -9,7 +9,7 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User
 from lnbits.decorators import check_admin
 from lnbits.requestvars import g
-from lnbits.settings import WALLET, settings
+from lnbits.settings import get_wallet_class, settings
 
 from . import admin_ext, admin_renderer
 
@@ -18,6 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 @admin_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
+    WALLET = get_wallet_class()
     error, balance = await WALLET.status()
 
     return admin_renderer().TemplateResponse(

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for
-from lnbits.settings import WALLET
+from lnbits.settings import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
 
 
@@ -163,6 +163,7 @@ class Payment(BaseModel):
             f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
         )
 
+        WALLET = get_wallet_class()
         if self.is_out:
             status = await WALLET.get_payment_status(self.checking_id)
         else:
