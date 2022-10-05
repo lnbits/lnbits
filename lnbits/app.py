@@ -81,10 +81,10 @@ async def check_funding_source() -> None:
 
     # original_sigint_handler = signal.getsignal(signal.SIGINT)
 
-    # def signal_handler(signal, frame):
-    #     logger.debug(f"SIGINT received, terminating LNbits.")
-    #     sys.exit(1)
-    # signal.signal(signal.SIGINT, signal_handler)
+    def signal_handler(signal, frame):
+        logger.debug(f"SIGINT received, terminating LNbits.")
+        sys.exit(1)
+    signal.signal(signal.SIGINT, signal_handler)
 
     WALLET = get_wallet_class()
     while True:
@@ -100,7 +100,7 @@ async def check_funding_source() -> None:
             pass
         logger.info("Retrying connection to backend in 5 seconds...")
         await asyncio.sleep(5)
-    # signal.signal(signal.SIGINT, original_sigint_handler)
+    signal.signal(signal.SIGINT, original_sigint_handler)
     logger.info(
         f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
     )
