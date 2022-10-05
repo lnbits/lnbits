@@ -4,8 +4,12 @@
   <div class="col q-gutter-y-md">
     <q-btn label="Save" flat @click="updateSettings"></q-btn>
     <q-btn label="Restart server" flat @click="restartServer"></q-btn>
-    <q-btn label="Reset to defaults" flat @click="restartServer"></q-btn>
-    <q-btn label="Download Database Backup" flat @click="restartServer"></q-btn>
+    <q-btn label="Reset to defaults" flat @click="deleteSettings"></q-btn>
+    <q-btn
+      label="Download Database Backup"
+      flat
+      @click="downloadBackup"
+    ></q-btn>
   </div>
 </div>
 <div class="row q-col-gutter-md justify-center">
@@ -37,7 +41,7 @@
           </q-tabs>
         </div>
       </div>
-      <q-form>
+      <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
           "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
@@ -111,8 +115,7 @@
         LNbits.api
           .request(
             'GET',
-            '/admin/api/v1/admin/restart/',
-            this.g.user.wallets[0].adminkey
+            '/admin/api/v1/restart/?usr=' + this.g.user.id,
           )
           .then(response => {
             this.$q.notify({
@@ -129,8 +132,7 @@
         LNbits.api
           .request(
             'POST',
-            '/admin/api/v1/admin/topup/',
-            this.g.user.wallets[0].adminkey,
+            '/admin/api/v1/topup/?usr=' + this.g.user.id,
             this.wallet.id,
             this.wallet.amount,
           )
@@ -151,11 +153,18 @@
           })
       },
       updateSettings() {
-        let data = {}
+        const formElement = document.getElementById('settings_form');
+        const formData = new FormData(formElement);
+        const data = {};
+        formData.forEach((value, key) => (data[key] = value));
+        // only for debugging
+        for (const [key, value] of formData) {
+            console.log(`${key}: ${value}\n`);
+        }
         LNbits.api
           .request(
             'PUT',
-            '/admin/api/v1/admin/',
+            '/admin/api/v1/settings/?usr=' + this.g.user.id,
             this.g.user.wallets[0].adminkey,
             data
           )
@@ -163,6 +172,40 @@
             this.$q.notify({
               type: 'positive',
               message: 'Success! Settings changed!',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          });
+      },
+      deleteSettings() {
+        LNbits.api
+          .request(
+            'DELETE',
+            '/admin/api/v1/settings/?usr=' + this.g.user.id
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Success! Restored settings to defaults, restart required!',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          });
+      },
+      downloadBackup() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/backup/?usr=' + this.g.user.id
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Success! Database backup request, download starts soon!',
               icon: null
             })
           })
