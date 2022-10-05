@@ -1,4 +1,6 @@
 from sqlalchemy.exc import OperationalError  # type: ignore
+from lnbits import bolt11
+import datetime
 
 
 async def m000_create_migrations_table(db):
@@ -188,3 +190,60 @@ async def m005_balance_check_balance_notify(db):
         );
     """
     )
+
+
+async def m006_add_invoice_expiry_to_apipayments(db):
+    """
+    Adds invoice expiry field to apipayments and precomputes them for
+    existing entries
+    """
+    try:
+        rows = await (
+            await db.execute(
+                f"""
+                SELECT bolt11, checking_id
+                FROM apipayments
+                WHERE pending = true
+                AND bolt11 IS NOT NULL
+                AND expiry IS NULL
+                AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
+                """
+            )
+        ).fetchall()
+        # then we delete all expired invoices, checking one by one
+        print(f"Checking expiry of {len(rows)} invoices")
+        for i, (
+            payment_request,
+            payment_hash,
+        ) in enumerate(rows):
+            print(f"Checking invoice {i}/{len(rows)}")
+            try:
+                invoice = bolt11.decode(payment_request)
+            except:
+                continue
+            if payment_hash != invoice.payment_hash:
+                print("Error: {payment_hash} != {invoice.payment_hash}")
+                continue
+
+            expiration_date = datetime.datetime.fromtimestamp(
+                invoice.date + invoice.expiry
+            )
+            print(
+                f"Setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+            )
+            await db.execute(
+                """
+                UPDATE apipayments SET expiry = ?
+                WHERE checking_id = ? AND amount > 0
+                """,
+                (
+                    expiration_date,
+                    invoice.payment_hash,
+                ),
+            )
+    except OperationalError:
+        # this is necessary now because it may be the case that this migration will
+        # run twice in some environments.
+        # catching errors like this won't be necessary in anymore now that we
+        # keep track of db versions so no migration ever runs twice.
+        pass
