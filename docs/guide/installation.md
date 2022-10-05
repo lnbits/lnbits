@@ -26,8 +26,8 @@ sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
-poetry env use python3.9
-poetry install --no-dev
+poetry env use python3.9 # you can exchange with python3.10 or newer versions. Identify your version with python3 --version and specify here
+poetry install --only main
 poetry run python build.py
 
 mkdir data
