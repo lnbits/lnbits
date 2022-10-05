@@ -1,12 +1,13 @@
 from mock import AsyncMock
 
 from lnbits import bolt11
-from lnbits.settings import WALLET
+from lnbits.settings import get_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus, StatusResponse
 from lnbits.wallets.fake import FakeWallet
 
 from .helpers import get_random_string, is_fake
 
+WALLET = get_wallet_class()
 
 # generates an invoice with FakeWallet
 async def generate_mock_invoice(**x):
