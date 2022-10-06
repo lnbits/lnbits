@@ -2,7 +2,7 @@ import asyncio
 import json
 
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash, get_current_extension_name
+from lnbits.helpers import get_current_extension_name, urlsafe_short_hash
 from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import (

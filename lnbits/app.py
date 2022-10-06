@@ -32,8 +32,8 @@ from .settings import WALLET
 from .tasks import (
     catch_everything_and_restart,
     check_pending_payments,
-    internal_invoice_listener,
     incoming_payment_listener,
+    internal_invoice_listener,
     outgoing_payment_listener,
     webhook_handler,
 )

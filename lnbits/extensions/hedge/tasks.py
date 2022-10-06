@@ -6,8 +6,8 @@ from loguru import logger
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener, register_payment_listener
 
-from .crud import get_hedges
 from ...helpers import get_current_extension_name
+from .crud import get_hedges
 
 
 async def wait_for_sent_payments():

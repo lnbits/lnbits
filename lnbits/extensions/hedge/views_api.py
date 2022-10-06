@@ -8,14 +8,7 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import hedge_ext
-from .crud import (
-    create_hedge,
-    delete_hedge,
-    get_hedge,
-    get_hedges,
-    update_hedge,
-)
-
+from .crud import create_hedge, delete_hedge, get_hedge, get_hedges, update_hedge
 from .models import createHedgedWallet
 
 
