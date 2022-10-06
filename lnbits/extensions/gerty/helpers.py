@@ -4,6 +4,9 @@ from loguru import logger
 
 from .number_prefixer import *
 
+def get_percent_difference(current, previous, precision=4):
+    difference = (current - previous) / current * 100
+    return "{0}{1}%".format("+" if difference > 0 else "", round(difference, precision))
 
 # A helper function get a nicely formated dict for the text
 def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
@@ -43,8 +46,8 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     return text
 
 # format a number for nice display output
-def format_number(number):
-    return ("{:,}".format(round(number)))
+def format_number(number, precision=None):
+    return ("{:,}".format(round(number, precision)))
 
 
 async def get_mempool_recommended_fees(gerty):
@@ -71,6 +74,51 @@ async def api_get_mining_stat(stat_slug: str, gerty):
                 stat['previous'] = data['difficulty'][len(data['difficulty']) - 2]['difficulty']
     return stat
 
+async def api_get_lightning_stats(gerty):
+    stat = {}
+    if isinstance(gerty.mempool_endpoint, str):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/lightning/statistics/latest")
+            data = r.json()
+    return data
+
+async def get_lightning_stats(gerty):
+    data = await api_get_lightning_stats(gerty)
+    areas = []
+
+    logger.debug(data['latest']['channel_count'])
+
+    text = []
+    text.append(get_text_item_dict("Channel Count", 12))
+    text.append(get_text_item_dict(format_number(data['latest']['channel_count']), 20))
+    difference = get_percent_difference(current=data['latest']['channel_count'],
+                                        previous=data['previous']['channel_count'])
+    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    areas.append(text)
+
+    text = []
+    text.append(get_text_item_dict("Number of Nodes", 12))
+    text.append(get_text_item_dict(format_number(data['latest']['node_count']), 20))
+    difference = get_percent_difference(current=data['latest']['node_count'], previous=data['previous']['node_count'])
+    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    areas.append(text)
+
+    text = []
+    text.append(get_text_item_dict("Total Capacity", 12))
+    avg_capacity = float(data['latest']['total_capacity']) / float(100000000)
+    text.append(get_text_item_dict("{0} BTC".format(format_number(avg_capacity, 2)), 20))
+    difference = get_percent_difference(current=data['latest']['total_capacity'], previous=data['previous']['total_capacity'])
+    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    areas.append(text)
+
+    text = []
+    text.append(get_text_item_dict("Average Channel Capacity", 12))
+    text.append(get_text_item_dict("{0} sats".format(format_number(data['latest']['avg_capacity'])), 20))
+    difference = get_percent_difference(current=data['latest']['avg_capacity'], previous=data['previous']['avg_capacity'])
+    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    areas.append(text)
+
+    return areas
 
 async def get_mining_stat(stat_slug: str, gerty):
     text = []
@@ -81,15 +129,15 @@ async def get_mining_stat(stat_slug: str, gerty):
         text.append(get_text_item_dict("Current Mining Hashrate", 20))
         text.append(get_text_item_dict(current, 40))
         # compare vs previous time period
-        difference = (stat['current'] - stat['1w']) / stat['current'] * 100
-        text.append(get_text_item_dict("{0}{1}% in last 7 days".format("+" if difference > 0 else "", round(difference, 4)), 12))
+        difference = get_percent_difference(current=stat['current'], previous=stat['1w'])
+        text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
     elif stat_slug == "mining_current_difficulty":
         stat = await api_get_mining_stat(stat_slug, gerty)
         text.append(get_text_item_dict("Current Mining Difficulty", 20))
         text.append(get_text_item_dict(format_number(stat['current']), 40))
-        difference = (stat['current'] - stat['previous']) / stat['current'] * 100
-        text.append(
-            get_text_item_dict("{0}{1}% since last adjustment".format("+" if difference > 0 else "", round(difference, 4)),
-                               15))
+        difference = get_percent_difference(current=stat['current'], previous=stat['previous'])
+        text.append(get_text_item_dict("{0} since last adjustment".format(difference), 12))
         # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
     return text
+
+

@@ -133,16 +133,10 @@ async def api_gerty_json(
             enabled_screens.append(screen_slug)
 
     logger.debug("Screeens " + str(enabled_screens))
-    text = await get_screen_text(p, enabled_screens, gerty)
+    data = await get_screen_data(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
 
-    # ln = []
-    # if gerty.ln_stats and isinstance(gerty.mempool_endpoint, str):
-    #     async with httpx.AsyncClient() as client:
-    #         r = await client.get(gerty.mempool_endpoint + "/api/v1/lightning/statistics/latest")
-    #         if r:
-    #             ln.append(r.json())
 
     return {
         "settings": {
@@ -155,7 +149,8 @@ async def api_gerty_json(
         "screen": {
             "slug": get_screen_slug_by_index(p, enabled_screens),
             "group": get_screen_slug_by_index(p, enabled_screens),
-            "areas": text
+            "title": data['title'],
+            "areas": data['areas']
         }
     }
 
@@ -166,12 +161,14 @@ def get_screen_slug_by_index(index: int, screens_list):
 
 
 # Get a list of text items for the screen number
-async def get_screen_text(screen_num: int, screens_list: dict, gerty):
+async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     screen_slug = get_screen_slug_by_index(screen_num, screens_list)
     # first get the relevant slug from the display_preferences
     logger.debug('screen_slug')
     logger.debug(screen_slug)
     areas = []
+    title = ""
+
     if screen_slug == "dashboard":
         areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
@@ -198,20 +195,15 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
         areas.append(await get_mining_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_difficulty":
         areas.append(await get_mining_stat(screen_slug, gerty))
-    elif screen_slug == "lightning_channel_count":
-        areas.append(await get_placeholder_text())
-    elif screen_slug == "lightning_node_count":
-        areas.append(await get_placeholder_text())
-    elif screen_slug == "lightning_tor_node_count":
-        areas.append(await get_placeholder_text())
-    elif screen_slug == "lightning_clearnet_nodes":
-        areas.append(await get_placeholder_text())
-    elif screen_slug == "lightning_unannounced_nodes":
-        areas.append(await get_placeholder_text())
-    elif screen_slug == "lightning_average_channel_capacity":
-        areas.append(await get_placeholder_text())
+    elif screen_slug == "lightning_dashboard":
+        title = "Lightning Network"
+        areas = await get_lightning_stats(gerty)
 
-    return areas
+    data = {}
+    data['title'] = title
+    data['areas'] = areas
+
+    return data
 
 # Get the dashboard screen
 async def get_dashboard(gerty):

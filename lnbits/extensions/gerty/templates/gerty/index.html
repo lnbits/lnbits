@@ -305,40 +305,8 @@
                             label="Lightning Network"
                     >
                         <q-toggle
-                                v-model="toggleStates.lightning"
-                                label="Toggle all"
-                        >
-                            <q-tooltip>Toggle all</q-tooltip>
-                        </q-toggle>
-                        <br>
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_channel_count"
-                                label="Channel count"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_node_count"
-                                label="Number of nodes"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_tor_node_count"
-                                label="Number of Tor nodes"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_clearnet_nodes"
-                                label="Number of clearnet nodes"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_unannounced_nodes"
-                                label="Number of unannounced nodes"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_average_channel_capacity"
-                                label="Average channel capacity"
+                                v-model="formDialog.data.display_preferences.lightning_dashboard"
+                                label="Lightning Dashboard"
                         ></q-toggle>
                     </q-expansion-item>
                     <div class="row q-mt-lg">
@@ -614,12 +582,7 @@
                                 mempool_tx_count: true,
                                 mining_current_hash_rate: true,
                                 mining_current_difficulty: true,
-                                lightning_channel_count: true,
-                                lightning_node_count: true,
-                                lightning_tor_node_count: true,
-                                lightning_clearnet_nodes: true,
-                                lightning_unannounced_nodes: true,
-                                lightning_average_channel_capacity: true,
+                                lightning_dashboard: true
                             },
                             lnbits_wallets: [],
                             mempool_endpoint: "https://mempool.space",
