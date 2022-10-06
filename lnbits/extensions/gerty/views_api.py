@@ -289,7 +289,7 @@ async def get_pieter_wuille_fact():
     quote = await api_gerty_wuille()
     if quote:
         text.append(get_text_item_dict(quote, 15))
-        text.append(get_text_item_dict("Pieter Wuille facts", 15))
+        # text.append(get_text_item_dict("Pieter Wuille facts", 15))
     return text
 
 

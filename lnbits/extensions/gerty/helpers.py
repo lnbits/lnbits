@@ -91,5 +91,5 @@ async def get_mining_stat(stat_slug: str, gerty):
         text.append(
             get_text_item_dict("{0}{1}% since last adjustment".format("+" if difference > 0 else "", round(difference, 4)),
                                15))
-        text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
+        # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
     return text
