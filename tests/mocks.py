@@ -4,7 +4,6 @@ from lnbits import bolt11
 from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus, StatusResponse
 from lnbits.wallets.fake import FakeWallet
-
 from .helpers import get_random_string, is_fake
 
 

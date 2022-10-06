@@ -1,7 +1,6 @@
 import json
 import secrets
 
-import pytest
 import pytest_asyncio
 
 from lnbits.core.crud import create_account, create_wallet

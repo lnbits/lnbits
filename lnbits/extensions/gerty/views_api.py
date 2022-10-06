@@ -395,14 +395,7 @@ async def get_mempool_recommended_fees(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/recommended")
-            logger.debug('fees')
-            logger.debug(r)
-    return {
-        # "high": r.fastestFee,
-        # "medium": r.halfHourFee,
-        # "low": r.hourFee,
-        # "none": r.economyFee,
-    }
+    return r.json()
 
 
 async def get_mempool_stat(stat_slug: str, gerty):
@@ -420,8 +413,41 @@ async def get_mempool_stat(stat_slug: str, gerty):
             elif (
                 stat_slug == "mempool_recommended_fees"
             ):
+                y_offset = 60
                 fees = await get_mempool_recommended_fees(gerty)
-                logger.debug(fees)
+                pos_y = 80 + y_offset
+                text.append(get_text_item_dict("mempool.space", 40, 160, pos_y))
+                pos_y = 180 + y_offset
+                text.append(get_text_item_dict("Recommended Tx Fees", 20, 240, pos_y))
+
+                pos_y = 280 + y_offset
+                text.append(get_text_item_dict("{0}".format("No Priority"), 15, 30, pos_y))
+                text.append(get_text_item_dict("{0}".format("Low Priority"), 15, 235, pos_y))
+                text.append(get_text_item_dict("{0}".format("Medium Priority"), 15, 460, pos_y))
+                text.append(get_text_item_dict("{0}".format("High Priority"), 15, 750, pos_y))
+
+                pos_y = 340 + y_offset
+                font_size = 15
+                fee_append = "/vB"
+                fee_rate = fees["economyFee"]
+                text.append(get_text_item_dict(
+                    "{0} {1}{2}".format(format_number(fee_rate), ("sat" if fee_rate == 1 else "sats"), fee_append), font_size,
+                    30, pos_y))
+
+                fee_rate = fees["hourFee"]
+                text.append(get_text_item_dict(
+                    "{0} {1}{2}".format(format_number(fee_rate), ("sat" if fee_rate == 1 else "sats"), fee_append), font_size,
+                    235, pos_y))
+
+                fee_rate = fees["halfHourFee"]
+                text.append(get_text_item_dict(
+                    "{0} {1}{2}".format(format_number(fee_rate), ("sat" if fee_rate == 1 else "sats"), fee_append), font_size,
+                    460, pos_y))
+
+                fee_rate = fees["fastestFee"]
+                text.append(get_text_item_dict(
+                    "{0} {1}{2}".format(format_number(fee_rate), ("sat" if fee_rate == 1 else "sats"), fee_append), font_size,
+                    750, pos_y))
     return text
 
 def get_date_suffix(dayNumber):

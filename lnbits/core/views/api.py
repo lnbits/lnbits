@@ -5,7 +5,7 @@ import json
 import time
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -17,7 +17,7 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import HTMLResponse, StreamingResponse
+from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
@@ -34,7 +34,6 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
-
 from .. import core_app, db
 from ..crud import (
     create_payment,
