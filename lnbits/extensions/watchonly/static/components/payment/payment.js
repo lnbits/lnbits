@@ -11,7 +11,8 @@ async function payment(path) {
       'mempool-endpoint',
       'sats-denominated',
       'serial-signer-ref',
-      'adminkey'
+      'adminkey',
+      'network'
     ],
     watch: {
       immediate: true,
@@ -279,7 +280,8 @@ async function payment(path) {
             this.adminkey,
             {
               psbtBase64,
-              inputs: this.tx.inputs
+              inputs: this.tx.inputs,
+              network: this.network
             }
           )
           return data

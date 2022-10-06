@@ -49,7 +49,7 @@
       <q-item
         v-for="device in pairedDevices"
         :key="device.id"
-        v-if="!selectedPort"
+        v-if="!selectedPort && showPairedDevices"
         clickable
         v-close-popup
       >
