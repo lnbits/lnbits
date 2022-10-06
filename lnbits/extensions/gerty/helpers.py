@@ -1,5 +1,6 @@
 import httpx
 import textwrap
+from loguru import logger
 
 from .number_prefixer import *
 
@@ -57,9 +58,17 @@ async def api_get_mining_stat(stat_slug: str, gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             if stat_slug == "mining_current_hash_rate":
-                r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/3d")
+                r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
                 data = r.json()
-                stat = data['currentHashrate']
+                stat = {}
+                stat['current'] = data['currentHashrate']
+                stat['1w'] = data['hashrates'][len(data['hashrates']) - 7]['avgHashrate']
+            elif stat_slug == "mining_current_difficulty":
+                r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
+                data = r.json()
+                stat = {}
+                stat['current'] = data['currentDifficulty']
+                stat['previous'] = data['difficulty'][len(data['difficulty']) - 2]['difficulty']
     return stat
 
 
@@ -67,7 +76,20 @@ async def get_mining_stat(stat_slug: str, gerty):
     text = []
     if stat_slug == "mining_current_hash_rate":
         stat = await api_get_mining_stat(stat_slug, gerty)
-        stat = "{0}hash".format(si_format(stat, 6, True, " "))
-        text.append(get_text_item_dict("Current Hashrate", 20))
-        text.append(get_text_item_dict(stat, 40))
+        logger.debug(stat)
+        current = "{0}hash".format(si_format(stat['current'], 6, True, " "))
+        text.append(get_text_item_dict("Current Mining Hashrate", 20))
+        text.append(get_text_item_dict(current, 40))
+        # compare vs previous time period
+        difference = (stat['current'] - stat['1w']) / stat['current'] * 100
+        text.append(get_text_item_dict("{0}{1}% in last 7 days".format("+" if difference > 0 else "", round(difference, 4)), 12))
+    elif stat_slug == "mining_current_difficulty":
+        stat = await api_get_mining_stat(stat_slug, gerty)
+        text.append(get_text_item_dict("Current Mining Difficulty", 20))
+        text.append(get_text_item_dict(format_number(stat['current']), 40))
+        difference = (stat['current'] - stat['previous']) / stat['current'] * 100
+        text.append(
+            get_text_item_dict("{0}{1}% since last adjustment".format("+" if difference > 0 else "", round(difference, 4)),
+                               15))
+        text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
     return text

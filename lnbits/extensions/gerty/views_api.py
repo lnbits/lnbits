@@ -197,7 +197,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "mining_current_hash_rate":
         areas.append(await get_mining_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_difficulty":
-        areas.append(await get_placeholder_text())
+        areas.append(await get_mining_stat(screen_slug, gerty))
     elif screen_slug == "lightning_channel_count":
         areas.append(await get_placeholder_text())
     elif screen_slug == "lightning_node_count":
