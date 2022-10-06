@@ -170,6 +170,7 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     title = ""
 
     if screen_slug == "dashboard":
+        title = gerty.name
         areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
         wallets = await get_lnbits_wallet_balances(gerty)
