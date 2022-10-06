@@ -190,7 +190,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_difficulty_epoch_time_remaining":
         areas.append(await get_onchain_stat(screen_slug, gerty))
     elif screen_slug == "mempool_recommended_fees":
-        areas.append(await get_placeholder_text())
+        areas.append(await get_mempool_stat(screen_slug, gerty))
     elif screen_slug == "mempool_tx_count":
         areas.append(await get_mempool_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_hash_rate":
@@ -395,10 +395,13 @@ async def get_mempool_recommended_fees(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/recommended")
+            logger.debug('fees')
+            logger.debug(r)
     return {
-        "high": r.fastestFee,
-        "medium": r.halfHourFee,
-        "low": r.economyFee,
+        # "high": r.fastestFee,
+        # "medium": r.halfHourFee,
+        # "low": r.hourFee,
+        # "none": r.economyFee,
     }
 
 
@@ -414,6 +417,11 @@ async def get_mempool_stat(stat_slug: str, gerty):
                     stat = round(r.json()['count'])
                     text.append(get_text_item_dict("Transactions in the mempool", 15))
                     text.append(get_text_item_dict("{0}".format(format_number(stat)), 80))
+            elif (
+                stat_slug == "mempool_recommended_fees"
+            ):
+                fees = await get_mempool_recommended_fees(gerty)
+                logger.debug(fees)
     return text
 
 def get_date_suffix(dayNumber):
