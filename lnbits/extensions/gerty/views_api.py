@@ -1,7 +1,6 @@
 import math
 from http import HTTPStatus
 import json
-import textwrap
 import httpx
 import random
 import os
@@ -196,7 +195,7 @@ async def get_screen_text(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "mempool_tx_count":
         areas.append(await get_mempool_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_hash_rate":
-        areas.append(await get_placeholder_text())
+        areas.append(await get_mining_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_difficulty":
         areas.append(await get_placeholder_text())
     elif screen_slug == "lightning_channel_count":
@@ -309,42 +308,7 @@ async def get_exchange_rate(gerty):
     return text
 
 
-# A helper function get a nicely formated dict for the text
-def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
-    # Get line size by font size
-    line_width = 60
-    if font_size <= 12:
-        line_width = 75
-    elif font_size <= 15:
-        line_width = 58
-    elif font_size <= 20:
-        line_width = 40
-    elif font_size <= 40:
-        line_width = 30
-    else:
-        line_width = 20
 
-    #  wrap the text
-    wrapper = textwrap.TextWrapper(width=line_width)
-    word_list = wrapper.wrap(text=text)
-    # logger.debug("number of chars = {0}".format(len(text)))
-
-    multilineText = '\n'.join(word_list)
-    # logger.debug("number of lines = {0}".format(len(word_list)))
-
-    # logger.debug('multilineText')
-    # logger.debug(multilineText)
-
-    text = {
-        "value": multilineText,
-        "size": font_size
-    }
-    if x_pos is None and y_pos is None:
-        text['position'] = 'center'
-    else:
-        text['x'] = x_pos
-        text['y'] = y_pos
-    return text
 
 
 async def get_onchain_stat(stat_slug: str, gerty):
@@ -392,7 +356,6 @@ async def get_block_height(gerty):
             r = await client.get(gerty.mempool_endpoint + "/api/blocks/tip/height")
 
     return r.json()
-
 
 async def get_mempool_stat(stat_slug: str, gerty):
     text = []
@@ -451,11 +414,6 @@ def get_date_suffix(dayNumber):
         return "th"
     else:
         return ["st", "nd", "rd"][dayNumber % 10 - 1]
-
-# format a number for nice display output
-def format_number(number):
-    return ("{:,}".format(round(number)))
-
 
 def get_time_remaining(seconds, granularity=2):
 
