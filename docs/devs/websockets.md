@@ -9,7 +9,7 @@ nav_order: 2
 Websockets
 =================
 
-`websockets` are a great way to add a two way instant data channel between server and client. This example was taken from teh copilot extension, we create a websocket endpoint which can be restricted by `id`, then can feed it data to broadcast to any client on the socket using the `updater(extension_id, data)` function (`extension` has been used in place of an extension name, wreplace to your own extension):
+`websockets` are a great way to add a two way instant data channel between server and client. This example was taken from the `copilot` extension, we create a websocket endpoint which can be restricted by `id`, then can feed it data to broadcast to any client on the socket using the `updater(extension_id, data)` function (`extension` has been used in place of an extension name, wreplace to your own extension):
 
 
 ```sh
