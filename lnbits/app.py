@@ -35,7 +35,6 @@ from .tasks import (
     internal_invoice_listener,
     incoming_payment_listener,
     outgoing_payment_listener,
-    run_deferred_async,
     webhook_handler,
 )
 
@@ -187,7 +186,7 @@ def register_async_tasks(app):
         loop.create_task(catch_everything_and_restart(outgoing_payment_listener))
         loop.create_task(catch_everything_and_restart(internal_invoice_listener))
         await register_task_listeners()
-        await run_deferred_async()
+        # await run_deferred_async() # calle: doesn't do anyting?
 
     @app.on_event("shutdown")
     async def stop_listeners():

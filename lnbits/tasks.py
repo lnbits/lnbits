@@ -1,8 +1,9 @@
 import asyncio
 import time
 import traceback
+import uuid
 from http import HTTPStatus
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -17,20 +18,6 @@ from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.settings import WALLET
 
 from .core import db
-
-deferred_async: List[Callable] = []
-
-
-def record_async(func: Callable) -> Callable:
-    def recorder(state):
-        deferred_async.append(func)
-
-    return recorder
-
-
-async def run_deferred_async():
-    for func in deferred_async:
-        asyncio.create_task(catch_everything_and_restart(func))
 
 
 async def catch_everything_and_restart(func):
@@ -50,27 +37,59 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-invoice_listeners: List[asyncio.Queue] = []
-payment_listeners: List[asyncio.Queue] = []
+class SseListenersDict(dict):
+    """
+    A dict of sse listeners.
+    """
+
+    def __init__(self, name: str = None):
+        self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
+
+    def __setitem__(self, key, value):
+        assert type(key) == str, f"{key} is not a string"
+        assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
+        logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
+        return super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
+        return super().__delitem__(key)
+
+    _RaiseKeyError = object()  # singleton for no-default behavior
+
+    def pop(self, key, v=_RaiseKeyError) -> None:
+        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
+        return super().pop(key)
 
 
-def register_invoice_listener(send_chan: asyncio.Queue):
-    """
-    A method intended for extensions to call when they want to be notified about
-    new invoice payments incoming.
-    """
-    invoice_listeners.append(send_chan)
+invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
+payment_listeners: Dict[str, asyncio.Queue] = SseListenersDict("payment_listeners")
 
 
-def register_payment_listener(send_chan: asyncio.Queue):
+def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     """
-    A method intended for extensions to call when they want to be notified about
-    new outgoing payments.
+    A method intended for extensions (and core/tasks.py) to call when they want to be notified about
+    new invoice payments incoming. Will emit all incoming payments.
     """
-    payment_listeners.append(send_chan)
+    name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
+    logger.trace(f"sse: registering invoice listener {name_unique}")
+    invoice_listeners[name_unique] = send_chan
+
+
+def register_payment_listener(send_chan: asyncio.Queue, name: str = None):
+    """
+    A method intended for extensions (and core/tasks.py) to call when they want to be notified about
+    new sent payments. Will emit all outgoing payments.
+    """
+    name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
+    logger.trace(f"sse: registering invoice listener {name_unique}")
+    payment_listeners[name_unique] = send_chan
 
 
 async def webhook_handler():
+    """
+    Returns the webhook_handler for the selected wallet if present. Used by API.
+    """
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
@@ -81,12 +100,25 @@ internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 
 async def internal_invoice_listener():
+    """
+    internal_invoice_queue will be filled directly in core/services.py
+    after the payment was deemed to be settled internally.
+
+    Called by the app startup sequence.
+    """
     while True:
         checking_id = await internal_invoice_queue.get()
+        logger.info("> got internal payment notification", checking_id)
         asyncio.create_task(payment_callback_dispatcher(checking_id))
 
 
 async def incoming_payment_listener():
+    """
+    invoice_listener will collect all invoices that come directly
+    from the backend wallet.
+
+    Called by the app startup sequence.
+    """
     async for checking_id in WALLET.paid_invoices_stream():
         logger.info("> got incoming payment notification", checking_id)
         asyncio.create_task(payment_callback_dispatcher(checking_id))
@@ -99,6 +131,11 @@ async def outgoing_payment_listener():
 
 
 async def check_pending_payments():
+    """
+    check_pending_payments is called during startup to check for pending payments with
+    the backend and also to delete expired invoices. Incoming payments will be
+    checked only once, outgoing pending payments will be checked regularly.
+    """
     outgoing = True
     incoming = True
 
@@ -148,16 +185,21 @@ async def perform_balance_checks():
 
 
 async def payment_callback_dispatcher(checking_id: str):
+    """
+    Takes incoming payments, sets pending=False, and dispatches them to
+    invoice_listeners from core and extensions.
+    """
     payment = await get_standalone_payment(checking_id)
     if payment and payment.is_in:
-        logger.trace("sending invoice callback for payment", checking_id)
+        logger.trace(f"sse sending callback for incoming payment {checking_id}")
         await payment.set_pending(False)
-        for send_chan in invoice_listeners:
+        for chan_name, send_chan in invoice_listeners.items():
+            logger.trace(f"sse sending to chan: {chan_name}")
             await send_chan.put(payment)
     elif payment and payment.is_out:
-        logger.trace("sending invoice callback for payment", checking_id)
+        logger.trace("sending callback for outgoing payment", checking_id)
         await payment.set_pending(False)
-        for send_chan in payment_listeners:
+        for chan_name, send_chan in payment_listeners.items():
             await send_chan.put(payment)
     else:
         pass

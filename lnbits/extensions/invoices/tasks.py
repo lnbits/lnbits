@@ -2,7 +2,7 @@ import asyncio
 import json
 
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import urlsafe_short_hash, get_current_extension_name
 from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import (
@@ -18,7 +18,7 @@ from .crud import (
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+    register_invoice_listener(invoice_queue, get_current_extension_name())
 
     while True:
         payment = await invoice_queue.get()
