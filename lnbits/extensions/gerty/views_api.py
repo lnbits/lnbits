@@ -20,6 +20,8 @@ from lnbits.core.views.api import api_payment, api_wallet
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from fastapi.templating import Jinja2Templates
 
+from .helpers import *
+
 from . import gerty_ext
 from .crud import create_gerty, update_gerty, delete_gerty, get_gerty, get_gertys
 from .models import Gerty
@@ -389,12 +391,6 @@ async def get_block_height(gerty):
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/blocks/tip/height")
 
-    return r.json()
-
-async def get_mempool_recommended_fees(gerty):
-    if isinstance(gerty.mempool_endpoint, str):
-        async with httpx.AsyncClient() as client:
-            r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/recommended")
     return r.json()
 
 
