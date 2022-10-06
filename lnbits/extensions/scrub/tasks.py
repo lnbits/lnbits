@@ -44,7 +44,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     # I REALLY HATE THIS DUPLICATION OF CODE!! CORE/VIEWS/API.PY, LINE 267
     domain = urlparse(data["callback"]).netloc
     rounded_amount = floor(payment.amount / 1000) * 1000
-    
+
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
@@ -68,7 +68,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
     invoice = bolt11.decode(params["pr"])
-    
+
     if invoice.amount_msat != rounded_amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
