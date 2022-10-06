@@ -18,21 +18,25 @@ If you have problems installing LNbits using these instructions, please have a l
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
-# for making sure python 3.9 is installed, skip if installed
+# for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
-export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
-poetry env use python3.9 # you can exchange with python3.10 or newer versions. Identify your version with python3 --version and specify here
+# Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
+export PATH="/home/user/.local/bin:$PATH" 
+# Next command, you can exchange with python3.10 or newer versions. 
+# Identify your version with python3 --version and specify in the next line
+# command is only needed when your default python is not ^3.9 or ^3.10
+poetry env use python3.9
 poetry install --only main
-poetry run python build.py
 
 mkdir data
 cp .env.example .env
-nano .env # set funding source
+# set funding source amongst other options
+nano .env 
 ```
 
 #### Running the server
@@ -40,6 +44,7 @@ nano .env # set funding source
 ```sh
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+# add --debug for slightly more verbose output
 ```
 
 ## Option 2: Nix
