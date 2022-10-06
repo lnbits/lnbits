@@ -44,7 +44,8 @@ nano .env
 ```sh
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
-# add --debug for slightly more verbose output
+# adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
+# Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
 ## Option 2: Nix
