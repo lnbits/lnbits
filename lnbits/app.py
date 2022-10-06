@@ -79,7 +79,7 @@ def create_app() -> FastAPI:
 
 async def check_funding_source() -> None:
 
-    # original_sigint_handler = signal.getsignal(signal.SIGINT)
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
         logger.debug(f"SIGINT received, terminating LNbits.")
