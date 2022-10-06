@@ -641,12 +641,12 @@ optional = false
 python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-pyln-bolt7 = ">=1.0"
-pyln-proto = ">=0.12"
+pyln-bolt7 = ">=1.0,<2.0"
+pyln-proto = ">=0.11,<0.12"
 
 [[package]]
 name = "pyln-proto"
-version = "0.12.0"
+version = "0.11.1"
 description = "This package implements some of the Lightning Network protocol in pure python. It is intended for protocol testing and some minor tooling only. It is not deemed secure enough to handle any amount of real funds (you have been warned!)."
 category = "main"
 optional = false
@@ -1033,7 +1033,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "a784f77a4848377e2b806cdc546e1b8cb1910fe9b0e4f0865a860663587b06a6"
+content-hash = "e798b36b5941b43ee249bc196fcfb28d8ee712947336d21467651c672ba0106b"
 
 [metadata.files]
 aiofiles = [
@@ -1674,8 +1674,8 @@ pyln-client = [
     {file = "pyln_client-0.11.1-py3-none-any.whl", hash = "sha256:497db443406b80c98c0434e2938eb1b2a17e88fd9aa63b018124068198df6141"},
 ]
 pyln-proto = [
-    {file = "pyln-proto-0.12.0.tar.gz", hash = "sha256:3214d99d8385f2135a94937f0dc1da626a33b257e9ebc320841656edaefabbe5"},
-    {file = "pyln_proto-0.12.0-py3-none-any.whl", hash = "sha256:dedef5d8e476a9ade5a0b2eb919ccc37e4a57f2a78fdc399f1c5e0de17e41604"},
+    {file = "pyln-proto-0.11.1.tar.gz", hash = "sha256:9bed240f41917c4fd526b767218a77d0fbe69242876eef72c35a856796f922d6"},
+    {file = "pyln_proto-0.11.1-py3-none-any.whl", hash = "sha256:27b2e04a81b894f69018279c0ce4aa2e7ccd03b86dd9783f96b9d8d1498c8393"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
