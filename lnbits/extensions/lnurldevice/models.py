@@ -36,7 +36,7 @@ class lnurldevices(BaseModel):
 
     def lnurl(self, req: Request) -> Lnurl:
         url = req.url_for(
-            "lnurldevice.lnurl_response", device_id=self.id, _external=True
+            "lnurldevice.lnurl_v1_params", device_id=self.id
         )
         return lnurl_encode(url)
 

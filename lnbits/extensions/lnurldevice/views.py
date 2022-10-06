@@ -1,4 +1,6 @@
 from http import HTTPStatus
+import pyqrcode
+from io import BytesIO
 
 from fastapi import Request
 from fastapi.param_functions import Query
@@ -14,6 +16,9 @@ from lnbits.decorators import check_user_exists
 
 from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment
+from fastapi import Request, WebSocket, WebSocketDisconnect
+
+from starlette.responses import HTMLResponse, StreamingResponse
 
 templates = Jinja2Templates(directory="templates")
 
@@ -52,6 +57,30 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         {"request": request, "pin": "filler", "not_paid": True},
     )
 
+@lnurldevice_ext.get("/img/{lnurldevice_id}", response_class=StreamingResponse)
+async def img(request: Request, lnurldevice_id):
+    lnurldevice = await get_lnurldevice(lnurldevice_id)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
+        )
+    qr = pyqrcode.create(lnurldevice.lnurl(request))
+    stream = BytesIO()
+    qr.svg(stream, scale=3)
+    stream.seek(0)
+
+    async def _generator(stream: BytesIO):
+        yield stream.getvalue()
+
+    return StreamingResponse(
+        _generator(stream),
+        headers={
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 ##################WEBSOCKET ROUTES########################
 
@@ -96,3 +125,4 @@ async def updater(lnurldevice_id):
     if not lnurldevice:
         return
     await manager.send_personal_message(f"{lnurldevice.amount}", lnurldevice_id)
+

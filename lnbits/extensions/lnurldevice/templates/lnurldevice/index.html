@@ -51,6 +51,7 @@
             <q-tr :props="props">
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -89,6 +90,21 @@
                   color="primary"
                 >
                   <q-tooltip> LNURLDevice Settings </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
+                  v-if="props.row.device == 'switch'"
+                  flat
+                  dense
+                  size="xs"
+                  icon="qr_code"
+                  color="grey"
+                  type="a"
+                  :href="'/lnurldevice/img/' + props.row.id"
+                  target="_blank"
+                >
+                  <q-tooltip> bitcoinSwitch embeddable QRCode </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td
@@ -132,7 +148,21 @@
       class="q-pa-lg q-pt-xl lnbits__dialog-card"
     >
       <div class="text-h6">LNURLDevice device string</div>
+      <center>
       <q-btn
+        v-if="settingsDialog.data.device == 'switch'"
+        dense
+        outline
+        unelevated
+        color="primary"
+        size="md"
+        @click="copyText(wslocation + '/lnurldevice/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+        >{% raw
+        %}{{wslocation}}/lnurldevice/ws/{{settingsDialog.data.id}}{% endraw
+        %}<q-tooltip> Click to copy URL </q-tooltip>
+      </q-btn>
+      <q-btn
+        v-else
         dense
         outline
         unelevated
@@ -145,7 +175,7 @@
         {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
         %}<q-tooltip> Click to copy URL </q-tooltip>
       </q-btn>
-
+    </center>
       <div class="text-subtitle2">
         <small> </small>
       </div>
@@ -191,6 +221,7 @@
           label="Type of device"
         ></q-option-group>
         <q-input
+          v-if="formDialoglnurldevice.data.device != 'switch'"
           filled
           dense
           v-model.trim="formDialoglnurldevice.data.profit"
@@ -198,6 +229,29 @@
           max="90"
           label="Profit margin (% added to invoices/deducted from faucets)"
         ></q-input>
+        <div v-else>
+        <q-input
+          ref="setAmount"
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.profit"
+          class="q-pb-md"
+          :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+          :mask="'#.##'"
+          fill-mask="0"
+          reverse-fill-mask
+          :step="'0.01'"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.amount"
+          type="number"
+          value="1000"
+          label="milesecs to turn Switch on for (1sec = 1000ms)"
+
+        ></q-input>
+      </div>
 
         <div class="row q-mt-lg">
           <q-btn
@@ -253,6 +307,7 @@
     data: function () {
       return {
         location: window.location.hostname,
+        wslocation: window.location.hostname,
         filter: '',
         currency: 'USD',
         lnurldeviceLinks: [],
@@ -265,6 +320,10 @@
           {
             label: 'ATM',
             value: 'atm'
+          },
+          {
+            label: 'Switch',
+            value: 'switch'
           }
         ],
         lnurldevicesTable: {
@@ -334,6 +393,7 @@
             show_price: 'None',
             device: 'pos',
             profit: 2,
+            amount: 1,
             title: ''
           }
         },
@@ -517,6 +577,10 @@
       self.location = [
         window.location.protocol,
         '//',
+        window.location.host
+      ].join('')
+      self.wslocation = [
+        'ws://',
         window.location.host
       ].join('')
       LNbits.api
