@@ -254,7 +254,7 @@ async def get_lnbits_wallet_balances(gerty):
             if wallet:
                 wallets.append({
                     "name": wallet.name,
-                    "balance": wallet.balance_msat,
+                    "balance": wallet.balance_msat / 1000,
                     "inkey": wallet.inkey,
                 })
     return wallets
