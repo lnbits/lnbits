@@ -77,9 +77,7 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} Hedge extension
-        </h6>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Hedge extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -224,8 +222,8 @@
           show: false,
           chain: false,
           data: {
-            ticker: "USD",
-            hedgeuri: "http://localhost:8081",
+            ticker: 'USD',
+            hedgeuri: 'http://localhost:8081'
           }
         }
       }
@@ -233,20 +231,20 @@
     computed: {
       tickerDefault: {
         get() {
-          return this.hedgeDialog.data.ticker;
+          return this.hedgeDialog.data.ticker
         },
         set(val) {
-          this.hedgeDialog.data.ticker = val;
-        },
+          this.hedgeDialog.data.ticker = val
+        }
       },
       hedgeDefault: {
         get() {
-          return this.hedgeDialog.data.hedgeuri;
+          return this.hedgeDialog.data.hedgeuri
         },
         set(val) {
-          this.hedgeDialog.data.hedgeuri = val;
-        },
-      },
+          this.hedgeDialog.data.hedgeuri = val
+        }
+      }
     },
     methods: {
       getWalletLinks: function () {
@@ -272,11 +270,7 @@
         var self = this
 
         LNbits.api
-          .request(
-            'GET',
-            '/hedge/api/v1/hedges',
-            this.g.user.wallets[0].inkey
-          )
+          .request('GET', '/hedge/api/v1/hedges', this.g.user.wallets[0].inkey)
           .then(function (response) {
             self.hedges = response.data.map(function (obj) {
               return mapHedgedWallet(obj)
