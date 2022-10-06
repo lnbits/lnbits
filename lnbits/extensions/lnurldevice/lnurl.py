@@ -102,7 +102,22 @@ async def lnurl_v1_params(
     if device.device == "atm":
         if paymentcheck:
             return {"status": "ERROR", "reason": f"Payment already claimed"}
-
+    if device.device == "switch":
+        lnurldevicepayment = await create_lnurldevicepayment(
+            deviceid=device.id,
+            sats=device.profit,
+        )
+        if not lnurldevicepayment:
+            return {"status": "ERROR", "reason": "Could not create payment."}
+        return {
+            "tag": "payRequest",
+            "callback": request.url_for(
+                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+            ),
+            "minSendable": device.profit * 1000,
+            "maxSendable": device.profit * 1000,
+            "metadata": await device.lnurlpay_metadata(),
+        }
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
 
@@ -205,6 +220,27 @@ async def lnurl_callback(
                 extra={"tag": "withdraw"},
             )
             return {"status": "OK"}
+    if device.device == "switch":
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=device.wallet,
+            amount=lnurldevicepayment.sats / 1000,
+            memo=device.title,
+            unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
+            extra={"tag": "Switch", "id": device.paymentid, "time": device.amount},
+        )
+        lnurldevicepayment = await update_lnurldevicepayment(
+            lnurldevicepayment_id=paymentid, payhash=payment_hash
+        )
+
+        return {
+            "pr": payment_request,
+            "successAction": {
+                "tag": "url",
+                "description": "Check the attached link",
+                "url": request.url_for("lnurldevice.displaypin", paymentid=paymentid),
+            },
+            "routes": [],
+        }
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
@@ -226,5 +262,3 @@ async def lnurl_callback(
         },
         "routes": [],
     }
-
-    return resp.dict()

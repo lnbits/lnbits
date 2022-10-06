@@ -51,3 +51,48 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         "lnurldevice/error.html",
         {"request": request, "pin": "filler", "not_paid": True},
     )
+
+
+##################WEBSOCKET ROUTES########################
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, lnurldevice_id: str):
+        await websocket.accept()
+        websocket.id = lnurldevice_id
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, lnurldevice_id: str):
+        for connection in self.active_connections:
+            if connection.id == lnurldevice_id:
+                await connection.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@lnurldevice_ext.websocket("/ws/{lnurldevice_id}", name="lnurldevice.lnurldevice_by_id")
+async def websocket_endpoint(websocket: WebSocket, lnurldevice_id: str):
+    await manager.connect(websocket, lnurldevice_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+async def updater(lnurldevice_id):
+    lnurldevice = await get_lnurldevice(lnurldevice_id)
+    if not lnurldevice:
+        return
+    await manager.send_personal_message(f"{lnurldevice.amount}", lnurldevice_id)

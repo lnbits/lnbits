@@ -17,6 +17,7 @@ class createLnurldevice(BaseModel):
     currency: str
     device: str
     profit: float
+    amount: int
 
 
 class lnurldevices(BaseModel):
@@ -27,6 +28,7 @@ class lnurldevices(BaseModel):
     currency: str
     device: str
     profit: float
+    amount: int
     timestamp: str
 
     def from_row(cls, row: Row) -> "lnurldevices":
