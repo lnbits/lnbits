@@ -184,22 +184,27 @@ async def lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
         )
-    if pr:
-        if lnurldevicepayment.id != k1:
-            return {"status": "ERROR", "reason": "Bad K1"}
-        if lnurldevicepayment.payhash != "payment_hash":
-            return {"status": "ERROR", "reason": f"Payment already claimed"}
+    if device.device == "atm":
+        if not pr:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
+            )
+        else:
+            if lnurldevicepayment.id != k1:
+                return {"status": "ERROR", "reason": "Bad K1"}
+            if lnurldevicepayment.payhash != "payment_hash":
+                return {"status": "ERROR", "reason": f"Payment already claimed"}
             lnurldevicepayment = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
 
-        await pay_invoice(
-            wallet_id=device.wallet,
-            payment_request=pr,
-            max_sat=lnurldevicepayment.sats / 1000,
-            extra={"tag": "withdraw"},
-        )
-        return {"status": "OK"}
+            await pay_invoice(
+                wallet_id=device.wallet,
+                payment_request=pr,
+                max_sat=lnurldevicepayment.sats / 1000,
+                extra={"tag": "withdraw"},
+            )
+            return {"status": "OK"}
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
