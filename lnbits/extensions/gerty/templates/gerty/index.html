@@ -667,8 +667,8 @@
                             data
                         )
                         .then(function (response) {
-                            self.gertys.push(mapGerty(response.data))
                             self.formDialog.show = false
+                            self.gertys.push(mapGerty(response.data))
                         })
                         .catch(function (error) {
                             LNbits.utils.notifyApiError(error)
@@ -689,8 +689,8 @@
                             self.gertys = _.reject(self.gertys, function (obj) {
                                 return obj.id == data.id
                             })
-                            self.gertys.push(mapGerty(response.data))
                             self.formDialog.show = false
+                            self.gertys.push(mapGerty(response.data))
                         })
                         .catch(function (error) {
                             LNbits.utils.notifyApiError(error)

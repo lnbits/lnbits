@@ -172,7 +172,12 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     if screen_slug == "dashboard":
         areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
-        areas.append(await get_lnbits_wallet_balances(gerty))
+        wallets = await get_lnbits_wallet_balances(gerty)
+        text = []
+        for wallet in wallets:
+            text.append(get_text_item_dict("{0}'s Wallet".format(wallet['name']), 20))
+            text.append(get_text_item_dict("{0} sats".format(format_number(wallet['balance'])), 40))
+        areas.append(text)
     elif screen_slug == "fun_satoshi_quotes":
         areas.append(await get_satoshi_quotes())
     elif screen_slug == "fun_pieter_wuille_facts":
@@ -216,10 +221,11 @@ async def get_dashboard(gerty):
     areas.append(text)
     # balance
     text = []
-    text.append(get_text_item_dict("Alice's wallet balance", 15))
-    text.append(get_text_item_dict("102,101", 40))
-    text.append(get_text_item_dict("Bob's wallet balance", 15))
-    text.append(get_text_item_dict("102", 40))
+    wallets = await get_lnbits_wallet_balances(gerty)
+    text = []
+    for wallet in wallets:
+        text.append(get_text_item_dict("{0}'s Wallet".format(wallet['name']), 15))
+        text.append(get_text_item_dict("{0} sats".format(format_number(wallet['balance'])), 40))
     areas.append(text)
 
     # Mempool fees
@@ -240,21 +246,17 @@ async def get_dashboard(gerty):
 async def get_lnbits_wallet_balances(gerty):
     # Get Wallet info
     wallets = []
-    text = []
     if gerty.lnbits_wallets != "":
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
-
             wallet = await get_wallet_for_key(key=lnbits_wallet)
-            logger.debug(wallet)
+            logger.debug(wallet.name)
             if wallet:
-                # wallets.append({
-                #     "name": wallet.name,
-                #     "balance": wallet.balance_msat,
-                #     "inkey": wallet.inkey,
-                # })
-                text.append(get_text_item_dict(wallet.name, 20))
-                text.append(get_text_item_dict(format_number(wallet.balance_msat), 40))
-    return text
+                wallets.append({
+                    "name": wallet.name,
+                    "balance": wallet.balance_msat,
+                    "inkey": wallet.inkey,
+                })
+    return wallets
 
 
 async def get_placeholder_text():
