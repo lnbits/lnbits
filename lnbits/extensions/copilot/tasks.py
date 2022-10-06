@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
+from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
@@ -15,7 +16,7 @@ from .views import updater
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+    register_invoice_listener(invoice_queue, get_current_extension_name())
 
     while True:
         payment = await invoice_queue.get()

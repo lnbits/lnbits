@@ -63,7 +63,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@copilot_ext.websocket("/copilot/ws/{copilot_id}", name="copilot.websocket_by_id")
+@copilot_ext.websocket("/ws/{copilot_id}", name="copilot.websocket_by_id")
 async def websocket_endpoint(websocket: WebSocket, copilot_id: str):
     await manager.connect(websocket, copilot_id)
     try:

@@ -81,31 +81,41 @@ class ClicheWallet(Wallet):
                 data["result"]["invoice"],
             )
         else:
-            return InvoiceResponse(
-                False, checking_id, payment_request, "Could not get payment hash"
-            )
+            return InvoiceResponse(False, None, None, "Could not get payment hash")
 
         return InvoiceResponse(True, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
-        r = ws.recv()
-        data = json.loads(r)
-        checking_id = None
-        error_message = None
+        for _ in range(2):
+            r = ws.recv()
+            data = json.loads(r)
+            checking_id, fee_msat, preimage, error_message, payment_ok = (
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
 
-        if data.get("error") is not None and data["error"].get("message"):
-            logger.error(data["error"]["message"])
-            error_message = data["error"]["message"]
-            return PaymentResponse(False, None, 0, error_message)
+            if data.get("error") is not None:
+                error_message = data["error"].get("message")
+                return PaymentResponse(False, None, None, None, error_message)
 
-        if data.get("result") is not None and data["result"].get("payment_hash"):
-            checking_id = data["result"]["payment_hash"]
-        else:
-            return PaymentResponse(False, checking_id, 0, "Could not get payment hash")
+            if data.get("method") == "payment_succeeded":
+                payment_ok = True
+                checking_id = data["params"]["payment_hash"]
+                fee_msat = data["params"]["fee_msatoshi"]
+                preimage = data["params"]["preimage"]
+                continue
 
-        return PaymentResponse(True, checking_id, 0, error_message)
+            if data.get("result") is None:
+                return PaymentResponse(None)
+
+        return PaymentResponse(
+            payment_ok, checking_id, fee_msat, preimage, error_message
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
@@ -129,22 +139,30 @@ class ClicheWallet(Wallet):
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
             return PaymentStatus(None)
-
+        payment = data["result"]
         statuses = {"pending": None, "complete": True, "failed": False}
-        return PaymentStatus(statuses[data["result"]["status"]])
+        return PaymentStatus(
+            statuses[payment["status"]],
+            payment.get("fee_msatoshi"),
+            payment.get("preimage"),
+        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        try:
-            ws = await create_connection(self.endpoint)
-            while True:
-                r = await ws.recv()
-                data = json.loads(r)
-                try:
-                    if data["result"]["status"]:
-                        yield data["result"]["payment_hash"]
-                except:
-                    continue
-        except:
-            pass
-            logger.error("lost connection to cliche's websocket, retrying in 5 seconds")
-            await asyncio.sleep(5)
+        while True:
+            try:
+                ws = await create_connection(self.endpoint)
+                while True:
+                    r = await ws.recv()
+                    data = json.loads(r)
+                    print(data)
+                    try:
+                        if data["result"]["status"]:
+                            yield data["result"]["payment_hash"]
+                    except:
+                        continue
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to cliche's invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
+                continue

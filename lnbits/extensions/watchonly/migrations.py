@@ -93,3 +93,10 @@ async def m006_drop_mempool_table(db):
     Mempool data is now part of `config`
     """
     await db.execute("DROP TABLE watchonly.mempool;")
+
+
+async def m007_add_wallet_meta_data(db):
+    """
+    Add 'meta' for storing various metadata about the wallet
+    """
+    await db.execute("ALTER TABLE watchonly.wallets ADD COLUMN meta TEXT DEFAULT '{}';")

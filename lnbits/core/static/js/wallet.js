@@ -232,6 +232,9 @@ new Vue({
         generateChart(this.$refs.canvas, this.payments)
       })
     },
+    focusInput(el) {
+      this.$nextTick(() => this.$refs[el].focus())
+    },
     showReceiveDialog: function () {
       this.receive.show = true
       this.receive.status = 'pending'
@@ -243,6 +246,7 @@ new Vue({
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
+      this.focusInput('setAmount')
     },
     showParseDialog: function () {
       this.parse.show = true
@@ -365,9 +369,9 @@ new Vue({
     decodeRequest: function () {
       this.parse.show = true
       let req = this.parse.data.request.toLowerCase()
-      if (this.parse.data.request.startsWith('lightning:')) {
+      if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
-      } else if (this.parse.data.request.startsWith('lnurl:')) {
+      } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
@@ -671,7 +675,7 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = this.paymentsTable.columns
+      let columns = structuredClone(this.paymentsTable.columns)
       columns.unshift({
         name: 'pending',
         align: 'left',

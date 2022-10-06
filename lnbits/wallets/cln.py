@@ -110,29 +110,38 @@ class CoreLightningWallet(Wallet):
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
-            logger.error("RPC error:", error_message)
+            error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
-            logger.error("error:", e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
+
+        previous_payment = await self.get_payment_status(invoice.payment_hash)
+        if previous_payment.paid:
+            return PaymentResponse(False, None, None, None, "invoice already paid")
+
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
 
         payload = {
             "bolt11": bolt11,
             "maxfeepercent": "{:.11}".format(fee_limit_percent),
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee under 5000 millisatoshi (which is default value of exemptfee)
+            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
         }
         try:
             wrapped = async_wrap(_pay_invoice)
             r = await wrapped(self.ln, payload)
+        except RpcError as exc:
+            try:
+                error_message = exc.error["attempts"][-1]["fail_reason"]
+            except:
+                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+            return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
-            return PaymentResponse(False, None, 0, None, str(exc))
+            return PaymentResponse(False, None, None, None, str(exc))
 
-        fee_msat = r["msatoshi_sent"] - r["msatoshi"]
+        fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
         return PaymentResponse(
             True, r["payment_hash"], fee_msat, r["payment_preimage"], None
         )
@@ -144,9 +153,16 @@ class CoreLightningWallet(Wallet):
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
-        if r["invoices"][0]["payment_hash"] == checking_id:
-            return PaymentStatus(r["invoices"][0]["status"] == "paid")
-        raise KeyError("supplied an invalid checking_id")
+
+        invoice_resp = r["invoices"][-1]
+
+        if invoice_resp["payment_hash"] == checking_id:
+            if invoice_resp["status"] == "paid":
+                return PaymentStatus(True)
+            elif invoice_resp["status"] == "unpaid":
+                return PaymentStatus(None)
+        logger.warning(f"supplied an invalid checking_id: {checking_id}")
+        return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -155,14 +171,21 @@ class CoreLightningWallet(Wallet):
             return PaymentStatus(None)
         if not r["pays"]:
             return PaymentStatus(None)
-        if r["pays"][0]["payment_hash"] == checking_id:
-            status = r["pays"][0]["status"]
+        payment_resp = r["pays"][-1]
+
+        if payment_resp["payment_hash"] == checking_id:
+            status = payment_resp["status"]
             if status == "complete":
-                return PaymentStatus(True)
+                fee_msat = -int(
+                    payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
+                )
+
+                return PaymentStatus(True, fee_msat, payment_resp["preimage"])
             elif status == "failed":
                 return PaymentStatus(False)
             return PaymentStatus(None)
-        raise KeyError("supplied an invalid checking_id")
+        logger.warning(f"supplied an invalid checking_id: {checking_id}")
+        return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

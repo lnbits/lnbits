@@ -9,8 +9,10 @@ from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
 from pydantic import BaseModel
 
+from lnbits.db import Connection
 from lnbits.helpers import url_for
 from lnbits.settings import WALLET
+from lnbits.wallets.base import PaymentStatus
 
 
 class Wallet(BaseModel):
@@ -128,8 +130,21 @@ class Payment(BaseModel):
 
     @property
     def is_uncheckable(self) -> bool:
-        return self.checking_id.startswith("temp_") or self.checking_id.startswith(
-            "internal_"
+        return self.checking_id.startswith("internal_")
+
+    async def update_status(
+        self,
+        status: PaymentStatus,
+        conn: Optional[Connection] = None,
+    ) -> None:
+        from .crud import update_payment_details
+
+        await update_payment_details(
+            checking_id=self.checking_id,
+            pending=status.pending,
+            fee=status.fee_msat,
+            preimage=status.preimage,
+            conn=conn,
         )
 
     async def set_pending(self, pending: bool) -> None:
@@ -137,9 +152,12 @@ class Payment(BaseModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_pending(self) -> None:
+    async def check_status(
+        self,
+        conn: Optional[Connection] = None,
+    ) -> PaymentStatus:
         if self.is_uncheckable:
-            return
+            return PaymentStatus(None)
 
         logger.debug(
             f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
@@ -153,20 +171,21 @@ class Payment(BaseModel):
         logger.debug(f"Status: {status}")
 
         if self.is_out and status.failed:
-            logger.info(
+            logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )
-            await self.delete()
+            await self.delete(conn)
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
-            await self.set_pending(status.pending)
+            await self.update_status(status, conn=conn)
+        return status
 
-    async def delete(self) -> None:
+    async def delete(self, conn: Optional[Connection] = None) -> None:
         from .crud import delete_payment
 
-        await delete_payment(self.checking_id)
+        await delete_payment(self.checking_id, conn=conn)
 
 
 class BalanceCheck(BaseModel):

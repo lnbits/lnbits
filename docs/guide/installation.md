@@ -10,7 +10,9 @@ You can choose between four package managers, `poetry`, `nix` and `venv`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: poetry
+## Option 1 (recommended): poetry
+
+If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -26,12 +28,11 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
 poetry env use python3.9
 poetry install --no-dev
+poetry run python build.py
 
 mkdir data
 cp .env.example .env
-sudo nano .env # set funding source
-
-
+nano .env # set funding source
 ```
 
 #### Running the server
@@ -95,6 +96,80 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
 
+## Option 5: Fly.io
+
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+
+After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
+
+```
+flyctl was installed successfully to /home/ubuntu/.fly/bin/flyctl
+Manually add the directory to your $HOME/.bash_profile (or similar)
+  export FLYCTL_INSTALL="/home/ubuntu/.fly"
+  export PATH="$FLYCTL_INSTALL/bin:$PATH"
+```
+
+You can either run those commands, then `source ~/.bash_profile` or, if you don't, you'll have to call Fly from `~/.fly/bin/flyctl`.
+
+Once installed, run the following commands.
+
+```
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+fly auth login
+[complete login process]
+fly launch
+```
+
+You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
+
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+
+Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+
+Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
+
+```
+...
+kill_timeout = 30
+...
+
+...
+[mounts]
+  source="lnbits_data"
+  destination="/data"
+...
+
+...
+[env]
+  HOST="127.0.0.1"
+  PORT=5000
+  LNBITS_FORCE_HTTPS=true
+  LNBITS_DATA_FOLDER="/data"
+  
+  ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
+...
+
+...
+[[services]]
+  internal_port = 5000
+...
+```
+
+Next, create a volume to store the sqlite database for LNBits. Be sure to choose the same region for the volume that you chose earlier.
+
+```
+fly volumes create lnbits_data --size 1
+```
+
+You're ready to deploy! Run `fly deploy` and follow the steps to finish deployment. You'll select a `region` (up to you, choose the same as you did for the storage volume previously created), `postgres` (choose no), `deploy` (choose yes).
+
+You can use `fly logs` to view the application logs, or `fly ssh console` to get a ssh shell in the running container.
+
 ### Troubleshooting
 
 Problems installing? These commands have helped us install LNbits.
@@ -102,13 +177,15 @@ Problems installing? These commands have helped us install LNbits.
 ```sh
 sudo apt install pkg-config libffi-dev libpq-dev
 
+# build essentials for debian/ubuntu
+sudo apt install python3.9-dev gcc build-essential
+
 # if the secp256k1 build fails:
-# if you used venv
-./venv/bin/pip install setuptools wheel
 # if you used poetry
 poetry add setuptools wheel
-# build essentials for debian/ubuntu
-sudo apt install python3-dev gcc build-essential
+
+# if you used venv
+./venv/bin/pip install setuptools wheel
 ```
 
 ### Optional: PostgreSQL database
@@ -214,6 +291,43 @@ Save the file and run the following commands:
 ```sh
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
+```
+## Reverse proxy with automatic https using Caddy
+
+Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
+
+Point your domain at the IP of the server you're running LNbits on, by making an `A` record.
+
+Install Caddy on the server
+https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+
+```
+sudo caddy stop
+```
+Create a Caddyfile
+```
+sudo nano Caddyfile
+```
+Assuming your LNbits is running on port `5000` add:
+```
+yourdomain.com {
+  handle /api/v1/payments/sse* {
+    reverse_proxy 0.0.0.0:5000 {
+      header_up X-Forwarded-Host yourdomain.com
+      transport http {
+         keepalive off
+         compression off
+      }
+    }
+  }
+  reverse_proxy 0.0.0.0:5000 {
+    header_up X-Forwarded-Host yourdomain.com
+  }
+}
+```
+Save and exit `CTRL + x`
+```
+sudo caddy start
 ```
 
 ## Running behind an apache2 reverse proxy over https
