@@ -1,3 +1,5 @@
+import datetime
+import pytz
 import httpx
 import textwrap
 from loguru import logger
@@ -140,4 +142,9 @@ async def get_mining_stat(stat_slug: str, gerty):
         # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
     return text
 
-
+def get_next_update_time(sleep_time_seconds: int = 0, timezone: str = "Europe/London"):
+    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
+    next_refresh_time = utc_now + datetime.timedelta(0, sleep_time_seconds)
+    local_refresh_time = next_refresh_time.astimezone(pytz.timezone(timezone))
+    # datetime.fromtimestamp(time.time()).strftime("%e %b %Y at %H:%M")
+    return "Next update at {0}".format(local_refresh_time.strftime("%H:%M on%e %b %Y"))
