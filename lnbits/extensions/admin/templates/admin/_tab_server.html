@@ -8,11 +8,11 @@
           <p>Server Info</p>
           <ul>
             {%raw%}
-            <li v-if="data.settings.lnbits_data_folder">
-              SQlite: {{data.settings.lnbits_data_folder}}
+            <li v-if="settings.lnbits_data_folder">
+              SQlite: {{settings.lnbits_data_folder}}
             </li>
-            <li v-if="data.settings.lnbits_database_url">
-              Postgres: {{data.settings.lnbits_database_url}}
+            <li v-if="settings.lnbits_database_url">
+              Postgres: {{settings.lnbits_database_url}}
             </li>
             {%endraw%}
           </ul>
@@ -25,7 +25,7 @@
           <q-input
             filled
             type="number"
-            v-model.number="data.settings.lnbits_service_fee"
+            v-model.number="formData.lnbits_service_fee"
             label="Service fee (%)"
             step="0.1"
             hint="Fee charged per tx (%)"
@@ -42,7 +42,7 @@
             <q-item-section avatar>
               <q-toggle
                 size="md"
-                v-model="data.settings.lnbits_force_https"
+                v-model="formData.lnbits_force_https"
                 checked-icon="check"
                 color="green"
                 unchecked-icon="clear"
@@ -59,7 +59,7 @@
             <q-item-section avatar>
               <q-toggle
                 size="md"
-                v-model="data.settings.lnbits_hide_api"
+                v-model="formData.lnbits_hide_api"
                 checked-icon="check"
                 color="green"
                 unchecked-icon="clear"
