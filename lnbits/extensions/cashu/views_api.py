@@ -25,6 +25,7 @@ from .crud import (
     get_lightning_invoice,
     store_lightning_invoice,
     store_promise,
+    update_lightning_invoice,
 )
 from .ledger import mint, request_mint
 from .mint import generate_promises, get_pubkeys
@@ -279,8 +280,10 @@ async def mint_coins(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not have this invoice."
         )
-    # if invoice.issued == True:
-    #     todo: give old tokens?
+    if invoice.issued == True:
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Tokens already issued for this invoice."
+        )
 
     status: PaymentStatus = await check_transaction_status(
         cashu.wallet, payment_hash
@@ -290,18 +293,21 @@ async def mint_coins(
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
         )
-
-    amounts = []
-    B_s = []
-    for payload in data.blinded_messages:
-        amounts.append(payload.amount)
-        B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
-
     try:
-        promises = await generate_promises(cashu.prvkey, amounts, B_s)
-        for amount, B_, p in zip(amounts, B_s, promises):
-            await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
-        return promises
+        await update_lightning_invoice(cashu_id, payment_hash, True)
+
+        amounts = []
+        B_s = []
+        for payload in data.blinded_messages:
+            amounts.append(payload.amount)
+            B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+
+        
+            promises = await generate_promises(cashu.prvkey, amounts, B_s)
+            for amount, B_, p in zip(amounts, B_s, promises):
+                await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
+    
+            return promises
     except Exception as exc:
         return CashuError(error=str(exc))
 
