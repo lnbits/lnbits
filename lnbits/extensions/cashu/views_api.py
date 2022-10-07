@@ -255,8 +255,9 @@ async def mint_pay_request(
 
 @cashu_ext.post("/api/v1/mint/{cashu_id}")
 async def mint_coins(
-    data: CreateTokens,
+    data: MintPayloads,
     cashu_id: str = Query(None),
+    payment_hash: Union[str, None] = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     """
@@ -271,8 +272,8 @@ async def mint_coins(
         )
     invoice: Invoice = (
         None
-        if data.payment_hash == None
-        else await get_lightning_invoice(cashu_id, data.payment_hash)
+        if payment_hash == None
+        else await get_lightning_invoice(cashu_id, payment_hash)
     )
     if invoice is None:
         raise HTTPException(
@@ -282,7 +283,7 @@ async def mint_coins(
     #     todo: give old tokens?
 
     status: PaymentStatus = await check_transaction_status(
-        cashu.wallet, data.payment_hash
+        cashu.wallet, payment_hash
     )
     # todo: revert to: status.paid != True:
     if status.paid == False:
@@ -292,7 +293,7 @@ async def mint_coins(
 
     amounts = []
     B_s = []
-    for payload in data.payloads.blinded_messages:
+    for payload in data.blinded_messages:
         amounts.append(payload.amount)
         B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
 
