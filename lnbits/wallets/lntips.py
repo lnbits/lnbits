@@ -3,7 +3,7 @@ import hashlib
 import json
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
-
+import time
 import httpx
 from loguru import logger
 
@@ -138,10 +138,12 @@ class LnTipsWallet(Wallet):
         return PaymentStatus(paid_to_status[data.get("paid")])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        last_connected = None
         while True:
             url = f"{self.endpoint}/api/v1/invoicestream"
             try:
                 async with httpx.AsyncClient(timeout=None, headers=self.auth) as client:
+                    last_connected = time.time()
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
                             try:
@@ -158,7 +160,10 @@ class LnTipsWallet(Wallet):
             except Exception as e:
                 pass
 
-            logger.error(
-                f"lost connection to {self.endpoint}/api/v1/invoicestream, retrying in 5 seconds"
-            )
-            await asyncio.sleep(5)
+            # do not sleep if the connection was active for more than 10s
+            # since the backend is expected to drop the connection after 90s
+            if last_connected is None or time.time() - last_connected < 10:
+                logger.error(
+                    f"lost connection to {self.endpoint}/api/v1/invoicestream, retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
