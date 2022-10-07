@@ -93,7 +93,9 @@ async def delete_cashu(cashu_id) -> None:
 ##########################################
 
 
-async def store_promises(amounts: List[int], B_s: List[str], C_s: List[str], cashu_id: str):
+async def store_promises(
+    amounts: List[int], B_s: List[str], C_s: List[str], cashu_id: str
+):
     for amount, B_, C_ in zip(amounts, B_s, C_s):
         await store_promise(amount, B_, C_, cashu_id)
 
@@ -113,21 +115,21 @@ async def store_promise(amount: int, B_: str, C_: str, cashu_id: str):
 
 async def get_promises(cashu_id) -> Optional[Cashu]:
     row = await db.fetchall(
-        "SELECT * FROM cashu.promises WHERE cashu_id = ?", (promises_id,)
+        "SELECT * FROM cashu.promises WHERE cashu_id = ?", (cashu_id,)
     )
     return Promises(**row) if row else None
 
 
 async def get_proofs_used(cashu_id):
     rows = await db.fetchall(
-        "SELECT secret from cashu.proofs_used WHERE id = ?", (cashu_id,)
+        "SELECT secret from cashu.proofs_used WHERE cashu_id = ?", (cashu_id,)
     )
     return [row[0] for row in rows]
 
 
-async def invalidate_proof(proof: Proof, cashu_id):
+async def invalidate_proof(cashu_id: str, proof: Proof):
     invalidate_proof_id = urlsafe_short_hash()
-    await (conn or db).execute(
+    await db.execute(
         """
         INSERT INTO cashu.proofs_used
           (id, amount, C, secret, cashu_id)

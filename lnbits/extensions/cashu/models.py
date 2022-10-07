@@ -146,9 +146,3 @@ class MeltPayload(BaseModel):
     proofs: List[Proof]
     amount: int
     invoice: str
-
-
-class CreateTokens(BaseModel):
-    # cashu_id: str = Query(None)
-    payloads: MintPayloads
-    payment_hash: Union[str, None] = None
