@@ -204,7 +204,6 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 @cashu_ext.get("/api/v1/mint/keys/{cashu_id}",  status_code=HTTPStatus.OK)
 async def keys(cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
     """Get the public keys of the mint"""
-    print('############################')
     mint = await get_cashu(cashu_id)
     if mint is None:
         raise HTTPException(
@@ -213,10 +212,27 @@ async def keys(cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(ge
     return get_pubkeys(mint.prvkey)
 
 
-@cashu_ext.get("/mint")
+@cashu_ext.get("/api/v1/mint/{cashu_id}")
 async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
     """Request minting of tokens. Server responds with a Lightning invoice."""
-    payment_request, payment_hash = await request_mint(amount, cashu_id)
+    print('############################')
+    cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+                )
+
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=cashu.wallet,
+            amount=amount,
+            memo=f"{cashu.name}",
+            extra={"tag": "cashu"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+
     print(f"Lightning invoice: {payment_request}")
     return {"pr": payment_request, "hash": payment_hash}
 
