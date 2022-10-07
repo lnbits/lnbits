@@ -206,7 +206,7 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 ########################################
 
 
-@cashu_ext.get("/api/v1/mint/keys/{cashu_id}", status_code=HTTPStatus.OK)
+@cashu_ext.get("/api/v1/mint/{cashu_id}/keys", status_code=HTTPStatus.OK)
 async def keys(
     cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -219,7 +219,7 @@ async def keys(
     return get_pubkeys(mint.prvkey)
 
 
-@cashu_ext.get("/api/v1/mint/{cashu_id}")
+@cashu_ext.get("/api/v1/{cashu_id}/mint")
 async def mint_pay_request(
     amount: int = 0,
     cashu_id: str = Query(None),
@@ -253,7 +253,7 @@ async def mint_pay_request(
     return {"pr": payment_request, "hash": payment_hash}
 
 
-@cashu_ext.post("/api/v1/mint/{cashu_id}")
+@cashu_ext.post("/api/v1/{cashu_id}/mint")
 async def mint_coins(
     data: MintPayloads,
     cashu_id: str = Query(None),
@@ -311,7 +311,7 @@ async def mint_coins(
         )
 
 
-@cashu_ext.post("/api/v1/melt/{cashu_id}")
+@cashu_ext.post("/api/v1/{cashu_id}/melt")
 async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
     cashu: Cashu = await get_cashu(cashu_id)
     if cashu is None:
