@@ -1,12 +1,14 @@
 import hashlib
 from typing import List, Set
 
-from .models import BlindedMessage, BlindedSignature, Invoice, Proof
-from secp256k1 import PublicKey, PrivateKey
-
 from fastapi import Query
-from .crud import get_cashu
+from secp256k1 import PrivateKey, PublicKey
+
 from lnbits.core.services import check_transaction_status, create_invoice
+
+from .crud import get_cashu
+from .models import BlindedMessage, BlindedSignature, Invoice, Proof
+
 
 def _derive_keys(master_key: str, cashu_id: str = Query(None)):
     """Deterministic derivation of keys for 2^n values."""
@@ -21,28 +23,33 @@ def _derive_keys(master_key: str, cashu_id: str = Query(None)):
         for i in range(MAX_ORDER)
     }
 
+
 def _derive_pubkeys(keys: List[PrivateKey], cashu_id: str = Query(None)):
     return {amt: keys[amt].pubkey for amt in [2**i for i in range(MAX_ORDER)]}
 
-async def _generate_promises(amounts: List[int], B_s: List[str], cashu_id: str = Query(None)):
+
+async def _generate_promises(
+    amounts: List[int], B_s: List[str], cashu_id: str = Query(None)
+):
     """Generates promises that sum to the given amount."""
     return [
         await self._generate_promise(amount, PublicKey(bytes.fromhex(B_), raw=True))
         for (amount, B_) in zip(amounts, B_s)
     ]
 
+
 async def _generate_promise(amount: int, B_: PublicKey, cashu_id: str = Query(None)):
     """Generates a promise for given amount and returns a pair (amount, C')."""
     secret_key = self.keys[amount]  # Get the correct key
     C_ = step2_bob(B_, secret_key)
-    await store_promise(
-        amount, B_=B_.serialize().hex(), C_=C_.serialize().hex()
-    )
+    await store_promise(amount, B_=B_.serialize().hex(), C_=C_.serialize().hex())
     return BlindedSignature(amount=amount, C_=C_.serialize().hex())
+
 
 def _check_spendable(proof: Proof, cashu_id: str = Query(None)):
     """Checks whether the proof was already spent."""
     return not proof.secret in self.proofs_used
+
 
 def _verify_proof(proof: Proof, cashu_id: str = Query(None)):
     """Verifies that the proof of promise was issued by this ledger."""
@@ -52,7 +59,13 @@ def _verify_proof(proof: Proof, cashu_id: str = Query(None)):
     C = PublicKey(bytes.fromhex(proof.C), raw=True)
     return verify(secret_key, C, proof.secret)
 
-def _verify_outputs(total: int, amount: int, output_data: List[BlindedMessage], cashu_id: str = Query(None)):
+
+def _verify_outputs(
+    total: int,
+    amount: int,
+    output_data: List[BlindedMessage],
+    cashu_id: str = Query(None),
+):
     """Verifies the expected split was correctly computed"""
     fst_amt, snd_amt = total - amount, amount  # we have two amounts to split to
     fst_outputs = amount_split(fst_amt)
@@ -61,7 +74,10 @@ def _verify_outputs(total: int, amount: int, output_data: List[BlindedMessage], 
     given = [o.amount for o in output_data]
     return given == expected
 
-def _verify_no_duplicates(proofs: List[Proof], output_data: List[BlindedMessage], cashu_id: str = Query(None)):
+
+def _verify_no_duplicates(
+    proofs: List[Proof], output_data: List[BlindedMessage], cashu_id: str = Query(None)
+):
     secrets = [p.secret for p in proofs]
     if len(secrets) != len(list(set(secrets))):
         return False
@@ -69,6 +85,7 @@ def _verify_no_duplicates(proofs: List[Proof], output_data: List[BlindedMessage]
     if len(B_s) != len(list(set(B_s))):
         return False
     return True
+
 
 def _verify_split_amount(amount: int, cashu_id: str = Query(None)):
     """Split amount like output amount can't be negative or too big."""
@@ -78,6 +95,7 @@ def _verify_split_amount(amount: int, cashu_id: str = Query(None)):
         # For better error message
         raise Exception("invalid split amount: " + str(amount))
 
+
 def _verify_amount(amount: int, cashu_id: str = Query(None)):
     """Any amount used should be a positive integer not larger than 2^MAX_ORDER."""
     valid = isinstance(amount, int) and amount > 0 and amount < 2**MAX_ORDER
@@ -85,11 +103,15 @@ def _verify_amount(amount: int, cashu_id: str = Query(None)):
         raise Exception("invalid amount: " + str(amount))
     return amount
 
-def _verify_equation_balanced(proofs: List[Proof], outs: List[BlindedMessage], cashu_id: str = Query(None)):
+
+def _verify_equation_balanced(
+    proofs: List[Proof], outs: List[BlindedMessage], cashu_id: str = Query(None)
+):
     """Verify that Σoutputs - Σinputs = 0."""
     sum_inputs = sum(self._verify_amount(p.amount) for p in proofs)
     sum_outputs = sum(self._verify_amount(p.amount) for p in outs)
     assert sum_outputs - sum_inputs == 0
+
 
 def _get_output_split(amount: int, cashu_id: str):
     """Given an amount returns a list of amounts returned e.g. 13 is [1, 4, 8]."""
@@ -101,6 +123,7 @@ def _get_output_split(amount: int, cashu_id: str):
             rv.append(2**pos)
     return rv
 
+
 async def _invalidate_proofs(proofs: List[Proof], cashu_id: str = Query(None)):
     """Adds secrets of proofs to the list of knwon secrets and stores them in the db."""
     # Mark proofs as used and prepare new promises
@@ -110,9 +133,11 @@ async def _invalidate_proofs(proofs: List[Proof], cashu_id: str = Query(None)):
     for p in proofs:
         await invalidate_proof(p)
 
+
 def get_pubkeys(cashu_id: str = Query(None)):
     """Returns public keys for possible amounts."""
     return {a: p.serialize().hex() for a, p in self.pub_keys.items()}
+
 
 async def request_mint(amount, cashu_id: str = Query(None)):
     cashu = await get_cashu(cashu_id)
@@ -125,9 +150,7 @@ async def request_mint(amount, cashu_id: str = Query(None)):
         amount=amount,
         memo=cashu.name,
         unhashed_description=cashu.name.encode("utf-8"),
-        extra={
-            "tag": "Cashu"
-        },
+        extra={"tag": "Cashu"},
     )
 
     invoice = Invoice(
@@ -137,15 +160,23 @@ async def request_mint(amount, cashu_id: str = Query(None)):
         raise Exception(f"Could not create Lightning invoice.")
     return payment_request, payment_hash
 
-async def mint(B_s: List[PublicKey], amounts: List[int], payment_hash: str = Query(None), cashu_id: str = Query(None)):
+
+async def mint(
+    B_s: List[PublicKey],
+    amounts: List[int],
+    payment_hash: str = Query(None),
+    cashu_id: str = Query(None),
+):
     cashu = await get_cashu(cashu_id)
     if not cashu:
         raise Exception(f"Could not find Cashu")
 
     """Mints a promise for coins for B_."""
     # check if lightning invoice was paid
-    if payment_hash: 
-        if not await check_transaction_status(wallet_id=cashu.wallet, payment_hash=payment_hash):
+    if payment_hash:
+        if not await check_transaction_status(
+            wallet_id=cashu.wallet, payment_hash=payment_hash
+        ):
             raise Exception("Lightning invoice not paid yet.")
 
     for amount in amounts:
@@ -157,11 +188,14 @@ async def mint(B_s: List[PublicKey], amounts: List[int], payment_hash: str = Que
     ]
     return promises
 
-async def melt(proofs: List[Proof], amount: int, invoice: str, cashu_id: str = Query(None)):
+
+async def melt(
+    proofs: List[Proof], amount: int, invoice: str, cashu_id: str = Query(None)
+):
     cashu = await get_cashu(cashu_id)
     if not cashu:
-        raise Exception(f"Could not find Cashu")    
-    
+        raise Exception(f"Could not find Cashu")
+
     """Invalidates proofs and pays a Lightning invoice."""
     # if not LIGHTNING:
     total = sum([p["amount"] for p in proofs])
@@ -181,6 +215,7 @@ async def melt(proofs: List[Proof], amount: int, invoice: str, cashu_id: str = Q
         await self._invalidate_proofs(proofs)
     return status, payment_hash
 
+
 async def check_spendable(proofs: List[Proof], cashu_id: str = Query(None)):
     cashu = await get_cashu(cashu_id)
     if not cashu:
@@ -189,7 +224,13 @@ async def check_spendable(proofs: List[Proof], cashu_id: str = Query(None)):
     """Checks if all provided proofs are valid and still spendable (i.e. have not been spent)."""
     return {i: self._check_spendable(p) for i, p in enumerate(proofs)}
 
-async def split(proofs: List[Proof], amount: int, output_data: List[BlindedMessage], cashu_id: str = Query(None)):
+
+async def split(
+    proofs: List[Proof],
+    amount: int,
+    output_data: List[BlindedMessage],
+    cashu_id: str = Query(None),
+):
     cashu = await get_cashu(cashu_id)
     if not cashu:
         raise Exception(f"Could not find Cashu")
@@ -226,18 +267,19 @@ async def split(proofs: List[Proof], amount: int, output_data: List[BlindedMessa
 async def fee_reserve(amount_msat: int, cashu_id: str = Query(None)):
     cashu = await get_cashu(cashu_id)
     if not cashu:
-        raise Exception(f"Could not find Cashu")    
-    
+        raise Exception(f"Could not find Cashu")
+
     """Function for calculating the Lightning fee reserve"""
     return max(
         int(LIGHTNING_RESERVE_FEE_MIN), int(amount_msat * LIGHTNING_FEE_PERCENT / 100.0)
     )
 
+
 async def amount_split(amount, cashu_id: str):
     cashu = await get_cashu(cashu_id)
     if not cashu:
-        raise Exception(f"Could not find Cashu")    
-    
+        raise Exception(f"Could not find Cashu")
+
     """Given an amount returns a list of amounts returned e.g. 13 is [1, 4, 8]."""
     bits_amt = bin(amount)[::-1][:-2]
     rv = []
@@ -246,11 +288,12 @@ async def amount_split(amount, cashu_id: str):
             rv.append(2**pos)
     return rv
 
+
 async def hash_to_point(secret_msg, cashu_id: str = Query(None)):
     cashu = await get_cashu(cashu_id)
     if not cashu:
-        raise Exception(f"Could not find Cashu")    
-    
+        raise Exception(f"Could not find Cashu")
+
     """Generates x coordinate from the message hash and checks if the point lies on the curve.
     If it does not, it tries computing again a new x coordinate from the hash of the coordinate."""
     point = None
@@ -280,10 +323,11 @@ async def step1_alice(secret_msg, cashu_id: str = Query(None)):
     B_ = Y + r.pubkey
     return B_, r
 
+
 async def step2_bob(B_, a, cashu_id: str = Query(None)):
     cashu = await get_cashu(cashu_id)
     if not cashu:
-        raise Exception(f"Could not find Cashu")   
+        raise Exception(f"Could not find Cashu")
 
     C_ = B_.mult(a)
     return C_

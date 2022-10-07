@@ -1,15 +1,15 @@
-
-from .models import Cashu
 from .mint_helper import derive_keys, derive_pubkeys
+from .models import Cashu
 
 
 def get_pubkeys(xpriv: str):
     """Returns public keys for possible amounts."""
-    
+
     keys = derive_keys(xpriv)
     pub_keys = derive_pubkeys(keys)
 
     return {a: p.serialize().hex() for a, p in pub_keys.items()}
+
 
 # async def mint(self, B_s: List[PublicKey], amounts: List[int], payment_hash=None):
 #     """Mints a promise for coins for B_."""

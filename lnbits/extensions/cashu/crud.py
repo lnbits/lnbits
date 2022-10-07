@@ -1,22 +1,18 @@
 import os
-
+import random
+from binascii import hexlify, unhexlify
 from typing import List, Optional, Union
-from .core.base import Invoice
+
+from embit import bip32, bip39, ec, script
+from embit.networks import NETWORKS
+from loguru import logger
 
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Cashu, Pegs, Proof, Promises
+from .core.base import Invoice
+from .models import Cashu, Pegs, Promises, Proof
 
-from embit import script
-from embit import ec
-from embit.networks import NETWORKS
-from embit import bip32
-from embit import bip39
-from binascii import unhexlify, hexlify
-import random
-
-from loguru import logger
 
 async def create_cashu(wallet_id: str, data: Cashu) -> Cashu:
     cashu_id = urlsafe_short_hash()
@@ -25,7 +21,7 @@ async def create_cashu(wallet_id: str, data: Cashu) -> Cashu:
     mnemonic = bip39.mnemonic_from_bytes(entropy)
     seed = bip39.mnemonic_to_seed(mnemonic)
     root = bip32.HDKey.from_seed(seed, version=NETWORKS["main"]["xprv"])
-    
+
     bip44_xprv = root.derive("m/44h/1h/0h")
     bip44_xpub = bip44_xprv.to_public()
 
@@ -43,7 +39,7 @@ async def create_cashu(wallet_id: str, data: Cashu) -> Cashu:
             data.maxsats,
             data.coins,
             bip44_xprv.to_base58(),
-            bip44_xpub.to_base58()
+            bip44_xpub.to_base58(),
         ),
     )
 
@@ -57,11 +53,16 @@ async def update_cashu_keys(cashu_id, wif: str = None) -> Optional[Cashu]:
     mnemonic = bip39.mnemonic_from_bytes(entropy)
     seed = bip39.mnemonic_to_seed(mnemonic)
     root = bip32.HDKey.from_seed(seed, version=NETWORKS["main"]["xprv"])
-    
+
     bip44_xprv = root.derive("m/44h/1h/0h")
     bip44_xpub = bip44_xprv.to_public()
 
-    await db.execute("UPDATE cashu.cashu SET prv = ?, pub = ? WHERE id = ?", bip44_xprv.to_base58(), bip44_xpub.to_base58(), cashu_id)
+    await db.execute(
+        "UPDATE cashu.cashu SET prv = ?, pub = ? WHERE id = ?",
+        bip44_xprv.to_base58(),
+        bip44_xpub.to_base58(),
+        cashu_id,
+    )
     row = await db.fetchone("SELECT * FROM cashu.cashu WHERE id = ?", (cashu_id,))
     return Cashu(**row) if row else None
 
@@ -91,12 +92,8 @@ async def delete_cashu(cashu_id) -> None:
 ###############MINT STUFF#################
 ##########################################
 
-async def store_promise(
-    amount: int,
-    B_: str,
-    C_: str,
-    cashu_id
-):
+
+async def store_promise(amount: int, B_: str, C_: str, cashu_id):
     promise_id = urlsafe_short_hash()
 
     await db.execute(
@@ -105,28 +102,25 @@ async def store_promise(
           (id, amount, B_b, C_b, cashu_id)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            promise_id,
-            amount,
-            str(B_),
-            str(C_),
-            cashu_id
-        ),
+        (promise_id, amount, str(B_), str(C_), cashu_id),
     )
 
+
 async def get_promises(cashu_id) -> Optional[Cashu]:
-    row = await db.fetchall("SELECT * FROM cashu.promises WHERE cashu_id = ?", (promises_id,))
+    row = await db.fetchall(
+        "SELECT * FROM cashu.promises WHERE cashu_id = ?", (promises_id,)
+    )
     return Promises(**row) if row else None
 
+
 async def get_proofs_used(cashu_id):
-    rows = await db.fetchall("SELECT secret from cashu.proofs_used WHERE id = ?", (cashu_id,))
+    rows = await db.fetchall(
+        "SELECT secret from cashu.proofs_used WHERE id = ?", (cashu_id,)
+    )
     return [row[0] for row in rows]
 
 
-async def invalidate_proof(
-    proof: Proof,
-    cashu_id
-):
+async def invalidate_proof(proof: Proof, cashu_id):
     invalidate_proof_id = urlsafe_short_hash()
     await (conn or db).execute(
         """
@@ -134,18 +128,8 @@ async def invalidate_proof(
           (id, amount, C, secret, cashu_id)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            invalidate_proof_id,
-            proof.amount,
-            str(proof.C),
-            str(proof.secret),
-            cashu_id
-        ),
+        (invalidate_proof_id, proof.amount, str(proof.C), str(proof.secret), cashu_id),
     )
-
-
-
-
 
 
 ########################################
@@ -169,18 +153,22 @@ async def store_lightning_invoice(cashu_id: str, invoice: Invoice):
         ),
     )
 
+
 async def get_lightning_invoice(cashu_id: str, hash: str):
     row = await db.fetchone(
         """
         SELECT * from invoices
         WHERE cashu_id =? AND hash = ?
         """,
-        (cashu_id, hash,),
+        (
+            cashu_id,
+            hash,
+        ),
     )
     return Invoice.from_row(row)
 
 
-async def update_lightning_invoice(cashu_id: str, hash: str,  issued: bool):
+async def update_lightning_invoice(cashu_id: str, hash: str, issued: bool):
     await db.execute(
         "UPDATE invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
         (

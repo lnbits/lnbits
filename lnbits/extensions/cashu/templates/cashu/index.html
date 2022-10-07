@@ -4,7 +4,9 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="formDialog.show = true">New Mint</q-btn>
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
+          >New Mint</q-btn
+        >
       </q-card-section>
     </q-card>
 
@@ -18,8 +20,14 @@
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
           </div>
         </div>
-        <q-table dense flat :data="cashus" row-key="id" :columns="cashusTable.columns"
-          :pagination.sync="cashusTable.pagination">
+        <q-table
+          dense
+          flat
+          :data="cashus"
+          row-key="id"
+          :columns="cashusTable.columns"
+          :pagination.sync="cashusTable.pagination"
+        >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
@@ -34,23 +42,43 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td auto-width>
-                <q-btn unelevated dense size="xs" icon="launch" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
                   :href="'wallet/?tsh=' + props.row.tickershort + '&mnt=' + hostname + props.row.id + '&nme=' + props.row.name"
-                  target="_blank"><q-tooltip>Shareable wallet page</q-tooltip></q-btn>
+                  target="_blank"
+                  ><q-tooltip>Shareable wallet page</q-tooltip></q-btn
+                >
 
-                  <q-btn unelevated dense size="xs" icon="account_balance" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="account_balance"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
                   :href="'mint/' + props.row.id"
-                  target="_blank"><q-tooltip>Shareable mint page</q-tooltip></q-btn>
-
+                  target="_blank"
+                  ><q-tooltip>Shareable mint page</q-tooltip></q-btn
+                >
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ (col.name == 'tip_options' && col.value ?
                 JSON.parse(col.value).join(", ") : col.value) }}
               </q-td>
               <q-td auto-width>
-                <q-btn flat dense size="xs" @click="deleteMint(props.row.id)" icon="cancel" color="pink"></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteMint(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
               </q-td>
             </q-tr>
           </template>
@@ -79,34 +107,90 @@
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="createMint" class="q-gutter-md">
-        <q-input filled dense v-model.trim="formDialog.data.name" label="Mint Name" placeholder="Cashu Mint"></q-input>
-        <q-select filled dense emit-value v-model="formDialog.data.wallet" :options="g.user.walletOptions"
-          label="Wallet *" ></q-select>
-        <q-toggle v-model="toggleAdvanced" label="Show advanced options"></q-toggle>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.name"
+          label="Mint Name"
+          placeholder="Cashu Mint"
+        ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+        <q-toggle
+          v-model="toggleAdvanced"
+          label="Show advanced options"
+        ></q-toggle>
         <div v-show="toggleAdvanced">
           <div class="row">
             <div class="col-5">
-              <q-checkbox v-model="formDialog.data.fraction" color="primary" label="sats/coins?">
-                <q-tooltip>Use with hedging extension to create a stablecoin!</q-tooltip>
+              <q-checkbox
+                v-model="formDialog.data.fraction"
+                color="primary"
+                label="sats/coins?"
+              >
+                <q-tooltip
+                  >Use with hedging extension to create a stablecoin!</q-tooltip
+                >
               </q-checkbox>
             </div>
             <div class="col-7">
-              <q-input v-if="!formDialog.data.fraction" filled dense type="number" v-model.trim="formDialog.data.cost" label="Sat coin cost (optional)"
-                value="1" type="number"></q-input>
-                <q-input v-if="!formDialog.data.fraction" filled dense v-model.trim="formDialog.data.tickershort" label="Ticker shorthand" placeholder="CC"
-          #></q-input>
+              <q-input
+                v-if="!formDialog.data.fraction"
+                filled
+                dense
+                type="number"
+                v-model.trim="formDialog.data.cost"
+                label="Sat coin cost (optional)"
+                value="1"
+                type="number"
+              ></q-input>
+              <q-input
+                v-if="!formDialog.data.fraction"
+                filled
+                dense
+                v-model.trim="formDialog.data.tickershort"
+                label="Ticker shorthand"
+                placeholder="CC"
+                #
+              ></q-input>
             </div>
           </div>
-          <q-input class="q-mt-md" filled dense type="number" v-model.trim="formDialog.data.maxsats"
-            label="Maximum mint liquidity (optional)" placeholder="∞"></q-input>
-          <q-input class="q-mt-md"  filled dense type="number" v-model.trim="formDialog.data.coins"
-            label="Coins that 'exist' in mint (optional)" placeholder="∞"></q-input>
+          <q-input
+            class="q-mt-md"
+            filled
+            dense
+            type="number"
+            v-model.trim="formDialog.data.maxsats"
+            label="Maximum mint liquidity (optional)"
+            placeholder="∞"
+          ></q-input>
+          <q-input
+            class="q-mt-md"
+            filled
+            dense
+            type="number"
+            v-model.trim="formDialog.data.coins"
+            label="Coins that 'exist' in mint (optional)"
+            placeholder="∞"
+          ></q-input>
         </div>
         <div class="row q-mt-md">
-          <q-btn unelevated color="primary"
-            :disable="formDialog.data.wallet == null || formDialog.data.name == null" type="submit">Create Mint
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+            type="submit"
+            >Create Mint
           </q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
         </div>
       </q-form>
     </q-card>
@@ -130,12 +214,12 @@
     data: function () {
       return {
         cashus: [],
-        hostname: location.protocol + "//" + location.host + "/cashu/mint/",
+        hostname: location.protocol + '//' + location.host + '/cashu/mint/',
         toggleAdvanced: false,
         cashusTable: {
           columns: [
-            { name: 'id', align: 'left', label: 'ID', field: 'id' },
-            { name: 'name', align: 'left', label: 'Name', field: 'name' },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {
               name: 'tickershort',
               align: 'left',
@@ -165,7 +249,7 @@
               align: 'left',
               label: 'No. of coins',
               field: 'coins'
-            },
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -173,7 +257,7 @@
         },
         formDialog: {
           show: false,
-          data: { fraction: false }
+          data: {fraction: false}
         }
       }
     },
@@ -203,7 +287,7 @@
         var data = {
           name: this.formDialog.data.name,
           tickershort: this.formDialog.data.tickershort,
-          maxliquid: this.formDialog.data.maxliquid,
+          maxliquid: this.formDialog.data.maxliquid
         }
         var self = this
 
@@ -211,7 +295,7 @@
           .request(
             'POST',
             '/cashu/api/v1/cashus',
-            _.findWhere(this.g.user.wallets, { id: this.formDialog.data.wallet })
+            _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
               .inkey,
             data
           )
@@ -225,17 +309,19 @@
       },
       deleteMint: function (cashuId) {
         var self = this
-        var cashu = _.findWhere(this.cashus, { id: cashuId })
+        var cashu = _.findWhere(this.cashus, {id: cashuId})
         console.log(cashu)
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this Mint? It will suck for users.')
+          .confirmDialog(
+            'Are you sure you want to delete this Mint? It will suck for users.'
+          )
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
                 '/cashu/api/v1/cashus/' + cashuId,
-                _.findWhere(self.g.user.wallets, { id: cashu.wallet }).adminkey
+                _.findWhere(self.g.user.wallets, {id: cashu.wallet}).adminkey
               )
               .then(function (response) {
                 self.cashus = _.reject(self.cashus, function (obj) {
