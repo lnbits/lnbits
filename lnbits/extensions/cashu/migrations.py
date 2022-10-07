@@ -61,3 +61,18 @@ async def m001_initial(db):
         );
     """
     )
+
+    await db.execute(
+        """
+            CREATE TABLE IF NOT EXISTS cashu.invoices (
+                cashu_id TEXT NOT NULL,
+                amount INTEGER NOT NULL,
+                pr TEXT NOT NULL,
+                hash TEXT NOT NULL,
+                issued BOOL NOT NULL,
+
+                UNIQUE (hash)
+
+            );
+        """
+    )

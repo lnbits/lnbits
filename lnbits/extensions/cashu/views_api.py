@@ -13,6 +13,7 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from .core.base import CashuError
 
 from . import cashu_ext
 from .ledger import request_mint, mint
@@ -22,12 +23,13 @@ from .crud import (
     create_cashu, 
     delete_cashu, 
     get_cashu, 
-    get_cashus, 
-    update_cashu_keys
+    get_cashus,
+    store_lightning_invoice,
 )
 
 from .models import (
-    Cashu, 
+    Cashu,
+    Invoice, 
     Pegs, 
     CheckPayload, 
     MeltPayload, 
@@ -215,7 +217,7 @@ async def keys(cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(ge
 @cashu_ext.get("/api/v1/mint/{cashu_id}")
 async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
     """Request minting of tokens. Server responds with a Lightning invoice."""
-    print('############################')
+    print('############################ amount', amount)
     cashu = await get_cashu(cashu_id)
     if cashu is None:
         raise HTTPException(
@@ -229,28 +231,34 @@ async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
             memo=f"{cashu.name}",
             extra={"tag": "cashu"},
         )
+        invoice = Invoice(
+            amount=amount, pr=payment_request, hash=payment_hash, issued=False
+        )
+        await store_lightning_invoice(cashu_id, invoice)
     except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+        logger.error(e)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(cashu_id))
 
-
-    print(f"Lightning invoice: {payment_request}")
     return {"pr": payment_request, "hash": payment_hash}
 
 
 @cashu_ext.post("/mint")
 async def mint_coins(payloads: MintPayloads, payment_hash: Union[str, None] = None, cashu_id: str = Query(None)):
+    """
+    Requests the minting of tokens belonging to a paid payment request.
+
+    Call this endpoint after `GET /mint`.
+    """
     amounts = []
     B_s = []
-    for payload in payloads.blinded_messages:
-        amounts.append(payload.amount)
-        B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
-    promises = await mint(B_s, amounts, payment_hash, cashu_id)
-    logger.debug(promises)
-    try:
-        promises = await mint(B_s, amounts, payment_hash, cashu_id)
-        return promises
-    except Exception as exc:
-        return {"error": str(exc)}
+    # for payload in payloads.blinded_messages:
+    #     amounts.append(payload.amount)
+    #     B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+    # try:
+    #     promises = await ledger.mint(B_s, amounts, payment_hash=payment_hash)
+    #     return promises
+    # except Exception as exc:
+    #     return CashuError(error=str(exc))
 
 
 @cashu_ext.post("/melt")
