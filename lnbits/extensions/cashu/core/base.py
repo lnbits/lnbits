@@ -4,7 +4,7 @@ from typing import List, Union
 from pydantic import BaseModel
 
 
-class CashuError(BaseModel):
+class CashuError(BaseException):
     code = "000"
     error = "CashuError"
 

@@ -284,6 +284,13 @@ async def mint_coins(
             detail="Tokens already issued for this invoice.",
         )
 
+    total_requested = sum([bm.amount for bm in data.blinded_messages])
+    if total_requested > invoice.amount:
+        # raise CashuError(error = f"Requested amount to high: {total_requested}. Invoice amount: {invoice.amount}")
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED, detail=f"Requested amount to high: {total_requested}. Invoice amount: {invoice.amount}"
+        )
+
     status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
     # todo: revert to: status.paid != True:
     if status.paid != True:
@@ -299,11 +306,11 @@ async def mint_coins(
             amounts.append(payload.amount)
             B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
 
-            promises = await generate_promises(cashu.prvkey, amounts, B_s)
-            for amount, B_, p in zip(amounts, B_s, promises):
-                await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
+        promises = await generate_promises(cashu.prvkey, amounts, B_s)
+        for amount, B_, p in zip(amounts, B_s, promises):
+            await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
 
-            return promises
+        return promises
     except Exception as e:
         logger.error(e)
         raise HTTPException(
