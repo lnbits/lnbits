@@ -1,15 +1,30 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
-  <div class="col q-gutter-y-md">
-    <q-btn label="Save" flat @click="updateSettings"></q-btn>
-    <q-btn label="Restart server" flat @click="restartServer"></q-btn>
-    <q-btn label="Reset to defaults" flat @click="deleteSettings"></q-btn>
+  <div class="col q-gutter-y-md q-my-md">
+    <q-btn label="Save" color="primary" @click="updateSettings">
+      <!-- <q-badge color="red" rounded floating style="padding: 6px; border-radius: 6px"/> -->
+    </q-btn>
     <q-btn
+      label="Restart server"
+      color="primary"
+      @click="restartServer"
+    ></q-btn>
+    <q-btn
+      label="Reset to defaults"
+      color="primary"
+      @click="deleteSettings"
+    ></q-btn>
+    <q-btn
+      label="Topup"
+      color="primary"
+      @click="topUpDialog.show = true"
+    ></q-btn>
+    <!-- <q-btn
       label="Download Database Backup"
       flat
       @click="downloadBackup"
-    ></q-btn>
+    ></q-btn> -->
   </div>
 </div>
 <div class="row q-col-gutter-md justify-center">
@@ -51,6 +66,39 @@
     </q-card>
   </div>
 </div>
+<q-dialog v-model="topUpDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form class="q-gutter-md">
+      <p>TopUp a wallet</p>
+      <div class="row">
+        <div class="col-12">
+          <q-input
+            dense
+            type="text"
+            filled
+            v-model="wallet.id"
+            label="Wallet ID"
+            hint="Use the wallet ID to topup any wallet"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12">
+          <q-input
+            dense
+            type="number"
+            filled
+            v-model="wallet.amount"
+            label="Topup amount"
+          ></q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn label="Topup" color="primary" @click="topupWallet"></q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -60,63 +108,67 @@
     data: function () {
       return {
         settings: {},
-        data: {},
+        formData: {},
+        //data: {},
         wallet: {},
         cancel: {},
+        topUpDialog: {
+          show: false
+        },
         tab: 'funding'
       }
     },
     created: function () {
-      this.data.settings = JSON.parse('{{ settings|tojson|safe }}')
-      this.data.balance = {{ balance|safe }}
-      console.log(this.data.settings, this.data.balance)
+      this.settings = JSON.parse('{{ settings|tojson|safe }}') //DB data
+      this.balance = +'{{ balance|safe }}'
+      this.formData = this.settings //model
+      console.log(this.formData)
     },
     methods: {
       addAdminUser() {
-        let addUser = this.data.admin_users_add
-        let admin_users = this.data.admin.admin_users
+        let addUser = this.formData.admin_users_add
+        let admin_users = this.settings.lnbits_admin_users
         if (addUser && addUser.length && !admin_users.includes(addUser)) {
           admin_users.push(addUser)
-          this.data.admin.admin_users = admin_users
-          this.data.admin_users_add = ''
+          this.settings.lnbits_admin_users = admin_users
+          this.formData.admin_users_add = ''
         }
       },
       removeAdminUser(user) {
-        let admin_users = this.data.admin.admin_users
-        this.data.admin.admin_users = admin_users.filter(u => u !== user)
+        let admin_users = this.settings.lnbits_admin_users
+        this.settings.lnbits_admin_users = admin_users.filter(
+          u => u !== user
+        )
       },
       addAllowedUser() {
-        let addUser = this.data.allowed_users_add
-        let allowed_users = this.data.admin.allowed_users
+        let addUser = this.formData.allowed_users_add
+        let allowed_users = this.settings.lnbits_allowed_users
         if (addUser && addUser.length && !allowed_users.includes(addUser)) {
           allowed_users.push(addUser)
-          this.data.admin.allowed_users = allowed_users
-          this.data.allowed_users_add = ''
+          this.settings.lnbits_allowed_users = allowed_users
+          this.formData.allowed_users_add = ''
         }
       },
       removeAllowedUser(user) {
-        let allowed_users = this.data.admin.allowed_users
-        this.data.admin.allowed_users = allowed_users.filter(u => u !== user)
+        let allowed_users = this.settings.lnbits_allowed_users
+        this.settings.lnbits_allowed_users = allowed_users.filter(u => u !== user)
       },
       addAdSpace() {
-        let adSpace = this.data.ad_space_add
-        let spaces = this.data.admin.ad_space
+        let adSpace = this.formData.ad_space_add
+        let spaces = this.settings.lnbits_ad_space
         if (adSpace.length && !spaces.includes(adSpace)) {
           spaces.push(adSpace)
-          this.data.admin.ad_space = spaces
-          this.data.ad_space_add = ''
+          this.settings.lnbits_ad_space = spaces
+          this.formData.ad_space_add = ''
         }
       },
       removeAdSpace(ad) {
-        let spaces = this.data.settings.lnbits_ad_space
-        this.data.admin.ad_space = spaces.filter(s => s !== ad)
+        let spaces = this.settings.lnbits_ad_space
+        this.settings.lnbits_ad_space = spaces.filter(s => s !== ad)
       },
       restartServer() {
         LNbits.api
-          .request(
-            'GET',
-            '/admin/api/v1/restart/?usr=' + this.g.user.id,
-          )
+          .request('GET', '/admin/api/v1/restart/?usr=' + this.g.user.id)
           .then(response => {
             this.$q.notify({
               type: 'positive',
@@ -134,7 +186,7 @@
             'POST',
             '/admin/api/v1/topup/?usr=' + this.g.user.id,
             this.wallet.id,
-            this.wallet.amount,
+            this.wallet.amount
           )
           .then(response => {
             this.$q.notify({
@@ -153,14 +205,19 @@
           })
       },
       updateSettings() {
-        const formElement = document.getElementById('settings_form');
-        const formData = new FormData(formElement);
-        const data = {};
-        formData.forEach((value, key) => (data[key] = value));
+        let data = {
+          ...this.settings,
+          ...this.formData
+        }
+        /*
+        const formElement = document.getElementById('settings_form')
+        const formData = new FormData(formElement)
+        const data = {}
+        formData.forEach((value, key) => (data[key] = value))
         // only for debugging
         for (const [key, value] of formData) {
-            console.log(`${key}: ${value}\n`);
-        }
+          console.log(`${key}: ${value}\n`)
+        }*/
         LNbits.api
           .request(
             'PUT',
@@ -177,43 +234,39 @@
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
-          });
+          })
       },
       deleteSettings() {
         LNbits.api
-          .request(
-            'DELETE',
-            '/admin/api/v1/settings/?usr=' + this.g.user.id
-          )
+          .request('DELETE', '/admin/api/v1/settings/?usr=' + this.g.user.id)
           .then(response => {
             this.$q.notify({
               type: 'positive',
-              message: 'Success! Restored settings to defaults, restart required!',
+              message:
+                'Success! Restored settings to defaults, restart required!',
               icon: null
             })
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
-          });
+          })
       },
       downloadBackup() {
         LNbits.api
-          .request(
-            'GET',
-            '/admin/api/v1/backup/?usr=' + this.g.user.id
-          )
+          .request('GET', '/admin/api/v1/backup/?usr=' + this.g.user.id)
           .then(response => {
             this.$q.notify({
               type: 'positive',
-              message: 'Success! Database backup request, download starts soon!',
+              message:
+                'Success! Database backup request, download starts soon!',
               icon: null
             })
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
-          });
+          })
       }
-    }
+    },
   })
 </script>
 {% endblock %}

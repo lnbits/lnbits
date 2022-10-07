@@ -3,15 +3,14 @@
     <h6 class="q-my-none">User Management</h6>
     <br />
     <p class="q-my-none">
-      Super Admin: {% raw %}{{this.data.settings.lnbits_admin_users[0]}}{%
-      endraw %}
+      Super Admin: {% raw %}{{settings.lnbits_admin_users[0]}}{% endraw %}
     </p>
     <br />
     <div>
       <p>Admin Users</p>
       <q-input
         filled
-        v-model="data.admin_users_add"
+        v-model="formData.admin_users_add"
         @keydown.enter="addAdminUser"
         type="text"
         label="User ID"
@@ -22,7 +21,7 @@
       <div>
         {% raw %}
         <q-chip
-          v-for="user in data.settings.lnbits_admin_users.slice(1)"
+          v-for="user in settings.lnbits_admin_users.slice(1)"
           :key="user"
           removable
           @remove="removeAdminUser(user)"
@@ -39,7 +38,7 @@
       <p>Allowed Users</p>
       <q-input
         filled
-        v-model="data.allowed_users_add"
+        v-model="formData.allowed_users_add"
         @keydown.enter="addAllowedUser"
         type="text"
         label="User ID"
@@ -50,7 +49,7 @@
       <div>
         {% raw %}
         <q-chip
-          v-for="user in data.settings.lnbits_allowed_users"
+          v-for="user in settings.lnbits_allowed_users"
           :key="user"
           removable
           @remove="removeAllowedUser(user)"
@@ -68,7 +67,7 @@
         <p>Admin Extensions</p>
         <q-select
           filled
-          v-model="data.settings.lnbits_admin_extensions"
+          v-model="formData.lnbits_admin_extensions"
           multiple
           hint="Extensions only user with admin privileges can use"
           label="Admin extensions"
@@ -79,7 +78,7 @@
         <p>Disabled Extensions</p>
         <q-select
           filled
-          v-model="data.settings.lnbits_disabled_extensions"
+          v-model="formData.lnbits_disabled_extensions"
           multiple
           hint="Disable extensions *amilk disabled by default as resource heavy"
           label="Disable extensions"

@@ -9,7 +9,7 @@
           <q-input
             filled
             type="text"
-            v-model="data.settings.lnbits_site_title"
+            v-model="formData.lnbits_site_title"
             label="Site title"
           ></q-input>
           <br />
@@ -19,7 +19,7 @@
           <q-input
             filled
             type="text"
-            v-model="data.settings.lnbits_site_tagline"
+            v-model="formData.lnbits_site_tagline"
             label="Site tagline"
           ></q-input>
           <br />
@@ -28,7 +28,7 @@
       <div>
         <p>Site Description</p>
         <q-input
-          v-model="data.settings.lnbits_site_description"
+          v-model="formData.lnbits_site_description"
           filled
           type="textarea"
           hint="Use plain text or raw HTML"
@@ -41,7 +41,7 @@
           <q-input
             filled
             type="text"
-            v-model="data.settings.lnbits_default_wallet_name"
+            v-model="formData.lnbits_default_wallet_name"
             label="LNbits wallet"
           ></q-input>
           <br />
@@ -51,7 +51,7 @@
           <q-input
             filled
             type="text"
-            v-model="data.settings.lnbits_denomination"
+            v-model="formData.lnbits_denomination"
             label="sats"
             hint="The name for the FakeWallet token"
           ></q-input>
@@ -63,10 +63,10 @@
           <p>Themes</p>
           <q-select
             filled
-            v-model="data.settings.lnbits_theme"
+            v-model="formData.lnbits_theme"
             multiple
             hint="Choose themes available for users"
-            :options="data.settings.lnbits_theme_options"
+            :options="settings.lnbits_theme_options"
             label="Themes"
           ></q-select>
           <br />
@@ -75,7 +75,7 @@
           <p>Advertisement Slots</p>
           <q-input
             filled
-            v-model="data.ad_space_add"
+            v-model="formData.ad_space_add"
             @keydown.enter="addAdSpace"
             type="text"
             label="Ad image URL"
@@ -86,7 +86,7 @@
           <div>
             {% raw %}
             <q-chip
-              v-for="space in data.settings.lnbits_ad_space"
+              v-for="space in settings.lnbits_ad_space"
               :key="space"
               removable
               @remove="removeAdSpace(space)"
@@ -106,7 +106,7 @@
           <q-input
             filled
             type="text"
-            v-model="data.settings.lnbits_custom_logo"
+            v-model="formData.lnbits_custom_logo"
             label="https://example.com/image.png"
             hint="URL to logo image"
           ></q-input>
