@@ -71,6 +71,7 @@
           multiple
           hint="Extensions only user with admin privileges can use"
           label="Admin extensions"
+          :options="g.extensions.map(e => e.name)"
         ></q-select>
         <br />
       </div>
@@ -79,6 +80,7 @@
         <q-select
           filled
           v-model="formData.lnbits_disabled_extensions"
+          :options="g.extensions.map(e => e.name)"
           multiple
           hint="Disable extensions *amilk disabled by default as resource heavy"
           label="Disable extensions"
