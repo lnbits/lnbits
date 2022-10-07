@@ -121,8 +121,11 @@
     created: function () {
       this.settings = JSON.parse('{{ settings|tojson|safe }}') //DB data
       this.balance = +'{{ balance|safe }}'
-      this.formData = this.settings //model
+      this.formData = _.clone(this.settings) //model
+      //this.formData.lnbits_ad_space = "hdh"
       console.log(this.formData)
+      console.log(_.isEqual(this.settings, this.formData))
+
     },
     methods: {
       addAdminUser() {
@@ -206,18 +209,27 @@
       },
       updateSettings() {
         let data = {
-          ...this.settings,
-          ...this.formData
+          lnbits_backend_wallet_class: this.formData.lnbits_backend_wallet_class,
+          lnbits_admin_users: this.formData.lnbits_admin_users.toString(),
+          lnbits_allowed_users: this.formData.lnbits_allowed_users.toString(),
+          lnbits_admin_ext: this.formData.lnbits_admin_ext,
+          lnbits_disabled_ext: this.formData.lnbits_disabled_ext,
+          lnbits_funding_source: this.formData.lnbits_funding_source,
+          lnbits_force_https: this.formData.lnbits_force_https,
+          lnbits_reserve_fee_min: this.formData.lnbits_reserve_fee_min,
+          lnbits_reserve_fee_percent: this.formData.lnbits_reserve_fee_percent,
+          lnbits_service_fee: this.formData.lnbits_service_fee,
+          lnbits_hide_api: this.formData.lnbits_hide_api,
+          lnbits_site_title: this.formData.lnbits_site_title,
+          lnbits_site_tagline: this.formData.lnbits_site_tagline,
+          lnbits_site_description: this.formData.lnbits_site_description,
+          lnbits_default_wallet_name: this.formData.lnbits_default_wallet_name,
+          lnbits_denomination: this.formData.lnbits_denomination,
+          lnbits_theme: this.formData.lnbits_theme,
+          lnbits_custom_logo: this.formData.lnbits_custom_logo,
+          lnbits_ad_space: this.formData.lnbits_ad_space.toString()
         }
-        /*
-        const formElement = document.getElementById('settings_form')
-        const formData = new FormData(formElement)
-        const data = {}
-        formData.forEach((value, key) => (data[key] = value))
-        // only for debugging
-        for (const [key, value] of formData) {
-          console.log(`${key}: ${value}\n`)
-        }*/
+        console.log(data)
         LNbits.api
           .request(
             'PUT',
