@@ -103,9 +103,19 @@ async def lnurl_v1_params(
         if paymentcheck:
             return {"status": "ERROR", "reason": f"Payment already claimed"}
     if device.device == "switch":
+
+        price_msat = (
+            await fiat_amount_as_satoshis(float(device.profit), device.currency)
+            if device.currency != "sat"
+            else amount_in_cent
+        ) * 1000
+
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
-            sats=device.profit,
+            payload="bla",
+            sats=price_msat,
+            pin=1,
+            payhash="bla",
         )
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create payment."}
@@ -114,8 +124,8 @@ async def lnurl_v1_params(
             "callback": request.url_for(
                  "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             ),
-            "minSendable": device.profit * 1000,
-            "maxSendable": device.profit * 1000,
+            "minSendable": price_msat,
+            "maxSendable": price_msat,
             "metadata": await device.lnurlpay_metadata(),
         }
     if len(p) % 4 > 0:
@@ -224,21 +234,15 @@ async def lnurl_callback(
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=lnurldevicepayment.sats / 1000,
-            memo=device.title,
+            memo=device.title + "-" + lnurldevicepayment.id,
             unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
-            extra={"tag": "Switch", "id": device.paymentid, "time": device.amount},
+            extra={"tag": "Switch", "id": paymentid, "time": device.amount},
         )
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
-
         return {
             "pr": payment_request,
-            "successAction": {
-                "tag": "url",
-                "description": "Check the attached link",
-                "url": request.url_for("lnurldevice.displaypin", paymentid=paymentid),
-            },
             "routes": [],
         }
 

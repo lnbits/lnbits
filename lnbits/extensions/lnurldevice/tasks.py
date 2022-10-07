@@ -12,8 +12,9 @@ from lnbits.core.services import pay_invoice
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_lnurldevice
+from .crud import get_lnurldevice, get_lnurldevicepayment, update_lnurldevicepayment
 from .views import updater
+from loguru import logger
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
@@ -23,17 +24,16 @@ async def wait_for_paid_invoices():
         payment = await invoice_queue.get()
         await on_invoice_paid(payment)
         
-
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
-    if "switch" == payment.extra.get("tag"):
+    if "Switch" == payment.extra.get("tag"):
         lnurldevicepayment = await get_lnurldevicepayment(payment.extra.get("id"))
         if not lnurldevicepayment:
             return
         if lnurldevicepayment.payhash == "used":
             return
         lnurldevicepayment = await update_lnurldevicepayment(
-                lnurldevicepayment_id=paymentid, payhash="used"
+                lnurldevicepayment_id=payment.extra.get("id"), payhash="used"
             )
         return await updater(lnurldevicepayment.deviceid)
     return

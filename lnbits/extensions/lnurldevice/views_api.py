@@ -32,16 +32,17 @@ async def api_list_currencies_available():
 @lnurldevice_ext.post("/api/v1/lnurlpos")
 @lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_create_or_update(
+    req: Request,
     data: createLnurldevice,
     wallet: WalletTypeInfo = Depends(require_admin_key),
     lnurldevice_id: str = Query(None),
 ):
     if not lnurldevice_id:
         lnurldevice = await create_lnurldevice(data)
-        return lnurldevice.dict()
+        return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
     else:
         lnurldevice = await update_lnurldevice(data, lnurldevice_id=lnurldevice_id)
-        return lnurldevice.dict()
+        return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
 
 
 @lnurldevice_ext.get("/api/v1/lnurlpos")
@@ -64,7 +65,7 @@ async def api_lnurldevices_retrieve(req: Request, wallet: WalletTypeInfo = Depen
 
 @lnurldevice_ext.get("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_retrieve(
-    request: Request,
+    req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
     lnurldevice_id: str = Query(None),
 ):
@@ -75,7 +76,7 @@ async def api_lnurldevice_retrieve(
         )
     if not lnurldevice.lnurl_toggle:
         return {**lnurldevice.dict()}
-    return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(request=request)}}
+    return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
 
 
 @lnurldevice_ext.delete("/api/v1/lnurlpos/{lnurldevice_id}")
