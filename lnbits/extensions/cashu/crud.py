@@ -1,6 +1,7 @@
 import os
 
 from typing import List, Optional, Union
+from .core.base import Invoice
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -98,7 +99,7 @@ async def store_promise(
 ):
     promise_id = urlsafe_short_hash()
 
-    await (conn or db).execute(
+    await db.execute(
         """
         INSERT INTO cashu.promises
           (id, amount, B_b, C_b, cashu_id)
@@ -139,5 +140,52 @@ async def invalidate_proof(
             str(proof.C),
             str(proof.secret),
             cashu_id
+        ),
+    )
+
+
+
+
+
+
+########################################
+############ MINT INVOICES #############
+########################################
+
+
+async def store_lightning_invoice(cashu_id: str, invoice: Invoice):
+    await db.execute(
+        """
+        INSERT INTO cashu.invoices
+          (cashu_id, amount, pr, hash, issued)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            cashu_id,
+            invoice.amount,
+            invoice.pr,
+            invoice.hash,
+            invoice.issued,
+        ),
+    )
+
+async def get_lightning_invoice(cashu_id: str, hash: str):
+    row = await db.fetchone(
+        """
+        SELECT * from invoices
+        WHERE cashu_id =? AND hash = ?
+        """,
+        (cashu_id, hash,),
+    )
+    return Invoice.from_row(row)
+
+
+async def update_lightning_invoice(cashu_id: str, hash: str,  issued: bool):
+    await db.execute(
+        "UPDATE invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
+        (
+            issued,
+            cashu_id,
+            hash,
         ),
     )
