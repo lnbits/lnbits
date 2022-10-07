@@ -94,18 +94,17 @@
               </q-td>
               <q-td>
                 <q-btn
-                  v-if="props.row.device == 'switch'"
-                  flat
-                  dense
-                  size="xs"
-                  icon="qr_code"
-                  color="grey"
-                  type="a"
-                  :href="'/lnurldevice/img/' + props.row.id"
-                  target="_blank"
-                >
-                  <q-tooltip> bitcoinSwitch embeddable QRCode </q-tooltip>
-                </q-btn>
+                v-if="props.row.device == 'switch'"
+                :disable="protocol == 'http:'"
+                flat
+                unelevated
+                dense
+                size="xs"
+                icon="visibility"
+                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                @click="openQrCodeDialog(props.row.id)"
+                ><q-tooltip v-if="protocol == 'http:'"> LNURLs only work over HTTPS </q-tooltip><q-tooltip v-else> view LNURL </q-tooltip></q-btn
+              >
               </q-td>
               <q-td
                 v-for="col in props.cols"
@@ -279,6 +278,34 @@
       </q-form>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeDialog.data.url + '/?lightning=' + qrCodeDialog.data.lnurl"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+        {% raw %}
+      </q-responsive>
+      <p style="word-break: break-all">
+        <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
+
+      </p>
+      {% endraw %}
+      <div class="row q-mt-lg q-gutter-sm">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')"
+          class="q-ml-sm"
+          >Copy LNURL</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 
@@ -306,6 +333,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        protocol: window.location.protocol,
         location: window.location.hostname,
         wslocation: window.location.hostname,
         filter: '',
@@ -404,6 +432,14 @@
       }
     },
     methods: {
+      openQrCodeDialog: function (lnurldevice_id) {
+      var lnurldevice = _.findWhere(this.lnurldeviceLinks, {id: lnurldevice_id})
+      console.log(lnurldevice)
+      this.qrCodeDialog.data = _.clone(lnurldevice)
+      this.qrCodeDialog.data.url =
+        window.location.protocol + '//' + window.location.host
+      this.qrCodeDialog.show = true
+    },
       cancellnurldevice: function (data) {
         var self = this
         self.formDialoglnurldevice.show = false
@@ -460,6 +496,7 @@
           .then(function (response) {
             if (response.data) {
               self.lnurldeviceLinks = response.data.map(maplnurldevice)
+              console.log(response.data)
             }
           })
           .catch(function (error) {

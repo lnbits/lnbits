@@ -64,23 +64,8 @@ async def img(request: Request, lnurldevice_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
         )
-    qr = pyqrcode.create(lnurldevice.lnurl(request))
-    stream = BytesIO()
-    qr.svg(stream, scale=3)
-    stream.seek(0)
-
-    async def _generator(stream: BytesIO):
-        yield stream.getvalue()
-
-    return StreamingResponse(
-        _generator(stream),
-        headers={
-            "Content-Type": "image/svg+xml",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+    return lnurldevice.lnurl(request)
+    
 
 ##################WEBSOCKET ROUTES########################
 
