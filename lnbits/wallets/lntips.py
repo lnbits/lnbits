@@ -145,7 +145,11 @@ class LnTipsWallet(Wallet):
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
                             try:
-                                inv = json.loads(line)
+                                prefix = "data: "
+                                if not line.startswith(prefix):
+                                    continue
+                                data = line[len(prefix) :]  # sse parsing
+                                inv = json.loads(data)
                                 if not inv.get("payment_hash"):
                                     continue
                             except:
