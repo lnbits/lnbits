@@ -122,7 +122,7 @@ async def lnurl_v1_params(
         return {
             "tag": "payRequest",
             "callback": request.url_for(
-                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             ),
             "minSendable": price_msat,
             "maxSendable": price_msat,

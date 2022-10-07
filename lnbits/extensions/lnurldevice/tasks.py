@@ -16,6 +16,7 @@ from .crud import get_lnurldevice, get_lnurldevicepayment, update_lnurldevicepay
 from .views import updater
 from loguru import logger
 
+
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, get_current_extension_name())
@@ -23,7 +24,8 @@ async def wait_for_paid_invoices():
     while True:
         payment = await invoice_queue.get()
         await on_invoice_paid(payment)
-        
+
+
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
     if "Switch" == payment.extra.get("tag"):
@@ -33,7 +35,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         if lnurldevicepayment.payhash == "used":
             return
         lnurldevicepayment = await update_lnurldevicepayment(
-                lnurldevicepayment_id=payment.extra.get("id"), payhash="used"
-            )
+            lnurldevicepayment_id=payment.extra.get("id"), payhash="used"
+        )
         return await updater(lnurldevicepayment.deviceid)
     return

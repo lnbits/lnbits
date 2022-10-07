@@ -46,18 +46,20 @@ async def api_lnurldevice_create_or_update(
 
 
 @lnurldevice_ext.get("/api/v1/lnurlpos")
-async def api_lnurldevices_retrieve(req: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurldevices_retrieve(
+    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
         return [
-          {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}} 
-          for lnurldevice in await get_lnurldevices(wallet_ids)
+            {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
+            for lnurldevice in await get_lnurldevices(wallet_ids)
         ]
     except:
         try:
             return [
-              {**lnurldevice.dict()} 
-              for lnurldevice in await get_lnurldevices(wallet_ids)
+                {**lnurldevice.dict()}
+                for lnurldevice in await get_lnurldevices(wallet_ids)
             ]
         except:
             return ""

@@ -57,6 +57,7 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         {"request": request, "pin": "filler", "not_paid": True},
     )
 
+
 @lnurldevice_ext.get("/img/{lnurldevice_id}", response_class=StreamingResponse)
 async def img(request: Request, lnurldevice_id):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
@@ -65,7 +66,7 @@ async def img(request: Request, lnurldevice_id):
             status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
         )
     return lnurldevice.lnurl(request)
-    
+
 
 ##################WEBSOCKET ROUTES########################
 
@@ -110,4 +111,3 @@ async def updater(lnurldevice_id):
     if not lnurldevice:
         return
     await manager.send_personal_message(f"{lnurldevice.amount}", lnurldevice_id)
-
