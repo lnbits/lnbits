@@ -10,12 +10,15 @@ db = Database("ext_cashu")
 
 cashu_ext: APIRouter = APIRouter(prefix="/cashu", tags=["cashu"])
 
+
 def cashu_renderer():
     return template_renderer(["lnbits/extensions/cashu/templates"])
+
 
 from .tasks import wait_for_paid_invoices
 from .views import *  # noqa
 from .views_api import *  # noqa
+
 
 def cashu_start():
     loop = asyncio.get_event_loop()

@@ -1,5 +1,5 @@
 from sqlite3 import Row
-from typing import Optional, List
+from typing import List, Optional
 
 from fastapi import Query
 from pydantic import BaseModel
@@ -20,19 +20,21 @@ class Cashu(BaseModel):
     def from_row(cls, row: Row) -> "TPoS":
         return cls(**dict(row))
 
+
 class Pegs(BaseModel):
     id: str
     wallet: str
     inout: str
     amount: str
 
-
     @classmethod
     def from_row(cls, row: Row) -> "TPoS":
         return cls(**dict(row))
 
+
 class PayLnurlWData(BaseModel):
     lnurl: str
+
 
 class Promises(BaseModel):
     id: str
@@ -40,6 +42,7 @@ class Promises(BaseModel):
     B_b: str
     C_b: str
     cashu_id: str
+
 
 class Proof(BaseModel):
     amount: int
