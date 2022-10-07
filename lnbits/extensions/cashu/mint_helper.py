@@ -1,7 +1,9 @@
 import hashlib
-from typing import List
+from typing import List, Set
 
-from .core.secp import PrivateKey
+from .core.b_dhke import verify
+from .core.secp import PrivateKey, PublicKey
+from .models import Proof
 
 # todo: extract const
 MAX_ORDER = 64
@@ -21,6 +23,19 @@ def derive_keys(master_key: str):
     }
 
 
-
 def derive_pubkeys(keys: List[PrivateKey]):
     return {amt: keys[amt].pubkey for amt in [2**i for i in range(MAX_ORDER)]}
+
+
+async def verify_proof(master_prvkey: str, proofs_used: Set[str], proof: Proof):
+    """Verifies that the proof of promise was issued by this ledger."""
+    if proof.secret in proofs_used:
+        raise Exception(f"tokens already spent. Secret: {proof.secret}")
+
+    secret_key = derive_keys(master_prvkey)[
+        proof.amount
+    ]  # Get the correct key to check against
+    C = PublicKey(bytes.fromhex(proof.C), raw=True)
+    validMintSig = verify(secret_key, C, proof.secret)
+    if validMintSig != True:
+         raise Exception(f"tokens not valid. Secret: {proof.secret}")

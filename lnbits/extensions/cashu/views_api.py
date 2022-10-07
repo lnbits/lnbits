@@ -28,11 +28,10 @@ from .crud import (
     update_lightning_invoice,
 )
 from .ledger import mint, request_mint
-from .mint import generate_promises, get_pubkeys
+from .mint import generate_promises, get_pubkeys, melt
 from .models import (
     Cashu,
     CheckPayload,
-    CreateTokens,
     Invoice,
     MeltPayload,
     MintPayloads,
@@ -248,7 +247,7 @@ async def mint_pay_request(
     except Exception as e:
         logger.error(e)
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(cashu_id)
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
     return {"pr": payment_request, "hash": payment_hash}
@@ -265,7 +264,6 @@ async def mint_coins(
     Requests the minting of tokens belonging to a paid payment request.
     Call this endpoint after `GET /mint`.
     """
-    print("############################ amount")
     cashu: Cashu = await get_cashu(cashu_id)
     if cashu is None:
         raise HTTPException(
@@ -282,12 +280,11 @@ async def mint_coins(
         )
     if invoice.issued == True:
         raise HTTPException(
-            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Tokens already issued for this invoice."
+            status_code=HTTPStatus.PAYMENT_REQUIRED,
+            detail="Tokens already issued for this invoice.",
         )
 
-    status: PaymentStatus = await check_transaction_status(
-        cashu.wallet, payment_hash
-    )
+    status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
     # todo: revert to: status.paid != True:
     if status.paid == False:
         raise HTTPException(
@@ -302,21 +299,33 @@ async def mint_coins(
             amounts.append(payload.amount)
             B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
 
-        
             promises = await generate_promises(cashu.prvkey, amounts, B_s)
             for amount, B_, p in zip(amounts, B_s, promises):
                 await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
-    
+
             return promises
-    except Exception as exc:
-        return CashuError(error=str(exc))
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
-@cashu_ext.post("/melt")
+@cashu_ext.post("/api/v1/melt/{cashu_id}")
 async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
-
-    ok, preimage = await melt(payload.proofs, payload.amount, payload.invoice, cashu_id)
-    return {"paid": ok, "preimage": preimage}
+    cashu: Cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+    try:
+        ok, preimage = await melt(cashu, payload.proofs, payload.invoice)
+        return {"paid": ok, "preimage": preimage}
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @cashu_ext.post("/check")
