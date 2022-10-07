@@ -1,13 +1,13 @@
 from http import HTTPStatus
-import pyqrcode
 from io import BytesIO
 
-from fastapi import Request
+import pyqrcode
+from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
@@ -16,9 +16,6 @@ from lnbits.decorators import check_user_exists
 
 from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment
-from fastapi import Request, WebSocket, WebSocketDisconnect
-
-from starlette.responses import HTMLResponse, StreamingResponse
 
 templates = Jinja2Templates(directory="templates")
 
