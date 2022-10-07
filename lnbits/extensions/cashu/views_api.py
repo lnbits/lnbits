@@ -30,6 +30,7 @@ from .mint import get_pubkeys
 from .models import (
     Cashu,
     CheckPayload,
+    CreateTokens,
     Invoice,
     MeltPayload,
     MintPayloads,
@@ -251,12 +252,11 @@ async def mint_pay_request(
     return {"pr": payment_request, "hash": payment_hash}
 
 
-@cashu_ext.post("/mint")
+@cashu_ext.post("/api/v1/mint/{cashu_id}")
 async def mint_coins(
-    payloads: MintPayloads,
-    payment_hash: Union[str, None] = None,
+    data: CreateTokens,
     cashu_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     """
     Requests the minting of tokens belonging to a paid payment request.
@@ -268,14 +268,20 @@ async def mint_coins(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
-    invoice: Invoice = get_lightning_invoice(cashu_id, payment_hash)
+    invoice: Invoice = (
+        None
+        if data.payment_hash == None
+        else await get_lightning_invoice(cashu_id, data.payment_hash)
+    )
     if invoice is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not have this invoice."
         )
+    # if invoice.issued == True:
+    #     todo: give old tokens?
 
-    status: PaymentStatus = check_transaction_status(cashu.wallet, payment_hash)
-    if status.paid == False:
+    status: PaymentStatus = await check_transaction_status(cashu.wallet, data.payment_hash)
+    if status.paid != True:
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
         )
