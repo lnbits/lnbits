@@ -24,9 +24,10 @@ from .crud import (
     get_cashus,
     get_lightning_invoice,
     store_lightning_invoice,
+    store_promise,
 )
 from .ledger import mint, request_mint
-from .mint import get_pubkeys
+from .mint import generate_promises, get_pubkeys
 from .models import (
     Cashu,
     CheckPayload,
@@ -280,22 +281,29 @@ async def mint_coins(
     # if invoice.issued == True:
     #     todo: give old tokens?
 
-    status: PaymentStatus = await check_transaction_status(cashu.wallet, data.payment_hash)
-    if status.paid != True:
+    status: PaymentStatus = await check_transaction_status(
+        cashu.wallet, data.payment_hash
+    )
+    # todo: revert to: status.paid != True:
+    if status.paid == False:
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
         )
 
-    # amounts = []
-    # B_s = []
-    # for payload in payloads.blinded_messages:
-    #     amounts.append(payload.amount)
-    #     B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
-    # try:
-    #     promises = await ledger.mint(B_s, amounts, payment_hash=payment_hash)
-    #     return promises
-    # except Exception as exc:
-    #     return CashuError(error=str(exc))
+    amounts = []
+    B_s = []
+    for payload in data.payloads.blinded_messages:
+        amounts.append(payload.amount)
+        B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+    print("### amounts", amounts)
+    print("### B_s", B_s)
+
+    try:
+        promises = await generate_promises(cashu.prvkey, amounts, B_s)
+        # await store_promise(amount, B_=B_.serialize().hex(), C_=C_.serialize().hex(), cashu_id)
+        return promises
+    except Exception as exc:
+        return CashuError(error=str(exc))
 
 
 @cashu_ext.post("/melt")

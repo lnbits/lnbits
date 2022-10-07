@@ -93,7 +93,7 @@ async def delete_cashu(cashu_id) -> None:
 ##########################################
 
 
-async def store_promise(amount: int, B_: str, C_: str, cashu_id):
+async def store_promise(amount: int, B_: str, C_: str, cashu_id: str):
     promise_id = urlsafe_short_hash()
 
     await db.execute(

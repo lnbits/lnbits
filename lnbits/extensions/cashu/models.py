@@ -147,6 +147,7 @@ class MeltPayload(BaseModel):
     amount: int
     invoice: str
 
+
 class CreateTokens(BaseModel):
     # cashu_id: str = Query(None)
     payloads: MintPayloads
