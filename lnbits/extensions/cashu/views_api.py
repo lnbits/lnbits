@@ -218,7 +218,11 @@ async def keys(
 
 
 @cashu_ext.get("/api/v1/mint/{cashu_id}")
-async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
+async def mint_pay_request(
+    amount: int = 0,
+    cashu_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     """Request minting of tokens. Server responds with a Lightning invoice."""
 
     cashu = await get_cashu(cashu_id)
@@ -252,6 +256,7 @@ async def mint_coins(
     payloads: MintPayloads,
     payment_hash: Union[str, None] = None,
     cashu_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     """
     Requests the minting of tokens belonging to a paid payment request.
