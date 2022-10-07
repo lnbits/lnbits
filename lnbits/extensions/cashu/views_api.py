@@ -15,7 +15,8 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import cashu_ext
-from .ledger import get_pubkeys, request_mint, mint
+from .ledger import request_mint, mint
+from .mint import get_pubkeys
 
 from .crud import (
     create_cashu, 
@@ -35,6 +36,11 @@ from .models import (
     PayLnurlWData
 )
 
+########################################
+#################MINT CRUD##############
+########################################
+
+# todo: use /mints
 @cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
 async def api_cashus(
     all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
@@ -83,6 +89,9 @@ async def api_cashu_delete(
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
+########################################
+#################????###################
+########################################
 @cashu_ext.post("/api/v1/cashus/{cashu_id}/invoices", status_code=HTTPStatus.CREATED)
 async def api_cashu_create_invoice(
     amount: int = Query(..., ge=1), tipAmount: int = None, cashu_id: str = None
@@ -192,10 +201,16 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 #################MINT###################
 ########################################
 
-@cashu_ext.get("/keys")
-def keys(cashu_id: str):
+@cashu_ext.get("/api/v1/mint/keys/{cashu_id}",  status_code=HTTPStatus.OK)
+async def keys(cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
     """Get the public keys of the mint"""
-    return get_pubkeys(cashu_id)
+    print('############################')
+    mint = await get_cashu(cashu_id)
+    if mint is None:
+        raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+                )
+    return get_pubkeys(mint.prvkey)
 
 
 @cashu_ext.get("/mint")
