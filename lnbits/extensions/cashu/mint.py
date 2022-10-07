@@ -3,7 +3,7 @@ from typing import List
 from .core.b_dhke import step2_bob
 from .core.base import BlindedSignature
 from .core.secp import PublicKey
-from .mint_helper import derive_key, derive_keys, derive_pubkeys
+from .mint_helper import derive_keys, derive_pubkeys
 
 # todo: extract const
 MAX_ORDER = 64
@@ -36,6 +36,6 @@ async def generate_promises(
 
 async def generate_promise(master_prvkey: str, amount: int, B_: PublicKey):
     """Generates a promise for given amount and returns a pair (amount, C')."""
-    secret_key = derive_key(master_prvkey, amount)  # Get the correct key
+    secret_key = derive_keys(master_prvkey)[amount]  # Get the correct key
     C_ = step2_bob(B_, secret_key)
     return BlindedSignature(amount=amount, C_=C_.serialize().hex())
