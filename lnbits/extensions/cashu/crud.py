@@ -93,6 +93,11 @@ async def delete_cashu(cashu_id) -> None:
 ##########################################
 
 
+async def store_promises(amounts: List[int], B_s: List[str], C_s: List[str], cashu_id: str):
+    for amount, B_, C_ in zip(amounts, B_s, C_s):
+        await store_promise(amount, B_, C_, cashu_id)
+
+
 async def store_promise(amount: int, B_: str, C_: str, cashu_id: str):
     promise_id = urlsafe_short_hash()
 
