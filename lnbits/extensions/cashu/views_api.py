@@ -295,15 +295,11 @@ async def mint_coins(
     for payload in data.payloads.blinded_messages:
         amounts.append(payload.amount)
         B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
-    print("### amounts", amounts)
-    print("### B_s", B_s)
 
     try:
         promises = await generate_promises(cashu.prvkey, amounts, B_s)
         for amount, B_, p in zip(amounts, B_s, promises):
             await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
-        # store_promises(amounts, B_s, C_s, cashu_id)
-        # await store_promise(amount, B_=B_.serialize().hex(), C_=C_.serialize().hex(), cashu_id)
         return promises
     except Exception as exc:
         return CashuError(error=str(exc))
