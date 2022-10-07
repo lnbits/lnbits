@@ -137,11 +137,16 @@ async def api_gerty_json(
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
 
+    # get the sleep time
+    sleep_time = gerty.refresh_time
+    if gerty_should_sleep():
+        sleep_time_hours = 7
+        sleep_time = 60 * sleep_time_hours
 
     return {
         "settings": {
-            "refreshTime": gerty.refresh_time,
-            "requestTimestamp": get_next_update_time(gerty.refresh_time),
+            "refreshTime": sleep_time,
+            "requestTimestamp": get_next_update_time(sleep_time),
             "nextScreenNumber": next_screen_number,
             "showTextBoundRect": False,
             "name": gerty.name
