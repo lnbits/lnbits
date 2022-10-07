@@ -39,7 +39,7 @@ async def m001_create_admin_settings_table(db):
             lnd_rest_endpoint TEXT,
             lnd_rest_cert TEXT,
             lnd_rest_macaroon TEXT,
-            lnd_grpc_endpoint: TEXT,
+            lnd_grpc_endpoint TEXT,
             lnd_grpc_cert TEXT,
             lnd_grpc_port INTEGER,
             lnd_grpc_admin_macaroon TEXT,
