@@ -45,7 +45,7 @@ async def m001_initial_invoices(db):
            id TEXT PRIMARY KEY,
            invoice_id TEXT NOT NULL,
 
-           amount INT NOT NULL,
+           amount {db.big_int} NOT NULL,
 
            time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
 
