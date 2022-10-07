@@ -140,8 +140,8 @@ async def api_gerty_json(
     # get the sleep time
     sleep_time = gerty.refresh_time
     if gerty_should_sleep():
-        sleep_time_hours = 7
-        sleep_time = 60 * sleep_time_hours
+        sleep_time_hours = 8
+        sleep_time = 60 * 60 * sleep_time_hours
 
     return {
         "settings": {
