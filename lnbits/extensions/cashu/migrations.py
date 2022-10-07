@@ -43,6 +43,7 @@ async def m001_initial(db):
             B_b TEXT NOT NULL,
             C_b TEXT NOT NULL,
             cashu_id TEXT NOT NULL
+            UNIQUE (B_b)
         );
     """
     )
