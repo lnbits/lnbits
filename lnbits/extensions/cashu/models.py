@@ -1,5 +1,5 @@
 from sqlite3 import Row
-from typing import List, Optional
+from typing import List, Union
 
 from fastapi import Query
 from pydantic import BaseModel
@@ -146,3 +146,8 @@ class MeltPayload(BaseModel):
     proofs: List[Proof]
     amount: int
     invoice: str
+
+class CreateTokens(BaseModel):
+    # cashu_id: str = Query(None)
+    payloads: MintPayloads
+    payment_hash: Union[str, None] = None

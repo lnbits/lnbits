@@ -87,10 +87,11 @@ class Invoice(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(
-            amount=int(row[0]),
-            pr=str(row[1]),
-            hash=str(row[2]),
-            issued=bool(row[3]),
+            cashu_id=str(row[0]),
+            amount=int(row[1]),
+            pr=str(row[2]),
+            hash=str(row[3]),
+            issued=bool(row[4]),
         )
 
 

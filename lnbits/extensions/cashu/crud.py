@@ -157,7 +157,7 @@ async def store_lightning_invoice(cashu_id: str, invoice: Invoice):
 async def get_lightning_invoice(cashu_id: str, hash: str):
     row = await db.fetchone(
         """
-        SELECT * from invoices
+        SELECT * from cashu.invoices
         WHERE cashu_id =? AND hash = ?
         """,
         (
@@ -170,7 +170,7 @@ async def get_lightning_invoice(cashu_id: str, hash: str):
 
 async def update_lightning_invoice(cashu_id: str, hash: str, issued: bool):
     await db.execute(
-        "UPDATE invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
+        "UPDATE cashu.invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
         (
             issued,
             cashu_id,
