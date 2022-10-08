@@ -14,8 +14,8 @@ page_container %}
                   rounded
                   color="secondary"
                   class="full-width"
-                  @click="showCamera"
-                  >Buy tokens 
+                  @click="showBuyTokensDialog"
+                  >Buy tokens
                   <h5 class="text-caption q-ml-sm q-mb-none">(with sats)</h5>
                 </q-btn>
               </div>
@@ -28,12 +28,7 @@ page_container %}
                 </h3>
               </div>
               <div class="col-3">
-                <q-btn
-                  size="18px"
-                  rounded
-                  color="secondary"
-                  class="full-width"
-                  @click="showCamera"
+                <q-btn size="18px" rounded color="secondary" class="full-width"
                   >Sell tokens
                   <h5 class="text-caption q-ml-sm q-mb-none">(for sats)</h5>
                 </q-btn>
@@ -52,7 +47,6 @@ page_container %}
               rounded
               color="primary"
               class="full-width"
-              @click="showParseDialog"
               >Receive</q-btn
             >
           </div>
@@ -63,7 +57,6 @@ page_container %}
               rounded
               color="primary"
               class="full-width"
-              @click="showSendDialog"
             >
               Send</q-btn
             >
@@ -75,7 +68,6 @@ page_container %}
               color="secondary"
               icon="sync_alt"
               class="full-width"
-              @click="showCamera"
               >Peg in/out
             </q-btn>
           </div>
@@ -86,7 +78,6 @@ page_container %}
               color="secondary"
               icon="photo_camera"
               class="full-width"
-              @click="showCamera"
               >scan
             </q-btn>
           </div>
@@ -107,23 +98,14 @@ page_container %}
                   icon="approval"
                   color="grey"
                   type="a"
-                  :href="mint"
+                  :href="mintName"
                   target="_blank"
                   >{% endraw %}
                   <q-tooltip>Mint details</q-tooltip>
                 </q-btn>
-                <q-btn flat color="grey" @click="exportCSV"
-                  >Export to CSV</q-btn
-                >
+                <q-btn flat color="grey">Export to CSV</q-btn>
 
-                <q-btn
-                  dense
-                  flat
-                  round
-                  icon="show_chart"
-                  color="grey"
-                  @click="showChart"
-                >
+                <q-btn dense flat round icon="show_chart" color="grey">
                   <q-tooltip>Show chart</q-tooltip>
                 </q-btn>
               </div>
@@ -244,12 +226,7 @@ page_container %}
                           </a>
                         </div>
                         <div class="row q-mt-lg">
-                          <q-btn
-                            outline
-                            color="grey"
-                            @click="copyText(props.row.bolt11)"
-                            >Copy invoice</q-btn
-                          >
+                          <q-btn outline color="grey">Copy invoice</q-btn>
                           <q-btn
                             v-close-popup
                             flat
@@ -533,12 +510,8 @@ page_container %}
       >
         <q-tab icon="arrow_downward" label="receive" @click="showParseDialog">
         </q-tab>
-        <q-tab icon="arrow_upward" label="Send" @click="showSendDialog"></q-tab>
-        <q-tab
-          icon="sync_alt"
-          label="Peg in/out"
-          @click="showSendDialog"
-        ></q-tab>
+        <q-tab icon="arrow_upward" label="Send"></q-tab>
+        <q-tab icon="sync_alt" label="Peg in/out"></q-tab>
         <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
       </q-tabs>
 
@@ -557,17 +530,71 @@ page_container %}
             lose the funds.
           </p>
           <div class="row q-mt-lg">
-            <q-btn
-              outline
-              color="grey"
-              @click="copyText(disclaimerDialog.location.href)"
-              >Copy wallet URL</q-btn
-            >
+            <q-btn outline color="grey">Copy wallet URL</q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >I understand</q-btn
             >
           </div>
         </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="buyTokens.showDialog" position="top">
+        {% raw %}
+
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!buyTokens.bolt11">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >How much would you like to buy?</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model.number="buyTokens.amount"
+              label="Amount (sats) *"
+              type="number"
+              class="q-mb-lg"
+            ></q-input>
+
+            <q-input
+              filled
+              dense
+              v-model.trim="buyTokens.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <a :href="'lightning:' + buyTokens.bolt11">
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="buyTokens.bolt11"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                >
+                </qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="buyTokens.bolt11"
+              @click="copyText(buyTokens.bolt11)"
+              outline
+              color="grey"
+              >Copy invoice</q-btn
+            >
+            <q-btn v-else outline color="grey" @click="requestInvoice"
+              >Request Invoice</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+        {% endraw %}
       </q-dialog>
     </div>
   </q-page>
@@ -605,6 +632,8 @@ page_container %}
     return obj
   }
 
+  Vue.component(VueQrcode.name, VueQrcode)
+
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
@@ -613,6 +642,17 @@ page_container %}
         balanceAmount: '',
         tickershort: '',
         name: '',
+
+        mintId: '',
+        mintName: '',
+        buyTokens: {
+          showDialog: false,
+          amount: 0,
+          memo: '',
+          bolt11: '',
+          hash: ''
+        },
+
         receive: {
           show: false,
           status: 'pending',
@@ -933,6 +973,28 @@ page_container %}
           field: 'pending'
         })
         LNbits.utils.exportCSV(columns, this.payments)
+      },
+
+      /////////////////////////////////// WALLET ///////////////////////////////////
+      showBuyTokensDialog: async function () {
+        this.buyTokens.amount = 0
+        this.buyTokens.bolt11 = ''
+        this.buyTokens.hash = ''
+        this.buyTokens.memo = ''
+        this.buyTokens.showDialog = true
+      },
+      requestInvoice: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyTokens.amount}`
+          )
+          console.log('### data', data)
+          this.buyTokens.bolt11 = data.pr
+          this.buyTokens.hash = data.hash
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
       }
     },
     watch: {
@@ -940,19 +1002,7 @@ page_container %}
         this.fetchBalance()
       }
     },
-    created: function () {
-      this.fetchBalance()
-      this.fetchPayments()
 
-      LNbits.api
-        .request('GET', '/api/v1/currencies')
-        .then(response => {
-          this.receive.units = ['sat', ...response.data]
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
     created: function () {
       let params = new URL(document.location).searchParams
 
@@ -975,11 +1025,11 @@ page_container %}
       }
 
       // get mint
-      if (params.get('mnt')) {
-        this.mint = params.get('mnt')
-        this.$q.localStorage.set('cashu.mint', params.get('mnt'))
+      if (params.get('mint_id')) {
+        this.mintId = params.get('mint_id')
+        this.$q.localStorage.set('cashu.mint', params.get('mint_id'))
       } else if (this.$q.localStorage.getItem('cashu.mint')) {
-        this.mint = this.$q.localStorage.getItem('cashu.mint')
+        this.mintId = this.$q.localStorage.getItem('cashu.mint')
       } else {
         this.$q.notify({
           color: 'red',
@@ -988,12 +1038,14 @@ page_container %}
       }
 
       // get name
-      if (params.get('nme')) {
-        this.name = params.get('nme')
-        this.$q.localStorage.set('cashu.name', params.get('nme'))
+      if (params.get('mint_name')) {
+        this.mintName = params.get('mint_name')
+        this.$q.localStorage.set('cashu.mintName', params.get('mint_name'))
       } else if (this.$q.localStorage.getItem('cashu.name')) {
-        this.name = this.$q.localStorage.getItem('cashu.name')
+        this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
+      console.log('#### this.mintId', this.mintId)
+      console.log('#### this.mintName', this.mintName)
     }
   })
 </script>

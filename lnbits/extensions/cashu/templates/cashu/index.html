@@ -49,7 +49,7 @@
                   icon="launch"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'wallet/?tsh=' + props.row.tickershort + '&mnt=' + hostname + props.row.id + '&nme=' + props.row.name"
+                  :href="'wallet/?tsh=' + (props.row.tickershort || '') + '&mint_id=' + props.row.id + '&mint_name=' + props.row.name"
                   target="_blank"
                   ><q-tooltip>Shareable wallet page</q-tooltip></q-btn
                 >
