@@ -7,12 +7,38 @@ page_container %}
       <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
         <q-card>
           <q-card-section>
-            <h3 class="q-my-none">
-              <center>
-                <strong>{% raw %} {{balanceAmount}} </strong> {{tickershort}}{%
-                endraw %}
-              </center>
-            </h3>
+            <div class="row">
+              <div class="col-3">
+                <q-btn
+                  size="18px"
+                  rounded
+                  color="secondary"
+                  class="full-width"
+                  @click="showCamera"
+                  >Buy tokens 
+                  <h5 class="text-caption q-ml-sm q-mb-none">(with sats)</h5>
+                </q-btn>
+              </div>
+              <div class="col-6">
+                <h3 class="q-my-none">
+                  <center>
+                    <strong>{% raw %} {{balanceAmount}} </strong>
+                    {{tickershort}}{% endraw %}
+                  </center>
+                </h3>
+              </div>
+              <div class="col-3">
+                <q-btn
+                  size="18px"
+                  rounded
+                  color="secondary"
+                  class="full-width"
+                  @click="showCamera"
+                  >Sell tokens
+                  <h5 class="text-caption q-ml-sm q-mb-none">(for sats)</h5>
+                </q-btn>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
 
@@ -38,7 +64,8 @@ page_container %}
               color="primary"
               class="full-width"
               @click="showSendDialog"
-              >Send</q-btn
+            >
+              Send</q-btn
             >
           </div>
           <div class="col">
