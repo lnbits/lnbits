@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from typing import Union
 
@@ -16,7 +17,7 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.wallets.base import PaymentStatus
 
 from . import cashu_ext
-from .core.base import CashuError
+from .core.base import CashuError, PostSplitResponse, SplitRequest
 from .crud import (
     create_cashu,
     delete_cashu,
@@ -28,7 +29,7 @@ from .crud import (
     update_lightning_invoice,
 )
 from .ledger import mint, request_mint
-from .mint import generate_promises, get_pubkeys, melt
+from .mint import generate_promises, get_pubkeys, melt, split
 from .models import (
     Cashu,
     CheckPayload,
@@ -207,9 +208,7 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 
 
 @cashu_ext.get("/api/v1/cashu/{cashu_id}/keys", status_code=HTTPStatus.OK)
-async def keys(
-    cashu_id: str = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def keys(cashu_id: str = Query(False)):
     """Get the public keys of the mint"""
     mint = await get_cashu(cashu_id)
     if mint is None:
@@ -220,11 +219,7 @@ async def keys(
 
 
 @cashu_ext.get("/api/v1/cashu/{cashu_id}/mint")
-async def mint_pay_request(
-    amount: int = 0,
-    cashu_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
-):
+async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
     """Request minting of tokens. Server responds with a Lightning invoice."""
 
     cashu = await get_cashu(cashu_id)
@@ -246,9 +241,7 @@ async def mint_pay_request(
         await store_lightning_invoice(cashu_id, invoice)
     except Exception as e:
         logger.error(e)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"pr": payment_request, "hash": payment_hash}
 
@@ -258,7 +251,6 @@ async def mint_coins(
     data: MintPayloads,
     cashu_id: str = Query(None),
     payment_hash: Union[str, None] = None,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     """
     Requests the minting of tokens belonging to a paid payment request.
@@ -286,17 +278,17 @@ async def mint_coins(
 
     total_requested = sum([bm.amount for bm in data.blinded_messages])
     if total_requested > invoice.amount:
-        # raise CashuError(error = f"Requested amount to high: {total_requested}. Invoice amount: {invoice.amount}")
         raise HTTPException(
-            status_code=HTTPStatus.PAYMENT_REQUIRED, detail=f"Requested amount to high: {total_requested}. Invoice amount: {invoice.amount}"
+            status_code=HTTPStatus.PAYMENT_REQUIRED,
+            detail=f"Requested amount too high: {total_requested}. Invoice amount: {invoice.amount}",
         )
 
     status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
     # todo: revert to: status.paid != True:
-    if status.paid != True:
-        raise HTTPException(
-            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
-        )
+    # if status.paid != True:
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
+    #     )
     try:
         await update_lightning_invoice(cashu_id, payment_hash, True)
 
@@ -313,13 +305,12 @@ async def mint_coins(
         return promises
     except Exception as e:
         logger.error(e)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @cashu_ext.post("/api/v1/cashu/{cashu_id}/melt")
 async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
+    """Invalidates proofs and pays a Lightning invoice."""
     cashu: Cashu = await get_cashu(cashu_id)
     if cashu is None:
         raise HTTPException(
@@ -330,9 +321,7 @@ async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
         return {"paid": ok, "preimage": preimage}
     except Exception as e:
         logger.error(e)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @cashu_ext.post("/check")
@@ -340,21 +329,29 @@ async def check_spendable_coins(payload: CheckPayload, cashu_id: str = Query(Non
     return await check_spendable(payload.proofs, cashu_id)
 
 
-@cashu_ext.post("/split")
-async def spli_coinst(payload: SplitPayload, cashu_id: str = Query(None)):
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/split")
+async def split_proofs(payload: SplitRequest, cashu_id: str = Query(None)):
     """
     Requetst a set of tokens with amount "total" to be split into two
     newly minted sets with amount "split" and "total-split".
     """
+    print("### RECEIVE")
+    print("payload", json.dumps(payload, default=vars))
+    cashu: Cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     proofs = payload.proofs
     amount = payload.amount
-    output_data = payload.output_data.blinded_messages
+    outputs = payload.outputs.blinded_messages if payload.outputs else None
     try:
-        split_return = await split(proofs, amount, output_data)
+        split_return = await split(cashu, proofs, amount, outputs)
     except Exception as exc:
-        return {"error": str(exc)}
+        raise CashuError(error=str(exc))
     if not split_return:
-        """There was a problem with the split"""
-        raise Exception("could not split tokens.")
-    fst_promises, snd_promises = split_return
-    return {"fst": fst_promises, "snd": snd_promises}
+        return {"error": "there was a problem with the split."}
+    frst_promises, scnd_promises = split_return
+    resp = PostSplitResponse(fst=frst_promises, snd=scnd_promises)
+    print("### resp", json.dumps(resp, default=vars))
+    return resp
