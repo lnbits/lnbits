@@ -324,7 +324,7 @@ async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@cashu_ext.post("/check")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/check")
 async def check_spendable_coins(payload: CheckPayload, cashu_id: str = Query(None)):
     return await check_spendable(payload.proofs, cashu_id)
 
