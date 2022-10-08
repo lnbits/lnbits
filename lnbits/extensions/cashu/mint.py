@@ -3,14 +3,24 @@ from typing import List, Set
 
 from lnbits import bolt11
 from lnbits.core.services import check_transaction_status, fee_reserve, pay_invoice
-from lnbits.extensions.cashu.models import Cashu
 from lnbits.wallets.base import PaymentStatus
 
 from .core.b_dhke import step2_bob
-from .core.base import BlindedSignature, Proof
+from .core.base import BlindedMessage, BlindedSignature, Proof
 from .core.secp import PublicKey
+from .core.split import amount_split
 from .crud import get_proofs_used, invalidate_proof
-from .mint_helper import derive_keys, derive_pubkeys, verify_proof
+from .mint_helper import (
+    derive_keys,
+    derive_pubkeys,
+    verify_equation_balanced,
+    verify_no_duplicates,
+    verify_outputs,
+    verify_proof,
+    verify_secret_criteria,
+    verify_split_amount,
+)
+from .models import Cashu
 
 # todo: extract const
 MAX_ORDER = 64
@@ -52,10 +62,8 @@ async def melt(cashu: Cashu, proofs: List[Proof], invoice: str):
     """Invalidates proofs and pays a Lightning invoice."""
     # Verify proofs
     proofs_used: Set[str] = set(await get_proofs_used(cashu.id))
-    # if not all([verify_proof(cashu.prvkey, proofs_used, p) for p in proofs]):
-    #     raise Exception("could not verify proofs.")
     for p in proofs:
-        await verify_proof(cashu.prvkey, proofs_used, p)    
+        await verify_proof(cashu.prvkey, proofs_used, p)
 
     total_provided = sum([p["amount"] for p in proofs])
     invoice_obj = bolt11.decode(invoice)
@@ -90,6 +98,56 @@ async def check_fees(wallet_id: str, decoded_invoice):
     )
     fees_msat = fee_reserve(amount * 1000) if status.paid != True else 0
     return fees_msat
+
+
+async def split(
+    cashu: Cashu, proofs: List[Proof], amount: int, outputs: List[BlindedMessage]
+):
+    """Consumes proofs and prepares new promises based on the amount split."""
+    total = sum([p.amount for p in proofs])
+
+    # verify that amount is kosher
+    verify_split_amount(amount)
+    # verify overspending attempt
+    if amount > total:
+        raise Exception(
+            f"split amount ({amount}) is higher than the total sum ({total})."
+        )
+
+    # Verify secret criteria
+    if not all([verify_secret_criteria(p) for p in proofs]):
+        raise Exception("secrets do not match criteria.")
+    # verify that only unique proofs and outputs were used
+    if not verify_no_duplicates(proofs, outputs):
+        raise Exception("duplicate proofs or promises.")
+    # verify that outputs have the correct amount
+    if not verify_outputs(total, amount, outputs):  # ?
+        raise Exception("split of promises is not as expected.")
+    # Verify proofs
+    # Verify proofs
+    proofs_used: Set[str] = set(await get_proofs_used(cashu.id))
+    for p in proofs:
+        await verify_proof(cashu.prvkey, proofs_used, p)
+
+    # Mark proofs as used and prepare new promises
+    await invalidate_proofs(cashu.id, proofs)
+
+    outs_fst = amount_split(total - amount)
+    outs_snd = amount_split(amount)
+    B_fst = [
+        PublicKey(bytes.fromhex(od.B_), raw=True) for od in outputs[: len(outs_fst)]
+    ]
+    B_snd = [
+        PublicKey(bytes.fromhex(od.B_), raw=True) for od in outputs[len(outs_fst) :]
+    ]
+    # PublicKey(bytes.fromhex(payload.B_), raw=True)
+    prom_fst, prom_snd = await generate_promises(
+        cashu.prvkey, outs_fst, B_fst
+    ), await generate_promises(cashu.prvkey, outs_snd, B_snd)
+    # verify amounts in produced proofs
+    verify_equation_balanced(proofs, prom_fst + prom_snd)
+    return prom_fst, prom_snd
+
 
 async def invalidate_proofs(cashu_id: str, proofs: List[Proof]):
     """Adds secrets of proofs to the list of knwon secrets and stores them in the db."""
