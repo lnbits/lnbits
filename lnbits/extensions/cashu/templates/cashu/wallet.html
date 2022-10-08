@@ -40,7 +40,7 @@ page_container %}
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-2">
+              <div class="col-sm-5 col-md-2">
                 <q-btn
                   size="18px"
                   icon="arrow_downward"
@@ -50,8 +50,8 @@ page_container %}
                   >Receive</q-btn
                 >
               </div>
-              <div class="col-8"></div>
-              <div class="col-2">
+              <div class="col-sm-2 col-md-8"></div>
+              <div class="col-sm-5 col-md-2">
                 <q-btn
                   size="18px"
                   icon="arrow_upward"
@@ -487,11 +487,11 @@ page_container %}
         active-class="px-0"
         indicator-color="transparent"
       >
-        <q-tab icon="arrow_downward" label="receive" @click="showParseDialog">
+        <q-tab icon="arrow_right" label="Buy" @click="showBuyTokensDialog">
         </q-tab>
+        <q-tab icon="arrow_downward" label="Receive"></q-tab>
         <q-tab icon="arrow_upward" label="Send"></q-tab>
-        <q-tab icon="sync_alt" label="Peg in/out"></q-tab>
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <q-tab icon="arrow_right" label="Sell"> </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
@@ -1000,7 +1000,7 @@ page_container %}
       }
 
       if (!this.$q.localStorage.getItem('cashu.amount')) {
-        this.balanceAmount = 0
+        this.balanceAmount = 112340
       }
 
       // get mint
