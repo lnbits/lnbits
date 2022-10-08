@@ -230,8 +230,8 @@ async def get_dashboard(gerty):
     wallets = await get_lnbits_wallet_balances(gerty)
     text = []
     for wallet in wallets:
-        text.append(get_text_item_dict("{0}'s Wallet".format(wallet['name']), 15))
-        text.append(get_text_item_dict("{0} sats".format(format_number(wallet['balance'])), 40))
+        text.append(get_text_item_dict("{0}".format(wallet['name']), 15))
+        text.append(get_text_item_dict("{0} sats".format(format_number(wallet['balance'])), 20))
     areas.append(text)
 
     # Mempool fees
