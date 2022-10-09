@@ -1,11 +1,13 @@
 from http import HTTPStatus
+from io import BytesIO
 
-from fastapi import Request
+import pyqrcode
+from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
@@ -51,3 +53,58 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         "lnurldevice/error.html",
         {"request": request, "pin": "filler", "not_paid": True},
     )
+
+
+@lnurldevice_ext.get("/img/{lnurldevice_id}", response_class=StreamingResponse)
+async def img(request: Request, lnurldevice_id):
+    lnurldevice = await get_lnurldevice(lnurldevice_id)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
+        )
+    return lnurldevice.lnurl(request)
+
+
+##################WEBSOCKET ROUTES########################
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, lnurldevice_id: str):
+        await websocket.accept()
+        websocket.id = lnurldevice_id
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, lnurldevice_id: str):
+        for connection in self.active_connections:
+            if connection.id == lnurldevice_id:
+                await connection.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@lnurldevice_ext.websocket("/ws/{lnurldevice_id}", name="lnurldevice.lnurldevice_by_id")
+async def websocket_endpoint(websocket: WebSocket, lnurldevice_id: str):
+    await manager.connect(websocket, lnurldevice_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+async def updater(lnurldevice_id):
+    lnurldevice = await get_lnurldevice(lnurldevice_id)
+    if not lnurldevice:
+        return
+    await manager.send_personal_message(f"{lnurldevice.amount}", lnurldevice_id)
