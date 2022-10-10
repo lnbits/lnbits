@@ -78,7 +78,7 @@ page_container %}
                 <q-tr :props="props">
                   <q-td key="status" :props="props">
                     <div v-if="props.row.status == 'pending'">
-                      <q-icon name="settings_ethernet" color="grey">
+                      <q-icon @click="showInvoiceDialog(props.row)" name="settings_ethernet" color="grey">
                         <q-tooltip>Pending</q-tooltip>
                       </q-icon>
                       <q-badge
@@ -844,6 +844,12 @@ page_container %}
         this.buyTokens.showDialog = true
       },
 
+      showInvoiceDialog: async function (data) {
+        this.buyTokens.data = data
+        this.buyTokens.showDialog = true
+      },
+      
+
       requestInvoice: async function () {
         try {
           const {data} = await LNbits.api.request(
@@ -894,7 +900,7 @@ page_container %}
 
       recheckToken: async function(hash) {
         console.log('### recheckToken', hash)
-        const tokens = this.tokenBuys.find(bt => bt.hash = hash)
+        const tokens = this.tokens.find(bt => bt.hash = hash)
         if (!tokens) {
           console.error('####### no token for hash', hash)
           return

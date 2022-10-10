@@ -22,7 +22,7 @@ async function step1Bob(secretMessage) {
   )
   const P = nobleSecp256k1.Point.fromPrivateKey(randomBlindingFactor)
   const B_ = Y.add(P)
-  return {B_, randomBlindingFactor}
+  return {B_: B_.toHex(true), randomBlindingFactor}
 }
 
 function step3Bob(C_, r, A) {
