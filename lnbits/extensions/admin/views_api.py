@@ -44,7 +44,6 @@ async def api_update_settings(
     data: UpdateSettings = Body(...),
 ):
     settings = await update_settings(data)
-    logger.debug(settings)
     return {"status": "Success", "settings": settings.dict()}
 
 
