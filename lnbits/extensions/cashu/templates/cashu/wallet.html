@@ -76,6 +76,13 @@ page_container %}
               {% raw %}
               <template v-slot:body="props">
                 <q-tr :props="props">
+                  <q-td key="status" :props="props">
+                    <div v-if="props.row.status == 'pending'">
+                      <q-icon name="settings_ethernet" color="grey">
+                        <q-tooltip>Pending</q-tooltip>
+                      </q-icon>
+                    </div>
+                  </q-td>
                   <q-td
                     key="amount"
                     :props="props"
@@ -519,6 +526,12 @@ page_container %}
         buysTable: {
           columns: [
             {
+              name: 'status',
+              align: 'left',
+              label: '',
+              field: 'status'
+            },
+            {
               name: 'amount',
               align: 'left',
               label: 'Amount',
@@ -821,6 +834,7 @@ page_container %}
         this.buyTokens.data.memo = ''
         this.buyTokens.showDialog = true
       },
+
       requestInvoice: async function () {
         try {
           const {data} = await LNbits.api.request(
