@@ -67,7 +67,7 @@ page_container %}
             <q-table
               dense
               flat
-              :data="tokenBuys"
+              :data="buyOrders"
               :columns="buysTable.columns"
               :pagination.sync="buysTable.pagination"
               no-data-label="No buys made yet"
@@ -379,11 +379,11 @@ page_container %}
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="buyTokens.showDialog" position="top">
+      <q-dialog v-model="showInvoiceDetails" position="top">
         {% raw %}
 
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="!buyTokens.data.bolt11">
+          <div v-if="!buyData.bolt11">
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
                 <span class="text-subtitle1"
@@ -394,7 +394,7 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.number="buyTokens.data.amount"
+              v-model.number="buyData.amount"
               label="Amount (sats) *"
               type="number"
               class="q-mb-lg"
@@ -403,15 +403,15 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.trim="buyTokens.data.memo"
+              v-model.trim="buyData.memo"
               label="Memo"
             ></q-input>
           </div>
           <div v-else class="text-center q-mb-lg">
-            <a :href="'lightning:' + buyTokens.data.bolt11">
+            <a :href="'lightning:' + buyData.bolt11">
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="buyTokens.data.bolt11"
+                  :value="buyData.bolt11"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -421,8 +421,8 @@ page_container %}
           </div>
           <div class="row q-mt-lg">
             <q-btn
-              v-if="buyTokens.data.bolt11"
-              @click="copyText(buyTokens.data.bolt11)"
+              v-if="buyData.bolt11"
+              @click="copyText(buyData.bolt11)"
               outline
               color="grey"
               >Copy invoice</q-btn
@@ -489,16 +489,14 @@ page_container %}
 
         mintId: '',
         mintName: '',
-        tokenBuys: [],
-        buyTokens: {
-          showDialog: false,
-          data: {
-            amount: 0,
+        buyOrders: [],
+        buyData: {
+          amount: 0,
             memo: '',
             bolt11: '',
-            hash: ''
-          }
+            hash: '',
         },
+        showInvoiceDetails: false,
         tokens: [],
 
         receive: {
@@ -589,9 +587,6 @@ page_container %}
       formattedBalance: function () {
         return this.balance / 100
       },
-      // tokenBuys: function() {
-      //   return []
-      // },
 
       canPay: function () {
         if (!this.parse.invoice) return false
@@ -837,16 +832,16 @@ page_container %}
       /////////////////////////////////// WALLET ///////////////////////////////////
       showBuyTokensDialog: async function () {
         console.log('##### showBuyTokensDialog')
-        this.buyTokens.data.amount = 0
-        this.buyTokens.data.bolt11 = ''
-        this.buyTokens.data.hash = ''
-        this.buyTokens.data.memo = ''
-        this.buyTokens.showDialog = true
+        this.buyData.amount = 0
+        this.buyData.bolt11 = ''
+        this.buyData.hash = ''
+        this.buyData.memo = ''
+        this.showInvoiceDetails = true
       },
 
       showInvoiceDialog: async function (data) {
-        this.buyTokens.data = data
-        this.buyTokens.showDialog = true
+        this.buyData = data
+        this.showInvoiceDetails = true
       },
       
 
@@ -854,23 +849,23 @@ page_container %}
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyTokens.data.amount}`
+            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyData.amount}`
           )
           console.log('### data', data)
 
-          this.buyTokens.data.bolt11 = data.pr
-          this.buyTokens.data.hash = data.hash
-          this.tokenBuys.push({
-            ...this.buyTokens.data,
+          this.buyData.bolt11 = data.pr
+          this.buyData.hash = data.hash
+          this.buyOrders.push({
+            ...this.buyData,
             date: currentDateStr(),
             status: 'pending'
           })
           localStorage.setItem(
-            'cashu.tokenBuys',
-            JSON.stringify(this.tokenBuys)
+            'cashu.buyOrders',
+            JSON.stringify(this.buyOrders)
           )
-          const amounts = splitAmount(this.buyTokens.data.amount)
-          await this.requestTokens(amounts, this.buyTokens.data.hash)
+          const amounts = splitAmount(this.buyData.amount)
+          await this.requestTokens(amounts, this.buyData.hash)
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -878,7 +873,7 @@ page_container %}
       },
 
       checkXXXXXX: async function () {
-        for (const tokenBuy of this.tokenBuys) {
+        for (const tokenBuy of this.buyOrders) {
           if (tokenBuy.status === 'pending') {
             try {
               const {data} = await LNbits.api.request(
@@ -1035,11 +1030,11 @@ page_container %}
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
 
-      this.tokenBuys = JSON.parse(
-        localStorage.getItem('cashu.tokenBuys') || '[]'
+      this.buyOrders = JSON.parse(
+        localStorage.getItem('cashu.buyOrders') || '[]'
       )
       this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
-      console.log('#### this.tokenBuys', this.tokenBuys)
+      console.log('#### this.buyOrders', this.buyOrders)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
