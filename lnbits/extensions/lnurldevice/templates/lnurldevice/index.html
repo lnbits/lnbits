@@ -94,17 +94,19 @@
               </q-td>
               <q-td>
                 <q-btn
-                v-if="props.row.device == 'switch'"
-                :disable="protocol == 'http:'"
-                flat
-                unelevated
-                dense
-                size="xs"
-                icon="visibility"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="openQrCodeDialog(props.row.id)"
-                ><q-tooltip v-if="protocol == 'http:'"> LNURLs only work over HTTPS </q-tooltip><q-tooltip v-else> view LNURL </q-tooltip></q-btn
-              >
+                  v-if="props.row.device == 'switch'"
+                  :disable="protocol == 'http:'"
+                  flat
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="visibility"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openQrCodeDialog(props.row.id)"
+                  ><q-tooltip v-if="protocol == 'http:'">
+                    LNURLs only work over HTTPS </q-tooltip
+                  ><q-tooltip v-else> view LNURL </q-tooltip></q-btn
+                >
               </q-td>
               <q-td
                 v-for="col in props.cols"
@@ -148,33 +150,32 @@
     >
       <div class="text-h6">LNURLDevice device string</div>
       <center>
-      <q-btn
-        v-if="settingsDialog.data.device == 'switch'"
-        dense
-        outline
-        unelevated
-        color="primary"
-        size="md"
-        @click="copyText(wslocation + '/lnurldevice/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
-        >{% raw
-        %}{{wslocation}}/lnurldevice/ws/{{settingsDialog.data.id}}{% endraw
-        %}<q-tooltip> Click to copy URL </q-tooltip>
-      </q-btn>
-      <q-btn
-        v-else
-        dense
-        outline
-        unelevated
-        color="primary"
-        size="md"
-        @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' +
+        <q-btn
+          v-if="settingsDialog.data.device == 'switch'"
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(wslocation + '/lnurldevice/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+          >{% raw %}{{wslocation}}/lnurldevice/ws/{{settingsDialog.data.id}}{%
+          endraw %}<q-tooltip> Click to copy URL </q-tooltip>
+        </q-btn>
+        <q-btn
+          v-else
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' +
       settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
-        >{% raw
-        %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
-        {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
-        %}<q-tooltip> Click to copy URL </q-tooltip>
-      </q-btn>
-    </center>
+          >{% raw
+          %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
+          {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
+          %}<q-tooltip> Click to copy URL </q-tooltip>
+        </q-btn>
+      </center>
       <div class="text-subtitle2">
         <small> </small>
       </div>
@@ -229,29 +230,28 @@
           label="Profit margin (% added to invoices/deducted from faucets)"
         ></q-input>
         <div v-else>
-        <q-input
-          ref="setAmount"
-          filled
-          dense
-          v-model.trim="formDialoglnurldevice.data.profit"
-          class="q-pb-md"
-          :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-          :mask="'#.##'"
-          fill-mask="0"
-          reverse-fill-mask
-          :step="'0.01'"
-          value="0.00"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialoglnurldevice.data.amount"
-          type="number"
-          value="1000"
-          label="milesecs to turn Switch on for (1sec = 1000ms)"
-
-        ></q-input>
-      </div>
+          <q-input
+            ref="setAmount"
+            filled
+            dense
+            v-model.trim="formDialoglnurldevice.data.profit"
+            class="q-pb-md"
+            :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+            :mask="'#.##'"
+            fill-mask="0"
+            reverse-fill-mask
+            :step="'0.01'"
+            value="0.00"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialoglnurldevice.data.amount"
+            type="number"
+            value="1000"
+            label="milesecs to turn Switch on for (1sec = 1000ms)"
+          ></q-input>
+        </div>
 
         <div class="row q-mt-lg">
           <q-btn
@@ -292,7 +292,6 @@
       </q-responsive>
       <p style="word-break: break-all">
         <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
-
       </p>
       {% endraw %}
       <div class="row q-mt-lg q-gutter-sm">
@@ -434,13 +433,15 @@
     },
     methods: {
       openQrCodeDialog: function (lnurldevice_id) {
-      var lnurldevice = _.findWhere(this.lnurldeviceLinks, {id: lnurldevice_id})
-      console.log(lnurldevice)
-      this.qrCodeDialog.data = _.clone(lnurldevice)
-      this.qrCodeDialog.data.url =
-        window.location.protocol + '//' + window.location.host
-      this.qrCodeDialog.show = true
-    },
+        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
+          id: lnurldevice_id
+        })
+        console.log(lnurldevice)
+        this.qrCodeDialog.data = _.clone(lnurldevice)
+        this.qrCodeDialog.data.url =
+          window.location.protocol + '//' + window.location.host
+        this.qrCodeDialog.show = true
+      },
       cancellnurldevice: function (data) {
         var self = this
         self.formDialoglnurldevice.show = false
@@ -617,10 +618,7 @@
         '//',
         window.location.host
       ].join('')
-      self.wslocation = [
-        'ws://',
-        window.location.host
-      ].join('')
+      self.wslocation = ['ws://', window.location.host].join('')
       LNbits.api
         .request('GET', '/api/v1/currencies')
         .then(response => {
