@@ -138,7 +138,7 @@ async def api_gerty_json(
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1;
 
     # get the sleep time
-    sleep_time = gerty.refresh_time
+    sleep_time =  gerty.refresh_time if gerty.refresh_time else 300
     if gerty_should_sleep():
         sleep_time_hours = 8
         sleep_time = 60 * 60 * sleep_time_hours

@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import pytz
 import httpx
 import textwrap
@@ -143,13 +143,13 @@ async def get_mining_stat(stat_slug: str, gerty):
     return text
 
 def get_next_update_time(sleep_time_seconds: int = 0, timezone: str = "Europe/London"):
-    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
-    next_refresh_time = utc_now + datetime.timedelta(0, sleep_time_seconds)
+    utc_now = pytz.utc.localize(datetime.utcnow())
+    next_refresh_time = utc_now + timedelta(0, sleep_time_seconds)
     local_refresh_time = next_refresh_time.astimezone(pytz.timezone(timezone))
-    return "{0} {1}".format("I'll wake up at" if gerty_should_sleep() else "Next update at",local_refresh_time.strftime("%H:%M on%e %b %Y"))
+    return "{0} {1}".format("I'll wake up at" if gerty_should_sleep() else "Next update at",local_refresh_time.strftime("%H:%M on %e %b %Y"))
 
 def gerty_should_sleep(timezone: str = "Europe/London"):
-    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
+    utc_now = pytz.utc.localize(datetime.utcnow())
     local_time = utc_now.astimezone(pytz.timezone(timezone))
     hours = local_time.strftime("%H")
     hours = int(hours)
