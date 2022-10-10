@@ -81,6 +81,14 @@ page_container %}
                       <q-icon name="settings_ethernet" color="grey">
                         <q-tooltip>Pending</q-tooltip>
                       </q-icon>
+                      <q-badge
+                        size="lg"
+                        color="secondary"
+                        class="q-mr-md cursor-pointer"
+                        @click="recheckToken(props.row.hash)"
+                      >
+                       Recheck
+                      </q-badge>
                     </div>
                   </q-td>
                   <q-td
@@ -491,6 +499,7 @@ page_container %}
             hash: ''
           }
         },
+        tokens: [],
 
         receive: {
           show: false,
@@ -854,9 +863,122 @@ page_container %}
             'cashu.tokenBuys',
             JSON.stringify(this.tokenBuys)
           )
+          const amounts = splitAmount(this.buyTokens.data.amount)
+          await this.requestTokens(amounts, this.buyTokens.data.hash)
         } catch (error) {
+          console.error(error)
           LNbits.utils.notifyApiError(error)
         }
+      },
+
+      checkXXXXXX: async function () {
+        for (const tokenBuy of this.tokenBuys) {
+          if (tokenBuy.status === 'pending') {
+            try {
+              const {data} = await LNbits.api.request(
+                'POST',
+                `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${tokenBuy.hash}`,
+                '',
+                {
+                  blinded_messages: []
+                }
+              )
+              console.log('### data', data)
+            } catch (error) {
+              console.error(error)
+              LNbits.utils.notifyApiError(error)
+            }
+          }
+        }
+      },
+
+      recheckToken: async function(hash) {
+        console.log('### recheckToken', hash)
+        const tokens = this.tokenBuys.find(bt => bt.hash = hash)
+        if (!tokens) {
+          console.error('####### no token for hash', hash)
+          return
+        }
+        const promises = await this.fetchPromisesFromMint(hash, tokens.blindedMessages)
+        if (promises && promises.length){
+          tokens.promises = promises
+        }
+      },
+
+      fetchPromisesFromMint: async function (hash, blindedMessages) {
+        console.log('### fetchPromisesFromMint', hash, blindedMessages)
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${hash}`,
+            '',
+            {
+              blinded_messages: blindedMessages
+            }
+          )
+          console.log('### fetchPromisesFromMint data', data)
+          return data
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+        
+      },
+
+      requestTokens: async function (amounts, paymentHash) {
+        const newTokens = await this.buildTokens(amounts, paymentHash)
+        this.tokens.push(newTokens)
+        localStorage.setItem(
+          'cashu.tokens',
+          JSON.stringify(this.tokens, bigIntStringify)
+        )
+        console.log('### this.tokens', this.tokens)
+        await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
+      },
+
+      buildTokens: async function (amounts, paymentHash) {
+        const blindedMessages = []
+        const secrets = []
+        const randomBlindingFactors = []
+        for (let i = 0; i < amounts.length; i++) {
+          // const secret = bytesToNumber(nobleSecp256k1.utils.randomBytes(32)) + ''
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          secrets.push(secret)
+          const {B_, randomBlindingFactor} = await step1Bob(secret)
+          randomBlindingFactors.push(randomBlindingFactor)
+          blindedMessages.push({amount: amounts[i], B_: B_})
+        }
+
+        const newTokens = {
+          hash: paymentHash,
+          blindedMessages,
+          randomBlindingFactors,
+          secrets,
+          status: 'pending'
+        }
+        return newTokens
+        // console.log('### payloadsJson.payloads', payloadsJson.payloads)
+        // const promises = await mintApi.mint(payloadsJson.payloads, paymentHash)
+        // if (promises.error) {
+        //   throw new Error(promises.error)
+        // }
+        // return this._constructProofs(promises, randomBlindingFactors, secrets)
+      },
+
+      _constructProofs: function (promises, randomBlindingFactors, secrets) {
+        return promises.map((p, i) => {
+          const C_ = nobleSecp256k1.Point.fromHex(p['C_'])
+          const A = this.keys[p.amount]
+          const C = step3Bob(
+            C_,
+            randomBlindingFactors[i],
+            nobleSecp256k1.Point.fromHex(A)
+          ).toHex()
+          return {
+            amount: p.amount,
+            C: {C, secret: secrets[i]}
+          }
+        })
       }
     },
     watch: {
@@ -910,10 +1032,16 @@ page_container %}
       this.tokenBuys = JSON.parse(
         localStorage.getItem('cashu.tokenBuys') || '[]'
       )
+      this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
       console.log('#### this.tokenBuys', this.tokenBuys)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
+
+      this.checkXXXXXX()
     }
   })
 </script>
+<script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
 {% endblock %}

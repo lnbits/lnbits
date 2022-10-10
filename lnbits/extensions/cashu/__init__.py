@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter
+from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -9,6 +10,14 @@ from lnbits.tasks import catch_everything_and_restart
 db = Database("ext_cashu")
 
 cashu_ext: APIRouter = APIRouter(prefix="/cashu", tags=["cashu"])
+
+cashu_static_files = [
+    {
+        "path": "/cashu/static",
+        "app": StaticFiles(directory="lnbits/extensions/cashu/static"),
+        "name": "cashu_static",
+    }
+]
 
 
 def cashu_renderer():
