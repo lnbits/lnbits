@@ -784,13 +784,10 @@ page_container %}
         const secrets = []
         const randomBlindingFactors = []
         for (let i = 0; i < amounts.length; i++) {
-          // const secret = nobleSecp256k1.utils.randomBytes(32)
-          const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          // todo: base64Url
           const encodedSecret =  uint8ToBase64.encode(secret)
-          console.log('### encodedSecret', encodedSecret)
-          const decodedSecret =  uint8ToBase64.decode(encodedSecret)
-          const hexSecret = nobleSecp256k1.utils.bytesToHex(decodedSecret)
-          console.log('### decodedSecret', hexSecret)
           secrets.push(encodedSecret)
           const {B_, randomBlindingFactor} = await step1Bob(secret)
           randomBlindingFactors.push(randomBlindingFactor)
