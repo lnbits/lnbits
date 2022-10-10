@@ -64,42 +64,6 @@ page_container %}
               </div>
             </div>
 
-            <!-- <div class="row items-center no-wrap q-mb-sm">
-              <div class="col">
-                <h5 class="text-subtitle1 q-my-none">Transactions</h5>
-              </div>
-              <div class="col-auto">
-                {% raw %}
-                <q-btn
-                  dense
-                  flat
-                  round
-                  icon="approval"
-                  color="grey"
-                  type="a"
-                  :href="mintName"
-                  target="_blank"
-                  >{% endraw %}
-                  <q-tooltip>Mint details</q-tooltip>
-                </q-btn>
-                <q-btn flat color="grey">Export to CSV</q-btn>
-
-                <q-btn dense flat round icon="show_chart" color="grey">
-                  <q-tooltip>Show chart</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-            <q-input
-              v-if="payments.length > 10"
-              filled
-              dense
-              clearable
-              v-model="paymentsTable.filter"
-              debounce="300"
-              placeholder="Search by tag, memo, amount"
-              class="q-mb-md"
-            >
-            </q-input> -->
             <q-table
               dense
               flat
@@ -130,108 +94,6 @@ page_container %}
                     <div>{{props.row.hash}}</div>
                   </q-td>
                 </q-tr>
-                <!-- <q-tr v-show="props.row.expanded" :props="props">
-                  <q-td colspan="100%">
-                    <div class="row items-center q-mt-md q-mb-lg">
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          unelevated
-                          dense
-                          size="md"
-                          icon="qr_code"
-                          :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                          @click="showAddressDetails(props.row)"
-                        >
-                          QR Code</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          color="grey"
-                          icon="content_copy"
-                          @click="copyText(props.row.address)"
-                          class="q-ml-sm"
-                          >Copy</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          icon="refresh"
-                          color="grey"
-                          @click="scanAddress(props.row)"
-                        >
-                          Rescan</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          icon="history"
-                          color="grey"
-                          @click="searchInTab('history', props.row.address)"
-                          >History</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          color="grey"
-                          @click="searchInTab('utxos', props.row.address)"
-                          >View Coins</q-btn
-                        >
-                      </div>
-                    </div>
-          
-                    <div class="row items-center no-wrap q-mb-md">
-                      <div class="col-2 q-pr-lg">Note:</div>
-                      <div class="col-8 q-pr-lg">
-                        <q-input
-                          filled
-                          dense
-                          v-model.trim="props.row.note"
-                          type="text"
-                          label="Note"
-                        ></q-input>
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          color="grey"
-                          @click="updateNoteForAddress(props.row, props.row.note)"
-                          >Update
-                        </q-btn>
-                      </div>
-                    </div>
-          
-                    <div v-if="props.row.error" class="row items-center no-wrap q-mb-md">
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-10 q-pr-lg">
-                        <q-badge color="red">{{props.row.error}}</q-badge>
-                      </div>
-                    </div>
-                    <div
-                      v-if="props.row.gapLimitExceeded"
-                      class="row items-center no-wrap q-mb-md"
-                    >
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-10 q-pr-lg">
-                        <q-badge color="yellow" text-color="black"
-                          >Gap limit of 20 addresses exceeded. Other wallets might not
-                          detect funds at this address.</q-badge
-                        >
-                      </div>
-                    </div>
-                  </q-td>
-                </q-tr> -->
               </template>
               {% endraw %}
             </q-table>
@@ -621,7 +483,6 @@ page_container %}
             bolt11: '',
             hash: ''
           }
-          
         },
 
         receive: {
