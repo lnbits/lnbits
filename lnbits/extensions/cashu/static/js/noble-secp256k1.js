@@ -1092,7 +1092,6 @@
     mod,
     invert,
     sha256: async (...messages) => {
-      console.log('### sha256 messages', messages)
       if (crypto.web) {
         const buffer = await crypto.web.subtle.digest(
           'SHA-256',
