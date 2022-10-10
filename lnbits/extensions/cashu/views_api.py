@@ -285,10 +285,10 @@ async def mint_coins(
 
     status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
     # todo: revert to: status.paid != True:
-    # if status.paid != True:
-    #     raise HTTPException(
-    #         status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
-    #     )
+    if status.paid != True:
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
+        )
     try:
         await update_lightning_invoice(cashu_id, payment_hash, True)
 
