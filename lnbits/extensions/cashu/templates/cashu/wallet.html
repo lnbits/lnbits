@@ -110,142 +110,129 @@ page_container %}
               :filter="buysTable.filter"
             >
               {% raw %}
-              <template v-slot:header="props">
-                <q-tr :props="props">
-                  <q-th auto-width></q-th>
-                  <q-th v-for="col in props.cols" :key="col.name" :props="props"
-                    >{{ col.label }}</q-th
-                  >
-                </q-tr>
-              </template>
               <template v-slot:body="props">
                 <q-tr :props="props">
-                  <q-td auto-width class="text-center">
-                    <q-icon
-                      v-if="props.row.isPaid"
-                      size="14px"
-                      :name="props.row.isOut ? 'call_made' : 'call_received'"
-                      :color="props.row.isOut ? 'pink' : 'green'"
-                      @click="props.expand = !props.expand"
-                    ></q-icon>
-                    <q-icon
-                      v-else
-                      name="settings_ethernet"
-                      color="grey"
-                      @click="props.expand = !props.expand"
-                    >
-                      <q-tooltip>Pending</q-tooltip>
-                    </q-icon>
-                  </q-td>
                   <q-td
-                    key="memo"
+                    key="amount"
                     :props="props"
-                    style="white-space: normal; word-break: break-all"
+                    :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
                   >
-                    <q-badge
-                      v-if="props.row.tag"
-                      color="yellow"
-                      text-color="black"
-                    >
-                      <a
-                        class="inherit"
-                        :href="['/', props.row.tag, '/?usr=', user.id].join('')"
-                      >
-                        #{{ props.row.tag }}
-                      </a>
-                    </q-badge>
-                    {{ props.row.memo }}
+                    <div>{{props.row.amount}}</div>
                   </q-td>
-                  <q-td auto-width key="date" :props="props">
-                    <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
+          
+                  <q-td key="memo" :props="props">
+                    <div>{{props.row.memo}}</div>
                   </q-td>
-                  {% endraw %}
-                  <q-td
-                    auto-width
-                    key="sat"
-                    v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                    :props="props"
-                    >{% raw %} {{
-                    parseFloat(String(props.row.fsat).replaceAll(",", "")) / 100
-                    }}
+                  <q-td key="date" :props="props">
+                    <div>{{props.row.date}}</div>
                   </q-td>
-
-                  <q-td auto-width key="sat" v-else :props="props">
-                    {{ props.row.fsat }}
+                  <q-td key="hash" :props="props">
+                    <div>{{props.row.hash}}</div>
                   </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
-                  </q-td>
+                 
                 </q-tr>
-
-                <q-dialog v-model="props.expand" :props="props">
-                  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                    <div class="text-center q-mb-lg">
-                      <div v-if="props.row.isIn && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Invoice waiting to be paid
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                        <div
-                          v-if="props.row.bolt11"
-                          class="text-center q-mb-lg"
+                <!-- <q-tr v-show="props.row.expanded" :props="props">
+                  <q-td colspan="100%">
+                    <div class="row items-center q-mt-md q-mb-lg">
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          unelevated
+                          dense
+                          size="md"
+                          icon="qr_code"
+                          :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                          @click="showAddressDetails(props.row)"
                         >
-                          <a :href="'lightning:' + props.row.bolt11">
-                            <q-responsive :ratio="1" class="q-mx-xl">
-                              <qrcode
-                                :value="props.row.bolt11"
-                                :options="{width: 340}"
-                                class="rounded-borders"
-                              >
-                              </qrcode>
-                            </q-responsive>
-                          </a>
-                        </div>
-                        <div class="row q-mt-lg">
-                          <q-btn outline color="grey">Copy invoice</q-btn>
-                          <q-btn
-                            v-close-popup
-                            flat
-                            color="grey"
-                            class="q-ml-auto"
-                            >Close</q-btn
-                          >
-                        </div>
+                          QR Code</q-btn
+                        >
                       </div>
-                      <div v-else-if="props.row.isPaid && props.row.isIn">
-                        <q-icon
-                          size="18px"
-                          :name="'call_received'"
-                          :color="'green'"
-                        ></q-icon>
-                        Payment Received
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          color="grey"
+                          icon="content_copy"
+                          @click="copyText(props.row.address)"
+                          class="q-ml-sm"
+                          >Copy</q-btn
+                        >
                       </div>
-                      <div v-else-if="props.row.isPaid && props.row.isOut">
-                        <q-icon
-                          size="18px"
-                          :name="'call_made'"
-                          :color="'pink'"
-                        ></q-icon>
-                        Payment Sent
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          icon="refresh"
+                          color="grey"
+                          @click="scanAddress(props.row)"
+                        >
+                          Rescan</q-btn
+                        >
                       </div>
-                      <div v-else-if="props.row.isOut && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Outgoing payment pending
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          icon="history"
+                          color="grey"
+                          @click="searchInTab('history', props.row.address)"
+                          >History</q-btn
+                        >
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          color="grey"
+                          @click="searchInTab('utxos', props.row.address)"
+                          >View Coins</q-btn
+                        >
                       </div>
                     </div>
-                  </q-card>
-                </q-dialog>
+          
+                    <div class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg">Note:</div>
+                      <div class="col-8 q-pr-lg">
+                        <q-input
+                          filled
+                          dense
+                          v-model.trim="props.row.note"
+                          type="text"
+                          label="Note"
+                        ></q-input>
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          color="grey"
+                          @click="updateNoteForAddress(props.row, props.row.note)"
+                          >Update
+                        </q-btn>
+                      </div>
+                    </div>
+          
+                    <div v-if="props.row.error" class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-10 q-pr-lg">
+                        <q-badge color="red">{{props.row.error}}</q-badge>
+                      </div>
+                    </div>
+                    <div
+                      v-if="props.row.gapLimitExceeded"
+                      class="row items-center no-wrap q-mb-md"
+                    >
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-10 q-pr-lg">
+                        <q-badge color="yellow" text-color="black"
+                          >Gap limit of 20 addresses exceeded. Other wallets might not
+                          detect funds at this address.</q-badge
+                        >
+                      </div>
+                    </div>
+                  </q-td>
+                </q-tr> -->
               </template>
               {% endraw %}
             </q-table>
@@ -623,6 +610,7 @@ page_container %}
 
         mintId: '',
         mintName: '',
+        tokenBuys: [],
         buyTokens: {
           showDialog: false,
           amount: 0,
@@ -713,9 +701,9 @@ page_container %}
       formattedBalance: function () {
         return this.balance / 100
       },
-      tokenBuys: function() {
-        return []
-      },
+      // tokenBuys: function() {
+      //   return []
+      // },
 
       canPay: function () {
         if (!this.parse.invoice) return false
@@ -973,8 +961,11 @@ page_container %}
             `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyTokens.amount}`
           )
           console.log('### data', data)
+          
           this.buyTokens.bolt11 = data.pr
           this.buyTokens.hash = data.hash
+          this.tokenBuys.push({...this.buyTokens, date: new Date().toISOString()})
+          localStorage.setItem('cashu.tokenBuys', JSON.stringify(this.tokenBuys))
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -1027,6 +1018,9 @@ page_container %}
       } else if (this.$q.localStorage.getItem('cashu.name')) {
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
+
+      this.tokenBuys = JSON.parse(localStorage.getItem('cashu.tokenBuys') || '[]')
+      console.log('#### this.tokenBuys', this.tokenBuys)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
     }
