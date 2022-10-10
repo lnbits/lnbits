@@ -78,7 +78,11 @@ page_container %}
                 <q-tr :props="props">
                   <q-td key="status" :props="props">
                     <div v-if="props.row.status == 'pending'">
-                      <q-icon @click="showInvoiceDialog(props.row)" name="settings_ethernet" color="grey">
+                      <q-icon
+                        @click="showInvoiceDialog(props.row)"
+                        name="settings_ethernet"
+                        color="grey"
+                      >
                         <q-tooltip>Pending</q-tooltip>
                       </q-icon>
                       <q-badge
@@ -87,7 +91,7 @@ page_container %}
                         class="q-mr-md cursor-pointer"
                         @click="recheckBuyOrder(props.row.hash)"
                       >
-                       Recheck
+                        Recheck
                       </q-badge>
                     </div>
                   </q-td>
@@ -492,9 +496,9 @@ page_container %}
         buyOrders: [],
         buyData: {
           amount: 0,
-            memo: '',
-            bolt11: '',
-            hash: '',
+          memo: '',
+          bolt11: '',
+          hash: ''
         },
         showInvoiceDetails: false,
         tokens: [],
@@ -843,7 +847,6 @@ page_container %}
         this.buyData = data
         this.showInvoiceDetails = true
       },
-      
 
       requestInvoice: async function () {
         try {
@@ -860,10 +863,7 @@ page_container %}
             date: currentDateStr(),
             status: 'pending'
           })
-          localStorage.setItem(
-            'cashu.buyOrders',
-            JSON.stringify(this.buyOrders)
-          )
+          this.storeBuyOrders()
           const amounts = splitAmount(this.buyData.amount)
           await this.requestTokens(amounts, this.buyData.hash)
         } catch (error) {
@@ -893,15 +893,18 @@ page_container %}
         }
       },
 
-      recheckBuyOrder: async function(hash) {
+      recheckBuyOrder: async function (hash) {
         console.log('### recheckBuyOrder', hash)
-        const tokens = this.tokens.find(bt => bt.hash = hash)
+        const tokens = this.tokens.find(bt => (bt.hash = hash))
         if (!tokens) {
           console.error('####### no token for hash', hash)
           return
         }
-        const promises = await this.fetchPromisesFromMint(hash, tokens.blindedMessages)
-        if (promises && promises.length){
+        const promises = await this.fetchPromisesFromMint(
+          hash,
+          tokens.blindedMessages
+        )
+        if (promises && promises.length) {
           tokens.promises = promises
         }
       },
@@ -923,16 +926,12 @@ page_container %}
           console.error(error)
           LNbits.utils.notifyApiError(error)
         }
-        
       },
 
       requestTokens: async function (amounts, paymentHash) {
         const newTokens = await this.buildTokens(amounts, paymentHash)
         this.tokens.push(newTokens)
-        localStorage.setItem(
-          'cashu.tokens',
-          JSON.stringify(this.tokens, bigIntStringify)
-        )
+        this.storeTokens()
         console.log('### this.tokens', this.tokens)
         await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
       },
@@ -980,6 +979,16 @@ page_container %}
             C: {C, secret: secrets[i]}
           }
         })
+      },
+
+      storeBuyOrders: function () {
+        localStorage.setItem('cashu.buyOrders', JSON.stringify(this.buyOrders))
+      },
+      storeTokens: function () {
+        localStorage.setItem(
+          'cashu.tokens',
+          JSON.stringify(this.tokens, bigIntStringify)
+        )
       }
     },
     watch: {
