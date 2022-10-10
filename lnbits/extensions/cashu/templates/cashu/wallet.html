@@ -126,234 +126,6 @@ page_container %}
         </q-card>
       </div>
 
-      <q-dialog v-model="receive.show" @hide="closeReceiveDialog">
-        {% raw %}
-        <q-card
-          v-if="!receive.paymentReq"
-          class="q-pa-lg q-pt-xl lnbits__dialog-card"
-        >
-          <q-form @submit="createInvoice" class="q-gutter-md">
-            <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
-              <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
-            </p>
-            {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
-            <q-input
-              filled
-              dense
-              v-model.number="receive.data.amount"
-              label="Amount ({{LNBITS_DENOMINATION}}) *"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              :min="receive.minMax[0]"
-              :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
-            ></q-input>
-            {% else %}
-            <q-select
-              filled
-              dense
-              v-model="receive.unit"
-              type="text"
-              label="Unit"
-              :options="receive.units"
-            ></q-select>
-            <q-input
-              ref="setAmount"
-              filled
-              dense
-              v-model.number="receive.data.amount"
-              :label="'Amount (' + receive.unit + ') *'"
-              :mask="receive.unit != 'sat' ? '#.##' : '#'"
-              fill-mask="0"
-              reverse-fill-mask
-              :step="receive.unit != 'sat' ? '0.01' : '1'"
-              :min="receive.minMax[0]"
-              :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
-            ></q-input>
-            {% endif %}
-
-            <q-input
-              filled
-              dense
-              v-model.trim="receive.data.memo"
-              label="Memo"
-            ></q-input>
-            {% raw %}
-            <div v-if="receive.status == 'pending'" class="row q-mt-lg">
-              <q-btn
-                unelevated
-                color="primary"
-                :disable="receive.data.amount == null || receive.data.amount <= 0"
-                type="submit"
-              >
-                <span v-if="receive.lnurl">
-                  Withdraw from {{receive.lnurl.domain}}
-                </span>
-                <span v-else> Create invoice </span>
-              </q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                >Cancel</q-btn
-              >
-            </div>
-            <q-spinner
-              v-if="receive.status == 'loading'"
-              color="primary"
-              size="2.55em"
-            ></q-spinner>
-          </q-form>
-        </q-card>
-        <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div class="text-center q-mb-lg">
-            <a :href="'lightning:' + receive.paymentReq">
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <qrcode
-                  :value="receive.paymentReq"
-                  :options="{width: 340}"
-                  class="rounded-borders"
-                ></qrcode>
-              </q-responsive>
-            </a>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
-              >Copy invoice</q-btn
-            >
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-              >Close</q-btn
-            >
-          </div>
-        </q-card>
-        {% endraw %}
-      </q-dialog>
-
-      <q-dialog v-model="parse.show" @hide="closeParseDialog">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="parse.invoice">
-            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
-              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-            </h6>
-            <h6 v-else class="q-my-none">
-              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
-              raw %}
-            </h6>
-            <q-separator class="q-my-sm"></q-separator>
-            <p class="text-wrap">
-              <strong>Description:</strong> {{ parse.invoice.description }}<br />
-              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-              <strong>Hash:</strong> {{ parse.invoice.hash }}
-            </p>
-            {% endraw %}
-            <div v-if="canPay" class="row q-mt-lg">
-              <q-btn unelevated color="primary" @click="payInvoice">Pay</q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                >Cancel</q-btn
-              >
-            </div>
-            <div v-else class="row q-mt-lg">
-              <q-btn unelevated disabled color="yellow" text-color="black"
-                >Not enough funds!</q-btn
-              >
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                >Cancel</q-btn
-              >
-            </div>
-          </div>
-          <div v-else-if="parse.lnurlauth">
-            {% raw %}
-            <q-form @submit="authLnurl" class="q-gutter-md">
-              <p class="q-my-none text-h6">
-                Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
-              </p>
-              <q-separator class="q-my-sm"></q-separator>
-              <p>
-                For every website and for every LNbits wallet, a new keypair
-                will be deterministically generated so your identity can't be
-                tied to your LNbits wallet or linked across websites. No other
-                data will be shared with {{ parse.lnurlauth.domain }}.
-              </p>
-              <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
-              <p class="q-mx-xl">
-                <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
-              </p>
-              <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit">Login</q-btn>
-                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                  >Cancel</q-btn
-                >
-              </div>
-            </q-form>
-            {% endraw %}
-          </div>
-          <div v-else>
-            <q-form
-              v-if="!parse.camera.show"
-              @submit="decodeRequest"
-              class="q-gutter-md"
-            >
-              <q-input
-                filled
-                dense
-                v-model.trim="parse.data.request"
-                type="textarea"
-                label="Paste coins"
-              >
-              </q-input>
-              <div class="row q-mt-lg">
-                <q-btn
-                  unelevated
-                  color="primary"
-                  :disable="parse.data.request == ''"
-                  type="submit"
-                  >Read</q-btn
-                >
-                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                  >Cancel</q-btn
-                >
-              </div>
-            </q-form>
-            <div v-else>
-              <q-responsive :ratio="1">
-                <qrcode-stream
-                  @decode="decodeQR"
-                  class="rounded-borders"
-                ></qrcode-stream>
-              </q-responsive>
-              <div class="row q-mt-lg">
-                <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
-                  Cancel
-                </q-btn>
-              </div>
-            </div>
-          </div>
-        </q-card>
-      </q-dialog>
-
-      <q-dialog v-model="parse.camera.show">
-        <q-card class="q-pa-lg q-pt-xl">
-          <div class="text-center q-mb-lg">
-            <qrcode-stream
-              @decode="decodeQR"
-              class="rounded-borders"
-            ></qrcode-stream>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
-              >Cancel</q-btn
-            >
-          </div>
-        </q-card>
-      </q-dialog>
-
-      <q-dialog v-model="paymentsChart.show">
-        <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-          <q-card-section>
-            <canvas ref="canvas" width="600" height="400"></canvas>
-          </q-card-section>
-        </q-card>
-      </q-dialog>
       <q-tabs
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
@@ -390,7 +162,6 @@ page_container %}
       </q-dialog>
 
       <q-dialog v-model="showInvoiceDetails" position="top">
-        {% raw %}
 
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="!buyData.bolt11">
@@ -445,7 +216,6 @@ page_container %}
             >
           </div>
         </q-card>
-        {% endraw %}
       </q-dialog>
     </div>
   </q-page>
@@ -1056,8 +826,8 @@ page_container %}
         localStorage.getItem('cashu.buyOrders') || '[]'
       )
       this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
-      console.table(this.buyOrders)
-      console.table(this.tokens)
+      // console.table(this.buyOrders)
+      // console.table(this.tokens)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
