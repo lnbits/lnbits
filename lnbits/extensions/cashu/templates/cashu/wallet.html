@@ -28,7 +28,12 @@ page_container %}
                 </h3>
               </div>
               <div class="col-3">
-                <q-btn size="18px" rounded color="secondary" class="full-width"
+                <q-btn
+                  @click="showPayInvoiceDialog"
+                  size="18px"
+                  rounded
+                  color="secondary"
+                  class="full-width"
                   >Sell tokens
                   <h5 class="text-caption q-ml-sm q-mb-none">(for sats)</h5>
                 </q-btn>
@@ -95,10 +100,7 @@ page_container %}
                       </q-badge>
                     </div>
                     <div v-if="props.row.status === 'paid'">
-                      <q-icon
-                      name="call_received"
-                      color="green"
-                    >
+                      <q-icon name="call_received" color="green"></q-icon>
                     </div>
                   </q-td>
                   <q-td
@@ -162,7 +164,6 @@ page_container %}
       </q-dialog>
 
       <q-dialog v-model="showInvoiceDetails" position="top">
-
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="!buyData.bolt11">
             <div class="row items-center no-wrap q-mb-sm">
@@ -210,6 +211,51 @@ page_container %}
             >
             <q-btn v-else outline color="grey" @click="requestInvoice"
               >Request Invoice</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showPayInvoice" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!sellData.invoice">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >Please paste a Lightning invoice</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model="sellData.bolt11"
+              label="Paste invoice"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+          <div v-else class="q-mb-lg">
+            {% raw %}
+            <strong>Amount:</strong> {{ sellData.invoice.sat }} <strong>sats</strong><br />
+            <strong>Description:</strong> {{ sellData.invoice.description }}<br />
+            <strong>Expire date:</strong> {{ sellData.invoice.expireDate }}<br />
+            <strong>Expired:</strong> {{ sellData.invoice.expired }}<br />
+            <strong>Hash:</strong> {{ sellData.invoice.hash }} {% endraw %}
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="!sellData.invoice"
+              @click="checkInvoice"
+              outline
+              color="grey"
+              >Check Invoice</q-btn
+            >
+            <q-btn v-else outline color="grey" @click="sellTokens"
+              >Sell Token</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
@@ -276,7 +322,12 @@ page_container %}
           bolt11: '',
           hash: ''
         },
+        sellData: {
+          invoice: '',
+          bolt11: ''
+        },
         showInvoiceDetails: false,
+        showPayInvoice: false,
         tokens: [],
 
         receive: {
@@ -619,9 +670,16 @@ page_container %}
         this.showInvoiceDetails = true
       },
 
-      showInvoiceDialog: async function (data) {
+      showInvoiceDialog: function (data) {
         this.buyData = _.clone(data)
         this.showInvoiceDetails = true
+      },
+
+      showPayInvoiceDialog: function () {
+        console.log('### showPayInvoiceDialog')
+        this.sellData.invoice = ''
+        this.sellData.bolt11 = ''
+        this.showPayInvoice = true
       },
 
       requestInvoice: async function () {
@@ -671,7 +729,7 @@ page_container %}
 
       recheckBuyOrder: async function (hash) {
         console.log('### recheckBuyOrder.hash', hash)
-        const tokens = this.tokens.find(bt => (bt.hash === hash))
+        const tokens = this.tokens.find(bt => bt.hash === hash)
         console.log('### recheckBuyOrder.tokens', tokens)
         if (!tokens) {
           console.error('####### no token for hash', hash)
@@ -764,6 +822,55 @@ page_container %}
         })
       },
 
+      checkInvoice: function () {
+        console.log('#### checkInvoice')
+        try {
+          const invoice = decode(this.sellData.bolt11)
+
+          const cleanInvoice = {
+            msat: invoice.human_readable_part.amount,
+            sat: invoice.human_readable_part.amount / 1000,
+            fsat: LNbits.utils.formatSat(
+              invoice.human_readable_part.amount / 1000
+            )
+          }
+
+          _.each(invoice.data.tags, tag => {
+            if (_.isObject(tag) && _.has(tag, 'description')) {
+              if (tag.description === 'payment_hash') {
+                cleanInvoice.hash = tag.value
+              } else if (tag.description === 'description') {
+                cleanInvoice.description = tag.value
+              } else if (tag.description === 'expiry') {
+                var expireDate = new Date(
+                  (invoice.data.time_stamp + tag.value) * 1000
+                )
+                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                  expireDate,
+                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                )
+                cleanInvoice.expired = false // TODO
+              }
+            }
+
+            this.sellData.invoice = cleanInvoice
+          })
+
+          console.log('#### this.sellData.invoice', this.sellData.invoice)
+        } catch (error) {
+          this.$q.notify({
+            timeout: 5000,
+            type: 'warning',
+            message: 'Cannot decode invoice',
+            caption: error + ''
+          })
+        }
+      },
+
+      sellTokens: async function () {
+        console.log('#### sell tokens')
+      },
+
       storeBuyOrders: function () {
         localStorage.setItem('cashu.buyOrders', JSON.stringify(this.buyOrders))
       },
@@ -826,8 +933,8 @@ page_container %}
         localStorage.getItem('cashu.buyOrders') || '[]'
       )
       this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
-      // console.table(this.buyOrders)
-      // console.table(this.tokens)
+      console.log('### buyOrders',this.buyOrders)
+      console.table('### tokens',this.tokens)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
