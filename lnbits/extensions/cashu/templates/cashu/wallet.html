@@ -85,7 +85,7 @@ page_container %}
                         size="lg"
                         color="secondary"
                         class="q-mr-md cursor-pointer"
-                        @click="recheckToken(props.row.hash)"
+                        @click="recheckBuyOrder(props.row.hash)"
                       >
                        Recheck
                       </q-badge>
@@ -893,8 +893,8 @@ page_container %}
         }
       },
 
-      recheckToken: async function(hash) {
-        console.log('### recheckToken', hash)
+      recheckBuyOrder: async function(hash) {
+        console.log('### recheckBuyOrder', hash)
         const tokens = this.tokens.find(bt => bt.hash = hash)
         if (!tokens) {
           console.error('####### no token for hash', hash)
