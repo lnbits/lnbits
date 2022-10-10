@@ -6,7 +6,7 @@ Alice:
 A = a*G
 return A
 Bob:
-Y = hash_to_point(secret_message)
+Y = hash_to_curve(secret_message)
 r = random blinding factor
 B'= Y + r*G
 return B'
@@ -20,7 +20,7 @@ C = C' - r*A
  (= a*Y)
 return C, secret_message
 Alice:
-Y = hash_to_point(secret_message)
+Y = hash_to_curve(secret_message)
 C == a*Y
 If true, C must have originated from Alice
 """
@@ -30,28 +30,23 @@ import hashlib
 from secp256k1 import PrivateKey, PublicKey
 
 
-def hash_to_point(secret_msg):
-    """Generates x coordinate from the message hash and checks if the point lies on the curve.
-    If it does not, it tries computing again a new x coordinate from the hash of the coordinate."""
-    point = None
-    msg = secret_msg
-    while point is None:
-        _hash = hashlib.sha256(msg).hexdigest().encode("utf-8")
-        try:
-            # We construct compressed pub which has x coordinate encoded with even y
-            _hash = list(_hash[:33])  # take the 33 bytes and get a list of bytes
-            _hash[0] = 0x02  # set first byte to represent even y coord
-            _hash = bytes(_hash)
-            point = PublicKey(_hash, raw=True)
-        except:
-            msg = _hash
-
+def hash_to_curve(message: bytes): 
+    """Generates a point from the message hash and checks if the point lies on the curve. 
+    If it does not, it tries computing again a new x coordinate from the hash of the coordinate.""" 
+    point = None 
+    msg_to_hash = message 
+    while point is None: 
+        try: 
+            _hash = hashlib.sha256(msg_to_hash).digest() 
+            point = PublicKey(b"\x02" + _hash, raw=True) 
+        except: 
+            msg_to_hash = _hash 
     return point
 
 
 def step1_alice(secret_msg):
-    secret_msg = secret_msg.encode("utf-8")
-    Y = hash_to_point(secret_msg)
+    secret_msg = secret_msg
+    Y = hash_to_curve(secret_msg)
     r = PrivateKey()
     B_ = Y + r.pubkey
     return B_, r
@@ -68,7 +63,7 @@ def step3_alice(C_, r, A):
 
 
 def verify(a, C, secret_msg):
-    Y = hash_to_point(secret_msg.encode("utf-8"))
+    Y = hash_to_curve(secret_msg)
     return C == Y.mult(a)
 
 

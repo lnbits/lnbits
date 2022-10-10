@@ -240,7 +240,8 @@ page_container %}
           </div>
           <div v-else class="q-mb-lg">
             {% raw %}
-            <strong>Amount:</strong> {{ sellData.invoice.sat }} <strong>sats</strong><br />
+            <strong>Amount:</strong> {{ sellData.invoice.sat }}
+            <strong>sats</strong><br />
             <strong>Description:</strong> {{ sellData.invoice.description }}<br />
             <strong>Expire date:</strong> {{ sellData.invoice.expireDate }}<br />
             <strong>Expired:</strong> {{ sellData.invoice.expired }}<br />
@@ -315,6 +316,7 @@ page_container %}
 
         mintId: '',
         mintName: '',
+        keys: '',
         buyOrders: [],
         buyData: {
           amount: 0,
@@ -782,9 +784,14 @@ page_container %}
         const secrets = []
         const randomBlindingFactors = []
         for (let i = 0; i < amounts.length; i++) {
-          // const secret = bytesToNumber(nobleSecp256k1.utils.randomBytes(32)) + ''
-          const secret = nobleSecp256k1.utils.randomBytes(32)
-          secrets.push(secret)
+          // const secret = nobleSecp256k1.utils.randomBytes(32)
+          const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          const encodedSecret =  uint8ToBase64.encode(secret)
+          console.log('### encodedSecret', encodedSecret)
+          const decodedSecret =  uint8ToBase64.decode(encodedSecret)
+          const hexSecret = nobleSecp256k1.utils.bytesToHex(decodedSecret)
+          console.log('### decodedSecret', hexSecret)
+          secrets.push(encodedSecret)
           const {B_, randomBlindingFactor} = await step1Bob(secret)
           randomBlindingFactors.push(randomBlindingFactor)
           blindedMessages.push({amount: amounts[i], B_: B_})
@@ -798,28 +805,6 @@ page_container %}
           status: 'pending'
         }
         return newTokens
-        // console.log('### payloadsJson.payloads', payloadsJson.payloads)
-        // const promises = await mintApi.mint(payloadsJson.payloads, paymentHash)
-        // if (promises.error) {
-        //   throw new Error(promises.error)
-        // }
-        // return this._constructProofs(promises, randomBlindingFactors, secrets)
-      },
-
-      _constructProofs: function (promises, randomBlindingFactors, secrets) {
-        return promises.map((p, i) => {
-          const C_ = nobleSecp256k1.Point.fromHex(p['C_'])
-          const A = this.keys[p.amount]
-          const C = step3Bob(
-            C_,
-            randomBlindingFactors[i],
-            nobleSecp256k1.Point.fromHex(A)
-          ).toHex()
-          return {
-            amount: p.amount,
-            C: {C, secret: secrets[i]}
-          }
-        })
       },
 
       checkInvoice: function () {
@@ -869,6 +854,57 @@ page_container %}
 
       sellTokens: async function () {
         console.log('#### sell tokens')
+        const amount = this.sellData.invoice.sat
+        const token = this.tokens
+          .filter(t => t.promises?.length)
+          .find(t => t.promises.find(b => b.amount === amount))
+        console.log('### token', token)
+        if (token) {
+          const promiseIndex = token.promises
+            .map(p => `${p.amount}`)
+            .indexOf(`${amount}`)
+          const promise = token.promises[promiseIndex]
+          console.log('### promise', promise)
+
+          const secret = token.secrets[promiseIndex]
+          const randomBlindingFactor = token.randomBlindingFactors[promiseIndex]
+
+          const C_ = nobleSecp256k1.Point.fromHex(promise['C_'])
+          const A = this.keys[promise.amount] // todo
+
+          console.log('#### C_', C_)
+          console.log('#### A', A)
+
+          const C = step3Bob(
+            C_,
+            randomBlindingFactor,
+            nobleSecp256k1.Point.fromHex(A)
+          )
+
+          const proofs = [
+            {
+              amount,
+              secret,
+              C: C.toHex(true)
+            }
+          ]
+
+          const payload = {
+            proofs,
+            amount,
+            invoice: this.sellData.bolt11
+          }
+          console.log('#### payload', JSON.stringify(payload))
+        }
+      },
+
+      fetchMintKeys: async function () {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/cashu/api/v1/cashu/${this.mintId}/keys`
+        )
+        this.keys = data
+        localStorage.setItem('cashu.keys', JSON.stringify(data))
       },
 
       storeBuyOrders: function () {
@@ -929,12 +965,19 @@ page_container %}
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
 
+      const keysJson = localStorage.getItem('cashu.keys')
+      if (!keysJson) {
+        this.fetchMintKeys()
+      } else {
+        this.keys = JSON.parse(keysJson)
+      }
+
       this.buyOrders = JSON.parse(
         localStorage.getItem('cashu.buyOrders') || '[]'
       )
       this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
-      console.log('### buyOrders',this.buyOrders)
-      console.table('### tokens',this.tokens)
+      console.log('### buyOrders', this.buyOrders)
+      console.table('### tokens', this.tokens)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
@@ -945,4 +988,5 @@ page_container %}
 <script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
 <script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
 <script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
 {% endblock %}

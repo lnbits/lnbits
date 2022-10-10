@@ -1,15 +1,19 @@
 async function hashToCurve(secretMessage) {
+  console.log(
+    '### secretMessage',
+    nobleSecp256k1.utils.bytesToHex(secretMessage)
+  )
   let point
   while (!point) {
     const hash = await nobleSecp256k1.utils.sha256(secretMessage)
+    const hashHex = nobleSecp256k1.utils.bytesToHex(hash)
+    const pointX = '02' + hashHex
+    console.log('### pointX', pointX)
     try {
-      point = nobleSecp256k1.Point.fromHex(hash)
+      point = nobleSecp256k1.Point.fromHex(pointX)
+      console.log('### point', point.toHex())
     } catch (error) {
-      // console.error(error)
-      // const x = bytesToNumber(hash) + ''
-      // const msg = await nobleSecp256k1.utils.sha256(x)
-      secretMessage = await nobleSecp256k1.utils.sha256(hash)
-      // secretMessage = nobleSecp256k1.utils.bytesToHex(msg)
+      secretMessage = await nobleSecp256k1.utils.sha256(secretMessage)
     }
   }
   return point
@@ -26,6 +30,7 @@ async function step1Bob(secretMessage) {
 }
 
 function step3Bob(C_, r, A) {
-  const C = C_.subtract(A.multiply(r))
+  const rInt = BigInt(r)
+  const C = C_.subtract(A.multiply(rInt))
   return C
 }
