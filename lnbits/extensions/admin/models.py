@@ -6,10 +6,10 @@ from pydantic import BaseModel
 
 class UpdateSettings(BaseModel):
     lnbits_backend_wallet_class: str = Query(None)
-    lnbits_admin_users: List[str] = Query(None) 
-    lnbits_allowed_users: List[str] = Query(None) 
-    lnbits_admin_ext: List[str] = Query(None) 
-    lnbits_disabled_ext: List[str] = Query(None) 
+    lnbits_admin_users: List[str] = Query(None)
+    lnbits_allowed_users: List[str] = Query(None)
+    lnbits_admin_ext: List[str] = Query(None)
+    lnbits_disabled_ext: List[str] = Query(None)
     lnbits_funding_source: str = Query(None)
     lnbits_force_https: bool = Query(None)
     lnbits_reserve_fee_min: int = Query(None, ge=0)
@@ -23,4 +23,4 @@ class UpdateSettings(BaseModel):
     lnbits_denomination: str = Query(None)
     lnbits_theme: str = Query(None)
     lnbits_custom_logo: str = Query(None)
-    lnbits_ad_space: List[str] = Query(None) 
+    lnbits_ad_space: List[str] = Query(None)

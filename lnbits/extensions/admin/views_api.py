@@ -53,8 +53,3 @@ async def api_delete_settings(
 ):
     await delete_settings()
     return {"status": "Success"}
-
-
-@admin_ext.get("/api/v1/backup/", status_code=HTTPStatus.OK)
-async def api_backup(user: User = Depends(check_admin)):
-    return {"status": "not implemented"}

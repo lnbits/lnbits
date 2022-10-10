@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
 
     # TODO: why those 2?
     g().config = settings
-    # g().base_url = f"http://{settings.host}:{settings.port}"
+    g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
