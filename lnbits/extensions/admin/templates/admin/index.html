@@ -3,7 +3,7 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md q-my-md">
     <q-btn label="Save" color="primary" @click="updateSettings">
-      <q-badge v-if="settingsChanged" color="red" rounded floating style="padding: 6px; border-radius: 6px"/>
+      <q-badge v-if="checkChanges" color="red" rounded floating style="padding: 6px; border-radius: 6px"/>
     </q-btn>
     <q-btn
       label="Restart server"
@@ -114,23 +114,18 @@
         topUpDialog: {
           show: false
         },
-        tab: 'funding',
-        settingsChanged: false
+        tab: 'funding'
       }
     },
     created: function () {
       this.settings = JSON.parse('{{ settings|tojson|safe }}') //DB data
       this.balance = +'{{ balance|safe }}'
       this.formData = _.clone(this.settings) //model
-      //this.formData.lnbits_ad_space = "hdh"
-      console.log(this.formData)
       console.log(_.isEqual(this.settings, this.formData))
-      console.log(this.g.extensions)
-
     },
-    watch: {
-      settingsChanged(e){
-        return _.isEqual(this.settings, this.formData)
+    computed: {
+      checkChanges(){
+        return !_.isEqual(this.settings, this.formData)
       }
     },
     methods: {
@@ -235,7 +230,6 @@
           lnbits_custom_logo: this.formData.lnbits_custom_logo,
           lnbits_ad_space: this.formData.lnbits_ad_space.toString()
         }
-        console.log(data)
         LNbits.api
           .request(
             'PUT',
@@ -244,6 +238,8 @@
             data
           )
           .then(response => {
+            this.settings = response.data.settings
+            this.formData = _.clone(this.settings)
             this.$q.notify({
               type: 'positive',
               message: 'Success! Settings changed!',
