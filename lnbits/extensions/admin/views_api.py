@@ -43,8 +43,9 @@ async def api_update_settings(
     user: User = Depends(check_admin),
     data: UpdateSettings = Body(...),
 ):
-    await update_settings(data)
-    return {"status": "Success"}
+    settings = await update_settings(data)
+    logger.debug(settings)
+    return {"status": "Success", "settings": settings.dict()}
 
 
 @admin_ext.delete("/api/v1/settings/", status_code=HTTPStatus.OK)
