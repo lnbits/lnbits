@@ -25,7 +25,7 @@ async def m001_initial(db):
             name TEXT NOT NULL,
             message TEXT NOT NULL,
             cur_code TEXT NOT NULL,
-            sats INT NOT NULL,
+            sats {db.big_int} NOT NULL,
             amount FLOAT NOT NULL,
             service INTEGER NOT NULL,
             posted BOOLEAN NOT NULL,
