@@ -119,7 +119,7 @@ page_container %}
                   >
                     <div>{{props.row.amount}}</div>
                   </q-td>
-          
+
                   <q-td key="memo" :props="props">
                     <div>{{props.row.memo}}</div>
                   </q-td>
@@ -129,7 +129,6 @@ page_container %}
                   <q-td key="hash" :props="props">
                     <div>{{props.row.hash}}</div>
                   </q-td>
-                 
                 </q-tr>
                 <!-- <q-tr v-show="props.row.expanded" :props="props">
                   <q-td colspan="100%">
@@ -507,7 +506,7 @@ page_container %}
         {% raw %}
 
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="!buyTokens.bolt11">
+          <div v-if="!buyTokens.data.bolt11">
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
                 <span class="text-subtitle1"
@@ -518,7 +517,7 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.number="buyTokens.amount"
+              v-model.number="buyTokens.data.amount"
               label="Amount (sats) *"
               type="number"
               class="q-mb-lg"
@@ -527,15 +526,15 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.trim="buyTokens.memo"
+              v-model.trim="buyTokens.data.memo"
               label="Memo"
             ></q-input>
           </div>
           <div v-else class="text-center q-mb-lg">
-            <a :href="'lightning:' + buyTokens.bolt11">
+            <a :href="'lightning:' + buyTokens.data.bolt11">
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="buyTokens.bolt11"
+                  :value="buyTokens.data.bolt11"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -545,8 +544,8 @@ page_container %}
           </div>
           <div class="row q-mt-lg">
             <q-btn
-              v-if="buyTokens.bolt11"
-              @click="copyText(buyTokens.bolt11)"
+              v-if="buyTokens.data.bolt11"
+              @click="copyText(buyTokens.data.bolt11)"
               outline
               color="grey"
               >Copy invoice</q-btn
@@ -587,6 +586,9 @@ page_container %}
 </style>
 {% endblock %} {% block scripts %}
 <script>
+  var currentDateStr = function () {
+    return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+  }
   var mapMint = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -613,10 +615,13 @@ page_container %}
         tokenBuys: [],
         buyTokens: {
           showDialog: false,
-          amount: 0,
-          memo: '',
-          bolt11: '',
-          hash: ''
+          data: {
+            amount: 0,
+            memo: '',
+            bolt11: '',
+            hash: ''
+          }
+          
         },
 
         receive: {
@@ -948,24 +953,32 @@ page_container %}
 
       /////////////////////////////////// WALLET ///////////////////////////////////
       showBuyTokensDialog: async function () {
-        this.buyTokens.amount = 0
-        this.buyTokens.bolt11 = ''
-        this.buyTokens.hash = ''
-        this.buyTokens.memo = ''
+        console.log('##### showBuyTokensDialog')
+        this.buyTokens.data.amount = 0
+        this.buyTokens.data.bolt11 = ''
+        this.buyTokens.data.hash = ''
+        this.buyTokens.data.memo = ''
         this.buyTokens.showDialog = true
       },
       requestInvoice: async function () {
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyTokens.amount}`
+            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyTokens.data.amount}`
           )
           console.log('### data', data)
-          
-          this.buyTokens.bolt11 = data.pr
-          this.buyTokens.hash = data.hash
-          this.tokenBuys.push({...this.buyTokens, date: new Date().toISOString()})
-          localStorage.setItem('cashu.tokenBuys', JSON.stringify(this.tokenBuys))
+
+          this.buyTokens.data.bolt11 = data.pr
+          this.buyTokens.data.hash = data.hash
+          this.tokenBuys.push({
+            ...this.buyTokens.data,
+            date: currentDateStr(),
+            status: 'pending'
+          })
+          localStorage.setItem(
+            'cashu.tokenBuys',
+            JSON.stringify(this.tokenBuys)
+          )
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -1019,7 +1032,9 @@ page_container %}
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
 
-      this.tokenBuys = JSON.parse(localStorage.getItem('cashu.tokenBuys') || '[]')
+      this.tokenBuys = JSON.parse(
+        localStorage.getItem('cashu.tokenBuys') || '[]'
+      )
       console.log('#### this.tokenBuys', this.tokenBuys)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
