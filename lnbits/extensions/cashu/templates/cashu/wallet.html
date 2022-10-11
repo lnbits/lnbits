@@ -69,61 +69,131 @@ page_container %}
               </div>
             </div>
 
-            <q-table
-              dense
-              flat
-              :data="buyOrders"
-              :columns="buysTable.columns"
-              :pagination.sync="buysTable.pagination"
-              no-data-label="No buys made yet"
-              :filter="buysTable.filter"
-            >
-              {% raw %}
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td key="status" :props="props">
-                    <div v-if="props.row.status == 'pending'">
-                      <q-icon
-                        @click="showInvoiceDialog(props.row)"
-                        name="settings_ethernet"
-                        color="grey"
+            <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
+              <q-tab name="tokens" label="Tokens"></q-tab>
+              <q-tab name="orders" label="Orders"></q-tab>
+              <q-tab name="history" label="History"></q-tab>
+            </q-tabs>
+            <q-tab-panels v-model="tab">
+              <q-tab-panel name="tokens">
+                <q-table
+                  dense
+                  flat
+                  :data="buyOrders"
+                  :columns="buysTable.columns"
+                  :pagination.sync="buysTable.pagination"
+                  no-data-label="No buys made yet"
+                  :filter="buysTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showInvoiceDialog(props.row)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="recheckBuyOrder(props.row.hash)"
+                          >
+                            Recheck
+                          </q-badge>
+                        </div>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon name="call_received" color="green"></q-icon>
+                        </div>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
                       >
-                        <q-tooltip>Pending</q-tooltip>
-                      </q-icon>
-                      <q-badge
-                        size="lg"
-                        color="secondary"
-                        class="q-mr-md cursor-pointer"
-                        @click="recheckBuyOrder(props.row.hash)"
-                      >
-                        Recheck
-                      </q-badge>
-                    </div>
-                    <div v-if="props.row.status === 'paid'">
-                      <q-icon name="call_received" color="green"></q-icon>
-                    </div>
-                  </q-td>
-                  <q-td
-                    key="amount"
-                    :props="props"
-                    :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
-                  >
-                    <div>{{props.row.amount}}</div>
-                  </q-td>
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
 
-                  <q-td key="memo" :props="props">
-                    <div>{{props.row.memo}}</div>
-                  </q-td>
-                  <q-td key="date" :props="props">
-                    <div>{{props.row.date}}</div>
-                  </q-td>
-                  <q-td key="hash" :props="props">
-                    <div>{{props.row.hash}}</div>
-                  </q-td>
-                </q-tr>
-              </template>
-              {% endraw %}
-            </q-table>
+                      <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td>
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <q-td key="hash" :props="props">
+                        <div>{{props.row.hash}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+              <q-tab-panel name="orders">
+                <q-table
+                  dense
+                  flat
+                  :data="buyOrders"
+                  :columns="buysTable.columns"
+                  :pagination.sync="buysTable.pagination"
+                  no-data-label="No buys made yet"
+                  :filter="buysTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showInvoiceDialog(props.row)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="recheckBuyOrder(props.row.hash)"
+                          >
+                            Recheck
+                          </q-badge>
+                        </div>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon name="call_received" color="green"></q-icon>
+                        </div>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
+
+                      <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td>
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <q-td key="hash" :props="props">
+                        <div>{{props.row.hash}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+
+              <q-tab-panel name="history">
+                <span>History</span>
+              </q-tab-panel>
+            </q-tab-panels>
           </q-card-section>
         </q-card>
       </div>
@@ -331,6 +401,7 @@ page_container %}
         showInvoiceDetails: false,
         showPayInvoice: false,
         tokens: [],
+        tab: 'tokens',
 
         receive: {
           show: false,
