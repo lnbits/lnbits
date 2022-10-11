@@ -989,17 +989,25 @@ page_container %}
       },
 
       burnTokens: function () {
-        for (const token of this.sendData.tokens) {
-          const secretIndex = this.tokens.findIndex(
-            t => t.promises?.length && t.secrets.find(s => s == token.secret)
-          )
-          if (secretIndex >= 0) {
-            token.blindedMessages?.splice(secretIndex, 1)
-            token.promises?.splice(secretIndex, 1)
-            token.randomBlindingFactors?.splice(secretIndex, 1)
-            token.secrets?.splice(secretIndex, 1)
+        for (const sentToken of this.sendData.tokens) {
+          for (const token of this.tokens) {
+            if (token.status === 'paid') {
+              const secretIndex = token.secrets.findIndex(
+                s => s === sentToken.secret
+              )
+              console.log('### secretIndex', secretIndex)
+              if (secretIndex >= 0) {
+                token.blindedMessages?.splice(secretIndex, 1)
+                token.promises?.splice(secretIndex, 1)
+                token.randomBlindingFactors?.splice(secretIndex, 1)
+                token.secrets?.splice(secretIndex, 1)
+                // todo: persist
+                return
+              }
+            }
           }
         }
+
         console.log('###  this.tokens', this.tokens)
       },
 
