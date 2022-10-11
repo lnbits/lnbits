@@ -79,53 +79,30 @@ page_container %}
                 <q-table
                   dense
                   flat
-                  :data="buyOrders"
-                  :columns="buysTable.columns"
-                  :pagination.sync="buysTable.pagination"
-                  no-data-label="No buys made yet"
-                  :filter="buysTable.filter"
+                  :data="tokenList"
+                  :columns="tokensTable.columns"
+                  :pagination.sync="tokensTable.pagination"
+                  no-data-label="No tokens made yet"
+                  :filter="tokensTable.filter"
                 >
                   {% raw %}
                   <template v-slot:body="props">
                     <q-tr :props="props">
-                      <q-td key="status" :props="props">
-                        <div v-if="props.row.status == 'pending'">
-                          <q-icon
-                            @click="showInvoiceDialog(props.row)"
-                            name="settings_ethernet"
-                            color="grey"
-                          >
-                            <q-tooltip>Pending</q-tooltip>
-                          </q-icon>
-                          <q-badge
-                            size="lg"
-                            color="secondary"
-                            class="q-mr-md cursor-pointer"
-                            @click="recheckBuyOrder(props.row.hash)"
-                          >
-                            Recheck
-                          </q-badge>
-                        </div>
-                        <div v-if="props.row.status === 'paid'">
-                          <q-icon name="call_received" color="green"></q-icon>
-                        </div>
-                      </q-td>
                       <q-td
-                        key="amount"
+                        key="denomination"
                         :props="props"
-                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        :class="props.row.denomination > 0 ? 'text-green-13 text-weight-bold' : ''"
                       >
-                        <div>{{props.row.amount}}</div>
+                        <div>{{props.row.denomination}}</div>
                       </q-td>
-
+                      <q-td key="count" :props="props">
+                        <div>{{props.row.count}}</div>
+                      </q-td>
+                      <q-td key="value" :props="props">
+                        <div>{{props.row.value}}</div>
+                      </q-td>
                       <q-td key="memo" :props="props">
                         <div>{{props.row.memo}}</div>
-                      </q-td>
-                      <q-td key="date" :props="props">
-                        <div>{{props.row.date}}</div>
-                      </q-td>
-                      <q-td key="hash" :props="props">
-                        <div>{{props.row.hash}}</div>
                       </q-td>
                     </q-tr>
                   </template>
@@ -475,6 +452,44 @@ page_container %}
           },
           filter: null
         },
+
+        tokensTable: {
+          columns: [
+            {
+              name: 'denomination',
+              align: 'left',
+              label: 'Denomination',
+              field: 'denomination',
+              sortable: true
+            },
+            {
+              name: 'count',
+              align: 'left',
+              label: 'Count',
+              field: 'count',
+              sortable: true
+            },
+            {
+              name: 'value',
+              align: 'left',
+              label: 'Value',
+              field: 'value',
+              sortable: true
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: 'Memo',
+              field: 'memo',
+              sortable: true
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+          filter: null
+        },
+
         paymentsChart: {
           show: false
         },
@@ -498,6 +513,31 @@ page_container %}
       },
       pendingPaymentsExist: function () {
         return this.payments.findIndex(payment => payment.pending) !== -1
+      },
+
+      tokenList: function () {
+        const y = {}
+        let x = this.tokens
+          .map(t => t.blindedMessages)
+          .flat()
+          .map(t => ({
+            blindingFactor: t.B_,
+            denomination: t.amount
+          }))
+        console.log('### x1', x)
+        x.forEach(t => {
+          y[`_${t.denomination}`] = y[`_${t.denomination}`] || []
+          y[`_${t.denomination}`].push(t)
+        })
+        x = Object.keys(y).map(k => ({
+          denomination: y[k][0].denomination,
+          count: y[k].length,
+          value: y[k][0].denomination * y[k].length
+        }))
+        console.log('### x2', x)
+        console.log('### y', y)
+
+        return x
       }
     },
     filters: {
