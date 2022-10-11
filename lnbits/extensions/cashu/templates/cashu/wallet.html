@@ -931,6 +931,14 @@ page_container %}
         }
       },
 
+      requestTokens: async function (amounts, paymentHash) {
+        const newTokens = await this.buildTokens(amounts, paymentHash)
+        this.tokens.push(newTokens)
+        this.storeTokens()
+        console.log('### this.tokens', this.tokens)
+        await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
+      },
+
       fetchPromisesFromMint: async function (hash, blindedMessages) {
         console.log('### fetchPromisesFromMint', hash, blindedMessages)
         try {
@@ -948,14 +956,6 @@ page_container %}
           console.error(error)
           LNbits.utils.notifyApiError(error)
         }
-      },
-
-      requestTokens: async function (amounts, paymentHash) {
-        const newTokens = await this.buildTokens(amounts, paymentHash)
-        this.tokens.push(newTokens)
-        this.storeTokens()
-        console.log('### this.tokens', this.tokens)
-        await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
       },
 
       buildAnsShowTokens: async function () {
