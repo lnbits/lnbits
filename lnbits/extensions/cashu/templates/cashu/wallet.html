@@ -52,6 +52,7 @@ page_container %}
                   rounded
                   color="primary"
                   class="full-width"
+                  @click="showReceiveTokensDialog"
                   >Receive</q-btn
                 >
               </div>
@@ -322,6 +323,43 @@ page_container %}
         </q-card>
       </q-dialog>
 
+
+
+      <q-dialog v-model="showReceiveTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div>
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >Paste tokens please</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model="receiveData.tokensBase64"
+              label="tokens"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+
+          <div class="row q-mt-lg">
+            <q-btn
+              @click="acceptTokens"
+              outline
+              color="grey"
+              >Accept Tokens</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+
       <q-dialog v-model="showPayInvoice" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="!sellData.invoice">
@@ -436,9 +474,13 @@ page_container %}
           tokens: '',
           tokensBase64: ''
         },
+        receiveData: {
+          tokensBase64: ''
+        },
         showInvoiceDetails: false,
         showPayInvoice: false,
         showSendTokens: false,
+        showReceiveTokens: false,
         tokens: [],
         tab: 'tokens',
 
@@ -868,6 +910,11 @@ page_container %}
         this.showSendTokens = true
       },
 
+      showReceiveTokensDialog : function() {
+        this.receiveData.tokensBase64 = ''
+        this.showReceiveTokens = true
+      },
+
       requestInvoice: async function () {
         try {
           const {data} = await LNbits.api.request(
@@ -1015,14 +1062,23 @@ page_container %}
         console.log('###  this.tokens', this.tokens)
       },
 
+      acceptTokens: async function() {
+        this.showReceiveTokens = false
+        console.log('### receive tokens', this.receiveData.tokensBase64)
+        if (this.receiveData.tokensBase64) {
+          const tokensJson = atob(this.receiveData.tokensBase64)
+          console.log('tokensJson', tokensJson)
+        }
+        
+      },
+
       findTokenForAmount: function (amount) {
         for (const token of this.tokens) {
           const index = token.promises?.findIndex(p => p.amount === amount)
           if (index >= 0) {
             return {
               promise: token.promises[index],
-              secret: token.secrets[index],
-              randomBlindingFactor: token.randomBlindingFactors[index]
+              secret: token.secrets[index]
             }
           }
         }
