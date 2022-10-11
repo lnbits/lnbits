@@ -71,7 +71,7 @@ async def melt(cashu: Cashu, proofs: List[Proof], invoice: str):
 
     fees_msat = await check_fees(cashu.wallet, invoice_obj)
     assert total_provided >= amount + fees_msat / 1000, Exception(
-        "provided proofs not enough for Lightning payment."
+        f"Provided proofs (${total_provided} sats) not enough for Lightning payment ({amount + fees_msat} sats)."
     )
 
     await pay_invoice(
