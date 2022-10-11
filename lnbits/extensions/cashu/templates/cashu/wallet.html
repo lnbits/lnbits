@@ -524,20 +524,17 @@ page_container %}
             blindingFactor: t.B_,
             denomination: t.amount
           }))
-        console.log('### x1', x)
-        x.forEach(t => {
-          y[`_${t.denomination}`] = y[`_${t.denomination}`] || []
-          y[`_${t.denomination}`].push(t)
-        })
-        x = Object.keys(y).map(k => ({
-          denomination: y[k][0].denomination,
-          count: y[k].length,
-          value: y[k][0].denomination * y[k].length
-        }))
-        console.log('### x2', x)
-        console.log('### y', y)
+          .reduce((y, t) => {
+            y[`_${t.denomination}`] = y[`_${t.denomination}`] || []
+            y[`_${t.denomination}`].push(t)
+            return y
+          }, {})
 
-        return x
+        return Object.keys(x).map(k => ({
+          denomination: x[k][0].denomination,
+          count: x[k].length,
+          value: x[k][0].denomination * x[k].length
+        }))
       }
     },
     filters: {
