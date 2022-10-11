@@ -22,7 +22,7 @@ page_container %}
               <div class="col-6">
                 <h3 class="q-my-none">
                   <center>
-                    <strong>{% raw %} {{balanceAmount}} </strong>
+                    <strong>{% raw %} {{balance}} </strong>
                     {{tickershort}}{% endraw %}
                   </center>
                 </h3>
@@ -357,7 +357,6 @@ page_container %}
     mixins: [windowMixin],
     data: function () {
       return {
-        balanceAmount: '',
         tickershort: '',
         name: '',
 
@@ -497,7 +496,7 @@ page_container %}
           show: false,
           location: window.location
         },
-        balance: 0,
+
         credit: 0,
         newName: ''
       }
@@ -516,8 +515,8 @@ page_container %}
       },
 
       tokenList: function () {
-        const y = {}
-        let x = this.tokens
+        const x = this.tokens
+          .filter(t => t.promises?.length)
           .map(t => t.blindedMessages)
           .flat()
           .map(t => ({
@@ -535,6 +534,14 @@ page_container %}
           count: x[k].length,
           value: x[k][0].denomination * x[k].length
         }))
+      },
+
+      balance: function () {
+        return this.tokens
+          .filter(t => t.promises?.length)
+          .map(t => t.blindedMessages)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
       }
     },
     filters: {
@@ -584,9 +591,7 @@ page_container %}
         this.parse.data.paymentChecker = null
         this.parse.camera.show = false
       },
-      updateBalance: function (credit) {
-        this.balance = this.balance // update balance
-      },
+
       closeReceiveDialog: function () {
         setTimeout(() => {
           clearInterval(this.receive.paymentChecker)
@@ -1041,10 +1046,6 @@ page_container %}
         this.tickershort = params.get('tsh')
       } else if (this.$q.localStorage.getItem('cashu.tickershort')) {
         this.tickershort = this.$q.localStorage.getItem('cashu.tickershort')
-      }
-
-      if (!this.$q.localStorage.getItem('cashu.amount')) {
-        this.balanceAmount = 0
       }
 
       // get mint
