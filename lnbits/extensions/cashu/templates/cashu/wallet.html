@@ -281,7 +281,7 @@ page_container %}
               filled
               dense
               v-model.number="sendData.amount"
-              label="Amount (sats) *"
+              label="Amount (tokens) *"
               type="number"
               class="q-mb-lg"
             ></q-input>
@@ -297,7 +297,7 @@ page_container %}
             <q-input
               filled
               dense
-              v-model="sendData.tokens"
+              v-model="sendData.tokensBase64"
               label="tokens"
               type="textarea"
               class="q-mb-lg"
@@ -310,6 +310,9 @@ page_container %}
               outline
               color="grey"
               >Show Tokens</q-btn
+            >
+            <q-btn v-else @click="burnTokens" outline color="grey"
+              >Burn Tokens</q-btn
             >
 
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -430,7 +433,8 @@ page_container %}
         sendData: {
           amount: 0,
           memo: '',
-          tokens: ''
+          tokens: '',
+          tokensBase64: ''
         },
         showInvoiceDetails: false,
         showPayInvoice: false,
@@ -858,6 +862,7 @@ page_container %}
 
       showSendTokensDialog: function () {
         this.sendData.tokens = ''
+        this.sendData.tokensBase64 = ''
         this.sendData.amount = 0
         this.sendData.memo = ''
         this.showSendTokens = true
@@ -973,12 +978,29 @@ page_container %}
               message: `Cannot select amount for denomination ${amount}`
             })
             this.sendData.tokens = ''
+            this.sendData.tokensBase64 = ''
             return
           }
         }
         console.log('### sendTokens', sendTokens)
-        this.sendData.tokens = JSON.stringify(sendTokens)
+        this.sendData.tokens = sendTokens
+        this.sendData.tokensBase64 = btoa(JSON.stringify(sendTokens))
         return sendTokens
+      },
+
+      burnTokens: function () {
+        for (const token of this.sendData.tokens) {
+          const secretIndex = this.tokens.findIndex(
+            t => t.promises?.length && t.secrets.find(s => s == token.secret)
+          )
+          if (secretIndex >= 0) {
+            token.blindedMessages?.splice(secretIndex, 1)
+            token.promises?.splice(secretIndex, 1)
+            token.randomBlindingFactors?.splice(secretIndex, 1)
+            token.secrets?.splice(secretIndex, 1)
+          }
+        }
+        console.log('###  this.tokens', this.tokens)
       },
 
       findTokenForAmount: function (amount) {
