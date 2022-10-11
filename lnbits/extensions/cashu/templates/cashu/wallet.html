@@ -1001,13 +1001,17 @@ page_container %}
                 token.promises?.splice(secretIndex, 1)
                 token.randomBlindingFactors?.splice(secretIndex, 1)
                 token.secrets?.splice(secretIndex, 1)
-                // todo: persist
-                return
               }
             }
           }
         }
 
+        this.$q.notify({
+          timeout: 5000,
+          message: 'Tokens burned'
+        })
+        this.storeTokens()
+        this.showSendTokens = false
         console.log('###  this.tokens', this.tokens)
       },
 
