@@ -63,6 +63,7 @@ page_container %}
                   rounded
                   color="primary"
                   class="full-width"
+                  @click="showSendTokensDialog"
                 >
                   Send</q-btn
                 >
@@ -266,6 +267,58 @@ page_container %}
         </q-card>
       </q-dialog>
 
+      <q-dialog v-model="showSendTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!sendData.tokens">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >How much would you like to send?</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model.number="sendData.amount"
+              label="Amount (sats) *"
+              type="number"
+              class="q-mb-lg"
+            ></q-input>
+
+            <q-input
+              filled
+              dense
+              v-model.trim="sendData.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <q-input
+              filled
+              dense
+              v-model="sendData.tokens"
+              label="tokens"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="!sendData.tokens"
+              @click="buildAnsShowTokens"
+              outline
+              color="grey"
+              >Show Tokens</q-btn
+            >
+
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
       <q-dialog v-model="showPayInvoice" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="!sellData.invoice">
@@ -374,8 +427,14 @@ page_container %}
           invoice: '',
           bolt11: ''
         },
+        sendData: {
+          amount: 0,
+          memo: '',
+          tokens: ''
+        },
         showInvoiceDetails: false,
         showPayInvoice: false,
+        showSendTokens: false,
         tokens: [],
         tab: 'tokens',
 
@@ -797,6 +856,13 @@ page_container %}
         this.showPayInvoice = true
       },
 
+      showSendTokensDialog: function () {
+        this.sendData.tokens = ''
+        this.sendData.amount = 0
+        this.sendData.memo = ''
+        this.showSendTokens = true
+      },
+
       requestInvoice: async function () {
         try {
           const {data} = await LNbits.api.request(
@@ -890,6 +956,10 @@ page_container %}
         this.storeTokens()
         console.log('### this.tokens', this.tokens)
         await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
+      },
+
+      buildAnsShowTokens: async function () {
+        this.sendData.tokens = 'toookeeens:' + this.sendData.amount
       },
 
       buildTokens: async function (amounts, paymentHash) {
