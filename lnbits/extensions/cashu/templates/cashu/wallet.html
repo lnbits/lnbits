@@ -306,7 +306,7 @@ page_container %}
           <div class="row q-mt-lg">
             <q-btn
               v-if="!sendData.tokens"
-              @click="buildAnsShowTokens"
+              @click="buildAndShowTokens"
               outline
               color="grey"
               >Show Tokens</q-btn
@@ -881,6 +881,7 @@ page_container %}
           this.storeBuyOrders()
           const amounts = splitAmount(this.buyData.amount)
           await this.requestTokens(amounts, this.buyData.hash)
+          this.tab = 'orders'
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -958,9 +959,42 @@ page_container %}
         }
       },
 
-      buildAnsShowTokens: async function () {
-        this.sendData.tokens = 'toookeeens:' + this.sendData.amount
+      buildAndShowTokens: async function () {
+        const amounts = splitAmount(this.sendData.amount)
+        const sendTokens = []
+        for (const amount of amounts) {
+          const token = this.findTokenForAmount(amount)
+          if (token) {
+            sendTokens.push(token)
+          } else {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: `Cannot select amount for denomination ${amount}`
+            })
+            this.sendData.tokens = ''
+            return
+          }
+        }
+        console.log('### sendTokens', sendTokens)
+        this.sendData.tokens = JSON.stringify(sendTokens)
+        return sendTokens
       },
+
+      findTokenForAmount: function (amount) {
+        for (const token of this.tokens) {
+          const index = token.promises?.findIndex(p => p.amount === amount)
+          if (index >= 0) {
+            return {
+              promise: token.promises[index],
+              secret: token.secrets[index],
+              randomBlindingFactor: token.randomBlindingFactors[index]
+            }
+          }
+        }
+      },
+
+      constructProof: function (token) {},
 
       buildTokens: async function (amounts, paymentHash) {
         const blindedMessages = []
@@ -1038,34 +1072,19 @@ page_container %}
         const paidTokens = this.tokens.filter(t => t.promises?.length)
         console.log('### paidTokens', paidTokens)
         const proofs = paidTokens.map(token => {
-          // const promiseIndex = token.promises
-          //   .map(p => `${p.amount}`)
-          //   .indexOf(`${amount}`)
           return token.promises.map((promise, promiseIndex) => {
-            // const promise = token.promises[promiseIndex]
             console.log('### promise', promise)
 
             const secret = token.secrets[promiseIndex]
             const randomBlindingFactor =
               token.randomBlindingFactors[promiseIndex]
 
-            const C_ = nobleSecp256k1.Point.fromHex(promise['C_'])
-            const A = this.keys[promise.amount] // todo
-
-            console.log('#### C_', C_)
-            console.log('#### A', A)
-
-            const C = step3Bob(
-              C_,
-              randomBlindingFactor,
-              nobleSecp256k1.Point.fromHex(A)
-            )
-
-            return {
-              amount: promise.amount,
+            return this.promiseToProof(
+              promise.amount,
+              promise['C_'],
               secret,
-              C: C.toHex(true)
-            }
+              randomBlindingFactor
+            )
           })
         })
         const payload = {
@@ -1074,6 +1093,40 @@ page_container %}
           invoice: this.sellData.bolt11
         }
         console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/cashu/${this.mintId}/melt`,
+            '',
+            payload
+          )
+          this.$q.notify({
+            timeout: 5000,
+            message: 'Invoice paid'
+          })
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
+      // C_hex = promise['C_']
+      // amount = promise.amount
+      promiseToProof: function (amount, C_hex, secret, randomBlindingFactor) {
+        const C_ = nobleSecp256k1.Point.fromHex(C_hex)
+        const A = this.keys[amount]
+
+        const C = step3Bob(
+          C_,
+          randomBlindingFactor,
+          nobleSecp256k1.Point.fromHex(A)
+        )
+
+        return {
+          amount,
+          secret,
+          C: C.toHex(true)
+        }
       },
 
       fetchMintKeys: async function () {
