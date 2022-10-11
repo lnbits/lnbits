@@ -33,18 +33,20 @@ def derive_pubkeys(keys: List[PrivateKey]):
 # async required?
 async def verify_proof(master_prvkey: str, proofs_used: Set[str], proof: Proof):
     """Verifies that the proof of promise was issued by this ledger."""
-    # if proof.secret in proofs_used:
-    #     raise Exception(f"tokens already spent. Secret: {proof.secret}")
+    if proof.secret in proofs_used:
+        raise Exception(f"tokens already spent. Secret: {proof.secret}")
 
     secret_key = derive_keys(master_prvkey)[
         proof.amount
     ]  # Get the correct key to check against
     C = PublicKey(bytes.fromhex(proof.C), raw=True)
-    secret = base64.urlsafe_b64decode(proof.secret)
+    secret = base64.standard_b64decode(proof.secret)
     print('### secret', secret)
     validMintSig = verify(secret_key, C, secret)
     if validMintSig != True:
         raise Exception(f"tokens not valid. Secret: {proof.secret}")
+
+    
 
 
 def verify_split_amount(amount: int):

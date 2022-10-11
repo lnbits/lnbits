@@ -787,7 +787,7 @@ page_container %}
           const secret = nobleSecp256k1.utils.randomBytes(32)
           // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
           // todo: base64Url
-          const encodedSecret =  uint8ToBase64.encode(secret)
+          const encodedSecret = uint8ToBase64.encode(secret)
           secrets.push(encodedSecret)
           const {B_, randomBlindingFactor} = await step1Bob(secret)
           randomBlindingFactors.push(randomBlindingFactor)
@@ -852,47 +852,45 @@ page_container %}
       sellTokens: async function () {
         console.log('#### sell tokens')
         const amount = this.sellData.invoice.sat
-        const token = this.tokens
-          .filter(t => t.promises?.length)
-          .find(t => t.promises.find(b => b.amount === amount))
-        console.log('### token', token)
-        if (token) {
-          const promiseIndex = token.promises
-            .map(p => `${p.amount}`)
-            .indexOf(`${amount}`)
-          const promise = token.promises[promiseIndex]
-          console.log('### promise', promise)
+        const paidTokens = this.tokens.filter(t => t.promises?.length)
+        console.log('### paidTokens', paidTokens)
+        const proofs = paidTokens.map(token => {
+          // const promiseIndex = token.promises
+          //   .map(p => `${p.amount}`)
+          //   .indexOf(`${amount}`)
+          return token.promises.map((promise, promiseIndex) => {
+            // const promise = token.promises[promiseIndex]
+            console.log('### promise', promise)
 
-          const secret = token.secrets[promiseIndex]
-          const randomBlindingFactor = token.randomBlindingFactors[promiseIndex]
+            const secret = token.secrets[promiseIndex]
+            const randomBlindingFactor =
+              token.randomBlindingFactors[promiseIndex]
 
-          const C_ = nobleSecp256k1.Point.fromHex(promise['C_'])
-          const A = this.keys[promise.amount] // todo
+            const C_ = nobleSecp256k1.Point.fromHex(promise['C_'])
+            const A = this.keys[promise.amount] // todo
 
-          console.log('#### C_', C_)
-          console.log('#### A', A)
+            console.log('#### C_', C_)
+            console.log('#### A', A)
 
-          const C = step3Bob(
-            C_,
-            randomBlindingFactor,
-            nobleSecp256k1.Point.fromHex(A)
-          )
+            const C = step3Bob(
+              C_,
+              randomBlindingFactor,
+              nobleSecp256k1.Point.fromHex(A)
+            )
 
-          const proofs = [
-            {
-              amount,
+            return {
+              amount: promise.amount,
               secret,
               C: C.toHex(true)
             }
-          ]
-
-          const payload = {
-            proofs,
-            amount,
-            invoice: this.sellData.bolt11
-          }
-          console.log('#### payload', JSON.stringify(payload))
+          })
+        })
+        const payload = {
+          proofs: proofs.flat(),
+          amount,
+          invoice: this.sellData.bolt11
         }
+        console.log('#### payload', JSON.stringify(payload))
       },
 
       fetchMintKeys: async function () {
