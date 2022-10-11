@@ -323,16 +323,12 @@ page_container %}
         </q-card>
       </q-dialog>
 
-
-
       <q-dialog v-model="showReceiveTokens" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div>
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
-                <span class="text-subtitle1"
-                  >Paste tokens please</span
-                >
+                <span class="text-subtitle1">Paste tokens please</span>
               </div>
             </div>
             <q-input
@@ -346,10 +342,7 @@ page_container %}
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn
-              @click="acceptTokens"
-              outline
-              color="grey"
+            <q-btn @click="acceptTokens" outline color="grey"
               >Accept Tokens</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -358,7 +351,6 @@ page_container %}
           </div>
         </q-card>
       </q-dialog>
-
 
       <q-dialog v-model="showPayInvoice" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
@@ -910,7 +902,7 @@ page_container %}
         this.showSendTokens = true
       },
 
-      showReceiveTokensDialog : function() {
+      showReceiveTokensDialog: function () {
         this.receiveData.tokensBase64 = ''
         this.showReceiveTokens = true
       },
@@ -989,11 +981,11 @@ page_container %}
         this.tokens.push(newTokens)
         this.storeTokens()
         console.log('### this.tokens', this.tokens)
-        await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
+        // await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
       },
 
       fetchPromisesFromMint: async function (hash, blindedMessages) {
-        console.log('### fetchPromisesFromMint', hash, blindedMessages)
+        console.log('### promises', hash, blindedMessages)
         try {
           const {data} = await LNbits.api.request(
             'POST',
@@ -1003,7 +995,7 @@ page_container %}
               blinded_messages: blindedMessages
             }
           )
-          console.log('### fetchPromisesFromMint data', data)
+          console.log('### promises data', data)
           return data
         } catch (error) {
           console.error(error)
@@ -1030,9 +1022,16 @@ page_container %}
           }
         }
         console.log('### sendTokens', sendTokens)
-        this.sendData.tokens = sendTokens
-        this.sendData.tokensBase64 = btoa(JSON.stringify(sendTokens))
-        return sendTokens
+        this.sendData.tokens = sendTokens.map(t => {
+          return this.promiseToProof(
+            t.promise.amount,
+            t.promise['C_'],
+            t.secret,
+            t.randomBlindingFactor
+          )
+        })
+        console.log('### this.sendData.tokens', this.sendData.tokens)
+        this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
       },
 
       burnTokens: function () {
@@ -1062,14 +1061,47 @@ page_container %}
         console.log('###  this.tokens', this.tokens)
       },
 
-      acceptTokens: async function() {
+      acceptTokens: async function () {
         this.showReceiveTokens = false
         console.log('### receive tokens', this.receiveData.tokensBase64)
         if (this.receiveData.tokensBase64) {
           const tokensJson = atob(this.receiveData.tokensBase64)
-          console.log('tokensJson', tokensJson)
+          const proofs = JSON.parse(tokensJson)
+          const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+          const amounts = splitAmount(amount)
+          const newTokens = await this.buildTokens(amounts)
+          console.log('newTokens', newTokens)
+
+          const payload = {
+            amount,
+            proofs,
+            outputs: {
+              blinded_messages: newTokens.blindedMessages
+            }
+          }
+
+          console.log('payload', JSON.stringify(payload))
+          try {
+            const {data} = await LNbits.api.request(
+              'POST',
+              `/cashu/api/v1/cashu/${this.mintId}/split`,
+              '',
+              payload
+            )
+
+            newTokens.promises  = data.snd;
+            // console.log('split data', JSON.stringify(data.snd))
+            // for (let i =0 ;i < newTokens.length; i++) {
+            //   Object.assign(newTokens[i], promises)
+            // }
+            console.log('newTokens 2', newTokens)
+            this.tokens.push(newTokens)
+            this.storeTokens()
+          } catch (error) {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          }
         }
-        
       },
 
       findTokenForAmount: function (amount) {
@@ -1078,7 +1110,8 @@ page_container %}
           if (index >= 0) {
             return {
               promise: token.promises[index],
-              secret: token.secrets[index]
+              secret: token.secrets[index],
+              randomBlindingFactor: token.randomBlindingFactors[index]
             }
           }
         }
