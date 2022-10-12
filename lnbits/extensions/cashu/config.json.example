@@ -3,5 +3,5 @@
   "short_description": "Ecash mints with LN peg in/out",
   "icon": "approval",
   "contributors": ["arcbtc", "calle"],
-  "hidden": false
+  "hidden": true
 }
