@@ -27,7 +27,7 @@
       :addresses="addresses"
       :serial-signer-ref="$refs.serialSigner"
       @accounts-update="updateAccounts"
-      @new-receive-address="showAddressDetails"
+      @new-receive-address="showAddressDetailsWithConfirmation"
     >
     </wallet-list>
 
@@ -136,6 +136,7 @@
         :adminkey="g.user.wallets[0].adminkey"
         :serial-signer-ref="$refs.serialSigner"
         :sats-denominated="config.sats_denominated"
+        :network="config.network"
         @broadcast-done="handleBroadcastSuccess"
       ></payment>
       <!-- todo: no more utxos.data -->
@@ -149,6 +150,7 @@
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
           {{SITE_TITLE}} Onchain Wallet (watch-only) Extension
+          <small>(v0.3)</small>
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -238,6 +240,8 @@
 <script src="{{ url_for('watchonly_static', path='js/tables.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/map.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/bip39-word-list.js') }}"></script>
+
 <script src="{{ url_for('watchonly_static', path='components/my-checkbox/my-checkbox.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/wallet-config/wallet-config.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/wallet-list/wallet-list.js') }}"></script>
@@ -245,10 +249,12 @@
 <script src="{{ url_for('watchonly_static', path='components/history/history.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/utxo-list/utxo-list.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/fee-rate/fee-rate.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='components/seed-input/seed-input.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/send-to/send-to.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/payment/payment.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/serial-signer/serial-signer.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/serial-port-config/serial-port-config.js') }}"></script>
+
 <script src="{{ url_for('watchonly_static', path='js/crypto/noble-secp256k1.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/crypto/aes.js') }}"></script>
 

@@ -11,7 +11,8 @@ async function payment(path) {
       'mempool-endpoint',
       'sats-denominated',
       'serial-signer-ref',
-      'adminkey'
+      'adminkey',
+      'network'
     ],
     watch: {
       immediate: true,
@@ -100,6 +101,18 @@ async function payment(path) {
             this.$q.notify({
               type: 'warning',
               message: 'Please connect to a Signing device first!',
+              timeout: 10000
+            })
+            return
+          }
+          const p2trUtxo = this.utxos.find(
+            u => u.selected && u.accountType === 'p2tr'
+          )
+          if (p2trUtxo) {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Taproot Signing not supported yet!',
+              caption: 'Please manually deselect the Taproot UTXOs',
               timeout: 10000
             })
             return
@@ -267,7 +280,8 @@ async function payment(path) {
             this.adminkey,
             {
               psbtBase64,
-              inputs: this.tx.inputs
+              inputs: this.tx.inputs,
+              network: this.network
             }
           )
           return data

@@ -15,13 +15,14 @@ async function serialSigner(path) {
         receivedData: '',
         config: {},
         decryptionKey: null,
-        sharedSecret: null, // todo: store in secure local storage
+        sharedSecret: null,
 
         hww: {
           password: null,
           showPassword: false,
           mnemonic: null,
           showMnemonic: false,
+          quickMnemonicInput: false,
           passphrase: null,
           showPassphrase: false,
           hasPassphrase: false,
@@ -38,6 +39,8 @@ async function serialSigner(path) {
           psbtSentResolve: null,
           xpubResolve: null,
           seedWordPosition: 1,
+          seedWord: null,
+          showSeedWord: false,
           showSeedDialog: false,
           // config: null,
 
@@ -48,12 +51,14 @@ async function serialSigner(path) {
         },
         tx: null, // todo: move to hww
 
-        showConsole: false
+        showConsole: false,
+        showPairedDevices: true
       }
     },
 
     computed: {
       pairedDevices: {
+        cache: false,
         get: function () {
           return (
             JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) ||
@@ -106,7 +111,10 @@ async function serialSigner(path) {
 
           // Wait for the serial port to open.
           await this.selectedPort.open(config)
+          // do not await
           this.startSerialPortReading()
+          // wait to init
+          sleep(1000)
 
           const textEncoder = new TextEncoderStream()
           this.writableStreamClosed = textEncoder.readable.pipeTo(
@@ -172,6 +180,10 @@ async function serialSigner(path) {
       isAuthenticated: function () {
         return this.hww.authenticated
       },
+
+      seedInputDone: function (mnemonic) {
+        this.hww.mnemonic = mnemonic
+      },
       isAuthenticating: function () {
         if (this.isAuthenticated()) return false
         return new Promise(resolve => {
@@ -218,8 +230,9 @@ async function serialSigner(path) {
             while (true) {
               const {value, done} = await readStringUntil('\n')
               if (value) {
-                this.handleSerialPortResponse(value)
-                this.updateSerialPortConsole(value)
+                const {command, commandData} = await this.extractCommand(value)
+                this.handleSerialPortResponse(command, commandData)
+                this.updateSerialPortConsole(command)
               }
               if (done) return
             }
@@ -233,8 +246,7 @@ async function serialSigner(path) {
           }
         }
       },
-      handleSerialPortResponse: async function (value) {
-        const {command, commandData} = await this.extractCommand(value)
+      handleSerialPortResponse: async function (command, commandData) {
         this.logPublicCommandsResponse(command, commandData)
 
         switch (command) {
@@ -275,7 +287,7 @@ async function serialSigner(path) {
             )
             break
           default:
-            console.log(`   %c${value}`, 'background: #222; color: red')
+            console.log(`   %c${command}`, 'background: #222; color: red')
         }
       },
       logPublicCommandsResponse: function (command, commandData) {
@@ -300,6 +312,8 @@ async function serialSigner(path) {
       },
       hwwPing: async function () {
         try {
+          // Send an empty ping. The serial port buffer might have some jubk data. Flush it.
+          await this.sendCommandClearText(COMMAND_PING)
           await this.sendCommandClearText(COMMAND_PING, [window.location.host])
         } catch (error) {
           this.$q.notify({
@@ -374,6 +388,10 @@ async function serialSigner(path) {
           })
         }
       },
+      closeSeedDialog: function () {
+        this.hww.seedWord = null
+        this.hww.showSeedWord = false
+      },
       hwwConfirmNext: async function () {
         this.hww.confirm.outputIndex += 1
         if (this.hww.confirm.outputIndex >= this.tx.outputs.length) {
@@ -403,7 +421,10 @@ async function serialSigner(path) {
       },
       hwwLogin: async function () {
         try {
-          await this.sendCommandSecure(COMMAND_PASSWORD, [this.hww.password])
+          await this.sendCommandSecure(COMMAND_PASSWORD, [
+            this.hww.password,
+            this.hww.passphrase
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -414,7 +435,9 @@ async function serialSigner(path) {
         } finally {
           this.hww.showPasswordDialog = false
           this.hww.password = null
+          this.hww.passphrase = null
           this.hww.showPassword = false
+          this.hww.showPassphrase = false
         }
       },
       handleLoginResponse: function (res = '') {
@@ -440,6 +463,22 @@ async function serialSigner(path) {
       hwwLogout: async function () {
         try {
           await this.sendCommandSecure(COMMAND_PASSWORD_CLEAR)
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to logout from Hardware Wallet!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      hwwShowAddress: async function (path, address) {
+        try {
+          await this.sendCommandSecure(COMMAND_ADDRESS, [
+            this.network,
+            path,
+            address
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -550,7 +589,7 @@ async function serialSigner(path) {
       hwwCheckPairing: async function () {
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
         const encrypted = await this.encryptMessage(
-          this.sharedSecret,
+          this.sharedSecret, // todo: revisit
           iv,
           PAIRING_CONTROL_TEXT.length + ' ' + PAIRING_CONTROL_TEXT
         )
@@ -571,10 +610,10 @@ async function serialSigner(path) {
         }
       },
       handleCheckPairingResponse: async function (res = '') {
-        const [statusCode, encryptedMessage] = res.split(' ')
+        const [statusCode, message] = res.split(' ')
         switch (statusCode) {
           case '0':
-            const controlText = await this.decryptData(encryptedMessage)
+            const controlText = await this.decryptData(message)
             if (controlText == PAIRING_CONTROL_TEXT) {
               this.$q.notify({
                 type: 'positive',
@@ -589,6 +628,16 @@ async function serialSigner(path) {
                 timeout: 10000
               })
             }
+            break
+          case '1':
+            this.closeSerialPort()
+            this.$q.notify({
+              type: 'warning',
+              message:
+                'Re-pairing failed. Remove (forget) device and try again!',
+              caption: `Error: ${message}`,
+              timeout: 10000
+            })
             break
           default:
             // noting to do here yet
@@ -714,7 +763,7 @@ async function serialSigner(path) {
         } catch (error) {
           this.$q.notify({
             type: 'warning',
-            message: 'Failed to ask for help!',
+            message: 'Failed to wipe!',
             caption: `${error}`,
             timeout: 10000
           })
@@ -796,21 +845,15 @@ async function serialSigner(path) {
         await this.sendCommandSecure(COMMAND_SEED, [this.hww.seedWordPosition])
       },
       handleShowSeedResponse: function (res = '') {
-        const args = res.trim().split(' ')
+        const [pos, word] = res.trim().split(' ')
+        this.hww.seedWord = `${pos}. ${word}`
+        this.hww.seedWordPosition = pos
       },
       hwwRestore: async function () {
         try {
-          let mnemonicWithPassphrase = this.hww.mnemonic
-          if (
-            this.hww.hasPassphrase &&
-            this.hww.passphrase &&
-            this.hww.passphrase.length
-          ) {
-            mnemonicWithPassphrase += '/' + this.hww.passphrase
-          }
           await this.sendCommandSecure(COMMAND_RESTORE, [
             this.hww.password,
-            mnemonicWithPassphrase
+            this.hww.mnemonic
           ])
         } catch (error) {
           this.$q.notify({
@@ -822,7 +865,6 @@ async function serialSigner(path) {
         } finally {
           this.hww.showRestoreDialog = false
           this.hww.mnemonic = null
-          this.hww.passphrase = null
           this.hww.showMnemonic = false
           this.hww.password = null
           this.hww.confirmedPassword = null
@@ -837,6 +879,11 @@ async function serialSigner(path) {
       sendCommandSecure: async function (command, attrs = []) {
         const message = [command].concat(attrs).join(' ')
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
+        if (!this.sharedSecret || !this.sharedSecret.length) {
+          throw new Error(
+            `Secure connection not estabileshed. Tried to run command: ${command}`
+          )
+        }
         const encrypted = await this.encryptMessage(
           this.sharedSecret,
           iv,
@@ -876,6 +923,7 @@ async function serialSigner(path) {
       },
       decryptData: async function (value) {
         if (!this.sharedSecret) {
+          console.log('/error Secure session not established!')
           return '/error Secure session not established!'
         }
         try {
@@ -896,6 +944,7 @@ async function serialSigner(path) {
             .trim()
           return command
         } catch (error) {
+          console.log('/error Failed to decrypt message from device!')
           return '/error Failed to decrypt message from device!'
         }
       },
@@ -924,6 +973,11 @@ async function serialSigner(path) {
           devices.splice(deviceIndex, 1)
         }
         this.pairedDevices = devices
+        this.showPairedDevices = false
+        setTimeout(() => {
+          // force UI refresh
+          this.showPairedDevices = true
+        })
       },
       addPairedDevice: function (deviceId, sharedSecretHex, config) {
         const devices = this.pairedDevices
@@ -935,6 +989,11 @@ async function serialSigner(path) {
           config
         })
         this.pairedDevices = devices
+        this.showPairedDevices = false
+        setTimeout(() => {
+          // force UI refresh
+          this.showPairedDevices = true
+        })
       },
       updatePairedDeviceConfig(deviceId, config) {
         const device = this.getPairedDevice(deviceId)

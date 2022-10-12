@@ -6,7 +6,7 @@ from loguru import logger
 from lnbits.core import db as core_db
 from lnbits.core.crud import create_payment
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import get_current_extension_name, urlsafe_short_hash
 from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import get_targets
@@ -14,7 +14,7 @@ from .crud import get_targets
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+    register_invoice_listener(invoice_queue, get_current_extension_name())
 
     while True:
         payment = await invoice_queue.get()
@@ -28,6 +28,10 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # now we make some special internal transfers (from no one to the receiver)
     targets = await get_targets(payment.wallet_id)
+
+    if not targets:
+        return
+
     transfers = [
         (target.wallet, int(target.percent * payment.amount / 100))
         for target in targets
@@ -39,9 +43,6 @@ async def on_invoice_paid(payment: Payment) -> None:
         logger.error(
             "splitpayments failure: amount_left is negative.", payment.payment_hash
         )
-        return
-
-    if not targets:
         return
 
     # mark the original payment with one extra key, "splitted"
@@ -76,5 +77,5 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
         # manually send this for now
-    await internal_invoice_queue.put(internal_checking_id)
+        await internal_invoice_queue.put(internal_checking_id)
     return

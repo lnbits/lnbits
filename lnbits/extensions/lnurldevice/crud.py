@@ -22,9 +22,10 @@ async def create_lnurldevice(
             wallet,
             currency,
             device,
-            profit
+            profit,
+            amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             lnurldevice_id,
@@ -34,6 +35,7 @@ async def create_lnurldevice(
             data.currency,
             data.device,
             data.profit,
+            data.amount,
         ),
     )
     return await get_lnurldevice(lnurldevice_id)

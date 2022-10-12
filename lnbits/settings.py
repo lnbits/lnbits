@@ -24,18 +24,21 @@ LNBITS_DATA_FOLDER = env.str(
 )
 LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 
-LNBITS_ALLOWED_USERS: List[str] = env.list(
-    "LNBITS_ALLOWED_USERS", default=[], subcast=str
-)
-LNBITS_ADMIN_USERS: List[str] = env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
-LNBITS_ADMIN_EXTENSIONS: List[str] = env.list(
-    "LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str
-)
-LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
-    "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
-)
+LNBITS_ALLOWED_USERS: List[str] = [
+    x.strip(" ") for x in env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)
+]
+LNBITS_ADMIN_USERS: List[str] = [
+    x.strip(" ") for x in env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
+]
+LNBITS_ADMIN_EXTENSIONS: List[str] = [
+    x.strip(" ") for x in env.list("LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str)
+]
+LNBITS_DISABLED_EXTENSIONS: List[str] = [
+    x.strip(" ")
+    for x in env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
+]
 
-LNBITS_AD_SPACE = env.list("LNBITS_AD_SPACE", default=[])
+LNBITS_AD_SPACE = [x.strip(" ") for x in env.list("LNBITS_AD_SPACE", default=[])]
 LNBITS_HIDE_API = env.bool("LNBITS_HIDE_API", default=False)
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
 LNBITS_DENOMINATION = env.str("LNBITS_DENOMINATION", default="sats")
@@ -43,11 +46,14 @@ LNBITS_SITE_TAGLINE = env.str(
     "LNBITS_SITE_TAGLINE", default="free and open-source lightning wallet"
 )
 LNBITS_SITE_DESCRIPTION = env.str("LNBITS_SITE_DESCRIPTION", default="")
-LNBITS_THEME_OPTIONS: List[str] = env.list(
-    "LNBITS_THEME_OPTIONS",
-    default="classic, flamingo, mint, salvador, monochrome, autumn",
-    subcast=str,
-)
+LNBITS_THEME_OPTIONS: List[str] = [
+    x.strip(" ")
+    for x in env.list(
+        "LNBITS_THEME_OPTIONS",
+        default="classic, flamingo, mint, salvador, monochrome, autumn",
+        subcast=str,
+    )
+]
 LNBITS_CUSTOM_LOGO = env.str("LNBITS_CUSTOM_LOGO", default="")
 
 WALLET = wallet_class()

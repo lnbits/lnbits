@@ -34,7 +34,6 @@ from .tasks import (
     check_pending_payments,
     internal_invoice_listener,
     invoice_listener,
-    run_deferred_async,
     webhook_handler,
 )
 
@@ -127,7 +126,7 @@ def check_funding_source(app: FastAPI) -> None:
             logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
         signal.signal(signal.SIGINT, original_sigint_handler)
-        logger.info(
+        logger.success(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
 
@@ -185,7 +184,7 @@ def register_async_tasks(app):
         loop.create_task(catch_everything_and_restart(invoice_listener))
         loop.create_task(catch_everything_and_restart(internal_invoice_listener))
         await register_task_listeners()
-        await run_deferred_async()
+        # await run_deferred_async() # calle: doesn't do anyting?
 
     @app.on_event("shutdown")
     async def stop_listeners():
