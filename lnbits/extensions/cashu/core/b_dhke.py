@@ -30,17 +30,17 @@ import hashlib
 from secp256k1 import PrivateKey, PublicKey
 
 
-def hash_to_curve(message: bytes): 
-    """Generates a point from the message hash and checks if the point lies on the curve. 
-    If it does not, it tries computing again a new x coordinate from the hash of the coordinate.""" 
-    point = None 
-    msg_to_hash = message 
-    while point is None: 
-        try: 
-            _hash = hashlib.sha256(msg_to_hash).digest() 
-            point = PublicKey(b"\x02" + _hash, raw=True) 
-        except: 
-            msg_to_hash = _hash 
+def hash_to_curve(message: bytes):
+    """Generates a point from the message hash and checks if the point lies on the curve.
+    If it does not, it tries computing again a new x coordinate from the hash of the coordinate."""
+    point = None
+    msg_to_hash = message
+    while point is None:
+        try:
+            _hash = hashlib.sha256(msg_to_hash).digest()
+            point = PublicKey(b"\x02" + _hash, raw=True)
+        except:
+            msg_to_hash = _hash
     return point
 
 
