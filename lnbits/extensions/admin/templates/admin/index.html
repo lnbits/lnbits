@@ -369,10 +369,10 @@
       topupWallet() {
         LNbits.api
           .request(
-            'POST',
+            'PUT',
             '/admin/api/v1/topup/?usr=' + this.g.user.id,
-            this.wallet.id,
-            this.wallet.amount
+            this.g.user.wallets[0].adminkey,
+            this.wallet
           )
           .then(response => {
             this.$q.notify({

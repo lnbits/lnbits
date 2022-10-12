@@ -19,7 +19,6 @@ from .base import (
 
 
 class FakeWallet(Wallet):
-    queue: asyncio.Queue = asyncio.Queue(0)
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",
@@ -98,6 +97,7 @@ class FakeWallet(Wallet):
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value: Invoice = await self.queue.get()
             yield value.payment_hash
