@@ -3,7 +3,13 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md q-my-md">
     <q-btn label="Save" color="primary" @click="updateSettings">
-      <q-badge v-if="checkChanges" color="red" rounded floating style="padding: 6px; border-radius: 6px"/>
+      <q-badge
+        v-if="checkChanges"
+        color="red"
+        rounded
+        floating
+        style="padding: 6px; border-radius: 6px"
+      />
     </q-btn>
     <q-btn
       label="Restart server"
@@ -124,7 +130,7 @@
       console.log(_.isEqual(this.settings, this.formData))
     },
     computed: {
-      checkChanges(){
+      checkChanges() {
         return !_.isEqual(this.settings, this.formData)
       }
     },
@@ -140,9 +146,7 @@
       },
       removeAdminUser(user) {
         let admin_users = this.settings.lnbits_admin_users
-        this.settings.lnbits_admin_users = admin_users.filter(
-          u => u !== user
-        )
+        this.settings.lnbits_admin_users = admin_users.filter(u => u !== user)
       },
       addAllowedUser() {
         let addUser = this.formData.allowed_users_add
@@ -155,7 +159,9 @@
       },
       removeAllowedUser(user) {
         let allowed_users = this.settings.lnbits_allowed_users
-        this.settings.lnbits_allowed_users = allowed_users.filter(u => u !== user)
+        this.settings.lnbits_allowed_users = allowed_users.filter(
+          u => u !== user
+        )
       },
       addAdSpace() {
         let adSpace = this.formData.ad_space_add
@@ -187,10 +193,10 @@
       topupWallet() {
         LNbits.api
           .request(
-            'POST',
+            'PUT',
             '/admin/api/v1/topup/?usr=' + this.g.user.id,
-            this.wallet.id,
-            this.wallet.amount
+            this.g.user.wallets[0].adminkey,
+            this.wallet
           )
           .then(response => {
             this.$q.notify({
@@ -209,7 +215,7 @@
           })
       },
       updateSettings() {
-        let data = {          
+        let data = {
           ...this.formData
         }
         LNbits.api
@@ -262,7 +268,7 @@
             LNbits.utils.notifyApiError(error)
           })
       }
-    },
+    }
   })
 </script>
 {% endblock %}

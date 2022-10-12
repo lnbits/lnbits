@@ -1,20 +1,19 @@
 import importlib
 import json
 import subprocess
-import httpx
 from os import path
 from sqlite3 import Row
 from typing import List, Optional
 
+import httpx
 from loguru import logger
 from pydantic import BaseSettings, Field, validator
-
 
 
 def list_parse_fallback(v):
     try:
         return json.loads(v)
-    except Exception as e:
+    except Exception:
         replaced = v.replace(" ", "")
         if replaced:
             return replaced.split(",")
@@ -238,24 +237,36 @@ async def check_admin_settings():
                 http = "https" if settings.lnbits_force_https else "http"
                 user = settings.lnbits_admin_users[0]
 
-                admin_url = f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
+                admin_url = (
+                    f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
+                )
                 logger.warning(f"✔️ Access admin user account at: {admin_url}")
 
-                if settings.lnbits_saas_callback and settings.lnbits_saas_secret and settings.lnbits_saas_instance_id:
+                if (
+                    settings.lnbits_saas_callback
+                    and settings.lnbits_saas_secret
+                    and settings.lnbits_saas_instance_id
+                ):
                     with httpx.Client() as client:
                         headers = {
                             "Content-Type": "application/json; charset=utf-8",
-                            "X-API-KEY": settings.lnbits_saas_secret
+                            "X-API-KEY": settings.lnbits_saas_secret,
                         }
                         payload = {
                             "instance_id": settings.lnbits_saas_instance_id,
-                            "adminuser": user
+                            "adminuser": user,
                         }
                         try:
-                            r = client.post(settings.lnbits_saas_callback, headers=headers, json=payload)
+                            client.post(
+                                settings.lnbits_saas_callback,
+                                headers=headers,
+                                json=payload,
+                            )
                             logger.warning("sent admin user to saas application")
                         except:
-                            logger.error(f"error sending admin user to saas: {settings.lnbits_saas_callback}")
+                            logger.error(
+                                f"error sending admin user to saas: {settings.lnbits_saas_callback}"
+                            )
 
             except:
                 logger.error("admin.settings tables does not exist.")
