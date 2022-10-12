@@ -84,6 +84,7 @@ async def check_funding_source() -> None:
     def signal_handler(signal, frame):
         logger.debug(f"SIGINT received, terminating LNbits.")
         sys.exit(1)
+
     signal.signal(signal.SIGINT, signal_handler)
 
     WALLET = get_wallet_class()
