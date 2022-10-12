@@ -20,6 +20,8 @@ class Extension(NamedTuple):
     icon: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
+    migration_module: Optional[str] = None
+    db_name: Optional[str] = None
 
 
 class ExtensionManager:
@@ -66,6 +68,8 @@ class ExtensionManager:
                     config.get("icon"),
                     config.get("contributors"),
                     config.get("hidden") or False,
+                    config.get("migration_module"),
+                    config.get("db_name"),
                 )
             )
 
