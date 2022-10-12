@@ -1,5 +1,5 @@
-{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Wallet
-{% endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Cashu
+wallet {% endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
 page_container %}
 <q-page-container>
   <q-page>
@@ -14,9 +14,8 @@ page_container %}
                   rounded
                   color="secondary"
                   class="full-width"
-                  @click="showBuyTokensDialog"
-                  >Buy tokens
-                  <h5 class="text-caption q-ml-sm q-mb-none">(with sats)</h5>
+                  @click="showInvoicesDialog"
+                  >Create invoice
                 </q-btn>
               </div>
               <div class="col-6">
@@ -34,8 +33,7 @@ page_container %}
                   rounded
                   color="secondary"
                   class="full-width"
-                  >Sell tokens
-                  <h5 class="text-caption q-ml-sm q-mb-none">(for sats)</h5>
+                  >Pay invoice
                 </q-btn>
               </div>
             </div>
@@ -115,11 +113,11 @@ page_container %}
                 <q-table
                   dense
                   flat
-                  :data="buyOrders"
-                  :columns="buysTable.columns"
-                  :pagination.sync="buysTable.pagination"
-                  no-data-label="No buys made yet"
-                  :filter="buysTable.filter"
+                  :data="invoicesCashu"
+                  :columns="invoicesTable.columns"
+                  :pagination.sync="invoicesTable.pagination"
+                  no-data-label="No invoices made yet"
+                  :filter="invoicesTable.filter"
                 >
                   {% raw %}
                   <template v-slot:body="props">
@@ -137,7 +135,7 @@ page_container %}
                             size="lg"
                             color="secondary"
                             class="q-mr-md cursor-pointer"
-                            @click="recheckBuyOrder(props.row.hash)"
+                            @click="recheckInvoice(props.row.hash)"
                           >
                             Recheck
                           </q-badge>
@@ -182,11 +180,15 @@ page_container %}
         active-class="px-0"
         indicator-color="transparent"
       >
-        <q-tab icon="arrow_right" label="Buy" @click="showBuyTokensDialog">
+        <q-tab
+          icon="arrow_right"
+          label="Create Invoice"
+          @click="showInvoicesDialog"
+        >
         </q-tab>
-        <q-tab icon="arrow_downward" label="Receive"></q-tab>
-        <q-tab icon="arrow_upward" label="Send"></q-tab>
-        <q-tab icon="arrow_right" label="Sell"> </q-tab>
+        <q-tab icon="arrow_downward" label="Receive Tokens"></q-tab>
+        <q-tab icon="arrow_upward" label="Send Token"></q-tab>
+        <q-tab icon="arrow_right" label="Pay Invoice"> </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
@@ -214,7 +216,7 @@ page_container %}
 
       <q-dialog v-model="showInvoiceDetails" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="!buyData.bolt11">
+          <div v-if="!invoiceData.bolt11">
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
                 <span class="text-subtitle1"
@@ -225,7 +227,7 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.number="buyData.amount"
+              v-model.number="invoiceData.amount"
               label="Amount (sats) *"
               type="number"
               class="q-mb-lg"
@@ -234,15 +236,15 @@ page_container %}
             <q-input
               filled
               dense
-              v-model.trim="buyData.memo"
+              v-model.trim="invoiceData.memo"
               label="Memo"
             ></q-input>
           </div>
           <div v-else class="text-center q-mb-lg">
-            <a :href="'lightning:' + buyData.bolt11">
+            <a :href="'lightning:' + invoiceData.bolt11">
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="buyData.bolt11"
+                  :value="invoiceData.bolt11"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -252,8 +254,8 @@ page_container %}
           </div>
           <div class="row q-mt-lg">
             <q-btn
-              v-if="buyData.bolt11"
-              @click="copyText(buyData.bolt11)"
+              v-if="invoiceData.bolt11"
+              @click="copyText(invoiceData.bolt11)"
               outline
               color="grey"
               >Copy invoice</q-btn
@@ -449,8 +451,8 @@ page_container %}
         mintId: '',
         mintName: '',
         keys: '',
-        buyOrders: [],
-        buyData: {
+        invoicesCashu: [],
+        invoiceData: {
           amount: 0,
           memo: '',
           bolt11: '',
@@ -507,7 +509,7 @@ page_container %}
           }
         },
         payments: [],
-        buysTable: {
+        invoicesTable: {
           columns: [
             {
               name: 'status',
@@ -873,17 +875,17 @@ page_container %}
       },
 
       /////////////////////////////////// WALLET ///////////////////////////////////
-      showBuyTokensDialog: async function () {
-        console.log('##### showBuyTokensDialog')
-        this.buyData.amount = 0
-        this.buyData.bolt11 = ''
-        this.buyData.hash = ''
-        this.buyData.memo = ''
+      showInvoicesDialog: async function () {
+        console.log('##### showInvoicesDialog')
+        this.invoiceData.amount = 0
+        this.invoiceData.bolt11 = ''
+        this.invoiceData.hash = ''
+        this.invoiceData.memo = ''
         this.showInvoiceDetails = true
       },
 
       showInvoiceDialog: function (data) {
-        this.buyData = _.clone(data)
+        this.invoiceData = _.clone(data)
         this.showInvoiceDetails = true
       },
 
@@ -911,20 +913,20 @@ page_container %}
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyData.amount}`
+            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.invoiceData.amount}`
           )
           console.log('### data', data)
 
-          this.buyData.bolt11 = data.pr
-          this.buyData.hash = data.hash
-          this.buyOrders.push({
-            ..._.clone(this.buyData),
+          this.invoiceData.bolt11 = data.pr
+          this.invoiceData.hash = data.hash
+          this.invoicesCashu.push({
+            ..._.clone(this.invoiceData),
             date: currentDateStr(),
             status: 'pending'
           })
-          this.storeBuyOrders()
-          const amounts = splitAmount(this.buyData.amount)
-          await this.requestTokens(amounts, this.buyData.hash)
+          this.storeinvoicesCashu()
+          const amounts = splitAmount(this.invoiceData.amount)
+          await this.requestTokens(amounts, this.invoiceData.hash)
           this.tab = 'orders'
         } catch (error) {
           console.error(error)
@@ -933,12 +935,12 @@ page_container %}
       },
 
       checkXXXXXX: async function () {
-        for (const tokenBuy of this.buyOrders) {
-          if (tokenBuy.status === 'pending') {
+        for (const invoice of this.invoicesCashu) {
+          if (invoice.status === 'pending') {
             try {
               const {data} = await LNbits.api.request(
                 'POST',
-                `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${tokenBuy.hash}`,
+                `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${invoice.hash}`,
                 '',
                 {
                   blinded_messages: []
@@ -953,10 +955,10 @@ page_container %}
         }
       },
 
-      recheckBuyOrder: async function (hash) {
-        console.log('### recheckBuyOrder.hash', hash)
+      recheckInvoice: async function (hash) {
+        console.log('### recheckInvoice.hash', hash)
         const tokens = this.tokens.find(bt => bt.hash === hash)
-        console.log('### recheckBuyOrder.tokens', tokens)
+        console.log('### recheckInvoice.tokens', tokens)
         if (!tokens) {
           console.error('####### no token for hash', hash)
           return
@@ -970,9 +972,9 @@ page_container %}
           tokens.status = 'paid'
           this.storeTokens()
 
-          const buyOrder = this.buyOrders.find(bo => bo.hash === hash)
-          buyOrder.status = 'paid'
-          this.storeBuyOrders()
+          const invoice = this.invoicesCashu.find(bo => bo.hash === hash)
+          invoice.status = 'paid'
+          this.storeinvoicesCashu()
         }
       },
 
@@ -1261,8 +1263,11 @@ page_container %}
         localStorage.setItem('cashu.keys', JSON.stringify(data))
       },
 
-      storeBuyOrders: function () {
-        localStorage.setItem('cashu.buyOrders', JSON.stringify(this.buyOrders))
+      storeinvoicesCashu: function () {
+        localStorage.setItem(
+          'cashu.invoicesCashu',
+          JSON.stringify(this.invoicesCashu)
+        )
       },
       storeTokens: function () {
         localStorage.setItem(
@@ -1285,8 +1290,8 @@ page_container %}
         !params.get('tsh') &&
         !this.$q.localStorage.getItem('cashu.tickershort')
       ) {
-        this.$q.localStorage.set('cashu.tickershort', 'CE')
-        this.tickershort = 'CE'
+        this.$q.localStorage.set('cashu.tickershort', 'sats')
+        this.tickershort = 'sats'
       } else if (params.get('tsh')) {
         this.$q.localStorage.set('cashu.tickershort', params.get('tsh'))
         this.tickershort = params.get('tsh')
@@ -1322,11 +1327,11 @@ page_container %}
         this.keys = JSON.parse(keysJson)
       }
 
-      this.buyOrders = JSON.parse(
-        localStorage.getItem('cashu.buyOrders') || '[]'
+      this.invoicesCashu = JSON.parse(
+        localStorage.getItem('cashu.invoicesCashu') || '[]'
       )
       this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
-      console.log('### buyOrders', this.buyOrders)
+      console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.tokens)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)

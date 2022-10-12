@@ -9,6 +9,21 @@ from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import get_cashu
 
+import sys
+
+sys.path.append("/Users/cc/git/cashu")
+# from cashu.mint import migrations
+# from cashu.core.migrations import migrate_databases
+from . import db, ledger
+
+
+async def startup_cashu_mint():
+    # await migrate_databases(db, migrations)
+    await ledger.load_used_proofs()
+    await ledger.init_keysets()
+    print(ledger.get_keyset())
+    pass
+
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
