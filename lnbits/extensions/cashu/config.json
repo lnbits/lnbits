@@ -3,7 +3,5 @@
   "short_description": "Ecash mint and wallet",
   "icon": "approval",
   "contributors": ["arcbtc", "calle", "vlad"],
-  "hidden": false,
-  "migration_module": "cashu.mint.migrations",
-  "db_name": "cashu"
+  "hidden": false
 }

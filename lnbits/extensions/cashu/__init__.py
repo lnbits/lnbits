@@ -13,7 +13,8 @@ import sys
 
 sys.path.append("/Users/cc/git/cashu")
 from cashu.mint.ledger import Ledger
-from .crud import LedgerCrud
+
+# from .crud import LedgerCrud
 
 # db = Database("ext_cashu", LNBITS_DATA_FOLDER)
 
@@ -22,7 +23,6 @@ ledger = Ledger(
     # seed=MINT_PRIVATE_KEY,
     seed="asd",
     derivation_path="0/0/0/1",
-    crud=LedgerCrud,
 )
 
 cashu_ext: APIRouter = APIRouter(prefix="/api/v1/cashu", tags=["cashu"])
