@@ -8,9 +8,7 @@
           <p>Funding Source Info</p>
           <ul>
             {%raw%}
-            <li>
-              Funding Source: {{settings.lnbits_backend_wallet_class}}
-            </li>
+            <li>Funding Source: {{settings.lnbits_backend_wallet_class}}</li>
             <li>Balance: {{balance / 1000}} sats</li>
             {%endraw%}
           </ul>
@@ -60,21 +58,30 @@
           <br />
         </div>
       </div>
-      <p>Funding Sources</p>
+      <p>Funding Sources<small> (Requires server restart)</small></p>
       <q-list
         v-for="(fund, idx) in settings.lnbits_allowed_funding_sources"
         :key="idx"
       >
-        <q-expansion-item expand-separator icon="payments" :label="fund">
+        <q-expansion-item
+          expand-separator
+          icon="payments"
+          :label="fund"
+          v-if="funding_sources.get(fund)"
+        >
           <q-card>
-            <q-card-section>
-              <!-- TODO A BUNCH OF V-IFS -->
+            <q-card-section
+              v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
+              :key="i"
+            >
               <q-input
+                dense
                 filled
                 type="text"
-                v-model="formData.lnbits_backend_wallet_class"
-                label="Wallet class"
+                v-model="formData[key]"
+                :label="prop.label"
                 class="q-pr-md"
+                :hint="prop.hint"
               ></q-input>
             </q-card-section>
           </q-card>
