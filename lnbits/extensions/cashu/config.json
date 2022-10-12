@@ -1,7 +1,9 @@
 {
   "name": "Cashu Ecash",
-  "short_description": "Ecash mints with LN peg in/out",
+  "short_description": "Ecash mint and wallet",
   "icon": "approval",
   "contributors": ["arcbtc", "calle", "vlad"],
-  "hidden": false
+  "hidden": false,
+  "migration_module": "cashu.mint.migrations",
+  "db_name": "cashu"
 }
