@@ -1,5 +1,5 @@
+import json
 from http import HTTPStatus
-from secp256k1 import PublicKey
 from typing import Union
 
 import httpx
@@ -7,34 +7,45 @@ from fastapi import Query
 from fastapi.params import Depends
 from lnurl import decode as decode_lnurl
 from loguru import logger
+from secp256k1 import PublicKey
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import create_invoice
+from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.wallets.base import PaymentStatus
 
 from . import cashu_ext
-from .ledger import get_pubkeys, request_mint, mint
-
+from .core.base import CashuError, PostSplitResponse, SplitRequest
 from .crud import (
-    create_cashu, 
-    delete_cashu, 
-    get_cashu, 
-    get_cashus, 
-    update_cashu_keys
+    create_cashu,
+    delete_cashu,
+    get_cashu,
+    get_cashus,
+    get_lightning_invoice,
+    store_lightning_invoice,
+    store_promise,
+    update_lightning_invoice,
 )
-
+from .ledger import mint, request_mint
+from .mint import generate_promises, get_pubkeys, melt, split
 from .models import (
-    Cashu, 
-    Pegs, 
-    CheckPayload, 
-    MeltPayload, 
-    MintPayloads, 
-    SplitPayload, 
-    PayLnurlWData
+    Cashu,
+    CheckPayload,
+    Invoice,
+    MeltPayload,
+    MintPayloads,
+    PayLnurlWData,
+    Pegs,
+    SplitPayload,
 )
 
+########################################
+#################MINT CRUD##############
+########################################
+
+# todo: use /mints
 @cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
 async def api_cashus(
     all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
@@ -47,12 +58,11 @@ async def api_cashus(
 
 
 @cashu_ext.post("/api/v1/cashus", status_code=HTTPStatus.CREATED)
-async def api_cashu_create(
-    data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)):
     cashu = await create_cashu(wallet_id=wallet.wallet.id, data=data)
     logger.debug(cashu)
     return cashu.dict()
+
 
 @cashu_ext.post("/api/v1/cashus/upodatekeys", status_code=HTTPStatus.CREATED)
 async def api_cashu_update_keys(
@@ -73,16 +83,19 @@ async def api_cashu_delete(
 
     if not cashu:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Cashu does not exist."
         )
 
     if cashu.wallet != wallet.wallet.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your TPoS.")
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your Cashu.")
 
     await delete_cashu(cashu_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
+########################################
+#################????###################
+########################################
 @cashu_ext.post("/api/v1/cashus/{cashu_id}/invoices", status_code=HTTPStatus.CREATED)
 async def api_cashu_create_invoice(
     amount: int = Query(..., ge=1), tipAmount: int = None, cashu_id: str = None
@@ -111,7 +124,8 @@ async def api_cashu_create_invoice(
 
 
 @cashu_ext.post(
-    "/api/v1/cashus/{cashu_id}/invoices/{payment_request}/pay", status_code=HTTPStatus.OK
+    "/api/v1/cashus/{cashu_id}/invoices/{payment_request}/pay",
+    status_code=HTTPStatus.OK,
 )
 async def api_cashu_pay_invoice(
     lnurl_data: PayLnurlWData, payment_request: str = None, cashu_id: str = None
@@ -192,63 +206,152 @@ async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 #################MINT###################
 ########################################
 
-@cashu_ext.get("/keys")
-def keys(cashu_id: str):
+
+@cashu_ext.get("/api/v1/cashu/{cashu_id}/keys", status_code=HTTPStatus.OK)
+async def keys(cashu_id: str = Query(False)):
     """Get the public keys of the mint"""
-    return get_pubkeys(cashu_id)
+    mint = await get_cashu(cashu_id)
+    if mint is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+    return get_pubkeys(mint.prvkey)
 
 
-@cashu_ext.get("/mint")
+@cashu_ext.get("/api/v1/cashu/{cashu_id}/mint")
 async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
     """Request minting of tokens. Server responds with a Lightning invoice."""
-    payment_request, payment_hash = await request_mint(amount, cashu_id)
-    print(f"Lightning invoice: {payment_request}")
+
+    cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=cashu.wallet,
+            amount=amount,
+            memo=f"{cashu.name}",
+            extra={"tag": "cashu"},
+        )
+        invoice = Invoice(
+            amount=amount, pr=payment_request, hash=payment_hash, issued=False
+        )
+        await store_lightning_invoice(cashu_id, invoice)
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
     return {"pr": payment_request, "hash": payment_hash}
 
 
-@cashu_ext.post("/mint")
-async def mint_coins(payloads: MintPayloads, payment_hash: Union[str, None] = None, cashu_id: str = Query(None)):
-    amounts = []
-    B_s = []
-    for payload in payloads.blinded_messages:
-        amounts.append(payload.amount)
-        B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
-    promises = await mint(B_s, amounts, payment_hash, cashu_id)
-    logger.debug(promises)
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/mint")
+async def mint_coins(
+    data: MintPayloads,
+    cashu_id: str = Query(None),
+    payment_hash: Union[str, None] = None,
+):
+    """
+    Requests the minting of tokens belonging to a paid payment request.
+    Call this endpoint after `GET /mint`.
+    """
+    cashu: Cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+    invoice: Invoice = (
+        None
+        if payment_hash == None
+        else await get_lightning_invoice(cashu_id, payment_hash)
+    )
+    if invoice is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not have this invoice."
+        )
+    if invoice.issued == True:
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED,
+            detail="Tokens already issued for this invoice.",
+        )
+
+    total_requested = sum([bm.amount for bm in data.blinded_messages])
+    if total_requested > invoice.amount:
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED,
+            detail=f"Requested amount too high: {total_requested}. Invoice amount: {invoice.amount}",
+        )
+
+    status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
+    # todo: revert to: status.paid != True:
+    if status.paid != True:
+        raise HTTPException(
+            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
+        )
     try:
-        promises = await mint(B_s, amounts, payment_hash, cashu_id)
+        await update_lightning_invoice(cashu_id, payment_hash, True)
+
+        amounts = []
+        B_s = []
+        for payload in data.blinded_messages:
+            amounts.append(payload.amount)
+            B_s.append(PublicKey(bytes.fromhex(payload.B_), raw=True))
+
+        promises = await generate_promises(cashu.prvkey, amounts, B_s)
+        for amount, B_, p in zip(amounts, B_s, promises):
+            await store_promise(amount, B_.serialize().hex(), p.C_, cashu_id)
+
         return promises
-    except Exception as exc:
-        return {"error": str(exc)}
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@cashu_ext.post("/melt")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/melt")
 async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
+    """Invalidates proofs and pays a Lightning invoice."""
+    cashu: Cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+    try:
+        ok, preimage = await melt(cashu, payload.proofs, payload.invoice)
+        return {"paid": ok, "preimage": preimage}
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    ok, preimage = await melt(payload.proofs, payload.amount, payload.invoice, cashu_id)
-    return {"paid": ok, "preimage": preimage}
 
-
-@cashu_ext.post("/check")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/check")
 async def check_spendable_coins(payload: CheckPayload, cashu_id: str = Query(None)):
     return await check_spendable(payload.proofs, cashu_id)
 
 
-@cashu_ext.post("/split")
-async def spli_coinst(payload: SplitPayload, cashu_id: str = Query(None)):
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/split")
+async def split_proofs(payload: SplitRequest, cashu_id: str = Query(None)):
     """
     Requetst a set of tokens with amount "total" to be split into two
     newly minted sets with amount "split" and "total-split".
     """
+    print("### RECEIVE")
+    print("payload", json.dumps(payload, default=vars))
+    cashu: Cashu = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     proofs = payload.proofs
     amount = payload.amount
-    output_data = payload.output_data.blinded_messages
+    outputs = payload.outputs.blinded_messages if payload.outputs else None
     try:
-        split_return = await split(proofs, amount, output_data)
+        split_return = await split(cashu, proofs, amount, outputs)
     except Exception as exc:
-        return {"error": str(exc)}
+        raise CashuError(error=str(exc))
     if not split_return:
-        """There was a problem with the split"""
-        raise Exception("could not split tokens.")
-    fst_promises, snd_promises = split_return
-    return {"fst": fst_promises, "snd": snd_promises}
+        return {"error": "there was a problem with the split."}
+    frst_promises, scnd_promises = split_return
+    resp = PostSplitResponse(fst=frst_promises, snd=scnd_promises)
+    print("### resp", json.dumps(resp, default=vars))
+    return resp

@@ -1,53 +1,34 @@
 from sqlite3 import Row
 from typing import List, Union
 
-from fastapi import Query
 from pydantic import BaseModel
 
 
-class Cashu(BaseModel):
-    id: str = Query(None)
-    name: str = Query(None)
-    wallet: str = Query(None)
-    tickershort: str = Query(None)
-    fraction: bool = Query(None)
-    maxsats: int = Query(0)
-    coins: int = Query(0)
-    prvkey: str = Query(None)
-    pubkey: str = Query(None)
+class CashuError(BaseException):
+    code = "000"
+    error = "CashuError"
+
+
+class P2SHScript(BaseModel):
+    script: str
+    signature: str
+    address: Union[str, None] = None
 
     @classmethod
-    def from_row(cls, row: Row) -> "TPoS":
-        return cls(**dict(row))
-
-
-class Pegs(BaseModel):
-    id: str
-    wallet: str
-    inout: str
-    amount: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "TPoS":
-        return cls(**dict(row))
-
-
-class PayLnurlWData(BaseModel):
-    lnurl: str
-
-
-class Promises(BaseModel):
-    id: str
-    amount: int
-    B_b: str
-    C_b: str
-    cashu_id: str
+    def from_row(cls, row: Row):
+        return cls(
+            address=row[0],
+            script=row[1],
+            signature=row[2],
+            used=row[3],
+        )
 
 
 class Proof(BaseModel):
     amount: int
-    secret: str
+    secret: str = ""
     C: str
+    script: Union[P2SHScript, None] = None
     reserved: bool = False  # whether this proof is reserved for sending
     send_id: str = ""  # unique ID of send attempt
     time_created: str = ""
@@ -67,12 +48,11 @@ class Proof(BaseModel):
 
     @classmethod
     def from_dict(cls, d: dict):
-        assert "secret" in d, "no secret in proof"
         assert "amount" in d, "no amount in proof"
         return cls(
             amount=d.get("amount"),
             C=d.get("C"),
-            secret=d.get("secret"),
+            secret=d.get("secret") or "",
             reserved=d.get("reserved") or False,
             send_id=d.get("send_id") or "",
             time_created=d.get("time_created") or "",
@@ -81,6 +61,9 @@ class Proof(BaseModel):
 
     def to_dict(self):
         return dict(amount=self.amount, secret=self.secret, C=self.C)
+
+    def to_dict_no_secret(self):
+        return dict(amount=self.amount, C=self.C)
 
     def __getitem__(self, key):
         return self.__getattribute__(key)
@@ -104,10 +87,11 @@ class Invoice(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(
-            amount=int(row[0]),
-            pr=str(row[1]),
-            hash=str(row[2]),
-            issued=bool(row[3]),
+            cashu_id=str(row[0]),
+            amount=int(row[1]),
+            pr=str(row[2]),
+            hash=str(row[3]),
+            issued=bool(row[4]),
         )
 
 
@@ -128,21 +112,57 @@ class BlindedSignature(BaseModel):
         )
 
 
-class MintPayloads(BaseModel):
+class MintRequest(BaseModel):
     blinded_messages: List[BlindedMessage] = []
 
 
-class SplitPayload(BaseModel):
+class GetMintResponse(BaseModel):
+    pr: str
+    hash: str
+
+
+class GetMeltResponse(BaseModel):
+    paid: Union[bool, None]
+    preimage: Union[str, None]
+
+
+class SplitRequest(BaseModel):
     proofs: List[Proof]
     amount: int
-    output_data: MintPayloads
+    output_data: Union[
+        MintRequest, None
+    ] = None  # backwards compatibility with clients < v0.2.2
+    outputs: Union[MintRequest, None] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.backwards_compatibility_v021()
+
+    def backwards_compatibility_v021(self):
+        # before v0.2.2: output_data, after: outputs
+        if self.output_data:
+            self.outputs = self.output_data
+            self.output_data = None
 
 
-class CheckPayload(BaseModel):
+class PostSplitResponse(BaseModel):
+    fst: List[BlindedSignature]
+    snd: List[BlindedSignature]
+
+
+class CheckRequest(BaseModel):
     proofs: List[Proof]
 
 
-class MeltPayload(BaseModel):
+class CheckFeesRequest(BaseModel):
+    pr: str
+
+
+class CheckFeesResponse(BaseModel):
+    fee: Union[int, None]
+
+
+class MeltRequest(BaseModel):
     proofs: List[Proof]
-    amount: int
+    amount: int = None  # deprecated
     invoice: str

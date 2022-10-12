@@ -1,309 +1,202 @@
-{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Wallet {% endraw %}
-
-{% endblock %} {% block footer %}{% endblock %} {% block page_container %}
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Wallet
+{% endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
+page_container %}
 <q-page-container>
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
-
-
-      <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md ">
+      <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
         <q-card>
           <q-card-section>
-            <h3 class="q-my-none">
-              <center><strong>{% raw %} {{balanceAmount}}
-              </strong> {{tickershort}}{% endraw %}</center>
-            </h3>
+            <div class="row">
+              <div class="col-3">
+                <q-btn
+                  size="18px"
+                  rounded
+                  color="secondary"
+                  class="full-width"
+                  @click="showBuyTokensDialog"
+                  >Buy tokens
+                  <h5 class="text-caption q-ml-sm q-mb-none">(with sats)</h5>
+                </q-btn>
+              </div>
+              <div class="col-6">
+                <h3 class="q-my-none">
+                  <center>
+                    <strong>{% raw %} {{balance}} </strong>
+                    {{tickershort}}{% endraw %}
+                  </center>
+                </h3>
+              </div>
+              <div class="col-3">
+                <q-btn
+                  @click="showPayInvoiceDialog"
+                  size="18px"
+                  rounded
+                  color="secondary"
+                  class="full-width"
+                  >Sell tokens
+                  <h5 class="text-caption q-ml-sm q-mb-none">(for sats)</h5>
+                </q-btn>
+              </div>
+            </div>
           </q-card-section>
-          
         </q-card>
-
-
-        <div class="row q-pb-md q-px-md justify-center q-col-gutter-sm gt-sm q-pt-lg">
-          <div class="col">
-            <q-btn size="18px" icon="arrow_downward" rounded color="primary" class="full-width" @click="showParseDialog">Receive</q-btn>
-          </div>
-          <div class="col">
-            <q-btn size="18px"  icon="arrow_upward" rounded color="primary" class="full-width" @click="showSendDialog">Send</q-btn>
-          </div>
-          <div class="col">
-            <q-btn  size="18px" rounded color="secondary" icon="sync_alt" class="full-width" @click="showCamera">Peg in/out
-            </q-btn>
-          </div>
-          <div class="col">
-            <q-btn  size="18px" rounded color="secondary" icon="photo_camera" class="full-width" @click="showCamera">scan
-            </q-btn>
-          </div>
-          
-        </div> 
-
 
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
-              <div class="col">
-                <h5 class="text-subtitle1 q-my-none">Transactions</h5>
+              <div class="col-sm-5 col-md-2">
+                <q-btn
+                  size="18px"
+                  icon="arrow_downward"
+                  rounded
+                  color="primary"
+                  class="full-width"
+                  @click="showReceiveTokensDialog"
+                  >Receive</q-btn
+                >
               </div>
-              <div class="col-auto">{% raw %}
-                <q-btn dense flat round icon="approval" color="grey" type="a" :href="mint" target="_blank">{% endraw %}
-                  <q-tooltip>Mint details</q-tooltip>
-                </q-btn>
-                <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
-
-                <q-btn dense flat round icon="show_chart" color="grey" @click="showChart">
-                  <q-tooltip>Show chart</q-tooltip>
-                </q-btn>
+              <div class="col-sm-2 col-md-8"></div>
+              <div class="col-sm-5 col-md-2">
+                <q-btn
+                  size="18px"
+                  icon="arrow_upward"
+                  rounded
+                  color="primary"
+                  class="full-width"
+                  @click="showSendTokensDialog"
+                >
+                  Send</q-btn
+                >
               </div>
             </div>
-            <q-input v-if="payments.length > 10" filled dense clearable v-model="paymentsTable.filter" debounce="300"
-              placeholder="Search by tag, memo, amount" class="q-mb-md">
-            </q-input>
-            <q-table dense flat :data="filteredPayments" :row-key="paymentTableRowKey" :columns="paymentsTable.columns"
-              :pagination.sync="paymentsTable.pagination" no-data-label="No transactions made yet"
-              :filter="paymentsTable.filter">
-              {% raw %}
-              <template v-slot:header="props">
-                <q-tr :props="props">
-                  <q-th auto-width></q-th>
-                  <q-th v-for="col in props.cols" :key="col.name" :props="props">{{ col.label }}</q-th>
-                </q-tr>
-              </template>
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td auto-width class="text-center">
-                    <q-icon v-if="props.row.isPaid" size="14px" :name="props.row.isOut ? 'call_made' : 'call_received'"
-                      :color="props.row.isOut ? 'pink' : 'green'" @click="props.expand = !props.expand"></q-icon>
-                    <q-icon v-else name="settings_ethernet" color="grey" @click="props.expand = !props.expand">
-                      <q-tooltip>Pending</q-tooltip>
-                    </q-icon>
-                  </q-td>
-                  <q-td key="memo" :props="props" style="white-space: normal; word-break: break-all">
-                    <q-badge v-if="props.row.tag" color="yellow" text-color="black">
-                      <a class="inherit" :href="['/', props.row.tag, '/?usr=', user.id].join('')">
-                        #{{ props.row.tag }}
-                      </a>
-                    </q-badge>
-                    {{ props.row.memo }}
-                  </q-td>
-                  <q-td auto-width key="date" :props="props">
-                    <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
-                  </q-td>
+
+            <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
+              <q-tab name="tokens" label="Tokens"></q-tab>
+              <q-tab name="orders" label="Orders"></q-tab>
+              <q-tab name="history" label="History"></q-tab>
+            </q-tabs>
+            <q-tab-panels v-model="tab">
+              <q-tab-panel name="tokens">
+                <q-table
+                  dense
+                  flat
+                  :data="tokenList"
+                  :columns="tokensTable.columns"
+                  :pagination.sync="tokensTable.pagination"
+                  no-data-label="No tokens made yet"
+                  :filter="tokensTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td
+                        key="denomination"
+                        :props="props"
+                        :class="props.row.denomination > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.denomination}}</div>
+                      </q-td>
+                      <q-td key="count" :props="props">
+                        <div>{{props.row.count}}</div>
+                      </q-td>
+                      <q-td key="value" :props="props">
+                        <div>{{props.row.value}}</div>
+                      </q-td>
+                      <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
                   {% endraw %}
-                  <q-td auto-width key="sat" v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" :props="props">{% raw %} {{
-                    parseFloat(String(props.row.fsat).replaceAll(",", "")) / 100
-                    }}
-                  </q-td>
-
-                  <q-td auto-width key="sat" v-else :props="props">
-                    {{ props.row.fsat }}
-                  </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
-                  </q-td>
-                </q-tr>
-
-                <q-dialog v-model="props.expand" :props="props">
-                  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                    <div class="text-center q-mb-lg">
-                      <div v-if="props.row.isIn && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Invoice waiting to be paid
-                        <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
-                        <div v-if="props.row.bolt11" class="text-center q-mb-lg">
-                          <a :href="'lightning:' + props.row.bolt11">
-                            <q-responsive :ratio="1" class="q-mx-xl">
-                              <qrcode :value="props.row.bolt11" :options="{width: 340}" class="rounded-borders">
-                              </qrcode>
-                            </q-responsive>
-                          </a>
+                </q-table>
+              </q-tab-panel>
+              <q-tab-panel name="orders">
+                <q-table
+                  dense
+                  flat
+                  :data="buyOrders"
+                  :columns="buysTable.columns"
+                  :pagination.sync="buysTable.pagination"
+                  no-data-label="No buys made yet"
+                  :filter="buysTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showInvoiceDialog(props.row)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="recheckBuyOrder(props.row.hash)"
+                          >
+                            Recheck
+                          </q-badge>
                         </div>
-                        <div class="row q-mt-lg">
-                          <q-btn outline color="grey" @click="copyText(props.row.bolt11)">Copy invoice</q-btn>
-                          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon name="call_received" color="green"></q-icon>
                         </div>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isIn">
-                        <q-icon size="18px" :name="'call_received'" :color="'green'"></q-icon>
-                        Payment Received
-                        <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isOut">
-                        <q-icon size="18px" :name="'call_made'" :color="'pink'"></q-icon>
-                        Payment Sent
-                        <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isOut && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Outgoing payment pending
-                        <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
-                      </div>
-                    </div>
-                  </q-card>
-                </q-dialog>
-              </template>
-              {% endraw %}
-            </q-table>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
+
+                      <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td>
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <q-td key="hash" :props="props">
+                        <div>{{props.row.hash}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+
+              <q-tab-panel name="history">
+                <span>History</span>
+              </q-tab-panel>
+            </q-tab-panels>
           </q-card-section>
         </q-card>
       </div>
 
-      <q-dialog v-model="receive.show" @hide="closeReceiveDialog">
-        {% raw %}
-        <q-card v-if="!receive.paymentReq" class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <q-form @submit="createInvoice" class="q-gutter-md">
-            <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
-              <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
-            </p>
-            {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
-            <q-input filled dense v-model.number="receive.data.amount" label="Amount ({{LNBITS_DENOMINATION}}) *"
-              mask="#.##" fill-mask="0" reverse-fill-mask :min="receive.minMax[0]" :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"></q-input>
-            {% else %}
-            <q-select filled dense v-model="receive.unit" type="text" label="Unit" :options="receive.units"></q-select>
-            <q-input ref="setAmount" filled dense v-model.number="receive.data.amount"
-              :label="'Amount (' + receive.unit + ') *'" :mask="receive.unit != 'sat' ? '#.##' : '#'" fill-mask="0"
-              reverse-fill-mask :step="receive.unit != 'sat' ? '0.01' : '1'" :min="receive.minMax[0]"
-              :max="receive.minMax[1]" :readonly="receive.lnurl && receive.lnurl.fixed"></q-input>
-            {% endif %}
-
-            <q-input filled dense v-model.trim="receive.data.memo" label="Memo"></q-input>
-            {% raw %}
-            <div v-if="receive.status == 'pending'" class="row q-mt-lg">
-              <q-btn unelevated color="primary" :disable="receive.data.amount == null || receive.data.amount <= 0"
-                type="submit">
-                <span v-if="receive.lnurl">
-                  Withdraw from {{receive.lnurl.domain}}
-                </span>
-                <span v-else> Create invoice </span>
-              </q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-            </div>
-            <q-spinner v-if="receive.status == 'loading'" color="primary" size="2.55em"></q-spinner>
-          </q-form>
-        </q-card>
-        <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div class="text-center q-mb-lg">
-            <a :href="'lightning:' + receive.paymentReq">
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <qrcode :value="receive.paymentReq" :options="{width: 340}" class="rounded-borders"></qrcode>
-              </q-responsive>
-            </a>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-          </div>
-        </q-card>
-        {% endraw %}
-      </q-dialog>
-
-      <q-dialog v-model="parse.show" @hide="closeParseDialog">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="parse.invoice">
-            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
-              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-            </h6>
-            <h6 v-else class="q-my-none">
-              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
-              raw %}
-            </h6>
-            <q-separator class="q-my-sm"></q-separator>
-            <p class="text-wrap">
-              <strong>Description:</strong> {{ parse.invoice.description }}<br />
-              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-              <strong>Hash:</strong> {{ parse.invoice.hash }}
-            </p>
-            {% endraw %}
-            <div v-if="canPay" class="row q-mt-lg">
-              <q-btn unelevated color="primary" @click="payInvoice">Pay</q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-            </div>
-            <div v-else class="row q-mt-lg">
-              <q-btn unelevated disabled color="yellow" text-color="black">Not enough funds!</q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-            </div>
-          </div>
-          <div v-else-if="parse.lnurlauth">
-            {% raw %}
-            <q-form @submit="authLnurl" class="q-gutter-md">
-              <p class="q-my-none text-h6">
-                Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
-              </p>
-              <q-separator class="q-my-sm"></q-separator>
-              <p>
-                For every website and for every LNbits wallet, a new keypair
-                will be deterministically generated so your identity can't be
-                tied to your LNbits wallet or linked across websites. No other
-                data will be shared with {{ parse.lnurlauth.domain }}.
-              </p>
-              <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
-              <p class="q-mx-xl">
-                <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
-              </p>
-              <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit">Login</q-btn>
-                <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-              </div>
-            </q-form>
-            {% endraw %}
-          </div>
-          <div v-else>
-            <q-form v-if="!parse.camera.show" @submit="decodeRequest" class="q-gutter-md">
-              <q-input filled dense v-model.trim="parse.data.request" type="textarea" label="Paste coins">
-              </q-input>
-              <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" :disable="parse.data.request == ''" type="submit">Read</q-btn>
-                <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-              </div>
-            </q-form>
-            <div v-else>
-              <q-responsive :ratio="1">
-                <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
-              </q-responsive>
-              <div class="row q-mt-lg">
-                <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
-                  Cancel
-                </q-btn>
-              </div>
-            </div>
-          </div>
-        </q-card>
-      </q-dialog>
-
-      <q-dialog v-model="parse.camera.show">
-        <q-card class="q-pa-lg q-pt-xl">
-          <div class="text-center q-mb-lg">
-            <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>
-          </div>
-        </q-card>
-      </q-dialog>
-
-      <q-dialog v-model="paymentsChart.show">
-        <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-          <q-card-section>
-            <canvas ref="canvas" width="600" height="400"></canvas>
-          </q-card-section>
-        </q-card>
-      </q-dialog>
-      <q-tabs class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top" active-class="px-0"
-        indicator-color="transparent">
-        <q-tab icon="arrow_downward" label="receive" @click="showParseDialog">
+      <q-tabs
+        class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
+        active-class="px-0"
+        indicator-color="transparent"
+      >
+        <q-tab icon="arrow_right" label="Buy" @click="showBuyTokensDialog">
         </q-tab>
-        <q-tab icon="arrow_upward" label="Send" @click="showSendDialog"></q-tab>
-        <q-tab icon="sync_alt" label="Peg in/out" @click="showSendDialog"></q-tab>
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <q-tab icon="arrow_downward" label="Receive"></q-tab>
+        <q-tab icon="arrow_upward" label="Send"></q-tab>
+        <q-tab icon="arrow_right" label="Sell"> </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
           <p>
-            <strong>BOOKMARK THIS PAGE! If only mobile you can also click the 3 dots
-              and "Save to homescreen"/"Install app"</strong>!
+            <strong
+              >BOOKMARK THIS PAGE! If only mobile you can also click the 3 dots
+              and "Save to homescreen"/"Install app"</strong
+            >!
           </p>
           <p>
             Ecash is a bearer asset, meaning you have the funds saved on this
@@ -311,8 +204,196 @@
             lose the funds.
           </p>
           <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText(disclaimerDialog.location.href)">Copy wallet URL</q-btn>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto">I understand</q-btn>
+            <q-btn outline color="grey">Copy wallet URL</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >I understand</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showInvoiceDetails" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!buyData.bolt11">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >How much would you like to buy?</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model.number="buyData.amount"
+              label="Amount (sats) *"
+              type="number"
+              class="q-mb-lg"
+            ></q-input>
+
+            <q-input
+              filled
+              dense
+              v-model.trim="buyData.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <a :href="'lightning:' + buyData.bolt11">
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="buyData.bolt11"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                >
+                </qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="buyData.bolt11"
+              @click="copyText(buyData.bolt11)"
+              outline
+              color="grey"
+              >Copy invoice</q-btn
+            >
+            <q-btn v-else outline color="grey" @click="requestInvoice"
+              >Request Invoice</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showSendTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!sendData.tokens">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >How much would you like to send?</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model.number="sendData.amount"
+              label="Amount (tokens) *"
+              type="number"
+              class="q-mb-lg"
+            ></q-input>
+
+            <q-input
+              filled
+              dense
+              v-model.trim="sendData.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <q-input
+              filled
+              dense
+              v-model="sendData.tokensBase64"
+              label="tokens"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="!sendData.tokens"
+              @click="buildAndShowTokens"
+              outline
+              color="grey"
+              >Show Tokens</q-btn
+            >
+            <q-btn v-else @click="burnTokens" outline color="grey"
+              >Burn Tokens</q-btn
+            >
+
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showReceiveTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div>
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1">Paste tokens please</span>
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model="receiveData.tokensBase64"
+              label="tokens"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+
+          <div class="row q-mt-lg">
+            <q-btn @click="acceptTokens" outline color="grey"
+              >Accept Tokens</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showPayInvoice" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!sellData.invoice">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >Please paste a Lightning invoice</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model="sellData.bolt11"
+              label="Paste invoice"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+          <div v-else class="q-mb-lg">
+            {% raw %}
+            <strong>Amount:</strong> {{ sellData.invoice.sat }}
+            <strong>sats</strong><br />
+            <strong>Description:</strong> {{ sellData.invoice.description }}<br />
+            <strong>Expire date:</strong> {{ sellData.invoice.expireDate }}<br />
+            <strong>Expired:</strong> {{ sellData.invoice.expired }}<br />
+            <strong>Hash:</strong> {{ sellData.invoice.hash }} {% endraw %}
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="!sellData.invoice"
+              @click="checkInvoice"
+              outline
+              color="grey"
+              >Check Invoice</q-btn
+            >
+            <q-btn v-else outline color="grey" @click="sellTokens"
+              >Sell Token</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
           </div>
         </q-card>
       </q-dialog>
@@ -342,6 +423,9 @@
 </style>
 {% endblock %} {% block scripts %}
 <script>
+  var currentDateStr = function () {
+    return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+  }
   var mapMint = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -352,402 +436,907 @@
     return obj
   }
 
+  Vue.component(VueQrcode.name, VueQrcode)
+
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
       return {
-      balanceAmount:"",
-      tickershort:"",
-      name:"",
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        paymentHash: null,
-        minMax: [0, 2100000000000000],
-        lnurl: null,
-        units: ['sat'],
-        unit: 'sat',
-        data: {
-          amount: null,
-          memo: ''
-        }
-      },
-      parse: {
-        show: false,
-        invoice: null,
-        lnurlpay: null,
-        lnurlauth: null,
-        data: {
-          request: '',
+        tickershort: '',
+        name: '',
+
+        mintId: '',
+        mintName: '',
+        keys: '',
+        buyOrders: [],
+        buyData: {
           amount: 0,
-          comment: ''
+          memo: '',
+          bolt11: '',
+          hash: ''
         },
-        paymentChecker: null,
-        camera: {
+        sellData: {
+          invoice: '',
+          bolt11: ''
+        },
+        sendData: {
+          amount: 0,
+          memo: '',
+          tokens: '',
+          tokensBase64: ''
+        },
+        receiveData: {
+          tokensBase64: ''
+        },
+        showInvoiceDetails: false,
+        showPayInvoice: false,
+        showSendTokens: false,
+        showReceiveTokens: false,
+        tokens: [],
+        tab: 'tokens',
+
+        receive: {
           show: false,
-          camera: 'auto'
-        }
-      },
-      payments: [],
-      paymentsTable: {
-        columns: [
-          {
-            name: 'note',
-            align: 'left',
-            label: 'Note',
-            field: 'note'
-          },
-          {
-            name: 'date',
-            align: 'left',
-            label: 'Date',
-            field: 'date',
-            sortable: true
-          },
-          {
-            name: 'amount',
-            align: 'right',
-            label: 'Amount',
-            field: 'amount',
-            sortable: true
+          status: 'pending',
+          paymentReq: null,
+          paymentHash: null,
+          minMax: [0, 2100000000000000],
+          lnurl: null,
+          units: ['sat'],
+          unit: 'sat',
+          data: {
+            amount: null,
+            memo: ''
           }
-        ],
-        pagination: {
-          rowsPerPage: 10
         },
-        filter: null
-      },
-      paymentsChart: {
-        show: false
-      },
-      disclaimerDialog: {
-        show: false,
-        location: window.location
-      },
-      balance: 0,
-      credit: 0,
-      newName: ''
-    }
+        parse: {
+          show: false,
+          invoice: null,
+          lnurlpay: null,
+          lnurlauth: null,
+          data: {
+            request: '',
+            amount: 0,
+            comment: ''
+          },
+          paymentChecker: null,
+          camera: {
+            show: false,
+            camera: 'auto'
+          }
+        },
+        payments: [],
+        buysTable: {
+          columns: [
+            {
+              name: 'status',
+              align: 'left',
+              label: '',
+              field: 'status'
+            },
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount'
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: 'Memo',
+              field: 'memo',
+              sortable: true
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
+            },
+            {
+              name: 'hash',
+              align: 'right',
+              label: 'Hash',
+              field: 'hash',
+              sortable: true
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+          filter: null
+        },
+
+        tokensTable: {
+          columns: [
+            {
+              name: 'denomination',
+              align: 'left',
+              label: 'Denomination',
+              field: 'denomination',
+              sortable: true
+            },
+            {
+              name: 'count',
+              align: 'left',
+              label: 'Count',
+              field: 'count',
+              sortable: true
+            },
+            {
+              name: 'value',
+              align: 'left',
+              label: 'Value',
+              field: 'value',
+              sortable: true
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: 'Memo',
+              field: 'memo',
+              sortable: true
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+          filter: null
+        },
+
+        paymentsChart: {
+          show: false
+        },
+        disclaimerDialog: {
+          show: false,
+          location: window.location
+        },
+
+        credit: 0,
+        newName: ''
+      }
     },
     computed: {
-    formattedBalance: function () {
-      return this.balance / 100
-    },
-    filteredPayments: function () {
-      var q = this.paymentsTable.filter
-      if (!q || q === '') return this.payments
+      formattedBalance: function () {
+        return this.balance / 100
+      },
 
-      return LNbits.utils.search(this.payments, q)
-    },
-    canPay: function () {
-      if (!this.parse.invoice) return false
-      return this.parse.invoice.sat <= this.balance
-    },
-    pendingPaymentsExist: function () {
-      return this.payments.findIndex(payment => payment.pending) !== -1
-    }
-  },
-  filters: {
-    msatoshiFormat: function (value) {
-      return LNbits.utils.formatSat(value / 1000)
-    }
-  },
-  methods: {
-    paymentTableRowKey: function (row) {
-      return row.payment_hash + row.amount
-    },
-    closeCamera: function () {
-      this.parse.camera.show = false
-    },
-    showCamera: function () {
-      this.parse.camera.show = true
-    },
-    showChart: function () {
-      this.paymentsChart.show = true
-      this.$nextTick(() => {
-        generateChart(this.$refs.canvas, this.payments)
-      })
-    },
-    focusInput(el) {
-      this.$nextTick(() => this.$refs[el].focus())
-    },
-    showReceiveDialog: function () {
-      this.receive.show = true
-      this.receive.status = 'pending'
-      this.receive.paymentReq = null
-      this.receive.paymentHash = null
-      this.receive.data.amount = null
-      this.receive.data.memo = null
-      this.receive.unit = 'sat'
-      this.receive.paymentChecker = null
-      this.receive.minMax = [0, 2100000000000000]
-      this.receive.lnurl = null
-      this.focusInput('setAmount')
-    },
-    showParseDialog: function () {
-      this.parse.show = true
-      this.parse.invoice = null
-      this.parse.lnurlpay = null
-      this.parse.lnurlauth = null
-      this.parse.data.request = ''
-      this.parse.data.comment = ''
-      this.parse.data.paymentChecker = null
-      this.parse.camera.show = false
-    },
-    updateBalance: function (credit) {
-      this.balance = this.balance // update balance
-    },
-    closeReceiveDialog: function () {
-      setTimeout(() => {
-        clearInterval(this.receive.paymentChecker)
-      }, 10000)
-    },
-    closeParseDialog: function () {
-      setTimeout(() => {
-        clearInterval(this.parse.paymentChecker)
-      }, 10000)
-    },
-    onPaymentReceived: function (paymentHash) {
-      this.fetchPayments()
-      this.fetchBalance()
+      canPay: function () {
+        if (!this.parse.invoice) return false
+        return this.parse.invoice.sat <= this.balance
+      },
+      pendingPaymentsExist: function () {
+        return this.payments.findIndex(payment => payment.pending) !== -1
+      },
 
-      if (this.receive.paymentHash === paymentHash) {
-        this.receive.show = false
+      tokenList: function () {
+        const x = this.tokens
+          .filter(t => t.promises?.length)
+          .map(t => t.blindedMessages)
+          .flat()
+          .map(t => ({
+            blindingFactor: t.B_,
+            denomination: t.amount
+          }))
+          .reduce((y, t) => {
+            y[`_${t.denomination}`] = y[`_${t.denomination}`] || []
+            y[`_${t.denomination}`].push(t)
+            return y
+          }, {})
+
+        return Object.keys(x).map(k => ({
+          denomination: x[k][0].denomination,
+          count: x[k].length,
+          value: x[k][0].denomination * x[k].length
+        }))
+      },
+
+      balance: function () {
+        return this.tokens
+          .filter(t => t.promises?.length)
+          .map(t => t.blindedMessages)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
+      }
+    },
+    filters: {
+      msatoshiFormat: function (value) {
+        return LNbits.utils.formatSat(value / 1000)
+      }
+    },
+    methods: {
+      paymentTableRowKey: function (row) {
+        return row.payment_hash + row.amount
+      },
+      closeCamera: function () {
+        this.parse.camera.show = false
+      },
+      showCamera: function () {
+        this.parse.camera.show = true
+      },
+      showChart: function () {
+        this.paymentsChart.show = true
+        this.$nextTick(() => {
+          generateChart(this.$refs.canvas, this.payments)
+        })
+      },
+      focusInput(el) {
+        this.$nextTick(() => this.$refs[el].focus())
+      },
+      showReceiveDialog: function () {
+        this.receive.show = true
+        this.receive.status = 'pending'
+        this.receive.paymentReq = null
         this.receive.paymentHash = null
-        clearInterval(this.receive.paymentChecker)
-      }
-    },
-    createInvoice: function () {
-      this.receive.status = 'loading'
-      if (LNBITS_DENOMINATION != 'sats') {
-        this.receive.data.amount = this.receive.data.amount * 100
-      }
-      LNbits.api
-        .createInvoice(
-          this.receive.data.amount,
-          this.receive.data.memo,
-          this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback
-        )
-        .then(response => {
-          this.receive.status = 'success'
-          this.receive.paymentReq = response.data.payment_request
-          this.receive.paymentHash = response.data.payment_hash
+        this.receive.data.amount = null
+        this.receive.data.memo = null
+        this.receive.unit = 'sat'
+        this.receive.paymentChecker = null
+        this.receive.minMax = [0, 2100000000000000]
+        this.receive.lnurl = null
+        this.focusInput('setAmount')
+      },
+      showParseDialog: function () {
+        this.parse.show = true
+        this.parse.invoice = null
+        this.parse.lnurlpay = null
+        this.parse.lnurlauth = null
+        this.parse.data.request = ''
+        this.parse.data.comment = ''
+        this.parse.data.paymentChecker = null
+        this.parse.camera.show = false
+      },
 
-          if (response.data.lnurl_response !== null) {
-            if (response.data.lnurl_response === false) {
-              response.data.lnurl_response = `Unable to connect`
+      closeReceiveDialog: function () {
+        setTimeout(() => {
+          clearInterval(this.receive.paymentChecker)
+        }, 10000)
+      },
+      closeParseDialog: function () {
+        setTimeout(() => {
+          clearInterval(this.parse.paymentChecker)
+        }, 10000)
+      },
+      onPaymentReceived: function (paymentHash) {
+        this.fetchPayments()
+        this.fetchBalance()
+
+        if (this.receive.paymentHash === paymentHash) {
+          this.receive.show = false
+          this.receive.paymentHash = null
+          clearInterval(this.receive.paymentChecker)
+        }
+      },
+      createInvoice: function () {
+        this.receive.status = 'loading'
+        if (LNBITS_DENOMINATION != 'sats') {
+          this.receive.data.amount = this.receive.data.amount * 100
+        }
+        LNbits.api
+          .createInvoice(
+            this.receive.data.amount,
+            this.receive.data.memo,
+            this.receive.unit,
+            this.receive.lnurl && this.receive.lnurl.callback
+          )
+          .then(response => {
+            this.receive.status = 'success'
+            this.receive.paymentReq = response.data.payment_request
+            this.receive.paymentHash = response.data.payment_hash
+
+            if (response.data.lnurl_response !== null) {
+              if (response.data.lnurl_response === false) {
+                response.data.lnurl_response = `Unable to connect`
+              }
+
+              if (typeof response.data.lnurl_response === 'string') {
+                // failure
+                this.$q.notify({
+                  timeout: 5000,
+                  type: 'warning',
+                  message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
+                  caption: response.data.lnurl_response
+                })
+                return
+              } else if (response.data.lnurl_response === true) {
+                // success
+                this.$q.notify({
+                  timeout: 5000,
+                  message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+                  spinner: true
+                })
+              }
             }
 
-            if (typeof response.data.lnurl_response === 'string') {
-              // failure
-              this.$q.notify({
-                timeout: 5000,
-                type: 'warning',
-                message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                caption: response.data.lnurl_response
-              })
-              return
-            } else if (response.data.lnurl_response === true) {
-              // success
-              this.$q.notify({
-                timeout: 5000,
-                message: `Invoice sent to ${this.receive.lnurl.domain}!`,
-                spinner: true
-              })
+            clearInterval(this.receive.paymentChecker)
+            setTimeout(() => {
+              clearInterval(this.receive.paymentChecker)
+            }, 40000)
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            this.receive.status = 'pending'
+          })
+      },
+      decodeQR: function (res) {
+        this.parse.data.request = res
+        this.decodeRequest()
+        this.parse.camera.show = false
+      },
+      decodeRequest: function () {
+        this.parse.show = true
+        let req = this.parse.data.request.toLowerCase()
+        if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
+          this.parse.data.request = this.parse.data.request.slice(10)
+        } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
+          this.parse.data.request = this.parse.data.request.slice(6)
+        } else if (req.indexOf('lightning=lnurl1') !== -1) {
+          this.parse.data.request = this.parse.data.request
+            .split('lightning=')[1]
+            .split('&')[0]
+        }
+
+        if (
+          this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
+          this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
+        ) {
+          return
+        }
+
+        let invoice
+        try {
+          invoice = decode(this.parse.data.request)
+        } catch (error) {
+          this.$q.notify({
+            timeout: 3000,
+            type: 'warning',
+            message: error + '.',
+            caption: '400 BAD REQUEST'
+          })
+          this.parse.show = false
+          return
+        }
+
+        let cleanInvoice = {
+          msat: invoice.human_readable_part.amount,
+          sat: invoice.human_readable_part.amount / 1000,
+          fsat: LNbits.utils.formatSat(
+            invoice.human_readable_part.amount / 1000
+          )
+        }
+
+        _.each(invoice.data.tags, tag => {
+          if (_.isObject(tag) && _.has(tag, 'description')) {
+            if (tag.description === 'payment_hash') {
+              cleanInvoice.hash = tag.value
+            } else if (tag.description === 'description') {
+              cleanInvoice.description = tag.value
+            } else if (tag.description === 'expiry') {
+              var expireDate = new Date(
+                (invoice.data.time_stamp + tag.value) * 1000
+              )
+              cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                expireDate,
+                'YYYY-MM-DDTHH:mm:ss.SSSZ'
+              )
+              cleanInvoice.expired = false // TODO
             }
           }
-
-          clearInterval(this.receive.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.receive.paymentChecker)
-          }, 40000)
-          
         })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-          this.receive.status = 'pending'
-        })
-    },
-    decodeQR: function (res) {
-      this.parse.data.request = res
-      this.decodeRequest()
-      this.parse.camera.show = false
-    },
-    decodeRequest: function () {
-      this.parse.show = true
-      let req = this.parse.data.request.toLowerCase()
-      if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
-        this.parse.data.request = this.parse.data.request.slice(10)
-      } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
-        this.parse.data.request = this.parse.data.request.slice(6)
-      } else if (req.indexOf('lightning=lnurl1') !== -1) {
-        this.parse.data.request = this.parse.data.request
-          .split('lightning=')[1]
-          .split('&')[0]
-      }
 
-      if (
-        this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
-        this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
-      ) {
+        this.parse.invoice = Object.freeze(cleanInvoice)
+      },
+      payInvoice: function () {
+        let dismissPaymentMsg = this.$q.notify({
+          timeout: 0,
+          message: 'Processing payment...'
+        })
+      },
+      payLnurl: function () {
+        let dismissPaymentMsg = this.$q.notify({
+          timeout: 0,
+          message: 'Processing payment...'
+        })
+      },
+      authLnurl: function () {
+        let dismissAuthMsg = this.$q.notify({
+          timeout: 10,
+          message: 'Performing authentication...'
+        })
+      },
+
+      deleteWallet: function (walletId, user) {
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this wallet?')
+          .onOk(() => {
+            LNbits.href.deleteWallet(walletId, user)
+          })
+      },
+      fetchPayments: function () {
         return
-      }
-
-      let invoice
-      try {
-        invoice = decode(this.parse.data.request)
-      } catch (error) {
-        this.$q.notify({
-          timeout: 3000,
-          type: 'warning',
-          message: error + '.',
-          caption: '400 BAD REQUEST'
+      },
+      fetchBalance: function () {},
+      exportCSV: function () {
+        // status is important for export but it is not in paymentsTable
+        // because it is manually added with payment detail link and icons
+        // and would cause duplication in the list
+        let columns = this.paymentsTable.columns
+        columns.unshift({
+          name: 'pending',
+          align: 'left',
+          label: 'Pending',
+          field: 'pending'
         })
-        this.parse.show = false
-        return
-      }
+        LNbits.utils.exportCSV(columns, this.payments)
+      },
 
-      let cleanInvoice = {
-        msat: invoice.human_readable_part.amount,
-        sat: invoice.human_readable_part.amount / 1000,
-        fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
-      }
+      /////////////////////////////////// WALLET ///////////////////////////////////
+      showBuyTokensDialog: async function () {
+        console.log('##### showBuyTokensDialog')
+        this.buyData.amount = 0
+        this.buyData.bolt11 = ''
+        this.buyData.hash = ''
+        this.buyData.memo = ''
+        this.showInvoiceDetails = true
+      },
 
-      _.each(invoice.data.tags, tag => {
-        if (_.isObject(tag) && _.has(tag, 'description')) {
-          if (tag.description === 'payment_hash') {
-            cleanInvoice.hash = tag.value
-          } else if (tag.description === 'description') {
-            cleanInvoice.description = tag.value
-          } else if (tag.description === 'expiry') {
-            var expireDate = new Date(
-              (invoice.data.time_stamp + tag.value) * 1000
-            )
-            cleanInvoice.expireDate = Quasar.utils.date.formatDate(
-              expireDate,
-              'YYYY-MM-DDTHH:mm:ss.SSSZ'
-            )
-            cleanInvoice.expired = false // TODO
+      showInvoiceDialog: function (data) {
+        this.buyData = _.clone(data)
+        this.showInvoiceDetails = true
+      },
+
+      showPayInvoiceDialog: function () {
+        console.log('### showPayInvoiceDialog')
+        this.sellData.invoice = ''
+        this.sellData.bolt11 = ''
+        this.showPayInvoice = true
+      },
+
+      showSendTokensDialog: function () {
+        this.sendData.tokens = ''
+        this.sendData.tokensBase64 = ''
+        this.sendData.amount = 0
+        this.sendData.memo = ''
+        this.showSendTokens = true
+      },
+
+      showReceiveTokensDialog: function () {
+        this.receiveData.tokensBase64 = ''
+        this.showReceiveTokens = true
+      },
+
+      requestInvoice: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.buyData.amount}`
+          )
+          console.log('### data', data)
+
+          this.buyData.bolt11 = data.pr
+          this.buyData.hash = data.hash
+          this.buyOrders.push({
+            ..._.clone(this.buyData),
+            date: currentDateStr(),
+            status: 'pending'
+          })
+          this.storeBuyOrders()
+          const amounts = splitAmount(this.buyData.amount)
+          await this.requestTokens(amounts, this.buyData.hash)
+          this.tab = 'orders'
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
+      checkXXXXXX: async function () {
+        for (const tokenBuy of this.buyOrders) {
+          if (tokenBuy.status === 'pending') {
+            try {
+              const {data} = await LNbits.api.request(
+                'POST',
+                `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${tokenBuy.hash}`,
+                '',
+                {
+                  blinded_messages: []
+                }
+              )
+              console.log('### data', data)
+            } catch (error) {
+              console.error(error)
+              LNbits.utils.notifyApiError(error)
+            }
           }
         }
-      })
+      },
 
-      this.parse.invoice = Object.freeze(cleanInvoice)
-    },
-    payInvoice: function () {
-      let dismissPaymentMsg = this.$q.notify({
-        timeout: 0,
-        message: 'Processing payment...'
-      })
-    },
-    payLnurl: function () {
-      let dismissPaymentMsg = this.$q.notify({
-        timeout: 0,
-        message: 'Processing payment...'
-      })
-    },
-    authLnurl: function () {
-      let dismissAuthMsg = this.$q.notify({
-        timeout: 10,
-        message: 'Performing authentication...'
-      })
-    },
+      recheckBuyOrder: async function (hash) {
+        console.log('### recheckBuyOrder.hash', hash)
+        const tokens = this.tokens.find(bt => bt.hash === hash)
+        console.log('### recheckBuyOrder.tokens', tokens)
+        if (!tokens) {
+          console.error('####### no token for hash', hash)
+          return
+        }
+        const promises = await this.fetchPromisesFromMint(
+          hash,
+          tokens.blindedMessages
+        )
+        if (promises && promises.length) {
+          tokens.promises = promises
+          tokens.status = 'paid'
+          this.storeTokens()
 
-    deleteWallet: function (walletId, user) {
-      LNbits.utils
-        .confirmDialog('Are you sure you want to delete this wallet?')
-        .onOk(() => {
-          LNbits.href.deleteWallet(walletId, user)
+          const buyOrder = this.buyOrders.find(bo => bo.hash === hash)
+          buyOrder.status = 'paid'
+          this.storeBuyOrders()
+        }
+      },
+
+      requestTokens: async function (amounts, paymentHash) {
+        const newTokens = await this.buildTokens(amounts, paymentHash)
+        this.tokens.push(newTokens)
+        this.storeTokens()
+        console.log('### this.tokens', this.tokens)
+        // await this.fetchPromisesFromMint(paymentHash, newTokens.newTokens)
+      },
+
+      fetchPromisesFromMint: async function (hash, blindedMessages) {
+        console.log('### promises', hash, blindedMessages)
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${hash}`,
+            '',
+            {
+              blinded_messages: blindedMessages
+            }
+          )
+          console.log('### promises data', data)
+          return data
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
+      buildAndShowTokens: async function () {
+        const amounts = splitAmount(this.sendData.amount)
+        const sendTokens = []
+        for (const amount of amounts) {
+          const token = this.findTokenForAmount(amount)
+          if (token) {
+            sendTokens.push(token)
+          } else {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: `Cannot select amount for denomination ${amount}`
+            })
+            this.sendData.tokens = ''
+            this.sendData.tokensBase64 = ''
+            return
+          }
+        }
+        console.log('### sendTokens', sendTokens)
+        this.sendData.tokens = sendTokens.map(t => {
+          return this.promiseToProof(
+            t.promise.amount,
+            t.promise['C_'],
+            t.secret,
+            t.randomBlindingFactor
+          )
         })
-    },
-    fetchPayments: function () {
-      return 
-    },
-    fetchBalance: function () {
-      
-    },
-    exportCSV: function () {
-      // status is important for export but it is not in paymentsTable
-      // because it is manually added with payment detail link and icons
-      // and would cause duplication in the list
-      let columns = this.paymentsTable.columns
-      columns.unshift({
-        name: 'pending',
-        align: 'left',
-        label: 'Pending',
-        field: 'pending'
-      })
-      LNbits.utils.exportCSV(columns, this.payments)
-    }
-  },
-  watch: {
-    payments: function () {
-      this.fetchBalance()
-    }
-  },
-  created: function () {
-    this.fetchBalance()
-    this.fetchPayments()
+        console.log('### this.sendData.tokens', this.sendData.tokens)
+        this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+      },
 
-    LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(response => {
-        this.receive.units = ['sat', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
-  },
-  created: function () {
+      burnTokens: function () {
+        for (const sentToken of this.sendData.tokens) {
+          for (const token of this.tokens) {
+            if (token.status === 'paid') {
+              const secretIndex = token.secrets.findIndex(
+                s => s === sentToken.secret
+              )
+              console.log('### secretIndex', secretIndex)
+              if (secretIndex >= 0) {
+                token.blindedMessages?.splice(secretIndex, 1)
+                token.promises?.splice(secretIndex, 1)
+                token.randomBlindingFactors?.splice(secretIndex, 1)
+                token.secrets?.splice(secretIndex, 1)
+              }
+            }
+          }
+        }
 
-    let params = (new URL(document.location)).searchParams
-    
-    // get ticker
-    if(!params.get('tsh') && !this.$q.localStorage.getItem('cashu.tickershort')){
-        this.$q.localStorage.set('cashu.tickershort', "CE")
-        this.tickershort = "CE"
-    }
-    else if(params.get('tsh')){
+        this.$q.notify({
+          timeout: 5000,
+          message: 'Tokens burned'
+        })
+        this.storeTokens()
+        this.showSendTokens = false
+        console.log('###  this.tokens', this.tokens)
+      },
+
+      acceptTokens: async function () {
+        this.showReceiveTokens = false
+        console.log('### receive tokens', this.receiveData.tokensBase64)
+        if (this.receiveData.tokensBase64) {
+          const tokensJson = atob(this.receiveData.tokensBase64)
+          const proofs = JSON.parse(tokensJson)
+          const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+          const amounts = splitAmount(amount)
+          const newTokens = await this.buildTokens(amounts)
+          console.log('newTokens', newTokens)
+
+          const payload = {
+            amount,
+            proofs,
+            outputs: {
+              blinded_messages: newTokens.blindedMessages
+            }
+          }
+
+          console.log('payload', JSON.stringify(payload))
+          try {
+            const {data} = await LNbits.api.request(
+              'POST',
+              `/cashu/api/v1/cashu/${this.mintId}/split`,
+              '',
+              payload
+            )
+
+            newTokens.promises = data.snd
+            // console.log('split data', JSON.stringify(data.snd))
+            // for (let i =0 ;i < newTokens.length; i++) {
+            //   Object.assign(newTokens[i], promises)
+            // }
+            console.log('newTokens 2', newTokens)
+            this.tokens.push(newTokens)
+            this.storeTokens()
+          } catch (error) {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          }
+        }
+      },
+
+      findTokenForAmount: function (amount) {
+        for (const token of this.tokens) {
+          const index = token.promises?.findIndex(p => p.amount === amount)
+          if (index >= 0) {
+            return {
+              promise: token.promises[index],
+              secret: token.secrets[index],
+              randomBlindingFactor: token.randomBlindingFactors[index]
+            }
+          }
+        }
+      },
+
+      constructProof: function (token) {},
+
+      buildTokens: async function (amounts, paymentHash) {
+        const blindedMessages = []
+        const secrets = []
+        const randomBlindingFactors = []
+        for (let i = 0; i < amounts.length; i++) {
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          // todo: base64Url
+          const encodedSecret = uint8ToBase64.encode(secret)
+          secrets.push(encodedSecret)
+          const {B_, randomBlindingFactor} = await step1Bob(secret)
+          randomBlindingFactors.push(randomBlindingFactor)
+          blindedMessages.push({amount: amounts[i], B_: B_})
+        }
+
+        const newTokens = {
+          hash: paymentHash,
+          blindedMessages,
+          randomBlindingFactors,
+          secrets,
+          status: 'pending'
+        }
+        return newTokens
+      },
+
+      checkInvoice: function () {
+        console.log('#### checkInvoice')
+        try {
+          const invoice = decode(this.sellData.bolt11)
+
+          const cleanInvoice = {
+            msat: invoice.human_readable_part.amount,
+            sat: invoice.human_readable_part.amount / 1000,
+            fsat: LNbits.utils.formatSat(
+              invoice.human_readable_part.amount / 1000
+            )
+          }
+
+          _.each(invoice.data.tags, tag => {
+            if (_.isObject(tag) && _.has(tag, 'description')) {
+              if (tag.description === 'payment_hash') {
+                cleanInvoice.hash = tag.value
+              } else if (tag.description === 'description') {
+                cleanInvoice.description = tag.value
+              } else if (tag.description === 'expiry') {
+                var expireDate = new Date(
+                  (invoice.data.time_stamp + tag.value) * 1000
+                )
+                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                  expireDate,
+                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                )
+                cleanInvoice.expired = false // TODO
+              }
+            }
+
+            this.sellData.invoice = cleanInvoice
+          })
+
+          console.log('#### this.sellData.invoice', this.sellData.invoice)
+        } catch (error) {
+          this.$q.notify({
+            timeout: 5000,
+            type: 'warning',
+            message: 'Cannot decode invoice',
+            caption: error + ''
+          })
+        }
+      },
+
+      sellTokens: async function () {
+        console.log('#### sell tokens')
+        const amount = this.sellData.invoice.sat
+        const paidTokens = this.tokens.filter(t => t.promises?.length)
+        console.log('### paidTokens', paidTokens)
+        const proofs = paidTokens.map(token => {
+          return token.promises.map((promise, promiseIndex) => {
+            console.log('### promise', promise)
+
+            const secret = token.secrets[promiseIndex]
+            const randomBlindingFactor =
+              token.randomBlindingFactors[promiseIndex]
+
+            return this.promiseToProof(
+              promise.amount,
+              promise['C_'],
+              secret,
+              randomBlindingFactor
+            )
+          })
+        })
+        const payload = {
+          proofs: proofs.flat(),
+          amount,
+          invoice: this.sellData.bolt11
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/cashu/${this.mintId}/melt`,
+            '',
+            payload
+          )
+          this.$q.notify({
+            timeout: 5000,
+            message: 'Invoice paid'
+          })
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
+      // C_hex = promise['C_']
+      // amount = promise.amount
+      promiseToProof: function (amount, C_hex, secret, randomBlindingFactor) {
+        const C_ = nobleSecp256k1.Point.fromHex(C_hex)
+        const A = this.keys[amount]
+
+        const C = step3Bob(
+          C_,
+          randomBlindingFactor,
+          nobleSecp256k1.Point.fromHex(A)
+        )
+
+        return {
+          amount,
+          secret,
+          C: C.toHex(true)
+        }
+      },
+
+      fetchMintKeys: async function () {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/cashu/api/v1/cashu/${this.mintId}/keys`
+        )
+        this.keys = data
+        localStorage.setItem('cashu.keys', JSON.stringify(data))
+      },
+
+      storeBuyOrders: function () {
+        localStorage.setItem('cashu.buyOrders', JSON.stringify(this.buyOrders))
+      },
+      storeTokens: function () {
+        localStorage.setItem(
+          'cashu.tokens',
+          JSON.stringify(this.tokens, bigIntStringify)
+        )
+      }
+    },
+    watch: {
+      payments: function () {
+        this.fetchBalance()
+      }
+    },
+
+    created: function () {
+      let params = new URL(document.location).searchParams
+
+      // get ticker
+      if (
+        !params.get('tsh') &&
+        !this.$q.localStorage.getItem('cashu.tickershort')
+      ) {
+        this.$q.localStorage.set('cashu.tickershort', 'CE')
+        this.tickershort = 'CE'
+      } else if (params.get('tsh')) {
         this.$q.localStorage.set('cashu.tickershort', params.get('tsh'))
         this.tickershort = params.get('tsh')
-    }
-    else if(this.$q.localStorage.getItem('cashu.tickershort')){
+      } else if (this.$q.localStorage.getItem('cashu.tickershort')) {
         this.tickershort = this.$q.localStorage.getItem('cashu.tickershort')
-    }
+      }
 
-    
-    if (!this.$q.localStorage.getItem('cashu.amount')) {
-      this.balanceAmount = 0
-    }
+      // get mint
+      if (params.get('mint_id')) {
+        this.mintId = params.get('mint_id')
+        this.$q.localStorage.set('cashu.mint', params.get('mint_id'))
+      } else if (this.$q.localStorage.getItem('cashu.mint')) {
+        this.mintId = this.$q.localStorage.getItem('cashu.mint')
+      } else {
+        this.$q.notify({
+          color: 'red',
+          message: 'No mint set!'
+        })
+      }
 
-    // get mint
-    if (params.get('mnt')) {
-      this.mint = params.get('mnt')
-      this.$q.localStorage.set('cashu.mint', params.get('mnt'))
-    }
-    else if(this.$q.localStorage.getItem('cashu.mint')){
-      this.mint = this.$q.localStorage.getItem('cashu.mint')
-    }
-    else{
-      this.$q.notify({
-        color: 'red',
-        message: 'No mint set!'
-      })
-    }
+      // get name
+      if (params.get('mint_name')) {
+        this.mintName = params.get('mint_name')
+        this.$q.localStorage.set('cashu.mintName', params.get('mint_name'))
+      } else if (this.$q.localStorage.getItem('cashu.name')) {
+        this.mintName = this.$q.localStorage.getItem('cashu.name')
+      }
 
-    // get name
-    if (params.get('nme')) {
-      this.name = params.get('nme')
-      this.$q.localStorage.set('cashu.name', params.get('nme'))
-    }
-    else if(this.$q.localStorage.getItem('cashu.name')){
-      this.name = this.$q.localStorage.getItem('cashu.name')
-    }
+      const keysJson = localStorage.getItem('cashu.keys')
+      if (!keysJson) {
+        this.fetchMintKeys()
+      } else {
+        this.keys = JSON.parse(keysJson)
+      }
 
-  }
-})
+      this.buyOrders = JSON.parse(
+        localStorage.getItem('cashu.buyOrders') || '[]'
+      )
+      this.tokens = JSON.parse(localStorage.getItem('cashu.tokens') || '[]')
+      console.log('### buyOrders', this.buyOrders)
+      console.table('### tokens', this.tokens)
+      console.log('#### this.mintId', this.mintId)
+      console.log('#### this.mintName', this.mintName)
+
+      this.checkXXXXXX()
+    }
+  })
 </script>
+<script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
 {% endblock %}

@@ -22,14 +22,19 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "cashu/index.html", {"request": request, "user": user.dict()}
     )
 
+
 @cashu_ext.get("/wallet")
 async def cashu(request: Request):
-    return cashu_renderer().TemplateResponse("cashu/wallet.html",{"request": request})
+    return cashu_renderer().TemplateResponse("cashu/wallet.html", {"request": request})
+
 
 @cashu_ext.get("/mint/{mintID}")
 async def cashu(request: Request, mintID):
     cashu = await get_cashu(mintID)
-    return cashu_renderer().TemplateResponse("cashu/mint.html",{"request": request, "mint_name": cashu.name})
+    return cashu_renderer().TemplateResponse(
+        "cashu/mint.html", {"request": request, "mint_name": cashu.name}
+    )
+
 
 @cashu_ext.get("/manifest/{cashu_id}.webmanifest")
 async def manifest(cashu_id: str):
