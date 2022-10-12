@@ -52,6 +52,7 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload:
             port=port,
             host=host,
             reload=reload,
+            forwarded_allow_ips="*",
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             **d
