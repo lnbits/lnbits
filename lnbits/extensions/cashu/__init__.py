@@ -11,12 +11,15 @@ db = Database("ext_cashu")
 
 import sys
 
+cashu_static_files = [
+    {
+        "path": "/cashu/static",
+        "app": StaticFiles(directory="lnbits/extensions/cashu/static"),
+        "name": "cashu_static",
+    }
+]
 sys.path.append("/Users/cc/git/cashu")
 from cashu.mint.ledger import Ledger
-
-# from .crud import LedgerCrud
-
-# db = Database("ext_cashu", LNBITS_DATA_FOLDER)
 
 ledger = Ledger(
     db=db,
@@ -26,17 +29,6 @@ ledger = Ledger(
 )
 
 cashu_ext: APIRouter = APIRouter(prefix="/api/v1/cashu", tags=["cashu"])
-# from cashu.mint.router import router as cashu_router
-
-# cashu_ext.include_router(router=cashu_router)
-
-cashu_static_files = [
-    {
-        "path": "/cashu/static",
-        "app": StaticFiles(directory="lnbits/extensions/cashu/static"),
-        "name": "cashu_static",
-    }
-]
 
 
 def cashu_renderer():
