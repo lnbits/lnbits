@@ -872,6 +872,17 @@ typing-extensions = {version = ">=3.10.0", markers = "python_version < \"3.10\""
 full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "requests"]
 
 [[package]]
+name = "starlette-context"
+version = "0.3.4"
+description = "Access context in Starlette"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+starlette = "*"
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -1789,6 +1800,10 @@ sse-starlette = [
 starlette = [
     {file = "starlette-0.19.1-py3-none-any.whl", hash = "sha256:5a60c5c2d051f3a8eb546136aa0c9399773a689595e099e0877704d5888279bf"},
     {file = "starlette-0.19.1.tar.gz", hash = "sha256:c6d21096774ecb9639acad41b86b7706e52ba3bf1dc13ea4ed9ad593d47e24c7"},
+]
+starlette-context = [
+    {file = "starlette_context-0.3.4-py37-none-any.whl", hash = "sha256:b16bf17bd3ead7ded2f458aebf7f913744b9cf28305e16c69b435a6c6ddf1135"},
+    {file = "starlette_context-0.3.4.tar.gz", hash = "sha256:2d28e1838302fb5d5adacadc10fb73fb2d5cca1f0aa1e279698701cc96f1567c"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
