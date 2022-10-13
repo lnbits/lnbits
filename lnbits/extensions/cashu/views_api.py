@@ -2,6 +2,7 @@ import json
 from http import HTTPStatus
 from typing import Union
 import math
+from typing import Dict, List, Union
 
 import httpx
 from fastapi import Query
@@ -25,38 +26,22 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.wallets.base import PaymentStatus
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import check_internal
+
+# --------- extension imports
+
 from . import cashu_ext
-from .core.base import CashuError, PostSplitResponse, SplitRequest
 from .crud import (
     create_cashu,
     delete_cashu,
     get_cashu,
     get_cashus,
-    get_lightning_invoice,
-    store_lightning_invoice,
-    store_promise,
-    update_lightning_invoice,
 )
 
-# from .ledger import mint, request_mint
-from .mint import generate_promises, get_pubkeys, melt, split
-from .models import (
-    Cashu,
-    CheckPayload,
-    Invoice,
-    MeltPayload,
-    MintPayloads,
-    PayLnurlWData,
-    Pegs,
-    SplitPayload,
-)
+from .models import Cashu
 
+from . import ledger
 
-############### IMPORT CALLE
-from typing import Dict, List, Union
-
-from secp256k1 import PublicKey
-
+# -------- cashu imports
 from cashu.core.base import (
     Proof,
     BlindedSignature,
@@ -69,9 +54,8 @@ from cashu.core.base import (
     MintRequest,
     PostSplitResponse,
     SplitRequest,
+    Invoice,
 )
-from cashu.core.errors import CashuError
-from . import db, ledger
 
 LIGHTNING = False
 
@@ -165,7 +149,7 @@ async def mint_coins(
     data: MintRequest,
     cashu_id: str = Query(None),
     payment_hash: str = Query(None),
-):
+) -> List[BlindedSignature]:
     """
     Requests the minting of tokens belonging to a paid payment request.
     Call this endpoint after `GET /mint`.
@@ -220,7 +204,9 @@ async def mint_coins(
 
 
 @cashu_ext.post("/{cashu_id}/melt")
-async def melt_coins(payload: MeltRequest, cashu_id: str = Query(None)):
+async def melt_coins(
+    payload: MeltRequest, cashu_id: str = Query(None)
+) -> GetMeltResponse:
     """Invalidates proofs and pays a Lightning invoice."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
     if cashu is None:
@@ -229,8 +215,6 @@ async def melt_coins(payload: MeltRequest, cashu_id: str = Query(None)):
         )
     proofs = payload.proofs
     invoice = payload.invoice
-    # async def melt(cashu: Cashu, proofs: List[Proof], invoice: str):
-    # """Invalidates proofs and pays a Lightning invoice."""
 
     # !!!!!!! MAKE SURE THAT PROOFS ARE ONLY FROM THIS CASHU KEYSET ID
     # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
@@ -271,18 +255,7 @@ async def melt_coins(payload: MeltRequest, cashu_id: str = Query(None)):
     )
     if status.paid == True:
         await ledger._invalidate_proofs(proofs)
-        return status.paid, status.preimage
-    return False, ""
-
-
-@cashu_ext.post("/melt")
-async def melt(payload: MeltRequest) -> GetMeltResponse:
-    """
-    Requests tokens to be destroyed and sent out via Lightning.
-    """
-    ok, preimage = await ledger.melt(payload.proofs, payload.invoice)
-    resp = GetMeltResponse(paid=ok, preimage=preimage)
-    return resp
+    return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
 @cashu_ext.post("/check")
@@ -298,29 +271,46 @@ async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
     Used by wallets for figuring out the fees they need to supply.
     This is can be useful for checking whether an invoice is internal (Cashu-to-Cashu).
     """
-    fees_msat = await ledger.check_fees(payload.pr)
+    invoice_obj = bolt11.decode(payload.pr)
+    internal_checking_id = await check_internal(invoice_obj.payment_hash)
+
+    if not internal_checking_id:
+        fees_msat = fee_reserve(invoice_obj.amount_msat)
+    else:
+        fees_msat = 0
     return CheckFeesResponse(fee=fees_msat / 1000)
 
 
-@cashu_ext.post("/split")
+@cashu_ext.post("/{cashu_id}/split")
 async def split(
-    payload: SplitRequest,
-) -> Union[CashuError, PostSplitResponse]:
+    payload: SplitRequest, cashu_id: str = Query(None)
+) -> PostSplitResponse:
     """
     Requetst a set of tokens with amount "total" to be split into two
     newly minted sets with amount "split" and "total-split".
     """
+    cashu: Union[None, Cashu] = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     proofs = payload.proofs
     amount = payload.amount
-    outputs = payload.outputs.blinded_messages if payload.outputs else None
+    outputs = payload.outputs.blinded_messages
     # backwards compatibility with clients < v0.2.2
     assert outputs, Exception("no outputs provided.")
     try:
-        split_return = await ledger.split(proofs, amount, outputs)
+        split_return = await ledger.split(proofs, amount, outputs, cashu.keyset_id)
     except Exception as exc:
-        return CashuError(error=str(exc))
+        HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(exc),
+        )
     if not split_return:
-        return CashuError(error="there was an error with the split")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="there was an error with the split",
+        )
     frst_promises, scnd_promises = split_return
     resp = PostSplitResponse(fst=frst_promises, snd=scnd_promises)
     return resp
