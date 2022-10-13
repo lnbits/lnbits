@@ -1,8 +1,14 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
-  <div class="col q-gutter-y-md q-my-md">
-    <q-btn label="Save" color="primary" @click="updateSettings">
+  <div class="col q-my-md">
+    <q-btn
+      label="Save"
+      color="primary"
+      @click="updateSettings"
+      :disabled="!checkChanges"
+    >
+      <q-tooltip v-if="checkChanges"> Save your changes </q-tooltip>
       <q-badge
         v-if="checkChanges"
         color="red"
@@ -11,26 +17,35 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
-    <q-btn
-      label="Restart server"
-      color="primary"
-      @click="restartServer"
-    ></q-btn>
-    <q-btn
-      label="Reset to defaults"
-      color="primary"
-      @click="deleteSettings"
-    ></q-btn>
-    <q-btn
-      label="Topup"
-      color="primary"
-      @click="topUpDialog.show = true"
-    ></q-btn>
+    <q-btn label="Restart server" color="primary" @click="restartServer">
+      <q-tooltip v-if="needsRestart">
+        Restart the server for changes to take effect
+      </q-tooltip>
+      <q-badge
+        v-if="needsRestart"
+        color="red"
+        rounded
+        floating
+        style="padding: 6px; border-radius: 6px"
+      />
+    </q-btn>
+    <q-btn label="Topup" color="primary" @click="topUpDialog.show = true">
+      <q-tooltip> Add funds to a wallet. </q-tooltip>
+    </q-btn>
     <!-- <q-btn
       label="Download Database Backup"
       flat
       @click="downloadBackup"
-    ></q-btn> -->
+      ></q-btn> -->
+    <q-btn
+      flat
+      label="Reset to defaults"
+      color="primary"
+      @click="deleteSettings"
+      class="float-right"
+    >
+      <q-tooltip> Delete all settings and reset to defaults. </q-tooltip>
+    </q-btn>
   </div>
 </div>
 <div class="row q-col-gutter-md justify-center">
@@ -121,6 +136,7 @@
           show: false
         },
         tab: 'funding',
+        needsRestart: false,
         funding_sources: new Map([
           ['VoidWallet', null],
           [
@@ -302,13 +318,12 @@
       this.balance = +'{{ balance|safe }}'
       this.formData = _.clone(this.settings) //model
       this.updateFundingData()
-
       console.log(this.settings)
     },
     computed: {
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
-      },
+      }
     },
     methods: {
       addAdminUser() {
@@ -361,6 +376,7 @@
               message: 'Success! Restarted Server',
               icon: null
             })
+            this.needsRestart = false
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -390,16 +406,15 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      updateFundingData(){
+      updateFundingData() {
         this.settings.lnbits_allowed_funding_sources.map(f => {
           let opts = this.funding_sources.get(f)
           if (!opts) return
-  
+
           Object.keys(opts).forEach(e => {
             opts[e].value = this.settings[e]
           })
         })
-        console.log("funding", this.funding_sources)
       },
       updateSettings() {
         let data = {
@@ -415,31 +430,41 @@
           .then(response => {
             this.settings = response.data.settings
             this.formData = _.clone(this.settings)
+            this.needsRestart = true
             this.updateFundingData()
             this.$q.notify({
               type: 'positive',
               message: 'Success! Settings changed!',
               icon: null
             })
-            console.log(this.settings)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
       deleteSettings() {
-        LNbits.api
-          .request('DELETE', '/admin/api/v1/settings/?usr=' + this.g.user.id)
-          .then(response => {
-            this.$q.notify({
-              type: 'positive',
-              message:
-                'Success! Restored settings to defaults, restart required!',
-              icon: null
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
+        LNbits.utils
+          .confirmDialog(
+            'Are you sure you want to restore settings to default?'
+          )
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/admin/api/v1/settings/?usr=' + this.g.user.id
+              )
+              .then(response => {
+                this.$q.notify({
+                  type: 'positive',
+                  message:
+                    'Success! Restored settings to defaults, restart required!',
+                  icon: null
+                })
+                this.needsRestart = true
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
           })
       },
       downloadBackup() {
