@@ -59,21 +59,14 @@ from lnbits.db import Database, Connection
 #         return await update_lightning_invoice(*args, **kwags)
 
 
-async def create_cashu(wallet_id: str, data: Cashu) -> Cashu:
-    cashu_id = urlsafe_short_hash()
-
-    entropy = bytes([random.getrandbits(8) for i in range(16)])
-    mnemonic = bip39.mnemonic_from_bytes(entropy)
-    seed = bip39.mnemonic_to_seed(mnemonic)
-    root = bip32.HDKey.from_seed(seed, version=NETWORKS["main"]["xprv"])
-
-    bip44_xprv = root.derive("m/44h/1h/0h")
-    bip44_xpub = bip44_xprv.to_public()
+async def create_cashu(
+    cashu_id: str, keyset_id: str, wallet_id: str, data: Cashu
+) -> Cashu:
 
     await db.execute(
         """
-        INSERT INTO cashu.cashu (id, wallet, name, tickershort, fraction, maxsats, coins, prvkey, pubkey)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cashu.cashu (id, wallet, name, tickershort, fraction, maxsats, coins, keyset_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             cashu_id,
@@ -83,8 +76,7 @@ async def create_cashu(wallet_id: str, data: Cashu) -> Cashu:
             data.fraction,
             data.maxsats,
             data.coins,
-            bip44_xprv.to_base58(),
-            bip44_xpub.to_base58(),
+            keyset_id,
         ),
     )
 

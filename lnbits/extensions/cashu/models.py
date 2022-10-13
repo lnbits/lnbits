@@ -17,7 +17,7 @@ class Cashu(BaseModel):
     pubkey: str = Query(None)
 
     @classmethod
-    def from_row(cls, row: Row) -> "TPoS":
+    def from_row(cls, row: Row):
         return cls(**dict(row))
 
 
@@ -28,7 +28,7 @@ class Pegs(BaseModel):
     amount: str
 
     @classmethod
-    def from_row(cls, row: Row) -> "TPoS":
+    def from_row(cls, row: Row):
         return cls(**dict(row))
 
 
