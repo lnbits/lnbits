@@ -1,0 +1,6 @@
+{
+  "name": "Push Notifications",
+  "short_description": "Receive push notifications on incoming payments",
+  "icon": "notifications",
+  "contributors": ["schneimi"]
+}

@@ -1,0 +1,152 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row q-mb-xs">
+          <q-btn
+            unelevated
+            :disabled="disableSubscribe()"
+            color="primary"
+            id="permitBtn"
+            @click="subscribe()"
+          >
+            Subscribe </q-btn
+          >&nbsp;
+          <q-btn
+            unelevated
+            :disabled="disableUnsubscribe()"
+            color="primary"
+            id="permitBtn"
+            @click="unsubscribe()"
+          >
+            Unsubscribe
+          </q-btn>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <p>
+              Please confirm, when you're asked for permission to display
+              notifications. You receive a test notification message, when
+              you have successfully subscribed.
+            </p>
+
+            <h5 class="text-subtitle1 q-my-none">Subscription Status</h5>
+            <div>
+              <q-icon
+                :name="hasPermission ? 'check_circle' : 'cancel'"
+                :color="hasPermission ? 'green' : 'red'"
+              ></q-icon>
+              Permission to show notifications
+              <small
+                ><span
+                  v-if="!hasPermission && isSubscribed && !isPermissionDenied"
+                  class="text-red"
+                  >Try to subscribe again!
+                </span></small
+              ><small
+                ><span v-if="isPermissionDenied" class="text-red"
+                  >Please unblock notifications!</span
+                ></small
+              >
+            </div>
+
+            <div>
+              <q-icon
+                :name="(isSubscribed && canPushApi) ? 'check_circle' : 'cancel'"
+                :color="(isSubscribed && canPushApi) ? 'green' : 'red'"
+              ></q-icon>
+              Subscribed for push notifications
+            </div>
+
+            <br />
+
+            <h5 class="text-subtitle1 q-my-none">Browser Requirements</h5>
+
+            <div>
+              <q-icon
+                :name="canServiceWorkerApi ? 'check_circle' : 'cancel'"
+                :color="canServiceWorkerApi ? 'green' : 'red'"
+              ></q-icon>
+              Service Worker API
+              <small
+                ><span v-if="!canServiceWorkerApi" class="text-red"
+                  >Sorry, your browser isn't able to register Service Workers.
+                  HTTPS is required!
+                  <a
+                    target="_blank"
+                    href="https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker#browser_compatibility"
+                    >Read More</a
+                  ></span
+                ></small
+              >
+            </div>
+
+            <div>
+              <q-icon
+                :name="canNotificationApi ? 'check_circle' : 'cancel'"
+                :color="canNotificationApi ? 'green' : 'red'"
+              ></q-icon>
+              Notifications API
+              <small
+                ><span v-if="!canNotificationApi" class="text-red"
+                  >Sorry, your browser isn't able to show notifications!
+                  <a
+                    target="_blank"
+                    href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API#browser_compatibility"
+                    >Read More</a
+                  ></span
+                ></small
+              >
+            </div>
+
+            <div>
+              <q-icon
+                :name="canPushApi ? 'check_circle' : 'cancel'"
+                :color="canPushApi ? 'green' : 'red'"
+              ></q-icon>
+              Push API
+              <small
+                ><span v-if="!canPushApi" class="text-red"
+                  >Sorry, your browser isn't able to receive push messages!
+                  <a
+                    target="_blank"
+                    href="https://developer.mozilla.org/en-US/docs/Web/API/Push_API#browser_compatibility"
+                    >Read More</a
+                  ></span
+                ></small
+              >
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Push Notifications extension
+        </h6>
+      </q-card-section>
+
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>{% include "pushnotifications/_api_docs.html" %}</q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  let vapidPublicKey = '{{ vapid_public_key }}'
+</script>
+<script src="/pushnotifications/static/js/index.js"></script>
+{% endblock %}
