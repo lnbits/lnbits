@@ -17,6 +17,7 @@
           <h5 class="q-mt-none q-mb-sm">
             {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
           </h5>
+          <p>{% raw %}{{ parseFloat(roundToSugestion) }}{% endraw %}</p>
         </div>
       </div>
     </q-page-sticky>
@@ -214,14 +215,37 @@
             style="padding: 10px; margin: 3px"
             unelevated
             @click="processTipSelection(tip)"
-            size="xl"
+            size="lg"
             :outline="!($q.dark.isActive)"
             rounded
             color="primary"
-            v-for="tip in this.tip_options"
+            v-for="tip in tip_options.filter(f => f != 'Round')"
             :key="tip"
             >{% raw %}{{ tip }}{% endraw %}%</q-btn
           >
+          <q-btn
+            style="padding: 10px; margin: 3px"
+            unelevated
+            @click="setRounding"
+            size="lg"
+            :outline="!($q.dark.isActive)"
+            rounded
+            color="primary"
+            label="Round"
+            ></q-btn
+          >          
+          <q-input
+            ref="inputRounding"
+            v-if="rounding"
+            filled
+            v-model.number="tipRounding"
+            :placeholder="roundToSugestion"
+            hint="Rounded amount"
+          >
+        <template v-slot:append>
+          <q-icon name="send" @click="processTipSelection((1 - (amount/tipRounding))*100)" />
+        </template>
+      </q-input>
         </div>
         <div class="text-center q-mb-xl">
           <p><a @click="processTipSelection(0)"> No, thanks</a></p>
@@ -336,6 +360,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        tipRounding: null,
         hasNFC: false,
         nfcTagReading: false,
         lastPaymentsDialog: {
@@ -356,7 +381,8 @@
         },
         complete: {
           show: false
-        }
+        },
+        rounding: false
       }
     },
     computed: {
@@ -389,9 +415,36 @@
       },
       fsat: function () {
         return LNbits.utils.formatSat(this.sat)
+      },
+      isRoundValid(){
+        return this.tipRounding > this.amount
+      },
+      roundToSugestion(){        
+        //let toNext = 1
+        switch(true){
+          case this.amount > 50:
+            toNext = 10
+            break
+          case this.amount > 6:
+            toNext = 5
+            break
+          case this.amount > 2.5:
+            toNext = 1
+            break
+          default:
+            toNext = 0.5
+            break
+        }
+        
+        return Math.ceil(this.amount/toNext)*toNext
       }
     },
     methods: {
+      setRounding(){
+        this.rounding = true
+        this.tipRounding = this.roundToSugestion
+        this.$nextTick(() => this.$refs.inputRounding.focus())
+      },
       closeInvoiceDialog: function () {
         this.stack = []
         this.tipAmount = 0.0
@@ -589,6 +642,10 @@
         '{{ tpos.tip_options | tojson }}' == 'null'
           ? null
           : JSON.parse('{{ tpos.tip_options }}')
+
+      if('{{ tpos.tip_wallet }}') {
+        this.tip_options.push("Round")
+      }
       setInterval(function () {
         getRates()
       }, 120000)
