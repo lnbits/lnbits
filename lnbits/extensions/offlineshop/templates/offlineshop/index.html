@@ -55,7 +55,7 @@
                 <img
                   v-if="props.row.image"
                   :src="props.row.image"
-                  style="height: 1.5em"
+                  style="height: 1.5em;"
                 />
               </q-td>
               <q-td class="text-center" auto-width>
@@ -278,7 +278,7 @@
             @clear="imageCleared"
           >
             <template v-if="itemDialog.data.image" v-slot:before>
-              <img style="height: 1em" :src="itemDialog.data.image" />
+              <img style="height: 1em;" :src="itemDialog.data.image" />
             </template>
             <template v-if="itemDialog.data.image" v-slot:append>
               <q-icon

@@ -49,8 +49,8 @@
         >
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%;"></q-th>
+              <q-th style="width: 5%;"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -128,7 +128,7 @@
     @hide="closeFormDialog"
   >
     <q-card
-      style="width: 700px; max-width: 80vw"
+      style="width: 700px; max-width: 80vw;"
       class="q-pa-lg q-pt-xl lnbits__dialog-card"
     >
       <div class="text-h6">LNURLDevice device string</div>
@@ -480,12 +480,11 @@
             updatedData
           )
           .then(function (response) {
-            self.lnurldeviceLinks = _.reject(
-              self.lnurldeviceLinks,
-              function (obj) {
-                return obj.id === updatedData.id
-              }
-            )
+            self.lnurldeviceLinks = _.reject(self.lnurldeviceLinks, function (
+              obj
+            ) {
+              return obj.id === updatedData.id
+            })
             self.lnurldeviceLinks.push(maplnurldevice(response.data))
             self.formDialoglnurldevice.show = false
             self.clearFormDialoglnurldevice()

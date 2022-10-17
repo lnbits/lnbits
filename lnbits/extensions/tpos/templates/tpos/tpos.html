@@ -169,7 +169,7 @@
           <h5 class="q-mt-none">
             {% raw %}{{ fsat }}
             <small>sat</small>
-            <span v-show="tip_options" style="font-size: 0.75rem"
+            <span v-show="tip_options" style="font-size: 0.75rem;"
               >( + {{ tipAmountSat }} tip)</span
             >
             {% endraw %}
@@ -197,11 +197,11 @@
     <q-dialog v-model="tipDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
         <div class="text-center q-mb-xl">
-          <b style="font-size: 24px">Would you like to leave a tip?</b>
+          <b style="font-size: 24px;">Would you like to leave a tip?</b>
         </div>
         <div class="text-center q-mb-xl">
           <q-btn
-            style="padding: 10px; margin: 3px"
+            style="padding: 10px; margin: 3px;"
             unelevated
             @click="processTipSelection(tip)"
             size="xl"
@@ -232,7 +232,7 @@
           ></qrcode>
         </q-responsive>
         <div class="text-center q-mb-xl">
-          <p style="word-break: break-all">
+          <p style="word-break: break-all;">
             <strong>{{ tpos.name }}</strong><br />{{ request.url }}
           </p>
         </div>
@@ -253,7 +253,7 @@
         name="check"
         transition-show="fade"
         class="text-light-green"
-        style="font-size: min(90vw, 40em)"
+        style="font-size: min(90vw, 40em);"
       ></q-icon>
     </q-dialog>
   </q-page>

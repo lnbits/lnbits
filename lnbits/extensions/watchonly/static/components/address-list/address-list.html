@@ -38,7 +38,7 @@
     </div>
   </div>
   <q-table
-    style="height: 400px"
+    style="height: 400px;"
     flat
     dense
     :data="getFilteredAddresses()"
@@ -64,7 +64,7 @@
         <q-td key="address" :props="props">
           <div>
             <a
-              style="color: unset"
+              style="color: unset;"
               :href="'https://'+ mempoolEndpoint + '/address/' + props.row.address"
               target="_blank"
             >

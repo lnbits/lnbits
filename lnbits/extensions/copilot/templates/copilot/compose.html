@@ -2,16 +2,16 @@
   <video
     autoplay="true"
     id="videoScreen"
-    style="width: 100%"
+    style="width: 100%;"
     class="fixed-bottom-right"
   ></video>
   <video
     autoplay="true"
     id="videoCamera"
-    style="width: 100%"
+    style="width: 100%;"
     class="fixed-bottom-right"
   ></video>
-  <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
+  <img src="" style="width: 100%;" id="animations" class="fixed-bottom-left" />
 
   <div
     v-if="copilot.lnurl_toggle == 1"
@@ -29,7 +29,7 @@
         :options="{width:250}"
         class="rounded-borders"
       ></qrcode>
-      <center class="absolute-bottom" style="color: black; font-size: 20px">
+      <center class="absolute-bottom" style="color: black; font-size: 20px;">
         {% raw %}{{ copilot.lnurl_title }}{% endraw %}
       </center>
     </div>
@@ -93,8 +93,9 @@
     },
     methods: {
       showNotif: function (userMessage) {
-        var colour =
-          this.colours[Math.floor(Math.random() * this.colours.length)]
+        var colour = this.colours[
+          Math.floor(Math.random() * this.colours.length)
+        ]
         this.$q.notify({
           color: colour,
           icon: 'chat_bubble_outline',

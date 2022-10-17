@@ -107,7 +107,7 @@
   </div>
 
   <q-dialog v-model="jukeboxDialog.show" position="top" @hide="closeFormDialog">
-    <q-card class="q-pa-md q-pt-lg q-mt-md" style="width: 100%">
+    <q-card class="q-pa-md q-pt-lg q-mt-md" style="width: 100%;">
       <q-stepper
         v-model="step"
         active-color="primary"
@@ -254,7 +254,7 @@
             class="cursor-pointer word-break"
             @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
           >
-            <q-card-section style="word-break: break-all">
+            <q-card-section style="word-break: break-all;">
               {% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
               %}
             </q-card-section>

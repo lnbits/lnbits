@@ -18,7 +18,7 @@
     <div class="col-auto">
       <q-btn outline color="grey" label="...">
         <q-menu auto-close>
-          <q-list style="min-width: 100px">
+          <q-list style="min-width: 100px;">
             <q-item clickable>
               <q-item-section @click="exportHistoryToCSV"
                 >Export to CSV</q-item-section
@@ -30,7 +30,7 @@
     </div>
   </div>
   <q-table
-    style="height: 400px"
+    style="height: 400px;"
     flat
     dense
     :data="getFilteredAddressesHistory()"
@@ -81,7 +81,7 @@
         <q-td key="address" :props="props">
           <a
             v-if="!props.row.sameTxItems"
-            style="color: unset"
+            style="color: unset;"
             :href="'https://' + mempoolEndpoint + '/address/' + props.row.address"
             target="_blank"
           >
@@ -105,7 +105,7 @@
             <div class="col-2 q-pr-lg">Transaction Id</div>
             <div class="col-10 q-pr-lg">
               <a
-                style="color: unset"
+                style="color: unset;"
                 :href="'https://' +mempoolEndpoint + '/tx/' + props.row.txId"
                 target="_blank"
               >

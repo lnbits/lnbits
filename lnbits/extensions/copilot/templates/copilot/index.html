@@ -47,10 +47,10 @@
         >
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%;"></q-th>
+              <q-th style="width: 5%;"></q-th>
+              <q-th style="width: 5%;"></q-th>
+              <q-th style="width: 5%;"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -342,7 +342,7 @@
           <q-select
             filled
             dense
-            style="width: 50%"
+            style="width: 50%;"
             v-model.trim="formDialogCopilot.data.show_price"
             :options="currencyOptions"
             label="Show price"
