@@ -17,7 +17,6 @@
           <h5 class="q-mt-none q-mb-sm">
             {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
           </h5>
-          <p>{% raw %}{{ parseFloat(roundToSugestion) }}{% endraw %}</p>
         </div>
       </div>
     </q-page-sticky>
@@ -232,9 +231,9 @@
             rounded
             color="primary"
             label="Round"
-            ></q-btn
-          >          
+          ></q-btn>
           <q-input
+            class="q-my-lg"
             ref="inputRounding"
             v-if="rounding"
             filled
@@ -242,15 +241,15 @@
             :placeholder="roundToSugestion"
             hint="Rounded amount"
           >
-        <template v-slot:append>
-          <q-icon name="send" @click="processTipSelection((1 - (amount/tipRounding))*100)" />
-        </template>
-      </q-input>
-        </div>
-        <div class="text-center q-mb-xl">
-          <p><a @click="processTipSelection(0)"> No, thanks</a></p>
+            <template v-slot:append>
+              <q-icon name="send" @click="calculatePercent" />
+            </template>
+          </q-input>
         </div>
         <div class="row q-mt-lg">
+          <q-btn flat color="primary" @click="processTipSelection(0)"
+            >No, thanks</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>
@@ -416,12 +415,12 @@
       fsat: function () {
         return LNbits.utils.formatSat(this.sat)
       },
-      isRoundValid(){
+      isRoundValid() {
         return this.tipRounding > this.amount
       },
-      roundToSugestion(){        
+      roundToSugestion() {
         //let toNext = 1
-        switch(true){
+        switch (true) {
           case this.amount > 50:
             toNext = 10
             break
@@ -435,15 +434,27 @@
             toNext = 0.5
             break
         }
-        
-        return Math.ceil(this.amount/toNext)*toNext
+
+        return Math.ceil(this.amount / toNext) * toNext
       }
     },
     methods: {
-      setRounding(){
+      setRounding() {
         this.rounding = true
         this.tipRounding = this.roundToSugestion
         this.$nextTick(() => this.$refs.inputRounding.focus())
+      },
+      calculatePercent() {
+        let change = ((this.tipRounding - this.amount) / this.amount) * 100
+        if (change < 0) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Value must be greater than initial amount'
+          })
+          this.tipRounding = this.roundToSugestion
+          return
+        }
+        this.processTipSelection(change)
       },
       closeInvoiceDialog: function () {
         this.stack = []
@@ -643,8 +654,8 @@
           ? null
           : JSON.parse('{{ tpos.tip_options }}')
 
-      if('{{ tpos.tip_wallet }}') {
-        this.tip_options.push("Round")
+      if ('{{ tpos.tip_wallet }}') {
+        this.tip_options.push('Round')
       }
       setInterval(function () {
         getRates()
