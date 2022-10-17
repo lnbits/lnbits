@@ -18,7 +18,6 @@ cashu_static_files = [
         "name": "cashu_static",
     }
 ]
-sys.path.append("/Users/cc/git/cashu")
 from cashu.mint.ledger import Ledger
 
 ledger = Ledger(
@@ -28,7 +27,7 @@ ledger = Ledger(
     derivation_path="0/0/0/1",
 )
 
-cashu_ext: APIRouter = APIRouter(prefix="/api/v1/cashu", tags=["cashu"])
+cashu_ext: APIRouter = APIRouter(prefix="/cashu", tags=["cashu"])
 
 
 def cashu_renderer():

@@ -64,7 +64,7 @@ LIGHTNING = False
 ########################################
 
 # todo: use /mints
-@cashu_ext.get("/cashus", status_code=HTTPStatus.OK)
+@cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
 async def api_cashus(
     all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -75,7 +75,7 @@ async def api_cashus(
     return [cashu.dict() for cashu in await get_cashus(wallet_ids)]
 
 
-@cashu_ext.post("/cashus", status_code=HTTPStatus.CREATED)
+@cashu_ext.post("/api/v1/cashus", status_code=HTTPStatus.CREATED)
 async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)):
     cashu_id = urlsafe_short_hash()
     # generate a new keyset in cashu
@@ -93,7 +93,7 @@ async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key
 #######################################
 
 
-@cashu_ext.get("/{cashu_id}/keys", status_code=HTTPStatus.OK)
+@cashu_ext.get("/api/v1/cashu/{cashu_id}/keys", status_code=HTTPStatus.OK)
 async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
     """Get the public keys of the mint"""
     cashu: Union[Cashu, None] = await get_cashu(cashu_id)
@@ -106,7 +106,7 @@ async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
     return ledger.get_keyset(keyset_id=cashu.keyset_id)
 
 
-@cashu_ext.get("/{cashu_id}/mint")
+@cashu_ext.get("/api/v1/cashu/{cashu_id}/mint")
 async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintResponse:
     """
     Request minting of new tokens. The mint responds with a Lightning invoice.
@@ -144,7 +144,7 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
     return resp
 
 
-@cashu_ext.post("/{cashu_id}/mint")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/mint")
 async def mint_coins(
     data: MintRequest,
     cashu_id: str = Query(None),
@@ -203,7 +203,7 @@ async def mint_coins(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@cashu_ext.post("/{cashu_id}/melt")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/melt")
 async def melt_coins(
     payload: MeltRequest, cashu_id: str = Query(None)
 ) -> GetMeltResponse:
@@ -258,13 +258,13 @@ async def melt_coins(
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
-@cashu_ext.post("/check")
+@cashu_ext.post("/api/v1/check")
 async def check_spendable(payload: CheckRequest) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
     return await ledger.check_spendable(payload.proofs)
 
 
-@cashu_ext.post("/checkfees")
+@cashu_ext.post("/api/v1/checkfees")
 async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
     """
     Responds with the fees necessary to pay a Lightning invoice.
@@ -281,7 +281,7 @@ async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
     return CheckFeesResponse(fee=fees_msat / 1000)
 
 
-@cashu_ext.post("/{cashu_id}/split")
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/split")
 async def split(
     payload: SplitRequest, cashu_id: str = Query(None)
 ) -> PostSplitResponse:
@@ -299,6 +299,7 @@ async def split(
     outputs = payload.outputs.blinded_messages
     # backwards compatibility with clients < v0.2.2
     assert outputs, Exception("no outputs provided.")
+    split_return = None
     try:
         split_return = await ledger.split(proofs, amount, outputs, cashu.keyset_id)
     except Exception as exc:
@@ -316,7 +317,7 @@ async def split(
     return resp
 
 
-# @cashu_ext.post("/api/v1/cashus/upodatekeys", status_code=HTTPStatus.CREATED)
+# @cashu_ext.post("/api/v1s/upodatekeys", status_code=HTTPStatus.CREATED)
 # async def api_cashu_update_keys(
 #     data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)
 # ):
@@ -327,7 +328,7 @@ async def split(
 #     return cashu.dict()
 
 
-# @cashu_ext.delete("/api/v1/cashus/{cashu_id}")
+# @cashu_ext.delete("/api/v1s/{cashu_id}")
 # async def api_cashu_delete(
 #     cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 # ):
@@ -348,7 +349,7 @@ async def split(
 # ########################################
 # #################????###################
 # ########################################
-# @cashu_ext.post("/api/v1/cashus/{cashu_id}/invoices", status_code=HTTPStatus.CREATED)
+# @cashu_ext.post("/api/v1s/{cashu_id}/invoices", status_code=HTTPStatus.CREATED)
 # async def api_cashu_create_invoice(
 #     amount: int = Query(..., ge=1), tipAmount: int = None, cashu_id: str = None
 # ):
@@ -376,7 +377,7 @@ async def split(
 
 
 # @cashu_ext.post(
-#     "/api/v1/cashus/{cashu_id}/invoices/{payment_request}/pay",
+#     "/api/v1s/{cashu_id}/invoices/{payment_request}/pay",
 #     status_code=HTTPStatus.OK,
 # )
 # async def api_cashu_pay_invoice(
@@ -437,7 +438,7 @@ async def split(
 
 
 # @cashu_ext.get(
-#     "/api/v1/cashus/{cashu_id}/invoices/{payment_hash}", status_code=HTTPStatus.OK
+#     "/api/v1s/{cashu_id}/invoices/{payment_hash}", status_code=HTTPStatus.OK
 # )
 # async def api_cashu_check_invoice(cashu_id: str, payment_hash: str):
 #     cashu = await get_cashu(cashu_id)
@@ -459,7 +460,7 @@ async def split(
 # ########################################
 
 
-# # @cashu_ext.get("/api/v1/cashu/{cashu_id}/keys", status_code=HTTPStatus.OK)
+# # @cashu_ext.get("/api/v1/{cashu_id}/keys", status_code=HTTPStatus.OK)
 # # async def keys(cashu_id: str = Query(False)):
 # #     """Get the public keys of the mint"""
 # #     mint = await get_cashu(cashu_id)
@@ -470,7 +471,7 @@ async def split(
 # #     return get_pubkeys(mint.prvkey)
 
 
-# @cashu_ext.get("/api/v1/cashu/{cashu_id}/mint")
+# @cashu_ext.get("/api/v1/{cashu_id}/mint")
 # async def mint_pay_request(amount: int = 0, cashu_id: str = Query(None)):
 #     """Request minting of tokens. Server responds with a Lightning invoice."""
 
@@ -498,7 +499,7 @@ async def split(
 #     return {"pr": payment_request, "hash": payment_hash}
 
 
-# @cashu_ext.post("/api/v1/cashu/{cashu_id}/mint")
+# @cashu_ext.post("/api/v1/{cashu_id}/mint")
 # async def mint_coins(
 #     data: MintPayloads,
 #     cashu_id: str = Query(None),
@@ -560,7 +561,7 @@ async def split(
 #         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# @cashu_ext.post("/api/v1/cashu/{cashu_id}/melt")
+# @cashu_ext.post("/api/v1/{cashu_id}/melt")
 # async def melt_coins(payload: MeltPayload, cashu_id: str = Query(None)):
 #     """Invalidates proofs and pays a Lightning invoice."""
 #     cashu: Cashu = await get_cashu(cashu_id)
@@ -576,12 +577,12 @@ async def split(
 #         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# @cashu_ext.post("/api/v1/cashu/{cashu_id}/check")
+# @cashu_ext.post("/api/v1/{cashu_id}/check")
 # async def check_spendable_coins(payload: CheckPayload, cashu_id: str = Query(None)):
 #     return await check_spendable(payload.proofs, cashu_id)
 
 
-# @cashu_ext.post("/api/v1/cashu/{cashu_id}/split")
+# @cashu_ext.post("/api/v1/{cashu_id}/split")
 # async def split_proofs(payload: SplitRequest, cashu_id: str = Query(None)):
 #     """
 #     Requetst a set of tokens with amount "total" to be split into two
