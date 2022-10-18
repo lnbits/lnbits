@@ -12,7 +12,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 
-from .core.base import Invoice
 from .models import Cashu, Pegs, Promises, Proof
 
 from cashu.core.base import MintKeyset
