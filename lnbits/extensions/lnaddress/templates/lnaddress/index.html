@@ -189,7 +189,7 @@
           bottom-slots
           v-model.trim="domainDialog.data.cf_token"
           type="text"
-          label="Cloudflare API token"
+          label="Cloudflare API token (optional)"
         >
           <template v-slot:hint>
             Check extension
@@ -207,7 +207,7 @@
           dense
           v-model.trim="domainDialog.data.cf_zone_id"
           type="text"
-          label="Cloudflare Zone Id"
+          label="Cloudflare Zone Id (optional)"
         >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
             >Create a "Edit zone DNS" API token in cloudflare</q-tooltip

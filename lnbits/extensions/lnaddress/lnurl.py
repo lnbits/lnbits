@@ -61,6 +61,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
 
     async with httpx.AsyncClient() as client:
         try:
+            metadata = await address.lnurlpay_metadata(domain=domain.domain)
             call = await client.post(
                 base_url + "/api/v1/payments",
                 headers={
@@ -70,9 +71,8 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                 json={
                     "out": False,
                     "amount": int(amount_received / 1000),
-                    "description_hash": (
-                        await address.lnurlpay_metadata(domain=domain.domain)
-                    ).encode("utf-8"),
+                    "unhashed_description": metadata,
+                    "description_hash": hashlib.sha256(metadata.encode("utf-8")).hexdigest(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
                 timeout=40,

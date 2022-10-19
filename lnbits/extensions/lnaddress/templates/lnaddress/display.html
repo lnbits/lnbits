@@ -241,7 +241,7 @@
         let dialog = this.renewDialog.info ? this.renewDialog : this.formDialog
         if (!dialog.data.duration) return 0
         let sats = dialog.data.duration * parseInt('{{ domain_cost }}')
-        dialog.data.sats = parseInt(sats)
+        dialog.data.sats = Math.max(parseInt(sats), 1)
         return sats
       },
       checkUsername: async function () {
@@ -256,7 +256,6 @@
           .then(res => {
             return res.data < 1
           })
-        console.log(available)
         return available
       },
       isValidUsername: function () {
@@ -301,7 +300,6 @@
                 ...dt
               }
               this.renewDialog.info = true
-              console.log(this.renewDialog)
             }
           })
           .catch(function (error) {
@@ -394,7 +392,6 @@
               axios
                 .get(`/lnaddress/api/v1/addresses/${this.paymentCheck}`)
                 .then(res => {
-                  console.log('pay_check', res.data)
                   if (res.data.paid) {
                     clearInterval(paymentChecker)
                     this.receive = {
@@ -404,14 +401,12 @@
                     }
                     dismissMsg()
 
-                    console.log(this.formDialog)
                     this.formDialog.data = {}
                     this.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
                       icon: 'thumb_up'
                     })
-                    console.log('END')
                   }
                 })
                 .catch(function (error) {

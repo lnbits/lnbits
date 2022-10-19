@@ -6,6 +6,8 @@ The extension is muted by default on the .env file and needs the admin of the LN
 
 ## Requirements
 
+For automated configuration, you need the following:
+
 - Free Cloudflare account
 - Cloudflare as a DNS server provider
 - Cloudflare TOKEN and Cloudflare zone-ID where the domain is parked
@@ -28,12 +30,16 @@ Certbot is also a possibity.
 
 ## Usage
 
-1. Before adding a domain, you need to add the domain to Cloudflare and get an API key and Secret key\
+   
+1. - If you don't want to use Cloudflare, add a CNAME or A record for your domain that points to your server.
+   - If you want to use Cloudflare, you need to add the domain to Cloudflare and get an API key and Secret key\
    ![add domain to Cloudflare](https://i.imgur.com/KTJK7uT.png)\
    You can use the _Edit zone DNS_ template Cloudflare provides.\
    ![DNS template](https://i.imgur.com/ciRXuGd.png)\
    Edit the template as you like, if only using one domain you can narrow the scope of the template\
    ![edit template](https://i.imgur.com/NCUF72C.png)
+
+
 
 2. Back on LNbits, click "ADD DOMAIN"\
    ![add domain](https://i.imgur.com/9Ed3NX4.png)

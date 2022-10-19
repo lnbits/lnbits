@@ -67,15 +67,16 @@ async def api_domain_create(
         domain = await create_domain(data=data)
         root_url = urlparse(str(request.url)).netloc
 
-        cf_response = await cloudflare_create_record(domain=domain, ip=root_url)
+        if domain.cf_token != "" and domain.cf_zone_id != "":
+            cf_response = await cloudflare_create_record(domain=domain, ip=root_url)
 
-        if not cf_response or cf_response["success"] != True:
-            await delete_domain(domain.id)
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="Problem with cloudflare: "
-                + cf_response["errors"][0]["message"],
-            )
+            if not cf_response or cf_response["success"] != True:
+                await delete_domain(domain.id)
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="Problem with cloudflare: "
+                    + cf_response["errors"][0]["message"],
+                )
 
     return domain.dict()
 
@@ -150,7 +151,7 @@ async def api_lnaddress_make_address(
         )
 
     domain_cost = domain.cost
-    sats = data.sats
+    sats = max(data.sats, 1) #Min amount is 1sat because 0sats invoice are not payable
 
     ## FAILSAFE FOR CREATING ADDRESSES BY API
     if domain_cost * data.duration != data.sats:
@@ -175,7 +176,7 @@ async def api_lnaddress_make_address(
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=domain.wallet,
-                amount=data.sats,
+                amount=sats,
                 memo=f"Renew {data.username}@{domain.domain} for {sats} sats for {data.duration} more days",
                 extra={
                     "tag": "renew lnaddress",
@@ -206,6 +207,7 @@ async def api_lnaddress_make_address(
                 memo=f"LNAddress {data.username}@{domain.domain} for {sats} sats for {data.duration} days",
                 extra={"tag": "lnaddress"},
             )
+
         except Exception as e:
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
