@@ -125,7 +125,7 @@
           >
         </div>
         <div v-if="item.categories" class="text-subtitle1">
-          <q-chip v-for="cat in item.categories.split(',')" dense
+          <q-chip v-for="(cat, i) in item.categories.split(',')" :key="i" dense
             >{{cat}}</q-chip
           >
         </div>
@@ -409,8 +409,18 @@
                   if (res.data.paid) {
                     this.$q.notify({
                       type: 'positive',
-                      message: 'Sats received, thanks!',
-                      icon: 'thumb_up'
+                      multiLine: true,
+                      message:
+                        "Sats received, thanks! You'l be redirected to the order page...",
+                      icon: 'thumb_up',
+                      actions: [
+                        {
+                          label: 'See Order',
+                          handler: () => {
+                            window.location.href = `/diagonalley/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                          }
+                        }
+                      ]
                     })
                     clearInterval(this.qrCodeDialog.paymentChecker)
                     this.resetCart()

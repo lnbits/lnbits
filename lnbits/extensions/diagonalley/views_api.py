@@ -1,10 +1,10 @@
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
-from typing import List
+from typing import List, Union
 from uuid import uuid4
 
 from fastapi import Request
-from fastapi.param_functions import Query
+from fastapi.param_functions import Body, Query
 from fastapi.params import Depends
 from loguru import logger
 from secp256k1 import PrivateKey, PublicKey
@@ -34,6 +34,7 @@ from .crud import (
     delete_diagonalley_product,
     delete_diagonalley_stall,
     delete_diagonalley_zone,
+    get_diagonalley_chat_by_merchant,
     get_diagonalley_chat_messages,
     get_diagonalley_latest_chat_messages,
     get_diagonalley_market,
@@ -253,6 +254,14 @@ async def api_diagonalley_orders(
         # return [order.dict() for order in await get_diagonalley_orders(wallet_ids)]
     except:
         return {"message": "We could not retrieve the orders."}
+
+
+@diagonalley_ext.get("/api/v1/orders/{order_id}")
+async def api_diagonalley_order_by_id(order_id: str):
+    order = (await get_diagonalley_order(order_id)).dict()
+    order["details"] = await get_diagonalley_order_details(order_id)
+
+    return order
 
 
 @diagonalley_ext.post("/api/v1/orders")
@@ -486,6 +495,16 @@ async def api_diagonalley_generate_keys():
 
 
 ## MESSAGES/CHAT
+
+
+@diagonalley_ext.get("/api/v1/chat/messages/merchant")
+async def api_get_merchant_messages(
+    orders: str = Query(...), wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+
+    return [
+        msg.dict() for msg in await get_diagonalley_chat_by_merchant(orders.split(","))
+    ]
 
 
 @diagonalley_ext.get("/api/v1/chat/messages/{room_name}")

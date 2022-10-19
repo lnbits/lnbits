@@ -408,7 +408,9 @@ async def create_diagonalley_market_stalls(
 async def update_diagonalley_market(market_id):
     pass
 
+
 ### CHAT / MESSAGES
+
 
 async def create_chat_message(data: CreateChatMessage):
     print("DATA", data)
@@ -440,4 +442,15 @@ async def get_diagonalley_chat_messages(room_name: str):
         (room_name,),
     )
 
+    return [ChatMessage(**row) for row in rows]
+
+
+async def get_diagonalley_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
+
+    q = ",".join(["?"] * len(ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM diagonalley.messages WHERE id_conversation IN ({q})",
+        (*ids,),
+    )
+    print(ids, q, rows)
     return [ChatMessage(**row) for row in rows]

@@ -78,9 +78,9 @@ class Notifier:
 
     async def _notify(self, message: str, room_name: str):
         """Notifier"""
-
         d = json.loads(message)
         d["room_name"] = room_name
+        print("hey", d)
         db_msg = CreateChatMessage.parse_obj(d)
         print("NOT:", db_msg)
         await create_chat_message(data=db_msg)

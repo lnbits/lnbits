@@ -94,7 +94,9 @@ async def display(request: Request, market_id):
 
 
 @diagonalley_ext.get("/order", response_class=HTMLResponse)
-async def chat_page(request: Request, merch: str = Query(...), invoice_id: str = Query(...)):
+async def chat_page(
+    request: Request, merch: str = Query(...), invoice_id: str = Query(...)
+):
     stall = await get_diagonalley_stall(merch)
     order = await get_diagonalley_order_invoiceid(invoice_id)
     _order = await get_diagonalley_order_details(order.id)
@@ -110,9 +112,9 @@ async def chat_page(request: Request, merch: str = Query(...), invoice_id: str =
                 "publickey": stall.publickey,
                 "wallet": stall.wallet,
             },
-            "order_id": order.id,
+            "order_id": order.invoiceid,
             "order": [details.dict() for details in _order],
-            "products": [product.dict() for product in products]
+            "products": [product.dict() for product in products],
         },
     )
 
@@ -121,6 +123,41 @@ async def chat_page(request: Request, merch: str = Query(...), invoice_id: str =
 
 # Initialize Notifier:
 notifier = Notifier()
+
+
+# class ConnectionManager:
+#     def __init__(self):
+#         self.active_connections: List[WebSocket] = []
+
+#     async def connect(self, websocket: WebSocket, room_name: str):
+#         await websocket.accept()
+#         websocket.id = room_name
+#         self.active_connections.append(websocket)
+
+#     def disconnect(self, websocket: WebSocket):
+#         self.active_connections.remove(websocket)
+
+#     async def send_personal_message(self, message: str, room_name: str):
+#         for connection in self.active_connections:
+#             if connection.id == room_name:
+#                 await connection.send_text(message)
+
+#     async def broadcast(self, message: str):
+#         for connection in self.active_connections:
+#             await connection.send_text(message)
+
+
+# manager = ConnectionManager()
+
+
+# @diagonalley_ext.websocket("/ws/{room_name}")
+# async def websocket_endpoint(websocket: WebSocket, room_name: str):
+#     await manager.connect(websocket, room_name)
+#     try:
+#         while True:
+#             data = await websocket.receive_text()
+#     except WebSocketDisconnect:
+#         manager.disconnect(websocket)
 
 
 @diagonalley_ext.websocket("/ws/{room_name}")
@@ -143,7 +180,7 @@ async def websocket_endpoint(
             if websocket not in room_members:
                 print("Sender not in room member: Reconnecting...")
                 await notifier.connect(websocket, room_name)
-
+            print("ENDPOINT", data)
             await notifier._notify(data, room_name)
 
     except WebSocketDisconnect:

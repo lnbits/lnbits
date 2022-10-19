@@ -68,7 +68,7 @@
             dense
             emit-value
             v-model="selectedOrder"
-            :options="user.orders"
+            :options="Object.keys(user.orders)"
             label="Order"
             hint="Select an order from this merchant"
             @input="val => { changeOrder() }"
@@ -187,7 +187,7 @@
           msg: this.newMessage,
           pubkey: this.user.keys.publickey
         }
-        ws.send(JSON.stringify(message))
+        this.ws.send(JSON.stringify(message))
 
         this.clearMessage()
       },
@@ -236,10 +236,16 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      changeOrder() {
-        console.log(this.selectedOrder)
+      async changeOrder() {
+        this.products = this.user.orders[this.selectedOrder]
+        this.messages = {}
+        await this.getMessages(this.selectedOrder)
+        this.startChat(this.selectedOrder)
       },
       startChat(room_name) {
+        if (this.ws) {
+          this.ws.close()
+        }
         if (location.protocol == 'https:') {
           ws_scheme = 'wss://'
         } else {
@@ -268,11 +274,20 @@
       }
     },
     async created() {
-      this.stall = JSON.parse('{{ stall | tojson }}')
       let order_details = JSON.parse('{{ order | tojson }}')
       let products = JSON.parse('{{ products | tojson }}')
-
       let order_id = '{{ order_id }}'
+
+      this.stall = JSON.parse('{{ stall | tojson }}')
+      this.products = order_details.map(o => {
+        let product = products.find(p => p.id == o.product_id)
+        return {
+          quantity: o.quantity,
+          name: product.product,
+          image: product.image,
+          price: product.price
+        }
+      })
 
       let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
 
@@ -280,39 +295,30 @@
         if (data) {
           this.user = data
           //add chat key (merchant pubkey) if not set
-          if (!this.user.chats[`${order_id}`]) {
-            this.$set(this.user.chats, order_id, [])
+          if (!this.user.orders[`${order_id}`]) {
+            this.$set(this.user.orders, order_id, this.products)
           }
           //this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         } else {
           // generate keys
           await this.generateKeys()
           // populate user data
-          this.user.chats = {
-            [`${order_id}`]: []
+          this.user.orders = {
+            [`${order_id}`]: this.products
           }
-          this.user.orders = []
+          //this.user.orders = []
         }
 
-        this.order_details = order_details
-        this.products = order_details.map(o => {
-          let product = products.find(p => p.id == o.product_id)
-          return {
-            quantity: o.quantity,
-            name: product.product,
-            image: product.image,
-            price: product.price
-          }
-        })
+        //this.order_details = order_details
 
-        this.user.orders = [...new Set([...this.user.orders, order_id])]
+        //this.user.orders = [...new Set([...this.user.orders, order_id])]
         this.selectedOrder = order_id
 
         await this.getMessages(order_id)
 
         this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         this.startChat(order_id)
-        console.log(this.products)
+        console.log(this.messages)
       } catch (e) {
         console.error(e)
       }

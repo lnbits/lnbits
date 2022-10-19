@@ -345,20 +345,6 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn
-          unelevated
-          v-if="stalls.length > 0"
-          color="primary"
-          @click="productDialog.show = true"
-          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
-        >
-        <q-btn
-          unelevated
-          v-else
-          color="primary"
-          @click="errorMessage('First set shipping zone(s), then create a stall.')"
-          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
-        >
         <q-btn unelevated color="primary" @click="zoneDialog.show = true"
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
@@ -382,7 +368,26 @@
             Create a market stall to list products on
           </q-tooltip></q-btn
         >
-        <q-btn unelevated color="primary" @click="marketDialog.show = true"
+        <q-btn
+          unelevated
+          v-if="stalls.length > 0"
+          color="primary"
+          @click="productDialog.show = true"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-else
+          color="primary"
+          @click="errorMessage('First set shipping zone(s), then create a stall.')"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
+        >
+        <q-btn
+          class="float-right"
+          unelevated
+          flat
+          color="primary"
+          @click="marketDialog.show = true"
           >Create Market
           <q-tooltip>
             Makes a simple frontend shop for your stalls (not NOSTR)</q-tooltip
@@ -416,6 +421,7 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -433,6 +439,23 @@
                   @click="props.expand = !props.expand"
                   :icon="props.expand ? 'remove' : 'add'"
                 />
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  size="sm"
+                  color="green"
+                  dense
+                  icon="chat"
+                  @click="chatRoom(props.row.invoiceid)"
+                >
+                  <q-badge
+                    v-if="props.row.unread"
+                    color="red"
+                    rounded
+                    floating
+                    style="padding: 6px; border-radius: 6px"
+                  />
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -824,22 +847,114 @@
         <q-list> {% include "diagonalley/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
+    <!-- CHAT BOX -->
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">Messages</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-
-        <div class="column q-ma-md q-pb-lg" style="height: 350px">
-          <div class="col q-pb-md">
+      </q-card-section>
+      <q-card-section>
+        <q-select
+          v-model="customerKey"
+          :options="Object.keys(messages)"
+          label="Customers"
+          @input="chatRoom(customerKey)"
+        ></q-select>
+      </q-card-section>
+      <div class="chat-container q-pa-md" ref="chatCard">
+        <div class="chat-box">
+          <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
+          <div class="chat-messages">
+            <q-chat-message
+              :key="index"
+              v-for="(message, index) in orderMessages"
+              :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
+              :text="[message.msg]"
+              :sent="message.pubkey == keys.pubkey ? true : false"
+              :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
+            />
+          </div>
+        </div>
+        <q-form @submit="sendMessage" class="full-width chat-input">
+          <q-input
+            ref="newMessage"
+            v-model="newMessage"
+            placeholder="Message"
+            class="full-width"
+            dense
+            outlined
+          >
+            <template>
+              <q-btn
+                round
+                dense
+                flat
+                type="submit"
+                icon="send"
+                color="primary"
+              />
+            </template>
+          </q-input>
+        </q-form>
+      </div>
+    </q-card>
+    <!-- <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">Messages</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <div
+          ref="chatCard"
+          class="q-ma-md q-pb-lg"
+          style="height: 350px"
+        >
+          <div class="q-pb-md">
             <q-select
               v-model="customerKey"
               style="width: 80%"
-              :options="customerKeys"
+              :options="Object.keys(messages)"
               label="Customers"
-              @input="getMessages(customerKey)"
+              @input="chatRoom(customerKey)"
             ></q-select>
+            <div class="chat-container q-pa-md"> 
+              <div class="chat-box">
+                <p v-if="Object.keys(messages).length === 0">No messages yet</p>
+                <div class="chat-messages">
+                  <q-chat-message
+                    :key="index"
+                    v-for="(message, index) in orderMessages"
+                    :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
+                    :text="[message.msg]"
+                    :sent="message.pubkey == keys.pubkey ? true : false"
+                    :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
+                  />
+                </div>
+              </div>
+              <q-form @submit="sendMessage" class="full-width chat-input">
+                <q-input
+                  ref="newMessage"
+                  v-model="newMessage"
+                  placeholder="Message"
+                  class="full-width"
+                  dense
+                  outlined
+                >
+                  <template>
+                    <q-btn
+                      round
+                      dense
+                      flat
+                      type="submit"
+                      icon="send"
+                      color="primary"
+                    />
+                  </template>
+                </q-input>
+              </q-form>
+            </div>
           </div>
           <div class="col-8 q-px-md">
             <div v-for="message in customerMessages">
@@ -860,11 +975,10 @@
           </div>
         </div>
       </q-card-section>
-    </q-card>
+    </q-card> -->
   </div>
 </div>
-<!-- </div>
-</div> -->
+
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
 
@@ -872,6 +986,15 @@
   Vue.component(VueQrcode.name, VueQrcode)
 
   const pica = window.pica()
+
+  function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
+    let ratio = Math.min(
+      1,
+      maxWidth / img.naturalWidth,
+      maxHeight / img.naturalHeight
+    )
+    return {width: img.naturalWidth * ratio, height: img.naturalHeight * ratio}
+  }
 
   const mapStalls = obj => {
     obj._data = _.clone(obj)
@@ -891,6 +1014,7 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
+    // obj.unread = false
     return obj
   }
   const mapKeys = obj => {
@@ -933,8 +1057,12 @@
         customerKeys: [],
         customerKey: '',
         customerMessages: {},
+        messages: {},
+        newMessage: '',
+        orderMessages: {},
         shippedModel: false,
         shippingZoneOptions: [
+          'Free (digital)',
           'Worldwide',
           'Europe',
           'Australia',
@@ -999,17 +1127,17 @@
         ordersTable: {
           columns: [
             /*{
-              name: 'product',
-              align: 'left',
-              label: 'Product',
-              field: 'product'
-            },
-            {
-              name: 'quantity',
-              align: 'left',
-              label: 'Quantity',
-              field: 'quantity'
-            },*/
+            name: 'product',
+            align: 'left',
+            label: 'Product',
+            field: 'product'
+          },
+          {
+            name: 'quantity',
+            align: 'left',
+            label: 'Quantity',
+            field: 'quantity'
+          },*/
             {
               name: 'id',
               align: 'left',
@@ -1443,9 +1571,10 @@
         let image = new Image()
         image.src = blobURL
         image.onload = async () => {
+          let fit = imgSizeFit(image)
           let canvas = document.createElement('canvas')
-          canvas.setAttribute('width', 760)
-          canvas.setAttribute('height', 490)
+          canvas.setAttribute('width', fit.width)
+          canvas.setAttribute('height', fit.height)
           await pica.resize(image, canvas, {
             quality: 0,
             alpha: true,
@@ -1657,7 +1786,7 @@
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
-              console.log(this.markets)
+              // console.log(this.markets)
             }
           })
           .catch(error => {
@@ -1756,10 +1885,10 @@
       ////////////////////////////////////////
       ////////////////ORDERS//////////////////
       ////////////////////////////////////////
-      getOrders: function () {
+      getOrders: async function () {
         var self = this
 
-        LNbits.api
+        await LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/orders?all_wallets=true',
@@ -1768,7 +1897,6 @@
           .then(function (response) {
             if (response.data) {
               self.orders = response.data.map(mapOrders)
-              console.log(self.orders)
             }
           })
           .catch(function (error) {
@@ -1839,21 +1967,190 @@
       },
       exportOrdersCSV: function () {
         LNbits.utils.exportCSV(this.ordersTable.columns, this.orders)
+      },
+      /// CHAT
+      async getAllMessages() {
+        await LNbits.api
+          .request(
+            'GET',
+            `/diagonalley/api/v1/chat/messages/merchant?orders=${this.orders
+              .map(o => o.invoiceid)
+              .toString()}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(res => {
+            this.messages = _.groupBy(res.data, 'id_conversation')
+            this.checkUnreadMessages()
+            console.log('Get new messages!')
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateLastSeenMsg(id) {
+        let data = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        let chat = {
+          ...data.chat,
+          [`${id}`]: {
+            timestamp: Object.keys(this.orderMessages)[
+              Object.keys(this.orderMessages).length - 1
+            ]
+          }
+        }
+        console.log({chat})
+        this.$q.localStorage.set(`lnbits.diagonalley.${this.g.user.id}`, {
+          ...data,
+          chat
+        })
+        this.checkUnreadMessages()
+      },
+      checkUnreadMessages() {
+        let lastMsgs = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        ).chat
+        for (let key in this.messages) {
+          let idx = this.orders.findIndex(f => f.invoiceid == key)
+          if (!lastMsgs[key]) {
+            this.updateLastSeenMsg(key)
+            //this.orders[idx].unread = true
+            return
+          }
+          console.log(
+            'Key',
+            key,
+            'saved:',
+            lastMsgs[key].timestamp,
+            'messages: ',
+            Math.max(...this.messages[key].map(c => c.timestamp)),
+            lastMsgs[key].timestamp <
+              Math.max(...this.messages[key].map(c => c.timestamp))
+          )
+          if (
+            lastMsgs[key].timestamp <
+            Math.max(...this.messages[key].map(c => c.timestamp))
+          ) {
+            this.$set(this.orders[idx], 'unread', true)
+            // this.orders[idx].unread = true
+          } else {
+            this.$set(this.orders[idx], 'unread', false)
+            // this.orders[idx].unread = false
+          }
+          console.log('Order:', this.orders[idx])
+        }
+      },
+      clearMessage() {
+        this.newMessage = ''
+        this.$refs.newMessage.focus()
+      },
+      sendMessage() {
+        let message = {
+          msg: this.newMessage,
+          pubkey: this.keys.pubkey
+        }
+        this.ws.send(JSON.stringify(message))
+
+        this.clearMessage()
+      },
+      chatRoom(id) {
+        this.startChat(id)
+        this.orderMessages = {}
+        this.messages[id].map(m => {
+          this.$set(this.orderMessages, m.timestamp, {
+            msg: m.msg,
+            pubkey: m.pubkey
+          })
+        })
+        this.$refs.chatCard.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'nearest'
+        })
+        this.updateLastSeenMsg(id)
+        //"ea2fbf6c91aa228603681e2cc34bb06e34e6d1375fa4d6c35756182b2fa3307f"
+        //"c7435a04875c26e28db91a377bd6e991dbfefeefea8258415f3ae0c716ed2335"
+      },
+      startChat(room_name) {
+        if (this.ws) {
+          this.ws.close()
+        }
+        if (location.protocol == 'https:') {
+          ws_scheme = 'wss://'
+        } else {
+          ws_scheme = 'ws://'
+        }
+        ws = new WebSocket(
+          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+        )
+
+        function checkWebSocket(event) {
+          if (ws.readyState === WebSocket.CLOSED) {
+            console.log('WebSocket CLOSED: Reopening')
+            ws = new WebSocket(
+              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+            )
+          }
+        }
+
+        ws.onmessage = event => {
+          let event_data = JSON.parse(event.data)
+
+          this.$set(this.orderMessages, Date.now(), event_data)
+          this.updateLastSeenMsg(room_name)
+        }
+
+        ws.onclose = event => {
+          this.updateLastSeenMsg(room_name)
+        }
+
+        this.ws = ws
       }
     },
-    created: function () {
+    async created() {
       if (this.g.user.wallets.length) {
         this.getStalls()
         this.getProducts()
         this.getZones()
-        this.getOrders()
+        await this.getOrders()
         this.getMarkets()
-        this.customerKeys = [
-          'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
-          'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'
-        ]
+        await this.getAllMessages()
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+        }
+        setInterval(() => {
+          this.getAllMessages()
+        }, 300000)
       }
     }
   })
 </script>
+<style scoped>
+  .chat-container {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: calc(100vh - 140px);
+  }
+
+  .chat-box {
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .chat-messages {
+    width: auto;
+  }
+
+  .chat-input {
+    position: relative;
+    display: flex;
+    align-items: end;
+    margin-top: 1rem;
+  }
+</style>
 {% endblock %}
