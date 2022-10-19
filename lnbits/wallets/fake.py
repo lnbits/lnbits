@@ -8,9 +8,7 @@ from typing import AsyncGenerator, Dict, Optional
 from environs import Env  # type: ignore
 from loguru import logger
 
-from lnbits.helpers import urlsafe_short_hash
-
-from ..bolt11 import decode, encode
+from ..bolt11 import Invoice, decode, encode
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -24,6 +22,16 @@ env.read_env()
 
 
 class FakeWallet(Wallet):
+    queue: asyncio.Queue = asyncio.Queue(0)
+    secret: str = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
+    privkey: str = hashlib.pbkdf2_hmac(
+        "sha256",
+        secret.encode("utf-8"),
+        ("FakeWallet").encode("utf-8"),
+        2048,
+        32,
+    ).hex()
+
     async def status(self) -> StatusResponse:
         logger.info(
             "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
@@ -39,18 +47,12 @@ class FakeWallet(Wallet):
     ) -> InvoiceResponse:
         # we set a default secret since FakeWallet is used for internal=True invoices
         # and the user might not have configured a secret yet
-        secret = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
+
         data: Dict = {
             "out": False,
             "amount": amount,
             "currency": "bc",
-            "privkey": hashlib.pbkdf2_hmac(
-                "sha256",
-                secret.encode("utf-8"),
-                ("FakeWallet").encode("utf-8"),
-                2048,
-                32,
-            ).hex(),
+            "privkey": self.privkey,
             "memo": None,
             "description_hash": None,
             "description": "",
@@ -86,8 +88,9 @@ class FakeWallet(Wallet):
         invoice = decode(bolt11)
         if (
             hasattr(invoice, "checking_id")
-            and invoice.checking_id[6:] == data["privkey"][:6]  # type: ignore
+            and invoice.checking_id[:6] == self.privkey[:6]  # type: ignore
         ):
+            await self.queue.put(invoice)
             return PaymentResponse(True, invoice.payment_hash, 0)
         else:
             return PaymentResponse(
@@ -101,7 +104,6 @@ class FakeWallet(Wallet):
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
-            value = await self.queue.get()
-            yield value
+            value: Invoice = await self.queue.get()
+            yield value.payment_hash

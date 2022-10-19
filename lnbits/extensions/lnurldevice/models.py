@@ -17,6 +17,7 @@ class createLnurldevice(BaseModel):
     currency: str
     device: str
     profit: float
+    amount: int
 
 
 class lnurldevices(BaseModel):
@@ -27,15 +28,14 @@ class lnurldevices(BaseModel):
     currency: str
     device: str
     profit: float
+    amount: int
     timestamp: str
 
     def from_row(cls, row: Row) -> "lnurldevices":
         return cls(**dict(row))
 
     def lnurl(self, req: Request) -> Lnurl:
-        url = req.url_for(
-            "lnurldevice.lnurl_response", device_id=self.id, _external=True
-        )
+        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
         return lnurl_encode(url)
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
