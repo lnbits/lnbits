@@ -20,6 +20,7 @@ from cashu.core.base import (
     Proof,
     SplitRequest,
 )
+from cashu.mint.ledger import Ledger
 from fastapi import Query
 from fastapi.params import Depends
 from lnurl import decode as decode_lnurl
@@ -37,10 +38,13 @@ from lnbits.core.services import (
 )
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.extensions.cashu.ledger_crud import LedgerCrud
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.wallets.base import PaymentStatus
 
-from . import cashu_ext, ledger
+from . import cashu_ext
+
+# , ledger
 from .crud import create_cashu, delete_cashu, get_cashu, get_cashus
 from .models import Cashu
 
@@ -48,6 +52,25 @@ from .models import Cashu
 
 
 LIGHTNING = False
+
+# // todo: out
+from . import db
+
+cached_ledgers = {}
+def _ledger(cashu_id: str):
+    if cashu_id in cached_ledgers:
+        return cached_ledgers[cashu_id]
+
+    ledger = Ledger(
+        db=db,
+        crud=LedgerCrud(db, cashu_id),
+        # seed=MINT_PRIVATE_KEY,
+        seed="asd",
+        derivation_path="0/0/0/1",
+    )
+    cached_ledgers[cashu_id] = ledger
+    return ledger
+
 
 ########################################
 ############### LNBITS MINTS ###########
@@ -69,6 +92,7 @@ async def api_cashus(
 async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)):
     cashu_id = urlsafe_short_hash()
     # generate a new keyset in cashu
+    ledger = _ledger(cashu_id)
     keyset = await ledger.load_keyset(cashu_id)
 
     cashu = await create_cashu(
@@ -92,6 +116,7 @@ async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
+    ledger = _ledger(cashu_id)
 
     return ledger.get_keyset(keyset_id=cashu.keyset_id)
 
@@ -110,6 +135,7 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
+    ledger = _ledger(cashu_id)
 
     # create an invoice that the wallet needs to pay
     try:
@@ -128,7 +154,7 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
         logger.error(e)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    print(f"Lightning invoice: {payment_request}")
+    # print(f"Lightning invoice: {payment_request}")
     resp = GetMintResponse(pr=payment_request, hash=payment_hash)
     #     return {"pr": payment_request, "hash": payment_hash}
     return resp
@@ -149,6 +175,7 @@ async def mint_coins(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
+    ledger = _ledger(cashu_id)
 
     if LIGHTNING:
         invoice: Invoice = await ledger.crud.get_lightning_invoice(
@@ -203,6 +230,8 @@ async def melt_coins(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
+    ledger = _ledger(cashu_id)
+
     proofs = payload.proofs
     invoice = payload.invoice
 
@@ -248,9 +277,17 @@ async def melt_coins(
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
-@cashu_ext.post("/api/v1/check")
-async def check_spendable(payload: CheckRequest) -> Dict[int, bool]:
+@cashu_ext.post("/api/v1/cashu/{cashu_id}/check")
+async def check_spendable(
+    payload: CheckRequest, cashu_id: str = Query(None)
+) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
+    cashu: Union[None, Cashu] = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+    ledger = _ledger(cashu_id)
     return await ledger.check_spendable(payload.proofs)
 
 
@@ -284,6 +321,8 @@ async def split(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
+    ledger = _ledger(cashu_id)
+
     proofs = payload.proofs
     amount = payload.amount
     outputs = payload.outputs.blinded_messages

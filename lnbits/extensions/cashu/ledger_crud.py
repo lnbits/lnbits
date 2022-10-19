@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 
 from cashu.core.base import MintKeyset
 
-from lnbits.db import Connection, Database
+from lnbits.db import Database
 from lnbits.helpers import urlsafe_short_hash
 
 from .models import Invoice, Proof
@@ -15,16 +15,11 @@ class LedgerCrud:
     This class needs to be overloaded by any app that imports the Cashu mint.
     """
 
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, cashu_id: str):
         self.db = db
+        self.cashu_id = cashu_id
 
-    async def get_keyset(
-        self,
-        id: str = None,
-        derivation_path: str = "",
-        db: Database = None,
-        conn: Optional[Connection] = None,
-    ):
+    async def get_keyset(self, id: str = None, derivation_path: str = "", **kwargs):
         clauses = []
         values: List[Any] = []
         clauses.append("active = ?")
@@ -48,24 +43,20 @@ class LedgerCrud:
         )
         return [MintKeyset.from_row(row) for row in rows]
 
-    async def get_lightning_invoice(self, cashu_id: str, hash: str):
+    async def get_lightning_invoice(self, hash: str):
         row = await self.db.fetchone(
             """
             SELECT * from cashu.invoices
             WHERE cashu_id =? AND hash = ?
             """,
             (
-                cashu_id,
+                self.cashu_id,
                 hash,
             ),
         )
         return Invoice.from_row(row)
 
-    async def get_proofs_used(
-        self,
-        db: Database,
-        conn: Optional[Connection] = None,
-    ):
+    async def get_proofs_used(self, **kwargs):
 
         rows = await self.db.fetchall(
             """
@@ -74,7 +65,7 @@ class LedgerCrud:
         )
         return [row[0] for row in rows]
 
-    async def invalidate_proof(self, cashu_id: str, proof: Proof):
+    async def invalidate_proof(self, proof: Proof):
         invalidate_proof_id = urlsafe_short_hash()
         await self.db.execute(
             """
@@ -87,16 +78,11 @@ class LedgerCrud:
                 proof.amount,
                 str(proof.C),
                 str(proof.secret),
-                cashu_id,
+                self.cashu_id,
             ),
         )
 
-    async def store_keyset(
-        self,
-        keyset: MintKeyset,
-        db: Database = None,
-        conn: Optional[Connection] = None,
-    ):
+    async def store_keyset(self, keyset: MintKeyset, **kwargs):
 
         await self.db.execute(  # type: ignore
             """
@@ -115,7 +101,7 @@ class LedgerCrud:
             ),
         )
 
-    async def store_lightning_invoice(self, cashu_id: str, invoice: Invoice, **kwargs):
+    async def store_lightning_invoice(self, invoice: Invoice, **kwargs):
         await self.db.execute(
             """
             INSERT INTO cashu.invoices
@@ -123,7 +109,7 @@ class LedgerCrud:
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                cashu_id,
+                self.cashu_id,
                 invoice.amount,
                 invoice.pr,
                 invoice.hash,
@@ -131,7 +117,7 @@ class LedgerCrud:
             ),
         )
 
-    async def store_promise(self, amount: int, B_: str, C_: str, cashu_id: str):
+    async def store_promise(self, amount: int, B_: str, C_: str):
         promise_id = urlsafe_short_hash()
 
         await self.db.execute(
@@ -140,15 +126,15 @@ class LedgerCrud:
             (id, amount, B_b, C_b, cashu_id)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (promise_id, amount, str(B_), str(C_), cashu_id),
+            (promise_id, amount, str(B_), str(C_), self.cashu_id),
         )
 
-    async def update_lightning_invoice(self, cashu_id: str, hash: str, issued: bool):
+    async def update_lightning_invoice(self, hash: str, issued: bool):
         await self.db.execute(
             "UPDATE cashu.invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
             (
                 issued,
-                cashu_id,
+                self.cashu_id,
                 hash,
             ),
         )
