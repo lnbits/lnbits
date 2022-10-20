@@ -195,29 +195,12 @@
                             v-model="formDialog.data.display_preferences.onchain_dashboard"
                             label="Onchain dashboard"
                     ></q-toggle>
-                    <q-expansion-item
-                            expand-separator
-                            icon="psychology"
-                            label="The Mempool"
-                    >
-                        <q-toggle
-                                v-model="toggleStates.mempool"
-                                label="Toggle all"
-                        >
-                            <q-tooltip>Toggle all</q-tooltip>
-                        </q-toggle>
-                        <br>
 
                         <q-toggle
                                 v-model="formDialog.data.display_preferences.mempool_recommended_fees"
-                                label="Recommended fees"
+                                label="mempool.space recommended fees"
                         ></q-toggle>
 
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.mempool_tx_count"
-                                label="Number of transactions in the mempool"
-                        ></q-toggle>
-                    </q-expansion-item>
 
                     <q-expansion-item
                             expand-separator
