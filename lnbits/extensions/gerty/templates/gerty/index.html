@@ -218,11 +218,12 @@
                                 :disable="formDialog.data.wallet == null || formDialog.data.name == null"
                                 type="submit"
                                 class="q-mr-md"
+                                v-if="!formDialog.data.id"
                         >Create Gerty
                         </q-btn
                         >
                         <q-btn
-                                v-if="formDialog.data.id"
+                                v-else
                                 unelevated
                                 color="primary"
                                 :disable="formDialog.data.wallet == null || formDialog.data.name == null"
@@ -257,14 +258,6 @@
             mixins: [windowMixin],
             data: function () {
                 return {
-                    toggleStates: {
-                        fun: true,
-                        onchain: true,
-                        mempool: true,
-                        mining: true,
-                        lightning: true
-                    },
-                    oldToggleStates: {},
                     gertys: [],
                     currencyOptions: [
                         'USD',
@@ -622,27 +615,6 @@
             created: function () {
                 if (this.g.user.wallets.length) {
                     this.getGertys()
-                }
-            },
-            watch: {
-                toggleStates: {
-                    handler(toggleStatesValue) {
-                        // Switch all the toggles in each section to the relevant state
-                        for (const [toggleKey, toggleValue] of Object.entries(toggleStatesValue)) {
-                            if (this.oldToggleStates[toggleKey] !== toggleValue) {
-                                for (const [dpKey, dpValue] of Object.entries(this.formDialog.data.display_preferences)) {
-                                    if (dpKey.indexOf(toggleKey) === 0) {
-                                        this.formDialog.data.display_preferences[dpKey] = toggleValue
-                                    }
-                                }
-                            }
-                        }
-                        // This is a weird hack we have to use to get VueJS to persist the previous toggle state between
-                        // watches. VueJS passes the old and new values by reference so when comparing objects they
-                        // will have the same values unless we do this
-                        this.oldToggleStates = JSON.parse(JSON.stringify(toggleStatesValue))
-                    },
-                    deep: true
                 }
             }
         })
