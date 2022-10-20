@@ -297,16 +297,16 @@ async def get_onchain_dashboard(gerty):
             text = []
             stat = round(r.json()["progressPercent"])
             text.append(
-                get_text_item_dict("Progress through current difficulty epoch", 12)
+                get_text_item_dict("Progress through current epoch", 12)
             )
-            text.append(get_text_item_dict("{0}%".format(stat), 20))
+            text.append(get_text_item_dict("{0}%".format(stat), 60))
             areas.append(text)
 
             text = []
             stat = r.json()["estimatedRetargetDate"]
             dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
             text.append(
-                get_text_item_dict("Estimated date of next difficulty adjustment", 12)
+                get_text_item_dict("Date of next difficulty adjustment", 12)
             )
             text.append(get_text_item_dict(dt, 20))
             areas.append(text)
@@ -315,20 +315,20 @@ async def get_onchain_dashboard(gerty):
             stat = r.json()["remainingBlocks"]
             text.append(
                 get_text_item_dict(
-                    "Blocks remaining until next difficulty adjustment", 12
+                    "Blocks until next adjustment", 12
                 )
             )
-            text.append(get_text_item_dict("{0}".format(format_number(stat)), 20))
+            text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
             areas.append(text)
 
             text = []
             stat = r.json()["remainingTime"]
             text.append(
                 get_text_item_dict(
-                    "Blocks remaining until next difficulty adjustment", 12
+                    "Blocks until next adjustment", 12
                 )
             )
-            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
+            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 60))
             areas.append(text)
 
     return areas

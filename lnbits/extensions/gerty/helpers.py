@@ -102,7 +102,7 @@ async def get_mining_dashboard(gerty):
             text = []
             stat = r.json()["remainingTime"]
             text.append(get_text_item_dict("Time to next difficulty adjustment", 12))
-            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 3), 20))
+            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 3), 12))
             areas.append(text)
 
             # difficultyChange
