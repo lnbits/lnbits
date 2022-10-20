@@ -102,7 +102,7 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
     charge = await get_charge(charge_id)
     if not charge.paid:
         if charge.onchainaddress:
-            config = await get_config(charge.user)
+            config = await get_charge_config(charge_id)
             try:
                 async with httpx.AsyncClient() as client:
                     r = await client.get(
@@ -122,3 +122,10 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None
+
+
+async def get_charge_config(charge_id: str):
+    row = await db.fetchone(
+        """SELECT "user" FROM satspay.charges WHERE id = ?""", (charge_id,)
+    )
+    return await get_config(row.user)
