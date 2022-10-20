@@ -153,7 +153,10 @@ async def api_gerty_json(gerty_id: str, p: int = None):  # page number
 
 # Get a screen slug by its position in the screens_list
 def get_screen_slug_by_index(index: int, screens_list):
-    return list(screens_list)[index]
+    if(index < len(screens_list) - 1):
+        return list(screens_list)[index]
+    else:
+        return None
 
 
 # Get a list of text items for the screen number
