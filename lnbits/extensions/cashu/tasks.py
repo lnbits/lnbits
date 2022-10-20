@@ -7,15 +7,15 @@ from cashu.mint import migrations
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from . import db, ledger
-from .crud import get_cashu
+# from . import db, ledger
+# from .crud import get_cashu
 
 
 async def startup_cashu_mint():
-    await migrate_databases(db, migrations)
-    await ledger.load_used_proofs()
-    await ledger.init_keysets()
-    print(ledger.get_keyset())
+    # await migrate_databases(db, migrations)
+    # await ledger.load_used_proofs()
+    # await ledger.init_keysets()
+    # print(ledger.get_keyset())
     pass
 
 

@@ -1,12 +1,33 @@
 from typing import Any, List, Optional
 
 from cashu.core.base import MintKeyset
+from cashu.mint.ledger import Ledger
+from cashu.core.migrations import migrate_databases
+from cashu.mint import migrations
 
 from lnbits.db import Database
 from lnbits.helpers import urlsafe_short_hash
 
 from .models import Invoice, Proof
+from . import db
 
+cached_ledgers = {}
+async def cashu_ledger(cashu_id: str):
+    if cashu_id in cached_ledgers:
+        return cached_ledgers[cashu_id]
+
+    ledger = Ledger(
+        db=db,
+        crud=LedgerCrud(db, cashu_id),
+        # seed=MINT_PRIVATE_KEY,
+        seed="asd",
+        derivation_path="0/0/0/1",
+    )
+    # await migrate_databases(db, migrations)
+    await ledger.load_used_proofs()
+    await ledger.init_keysets()
+    cached_ledgers[cashu_id] = ledger
+    return ledger
 
 class LedgerCrud:
     """
@@ -34,6 +55,7 @@ class LedgerCrud:
         if clauses:
             where = f"WHERE {' AND '.join(clauses)}"
 
+        print('### SELECT this: ', where, values)
         rows = await self.db.fetchall(  # type: ignore
             f"""
             SELECT * from cashu.keysets
@@ -41,9 +63,11 @@ class LedgerCrud:
             """,
             tuple(values),
         )
+        print('### SELECT this: ', where, values)
+        print('### rows', rows)
         return [MintKeyset.from_row(row) for row in rows]
 
-    async def get_lightning_invoice(self, hash: str):
+    async def get_lightning_invoice(self, hash: str, **kwargs):
         row = await self.db.fetchone(
             """
             SELECT * from cashu.invoices
@@ -65,7 +89,7 @@ class LedgerCrud:
         )
         return [row[0] for row in rows]
 
-    async def invalidate_proof(self, proof: Proof):
+    async def invalidate_proof(self, proof: Proof, **kwargs):
         invalidate_proof_id = urlsafe_short_hash()
         await self.db.execute(
             """
@@ -117,7 +141,7 @@ class LedgerCrud:
             ),
         )
 
-    async def store_promise(self, amount: int, B_: str, C_: str):
+    async def store_promise(self, amount: int, B_: str, C_: str, **kwargs):
         promise_id = urlsafe_short_hash()
 
         await self.db.execute(
@@ -129,7 +153,7 @@ class LedgerCrud:
             (promise_id, amount, str(B_), str(C_), self.cashu_id),
         )
 
-    async def update_lightning_invoice(self, hash: str, issued: bool):
+    async def update_lightning_invoice(self, hash: str, issued: bool, **kwargs):
         await self.db.execute(
             "UPDATE cashu.invoices SET issued = ? WHERE cashu_id = ? AND hash = ?",
             (
