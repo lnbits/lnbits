@@ -179,8 +179,6 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         areas.append(await get_onchain_dashboard(gerty))
     elif screen_slug == "mempool_recommended_fees":
         areas.append(await get_mempool_stat(screen_slug, gerty))
-    elif screen_slug == "mempool_tx_count":
-        areas.append(await get_mempool_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_hash_rate":
         areas.append(await get_mining_stat(screen_slug, gerty))
     elif screen_slug == "mining_current_difficulty":
