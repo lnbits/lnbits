@@ -129,14 +129,15 @@ async def api_gerty_json(gerty_id: str, p: int = None):  # page number
 
     # get the sleep time
     sleep_time = gerty.refresh_time if gerty.refresh_time else 300
-    if gerty_should_sleep():
+    utc_offset = gerty.utc_offset if gerty.utc_offset else 0
+    if gerty_should_sleep(utc_offset):
         sleep_time_hours = 8
         sleep_time = 60 * 60 * sleep_time_hours
 
     return {
         "settings": {
             "refreshTime": sleep_time,
-            "requestTimestamp": get_next_update_time(sleep_time),
+            "requestTimestamp": get_next_update_time(sleep_time, utc_offset),
             "nextScreenNumber": next_screen_number,
             "showTextBoundRect": False,
             "name": gerty.name,

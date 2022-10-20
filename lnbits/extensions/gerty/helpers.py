@@ -2,7 +2,6 @@ import textwrap
 from datetime import datetime, timedelta
 
 import httpx
-import pytz
 from loguru import logger
 
 from .number_prefixer import *
@@ -95,7 +94,7 @@ async def get_mining_dashboard(gerty):
             text = []
             progress = "{0}%".format(round(r.json()["progressPercent"], 2))
             text.append(get_text_item_dict("Progress through current epoch", 12))
-            text.append(get_text_item_dict(progress, 20))
+            text.append(get_text_item_dict(progress, 60))
             areas.append(text)
 
             # difficulty adjustment
@@ -114,7 +113,7 @@ async def get_mining_dashboard(gerty):
                     "{0}{1}%".format(
                         "+" if difficultyChange > 0 else "", round(difficultyChange, 2)
                     ),
-                    20,
+                    60,
                 )
             )
             areas.append(text)
@@ -193,19 +192,19 @@ async def get_lightning_stats(gerty):
     return areas
 
 
-def get_next_update_time(sleep_time_seconds: int = 0, timezone: str = "Europe/London"):
+def get_next_update_time(sleep_time_seconds: int = 0, utc_offset: int = 0):
     utc_now = datetime.utcnow()
     next_refresh_time = utc_now + timedelta(0, sleep_time_seconds)
-    local_refresh_time = next_refresh_time.astimezone(pytz.timezone(timezone))
+    local_refresh_time = next_refresh_time + timedelta(hours=utc_offset)
     return "{0} {1}".format(
-        "I'll wake up at" if gerty_should_sleep() else "Next update at",
+        "I'll wake up at" if gerty_should_sleep(utc_offset) else "Next update at",
         local_refresh_time.strftime("%H:%M on %e %b %Y"),
     )
 
 
-def gerty_should_sleep(timezone: str = "Europe/London"):
-    utc_now = pytz.utc.localize(datetime.utcnow())
-    local_time = utc_now.astimezone(pytz.timezone(timezone))
+def gerty_should_sleep(utc_offset: int = 0):
+    utc_now = datetime.utcnow()
+    local_time = utc_now + timedelta(hours=utc_offset)
     hours = local_time.strftime("%H")
     hours = int(hours)
     logger.debug("HOURS")
