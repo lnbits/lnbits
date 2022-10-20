@@ -196,10 +196,10 @@
                             label="Onchain dashboard"
                     ></q-toggle>
 
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.mempool_recommended_fees"
-                                label="mempool.space recommended fees"
-                        ></q-toggle>
+                    <q-toggle
+                            v-model="formDialog.data.display_preferences.mempool_recommended_fees"
+                            label="mempool.space recommended fees"
+                    ></q-toggle>
 
 
                     <q-expansion-item
@@ -225,16 +225,12 @@
                         ></q-toggle>
                     </q-expansion-item>
 
-                    <q-expansion-item
-                            expand-separator
-                            icon="bolt"
-                            label="Lightning Network"
-                    >
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lightning_dashboard"
-                                label="Lightning Dashboard"
-                        ></q-toggle>
-                    </q-expansion-item>
+
+                    <q-toggle
+                            v-model="formDialog.data.display_preferences.lightning_dashboard"
+                            label="Lightning Network Dashboard"
+                    ></q-toggle>
+                    
                     <div class="row q-mt-lg">
                         <q-btn
                                 unelevated
