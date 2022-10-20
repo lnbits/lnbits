@@ -11,6 +11,9 @@ db = Database("ext_cashu")
 
 import sys
 
+sys.path.append("/Users/moto/Documents/GitHub/motorina0/cashu")
+# from lnbits.extensions.cashu.ledger_crud import LedgerCrud
+
 cashu_static_files = [
     {
         "path": "/cashu/static",
@@ -18,14 +21,17 @@ cashu_static_files = [
         "name": "cashu_static",
     }
 ]
-from cashu.mint.ledger import Ledger
 
-ledger = Ledger(
-    db=db,
-    # seed=MINT_PRIVATE_KEY,
-    seed="asd",
-    derivation_path="0/0/0/1",
-)
+
+# from cashu.mint.ledger import Ledger
+
+# ledger = Ledger(
+#     db=db,
+#     crud=LedgerCrud(db, "x"),  # remove this instance
+#     # seed=MINT_PRIVATE_KEY,
+#     seed="asd",
+#     derivation_path="0/0/0/1",
+# )
 
 cashu_ext: APIRouter = APIRouter(prefix="/cashu", tags=["cashu"])
 
@@ -34,7 +40,7 @@ def cashu_renderer():
     return template_renderer(["lnbits/extensions/cashu/templates"])
 
 
-from .tasks import wait_for_paid_invoices, startup_cashu_mint
+from .tasks import startup_cashu_mint, wait_for_paid_invoices
 from .views import *  # noqa
 from .views_api import *  # noqa
 
