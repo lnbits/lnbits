@@ -309,6 +309,7 @@ async def get_onchain_dashboard(gerty):
 
     return areas
 
+
 async def get_time_remaining_next_difficulty_adjustment(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
