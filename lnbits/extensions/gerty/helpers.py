@@ -78,12 +78,9 @@ async def get_mining_dashboard(gerty):
 
             # timeAvg
             text = []
-            time_avg = r.json()['timeAvg'] / 1000
-            hours, remainder = divmod(time_avg, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            time_avg = '{:02} minutes {:02} seconds'.format(int(minutes), int(seconds))
-            text.append(get_text_item_dict("Current block time", 12))
-            text.append(get_text_item_dict(str(time_avg), 20))
+            progress = "{0}%".format(round(r.json()['progressPercent'], 2))
+            text.append(get_text_item_dict("Progress through current epoch", 12))
+            text.append(get_text_item_dict(progress, 20))
             areas.append(text)
 
             # difficulty adjustment
