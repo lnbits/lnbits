@@ -180,17 +180,6 @@
                                 label="Show the dashboard"
                         ></q-toggle>
 
-                    <q-expansion-item
-                            expand-separator
-                            icon="perm_identity"
-                            label="LNbits Wallets"
-                    >
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
-                                label="Show LNbits wallet balances"
-                        ></q-toggle>
-
-                    </q-expansion-item>
                         <q-toggle
                                 v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
                                 label="Satoshi Quotes"
@@ -551,7 +540,6 @@
                         data: {
                             display_preferences: {
                                 dashboard: true,
-                                lnbits_wallets_balance: true,
                                 fun_satoshi_quotes: true,
                                 fun_exchange_market_rate: true,
                                 onchain_difficulty_epoch_progress: true,
