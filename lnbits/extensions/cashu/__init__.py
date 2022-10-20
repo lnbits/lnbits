@@ -12,7 +12,6 @@ db = Database("ext_cashu")
 import sys
 
 sys.path.append("/Users/moto/Documents/GitHub/motorina0/cashu")
-# from lnbits.extensions.cashu.ledger_crud import LedgerCrud
 
 cashu_static_files = [
     {
