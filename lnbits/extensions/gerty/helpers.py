@@ -194,7 +194,7 @@ async def get_lightning_stats(gerty):
 
 
 def get_next_update_time(sleep_time_seconds: int = 0, timezone: str = "Europe/London"):
-    utc_now = pytz.utc.localize(datetime.utcnow())
+    utc_now = datetime.utcnow()
     next_refresh_time = utc_now + timedelta(0, sleep_time_seconds)
     local_refresh_time = next_refresh_time.astimezone(pytz.timezone(timezone))
     return "{0} {1}".format(
