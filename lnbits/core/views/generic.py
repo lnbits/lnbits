@@ -22,6 +22,8 @@ from lnbits.settings import (
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
 )
+
+from ...helpers import get_valid_extensions
 from ..crud import (
     create_account,
     create_wallet,
@@ -32,7 +34,6 @@ from ..crud import (
     update_user_extension,
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
-from ...helpers import get_valid_extensions
 
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 

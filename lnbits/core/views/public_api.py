@@ -8,6 +8,7 @@ from loguru import logger
 from starlette.requests import Request
 
 from lnbits import bolt11
+
 from .. import core_app
 from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners

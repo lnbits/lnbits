@@ -3,10 +3,9 @@ import hashlib
 import pytest
 
 from lnbits import bolt11
-from lnbits.core.views.api import (
-    api_payment,
-)
+from lnbits.core.views.api import api_payment
 from lnbits.settings import wallet_class
+
 from ...helpers import get_random_invoice_data, is_regtest
 
 

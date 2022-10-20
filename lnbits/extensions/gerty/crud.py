@@ -28,7 +28,7 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
             data.lnbits_wallets,
             data.mempool_endpoint,
             data.exchange,
-            data.display_preferences
+            data.display_preferences,
         ),
     )
 
@@ -36,12 +36,14 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
     assert gerty, "Newly created gerty couldn't be retrieved"
     return gerty
 
+
 async def update_gerty(gerty_id: str, **kwargs) -> Gerty:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE gerty.gertys SET {q} WHERE id = ?", (*kwargs.values(), gerty_id)
     )
     return await get_gerty(gerty_id)
+
 
 async def get_gerty(gerty_id: str) -> Optional[Gerty]:
     row = await db.fetchone("SELECT * FROM gerty.gertys WHERE id = ?", (gerty_id,))
