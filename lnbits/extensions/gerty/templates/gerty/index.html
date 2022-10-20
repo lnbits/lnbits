@@ -191,18 +191,6 @@
                         ></q-toggle>
 
                     </q-expansion-item>
-                    <q-expansion-item
-                            expand-separator
-                            icon="celebration"
-                            label="The Fun Stuff"
-                    >
-                        <q-toggle
-                                v-model="toggleStates.fun"
-                                label="Toggle all"
-                        >
-                            <q-tooltip>Toggle all</q-tooltip>
-                        </q-toggle>
-                        <br>
                         <q-toggle
                                 v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
                                 label="Satoshi Quotes"
@@ -210,16 +198,9 @@
                             <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
                         </q-toggle>
                         <q-toggle
-                                v-model="formDialog.data.display_preferences.fun_pieter_wuille_facts"
-                                label="Pieter Wuille Facts"
-                        >
-                            <q-tooltip>Show accurate facts about Pieter Wuille</q-tooltip>
-                        </q-toggle>
-                        <q-toggle
                                 v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
                                 label="Current dirty fiat to BTC  price"
                         ></q-toggle>
-                    </q-expansion-item>
                     <q-expansion-item
                             expand-separator
                             icon="link"
@@ -572,7 +553,6 @@
                                 dashboard: true,
                                 lnbits_wallets_balance: true,
                                 fun_satoshi_quotes: true,
-                                fun_pieter_wuille_facts: true,
                                 fun_exchange_market_rate: true,
                                 onchain_difficulty_epoch_progress: true,
                                 onchain_difficulty_retarget_date: true,

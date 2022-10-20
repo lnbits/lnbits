@@ -101,13 +101,6 @@ async def api_gerty_satoshi():
     else:
         return quote
 
-@gerty_ext.get("/api/v1/gerty/pieterwielliequote", status_code=HTTPStatus.OK)
-async def api_gerty_wuille():
-    with open(os.path.join(LNBITS_PATH, 'extensions/gerty/static/pieter_wuille.json')) as fd:
-        data = json.load(fd)
-    return data['facts'][random.randint(0, (len(data['facts']) - 1))]
-
-
 @gerty_ext.get("/api/v1/gerty/{gerty_id}/{p}")
 async def api_gerty_json(
         gerty_id: str,
@@ -186,8 +179,6 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         areas.append(text)
     elif screen_slug == "fun_satoshi_quotes":
         areas.append(await get_satoshi_quotes())
-    elif screen_slug == "fun_pieter_wuille_facts":
-        areas.append(await get_pieter_wuille_fact())
     elif screen_slug == "fun_exchange_market_rate":
         areas.append(await get_exchange_rate(gerty))
     elif screen_slug == "onchain_difficulty_epoch_progress":
@@ -281,15 +272,6 @@ async def get_satoshi_quotes():
             text.append(get_text_item_dict(quote['text'], 15))
         if quote['date']:
             text.append(get_text_item_dict("Satoshi Nakamoto - {0}".format(quote['date']), 15))
-    return text
-
-
-async def get_pieter_wuille_fact():
-    text = []
-    quote = await api_gerty_wuille()
-    if quote:
-        text.append(get_text_item_dict(quote, 15))
-        # text.append(get_text_item_dict("Pieter Wuille facts", 15))
     return text
 
 
