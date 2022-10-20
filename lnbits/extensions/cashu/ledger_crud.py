@@ -1,17 +1,19 @@
 from typing import Any, List, Optional
 
 from cashu.core.base import MintKeyset
-from cashu.mint.ledger import Ledger
 from cashu.core.migrations import migrate_databases
 from cashu.mint import migrations
+from cashu.mint.ledger import Ledger
 
 from lnbits.db import Database
 from lnbits.helpers import urlsafe_short_hash
 
-from .models import Invoice, Proof
 from . import db
+from .models import Invoice, Proof
 
 cached_ledgers = {}
+
+
 async def cashu_ledger(cashu_id: str):
     if cashu_id in cached_ledgers:
         return cached_ledgers[cashu_id]
@@ -28,6 +30,7 @@ async def cashu_ledger(cashu_id: str):
     await ledger.init_keysets()
     cached_ledgers[cashu_id] = ledger
     return ledger
+
 
 class LedgerCrud:
     """
@@ -55,7 +58,7 @@ class LedgerCrud:
         if clauses:
             where = f"WHERE {' AND '.join(clauses)}"
 
-        print('### SELECT this: ', where, values)
+        print("### SELECT this: ", where, values)
         rows = await self.db.fetchall(  # type: ignore
             f"""
             SELECT * from cashu.keysets
@@ -63,8 +66,8 @@ class LedgerCrud:
             """,
             tuple(values),
         )
-        print('### SELECT this: ', where, values)
-        print('### rows', rows)
+        print("### SELECT this: ", where, values)
+        print("### rows", rows)
         return [MintKeyset.from_row(row) for row in rows]
 
     async def get_lightning_invoice(self, hash: str, **kwargs):

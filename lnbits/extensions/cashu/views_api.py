@@ -20,7 +20,6 @@ from cashu.core.base import (
     Proof,
     SplitRequest,
 )
-
 from fastapi import Query
 from fastapi.params import Depends
 from lnurl import decode as decode_lnurl
