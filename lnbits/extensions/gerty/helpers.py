@@ -58,23 +58,54 @@ async def get_mempool_recommended_fees(gerty):
             r = await client.get(gerty.mempool_endpoint + "/api/v1/fees/recommended")
     return r.json()
 
-async def api_get_mining_stat(stat_slug: str, gerty):
-    stat = "";
+async def get_mining_dashboard(gerty):
+    areas = []
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
-            if stat_slug == "mining_current_hash_rate":
-                r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
-                data = r.json()
-                stat = {}
-                stat['current'] = data['currentHashrate']
-                stat['1w'] = data['hashrates'][len(data['hashrates']) - 7]['avgHashrate']
-            elif stat_slug == "mining_current_difficulty":
-                r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
-                data = r.json()
-                stat = {}
-                stat['current'] = data['currentDifficulty']
-                stat['previous'] = data['difficulty'][len(data['difficulty']) - 2]['difficulty']
-    return stat
+            # current hashrate
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1w")
+            data = r.json()
+            hashrateNow = data['currentHashrate']
+            hashrateOneWeekAgo = data['hashrates'][6]['avgHashrate']
+
+            text = []
+            text.append(get_text_item_dict("Current mining hashrate", 12))
+            text.append(get_text_item_dict("{0}hash".format(si_format(hashrateNow, 6, True, " ")), 20))
+            text.append(get_text_item_dict("{0} vs 7 days ago".format(get_percent_difference(hashrateNow, hashrateOneWeekAgo, 3)), 12))
+            areas.append(text)
+
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
+
+            # timeAvg
+            text = []
+            time_avg = r.json()['timeAvg'] / 1000
+            hours, remainder = divmod(time_avg, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            time_avg = '{:02} minutes {:02} seconds'.format(int(minutes), int(seconds))
+            text.append(get_text_item_dict("Current block time", 12))
+            text.append(get_text_item_dict(str(time_avg), 20))
+            areas.append(text)
+
+            # difficulty adjustment
+            text = []
+            stat = r.json()['remainingTime']
+            text.append(get_text_item_dict("Time to next difficulty adjustment", 12))
+            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 3), 20))
+            areas.append(text)
+
+            # difficultyChange
+            text = []
+            difficultyChange = round(r.json()['difficultyChange'], 2)
+            text.append(get_text_item_dict("Estimated difficulty change", 12))
+            text.append(get_text_item_dict("{0}{1}%".format("+" if difficultyChange > 0 else "", round(difficultyChange, 2)), 20))
+            areas.append(text)
+
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
+            data = r.json()
+            stat = {}
+            stat['current'] = data['currentDifficulty']
+            stat['previous'] = data['difficulty'][len(data['difficulty']) - 2]['difficulty']
+    return areas
 
 async def api_get_lightning_stats(gerty):
     stat = {}
@@ -87,8 +118,6 @@ async def api_get_lightning_stats(gerty):
 async def get_lightning_stats(gerty):
     data = await api_get_lightning_stats(gerty)
     areas = []
-
-    logger.debug(data['latest']['channel_count'])
 
     text = []
     text.append(get_text_item_dict("Channel Count", 12))
@@ -122,26 +151,6 @@ async def get_lightning_stats(gerty):
 
     return areas
 
-async def get_mining_stat(stat_slug: str, gerty):
-    text = []
-    if stat_slug == "mining_current_hash_rate":
-        stat = await api_get_mining_stat(stat_slug, gerty)
-        logger.debug(stat)
-        current = "{0}hash".format(si_format(stat['current'], 6, True, " "))
-        text.append(get_text_item_dict("Current Mining Hashrate", 20))
-        text.append(get_text_item_dict(current, 40))
-        # compare vs previous time period
-        difference = get_percent_difference(current=stat['current'], previous=stat['1w'])
-        text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
-    elif stat_slug == "mining_current_difficulty":
-        stat = await api_get_mining_stat(stat_slug, gerty)
-        text.append(get_text_item_dict("Current Mining Difficulty", 20))
-        text.append(get_text_item_dict(format_number(stat['current']), 40))
-        difference = get_percent_difference(current=stat['current'], previous=stat['previous'])
-        text.append(get_text_item_dict("{0} since last adjustment".format(difference), 12))
-        # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
-    return text
-
 def get_next_update_time(sleep_time_seconds: int = 0, timezone: str = "Europe/London"):
     utc_now = pytz.utc.localize(datetime.utcnow())
     next_refresh_time = utc_now + timedelta(0, sleep_time_seconds)
@@ -159,3 +168,32 @@ def gerty_should_sleep(timezone: str = "Europe/London"):
         return True
     else:
         return False
+
+
+
+def get_date_suffix(dayNumber):
+    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
+        return "th"
+    else:
+        return ["st", "nd", "rd"][dayNumber % 10 - 1]
+
+
+def get_time_remaining(seconds, granularity=2):
+    intervals = (
+        # ('weeks', 604800),  # 60 * 60 * 24 * 7
+        ('days', 86400),  # 60 * 60 * 24
+        ('hours', 3600),  # 60 * 60
+        ('minutes', 60),
+        ('seconds', 1),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip('s')
+            result.append("{} {}".format(round(value), name))
+    return ', '.join(result[:granularity])

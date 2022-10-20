@@ -176,13 +176,13 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "fun_exchange_market_rate":
         areas.append(await get_exchange_rate(gerty))
     elif screen_slug == "onchain_dashboard":
-        areas.append(await get_onchain_dashboard(gerty))
+        title = "Onchain Data"
+        areas = await get_onchain_dashboard(gerty)
     elif screen_slug == "mempool_recommended_fees":
         areas.append(await get_mempool_stat(screen_slug, gerty))
-    elif screen_slug == "mining_current_hash_rate":
-        areas.append(await get_mining_stat(screen_slug, gerty))
-    elif screen_slug == "mining_current_difficulty":
-        areas.append(await get_mining_stat(screen_slug, gerty))
+    elif screen_slug == "mining_dashboard":
+        title = "Mining Data"
+        areas = await get_mining_dashboard(gerty)
     elif screen_slug == "lightning_dashboard":
         title = "Lightning Network"
         areas = await get_lightning_stats(gerty)
@@ -381,31 +381,3 @@ async def get_mempool_stat(stat_slug: str, gerty):
                     font_size,
                     750, pos_y))
     return text
-
-
-def get_date_suffix(dayNumber):
-    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
-        return "th"
-    else:
-        return ["st", "nd", "rd"][dayNumber % 10 - 1]
-
-
-def get_time_remaining(seconds, granularity=2):
-    intervals = (
-        # ('weeks', 604800),  # 60 * 60 * 24 * 7
-        ('days', 86400),  # 60 * 60 * 24
-        ('hours', 3600),  # 60 * 60
-        ('minutes', 60),
-        ('seconds', 1),
-    )
-
-    result = []
-
-    for name, count in intervals:
-        value = seconds // count
-        if value:
-            seconds -= value * count
-            if value == 1:
-                name = name.rstrip('s')
-            result.append("{} {}".format(round(value), name))
-    return ', '.join(result[:granularity])

@@ -201,36 +201,16 @@
                             label="mempool.space recommended fees"
                     ></q-toggle>
 
-
-                    <q-expansion-item
-                            expand-separator
-                            icon="money"
-                            label="Mining Data"
-                    >
-                        <q-toggle
-                                v-model="toggleStates.mining"
-                                label="Toggle all"
-                        >
-                            <q-tooltip>Toggle all</q-tooltip>
-                        </q-toggle>
-                        <br>
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.mining_current_hash_rate"
-                                label="Current mining hashrate"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.mining_current_difficulty"
-                                label="Current mining difficulty"
-                        ></q-toggle>
-                    </q-expansion-item>
-
+                    <q-toggle
+                            v-model="formDialog.data.display_preferences.mining_dashboard"
+                            label="Mining Dashboard"
+                    ></q-toggle>
 
                     <q-toggle
                             v-model="formDialog.data.display_preferences.lightning_dashboard"
                             label="Lightning Network Dashboard"
                     ></q-toggle>
-                    
+
                     <div class="row q-mt-lg">
                         <q-btn
                                 unelevated
@@ -497,8 +477,7 @@
                                 onchain_dashboard: true,
                                 mempool_recommended_fees: true,
                                 mempool_tx_count: true,
-                                mining_current_hash_rate: true,
-                                mining_current_difficulty: true,
+                                mining_dashboard: true,
                                 lightning_dashboard: true
                             },
                             lnbits_wallets: [],
