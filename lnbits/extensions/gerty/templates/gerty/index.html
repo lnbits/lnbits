@@ -179,6 +179,17 @@
           >
         </q-input>
 
+          <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.utc_offset"
+          label="UTC Time Offset (e.g. -1)"
+        >
+          <q-tooltip
+            >Enter a UTC time offset value (e.g. -1)</q-tooltip
+          >
+        </q-input>
+
         <p>Use the toggles below to control what your Gerty will display</p>
 
         <q-toggle
@@ -438,14 +449,7 @@
               ],
               gertysTable: {
                   columns: [
-                      {name: 'id', align: 'left', label: 'ID', field: 'id'},
                       {name: 'name', align: 'left', label: 'Name', field: 'name'},
-                      {
-                          name: 'lnbits_wallets',
-                          align: 'left',
-                          label: 'Wallets',
-                          field: 'lnbits_wallets'
-                      },
                       {
                           name: 'exchange',
                           align: 'left',
@@ -457,7 +461,9 @@
                           align: 'left',
                           label: 'Mempool Endpoint',
                           field: 'mempool_endpoint'
-                      }
+                      },
+                    {name: 'id', align: 'left', label: 'Gerty ID', field: 'id'},
+
                   ],
                   pagination: {
                       rowsPerPage: 10
@@ -466,13 +472,13 @@
               formDialog: {
                   show: false,
                   data: {
+                      utc_offset: 0,
                       display_preferences: {
                           dashboard: true,
                           fun_satoshi_quotes: true,
                           fun_exchange_market_rate: true,
                           onchain_dashboard: true,
                           mempool_recommended_fees: true,
-                          mempool_tx_count: true,
                           mining_dashboard: true,
                           lightning_dashboard: true
                       },
@@ -490,6 +496,7 @@
       methods: {
           closeFormDialog: function () {
               this.formDialog.data = {
+                  utc_offset: 0,
                   lnbits_wallets: [],
                   mempool_endpoint: "https://mempool.space",
                   refresh_time: 300,
@@ -516,6 +523,7 @@
               this.formDialog.data.id = gerty.id
               this.formDialog.data.name = gerty.name
               this.formDialog.data.wallet = gerty.wallet
+              this.formDialog.data.utc_offset = gerty.utc_offset
               this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
               this.formDialog.data.exchange = gerty.exchange,
                   this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint,
@@ -541,6 +549,7 @@
               var data = {
                   name: this.formDialog.data.name,
                   wallet: this.formDialog.data.wallet,
+                  utc_offset: this.formDialog.data.utc_offset,
                   lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
                   exchange: this.formDialog.data.exchange,
                   mempool_endpoint: this.formDialog.data.mempool_endpoint,
@@ -568,6 +577,7 @@
           },
           updateGerty: function (wallet, data) {
               var self = this
+              data.utc_offset = this.formDialog.data.utc_offset
               data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
               data.display_preferences = JSON.stringify(this.formDialog.data.display_preferences)
               LNbits.api

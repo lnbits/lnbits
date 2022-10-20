@@ -10,6 +10,7 @@ class Gerty(BaseModel):
     name: str
     wallet: str
     refresh_time: int = Query(None)
+    utc_offset: int = Query(None)
     lnbits_wallets: str = Query(
         None
     )  # Wallets to keep an eye on, {"wallet-id": "wallet-read-key, etc"}
