@@ -6,7 +6,7 @@ from lnbits.settings import Settings, read_only_variables
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
-from .models import UpdateSettings
+from .models import AdminSettings, UpdateSettings
 
 
 async def update_wallet_balance(wallet_id: str, amount: int) -> str:
@@ -24,6 +24,16 @@ async def update_wallet_balance(wallet_id: str, amount: int) -> str:
     )
     # manually send this for now
     await internal_invoice_queue.put(internal_id)
+
+
+async def get_settings() -> AdminSettings:
+    row = await db.fetchone("SELECT * FROM admin.settings")
+    all_settings = Settings(**row)
+    settings = AdminSettings()
+    for key, value in row.items():
+        if hasattr(settings, key):
+            setattr(settings, key, getattr(all_settings, key))
+    return settings
 
 
 async def update_settings(data: UpdateSettings) -> Settings:
