@@ -1,14 +1,14 @@
 import asyncio
 import json
 
+from cashu.core.migrations import migrate_databases
+from cashu.mint import migrations
+
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_cashu
-
-from cashu.mint import migrations
-from cashu.core.migrations import migrate_databases
 from . import db, ledger
+from .crud import get_cashu
 
 
 async def startup_cashu_mint():

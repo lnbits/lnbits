@@ -2,20 +2,18 @@ import os
 import random
 import time
 from binascii import hexlify, unhexlify
-from typing import List, Optional, Union, Any
+from typing import Any, List, Optional, Union
 
+from cashu.core.base import MintKeyset
 from embit import bip32, bip39, ec, script
 from embit.networks import NETWORKS
 from loguru import logger
 
+from lnbits.db import Connection, Database
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-
 from .models import Cashu, Pegs, Promises, Proof
-
-from cashu.core.base import MintKeyset
-from lnbits.db import Database, Connection
 
 
 async def create_cashu(

@@ -1,61 +1,51 @@
 import json
-from http import HTTPStatus
-from typing import Union
 import math
+from http import HTTPStatus
 from typing import Dict, List, Union
 
 import httpx
-from fastapi import Query
-from fastapi.params import Depends
-from lnurl import decode as decode_lnurl
-from loguru import logger
-from secp256k1 import PublicKey
-from starlette.exceptions import HTTPException
-from lnbits import bolt11
-
-from lnbits.core.crud import get_user
-from lnbits.core.services import (
-    check_transaction_status,
-    create_invoice,
-    fee_reserve,
-    pay_invoice,
-)
-
-from lnbits.core.views.api import api_payment
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.wallets.base import PaymentStatus
-from lnbits.helpers import urlsafe_short_hash
-from lnbits.core.crud import check_internal
-
-# --------- extension imports
-
-from . import cashu_ext
-from .crud import (
-    create_cashu,
-    delete_cashu,
-    get_cashu,
-    get_cashus,
-)
-
-from .models import Cashu
-
-from . import ledger
 
 # -------- cashu imports
 from cashu.core.base import (
-    Proof,
     BlindedSignature,
     CheckFeesRequest,
     CheckFeesResponse,
     CheckRequest,
     GetMeltResponse,
     GetMintResponse,
+    Invoice,
     MeltRequest,
     MintRequest,
     PostSplitResponse,
+    Proof,
     SplitRequest,
-    Invoice,
 )
+from fastapi import Query
+from fastapi.params import Depends
+from lnurl import decode as decode_lnurl
+from loguru import logger
+from secp256k1 import PublicKey
+from starlette.exceptions import HTTPException
+
+from lnbits import bolt11
+from lnbits.core.crud import check_internal, get_user
+from lnbits.core.services import (
+    check_transaction_status,
+    create_invoice,
+    fee_reserve,
+    pay_invoice,
+)
+from lnbits.core.views.api import api_payment
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.helpers import urlsafe_short_hash
+from lnbits.wallets.base import PaymentStatus
+
+from . import cashu_ext, ledger
+from .crud import create_cashu, delete_cashu, get_cashu, get_cashus
+from .models import Cashu
+
+# --------- extension imports
+
 
 LIGHTNING = False
 
