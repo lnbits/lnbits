@@ -216,18 +216,20 @@
         <q-input
           filled
           dense
-          v-model="formDialog.data.webhook_api_key"
+          v-if="formDialog.data.webhook_url"
+          v-model="formDialog.data.webhook_headers"
           type="text"
-          label="Webhook api key (optional)"
-          hint="Sends the X-Api-Key header along with the webhook."
+          label="Webhook headers (optional)"
+          hint="Custom data as JSON string, send headers along with the webhook."
         ></q-input>
         <q-input
           filled
           dense
-          v-model="formDialog.data.webhook_custom_data"
+          v-if="formDialog.data.webhook_url"
+          v-model="formDialog.data.webhook_body"
           type="text"
           label="Webhook custom data (optional)"
-          hint="Custom data as JSON string, will get posted along with webhook 'custom_data' field."
+          hint="Custom data as JSON string, will get posted along with webhook 'body' field."
         ></q-input>
         <q-input
           filled

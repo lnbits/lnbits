@@ -1,5 +1,5 @@
-from http import HTTPStatus
 import json
+from http import HTTPStatus
 
 from fastapi import Request
 from fastapi.param_functions import Query
@@ -91,12 +91,21 @@ async def api_link_create_or_update(
             detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
 
-    if data.webhook_custom_data:
+    if data.webhook_headers:
         try:
-            json.loads(data.webhook_custom_data)
+            json.loads(data.webhook_headers)
         except ValueError:
             raise HTTPException(
-                detail="Invalid JSON in custom_data.",
+                detail="Invalid JSON in webhook_headers.",
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+
+    if data.webhook_body:
+        try:
+            json.loads(data.webhook_body)
+        except ValueError:
+            raise HTTPException(
+                detail="Invalid JSON in webhook_body.",
                 status_code=HTTPStatus.BAD_REQUEST,
             )
 

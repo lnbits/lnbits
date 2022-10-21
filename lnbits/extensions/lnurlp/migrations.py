@@ -62,11 +62,9 @@ async def m004_fiat_base_multiplier(db):
     )
 
 
-async def m005_webhook_secret_custom_data(db):
+async def m005_webhook_headers_and_body(db):
     """
-    Add x-api-key and custom data to webhooks
+    Add headers and body to webhooks
     """
-    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_api_key TEXT;")
-    await db.execute(
-        "ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_custom_data TEXT;"
-    )
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_headers TEXT;")
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_body TEXT;")
