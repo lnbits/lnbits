@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import Query
 from pydantic import BaseModel
@@ -55,3 +55,7 @@ class UpdateSettings(BaseModel):
     opennode_key: str = Query(None)
     spark_url: str = Query(None)
     spark_token: str = Query(None)
+
+
+class AdminSettings(UpdateSettings):
+    lnbits_allowed_funding_sources: Optional[List[str]]

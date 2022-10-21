@@ -314,11 +314,8 @@
       }
     },
     created: function () {
-      this.settings = JSON.parse('{{ settings|tojson|safe }}') //DB data
+      this.getSettings()
       this.balance = +'{{ balance|safe }}'
-      this.formData = _.clone(this.settings) //model
-      this.updateFundingData()
-      console.log(this.settings)
     },
     computed: {
       checkChanges() {
@@ -415,6 +412,23 @@
             opts[e].value = this.settings[e]
           })
         })
+      },
+      getSettings() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/settings/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.settings = response.data
+            this.formData = _.clone(this.settings)
+            this.updateFundingData()
+            console.log(this.settings)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       updateSettings() {
         let data = {

@@ -10,7 +10,7 @@ from lnbits.extensions.admin import admin_ext
 from lnbits.extensions.admin.models import UpdateSettings
 from lnbits.server import server_restart
 
-from .crud import delete_settings, update_settings, update_wallet_balance
+from .crud import delete_settings, get_settings, update_settings, update_wallet_balance
 
 
 @admin_ext.get(
@@ -19,6 +19,11 @@ from .crud import delete_settings, update_settings, update_wallet_balance
 async def api_restart_server() -> dict[str, str]:
     server_restart.set()
     return {"status": "Success"}
+
+
+@admin_ext.get("/api/v1/settings/", dependencies=[Depends(check_admin)])
+async def api_get_settings() -> UpdateSettings:
+    return await get_settings()
 
 
 @admin_ext.put(

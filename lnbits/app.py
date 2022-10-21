@@ -62,10 +62,6 @@ def create_app() -> FastAPI:
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
 
-    # TODO: why those 2?
-    g().config = settings
-    g().base_url = f"http://{settings.host}:{settings.port}"
-
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     register_startup(app)
@@ -174,7 +170,7 @@ def register_assets(app: FastAPI):
 
     @app.on_event("startup")
     async def vendored_assets_variable():
-        if g().config.debug:
+        if settings.debug:
             g().VENDORED_JS = map(url_for_vendored, get_js_vendored())
             g().VENDORED_CSS = map(url_for_vendored, get_css_vendored())
         else:
