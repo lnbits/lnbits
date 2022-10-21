@@ -44,17 +44,16 @@ async def on_invoice_paid(payment: Payment) -> None:
                     "timeout": 40,
                 }
                 if pay_link.webhook_custom_data:
-                    kwargs["json"]["custom_data"] = json.loads(pay_link.webhook_custom_data)
+                    kwargs["json"]["custom_data"] = json.loads(
+                        pay_link.webhook_custom_data
+                    )
                 if pay_link.webhook_api_key:
                     kwargs["headers"] = {
                         "Content-Type": "application/json; charset=utf-8",
                         "X-Api-Key": pay_link.webhook_api_key,
                     }
 
-                r = await client.post(
-                    pay_link.webhook_url,
-                    **kwargs
-                )
+                r = await client.post(pay_link.webhook_url, **kwargs)
                 await mark_webhook_sent(payment, r.status_code)
             except (httpx.ConnectError, httpx.RequestError):
                 await mark_webhook_sent(payment, -1)

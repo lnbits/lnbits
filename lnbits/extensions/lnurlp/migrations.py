@@ -67,4 +67,6 @@ async def m005_webhook_secret_custom_data(db):
     Add x-api-key and custom data to webhooks
     """
     await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_api_key TEXT;")
-    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_custom_data TEXT;")
+    await db.execute(
+        "ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_custom_data TEXT;"
+    )
