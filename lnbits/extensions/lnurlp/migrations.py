@@ -60,3 +60,11 @@ async def m004_fiat_base_multiplier(db):
     await db.execute(
         "ALTER TABLE lnurlp.pay_links ADD COLUMN fiat_base_multiplier INTEGER DEFAULT 1;"
     )
+
+
+async def m005_webhook_secret_custom_data(db):
+    """
+    Add x-api-key and custom data to webhooks
+    """
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_api_key TEXT;")
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_custom_data TEXT;")

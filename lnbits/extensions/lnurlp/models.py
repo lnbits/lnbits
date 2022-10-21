@@ -18,6 +18,8 @@ class CreatePayLinkData(BaseModel):
     currency: str = Query(None)
     comment_chars: int = Query(0, ge=0, lt=800)
     webhook_url: str = Query(None)
+    webhook_api_key: str = Query(None)
+    webhook_custom_data: str = Query(None)
     success_text: str = Query(None)
     success_url: str = Query(None)
     fiat_base_multiplier: int = Query(100, ge=1)
@@ -31,6 +33,8 @@ class PayLink(BaseModel):
     served_meta: int
     served_pr: int
     webhook_url: Optional[str]
+    webhook_api_key: Optional[str]
+    webhook_custom_data: Optional[str]
     success_text: Optional[str]
     success_url: Optional[str]
     currency: Optional[str]
