@@ -91,6 +91,7 @@ async def lnurl_v1_params(
     device_id: str = Query(None),
     p: str = Query(None),
     atm: str = Query(None),
+    gpio: str = Query(None),
 ):
     device = await get_lnurldevice(device_id)
     if not device:
@@ -114,7 +115,7 @@ async def lnurl_v1_params(
             deviceid=device.id,
             payload="bla",
             sats=price_msat,
-            pin=1,
+            pin=gpio,
             payhash="bla",
         )
         if not lnurldevicepayment:
@@ -236,7 +237,7 @@ async def lnurl_callback(
             amount=lnurldevicepayment.sats / 1000,
             memo=device.title + "-" + lnurldevicepayment.id,
             unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
-            extra={"tag": "Switch", "id": paymentid, "time": device.amount},
+            extra={"tag": "Switch", "pin": ,"id": paymentid, "time": device.amount},
         )
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
