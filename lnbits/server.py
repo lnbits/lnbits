@@ -1,12 +1,7 @@
-import asyncio
-
 import uvloop
-
 uvloop.install()
 
-import contextlib
 import multiprocessing as mp
-import sys
 import time
 
 import click
@@ -49,6 +44,7 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload:
     while True:
         config = uvicorn.Config(
             "lnbits.__main__:app",
+            loop="uvloop",
             port=port,
             host=host,
             reload=reload,
@@ -65,9 +61,10 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload:
         server_restart.clear()
         server.should_exit = True
         server.force_exit = True
+        time.sleep(3)
         process.terminate()
         process.join()
-        time.sleep(3)
+        time.sleep(1)
 
 
 server_restart = mp.Event()
