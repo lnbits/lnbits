@@ -14,7 +14,6 @@ class CreateWallet(BaseModel):
 
 class WalletAccount(BaseModel):
     id: str
-    user: str
     masterpub: str
     fingerprint: str
     title: str

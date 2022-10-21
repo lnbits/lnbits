@@ -86,7 +86,6 @@ async def api_wallet_create_or_update(
 
         new_wallet = WalletAccount(
             id="none",
-            user=w.wallet.user,
             masterpub=data.masterpub,
             fingerprint=descriptor.keys[0].fingerprint.hex(),
             type=descriptor.scriptpubkey_type(),
@@ -115,7 +114,7 @@ async def api_wallet_create_or_update(
                 )
             )
 
-        wallet = await create_watch_wallet(new_wallet)
+        wallet = await create_watch_wallet(w.wallet.user, new_wallet)
 
         await api_get_addresses(wallet.id, w)
     except Exception as e:
