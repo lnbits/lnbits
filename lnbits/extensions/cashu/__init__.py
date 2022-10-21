@@ -34,7 +34,7 @@ def cashu_renderer():
     return template_renderer(["lnbits/extensions/cashu/templates"])
 
 
-from .tasks import wait_for_paid_invoices, startup_cashu_mint
+from .tasks import startup_cashu_mint, wait_for_paid_invoices
 from .views import *  # noqa
 from .views_api import *  # noqa
 
