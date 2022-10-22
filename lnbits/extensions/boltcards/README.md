@@ -1,6 +1,6 @@
 # Bolt cards (NXP NTAG) Extension
 
-This extension allows you to link your Bolt Card (or other compatible NXP NTAG device) with a LNbits instance and use it in a more secure way than a static LNURLw. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow. 
+This extension allows you to link your Bolt Card (or other compatible NXP NTAG device) with a LNbits instance and use it in a more secure way than a static LNURLw. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow.
 
 <a href="https://www.youtube.com/watch?v=wJ7QLFTRjK0">Tutorial</a>
 
@@ -16,18 +16,18 @@ One for encrypting the card UID and the counter (p parameter), let's called it m
 
 One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
 
-The key #00, K0 (also know as auth key) is skipped to be use as authentification key. Is not needed by this extension, but can be filled in order to write the keys in cooperation with bolt-nfc-android-app. 
+The key #00, K0 (also know as auth key) is skipped to be use as authentification key. Is not needed by this extension, but can be filled in order to write the keys in cooperation with bolt-nfc-android-app.
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
 ## Setting the card - bolt-nfc-android-app (easy way)
-So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer. 
+So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer.
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
 - Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{external_id}`
     - `{external_id}` should be replaced with the External ID found in the LNBits dialog.
 
-- Add new card in the extension. 
+- Add new card in the extension.
     - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
     - Set a max sats per day. After the card spends this amount of sats in a day, additional transactions will be rejected.
     - Set a card name. This is just for your reference inside LNBits.
@@ -38,13 +38,13 @@ So far, regarding the keys, the app can only write a new key set on an empty car
             - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in debug mode.
             - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead.
     - Click CREATE CARD button
-- Click the QR code button next to a card to view its details. You can scan the QR code with the Android app to import the keys. 
+- Click the QR code button next to a card to view its details. You can scan the QR code with the Android app to import the keys.
 - Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. You can then paste this into the Android app to import the keys.
 - Tap the NFC card to write the keys to the card.
 
 ## Setting the card - computer (hard way)
 
-Follow the guide. 
+Follow the guide.
 
 The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_external_id}?p=00000000000000000000000000000000&c=0000000000000000`
 
