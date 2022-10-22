@@ -1,4 +1,4 @@
-exclude: '^lnbits/static/vendor/.*'
+exclude: '^lnbits/static/vendor/.*|lnbits/extensions/watchonly/static/js/crypto/.*'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
