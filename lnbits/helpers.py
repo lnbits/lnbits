@@ -183,3 +183,26 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
 
     return t
+
+
+def get_current_extension_name() -> str:
+    """
+    Returns the name of the extension that calls this method.
+    """
+    import inspect
+    import json
+    import os
+
+    callee_filepath = inspect.stack()[1].filename
+    callee_dirname, callee_filename = os.path.split(callee_filepath)
+
+    path = os.path.normpath(callee_dirname)
+    extension_director_name = path.split(os.sep)[-1]
+    try:
+        config_path = os.path.join(callee_dirname, "config.json")
+        with open(config_path) as json_file:
+            config = json.load(json_file)
+        ext_name = config["name"]
+    except:
+        ext_name = extension_director_name
+    return ext_name

@@ -1,6 +1,7 @@
 import asyncio
 import json
 from http import HTTPStatus
+from math import floor
 from urllib.parse import urlparse
 
 import httpx
@@ -9,6 +10,7 @@ from fastapi import HTTPException
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
+from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_scrub_by_wallet
@@ -16,7 +18,7 @@ from .crud import get_scrub_by_wallet
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+    register_invoice_listener(invoice_queue, get_current_extension_name())
 
     while True:
         payment = await invoice_queue.get()
@@ -25,7 +27,7 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
-    if "scrubed" == payment.extra.get("tag"):
+    if payment.extra.get("tag") == "scrubed":
         # already scrubbed
         return
 
@@ -41,12 +43,13 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # I REALLY HATE THIS DUPLICATION OF CODE!! CORE/VIEWS/API.PY, LINE 267
     domain = urlparse(data["callback"]).netloc
+    rounded_amount = floor(payment.amount / 1000) * 1000
 
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
                 data["callback"],
-                params={"amount": payment.amount},
+                params={"amount": rounded_amount},
                 timeout=40,
             )
             if r.is_error:
@@ -65,7 +68,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
     invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != payment.amount:
+
+    if invoice.amount_msat != rounded_amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"{domain} returned an invalid invoice. Expected {payment.amount} msat, got {invoice.amount_msat}.",
