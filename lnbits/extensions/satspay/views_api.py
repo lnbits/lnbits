@@ -1,10 +1,11 @@
 from http import HTTPStatus
 
-from loguru import logger
 import httpx
 from fastapi.params import Depends
+from loguru import logger
 from starlette.exceptions import HTTPException
 
+from lnbits.core.crud import get_wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
@@ -19,9 +20,9 @@ from .crud import (
     delete_charge,
     get_charge,
     get_charges,
-    update_charge,
-    save_settings,
     get_settings,
+    save_settings,
+    update_charge,
 )
 from .helpers import compact_charge
 from .models import CreateCharge, SatsPaySettings
@@ -139,6 +140,7 @@ async def api_charge_balance(charge_id):
         **{"paid": charge.paid},
     }
 
+
 #############################CHARGES##########################
 
 
@@ -146,18 +148,15 @@ async def api_charge_balance(charge_id):
 async def api_settings_save(
     data: SatsPaySettings, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    logger.debug("wallet.wallet.user")
-    logger.debug(wallet.wallet.user)
     await save_settings(user=wallet.wallet.user, data=data)
     return True
 
 
 @satspay_ext.get("/api/v1/settings")
 async def api_settings_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
-    logger.debug('HERHEHRHEHRHEHR')
     try:
         return await get_settings(wallet.wallet.user)
     except HTTPException:
-        logger.error('Error loading satspay settings')
+        logger.error("Error loading satspay settings")
         logger.error(HTTPException)
         return ""

@@ -9,10 +9,12 @@
           >New charge
         </q-btn>
 
-          <q-btn unelevated color="primary" @click="getSettings();formDialogSettings.show = true"
+        <q-btn
+          unelevated
+          color="primary"
+          @click="getSettings();formDialogSettings.show = true"
           >SatsPay settings
         </q-btn>
-
       </q-card-section>
     </q-card>
 
@@ -395,7 +397,7 @@
     </q-card>
   </q-dialog>
 
-<q-dialog v-model="formDialogSettings.show" position="top">
+  <q-dialog v-model="formDialogSettings.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDataSettings" class="q-gutter-md">
         <q-input
@@ -405,15 +407,12 @@
           type="textarea"
           label="Custom CSS"
         >
-            <q-tooltip>Custom CSS to apply styles to your SatsPay invoice</q-tooltip>
+          <q-tooltip
+            >Custom CSS to apply styles to your SatsPay invoice</q-tooltip
+          >
         </q-input>
         <div class="row q-mt-lg">
-          <q-btn
-            unelevated
-            color="primary"
-            type="submit"
-            >Save Settings</q-btn
-          >
+          <q-btn unelevated color="primary" type="submit">Save Settings</q-btn>
           <q-btn @click="cancelSettings" flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -533,16 +532,16 @@
             amount: null
           }
         },
-      formDialogSettings: {
+        formDialogSettings: {
           show: false,
           data: {
-            custom_css: '',
-            }
+            custom_css: ''
+          }
         }
       }
     },
     methods: {
-      cancelSettings: function(data) {
+      cancelSettings: function (data) {
         this.formDialogCharge.data.custom_css = ''
         this.formDialogSettings.show = false
       },
@@ -616,14 +615,14 @@
         }
       },
 
-    getSettings: async function () {
+      getSettings: async function () {
         try {
           const {data} = await LNbits.api.request(
             'GET',
             '/satspay/api/v1/settings',
             this.g.user.wallets[0].inkey
           )
-            console.log('Settings data', data)
+          console.log('Settings data', data)
           this.formDialogSettings.data = data
         } catch (error) {
           LNbits.utils.notifyApiError(error)
@@ -707,7 +706,7 @@
         }
       },
       saveSettings: async function (wallet, data) {
-          console.log('wallet', wallet)
+        console.log('wallet', wallet)
         try {
           const resp = await LNbits.api.request(
             'POST',

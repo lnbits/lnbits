@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from fastapi import Response
 from fastapi.param_functions import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
@@ -11,7 +12,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import satspay_ext, satspay_renderer
-from .crud import get_charge, get_charge_config
+from .crud import get_charge, get_charge_config, get_settings
 
 templates = Jinja2Templates(directory="templates")
 
@@ -45,3 +46,18 @@ async def display(request: Request, charge_id: str):
             "mempool_endpoint": mempool_endpoint,
         },
     )
+
+
+@satspay_ext.get("/css/{charge_id}")
+async def display(charge_id: str, response: Response):
+    charge = await get_charge(charge_id)
+    if not charge:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
+        )
+    wallet = await get_wallet(charge.lnbitswallet)
+    settings = await get_settings(wallet.user)
+    if settings:
+        return Response(content=settings.custom_css, media_type="text/css")
+
+    return None

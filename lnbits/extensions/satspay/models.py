@@ -55,6 +55,7 @@ class Charges(BaseModel):
         else:
             return False
 
+
 class SatsPaySettings(BaseModel):
     custom_css: str = Query(None)
 
