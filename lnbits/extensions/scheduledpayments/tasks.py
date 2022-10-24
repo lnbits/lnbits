@@ -15,6 +15,7 @@ from .crud import (
     get_schedules_for_cron,
     update_schedule_event,
 )
+from .utils import check_balance
 
 
 async def wait_for_scheduled_payments():
@@ -109,6 +110,12 @@ async def run_scheduled_payment(schedule):
                 "status": "in_progress",
             }
         )
+
+        # check the user's balance and don't continue if they don't have enough
+        if not await check_balance(schedule.wallet, amount_in_sats):
+            event.status = f"Error: Balance too low to pay"
+            event = await update_schedule_event(data=event)
+            return False
 
         # users can enter bech32 encoded lnurl, or a lightning address like lnbits@lntips.com
         if schedule.recipient.upper().startswith("LNURL"):
