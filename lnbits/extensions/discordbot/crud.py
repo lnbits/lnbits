@@ -65,9 +65,8 @@ async def get_discordbot_users(user_id: str) -> List[Users]:
 
 async def delete_discordbot_user(user_id: str) -> None:
     wallets = await get_discordbot_wallets(user_id)
-    if wallets:
-        for wallet in wallets:
-            await delete_wallet(user_id=user_id, wallet_id=wallet.id)
+    for wallet in wallets:
+        await delete_wallet(user_id=user_id, wallet_id=wallet.id)
 
     await db.execute("DELETE FROM discordbot.users WHERE id = ?", (user_id,))
     await db.execute("""DELETE FROM discordbot.wallets WHERE "user" = ?""", (user_id,))
