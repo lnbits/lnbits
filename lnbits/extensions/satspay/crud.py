@@ -2,6 +2,8 @@ from typing import List, Optional
 
 import httpx
 
+from loguru import logger
+
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
@@ -10,7 +12,8 @@ from ..watchonly.crud import get_config, get_fresh_address
 
 # from lnbits.db import open_ext_db
 from . import db
-from .models import Charges, CreateCharge
+from .models import Charges, CreateCharge, SatsPaySettings
+
 
 ###############CHARGES##########################
 
@@ -129,3 +132,36 @@ async def get_charge_config(charge_id: str):
         """SELECT "user" FROM satspay.charges WHERE id = ?""", (charge_id,)
     )
     return await get_config(row.user)
+
+
+################## SETTINGS ###################
+async def save_settings(user: str, data: SatsPaySettings):
+    # insert or update
+    row = await db.fetchone(
+        """SELECT user FROM satspay.settings WHERE user = ?""", (user,)
+    )
+    if row:
+        await db.execute(
+            """
+            UPDATE satspay.settings SET custom_css = ? WHERE user = ?
+            """,
+            (
+                data.custom_css,
+                user
+            ),
+        )
+    else:
+        await db.execute(
+            """
+            INSERT INTO satspay.settings (
+                user,
+                custom_css
+                )
+            VALUES (?, ?)
+            """,
+            (
+                user,
+                data.custom_css,
+            ),
+        )
+    return True

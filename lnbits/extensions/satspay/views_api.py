@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from loguru import logger
 import httpx
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
@@ -19,9 +20,10 @@ from .crud import (
     get_charge,
     get_charges,
     update_charge,
+    save_settings,
 )
 from .helpers import compact_charge
-from .models import CreateCharge
+from .models import CreateCharge, SatsPaySettings
 
 #############################CHARGES##########################
 
@@ -135,3 +137,15 @@ async def api_charge_balance(charge_id):
         **{"time_left": charge.time_left},
         **{"paid": charge.paid},
     }
+
+#############################CHARGES##########################
+
+
+@satspay_ext.post("/api/v1/settings")
+async def api_settings_save(
+    data: SatsPaySettings, wallet: WalletTypeInfo = Depends(require_invoice_key)
+):
+    logger.debug("wallet.wallet.user")
+    logger.debug(wallet.wallet.user)
+    await save_settings(user=wallet.wallet.user, data=data)
+    return True
