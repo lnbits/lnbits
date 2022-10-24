@@ -230,7 +230,7 @@
             :outline="!($q.dark.isActive)"
             rounded
             color="primary"
-            label="Round"
+            label="Custom"
           ></q-btn>
           <q-input
             class="q-my-lg"
@@ -239,10 +239,10 @@
             filled
             v-model.number="tipRounding"
             :placeholder="roundToSugestion"
-            hint="Rounded amount"
+            hint="Total amount including tip"
           >
             <template v-slot:append>
-              <q-icon name="send" @click="calculatePercent" />
+              <q-icon name="check" @click="calculatePercent" />
             </template>
           </q-input>
         </div>
@@ -449,7 +449,7 @@
         if (change < 0) {
           this.$q.notify({
             type: 'warning',
-            message: 'Value must be greater than initial amount'
+            message: 'Amount with tip must be greater than initial amount.'
           })
           this.tipRounding = this.roundToSugestion
           return
