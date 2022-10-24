@@ -27,19 +27,19 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th style="width: 10%;"></q-th>
-              <q-th auto-width style="text-align: left;">Title</q-th>
-              <q-th auto-width style="text-align: left;">Min bet</q-th>
-              <q-th auto-width style="text-align: left;">Max bet</q-th>
-              <q-th auto-width style="text-align: left;">Multiplier</q-th>
-              <q-th auto-width style="text-align: left;">Haircut</q-th>
-              <q-th auto-width style="text-align: left;">Chance</q-th>
-              <q-th auto-width style="text-align: left;"></q-th>
+              <q-th style="width: 10%"></q-th>
+              <q-th auto-width style="text-align: left">Title</q-th>
+              <q-th auto-width style="text-align: left">Min bet</q-th>
+              <q-th auto-width style="text-align: left">Max bet</q-th>
+              <q-th auto-width style="text-align: left">Multiplier</q-th>
+              <q-th auto-width style="text-align: left">Haircut</q-th>
+              <q-th auto-width style="text-align: left">Chance</q-th>
+              <q-th auto-width style="text-align: left"></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td style="width: 10%;">
+              <q-td style="width: 10%">
                 <q-btn
                   unelevated
                   dense
@@ -158,7 +158,7 @@
           </q-badge>
 
           <q-slider
-            style="width: 95%;"
+            style="width: 95%"
             class="q-pt-lg"
             v-model="multiValue"
             :min="1.5"
@@ -207,7 +207,7 @@
           class="rounded-borders"
         ></qrcode>
       </q-responsive>
-      <p style="word-break: break-all;">
+      <p style="word-break: break-all">
         <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
         <strong>Amount:</strong> {{ qrCodeDialog.data.amount }}<br />
         <span v-if="qrCodeDialog.data.currency"

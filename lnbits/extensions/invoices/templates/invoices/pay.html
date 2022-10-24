@@ -30,7 +30,7 @@ block page %}
           <q-list bordered separator>
             <q-item clickable v-ripple>
               <q-item-section><b>ID</b></q-item-section>
-              <q-item-section style="word-break: break-all;"
+              <q-item-section style="word-break: break-all"
                 >{{ invoice_id }}</q-item-section
               >
             </q-item>
@@ -63,7 +63,7 @@ block page %}
             <q-item clickable v-ripple>
               <q-item-section><b>Paid</b></q-item-section>
               <q-item-section>
-                <div class="row" style="align-items: center;">
+                <div class="row" style="align-items: center">
                   <div class="col-sm-6">
                     {{ "{:0,.2f}".format(payments_total / 100) }} {{
                     invoice.currency }}
@@ -225,7 +225,7 @@ block page %}
           placeholder="4.20"
         >
           <template v-slot:append>
-            <span style="font-size: 12px;"> {{ invoice.currency }} </span>
+            <span style="font-size: 12px"> {{ invoice.currency }} </span>
           </template>
         </q-input>
 
@@ -280,7 +280,7 @@ block page %}
         ></qrcode>
       </q-responsive>
       <div class="text-center q-mb-xl">
-        <p style="word-break: break-all;">{{ request.url }}</p>
+        <p style="word-break: break-all">{{ request.url }}</p>
       </div>
       <div class="row q-mt-lg">
         <q-btn

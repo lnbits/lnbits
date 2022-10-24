@@ -12,14 +12,14 @@
         <div class="col text-center">
           <div
             color="white"
-            style="background-color: grey; height: 30px; padding: 5px;"
+            style="background-color: grey; height: 30px; padding: 5px"
             v-if="!charge.timeLeft"
           >
             Time elapsed
           </div>
           <div
             color="white"
-            style="background-color: grey; height: 30px; padding: 5px;"
+            style="background-color: grey; height: 30px; padding: 5px"
             v-else-if="charge.paid"
           >
             Charge paid
@@ -31,11 +31,11 @@
               color="secondary"
             >
               <q-item-section>
-                <q-item style="padding: 3px;">
+                <q-item style="padding: 3px">
                   <q-spinner color="white" size="0.8em"></q-spinner
-                  ><span style="font-size: 15px; color: white;"
+                  ><span style="font-size: 15px; color: white"
                     ><span class="q-pr-xl q-pl-md"> Awaiting payment...</span>
-                    <span class="q-pl-xl" style="color: white;">
+                    <span class="q-pl-xl" style="color: white">
                       {% raw %} {{ charge.timeLeft }} {% endraw %}</span
                     ></span
                   >
@@ -110,7 +110,7 @@
                 flat
                 disable
                 v-if="!charge.lnbitswallet || charge.time_elapsed"
-                style="color: primary; width: 100%;"
+                style="color: primary; width: 100%"
                 label="lightning⚡"
               >
                 <q-tooltip>
@@ -121,7 +121,7 @@
                 flat
                 v-else
                 @click="payInvoice"
-                style="color: primary; width: 100%;"
+                style="color: primary; width: 100%"
                 label="lightning⚡"
               >
                 <q-tooltip> pay with lightning </q-tooltip>
@@ -132,7 +132,7 @@
                 flat
                 disable
                 v-if="!charge.onchainwallet || charge.time_elapsed"
-                style="color: primary; width: 100%;"
+                style="color: primary; width: 100%"
                 label="onchain⛓️"
               >
                 <q-tooltip>
@@ -143,7 +143,7 @@
                 flat
                 v-else
                 @click="payOnchain"
-                style="color: primary; width: 100%;"
+                style="color: primary; width: 100%"
                 label="onchain⛓️"
               >
                 <q-tooltip> pay onchain </q-tooltip>
@@ -162,13 +162,13 @@
             <div v-if="!charge.timeLeft && !charge.paid">
               <q-icon
                 name="block"
-                style="color: #ccc; font-size: 21.4em;"
+                style="color: #ccc; font-size: 21.4em"
               ></q-icon>
             </div>
             <div v-else-if="charge.paid">
               <q-icon
                 name="check"
-                style="color: green; font-size: 21.4em;"
+                style="color: green; font-size: 21.4em"
               ></q-icon>
               <q-btn
                 outline
@@ -217,7 +217,7 @@
         <div v-if="charge.timeLeft && !charge.paid" class="row items-center">
           <div class="col text-center">
             <a
-              style="color: unset;"
+              style="color: unset"
               :href="mempool_endpoint + '/address/' + charge.onchainaddress"
               target="_blank"
               ><span
@@ -233,13 +233,13 @@
             <div v-if="!charge.timeLeft && !charge.paid">
               <q-icon
                 name="block"
-                style="color: #ccc; font-size: 21.4em;"
+                style="color: #ccc; font-size: 21.4em"
               ></q-icon>
             </div>
             <div v-else-if="charge.paid">
               <q-icon
                 name="check"
-                style="color: green; font-size: 21.4em;"
+                style="color: green; font-size: 21.4em"
               ></q-icon>
               <q-btn
                 outline

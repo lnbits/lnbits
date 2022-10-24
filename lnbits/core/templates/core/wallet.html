@@ -168,7 +168,7 @@
               <q-td
                 key="memo"
                 :props="props"
-                style="white-space: normal; word-break: break-all;"
+                style="white-space: normal; word-break: break-all"
               >
                 <q-badge v-if="props.row.tag" color="yellow" text-color="black">
                   <a
@@ -341,7 +341,7 @@
             <q-expansion-item group="extras" icon="edit" label="Rename wallet">
               <q-card>
                 <q-card-section>
-                  <div class="" style="max-width: 320px;">
+                  <div class="" style="max-width: 320px">
                     <q-input
                       filled
                       v-model.trim="newName"
@@ -683,7 +683,7 @@
   </q-dialog>
 
   <q-dialog v-model="paymentsChart.show">
-    <q-card class="q-pa-sm" style="width: 800px; max-width: unset;">
+    <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
       <q-card-section>
         <canvas ref="canvas" width="600" height="400"></canvas>
       </q-card-section>
