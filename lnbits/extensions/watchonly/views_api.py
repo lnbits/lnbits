@@ -4,6 +4,7 @@ from http import HTTPStatus
 import httpx
 from embit import finalizer, script
 from embit.ec import PublicKey
+from embit.networks import NETWORKS
 from embit.psbt import PSBT, DerivationPath
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
 from fastapi import Query, Request
@@ -85,7 +86,6 @@ async def api_wallet_create_or_update(
 
         new_wallet = WalletAccount(
             id="none",
-            user=w.wallet.user,
             masterpub=data.masterpub,
             fingerprint=descriptor.keys[0].fingerprint.hex(),
             type=descriptor.scriptpubkey_type(),
@@ -114,7 +114,7 @@ async def api_wallet_create_or_update(
                 )
             )
 
-        wallet = await create_watch_wallet(new_wallet)
+        wallet = await create_watch_wallet(w.wallet.user, new_wallet)
 
         await api_get_addresses(wallet.id, w)
     except Exception as e:
@@ -295,6 +295,7 @@ async def api_psbt_create(
 async def api_psbt_extract_tx(
     data: ExtractPsbt, w: WalletTypeInfo = Depends(require_admin_key)
 ):
+    network = NETWORKS["main"] if data.network == "Mainnet" else NETWORKS["test"]
     res = SignedTransaction()
     try:
         psbt = PSBT.from_base64(data.psbtBase64)
@@ -316,7 +317,7 @@ async def api_psbt_extract_tx(
 
         for out in transaction.vout:
             tx["outputs"].append(
-                {"amount": out.value, "address": out.script_pubkey.address()}
+                {"amount": out.value, "address": out.script_pubkey.address(network)}
             )
         res.tx_json = json.dumps(tx)
     except Exception as e:

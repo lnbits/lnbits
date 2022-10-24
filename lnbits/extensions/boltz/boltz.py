@@ -34,8 +34,8 @@ from .models import (
 from .utils import check_balance, get_timestamp, req_wrap
 
 net = NETWORKS[BOLTZ_NETWORK]
-logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
-logger.debug(f"Bitcoin Network: {net['name']}")
+logger.trace(f"BOLTZ_URL: {BOLTZ_URL}")
+logger.trace(f"Bitcoin Network: {net['name']}")
 
 
 async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
