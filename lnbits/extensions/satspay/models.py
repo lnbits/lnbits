@@ -74,3 +74,7 @@ class Charges(BaseModel):
         return self.webhook and self.paid and self.config.webhook_success == False
 class SatsPaySettings(BaseModel):
     custom_css: str = Query(None)
+
+    @classmethod
+    def from_row(cls, row: Row) -> "SatsPaySettings":
+        return cls(**dict(row))

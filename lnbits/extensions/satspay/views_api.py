@@ -22,6 +22,7 @@ from .crud import (
     get_charges,
     update_charge,
     save_settings,
+    get_settings,
 )
 from .helpers import call_webhook, public_charge
 from .helpers import compact_charge
@@ -153,3 +154,14 @@ async def api_settings_save(
     logger.debug(wallet.wallet.user)
     await save_settings(user=wallet.wallet.user, data=data)
     return True
+
+
+@satspay_ext.get("/api/v1/settings")
+async def api_settings_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+    logger.debug('HERHEHRHEHRHEHR')
+    try:
+        return await get_settings(wallet.wallet.user)
+    except HTTPException:
+        logger.error('Error loading satspay settings')
+        logger.error(HTTPException)
+        return ""
