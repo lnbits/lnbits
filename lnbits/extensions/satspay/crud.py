@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from loguru import logger
 
+from loguru import logger
+
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
@@ -10,7 +12,8 @@ from lnbits.helpers import urlsafe_short_hash
 from ..watchonly.crud import get_config, get_fresh_address
 from . import db
 from .helpers import fetch_onchain_balance
-from .models import Charges, CreateCharge
+from .models import Charges, CreateCharge, SatsPaySettings
+
 
 ###############CHARGES##########################
 
@@ -121,3 +124,36 @@ async def check_address_balance(charge_id: str) -> Optional[Charges]:
             if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     return await get_charge(charge_id)
+
+
+################## SETTINGS ###################
+async def save_settings(user: str, data: SatsPaySettings):
+    # insert or update
+    row = await db.fetchone(
+        """SELECT user FROM satspay.settings WHERE user = ?""", (user,)
+    )
+    if row:
+        await db.execute(
+            """
+            UPDATE satspay.settings SET custom_css = ? WHERE user = ?
+            """,
+            (
+                data.custom_css,
+                user
+            ),
+        )
+    else:
+        await db.execute(
+            """
+            INSERT INTO satspay.settings (
+                user,
+                custom_css
+                )
+            VALUES (?, ?)
+            """,
+            (
+                user,
+                data.custom_css,
+            ),
+        )
+    return True

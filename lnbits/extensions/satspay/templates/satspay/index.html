@@ -8,6 +8,11 @@
         <q-btn unelevated color="primary" @click="formDialogCharge.show = true"
           >New charge
         </q-btn>
+
+          <q-btn unelevated color="primary" @click="formDialogSettings.show = true"
+          >SatsPay settings
+        </q-btn>
+
       </q-card-section>
     </q-card>
 
@@ -394,6 +399,33 @@
       </q-form>
     </q-card>
   </q-dialog>
+
+<q-dialog v-model="formDialogSettings.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormDataSettings" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogSettings.data.custom_css"
+          type="textarea"
+          label="Custom CSS"
+        >
+            <q-tooltip>Custom CSS to apply styles to your SatsPay invoice</q-tooltip>
+        </q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            type="submit"
+            >Save Settings</q-btn
+          >
+          <q-btn @click="cancelSettings" flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <!-- lnbits/static/vendor
@@ -505,10 +537,20 @@
             time: null,
             amount: null
           }
+        },
+      formDialogSettings: {
+          show: false,
+          data: {
+            custom_css: '',
+            }
         }
       }
     },
     methods: {
+      cancelSettings: function(data) {
+        this.formDialogCharge.data.custom_css = ''
+        this.formDialogSettings.show = false
+      },
       cancelCharge: function (data) {
         this.formDialogCharge.data.description = ''
         this.formDialogCharge.data.onchain = false
@@ -580,6 +622,12 @@
           LNbits.utils.notifyApiError(error)
         }
       },
+      sendFormDataSettings: function () {
+        const wallet = this.g.user.wallets[0].inkey
+        const data = this.formDialogSettings.data
+        data.custom_css = data.custom_css
+        this.saveSettings(wallet, data)
+      },
       sendFormDataCharge: function () {
         const wallet = this.g.user.wallets[0].inkey
         const data = this.formDialogCharge.data
@@ -649,6 +697,23 @@
           console.error(error)
         } finally {
           this.rescanning = false
+        }
+      },
+      saveSettings: async function (wallet, data) {
+        try {
+          const resp = await LNbits.api.request(
+            'POST',
+            '/satspay/api/v1/settings',
+            wallet,
+            data
+          )
+
+          this.formDialogSettings.show = false
+          this.formDialogSettings.data = {
+            custom_css: ''
+          }
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
         }
       },
       createCharge: async function (wallet, data) {
