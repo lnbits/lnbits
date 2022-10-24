@@ -72,6 +72,7 @@ class Charges(BaseModel):
 
     def must_call_webhook(self):
         return self.webhook and self.paid and self.config.webhook_success == False
+
 class SatsPaySettings(BaseModel):
     custom_css: str = Query(None)
 
