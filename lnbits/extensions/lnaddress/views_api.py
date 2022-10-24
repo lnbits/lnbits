@@ -67,7 +67,7 @@ async def api_domain_create(
         domain = await create_domain(data=data)
         root_url = urlparse(str(request.url)).netloc
 
-        if domain.cf_token != "" and domain.cf_zone_id != "":
+        if domain.cf_token and domain.cf_zone_id:
             cf_response = await cloudflare_create_record(domain=domain, ip=root_url)
 
             if not cf_response or cf_response["success"] != True:
@@ -151,10 +151,9 @@ async def api_lnaddress_make_address(
         )
 
     domain_cost = domain.cost
-    sats = max(data.sats, 1) #Min amount is 1sat because 0sats invoice are not payable
 
     ## FAILSAFE FOR CREATING ADDRESSES BY API
-    if domain_cost * data.duration != data.sats:
+    if data.sats == 0 or domain_cost * data.duration != data.sats:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="The amount is not correct. Either 'duration', or 'sats' are wrong.",
@@ -176,8 +175,8 @@ async def api_lnaddress_make_address(
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=domain.wallet,
-                amount=sats,
-                memo=f"Renew {data.username}@{domain.domain} for {sats} sats for {data.duration} more days",
+                amount=data.sats,
+                memo=f"Renew {data.username}@{domain.domain} for {data.sats} sats for {data.duration} more days",
                 extra={
                     "tag": "renew lnaddress",
                     "id": address.id,
@@ -203,8 +202,8 @@ async def api_lnaddress_make_address(
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=domain.wallet,
-                amount=sats,
-                memo=f"LNAddress {data.username}@{domain.domain} for {sats} sats for {data.duration} days",
+                amount=data.sats,
+                memo=f"LNAddress {data.username}@{domain.domain} for {data.sats} sats for {data.duration} days",
                 extra={"tag": "lnaddress"},
             )
 

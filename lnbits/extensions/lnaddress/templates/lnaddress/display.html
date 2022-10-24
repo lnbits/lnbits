@@ -240,8 +240,10 @@
       amountSats() {
         let dialog = this.renewDialog.info ? this.renewDialog : this.formDialog
         if (!dialog.data.duration) return 0
-        let sats = dialog.data.duration * parseInt('{{ domain_cost }}')
-        dialog.data.sats = Math.max(parseInt(sats), 1)
+        let sats = Math.max(
+          parseInt(dialog.data.duration * parseInt('{{ domain_cost }}'), 1)
+        )
+        dialog.data.sats = sats
         return sats
       },
       checkUsername: async function () {

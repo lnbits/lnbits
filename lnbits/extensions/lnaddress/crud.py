@@ -83,7 +83,7 @@ async def create_address(
             data.username,
             data.wallet_key,
             data.wallet_endpoint,
-            max(data.sats,1),
+            data.sats,
             data.duration,
             False,
         ),

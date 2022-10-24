@@ -72,7 +72,9 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "unhashed_description": metadata,
-                    "description_hash": hashlib.sha256(metadata.encode("utf-8")).hexdigest(),
+                    "description_hash": hashlib.sha256(
+                        metadata.encode("utf-8")
+                    ).hexdigest(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
                 timeout=40,
