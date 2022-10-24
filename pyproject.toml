@@ -89,7 +89,9 @@ profile = "black"
 ignore_missing_imports = "True"
 files = "lnbits"
 exclude = """(?x)(
-  ^lnbits/extensions/bleskomat.
+    ^lnbits/extensions/bleskomat.
+    | ^lnbits/extensions/boltz.
+    | ^lnbits/extensions/boltcards.
     | ^lnbits/extensions/events.
     | ^lnbits/extensions/hivemind.
     | ^lnbits/extensions/invoices.
@@ -114,7 +116,7 @@ exclude = """(?x)(
     | ^lnbits/extensions/usermanager.
     | ^lnbits/extensions/watchonly.
     | ^lnbits/extensions/withdraw.
-  | ^lnbits/wallets/lnd_grpc_files.
+    | ^lnbits/wallets/lnd_grpc_files.
 )"""
 
 [tool.pytest.ini_options]
