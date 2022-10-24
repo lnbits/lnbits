@@ -20,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "lnsubdomain":
+    if not payment.extra or payment.extra.get("tag") != "lnsubdomain":
         # not an lnurlp invoice
         return
 
@@ -37,7 +37,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     )
 
     ### Use webhook to notify about cloudflare registration
-    if domain.webhook:
+    if domain and domain.webhook:
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.post(
