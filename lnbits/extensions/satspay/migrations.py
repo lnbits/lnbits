@@ -37,3 +37,18 @@ async def m002_add_charge_extra_data(db):
             ADD COLUMN extra TEXT DEFAULT '{"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}';
         """
     )
+
+async def m002_add_settings_table(db):
+    """
+    Settings table
+    """
+
+    await db.execute(
+        """
+        CREATE TABLE satspay.settings (
+            id TEXT NOT NULL PRIMARY KEY,
+            "user" TEXT,
+            custom_css TEXT
+        );
+    """
+    )
