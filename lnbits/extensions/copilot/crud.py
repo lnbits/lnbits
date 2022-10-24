@@ -67,12 +67,11 @@ async def create_copilot(
 
 
 async def update_copilot(
-    data: CreateCopilotData, copilot_id: Optional[str] = ""
+    data: CreateCopilotData, copilot_id: str
 ) -> Optional[Copilots]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
-    if copilot_id:
-        items.append(copilot_id)
+    items.append(copilot_id)
     await db.execute(f"UPDATE copilot.newer_copilots SET {q} WHERE id = ?", (items,))
     row = await db.fetchone(
         "SELECT * FROM copilot.newer_copilots WHERE id = ?", (copilot_id,)
