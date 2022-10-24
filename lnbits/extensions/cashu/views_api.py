@@ -47,17 +47,20 @@ from .models import Cashu
 # --------- extension imports
 
 
-LIGHTNING = False
+LIGHTNING = True
 
 ########################################
 ############### LNBITS MINTS ###########
 ########################################
 
-# todo: use /mints
-@cashu_ext.get("/api/v1/cashus", status_code=HTTPStatus.OK)
+
+@cashu_ext.get("/api/v1/mints", status_code=HTTPStatus.OK)
 async def api_cashus(
     all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    """
+    Get all mints of this wallet.
+    """
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
@@ -65,8 +68,11 @@ async def api_cashus(
     return [cashu.dict() for cashu in await get_cashus(wallet_ids)]
 
 
-@cashu_ext.post("/api/v1/cashus", status_code=HTTPStatus.CREATED)
+@cashu_ext.post("/api/v1/mints", status_code=HTTPStatus.CREATED)
 async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)):
+    """
+    Create a new mint for this wallet.
+    """
     cashu_id = urlsafe_short_hash()
     # generate a new keyset in cashu
     keyset = await ledger.load_keyset(cashu_id)
@@ -78,12 +84,35 @@ async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key
     return cashu.dict()
 
 
+@cashu_ext.delete("/api/v1/mints/{cashu_id}")
+async def api_cashu_delete(
+    cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+    """
+    Delete an existing cashu mint.
+    """
+    cashu = await get_cashu(cashu_id)
+
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Cashu mint does not exist."
+        )
+
+    if cashu.wallet != wallet.wallet.id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your Cashu mint."
+        )
+
+    await delete_cashu(cashu_id)
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+
 #######################################
 ########### CASHU ENDPOINTS ###########
 #######################################
 
 
-@cashu_ext.get("/api/v1/cashu/{cashu_id}/keys", status_code=HTTPStatus.OK)
+@cashu_ext.get("/api/v1/{cashu_id}/keys", status_code=HTTPStatus.OK)
 async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
     """Get the public keys of the mint"""
     cashu: Union[Cashu, None] = await get_cashu(cashu_id)
@@ -96,7 +125,20 @@ async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
     return ledger.get_keyset(keyset_id=cashu.keyset_id)
 
 
-@cashu_ext.get("/api/v1/cashu/{cashu_id}/mint")
+@cashu_ext.get("/api/v1/{cashu_id}/keysets", status_code=HTTPStatus.OK)
+async def keysets(cashu_id: str = Query(None)) -> dict[str, list[str]]:
+    """Get the public keys of the mint"""
+    cashu: Union[Cashu, None] = await get_cashu(cashu_id)
+
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+
+    return {"keysets": [cashu.keyset_id]}
+
+
+@cashu_ext.get("/api/v1/{cashu_id}/mint")
 async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintResponse:
     """
     Request minting of new tokens. The mint responds with a Lightning invoice.
@@ -134,7 +176,7 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
     return resp
 
 
-@cashu_ext.post("/api/v1/cashu/{cashu_id}/mint")
+@cashu_ext.post("/api/v1/{cashu_id}/mint")
 async def mint_coins(
     data: MintRequest,
     cashu_id: str = Query(None),
@@ -157,7 +199,7 @@ async def mint_coins(
         if invoice is None:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail="Mint does not have this invoice.",
+                detail="Mint does not know this invoice.",
             )
         if invoice.issued == True:
             raise HTTPException(
@@ -173,27 +215,31 @@ async def mint_coins(
             )
 
     status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
-    # todo: revert to: status.paid != True:
+
     if status.paid != True:
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
         )
     try:
-        await ledger.crud.update_lightning_invoice(
-            db=ledger.db, hash=payment_hash, issued=True
-        )
         keyset = ledger.keysets.keysets[cashu.keyset_id]
 
         promises = await ledger._generate_promises(
             B_s=data.blinded_messages, keyset=keyset
         )
+        assert len(promises), HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="No promises returned."
+        )
+        await ledger.crud.update_lightning_invoice(
+            db=ledger.db, hash=payment_hash, issued=True
+        )
+
         return promises
     except Exception as e:
         logger.error(e)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@cashu_ext.post("/api/v1/cashu/{cashu_id}/melt")
+@cashu_ext.post("/api/v1/{cashu_id}/melt")
 async def melt_coins(
     payload: MeltRequest, cashu_id: str = Query(None)
 ) -> GetMeltResponse:
@@ -211,7 +257,7 @@ async def melt_coins(
     # TOKENS
     assert all([p.id == cashu.keyset_id for p in proofs]), HTTPException(
         status_code=HTTPStatus.BAD_REQUEST,
-        detail="Proofs include tokens from other mint.",
+        detail="Proofs include tokens from another mint.",
     )
 
     assert all([ledger._verify_proof(p) for p in proofs]), HTTPException(
@@ -248,19 +294,33 @@ async def melt_coins(
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
-@cashu_ext.post("/api/v1/check")
-async def check_spendable(payload: CheckRequest) -> Dict[int, bool]:
+@cashu_ext.post("/api/v1/{cashu_id}/check")
+async def check_spendable(
+    payload: CheckRequest, cashu_id: str = Query(None)
+) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
+    cashu: Union[None, Cashu] = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     return await ledger.check_spendable(payload.proofs)
 
 
-@cashu_ext.post("/api/v1/checkfees")
-async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
+@cashu_ext.post("/api/v1/{cashu_id}/checkfees")
+async def check_fees(
+    payload: CheckFeesRequest, cashu_id: str = Query(None)
+) -> CheckFeesResponse:
     """
     Responds with the fees necessary to pay a Lightning invoice.
     Used by wallets for figuring out the fees they need to supply.
     This is can be useful for checking whether an invoice is internal (Cashu-to-Cashu).
     """
+    cashu: Union[None, Cashu] = await get_cashu(cashu_id)
+    if cashu is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     invoice_obj = bolt11.decode(payload.pr)
     internal_checking_id = await check_internal(invoice_obj.payment_hash)
 
@@ -271,7 +331,7 @@ async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
     return CheckFeesResponse(fee=fees_msat / 1000)
 
 
-@cashu_ext.post("/api/v1/cashu/{cashu_id}/split")
+@cashu_ext.post("/api/v1/{cashu_id}/split")
 async def split(
     payload: SplitRequest, cashu_id: str = Query(None)
 ) -> PostSplitResponse:
@@ -291,7 +351,8 @@ async def split(
     assert outputs, Exception("no outputs provided.")
     split_return = None
     try:
-        split_return = await ledger.split(proofs, amount, outputs, cashu.keyset_id)
+        keyset = ledger.keysets.keysets[cashu.keyset_id]
+        split_return = await ledger.split(proofs, amount, outputs, keyset)
     except Exception as exc:
         HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -316,24 +377,6 @@ async def split(
 #     cashu = await create_cashu(wallet_id=wallet.wallet.id, data=data)
 #     logger.debug(cashu)
 #     return cashu.dict()
-
-
-# @cashu_ext.delete("/api/v1s/{cashu_id}")
-# async def api_cashu_delete(
-#     cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
-# ):
-#     cashu = await get_cashu(cashu_id)
-
-#     if not cashu:
-#         raise HTTPException(
-#             status_code=HTTPStatus.NOT_FOUND, detail="Cashu does not exist."
-#         )
-
-#     if cashu.wallet != wallet.wallet.id:
-#         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your Cashu.")
-
-#     await delete_cashu(cashu_id)
-#     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
 # ########################################

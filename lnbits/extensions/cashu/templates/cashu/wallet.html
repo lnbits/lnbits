@@ -913,7 +913,7 @@ page_container %}
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/cashu/api/v1/cashu/${this.mintId}/mint?amount=${this.invoiceData.amount}`
+            `/cashu/api/v1/${this.mintId}/mint?amount=${this.invoiceData.amount}`
           )
           console.log('### data', data)
 
@@ -940,7 +940,7 @@ page_container %}
             try {
               const {data} = await LNbits.api.request(
                 'POST',
-                `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${invoice.hash}`,
+                `/cashu/api/v1/${this.mintId}/mint?payment_hash=${invoice.hash}`,
                 '',
                 {
                   blinded_messages: []
@@ -991,7 +991,7 @@ page_container %}
         try {
           const {data} = await LNbits.api.request(
             'POST',
-            `/cashu/api/v1/cashu/${this.mintId}/mint?payment_hash=${hash}`,
+            `/cashu/api/v1/${this.mintId}/mint?payment_hash=${hash}`,
             '',
             {
               blinded_messages: blindedMessages
@@ -1086,7 +1086,7 @@ page_container %}
           try {
             const {data} = await LNbits.api.request(
               'POST',
-              `/cashu/api/v1/cashu/${this.mintId}/split`,
+              `/cashu/api/v1/${this.mintId}/split`,
               '',
               payload
             )
@@ -1221,7 +1221,7 @@ page_container %}
         try {
           const {data} = await LNbits.api.request(
             'POST',
-            `/cashu/api/v1/cashu/${this.mintId}/melt`,
+            `/cashu/api/v1/${this.mintId}/melt`,
             '',
             payload
           )
@@ -1257,7 +1257,7 @@ page_container %}
       fetchMintKeys: async function () {
         const {data} = await LNbits.api.request(
           'GET',
-          `/cashu/api/v1/cashu/${this.mintId}/keys`
+          `/cashu/api/v1/${this.mintId}/keys`
         )
         this.keys = data
         localStorage.setItem('cashu.keys', JSON.stringify(data))
