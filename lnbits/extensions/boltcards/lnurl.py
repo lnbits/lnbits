@@ -136,8 +136,8 @@ async def lnurl_callback(
         )
 
         return {"status": "OK"}
-    except:
-        return {"status": "ERROR", "reason": f"Payment failed"}
+    except Exception as exc:
+        return {"status": "ERROR", "reason": f"Payment failed - {exc}"}
 
 
 # /boltcards/api/v1/auth?a=00000000000000000000000000000000

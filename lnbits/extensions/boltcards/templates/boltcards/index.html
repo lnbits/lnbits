@@ -215,6 +215,7 @@
           emit-value
           v-model="cardDialog.data.wallet"
           :options="g.user.walletOptions"
+          :disable="cardDialog.data.id != null"
           label="Wallet *"
         >
         </q-select>
