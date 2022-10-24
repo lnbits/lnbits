@@ -365,25 +365,24 @@ new Vue({
       try {
         await promise
       } catch (error) {
-        let camera_error = ''
-        if (error.name === 'NotAllowedError') {
-          camera_error = 'ERROR: you need to grant camera access permission'
-        } else if (error.name === 'NotFoundError') {
-          camera_error = 'ERROR: no camera on this device'
-        } else if (error.name === 'NotSupportedError') {
-          camera_error = 'ERROR: secure context required (HTTPS, localhost)'
-        } else if (error.name === 'NotReadableError') {
-          camera_error = 'ERROR: is the camera already in use?'
-        } else if (error.name === 'OverconstrainedError') {
-          camera_error = 'ERROR: installed cameras are not suitable'
-        } else if (error.name === 'StreamApiNotSupportedError') {
-          camera_error = 'ERROR: Stream API is not supported in this browser'
-        } else if (error.name === 'InsecureContextError') {
-          camera_error =
+        let mapping = {
+          NotAllowedError: 'ERROR: you need to grant camera access permission',
+          NotFoundError: 'ERROR: no camera on this device',
+          NotSupportedError:
+            'ERROR: secure context required (HTTPS, localhost)',
+          NotReadableError: 'ERROR: is the camera already in use?',
+          OverconstrainedError: 'ERROR: installed cameras are not suitable',
+          StreamApiNotSupportedError:
+            'ERROR: Stream API is not supported in this browser',
+          InsecureContextError:
             'ERROR: Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.'
-        } else {
-          camera_error = `ERROR: Camera error (${error.name})`
         }
+        let valid_error = Object.keys(mapping).filter(key => {
+          return error.name === key
+        })
+        let camera_error = valid_error
+          ? mapping[valid_error]
+          : `ERROR: Camera error (${error.name})`
         this.parse.camera.show = false
         this.$q.notify({
           message: camera_error,
