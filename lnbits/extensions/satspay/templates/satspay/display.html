@@ -297,7 +297,12 @@
   </div>
   <div class="col-lg- 4 col-md-3 col-sm-1"></div>
 </div>
-
+{% endblock %} {% block styles %}
+<link
+  href="/satspay/css/{{ charge_data.id }}"
+  rel="stylesheet"
+  type="text/css"
+/>
 {% endblock %} {% block scripts %}
 
 <script src="https://mempool.space/mempool.js"></script>
@@ -310,6 +315,7 @@
     mixins: [windowMixin],
     data() {
       return {
+        customCss: '',
         charge: JSON.parse('{{charge_data | tojson}}'),
         mempoolEndpoint: '{{mempool_endpoint}}',
         network: '{{network}}',
@@ -335,6 +341,27 @@
       }
     },
     methods: {
+      startPaymentNotifier() {
+        this.cancelListener()
+        if (!this.lnbitswallet) return
+        this.cancelListener = LNbits.events.onInvoicePaid(
+          this.wallet,
+          payment => {
+            this.checkInvoiceBalance()
+          }
+        )
+      },
+      getCustomCss: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/satspay/api/v1/settings/css/${this.charge.id}`
+          )
+          this.customCss = data
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
       checkBalances: async function () {
         if (!this.charge.payment_request && this.charge.hasOnchainStaleBalance)
           return
@@ -438,6 +465,7 @@
       }
     },
     created: async function () {
+      await this.getCustomCss()
       if (this.charge.payment_request) this.payInvoice()
       else this.payOnchain()
 

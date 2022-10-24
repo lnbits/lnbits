@@ -3,8 +3,6 @@ from typing import List, Optional
 
 from loguru import logger
 
-from loguru import logger
-
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
@@ -13,7 +11,6 @@ from ..watchonly.crud import get_config, get_fresh_address
 from . import db
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPaySettings
-
 
 ###############CHARGES##########################
 
@@ -102,14 +99,12 @@ async def get_charges(user: str) -> List[Charges]:
     )
     return [Charges.from_row(row) for row in rows]
 
+
 async def get_settings(user: str) -> SatsPaySettings:
     row = await db.fetchone(
         """SELECT * FROM satspay.settings WHERE "user" = ?""",
         (user,),
     )
-    logger.debug('Settings data')
-    logger.debug(row)
-
     if row:
         return SatsPaySettings.from_row(row)
     else:
@@ -150,10 +145,7 @@ async def save_settings(user: str, data: SatsPaySettings):
             """
             UPDATE satspay.settings SET custom_css = ? WHERE user = ?
             """,
-            (
-                data.custom_css,
-                user
-            ),
+            (data.custom_css, user),
         )
     else:
         await db.execute(
