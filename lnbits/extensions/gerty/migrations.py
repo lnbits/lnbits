@@ -16,3 +16,11 @@ async def m001_initial(db):
         );
     """
     )
+
+async def m002_add_utc_offset_col(db):
+    """
+    support for UTC offset
+    """
+    await db.execute(
+        "ALTER TABLE gerty.gertys ADD COLUMN utc_offset INT;"
+    )

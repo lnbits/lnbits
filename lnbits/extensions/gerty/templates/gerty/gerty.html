@@ -1,40 +1,74 @@
-{% extends "public.html" %}  {% block toolbar_title %} {{ gerty.name }}{% endblock %}{% block page %}
-{% raw %}
+{% extends "public.html" %} {% block toolbar_title %} {{ gerty.name }}{%
+endblock %}{% block page %} {% raw %}
 <div class="q-pa-md row items-start q-gutter-md">
-  <q-card unelevated flat  class="q-pa-none text-body1 blockquote" style="background: none !important;">
-    "{{gerty.sats_quote[0].text}}" <br/>~ Satoshi {{gerty.sats_quote[0].date}}
-</q-card>
+  <q-card
+    unelevated
+    flat
+    class="q-pa-none text-body1 blockquote"
+    style="background: none !important"
+  >
+    "{{gerty.sats_quote[0].text}}" <br />~ Satoshi {{gerty.sats_quote[0].date}}
+  </q-card>
 </div>
 <div class="q-pa-md row items-start q-gutter-md">
-  <q-card unelevated flat class="q-pa-none" style="background: none !important;">
+  <q-card unelevated flat class="q-pa-none" style="background: none !important">
     <q-card-section class="text-h1 q-pa-none">
       {{gerty.exchange[0].amount.toFixed(2)}} {{gerty.exchange[0].fiat}}
     </q-card-section>
   </q-card>
-<q-card v-for="gertywallet in gertywallets" style="width:380px" flat>
-  <q-card-section horizontal class="q-pa-none" :style="`background-color: ${gertywallet.color1}`">
-    <q-card-section class="q-pa-none">
-      <div class="q-item__section column  q-pa-lg q-mr-none text-white q-item__section--side justify-center" :style="`background-color: ${gertywallet.color2}`" >
-        <i aria-hidden="true" role="presentation" class="material-icons q-icon notranslate text-white" style="font-size: 50px;">sentiment_satisfied</i></div>  
-    </q-card-section>
+  <q-card v-for="gertywallet in gertywallets" style="width: 380px" flat>
+    <q-card-section
+      horizontal
+      class="q-pa-none"
+      :style="`background-color: ${gertywallet.color1}`"
+    >
+      <q-card-section class="q-pa-none">
+        <div
+          class="q-item__section column q-pa-lg q-mr-none text-white q-item__section--side justify-center"
+          :style="`background-color: ${gertywallet.color2}`"
+        >
+          <i
+            aria-hidden="true"
+            role="presentation"
+            class="material-icons q-icon notranslate text-white"
+            style="font-size: 50px"
+            >sentiment_satisfied</i
+          >
+        </div>
+      </q-card-section>
 
-    <div class="q-item__section column  q-pa-md q-ml-none  text-white q-item__section--main justify-center" style="min-width:200px;">
-      <div class="q-item__label text-white text-h6 text-weight-bolder">{{gertywallet.amount}}</div><div class="q-item__label"><b>{{gertywallet.name}}</b></div>
-    </div>
-  </q-card-section>
-</q-card>
+      <div
+        class="q-item__section column q-pa-md q-ml-none text-white q-item__section--main justify-center"
+        style="min-width: 200px"
+      >
+        <div class="q-item__label text-white text-h6 text-weight-bolder">
+          {{gertywallet.amount}}
+        </div>
+        <div class="q-item__label"><b>{{gertywallet.name}}</b></div>
+      </div>
+    </q-card-section>
+  </q-card>
 </div>
 
-<div class="row q-col-gutter-md ">  
+<div class="row q-col-gutter-md">
   <div v-if="gerty.onchain[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
     <q-card class="q-pa-lg">
-     <p class="text-h4">Onchain Stats</p>
-     Difficulty Progress Percent
-     <q-linear-progress size="20px" :value="gerty.onchain[0].difficulty[0].progressPercent/100" color="primary" class="q-mt-sm">
-      <div class="absolute-full flex flex-center">
-        <q-badge color="white" text-color="accent" :label="gerty.onchain[0].difficulty[0].progressPercent.toFixed() + '%'" />
-      </div>
-    </q-linear-progress>
+      <p class="text-h4">Onchain Stats</p>
+      Difficulty Progress Percent
+      <q-linear-progress
+        size="20px"
+        :value="gerty.onchain[0].difficulty[0].progressPercent/100"
+        color="primary"
+        class="q-mt-sm"
+      >
+        <div class="absolute-full flex flex-center">
+          <q-badge
+            color="white"
+            text-color="accent"
+            :label="gerty.onchain[0].difficulty[0].progressPercent.toFixed() + '%'"
+          />
+        </div>
+      </q-linear-progress>
 
       <q-card-section class="q-pa-none">
         <div class="row q-mt-lg q-gutter-sm text-h6">
@@ -46,17 +80,14 @@
   </div>
   <div v-if="gerty.ln[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
     <q-card class="q-pa-lg">
-     <p class="text-h4">LN Stats</p>
+      <p class="text-h4">LN Stats</p>
       <q-card-section class="q-pa-none">
-        <div class="row q-mt-lg q-gutter-sm">
-          {{gerty.ln}}
-        </div>
+        <div class="row q-mt-lg q-gutter-sm">{{gerty.ln}}</div>
       </q-card-section>
     </q-card>
   </div>
 </div>
-{% endraw %}
-{% endblock %} {% block scripts %}
+{% endraw %} {% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 

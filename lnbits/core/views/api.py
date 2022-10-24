@@ -6,7 +6,7 @@ import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -476,7 +476,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     except:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
-        if len(name_domain) == 2 and len(name_domain[1].split(".")) == 2:
+        if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
             name, domain = name_domain
             url = (
                 ("http://" if domain.endswith(".onion") else "https://")
