@@ -26,3 +26,18 @@ async def m001_initial(db):
         );
     """
     )
+
+async def m002_add_settings_table(db):
+    """
+    Settings table
+    """
+
+    await db.execute(
+        """
+        CREATE TABLE satspay.settings (
+            id TEXT NOT NULL PRIMARY KEY,
+            "user" TEXT,
+            custom_css TEXT
+        );
+    """
+    )
