@@ -8,7 +8,7 @@
   <q-expansion-item group="api" dense expand-separator label="List TPoS">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span> /cashu/api/v1/cashus</code>
+        <code><span class="text-blue">GET</span> /cashu/api/v1/mints</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -18,7 +18,7 @@
         <code>[&lt;cashu_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}cashu/api/v1/cashus -H "X-Api-Key:
+          >curl -X GET {{ request.base_url }}cashu/api/v1/mints -H "X-Api-Key:
           &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -27,7 +27,7 @@
   <q-expansion-item group="api" dense expand-separator label="Create a TPoS">
     <q-card>
       <q-card-section>
-        <code><span class="text-green">POST</span> /cashu/api/v1/cashus</code>
+        <code><span class="text-green">POST</span> /cashu/api/v1/mints</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -43,7 +43,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}cashu/api/v1/cashus -d '{"name":
+          >curl -X POST {{ request.base_url }}cashu/api/v1/mints -d '{"name":
           &lt;string&gt;, "currency": &lt;string&gt;}' -H "Content-type:
           application/json" -H "X-Api-Key: &lt;admin_key&gt;"
         </code>
@@ -62,7 +62,7 @@
       <q-card-section>
         <code
           ><span class="text-pink">DELETE</span>
-          /cashu/api/v1/cashus/&lt;cashu_id&gt;</code
+          /cashu/api/v1/mints/&lt;cashu_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -71,7 +71,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}cashu/api/v1/cashus/&lt;cashu_id&gt; -H "X-Api-Key:
+          }}cashu/api/v1/mints/&lt;cashu_id&gt; -H "X-Api-Key:
           &lt;admin_key&gt;"
         </code>
       </q-card-section>

@@ -12,7 +12,8 @@ async def m001_initial(db):
             fraction BOOL,
             maxsats INT,
             coins INT,
-            keyset_id TEXT NOT NULL
+            keyset_id TEXT NOT NULL,
+            issued_sat INT
         );
     """
     )
