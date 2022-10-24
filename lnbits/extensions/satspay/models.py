@@ -57,3 +57,7 @@ class Charges(BaseModel):
 
 class SatsPaySettings(BaseModel):
     custom_css: str = Query(None)
+
+    @classmethod
+    def from_row(cls, row: Row) -> "SatsPaySettings":
+        return cls(**dict(row))

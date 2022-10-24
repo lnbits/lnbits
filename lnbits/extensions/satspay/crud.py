@@ -96,6 +96,19 @@ async def get_charges(user: str) -> List[Charges]:
     )
     return [Charges.from_row(row) for row in rows]
 
+async def get_settings(user: str) -> SatsPaySettings:
+    row = await db.fetchone(
+        """SELECT * FROM satspay.settings WHERE "user" = ?""",
+        (user,),
+    )
+    logger.debug('Settings data')
+    logger.debug(row)
+
+    if row:
+        return SatsPaySettings.from_row(row)
+    else:
+        return None
+
 
 async def delete_charge(charge_id: str) -> None:
     await db.execute("DELETE FROM satspay.charges WHERE id = ?", (charge_id,))

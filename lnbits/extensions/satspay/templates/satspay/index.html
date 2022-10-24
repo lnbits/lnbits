@@ -9,7 +9,7 @@
           >New charge
         </q-btn>
 
-          <q-btn unelevated color="primary" @click="formDialogSettings.show = true"
+          <q-btn unelevated color="primary" @click="getSettings();formDialogSettings.show = true"
           >SatsPay settings
         </q-btn>
 
@@ -437,6 +437,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        settings: {},
         filter: '',
         balance: null,
         walletLinks: [],
@@ -614,6 +615,21 @@
           LNbits.utils.notifyApiError(error)
         }
       },
+
+    getSettings: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/satspay/api/v1/settings',
+            this.g.user.wallets[0].inkey
+          )
+            console.log('Settings data', data)
+          this.formDialogSettings.data = data
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
       sendFormDataSettings: function () {
         const wallet = this.g.user.wallets[0].inkey
         const data = this.formDialogSettings.data
@@ -691,6 +707,7 @@
         }
       },
       saveSettings: async function (wallet, data) {
+          console.log('wallet', wallet)
         try {
           const resp = await LNbits.api.request(
             'POST',
@@ -759,6 +776,7 @@
       }
     },
     created: async function () {
+      await this.getSettings()
       await this.getCharges()
       await this.getWalletLinks()
       await this.getWalletConfig()
