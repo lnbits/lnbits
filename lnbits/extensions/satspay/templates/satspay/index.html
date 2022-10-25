@@ -630,7 +630,6 @@
             '/satspay/api/v1/settings',
             this.g.user.wallets[0].inkey
           )
-          console.log('Settings data', data)
           this.formDialogSettings.data = data
         } catch (error) {
           LNbits.utils.notifyApiError(error)
@@ -715,7 +714,6 @@
         }
       },
       saveSettings: async function (wallet, data) {
-        console.log('wallet', wallet)
         try {
           const resp = await LNbits.api.request(
             'POST',
