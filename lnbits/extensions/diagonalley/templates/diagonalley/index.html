@@ -1953,21 +1953,21 @@
               })
           })
       },
-      shipOrder(order_id){
+      shipOrder(order_id) {
         LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/orders/shipped/' + order_id,
             this.g.user.wallets[0].inkey
           )
-          .then((response) => {
+          .then(response => {
             console.log(response.data)
-            this.orders = _.reject(this.orders, (obj) => {
+            this.orders = _.reject(this.orders, obj => {
               return obj.id == order_id
             })
             this.orders.push(mapOrders(response.data))
           })
-          .catch((error) => {
+          .catch(error => {
             LNbits.utils.notifyApiError(error)
           })
       },
@@ -2022,7 +2022,7 @@
             this.updateLastSeenMsg(key)
             return
           }
-          
+
           if (
             lastMsgs[key].timestamp <
             Math.max(...this.messages[key].map(c => c.timestamp))

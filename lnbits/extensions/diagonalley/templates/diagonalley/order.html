@@ -137,11 +137,21 @@
             >Backup keys
             <q-tooltip>Download your keys</q-tooltip>
           </q-btn>
-          <q-btn outline color="grey" class="q-mx-sm" @click="keysDialog.show = true" :disabled="this.user.keys"
+          <q-btn
+            outline
+            color="grey"
+            class="q-mx-sm"
+            @click="keysDialog.show = true"
+            :disabled="this.user.keys"
             >Restore keys
             <q-tooltip>Restore keys</q-tooltip>
           </q-btn>
-          <q-btn @click="deleteData" v-close-popup flat color="grey" class="q-ml-auto"
+          <q-btn
+            @click="deleteData"
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
             >Delete data
             <q-tooltip>Delete all data from browser</q-tooltip>
           </q-btn>
@@ -155,10 +165,7 @@
     position="top"
     @hide="clearRestoreKeyDialog"
   >
-    <q-card
-      class="q-pa-lg q-pt-xl lnbits__dialog-card"
-    >
-    </q-card>
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card"> </q-card>
     <q-card class="q-pa-lg lnbits__dialog-card">
       <q-form @submit="restoreKeys" class="q-gutter-md">
         <q-input
@@ -180,7 +187,7 @@
             :disable="keysDialog.data.publickey == null"
             type="submit"
             label="Submit"
-            ></q-btn>
+          ></q-btn>
           <q-btn
             v-close-popup
             flat
@@ -188,9 +195,9 @@
             color="grey"
             class="q-ml-auto"
             label="Cancel"
-            ></q-btn>
+          ></q-btn>
         </div>
-        </q-form>
+      </q-form>
     </q-card>
   </q-dialog>
 </div>
@@ -230,7 +237,7 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      clearRestoreKeyDialog(){
+      clearRestoreKeyDialog() {
         this.keysDialog = {
           show: false,
           data: {}
@@ -249,10 +256,14 @@
         if (!key) return ''
         return `${key.slice(0, 4)}...${key.slice(-4)}`
       },
-      downloadKeys(){
-        const file = new File([JSON.stringify(this.user.keys)], 'backup_keys.json', {
-          type: 'text/json',
-        })
+      downloadKeys() {
+        const file = new File(
+          [JSON.stringify(this.user.keys)],
+          'backup_keys.json',
+          {
+            type: 'text/json'
+          }
+        )
         const link = document.createElement('a')
         const url = URL.createObjectURL(file)
 
@@ -261,19 +272,18 @@
         link.click()
 
         window.URL.revokeObjectURL(url)
-
       },
-      restoreKeys(){
+      restoreKeys() {
         this.user.keys = this.keysDialog.data
         let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
         this.$q.localStorage.set(`lnbits.diagonalley.data`, {
           ...data,
           keys: this.user.keys
         })
-        
+
         this.clearRestoreKeyDialog()
       },
-      deleteData(){
+      deleteData() {
         LNbits.utils
           .confirmDialog('Are you sure you want to delete your stored data?')
           .onOk(() => {
