@@ -133,11 +133,15 @@
       <q-card-section>
         <q-separator></q-separator>
         <div class="row q-mt-lg">
-          <q-btn outline color="grey" @click=""
+          <q-btn outline color="grey" @click="downloadKeys"
             >Backup keys
             <q-tooltip>Download your keys</q-tooltip>
           </q-btn>
-          <q-btn @click="" v-close-popup flat color="grey" class="q-ml-auto"
+          <q-btn outline color="grey" class="q-mx-sm" @click="keysDialog.show = true" :disabled="this.user.keys"
+            >Restore keys
+            <q-tooltip>Restore keys</q-tooltip>
+          </q-btn>
+          <q-btn @click="deleteData" v-close-popup flat color="grey" class="q-ml-auto"
             >Delete data
             <q-tooltip>Delete all data from browser</q-tooltip>
           </q-btn>
@@ -145,6 +149,50 @@
       </q-card-section>
     </q-card>
   </div>
+  <!-- RESTORE KEYS DIALOG -->
+  <q-dialog
+    v-model="keysDialog.show"
+    position="top"
+    @hide="clearRestoreKeyDialog"
+  >
+    <q-card
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card class="q-pa-lg lnbits__dialog-card">
+      <q-form @submit="restoreKeys" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="keysDialog.data.publickey"
+          label="Public Key"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="keysDialog.data.privatekey"
+          label="Private Key *optional"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="keysDialog.data.publickey == null"
+            type="submit"
+            label="Submit"
+            ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            @click="clearRestoreKeyDialog"
+            color="grey"
+            class="q-ml-auto"
+            label="Cancel"
+            ></q-btn>
+        </div>
+        </q-form>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
 <script>
@@ -170,10 +218,10 @@
         products: [],
         orders: [],
         user: null,
-        // Mock data
-        model: null,
-        mockMerch: ['Google', 'Facebook', 'Twitter', 'Apple', 'Oracle'],
-        mockOrder: ['1', '2', '3']
+        keysDialog: {
+          show: false,
+          data: {}
+        }
       }
     },
     computed: {},
@@ -181,6 +229,12 @@
       clearMessage() {
         this.newMessage = ''
         this.$refs.newMessage.focus()
+      },
+      clearRestoreKeyDialog(){
+        this.keysDialog = {
+          show: false,
+          data: {}
+        }
       },
       sendMessage() {
         let message = {
@@ -194,6 +248,38 @@
       sliceKey(key) {
         if (!key) return ''
         return `${key.slice(0, 4)}...${key.slice(-4)}`
+      },
+      downloadKeys(){
+        const file = new File([JSON.stringify(this.user.keys)], 'backup_keys.json', {
+          type: 'text/json',
+        })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(file)
+
+        link.href = url
+        link.download = file.name
+        link.click()
+
+        window.URL.revokeObjectURL(url)
+
+      },
+      restoreKeys(){
+        this.user.keys = this.keysDialog.data
+        let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+        this.$q.localStorage.set(`lnbits.diagonalley.data`, {
+          ...data,
+          keys: this.user.keys
+        })
+        
+        this.clearRestoreKeyDialog()
+      },
+      deleteData(){
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete your stored data?')
+          .onOk(() => {
+            this.$q.localStorage.remove('lnbits.diagonalley.data')
+            this.user = null
+          })
       },
       async generateKeys() {
         await LNbits.api
@@ -298,7 +384,6 @@
           if (!this.user.orders[`${order_id}`]) {
             this.$set(this.user.orders, order_id, this.products)
           }
-          //this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         } else {
           // generate keys
           await this.generateKeys()
@@ -306,19 +391,14 @@
           this.user.orders = {
             [`${order_id}`]: this.products
           }
-          //this.user.orders = []
         }
 
-        //this.order_details = order_details
-
-        //this.user.orders = [...new Set([...this.user.orders, order_id])]
         this.selectedOrder = order_id
 
         await this.getMessages(order_id)
 
         this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
         this.startChat(order_id)
-        console.log(this.messages)
       } catch (e) {
         console.error(e)
       }
