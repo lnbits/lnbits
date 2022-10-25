@@ -18,20 +18,19 @@ class createLnurldevice(BaseModel):
     device: str
     profit: float
     amount: int
-    amount1: int
-    amount2: int
-    amount3: int
-    amount4: int
     pin: int
+    profit1: float
+    amount1: int
     pin1: int
+    profit2: float
+    amount2: int
     pin2: int
+    profit3: float
+    amount3: int
     pin3: int
+    profit4: float
+    amount4: int
     pin4: int
-    time: int
-    time1: int
-    time2: int
-    time3: int
-    time4: int
 
 
 class lnurldevices(BaseModel):
@@ -43,6 +42,19 @@ class lnurldevices(BaseModel):
     device: str
     profit: float
     amount: int
+    pin: int
+    profit1: float
+    amount1: int
+    pin1: int
+    profit2: float
+    amount2: int
+    pin2: int
+    profit3: float
+    amount3: int
+    pin3: int
+    profit4: float
+    amount4: int
+    pin4: int
     timestamp: str
 
     def from_row(cls, row: Row) -> "lnurldevices":

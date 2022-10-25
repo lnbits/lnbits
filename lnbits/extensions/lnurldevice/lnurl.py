@@ -92,6 +92,8 @@ async def lnurl_v1_params(
     p: str = Query(None),
     atm: str = Query(None),
     gpio: str = Query(None),
+    profit: str = Query(None),
+    amount: str = Query(None),
 ):
     device = await get_lnurldevice(device_id)
     if not device:
@@ -106,14 +108,14 @@ async def lnurl_v1_params(
     if device.device == "switch":
 
         price_msat = (
-            await fiat_amount_as_satoshis(float(device.profit), device.currency)
+            await fiat_amount_as_satoshis(float(profit), device.currency)
             if device.currency != "sat"
             else amount_in_cent
         ) * 1000
 
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
-            payload="bla",
+            payload=amount,
             sats=price_msat,
             pin=gpio,
             payhash="bla",
@@ -237,7 +239,7 @@ async def lnurl_callback(
             amount=lnurldevicepayment.sats / 1000,
             memo=device.title + "-" + lnurldevicepayment.id,
             unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
-            extra={"tag": "Switch", "pin": ,"id": paymentid, "time": device.amount},
+            extra={"tag": "Switch", "pin": lnurldevicepayment.pin,"amount": int(lnurldevicepayment.payload),"id": paymentid},
         )
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
