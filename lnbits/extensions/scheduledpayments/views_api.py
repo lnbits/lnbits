@@ -52,7 +52,7 @@ async def api_schedules(
 
 @scheduledpayments_ext.post("/api/v1/schedule", status_code=HTTPStatus.CREATED)
 async def api_schedule_create(
-    data: CreateScheduleData, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateScheduleData, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
         valid = ct.Crontab.parse(data.interval)
@@ -69,7 +69,7 @@ async def api_schedule_create(
 async def api_schedule_update(
     data: UpdateScheduleData,
     schedule_id: str,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     schedule = await update_schedule(wallet_id=wallet.wallet.id, data=data)
     return schedule.dict()
@@ -79,7 +79,7 @@ async def api_schedule_update(
     "/api/v1/schedule/{schedule_id}", status_code=HTTPStatus.OK
 )
 async def api_schedule_delete(
-    schedule_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    schedule_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     schedule = await get_schedule(schedule_id)
     if not schedule:

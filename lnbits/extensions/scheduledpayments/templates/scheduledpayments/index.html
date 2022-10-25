@@ -614,7 +614,7 @@
             '/scheduledpayments/api/v1/schedule' +
               (data.id ? '/' + data.id : ''),
             _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
-              .inkey,
+              .adminkey,
             data
           )
           .then(function (response) {
