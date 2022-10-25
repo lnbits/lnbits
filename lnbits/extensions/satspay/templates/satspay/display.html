@@ -351,17 +351,6 @@
           }
         )
       },
-      getCustomCss: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            `/satspay/api/v1/settings/css/${this.charge.id}`
-          )
-          this.customCss = data
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
       checkBalances: async function () {
         if (!this.charge.payment_request && this.charge.hasOnchainStaleBalance)
           return
