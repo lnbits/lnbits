@@ -36,7 +36,7 @@ async def m002_add_settings_table(db):
     await db.execute(
         """
         CREATE TABLE satspay.settings (
-            "user" TEXT,
+            user_id TEXT,
             custom_css TEXT
         );
     """

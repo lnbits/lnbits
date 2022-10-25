@@ -148,7 +148,7 @@ async def api_charge_balance(charge_id):
 async def api_settings_save(
     data: SatsPaySettings, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    await save_settings(user=wallet.wallet.user, data=data)
+    await save_settings(user_id=wallet.wallet.user, data=data)
     return True
 
 
