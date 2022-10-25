@@ -653,6 +653,7 @@
           <q-responsive :ratio="1">
             <qrcode-stream
               @decode="decodeQR"
+              @init="onInitQR"
               class="rounded-borders"
             ></qrcode-stream>
           </q-responsive>
@@ -671,6 +672,7 @@
       <div class="text-center q-mb-lg">
         <qrcode-stream
           @decode="decodeQR"
+          @init="onInitQR"
           class="rounded-borders"
         ></qrcode-stream>
       </div>

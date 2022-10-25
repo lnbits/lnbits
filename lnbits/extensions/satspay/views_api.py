@@ -20,6 +20,7 @@ from .crud import (
     get_charges,
     update_charge,
 )
+from .helpers import compact_charge
 from .models import CreateCharge
 
 #############################CHARGES##########################
@@ -123,25 +124,13 @@ async def api_charge_balance(charge_id):
             try:
                 r = await client.post(
                     charge.webhook,
-                    json={
-                        "id": charge.id,
-                        "description": charge.description,
-                        "onchainaddress": charge.onchainaddress,
-                        "payment_request": charge.payment_request,
-                        "payment_hash": charge.payment_hash,
-                        "time": charge.time,
-                        "amount": charge.amount,
-                        "balance": charge.balance,
-                        "paid": charge.paid,
-                        "timestamp": charge.timestamp,
-                        "completelink": charge.completelink,
-                    },
+                    json=compact_charge(charge),
                     timeout=40,
                 )
             except AssertionError:
                 charge.webhook = None
     return {
-        **charge.dict(),
+        **compact_charge(charge),
         **{"time_elapsed": charge.time_elapsed},
         **{"time_left": charge.time_left},
         **{"paid": charge.paid},

@@ -29,12 +29,15 @@ from .crud import (
 
 @subdomains_ext.get("/api/v1/domains")
 async def api_domains(
-    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        if user is not None:
+            wallet_ids = user.wallet_ids
 
     return [domain.dict() for domain in await get_domains(wallet_ids)]
 
@@ -42,7 +45,9 @@ async def api_domains(
 @subdomains_ext.post("/api/v1/domains")
 @subdomains_ext.put("/api/v1/domains/{domain_id}")
 async def api_domain_create(
-    data: CreateDomain, domain_id=None, g: WalletTypeInfo = Depends(get_key_type)
+    data: CreateDomain,
+    domain_id=None,
+    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
 ):
     if domain_id:
         domain = await get_domain(domain_id)
@@ -63,7 +68,9 @@ async def api_domain_create(
 
 
 @subdomains_ext.delete("/api/v1/domains/{domain_id}")
-async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_domain_delete(
+    domain_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+):
     domain = await get_domain(domain_id)
 
     if not domain:
@@ -82,12 +89,14 @@ async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)
 
 @subdomains_ext.get("/api/v1/subdomains")
 async def api_subdomains(
-    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        if user is not None:
+            wallet_ids = user.wallet_ids
 
     return [domain.dict() for domain in await get_subdomains(wallet_ids)]
 
@@ -173,7 +182,9 @@ async def api_subdomain_send_subdomain(payment_hash):
 
 
 @subdomains_ext.delete("/api/v1/subdomains/{subdomain_id}")
-async def api_subdomain_delete(subdomain_id, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_subdomain_delete(
+    subdomain_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+):
     subdomain = await get_subdomain(subdomain_id)
 
     if not subdomain:

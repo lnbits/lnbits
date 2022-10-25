@@ -27,32 +27,37 @@ from .models import CreateUserData, CreateUserWallet
 
 
 @discordbot_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
-async def api_discordbot_users(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_discordbot_users(
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+):
     user_id = wallet.wallet.user
     return [user.dict() for user in await get_discordbot_users(user_id)]
 
 
 @discordbot_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK)
-async def api_discordbot_user(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_discordbot_user(
+    user_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+):
     user = await get_discordbot_user(user_id)
-    return user.dict()
+    if user:
+        return user.dict()
 
 
 @discordbot_ext.post("/api/v1/users", status_code=HTTPStatus.CREATED)
 async def api_discordbot_users_create(
-    data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     user = await create_discordbot_user(data)
     full = user.dict()
-    full["wallets"] = [
-        wallet.dict() for wallet in await get_discordbot_users_wallets(user.id)
-    ]
+    wallets = await get_discordbot_users_wallets(user.id)
+    if wallets:
+        full["wallets"] = [wallet for wallet in wallets]
     return full
 
 
 @discordbot_ext.delete("/api/v1/users/{user_id}")
 async def api_discordbot_users_delete(
-    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    user_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     user = await get_discordbot_user(user_id)
     if not user:
@@ -75,7 +80,7 @@ async def api_discordbot_activate_extension(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    update_user_extension(user_id=userid, extension=extension, active=active)
+    await update_user_extension(user_id=userid, extension=extension, active=active)
     return {"extension": "updated"}
 
 
@@ -84,7 +89,7 @@ async def api_discordbot_activate_extension(
 
 @discordbot_ext.post("/api/v1/wallets")
 async def api_discordbot_wallets_create(
-    data: CreateUserWallet, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateUserWallet, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     user = await create_discordbot_wallet(
         user_id=data.user_id, wallet_name=data.wallet_name, admin_id=data.admin_id
@@ -93,28 +98,30 @@ async def api_discordbot_wallets_create(
 
 
 @discordbot_ext.get("/api/v1/wallets")
-async def api_discordbot_wallets(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_discordbot_wallets(
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+):
     admin_id = wallet.wallet.user
-    return [wallet.dict() for wallet in await get_discordbot_wallets(admin_id)]
+    return await get_discordbot_wallets(admin_id)
 
 
 @discordbot_ext.get("/api/v1/transactions/{wallet_id}")
 async def api_discordbot_wallet_transactions(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     return await get_discordbot_wallet_transactions(wallet_id)
 
 
 @discordbot_ext.get("/api/v1/wallets/{user_id}")
 async def api_discordbot_users_wallets(
-    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    user_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
-    return [s_wallet.dict() for s_wallet in await get_discordbot_users_wallets(user_id)]
+    return await get_discordbot_users_wallets(user_id)
 
 
 @discordbot_ext.delete("/api/v1/wallets/{wallet_id}")
 async def api_discordbot_wallets_delete(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     get_wallet = await get_discordbot_wallet(wallet_id)
     if not get_wallet:
