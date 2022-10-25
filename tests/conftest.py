@@ -16,24 +16,19 @@ from tests.helpers import credit_wallet, get_random_invoice_data
 
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
-    loop = asyncio.get_event_loop()
+    """Overrides pytest default function scoped event loop"""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
 
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
-def app(event_loop):
+async def app():
     app = create_app()
-    # use redefined version of the event loop for scope="session"
-    # loop = asyncio.get_event_loop()
-    loop = event_loop
-    loop.run_until_complete(migrate_databases())
+    await migrate_databases()
     yield app
-    # # get the current event loop and gracefully stop any running tasks
-    # loop = event_loop
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    # loop.close()
 
 
 @pytest_asyncio.fixture(scope="session")
