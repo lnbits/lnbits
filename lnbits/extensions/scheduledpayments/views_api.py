@@ -22,11 +22,18 @@ from .models import CreateScheduleData, UpdateScheduleData
 
 
 @scheduledpayments_ext.get("/api/v1/schedule/{schedule_id}", status_code=HTTPStatus.OK)
-async def api_schedule(schedule_id: str):
+async def api_schedule(
+    schedule_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     schedule = await get_schedule(schedule_id)
     if not schedule:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Schedule does not exist."
+        )
+
+    if wallet.wallet.id != schedule.wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your schedule."
         )
 
     return schedule.dict()
