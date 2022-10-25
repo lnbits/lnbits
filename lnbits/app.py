@@ -91,7 +91,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    # app.add_middleware(ASGIProxyFix)
 
     check_funding_source(app)
     register_assets(app)

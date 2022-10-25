@@ -26,7 +26,7 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     webhook = None
     data = None
-    if payment.extra.get("tag") != "copilot":
+    if not payment.extra or payment.extra.get("tag") != "copilot":
         # not an copilot invoice
         return
 
@@ -71,12 +71,12 @@ async def on_invoice_paid(payment: Payment) -> None:
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
-    payment.extra["wh_status"] = status
-
-    await core_db.execute(
-        """
-        UPDATE apipayments SET extra = ?
-        WHERE hash = ?
-        """,
-        (json.dumps(payment.extra), payment.payment_hash),
-    )
+    if payment.extra:
+        payment.extra["wh_status"] = status
+        await core_db.execute(
+            """
+            UPDATE apipayments SET extra = ?
+            WHERE hash = ?
+            """,
+            (json.dumps(payment.extra), payment.payment_hash),
+        )
