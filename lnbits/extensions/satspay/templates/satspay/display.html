@@ -333,17 +333,6 @@
           }
         )
       },
-      getCustomCss: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            `/satspay/api/v1/settings/css/${this.charge.id}`
-          )
-          this.customCss = data
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
       checkBalances: async function () {
         if (this.charge.hasStaleBalance) return
         try {
@@ -445,7 +434,6 @@
       }
     },
     created: async function () {
-      await this.getCustomCss()
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
       await this.checkBalances()
