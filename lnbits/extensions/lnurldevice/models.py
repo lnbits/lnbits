@@ -18,6 +18,20 @@ class createLnurldevice(BaseModel):
     device: str
     profit: float
     amount: int
+    amount1: int
+    amount2: int
+    amount3: int
+    amount4: int
+    pin: int
+    pin1: int
+    pin2: int
+    pin3: int
+    pin4: int
+    time: int
+    time1: int
+    time2: int
+    time3: int
+    time4: int
 
 
 class lnurldevices(BaseModel):
