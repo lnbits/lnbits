@@ -286,8 +286,6 @@ async def api_diagonalley_order_create(data: createOrder):
         "payment_request": payment_request,
         "order_reference": ref,
     }
-    # order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
-    # return order.dict()
 
 
 @diagonalley_ext.get("/api/v1/orders/payments/{payment_hash}")
@@ -352,7 +350,7 @@ async def api_diagonalley_order_shipped(
         "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
     )
 
-    return [order.dict() for order in get_diagonalley_orders(order["wallet"])]
+    return order
 
 
 ###List products based on stall id

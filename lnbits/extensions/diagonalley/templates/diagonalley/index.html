@@ -580,6 +580,7 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
+                  disabled
                   unelevated
                   dense
                   size="xs"
@@ -670,7 +671,7 @@
                   :href="'/diagonalley/stalls/' + props.row.id"
                   target="_blank"
                 ></q-btn>
-                <q-tooltip> Link to pass to stall relay </q-tooltip>
+                <q-tooltip> Stall simple UI shopping cart </q-tooltip>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -1952,17 +1953,22 @@
               })
           })
       },
-      shipOrder: function (order_id) {
-        var self = this
-
+      shipOrder(order_id){
         LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/orders/shipped/' + order_id,
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            self.orders.push(mapOrders(response.data))
+          .then((response) => {
+            console.log(response.data)
+            this.orders = _.reject(this.orders, (obj) => {
+              return obj.id == order_id
+            })
+            this.orders.push(mapOrders(response.data))
+          })
+          .catch((error) => {
+            LNbits.utils.notifyApiError(error)
           })
       },
       exportOrdersCSV: function () {
@@ -1999,7 +2005,7 @@
             ]
           }
         }
-        console.log({chat})
+        //console.log({chat})
         this.$q.localStorage.set(`lnbits.diagonalley.${this.g.user.id}`, {
           ...data,
           chat
@@ -2014,28 +2020,16 @@
           let idx = this.orders.findIndex(f => f.invoiceid == key)
           if (!lastMsgs[key]) {
             this.updateLastSeenMsg(key)
-            //this.orders[idx].unread = true
             return
           }
-          console.log(
-            'Key',
-            key,
-            'saved:',
-            lastMsgs[key].timestamp,
-            'messages: ',
-            Math.max(...this.messages[key].map(c => c.timestamp)),
-            lastMsgs[key].timestamp <
-              Math.max(...this.messages[key].map(c => c.timestamp))
-          )
+          
           if (
             lastMsgs[key].timestamp <
             Math.max(...this.messages[key].map(c => c.timestamp))
           ) {
             this.$set(this.orders[idx], 'unread', true)
-            // this.orders[idx].unread = true
           } else {
             this.$set(this.orders[idx], 'unread', false)
-            // this.orders[idx].unread = false
           }
           console.log('Order:', this.orders[idx])
         }
