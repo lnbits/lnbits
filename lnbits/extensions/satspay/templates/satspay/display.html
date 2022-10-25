@@ -303,6 +303,11 @@
   rel="stylesheet"
   type="text/css"
 />
+<style>
+  header button.q-btn-dropdown {
+    display: none;
+  }
+</style>
 {% endblock %} {% block scripts %}
 
 <script src="https://mempool.space/mempool.js"></script>
@@ -456,6 +461,10 @@
     created: async function () {
       await this.getCustomCss()
       if (this.charge.payment_request) this.payInvoice()
+      // Remove a user defined theme
+      document.body.setAttribute('data-theme', '')
+
+      if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
 
       await this.checkBalances()
