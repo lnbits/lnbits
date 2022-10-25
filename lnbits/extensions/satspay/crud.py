@@ -100,17 +100,6 @@ async def get_charges(user: str) -> List[Charges]:
     return [Charges.from_row(row) for row in rows]
 
 
-async def get_settings(user: str) -> SatsPaySettings:
-    row = await db.fetchone(
-        """SELECT * FROM satspay.settings WHERE "user" = ?""",
-        (user,),
-    )
-    if row:
-        return SatsPaySettings.from_row(row)
-    else:
-        return None
-
-
 async def delete_charge(charge_id: str) -> None:
     await db.execute("DELETE FROM satspay.charges WHERE id = ?", (charge_id,))
 
@@ -135,30 +124,41 @@ async def check_address_balance(charge_id: str) -> Optional[Charges]:
 
 
 ################## SETTINGS ###################
-async def save_settings(user: str, data: SatsPaySettings):
+async def save_settings(user_id: str, data: SatsPaySettings):
     # insert or update
     row = await db.fetchone(
-        """SELECT user FROM satspay.settings WHERE user = ?""", (user,)
+        """SELECT user_id FROM satspay.settings WHERE user_id = ?""", (user_id,)
     )
     if row:
         await db.execute(
             """
-            UPDATE satspay.settings SET custom_css = ? WHERE user = ?
+            UPDATE satspay.settings SET custom_css = ? WHERE user_id = ?
             """,
-            (data.custom_css, user),
+            (data.custom_css, user_id),
         )
     else:
         await db.execute(
             """
             INSERT INTO satspay.settings (
-                user,
+                user_id,
                 custom_css
                 )
             VALUES (?, ?)
             """,
             (
-                user,
+                user_id,
                 data.custom_css,
             ),
         )
     return True
+
+
+async def get_settings(user_id: str) -> SatsPaySettings:
+    row = await db.fetchone(
+        """SELECT * FROM satspay.settings WHERE user_id = ?""",
+        (user_id,),
+    )
+    if row:
+        return SatsPaySettings.from_row(row)
+    else:
+        return None

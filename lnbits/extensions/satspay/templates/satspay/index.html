@@ -630,7 +630,9 @@
             '/satspay/api/v1/settings',
             this.g.user.wallets[0].inkey
           )
-          this.formDialogSettings.data = data
+            if(data) {
+                this.formDialogSettings.data.custom_css = data.custom_css
+            }
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
