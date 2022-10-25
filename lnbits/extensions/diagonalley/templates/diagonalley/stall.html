@@ -425,6 +425,9 @@
                     clearInterval(this.qrCodeDialog.paymentChecker)
                     this.resetCart()
                     this.closeQrCodeDialog()
+                    setTimeout(() => {
+                      window.location.href = `/diagonalley/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                    }, 5000)
                   }
                 })
                 .catch(error => {
