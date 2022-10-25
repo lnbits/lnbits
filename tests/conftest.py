@@ -1,13 +1,11 @@
 import asyncio
-from typing import Tuple
 
 import pytest_asyncio
 from httpx import AsyncClient
 
 from lnbits.app import create_app
 from lnbits.commands import migrate_databases
-from lnbits.core.crud import create_account, create_wallet, get_wallet
-from lnbits.core.models import BalanceCheck, Payment, User, Wallet
+from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import HOST, PORT
@@ -20,6 +18,7 @@ def event_loop():
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
+    loop.run_until_complete(loop.shutdown_asyncgens())
     loop.close()
 
 
