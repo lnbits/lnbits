@@ -200,7 +200,7 @@ async def lnurl_v1_params(
         ),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
-        "metadata": await device.lnurlpay_metadata(),
+        "metadata": device.lnurlpay_metadata,
     }
 
 
@@ -266,9 +266,9 @@ async def lnurl_callback(
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
-        amount=lnurldevicepayment.sats / 1000,
+        amount=int(lnurldevicepayment.sats / 1000),
         memo=device.title,
-        unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
+        unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
         extra={"tag": "PoS"},
     )
     lnurldevicepayment = await update_lnurldevicepayment(
