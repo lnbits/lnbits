@@ -36,5 +36,9 @@ async def on_invoice_paid(payment: Payment) -> None:
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=payment.extra.get("id"), payhash="used"
         )
-        return await updater(lnurldevicepayment.deviceid, lnurldevicepayment.pin, lnurldevicepayment.payload)
+        return await updater(
+            lnurldevicepayment.deviceid,
+            lnurldevicepayment.pin,
+            lnurldevicepayment.payload,
+        )
     return

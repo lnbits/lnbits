@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from pydantic.main import BaseModel
 from loguru import logger
 
+
 class createLnurldevice(BaseModel):
     title: str
     wallet: str
@@ -68,20 +69,96 @@ class lnurldevices(BaseModel):
         switches = []
         if self.profit > 0:
             url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-            switches.append([str(self.pin), str(self.profit), str(self.amount), lnurl_encode(url + "?gpio=" + str(self.pin) + "&profit=" + str(self.profit) + "&amount=" + str(self.amount))])
+            switches.append(
+                [
+                    str(self.pin),
+                    str(self.profit),
+                    str(self.amount),
+                    lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(self.pin)
+                        + "&profit="
+                        + str(self.profit)
+                        + "&amount="
+                        + str(self.amount)
+                    ),
+                ]
+            )
         if self.profit1 > 0:
             url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-            switches.append([str(self.pin1), str(self.profit1), str(self.amount1), lnurl_encode(url + "?gpio=" + str(self.pin1) + "&profit=" + str(self.profit1) + "&amount=" + str(self.amount1))])
+            switches.append(
+                [
+                    str(self.pin1),
+                    str(self.profit1),
+                    str(self.amount1),
+                    lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(self.pin1)
+                        + "&profit="
+                        + str(self.profit1)
+                        + "&amount="
+                        + str(self.amount1)
+                    ),
+                ]
+            )
         if self.profit2 > 0:
             url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-            switches.append([str(self.pin2), str(self.profit2), str(self.amount2), lnurl_encode(url + "?gpio=" + str(self.pin2) + "&profit=" + str(self.profit2) + "&amount=" + str(self.amount2))])
+            switches.append(
+                [
+                    str(self.pin2),
+                    str(self.profit2),
+                    str(self.amount2),
+                    lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(self.pin2)
+                        + "&profit="
+                        + str(self.profit2)
+                        + "&amount="
+                        + str(self.amount2)
+                    ),
+                ]
+            )
         if self.profit3 > 0:
             url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-            switches.append([str(self.pin3), str(self.profit3), str(self.amount3), lnurl_encode(url + "?gpio=" + str(self.pin3) + "&profit=" + str(self.profit3) + "&amount=" + str(self.amount3))])
+            switches.append(
+                [
+                    str(self.pin3),
+                    str(self.profit3),
+                    str(self.amount3),
+                    lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(self.pin3)
+                        + "&profit="
+                        + str(self.profit3)
+                        + "&amount="
+                        + str(self.amount3)
+                    ),
+                ]
+            )
         if self.profit4 > 0:
             url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-            switches.append([str(self.pin4), str(self.profit4), str(self.amount4), lnurl_encode(url + "?gpio=" + str(self.pin4) + "&profit=" + str(self.profit4) + "&amount=" + str(self.amount4))])
+            switches.append(
+                [
+                    str(self.pin4),
+                    str(self.profit4),
+                    str(self.amount4),
+                    lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(self.pin4)
+                        + "&profit="
+                        + str(self.profit4)
+                        + "&amount="
+                        + str(self.amount4)
+                    ),
+                ]
+            )
         return switches
+
 
 class lnurldevicepayment(BaseModel):
     id: str

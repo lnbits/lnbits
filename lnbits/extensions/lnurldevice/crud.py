@@ -61,7 +61,7 @@ async def create_lnurldevice(
             data.pin3,
             data.profit4,
             data.amount4,
-            data.pin4
+            data.pin4,
         ),
     )
     return await get_lnurldevice(lnurldevice_id)

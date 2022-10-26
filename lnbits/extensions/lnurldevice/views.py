@@ -107,4 +107,6 @@ async def updater(lnurldevice_id, lnurldevice_pin, lnurldevice_amount):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
     if not lnurldevice:
         return
-    return await manager.send_personal_message(f"{lnurldevice_pin}-{lnurldevice_amount}", lnurldevice_id)
+    return await manager.send_personal_message(
+        f"{lnurldevice_pin}-{lnurldevice_amount}", lnurldevice_id
+    )

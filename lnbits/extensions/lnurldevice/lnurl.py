@@ -9,7 +9,7 @@ from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
-from loguru import logger 
+from loguru import logger
 
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
@@ -249,13 +249,13 @@ async def lnurl_callback(
             memo=device.id + " PIN " + str(lnurldevicepayment.pin),
             unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
             extra={
-                "tag": "Switch", 
+                "tag": "Switch",
                 "pin": str(lnurldevicepayment.pin),
                 "amount": str(lnurldevicepayment.payload),
-                "id": paymentid
-                },
+                "id": paymentid,
+            },
         )
-    
+
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
