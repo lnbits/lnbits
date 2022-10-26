@@ -9,6 +9,7 @@ from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
+from loguru import logger 
 
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
@@ -113,6 +114,14 @@ async def lnurl_v1_params(
             else amount_in_cent
         ) * 1000
 
+        # Check they're not trying to trick the switch!
+        check = False
+        for switch in device.switches(request):
+            if switch[0] == gpio and switch[1] == profit and switch[2] == amount:
+                check = True
+        if not check:
+            return {"status": "ERROR", "reason": f"Switch params wrong"}
+
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
             payload=amount,
@@ -129,7 +138,7 @@ async def lnurl_v1_params(
             ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
-            "metadata": await device.lnurlpay_metadata(),
+            "metadata": device.lnurlpay_metadata,
         }
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
@@ -236,11 +245,17 @@ async def lnurl_callback(
     if device.device == "switch":
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
-            amount=lnurldevicepayment.sats / 1000,
-            memo=device.title + "-" + lnurldevicepayment.id,
-            unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
-            extra={"tag": "Switch", "pin": lnurldevicepayment.pin,"amount": int(lnurldevicepayment.payload),"id": paymentid},
+            amount=int(lnurldevicepayment.sats / 1000),
+            memo=device.id + " PIN " + str(lnurldevicepayment.pin),
+            unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
+            extra={
+                "tag": "Switch", 
+                "pin": str(lnurldevicepayment.pin),
+                "amount": str(lnurldevicepayment.payload),
+                "id": paymentid
+                },
         )
+    
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
