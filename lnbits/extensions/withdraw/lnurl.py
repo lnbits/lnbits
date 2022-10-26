@@ -78,34 +78,35 @@ async def api_lnurl_callback(
         return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
 
     usescsv = ""
+
+    for x in range(1, link.uses - link.used):
+        usecv = link.usescsv.split(",")
+        usescsv += "," + str(usecv[x])
+    usecsvback = usescsv
+
+    found = False
+    if id_unique_hash is not None:
+        useslist = link.usescsv.split(",")
+        for ind, x in enumerate(useslist):
+            tohash = link.id + link.unique_hash + str(x)
+            if id_unique_hash == shortuuid.uuid(name=tohash):
+                found = True
+                useslist.pop(ind)
+                usescsv = ",".join(useslist)
+        if not found:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
+            )
+    else:
+        usescsv = usescsv[1:]
+
+    changesback = {
+        "open_time": link.wait_time,
+        "used": link.used,
+        "usescsv": usecsvback,
+    }
+
     try:
-        for x in range(1, link.uses - link.used):
-            usecv = link.usescsv.split(",")
-            usescsv += "," + str(usecv[x])
-        usecsvback = usescsv
-
-        found = False
-        if id_unique_hash is not None:
-            useslist = link.usescsv.split(",")
-            for ind, x in enumerate(useslist):
-                tohash = link.id + link.unique_hash + str(x)
-                if id_unique_hash == shortuuid.uuid(name=tohash):
-                    found = True
-                    useslist.pop(ind)
-                    usescsv = ",".join(useslist)
-            if not found:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
-                )
-        else:
-            usescsv = usescsv[1:]
-
-        changesback = {
-            "open_time": link.wait_time,
-            "used": link.used,
-            "usescsv": usecsvback,
-        }
-
         changes = {
             "open_time": link.wait_time + now,
             "used": link.used + 1,
