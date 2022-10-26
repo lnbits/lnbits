@@ -1,6 +1,6 @@
 ---
 name: Something else
-about: Describe this issue template's purpose here.
+about: Anything else that you need to say
 title: ''
 labels: ''
 assignees: ''
