@@ -19,18 +19,18 @@ class createLnurldevice(BaseModel):
     profit: float
     amount: int
     pin: int
-    profit1: float
-    amount1: int
-    pin1: int
-    profit2: float
-    amount2: int
-    pin2: int
-    profit3: float
-    amount3: int
-    pin3: int
-    profit4: float
-    amount4: int
-    pin4: int
+    profit1: float = 0
+    amount1: int = 0
+    pin1: int = 0
+    profit2: float = 0
+    amount2: int = 0
+    pin2: int = 0
+    profit3: float = 0
+    amount3: int = 0
+    pin3: int = 0
+    profit4: float = 0
+    amount4: int = 0
+    pin4: int = 0
 
 
 class lnurldevices(BaseModel):

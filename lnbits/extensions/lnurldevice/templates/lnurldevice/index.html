@@ -105,7 +105,7 @@
                   @click="openQrCodeDialog(props.row.id)"
                   ><q-tooltip v-if="protocol == 'http:'">
                     LNURLs only work over HTTPS </q-tooltip
-                  ><q-tooltip v-else> view LNURL </q-tooltip></q-btn
+                  ><q-tooltip v-else> view LNURLS </q-tooltip></q-btn
                 >
               </q-td>
               <q-td
@@ -148,6 +148,42 @@
       style="width: 700px; max-width: 80vw"
       class="q-pa-lg q-pt-xl lnbits__dialog-card"
     >
+
+
+    <q-tabs
+    v-model="tab"
+    dense
+    class="text-grey"
+    active-color="primary"
+    indicator-color="primary"
+    align="justify"
+    narrow-indicator
+  >
+    <q-tab name="mails" label="Mails" />
+    <q-tab name="alarms" label="Alarms" />
+    <q-tab name="movies" label="Movies" />
+  </q-tabs>
+
+  <q-separator />
+
+  <q-tab-panels v-model="tab" animated>
+    <q-tab-panel name="mails">
+      <div class="text-h6">Mails</div>
+      Lorem ipsum dolor sit amet consectetur adipisicing elit.
+    </q-tab-panel>
+
+    <q-tab-panel name="alarms">
+      <div class="text-h6">Alarms</div>
+      Lorem ipsum dolor sit amet consectetur adipisicing elit.
+    </q-tab-panel>
+
+    <q-tab-panel name="movies">
+      <div class="text-h6">Movies</div>
+      Lorem ipsum dolor sit amet consectetur adipisicing elit.
+    </q-tab-panel>
+  </q-tab-panels>
+
+
       <div class="text-h6">LNURLDevice device string</div>
       <center>
         <q-btn
@@ -230,19 +266,15 @@
           label="Profit margin (% added to invoices/deducted from faucets)"
         ></q-input>
         <div v-else>
-          <p>Switches</p>
-          <q-toggle v-model="switch1" color="primary" label="1"></q-toggle>
 
-          <q-toggle v-model="switch2" color="primary" label="2"></q-toggle>
+          <q-btn unelevated class="q-mb-lg" round size="sm" icon="add" @click="addSwitch" v-model="switches" color="primary"></q-btn>
+          <q-btn unelevated class="q-mb-lg" round size="sm" icon="remove" @click="removeSwitch" v-model="switches" color="primary"></q-btn>
 
-          <q-toggle v-model="switch3" color="primary" label="3"></q-toggle>
 
-          <q-toggle v-model="switch4" color="primary" label="4"></q-toggle>
-
-          <q-toggle v-model="switch5" color="primary" label="5"></q-toggle>
-
-          <div v-if="switch1">
-            <q-input
+          <div v-if="switches >= 0">
+            <div class="row">
+              <div class="col" >
+                <q-input
               ref="setAmount"
               filled
               dense
@@ -255,7 +287,9 @@
               :step="'0.01'"
               value="0.00"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.amount"
@@ -263,16 +297,22 @@
               value="1000"
               label="milesecs to turn Switch on for (1sec = 1000ms)"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.pin"
               type="number"
               label="GPIO to turn on"
             ></q-input>
+              </div>
+            </div>
           </div>
-          <div v-if="switch2">
-            <q-input
+          <div v-if="switches >= 1">
+            <div class="row">
+              <div class="col" >
+                <q-input
               ref="setAmount"
               filled
               dense
@@ -285,7 +325,9 @@
               :step="'0.01'"
               value="0.00"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.amount1"
@@ -293,16 +335,23 @@
               value="1000"
               label="milesecs to turn Switch on for (1sec = 1000ms)"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.pin1"
               type="number"
               label="GPIO to turn on"
             ></q-input>
+              </div>
+            </div>
           </div>
-          <div v-if="switch3">
-            <q-input
+
+          <div v-if="switches >= 2">
+            <div class="row">
+              <div class="col" >
+                <q-input
               ref="setAmount"
               filled
               dense
@@ -315,7 +364,9 @@
               :step="'0.01'"
               value="0.00"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.amount2"
@@ -323,16 +374,23 @@
               value="1000"
               label="milesecs to turn Switch on for (1sec = 1000ms)"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.pin2"
               type="number"
               label="GPIO to turn on"
             ></q-input>
+              </div>
+            </div>
           </div>
-          <div v-if="switch4">
-            <q-input
+
+                   <div v-if="switches >= 3">
+            <div class="row">
+              <div class="col" >
+                <q-input
               ref="setAmount"
               filled
               dense
@@ -345,7 +403,9 @@
               :step="'0.01'"
               value="0.00"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.amount3"
@@ -353,16 +413,23 @@
               value="1000"
               label="milesecs to turn Switch on for (1sec = 1000ms)"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.pin3"
               type="number"
               label="GPIO to turn on"
             ></q-input>
+              </div>
+            </div>
           </div>
-          <div v-if="switch4">
-            <q-input
+
+                   <div v-if="switches >= 4">
+            <div class="row">
+              <div class="col" >
+                <q-input
               ref="setAmount"
               filled
               dense
@@ -375,7 +442,9 @@
               :step="'0.01'"
               value="0.00"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.amount4"
@@ -383,16 +452,19 @@
               value="1000"
               label="milesecs to turn Switch on for (1sec = 1000ms)"
             ></q-input>
-            <q-input
+              </div>
+              <div class="col q-ml-md">
+                <q-input
               filled
               dense
               v-model.trim="formDialoglnurldevice.data.pin4"
               type="number"
               label="GPIO to turn on"
             ></q-input>
+              </div>
+            </div>
           </div>
         </div>
-
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialoglnurldevice.data.id"
@@ -478,11 +550,7 @@
         wslocation: window.location.hostname,
         filter: '',
         currency: 'USD',
-        switch1: false,
-        switch2: false,
-        switch3: false,
-        switch4: false,
-        switch5: false,
+        switches: 0,
         lnurldeviceLinks: [],
         lnurldeviceLinksObj: [],
         devices: [
@@ -586,6 +654,14 @@
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
         this.qrCodeDialog.show = true
+      },
+      addSwitch: function () {
+        var self = this
+        self.switches = self.switches + 1
+      },
+      removeSwitch: function () {
+        var self = this
+        self.switches = self.switches - 1
       },
       cancellnurldevice: function (data) {
         var self = this

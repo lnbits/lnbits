@@ -36,7 +36,7 @@ async def create_lnurldevice(
             pin3,
             profit4,
             amount4,
-            pin4,
+            pin4
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
