@@ -18,7 +18,7 @@ class createLnurldevice(BaseModel):
     device: str
     profit: float
     amount: int
-    pin: int
+    pin: int = 0
     profit1: float = 0
     amount1: int = 0
     pin1: int = 0
