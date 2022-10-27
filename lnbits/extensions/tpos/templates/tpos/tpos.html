@@ -363,13 +363,14 @@
         return Number(this.stack.join('') / 100)
       },
       famount: function () {
-        return LNbits.utils.formatCurrency(this.amount.toFixed(2), this.currency)
+        return LNbits.utils.formatCurrency(
+          this.amount.toFixed(2),
+          this.currency
+        )
       },
       sat: function () {
         if (!this.exchangeRate) return 0
-        return Math.ceil(
-          (this.amount / this.exchangeRate) * 100000000
-        )
+        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
       },
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
@@ -392,11 +393,11 @@
       processTipSelection: function (selectedTipOption) {
         this.tipDialog.show = false
 
-        if(!selectedTipOption) return this.showInvoice()
+        if (!selectedTipOption) return this.showInvoice()
 
         const tipAmount = (selectedTipOption / 100) * this.amount
         const subtotal = this.amount
-        const grandTotal = (tipAmount + subtotal)
+        const grandTotal = tipAmount + subtotal
         const totalString = grandTotal.toFixed(2)
 
         this.stack = []
@@ -408,7 +409,6 @@
           }
         }
 
-        
         this.tipAmount = tipAmount
 
         this.showInvoice()
