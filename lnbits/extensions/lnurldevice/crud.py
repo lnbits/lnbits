@@ -23,9 +23,22 @@ async def create_lnurldevice(
             currency,
             device,
             profit,
-            amount
+            amount,
+            pin,
+            profit1,
+            amount1,
+            pin1,
+            profit2,
+            amount2,
+            pin2,
+            profit3,
+            amount3,
+            pin3,
+            profit4,
+            amount4,
+            pin4
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             lnurldevice_id,
@@ -36,6 +49,19 @@ async def create_lnurldevice(
             data.device,
             data.profit,
             data.amount,
+            data.pin,
+            data.profit1,
+            data.amount1,
+            data.pin1,
+            data.profit2,
+            data.amount2,
+            data.pin2,
+            data.profit3,
+            data.amount3,
+            data.pin3,
+            data.profit4,
+            data.amount4,
+            data.pin4,
         ),
     )
     return await get_lnurldevice(lnurldevice_id)
