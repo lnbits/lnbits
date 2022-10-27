@@ -12,7 +12,8 @@ from lnbits.core.services import pay_invoice
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_lnurldevice, get_lnurldevicepayment, update_lnurldevicepayment
+from .crud import (get_lnurldevice, get_lnurldevicepayment,
+                   update_lnurldevicepayment)
 from .views import updater
 
 

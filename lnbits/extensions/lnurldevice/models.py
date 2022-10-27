@@ -1,15 +1,15 @@
 import json
 from sqlite3 import Row
-from typing import Optional, List
+from typing import List, Optional
 
 from fastapi import Request
 from lnurl import Lnurl
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
+from loguru import logger
 from pydantic import BaseModel
 from pydantic.main import BaseModel
-from loguru import logger
 
 
 class createLnurldevice(BaseModel):

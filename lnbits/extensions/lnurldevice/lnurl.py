@@ -8,21 +8,17 @@ from typing import Optional
 from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
-from starlette.exceptions import HTTPException
 from loguru import logger
+from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import lnurldevice_ext
-from .crud import (
-    create_lnurldevicepayment,
-    get_lnurldevice,
-    get_lnurldevicepayment,
-    get_lnurlpayload,
-    update_lnurldevicepayment,
-)
+from .crud import (create_lnurldevicepayment, get_lnurldevice,
+                   get_lnurldevicepayment, get_lnurlpayload,
+                   update_lnurldevicepayment)
 
 
 def bech32_decode(bech):
