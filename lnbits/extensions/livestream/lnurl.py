@@ -86,9 +86,13 @@ async def lnurl_callback(
 
     ls = await get_livestream_by_track(track_id)
 
+    extra_amount = amount_received - int(
+        amount_received * (100 - ls.fee_pct) / 100
+    )  # msats
+
     payment_hash, payment_request = await create_invoice(
         wallet_id=ls.wallet,
-        amount=int(amount_received / 1000),
+        amount=int(amount_received / 1000),  # sats
         memo=await track.fullname(),
         unhashed_description=(await track.lnurlpay_metadata()).encode(),
         extra={"tag": "livestream", "track": track.id, "comment": comment},

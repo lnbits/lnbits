@@ -41,21 +41,26 @@ async def on_invoice_paid(payment: Payment) -> None:
     ls = await get_livestream_by_track(track.id)
     assert ls, f"track {track.id} is not associated with a livestream"
 
-    # now we make a special kind of internal transfer
-    amount = int(payment.amount * (100 - ls.fee_pct) / 100)
+    amount = int(payment.amount * (100 - ls.fee_pct) / 100)  # msats
 
     payment_hash, payment_request = await create_invoice(
-        wallet_id=tpos.tip_wallet,
-        amount=amount,  # sats
+        wallet_id=producer.wallet,
+        amount=int(amount / 1000),  # sats
         internal=True,
         memo=f"Revenue from '{track.name}'.",
     )
-    logger.debug(f"livestream: producer invoice created: {payment_hash}")
+    logger.debug(
+        f"livestream: producer invoice created: {payment_hash}, {amount} msats"
+    )
 
     checking_id = await pay_invoice(
         payment_request=payment_request,
         wallet_id=payment.wallet_id,
-        extra={"tag": "livestream"},
+        extra={
+            **payment.extra,
+            "shared_with": f"Producer ID: {producer.id}",
+            "received": payment.amount,
+        },
     )
     logger.debug(f"livestream: producer invoice paid: {checking_id}")
 
