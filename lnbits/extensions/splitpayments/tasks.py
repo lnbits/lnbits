@@ -52,6 +52,11 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
         logger.debug(f"created split invoice: {payment_hash}")
+
+        extra = {**payment.extra, "splitted": True}
+        if not extra.get("tag"):
+            extra["tag"] = "splitpayments"
+
         checking_id = await pay_invoice(
             payment_request=payment_request,
             wallet_id=payment.wallet_id,
