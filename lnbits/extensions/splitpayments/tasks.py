@@ -20,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if not payment.extra or payment.extra.get("tag") == "splitpayments":
+    if payment.extra.get("tag") == "splitpayments" or payment.extra.get("splitted"):
         # already a splitted payment, ignore
         return
 
@@ -35,26 +35,29 @@ async def on_invoice_paid(payment: Payment) -> None:
         logger.error("splitpayment failure: total percent adds up to more than 100%")
         return
 
-    logger.debug(f"checking if tagged for {len(targets)} targets")
-    tagged = False
-    for target in targets:
-        if target.tag in payment.extra:
-            tagged = True
-            payment_hash, payment_request = await create_invoice(
-                wallet_id=target.wallet,
-                amount=int(payment.amount / 1000),  # sats
-                internal=True,
-                memo=f"Pushed tagged payment to {target.alias}",
-                extra={"tag": "splitpayments"},
-            )
-            logger.debug(f"created split invoice: {payment_hash}")
+    logger.debug(f"performing split payments to {len(targets)} targets")
 
-            checking_id = await pay_invoice(
-                payment_request=payment_request,
-                wallet_id=payment.wallet_id,
-                extra={"tag": "splitpayments"},
-            )
-            logger.debug(f"paid split invoice: {checking_id}")
+    amount_to_split = payment.amount
+    if payment.extra.get("amount"):
+        amount_to_split = int(payment.extra.get("amount") * 1000)
+
+    for target in targets:
+        amount = int(payment.amount * target.percent / 100)  # msats
+
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=target.wallet,
+            amount=int(amount / 1000),  # sats
+            internal=True,
+            memo=f"split payment: {target.percent}% for {target.alias or target.wallet}",
+        )
+
+        logger.debug(f"created split invoice: {payment_hash}")
+        checking_id = await pay_invoice(
+            payment_request=payment_request,
+            wallet_id=payment.wallet_id,
+            extra={**payment.extra, "splitted": True},
+        )
+        logger.debug(f"paid split invoice: {checking_id}")
 
     logger.debug(f"performing split to {len(targets)} targets")
 
