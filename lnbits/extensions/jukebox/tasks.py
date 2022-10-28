@@ -17,7 +17,8 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "jukebox":
-        # not a jukebox invoice
-        return
-    await update_jukebox_payment(payment.payment_hash, paid=True)
+    if payment.extra:
+        if payment.extra.get("tag") != "jukebox":
+            # not a jukebox invoice
+            return
+        await update_jukebox_payment(payment.payment_hash, paid=True)
