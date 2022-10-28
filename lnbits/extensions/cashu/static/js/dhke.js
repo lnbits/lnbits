@@ -19,17 +19,15 @@ async function hashToCurve(secretMessage) {
   return point
 }
 
-async function step1Bob(secretMessage) {
+async function step1Alice(secretMessage) {
   const Y = await hashToCurve(secretMessage)
-  const randomBlindingFactor = bytesToNumber(
-    nobleSecp256k1.utils.randomPrivateKey()
-  )
-  const P = nobleSecp256k1.Point.fromPrivateKey(randomBlindingFactor)
+  const r = bytesToNumber(nobleSecp256k1.utils.randomPrivateKey())
+  const P = nobleSecp256k1.Point.fromPrivateKey(r)
   const B_ = Y.add(P)
-  return {B_: B_.toHex(true), randomBlindingFactor}
+  return {B_: B_.toHex(true), r}
 }
 
-function step3Bob(C_, r, A) {
+function step3Alice(C_, r, A) {
   const rInt = BigInt(r)
   const C = C_.subtract(A.multiply(rInt))
   return C

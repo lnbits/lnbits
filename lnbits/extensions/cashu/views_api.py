@@ -347,7 +347,6 @@ async def split(
     proofs = payload.proofs
     amount = payload.amount
     outputs = payload.outputs.blinded_messages
-    # backwards compatibility with clients < v0.2.2
     assert outputs, Exception("no outputs provided.")
     split_return = None
     try:
