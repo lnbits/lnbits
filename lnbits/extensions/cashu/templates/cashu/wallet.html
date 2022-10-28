@@ -426,6 +426,10 @@ page_container %}
   }
 </style>
 {% endblock %} {% block scripts %}
+<script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
 <script>
   var currentDateStr = function () {
     return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
@@ -640,8 +644,7 @@ page_container %}
 
       balance: function () {
         return this.proofs
-          .filter(t => t.promises?.length)
-          .map(t => t.blindedMessages)
+          .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
       }
@@ -912,23 +915,24 @@ page_container %}
         this.showReceiveTokens = true
       },
 
-      checkXXXXXX: async function () {
+      recheckPendingInvoices: async function () {
         for (const invoice of this.invoicesCashu) {
           if (invoice.status === 'pending') {
-            try {
-              const {data} = await LNbits.api.request(
-                'POST',
-                `/cashu/api/v1/${this.mintId}/mint?payment_hash=${invoice.hash}`,
-                '',
-                {
-                  blinded_messages: []
-                }
-              )
-              console.log('### data', data)
-            } catch (error) {
-              console.error(error)
-              LNbits.utils.notifyApiError(error)
-            }
+            this.recheckInvoice(invoice.hash)
+            // try {
+            //   const {data} = await LNbits.api.request(
+            //     'POST',
+            //     `/cashu/api/v1/${this.mintId}/mint?payment_hash=${invoice.hash}`,
+            //     '',
+            //     {
+            //       blinded_messages: []
+            //     }
+            //   )
+            //   console.log('### data', data)
+            // } catch (error) {
+            //   console.error(error)
+            //   LNbits.utils.notifyApiError(error)
+            // }
           }
         }
       },
@@ -962,18 +966,22 @@ page_container %}
       mintApi: async function (amounts, payment_hash) {
         console.log('### promises', payment_hash)
         try {
-          let secrets = generateSecrets(amounts)
-          let {blinded_messages, rs} = constructOutputs(amounts, secrets)
-          const {promises} = await LNbits.api.request(
+          let secrets = await this.generateSecrets(amounts)
+          let {blindedMessages, rs} = await this.constructOutputs(
+            amounts,
+            secrets
+          )
+          const promises = await LNbits.api.request(
             'POST',
             `/cashu/api/v1/${this.mintId}/mint?payment_hash=${payment_hash}`,
             '',
             {
-              blinded_messages: blinded_messages
+              blinded_messages: blindedMessages
             }
           )
-          console.log('### promises data', promises)
-          return promises
+          console.log('### promises data', promises.data)
+          let proofs = await this.constructProofs(promises.data, secrets, rs)
+          return proofs
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -982,172 +990,192 @@ page_container %}
       mint: async function (amount, payment_hash) {
         try {
           const split = splitAmount(amount)
-          const proofs = await mintApi(split, payment_hash)
+          const proofs = await this.mintApi(split, payment_hash)
+          this.proofs.push(...proofs)
+          this.storeProofs()
+          await this.setInvoicePaid(payment_hash)
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
         }
       },
+      setInvoicePaid: async function (payment_hash) {
+        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
+        invoice.status = 'paid'
+        this.storeinvoicesCashu()
+      },
       recheckInvoice: async function (payment_hash) {
         console.log('### recheckInvoice.hash', payment_hash)
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
-        const amounts = splitAmount(invoice.amount)
-        const newTokens = await this.buildTokens(amounts, payment_hash)
-        const promises = await this.mint(invoice.amount, payment_hash)
-        if (promises && promises.length) {
-          newTokens.promises = promises
-          newTokens.status = 'paid'
-          this.proofs.push(newTokens)
-          this.storeProofs()
-          invoice.status = 'paid'
-          this.storeinvoicesCashu()
-        }
+        this.mint(invoice.amount, invoice.hash)
       },
 
-      requestTokens: async function (amounts, paymentHash) {
-        const newTokens = await this.buildTokens(amounts, paymentHash)
-        // this.proofs.push(newTokens)
-        // this.storeProofs()
-        // console.log('### this.proofs', this.proofs)
-        // await this.mint(paymentHash, newTokens.newTokens)
-      },
+      // requestTokens: async function (amounts, paymentHash) {
+      //   const newTokens = await this.buildTokens(amounts, paymentHash)
+      //   // this.proofs.push(newTokens)
+      //   // this.storeProofs()
+      //   // console.log('### this.proofs', this.proofs)
+      //   // await this.mint(paymentHash, newTokens.newTokens)
+      // },
 
       generateSecrets: async function (amounts) {
         const secrets = []
         for (let i = 0; i < amounts.length; i++) {
           const secret = nobleSecp256k1.utils.randomBytes(32)
-          secrets.push(encodedSecret)
+          secrets.push(secret)
         }
         return secrets
       },
+
       constructOutputs: async function (amounts, secrets) {
         const blindedMessages = []
-        const randomBlindingFactors = []
+        const rs = []
         for (let i = 0; i < amounts.length; i++) {
-          const {B_, r} = await step1Bob(secret)
-          blindedMessages.push(B_)
-          randomBlindingFactors.push(r)
+          const {B_, r} = await step1Alice(secrets[i])
+          blindedMessages.push({amount: amounts[i], B_: B_})
+          rs.push(r)
         }
         return {
           blindedMessages,
-          randomBlindingFactors
+          rs
         }
       },
 
       constructProofs: function (promises, secrets, rs) {
         const proofs = []
         for (let i = 0; i < promises.length; i++) {
-          let {amount, C, secret} = promiseToProof(
+          const encodedSecret = uint8ToBase64.encode(secrets[i])
+          let {id, amount, C, secret} = this.promiseToProof(
+            promises[i].id,
             promises[i].amount,
             promises[i]['C_'],
-            promises[i].secret,
-            promises[i].randomBlindingFactor
+            encodedSecret,
+            rs[i]
           )
+          proofs.push({id, amount, C, secret})
         }
         return proofs
       },
 
-      promiseToProof: function (amount, C_hex, secret, randomBlindingFactor) {
+      promiseToProof: function (id, amount, C_hex, secret, r) {
         const C_ = nobleSecp256k1.Point.fromHex(C_hex)
         const A = this.keys[amount]
-        const C = step3Bob(
-          C_,
-          randomBlindingFactor,
-          nobleSecp256k1.Point.fromHex(A)
-        )
+        const C = step3Alice(C_, r, nobleSecp256k1.Point.fromHex(A))
         return {
+          id,
           amount,
           C: C.toHex(true),
           secret
         }
       },
-      buildTokens: async function (amounts, paymentHash) {
-        const blindedMessages = []
-        const secrets = []
-        const randomBlindingFactors = []
-        for (let i = 0; i < amounts.length; i++) {
-          const secret = nobleSecp256k1.utils.randomBytes(32)
-          // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
-          // todo: base64Url
-          const encodedSecret = uint8ToBase64.encode(secret)
-          secrets.push(encodedSecret)
-          const {B_, randomBlindingFactor} = await step1Bob(secret)
-          randomBlindingFactors.push(randomBlindingFactor)
-          blindedMessages.push({amount: amounts[i], B_: B_})
-        }
 
-        const newTokens = {
-          hash: paymentHash,
-          blindedMessages,
-          randomBlindingFactors,
-          secrets,
-          status: 'pending'
+      sumProofs: function (proofs) {
+        return proofs.reduce((s, t) => (s += t.amount), 0)
+      },
+      splitToSend: async function (proofs, amount) {
+        try {
+          const spendableProofs = proofs.filter(p => !p.reserved)
+          if (this.sumProofs(spendableProofs) < amount) {
+            throw new Error('balance too low.')
+          }
+          let {fristProofs, scndProofs} = await this.split(
+            spendableProofs,
+            amount
+          )
+          // keep firstProofs, send scndProofs
+
+          // set scndProofs in this.proofs as reserved
+          const usedSecrets = proofs.map(p => p.secret)
+          for (let i = 0; i < this.proofs.length; i++) {
+            if (usedSecrets.includes(this.proofs[i].secret)) {
+              this.proofs[i].reserved = true
+            }
+          }
+          this.storeProofs()
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
         }
-        return newTokens
+      },
+
+      split: async function (proofs, amount) {
+        try {
+          if (proofs.length == 0) {
+            throw new Error('no proofs provided.')
+          }
+          let {fristProofs, scndProofs} = await this.splitApi(proofs, amount)
+          // delete proofs from this.proofs
+          const usedSecrets = proofs.map(p => p.secret)
+          this.proofs = this.proofs.filter(p => !usedSecrets.includes(p.secret))
+          // add new fristProofs, scndProofs to this.proofs
+          this.proofs.push(...fristProofs)
+          this.proofs.push(...scndProofs)
+          this.storeProofs()
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      splitApi: async function (proofs, amount) {
+        try {
+          const total = this.sumProofs(proofs)
+          const frst_amount = total - amount
+          const scnd_amount = amount
+          const frst_amounts = splitAmount(frst_amount)
+          const scnd_amounts = splitAmount(scnd_amount)
+          const amounts = _.clone(frst_amounts)
+          amounts.push(...scnd_amounts)
+          let secrets = await this.generateSecrets(amounts)
+          if (secrets.length != amounts.length) {
+            throw new Error(
+              'number of secrets does not match number of outputs.'
+            )
+          }
+          let {blindedMessages, rs} = await this.constructOutputs(
+            amounts,
+            secrets
+          )
+          const payload = {
+            amount,
+            proofs,
+            outputs: {
+              blinded_messages: blindedMessages
+            }
+          }
+
+          console.log('payload', JSON.stringify(payload))
+
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/split`,
+            '',
+            payload
+          )
+          const frst_rs = rs.slice(0, frst_amounts.length)
+          const frst_secrets = secrets.slice(0, frst_amounts.length)
+          const scnd_rs = rs.slice(frst_amounts.length)
+          const scnd_secrets = secrets.slice(frst_amounts.length)
+          const fristProofs = this.constructProofs(
+            data.fst,
+            frst_secrets,
+            frst_rs
+          )
+          const scndProofs = this.constructProofs(
+            data.snd,
+            scnd_secrets,
+            scnd_rs
+          )
+
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        }
       },
 
       ////////////////////////////////////////////////////////////////////////////////////
-
-      sendTokens: async function () {
-        const amounts = splitAmount(this.sendData.amount)
-        const sendTokens = []
-        sendTokens.push(this.proofs)
-        // for (const amount of amounts) {
-        //   const token = this.findTokenForAmount(amount)
-        //   if (token) {
-        //     sendTokens.push(token)
-        //   } else {
-        //     this.$q.notify({
-        //       timeout: 5000,
-        //       type: 'warning',
-        //       message: `Cannot select amount for denomination ${amount}`
-        //     })
-        //     this.sendData.tokens = ''
-        //     this.sendData.tokensBase64 = ''
-        //     return
-        //   }
-        // }
-        this.sendData.tokens = ''
-        this.sendData.tokensBase64 = ''
-        console.log('### sendTokens', sendTokens)
-        this.sendData.tokens = sendTokens.map((token, tokenIndex) => {
-          return this.promiseToProof(
-            token.promises[tokenIndex].amount,
-            token.promises[tokenIndex]['C_'],
-            token.promises[tokenIndex].secret,
-            token.promises[tokenIndex].randomBlindingFactor
-          )
-        })
-        console.log('### this.sendData.tokens', this.sendData.tokens)
-        this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
-      },
-
-      burnTokens: function () {
-        for (const sentToken of this.sendData.tokens) {
-          for (const token of this.proofs) {
-            if (token.status === 'paid') {
-              const secretIndex = token.secrets.findIndex(
-                s => s === sentToken.secret
-              )
-              console.log('### secretIndex', secretIndex)
-              if (secretIndex >= 0) {
-                token.blindedMessages?.splice(secretIndex, 1)
-                token.promises?.splice(secretIndex, 1)
-                token.randomBlindingFactors?.splice(secretIndex, 1)
-                token.secrets?.splice(secretIndex, 1)
-              }
-            }
-          }
-        }
-
-        this.$q.notify({
-          timeout: 5000,
-          message: 'Tokens burned'
-        })
-        this.storeProofs()
-        this.showSendTokens = false
-        console.log('###  this.proofs', this.proofs)
-      },
 
       receiveTokens: async function () {
         this.showReceiveTokens = false
@@ -1192,6 +1220,99 @@ page_container %}
         }
       },
 
+      buildTokens: async function (amounts, paymentHash) {
+        const blindedMessages = []
+        const secrets = []
+        const rs = []
+        for (let i = 0; i < amounts.length; i++) {
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          // todo: base64Url
+          const encodedSecret = uint8ToBase64.encode(secret)
+          secrets.push(encodedSecret)
+          const {B_, r} = await step1Alice(secret)
+          rs.push(r)
+          blindedMessages.push({amount: amounts[i], B_: B_})
+        }
+
+        const newTokens = {
+          hash: paymentHash,
+          blindedMessages,
+          rs,
+          secrets,
+          status: 'pending'
+        }
+        return newTokens
+      },
+
+      sendTokens: async function () {
+        // keep firstProofs, send scndProofs
+        let {fristProofs, scndProofs} = await this.splitToSend(
+          this.proofs,
+          this.sendData.amount
+        )
+
+        // const amounts = splitAmount(this.sendData.amount)
+        // const sendTokens = []
+        // sendTokens.push(this.proofs)
+        // for (const amount of amounts) {
+        //   const token = this.findTokenForAmount(amount)
+        //   if (token) {
+        //     sendTokens.push(token)
+        //   } else {
+        //     this.$q.notify({
+        //       timeout: 5000,
+        //       type: 'warning',
+        //       message: `Cannot select amount for denomination ${amount}`
+        //     })
+        //     this.sendData.tokens = ''
+        //     this.sendData.tokensBase64 = ''
+        //     return
+        //   }
+        // }
+        this.sendData.tokens = ''
+        this.sendData.tokensBase64 = ''
+        console.log('### sendTokens', sendTokens)
+        // this.sendData.tokens = sendTokens.map((token, tokenIndex) => {
+        //   return this.promiseToProof(
+        //     token.promises[tokenIndex].amount,
+        //     token.promises[tokenIndex]['C_'],
+        //     token.promises[tokenIndex].secret,
+        //     token.promises[tokenIndex].r
+        //   )
+        // })
+        this.sendData.tokens = scndProofs
+        console.log('### this.sendData.tokens', this.sendData.tokens)
+        this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+      },
+
+      burnTokens: function () {
+        for (const sentToken of this.sendData.tokens) {
+          for (const token of this.proofs) {
+            if (token.status === 'paid') {
+              const secretIndex = token.secrets.findIndex(
+                s => s === sentToken.secret
+              )
+              console.log('### secretIndex', secretIndex)
+              if (secretIndex >= 0) {
+                token.blindedMessages?.splice(secretIndex, 1)
+                token.promises?.splice(secretIndex, 1)
+                token.rs?.splice(secretIndex, 1)
+                token.secrets?.splice(secretIndex, 1)
+              }
+            }
+          }
+        }
+
+        this.$q.notify({
+          timeout: 5000,
+          message: 'Tokens burned'
+        })
+        this.storeProofs()
+        this.showSendTokens = false
+        console.log('###  this.proofs', this.proofs)
+      },
+
       findTokenForAmount: function (amount) {
         for (const token of this.proofs) {
           const index = token.promises?.findIndex(p => p.amount === amount)
@@ -1199,7 +1320,7 @@ page_container %}
             return {
               promise: token.promises[index],
               secret: token.secrets[index],
-              randomBlindingFactor: token.randomBlindingFactors[index]
+              r: token.rs[index]
             }
           }
         }
@@ -1263,15 +1384,9 @@ page_container %}
             console.log('### promise', promise)
 
             const secret = token.secrets[promiseIndex]
-            const randomBlindingFactor =
-              token.randomBlindingFactors[promiseIndex]
+            const r = token.rs[promiseIndex]
 
-            return this.promiseToProof(
-              promise.amount,
-              promise['C_'],
-              secret,
-              randomBlindingFactor
-            )
+            return this.promiseToProof(promise.amount, promise['C_'], secret, r)
           })
         })
         const payload = {
@@ -1382,12 +1497,8 @@ page_container %}
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
-      this.checkXXXXXX()
+      this.recheckPendingInvoices()
     }
   })
 </script>
-<script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
-<script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
-<script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
-<script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
 {% endblock %}
