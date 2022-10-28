@@ -48,7 +48,9 @@ poetry run lnbits
 # Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
-## Option 2: Nix
+## Option 2: Nix 
+
+> note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
