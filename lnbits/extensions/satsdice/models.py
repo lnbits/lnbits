@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 from fastapi import Request
 from fastapi.param_functions import Query
-from lnurl import Lnurl, LnurlWithdrawResponse
+from lnurl import Lnurl
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
@@ -80,8 +80,7 @@ class satsdiceWithdraw(BaseModel):
     def is_spent(self) -> bool:
         return self.used >= 1
 
-    @property
-    def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
+    def lnurl_response(self, req: Request):
         url = req.url_for("satsdice.api_lnurlw_callback", unique_hash=self.unique_hash)
         withdrawResponse = {
             "tag": "withdrawRequest",
@@ -99,7 +98,7 @@ class HashCheck(BaseModel):
     lnurl_id: str
 
     @classmethod
-    def from_row(cls, row: Row) -> "Hash":
+    def from_row(cls, row: Row):
         return cls(**dict(row))
 
 
