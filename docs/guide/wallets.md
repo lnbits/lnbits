@@ -79,3 +79,8 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `LNBITS_BACKEND_WALLET_CLASS`: **OpenNodeWallet**
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
+
+
+### Cliche Wallet
+
+- `CLICHE_ENDPOINT`: ws://127.0.0.1:12000

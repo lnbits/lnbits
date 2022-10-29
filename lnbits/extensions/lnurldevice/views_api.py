@@ -39,10 +39,10 @@ async def api_lnurldevice_create_or_update(
 ):
     if not lnurldevice_id:
         lnurldevice = await create_lnurldevice(data)
-        return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
+        return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
     else:
         lnurldevice = await update_lnurldevice(data, lnurldevice_id=lnurldevice_id)
-        return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
+        return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
 
 
 @lnurldevice_ext.get("/api/v1/lnurlpos")
@@ -52,7 +52,7 @@ async def api_lnurldevices_retrieve(
     wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
         return [
-            {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
+            {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
             for lnurldevice in await get_lnurldevices(wallet_ids)
         ]
     except:
@@ -78,7 +78,7 @@ async def api_lnurldevice_retrieve(
         )
     if not lnurldevice.lnurl_toggle:
         return {**lnurldevice.dict()}
-    return {**lnurldevice.dict(), **{"lnurl": lnurldevice.lnurl(req)}}
+    return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
 
 
 @lnurldevice_ext.delete("/api/v1/lnurlpos/{lnurldevice_id}")
