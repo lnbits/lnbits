@@ -49,10 +49,10 @@ const vm = new Vue({
         return
       }
 
-      vm.isPermissionDenied = window.Notification.permission === 'denied'
+      vm.isPermissionDenied = Notification.permission === 'denied'
 
-      if (window.Notification.permission !== 'granted') {
-        window.Notification.requestPermission().then(permission => {
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission().then(permission => {
           updatePermissionStatus()
         })
       }
@@ -143,7 +143,7 @@ const updateRequirementsStatus = () => {
 
 const updatePermissionStatus = async () => {
   vm.isPermissionDenied =
-    vm.canServiceWorkerApi && window.Notification.permission === 'denied'
+    vm.canServiceWorkerApi && Notification.permission === 'denied'
 
   vm.hasPermission =
     !vm.canNotificationApi || Notification.permission === 'granted'
@@ -153,14 +153,13 @@ const updateSubscriptionStatus = async () => {
   try {
     if (vm.canServiceWorkerApi && vm.canPushApi) {
       await navigator.serviceWorker
-        .getRegistrations()
-        .then(function (registrations) {
+        .getRegistration('/pushnotifications/service_worker.js')
+        .then(function (registration) {
           vm.isSubscribed = false
-          for (let registration of registrations) {
-            registration.pushManager.getSubscription().then(subscription => {
-              vm.isSubscribed = !!subscription
-            })
-          }
+
+          registration.pushManager.getSubscription().then(subscription => {
+            vm.isSubscribed = !!subscription
+          })
         })
     } else {
       vm.isSubscribed = false
