@@ -114,8 +114,9 @@ const vm = new Vue({
     },
     unsubscribe() {
       try {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
+        navigator.serviceWorker
+          .getRegistration('/pushnotifications/service_worker.js')
+          .then(registration => {
             registration.pushManager.getSubscription().then(subscription => {
               if (subscription) {
                 subscription.unsubscribe().then(() => {
@@ -126,9 +127,8 @@ const vm = new Vue({
                 })
               }
             })
-          }
-        })
-      } catch (e) {
+          })
+      } catch(e) {
         console.error(e)
       }
     }
@@ -155,16 +155,12 @@ const updateSubscriptionStatus = async () => {
       await navigator.serviceWorker
         .getRegistration('/pushnotifications/service_worker.js')
         .then(function (registration) {
-          vm.isSubscribed = false
-
           registration.pushManager.getSubscription().then(subscription => {
             vm.isSubscribed = !!subscription
           })
         })
-    } else {
-      vm.isSubscribed = false
     }
-  } catch (e) {
+  } catch(e) {
     console.error(e)
   }
 }
