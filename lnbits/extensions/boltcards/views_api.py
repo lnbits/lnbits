@@ -129,7 +129,7 @@ async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admi
         raise HTTPException(detail="Not your card.", status_code=HTTPStatus.FORBIDDEN)
 
     await delete_card(card_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @boltcards_ext.get("/api/v1/hits")

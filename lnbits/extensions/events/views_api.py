@@ -79,7 +79,7 @@ async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_typ
 
     await delete_event(event_id)
     await delete_event_tickets(event_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #########Tickets##########

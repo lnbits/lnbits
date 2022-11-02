@@ -94,7 +94,7 @@ async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_
         )
 
     await delete_charge(charge_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #############################BALANCE##########################
