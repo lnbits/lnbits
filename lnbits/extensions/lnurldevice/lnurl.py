@@ -102,7 +102,32 @@ async def lnurl_v1_params(
     if device.device == "atm":
         if paymentcheck:
             return {"status": "ERROR", "reason": f"Payment already claimed"}
+    if device.device == "switch":
 
+        price_msat = (
+            await fiat_amount_as_satoshis(float(device.profit), device.currency)
+            if device.currency != "sat"
+            else amount_in_cent
+        ) * 1000
+
+        lnurldevicepayment = await create_lnurldevicepayment(
+            deviceid=device.id,
+            payload="bla",
+            sats=price_msat,
+            pin=1,
+            payhash="bla",
+        )
+        if not lnurldevicepayment:
+            return {"status": "ERROR", "reason": "Could not create payment."}
+        return {
+            "tag": "payRequest",
+            "callback": request.url_for(
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+            ),
+            "minSendable": price_msat,
+            "maxSendable": price_msat,
+            "metadata": await device.lnurlpay_metadata(),
+        }
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
 
@@ -184,22 +209,42 @@ async def lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
         )
-    if pr:
-        if lnurldevicepayment.id != k1:
-            return {"status": "ERROR", "reason": "Bad K1"}
-        if lnurldevicepayment.payhash != "payment_hash":
-            return {"status": "ERROR", "reason": f"Payment already claimed"}
+    if device.device == "atm":
+        if not pr:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
+            )
+        else:
+            if lnurldevicepayment.id != k1:
+                return {"status": "ERROR", "reason": "Bad K1"}
+            if lnurldevicepayment.payhash != "payment_hash":
+                return {"status": "ERROR", "reason": f"Payment already claimed"}
             lnurldevicepayment = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
 
-        await pay_invoice(
+            await pay_invoice(
+                wallet_id=device.wallet,
+                payment_request=pr,
+                max_sat=lnurldevicepayment.sats / 1000,
+                extra={"tag": "withdraw"},
+            )
+            return {"status": "OK"}
+    if device.device == "switch":
+        payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
-            payment_request=pr,
-            max_sat=lnurldevicepayment.sats / 1000,
-            extra={"tag": "withdraw"},
+            amount=lnurldevicepayment.sats / 1000,
+            memo=device.title + "-" + lnurldevicepayment.id,
+            unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
+            extra={"tag": "Switch", "id": paymentid, "time": device.amount},
         )
-        return {"status": "OK"}
+        lnurldevicepayment = await update_lnurldevicepayment(
+            lnurldevicepayment_id=paymentid, payhash=payment_hash
+        )
+        return {
+            "pr": payment_request,
+            "routes": [],
+        }
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
@@ -221,5 +266,3 @@ async def lnurl_callback(
         },
         "routes": [],
     }
-
-    return resp.dict()

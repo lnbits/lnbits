@@ -16,7 +16,9 @@ templates = Jinja2Templates(directory="templates")
 
 
 @subdomains_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request, user: User = Depends(check_user_exists)  # type:ignore
+):
     return subdomains_renderer().TemplateResponse(
         "subdomains/index.html", {"request": request, "user": user.dict()}
     )

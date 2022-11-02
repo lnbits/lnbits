@@ -52,6 +52,12 @@ class Compat:
             return ""
         return "<nothing>"
 
+    @property
+    def big_int(self) -> str:
+        if self.type in {POSTGRES}:
+            return "BIGINT"
+        return "INT"
+
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
