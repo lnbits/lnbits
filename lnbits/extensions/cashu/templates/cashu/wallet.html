@@ -1060,7 +1060,11 @@ page_container %}
       promiseToProof: function (id, amount, C_hex, secret, r) {
         const C_ = nobleSecp256k1.Point.fromHex(C_hex)
         const A = this.keys[amount]
-        const C = step3Alice(C_, r, nobleSecp256k1.Point.fromHex(A))
+        const C = step3Alice(
+          C_,
+          nobleSecp256k1.utils.hexToBytes(r),
+          nobleSecp256k1.Point.fromHex(A)
+        )
         return {
           id,
           amount,
@@ -1226,7 +1230,9 @@ page_container %}
         const rs = []
         for (let i = 0; i < amounts.length; i++) {
           const secret = nobleSecp256k1.utils.randomBytes(32)
-          // const secret = nobleSecp256k1.utils.hexToBytes('0000000000000000000000000000000000000000000000000000000000000003')
+          // const secret = nobleSecp256k1.utils.hexToBytes(
+          //   '0000000000000000000000000000000000000000000000000000000000000000'
+          // )
           // todo: base64Url
           const encodedSecret = uint8ToBase64.encode(secret)
           secrets.push(encodedSecret)
