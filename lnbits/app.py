@@ -4,6 +4,7 @@ import logging
 import signal
 import sys
 import traceback
+from typing import Callable
 import warnings
 from http import HTTPStatus
 
@@ -18,9 +19,10 @@ from loguru import logger
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
-from .core import core_app
+from .core import core_app, core_app_extra
 from .core.views.generic import core_html_routes
 from .helpers import (
+    Extension,
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
@@ -98,6 +100,8 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     register_async_tasks(app)
     register_exception_handlers(app)
 
+    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
+    
     return app
 
 
@@ -130,6 +134,12 @@ def check_funding_source(app: FastAPI) -> None:
         )
 
 
+def register_new_ext_routes(app: FastAPI) -> Callable:
+    def register_new_ext_routes_fn(ext: Extension):
+        register_ext_routes(app, ext)
+    return register_new_ext_routes_fn
+    
+
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
     app.include_router(core_app)
@@ -137,25 +147,30 @@ def register_routes(app: FastAPI) -> None:
 
     for ext in get_valid_extensions():
         try:
-            ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
-            ext_route = getattr(ext_module, f"{ext.code}_ext")
-
-            if hasattr(ext_module, f"{ext.code}_start"):
-                ext_start_func = getattr(ext_module, f"{ext.code}_start")
-                ext_start_func()
-
-            if hasattr(ext_module, f"{ext.code}_static_files"):
-                ext_statics = getattr(ext_module, f"{ext.code}_static_files")
-                for s in ext_statics:
-                    app.mount(s["path"], s["app"], s["name"])
-
-            logger.trace(f"adding route for extension {ext_module}")
-            app.include_router(ext_route)
+            register_ext_routes(app, ext)
         except Exception as e:
             logger.error(str(e))
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
+
+
+def register_ext_routes(app: FastAPI, ext: Extension) -> None:
+    """Register FastAPI routes for extension."""
+    ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
+    ext_route = getattr(ext_module, f"{ext.code}_ext")
+
+    if hasattr(ext_module, f"{ext.code}_start"):
+        ext_start_func = getattr(ext_module, f"{ext.code}_start")
+        ext_start_func()
+
+    if hasattr(ext_module, f"{ext.code}_static_files"):
+        ext_statics = getattr(ext_module, f"{ext.code}_static_files")
+        for s in ext_statics:
+            app.mount(s["path"], s["app"], s["name"])
+
+    logger.trace(f"adding route for extension {ext_module}")
+    app.include_router(ext_route)
 
 
 def register_assets(app: FastAPI):
