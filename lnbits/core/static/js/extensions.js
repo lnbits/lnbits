@@ -32,5 +32,16 @@ new Vue({
       }
     }
   },
+  methods: {
+    installExtension: async function () {
+      console.log('### installExtension')
+      const resp = await LNbits.api.request(
+        'POST',
+        '/api/v1/extension',
+        this.g.user.wallets[0].adminkey
+      )
+      console.log('### resp', resp)
+    }
+  },
   mixins: [windowMixin]
 })

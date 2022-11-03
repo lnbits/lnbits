@@ -3,7 +3,13 @@
 <script src="/core/static/js/extensions.js"></script>
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-3 col-xs-8 q-ml-auto">
+  <div class="col-sm-7 col-xs-6 mt-lg">
+    <!-- todo: make `mt-lg pt-lg` work -->
+    <q-btn @click="installExtension" color="primary unelevated mt-lg pt-lg"
+      >Install Extension</q-btn
+    >
+  </div>
+  <div class="col-sm-3 col-xs-6 q-ml-auto">
     <q-input v-model="searchTerm" label="Search extensions">
       <q-icon
         v-if="searchTerm !== ''"
