@@ -20,6 +20,8 @@ async function hashToCurve(secretMessage) {
 }
 
 async function step1Bob(secretMessage) {
+  secretMessage = nobleSecp256k1.utils.bytesToHex(secretMessage)
+  secretMessage = new TextEncoder().encode(secretMessage);
   const Y = await hashToCurve(secretMessage)
   const randomBlindingFactor = bytesToNumber(
     nobleSecp256k1.utils.randomPrivateKey()
