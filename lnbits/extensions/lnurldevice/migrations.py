@@ -88,3 +88,52 @@ async def m003_redux(db):
     await db.execute(
         "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount INT DEFAULT 0;"
     )
+
+
+async def m004_redux(db):
+    """
+    Add 'meta' for storing various metadata about the wallet
+    """
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin INT DEFAULT 0"
+    )
+
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN profit1 FLOAT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount1 INT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin1 INT DEFAULT 0"
+    )
+
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN profit2 FLOAT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount2 INT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin2 INT DEFAULT 0"
+    )
+
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN profit3 FLOAT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount3 INT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin3 INT DEFAULT 0"
+    )
+
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN profit4 FLOAT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount4 INT DEFAULT 0"
+    )
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin4 INT DEFAULT 0"
+    )
