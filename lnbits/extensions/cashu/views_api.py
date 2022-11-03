@@ -353,7 +353,7 @@ async def split(
         keyset = ledger.keysets.keysets[cashu.keyset_id]
         split_return = await ledger.split(proofs, amount, outputs, keyset)
     except Exception as exc:
-        HTTPException(
+        raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=str(exc),
         )
