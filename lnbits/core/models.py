@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import json
 from sqlite3 import Row
-from typing import Dict, List, NamedTuple, Optional
+from typing import Callable, Dict, List, NamedTuple, Optional
 
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
@@ -196,3 +196,7 @@ class BalanceCheck(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
+
+
+class CoreAppExtra:
+    register_new_ext_routes: Optional[Callable]
