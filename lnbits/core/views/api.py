@@ -2,6 +2,7 @@ import asyncio
 import binascii
 import hashlib
 import json
+import shutil
 import time
 import uuid
 from http import HTTPStatus
@@ -29,7 +30,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import Extension, url_for, urlsafe_short_hash
 from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -37,7 +38,7 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, db
+from .. import core_app, core_app_extra, db
 from ..crud import (
     create_payment,
     get_payments,
@@ -697,3 +698,19 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
         "delta_msats": delta,
         "timestamp": int(time.time()),
     }
+
+
+@core_app.post("/api/v1/extension")
+async def api_install_extension(request: Request):
+    print("### api_install_extension 1", request)
+    print("### api_install_extension register_new_ext_routes", getattr(core_app_extra, "register_new_ext_routes"))
+   
+    try:
+        shutil.copytree(
+            "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
+            "/Users/moto/Documents/GitHub/motorina0/lnbits/lnbits/extensions/watchonly",
+        )
+        register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
+        register_new_ext_routes(Extension("watchonly",True, False, "WatchONly", "xxxxx", "extension"))
+    except Exception as ex:
+        print(ex)
