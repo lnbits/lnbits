@@ -20,6 +20,9 @@ async function hashToCurve(secretMessage) {
 }
 
 async function step1Alice(secretMessage) {
+  // todo: document & validate `secretMessage` format
+  secretMessage = uint8ToBase64.encode(secretMessage)
+  secretMessage = new TextEncoder().encode(secretMessage);
   const Y = await hashToCurve(secretMessage)
   const rpk = nobleSecp256k1.utils.randomPrivateKey()
   const r = bytesToNumber(rpk)
