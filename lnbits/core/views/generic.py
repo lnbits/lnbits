@@ -1,5 +1,6 @@
 import asyncio
 from http import HTTPStatus
+import httpx
 from typing import Optional
 
 from fastapi import Request, status
@@ -93,6 +94,34 @@ async def extensions(
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
     )
+
+@core_html_routes.get(
+    "/install", name="core.install", response_class=HTMLResponse
+)
+async def extensions_install(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    
+    async with httpx.AsyncClient() as client:
+        # r = await client.get(f"https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json")
+        url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/8863bc9e58e084fc0f88454f965c76cb557abe56/extensions.json"
+        r = await client.get(url)
+
+    try:
+        if r.status_code != 200:
+            raise HTTPException(status_code=404, detail="Unable to fetch extension")
+
+        extensions = r.json()["extensions"]
+        # print('### extensions', extensions)
+
+        return template_renderer().TemplateResponse(
+            "core/install.html", {"request": request, "user": user.dict(), "extensions": extensions}
+        )
+    except Exception as e:
+       raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+            )
 
 
 @core_html_routes.get(
