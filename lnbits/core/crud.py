@@ -547,3 +547,19 @@ async def get_balance_notify(
         (wallet_id,),
     )
     return row[0] if row else None
+
+
+# db versions
+# --------------
+async def get_dbversions(conn: Optional[Connection] = None):
+    rows = await (await (conn or db).execute("SELECT * FROM dbversions")).fetchall()
+    return {row["db"]: row["version"] for row in rows}
+
+async def update_migration_version(conn, db_name, version):
+    await (conn or db).execute(
+        """
+        INSERT INTO dbversions (db, version) VALUES (?, ?)
+        ON CONFLICT (db) DO UPDATE SET version = ?
+        """,
+        (db_name, version, version),
+    )
