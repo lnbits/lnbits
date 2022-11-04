@@ -105,7 +105,7 @@ async def extensions_install(
     
     async with httpx.AsyncClient() as client:
         # r = await client.get(f"https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json")
-        url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/8863bc9e58e084fc0f88454f965c76cb557abe56/extensions.json"
+        url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json"
         r = await client.get(url)
 
     try:
