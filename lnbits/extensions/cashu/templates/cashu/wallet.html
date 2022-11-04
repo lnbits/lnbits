@@ -45,7 +45,7 @@ page_container %}
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-5 col-sm-4 col-md-4">
+              <div class="col-5 col-sm-5 col-md-4">
                 <q-btn
                   size="12px"
                   icon="arrow_downward"
@@ -56,8 +56,8 @@ page_container %}
                   >Receive Tokens</q-btn
                 >
               </div>
-              <div class="col-2 col-sm-4 col-md-4"></div>
-              <div class="col-5 col-sm-4 col-md-4">
+              <div class="col-2 col-sm-2 col-md-4"></div>
+              <div class="col-5 col-sm-5 col-md-4">
                 <q-btn
                   size="12px"
                   icon="arrow_upward"
@@ -191,8 +191,208 @@ page_container %}
         </q-tab>
         <!-- <q-tab icon="arrow_downward" label="Receive Tokens"></q-tab>
         <q-tab icon="arrow_upward" label="Send Token"></q-tab> -->
-        <q-tab icon="arrow_upward" label="Pay Invoice"> </q-tab>
+        <q-tab
+          icon="arrow_upward"
+          label="Pay Invoice"
+          @click="showPayInvoiceDialog"
+        >
+        </q-tab>
+        <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
+        </q-tab>
+        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
       </q-tabs>
+
+      <q-dialog v-model="parse.show" @hide="closeParseDialog">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="parse.invoice">
+            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
+              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+            </h6>
+            <h6 v-else class="q-my-none">
+              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
+              raw %}
+            </h6>
+            <q-separator class="q-my-sm"></q-separator>
+            <p class="text-wrap">
+              <strong>Description:</strong> {{ parse.invoice.description }}<br />
+              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
+              <strong>Hash:</strong> {{ parse.invoice.hash }}
+            </p>
+            {% endraw %}
+            <div v-if="canPay" class="row q-mt-lg">
+              <q-btn unelevated color="primary" @click="melt">Pay</q-btn>
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+            <div v-else class="row q-mt-lg">
+              <q-btn unelevated disabled color="yellow" text-color="black"
+                >Not enough funds!</q-btn
+              >
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+          <div v-else-if="parse.lnurlauth">
+            {% raw %}
+            <q-form @submit="authLnurl" class="q-gutter-md">
+              <p class="q-my-none text-h6">
+                Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <p>
+                For every website and for every LNbits wallet, a new keypair
+                will be deterministically generated so your identity can't be
+                tied to your LNbits wallet or linked across websites. No other
+                data will be shared with {{ parse.lnurlauth.domain }}.
+              </p>
+              <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
+              <p class="q-mx-xl">
+                <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
+              </p>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Login</q-btn>
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+            </q-form>
+            {% endraw %}
+          </div>
+          <div v-else-if="parse.lnurlpay">
+            {% raw %}
+            <q-form @submit="payLnurl" class="q-gutter-md">
+              <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
+                <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
+                parse.lnurlpay.maxSendable | msatoshiFormat }}
+                {{LNBITS_DENOMINATION}}
+                <span v-if="parse.lnurlpay.commentAllowed > 0">
+                  <br />
+                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                </span>
+              </p>
+              <p v-else class="q-my-none text-h6 text-center">
+                <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b>
+                is requesting <br />
+                between
+                <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
+                <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
+                {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+                <span v-if="parse.lnurlpay.commentAllowed > 0">
+                  <br />
+                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                </span>
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <div class="row">
+                <p class="col text-justify text-italic">
+                  {{ parse.lnurlpay.description }}
+                </p>
+                <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
+                  <q-img :src="parse.lnurlpay.image" />
+                </p>
+              </div>
+              <div class="row">
+                <div class="col">
+                  {% endraw %}
+                  <q-input
+                    filled
+                    dense
+                    v-model.number="parse.data.amount"
+                    type="number"
+                    label="Amount ({{LNBITS_DENOMINATION}}) *"
+                    :min="parse.lnurlpay.minSendable / 1000"
+                    :max="parse.lnurlpay.maxSendable / 1000"
+                    :readonly="parse.lnurlpay.fixed"
+                  ></q-input>
+                  {% raw %}
+                </div>
+                <div
+                  class="col-8 q-pl-md"
+                  v-if="parse.lnurlpay.commentAllowed > 0"
+                >
+                  <q-input
+                    filled
+                    dense
+                    v-model="parse.data.comment"
+                    :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    label="Comment (optional)"
+                    :maxlength="parse.lnurlpay.commentAllowed"
+                  ></q-input>
+                </div>
+              </div>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit"
+                  >Send {{LNBITS_DENOMINATION}}</q-btn
+                >
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+            </q-form>
+            {% endraw %}
+          </div>
+          <div v-else>
+            <q-form
+              v-if="!parse.camera.show"
+              @submit="decodeRequest"
+              class="q-gutter-md"
+            >
+              <q-input
+                filled
+                dense
+                v-model.trim="parse.data.request"
+                type="textarea"
+                label="Paste an invoice, payment request or lnurl code *"
+              >
+              </q-input>
+              <div class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="parse.data.request == ''"
+                  type="submit"
+                  >Read</q-btn
+                >
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+            </q-form>
+            <div v-else>
+              <q-responsive :ratio="1">
+                <qrcode-stream
+                  @decode="decodeQR"
+                  class="rounded-borders"
+                ></qrcode-stream>
+              </q-responsive>
+              <div class="row q-mt-lg">
+                <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
+                  Cancel
+                </q-btn>
+              </div>
+            </div>
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="parse.camera.show">
+        <q-card class="q-pa-lg q-pt-xl">
+          <div class="text-center q-mb-lg">
+            <qrcode-stream
+              @decode="decodeQR"
+              class="rounded-borders"
+            ></qrcode-stream>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
 
       <q-dialog v-model="disclaimerDialog.show">
         <q-card class="q-pa-lg">
@@ -493,7 +693,11 @@ page_container %}
         invoiceCheckListener: () => {},
         payInvoiceData: {
           invoice: '',
-          bolt11: ''
+          bolt11: '',
+          camera: {
+            show: false,
+            camera: 'auto'
+          }
         },
         sendData: {
           amount: 0,
@@ -923,6 +1127,7 @@ page_container %}
         this.payInvoiceData.invoice = ''
         this.payInvoiceData.bolt11 = ''
         this.showPayInvoice = true
+        this.payInvoiceData.camera.show = false
       },
 
       showSendTokensDialog: function () {
@@ -1131,6 +1336,10 @@ page_container %}
               this.proofs[i].reserved = true
             }
           }
+
+          // delete tokens from db
+          this.proofs = fristProofs
+          // add new fristProofs, scndProofs to this.proofs
           this.storeProofs()
           return {fristProofs, scndProofs}
         } catch (error) {
@@ -1250,28 +1459,37 @@ page_container %}
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
 
         // delete tokens from db
-        this.proofs = fristProofs
+        // this.proofs = fristProofs
         // add new fristProofs, scndProofs to this.proofs
-        this.storeProofs()
+        // this.storeProofs()
       },
 
       melt: async function () {
-        console.log('#### sell tokens')
+        console.log('#### pay lightning')
         const amount = this.payInvoiceData.invoice.sat
-        const paidTokens = this.proofs.filter(t => t.promises?.length)
-        console.log('### paidTokens', paidTokens)
-        const proofs = paidTokens.map(token => {
-          return token.promises.map((promise, promiseIndex) => {
-            console.log('### promise', promise)
+        // if (amount > balance()) {
+        //   LNbits.utils.notifyApiError('Balance too low')
+        //   return
+        // }
+        let {fristProofs, scndProofs} = await this.splitToSend(
+          this.proofs,
+          amount
+        )
 
-            const secret = token.secrets[promiseIndex]
-            const r = token.rs[promiseIndex]
+        // const paidTokens = this.proofs.filter(t => t.promises?.length)
+        // console.log('### paidTokens', paidTokens)
+        // const proofs = paidTokens.map(token => {
+        //   return token.promises.map((promise, promiseIndex) => {
+        //     console.log('### promise', promise)
 
-            return this.promiseToProof(promise.amount, promise['C_'], secret, r)
-          })
-        })
+        //     const secret = token.secrets[promiseIndex]
+        //     const r = token.rs[promiseIndex]
+
+        //     return this.promiseToProof(promise.amount, promise['C_'], secret, r)
+        //   })
+        // })
         const payload = {
-          proofs: proofs.flat(),
+          proofs: scndProofs.flat(),
           amount,
           invoice: this.payInvoiceData.bolt11
         }
@@ -1285,6 +1503,7 @@ page_container %}
           )
           this.$q.notify({
             timeout: 5000,
+            type: 'positive',
             message: 'Invoice paid'
           })
         } catch (error) {
