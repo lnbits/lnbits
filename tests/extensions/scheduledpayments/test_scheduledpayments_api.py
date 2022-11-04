@@ -13,8 +13,11 @@ from tests.mocks import WALLET
 
 
 @pytest.mark.asyncio
-async def test_schedules_unknown_schedule(client):
-    response = await client.get("/scheduledpayments/api/v1/schedule/u")
+async def test_schedules_unknown_schedule(client, scheduledpayments_wallet):
+    response = await client.get(
+        "/scheduledpayments/api/v1/schedule/u",
+        headers={"X-Api-Key": scheduledpayments_wallet.inkey},
+    )
     assert response.json() == {"detail": "Schedule does not exist."}
 
 
@@ -42,7 +45,7 @@ async def test_scheduledpayments_api_create_schedule_valid(
     response = await client.post(
         "/scheduledpayments/api/v1/schedule",
         json=query,
-        headers={"X-Api-Key": scheduledpayments_wallet.inkey},
+        headers={"X-Api-Key": scheduledpayments_wallet.adminkey},
     )
 
     assert response.status_code == 201
