@@ -15,8 +15,6 @@ A backend wallet can be configured using the following LNbits environment variab
 
 ### CoreLightning
 
-Using this wallet requires the installation of the `pylightning` Python package.
-
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
 - `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
@@ -38,8 +36,6 @@ or
 - `LND_REST_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
 ### LND (gRPC)
-
-Using this wallet requires the installation of the `grpcio` and `protobuf` Python packages.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndWallet**
 - `LND_GRPC_ENDPOINT`: ip_address
@@ -83,3 +79,8 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `LNBITS_BACKEND_WALLET_CLASS`: **OpenNodeWallet**
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
+
+
+### Cliche Wallet
+
+- `CLICHE_ENDPOINT`: ws://127.0.0.1:12000

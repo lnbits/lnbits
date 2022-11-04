@@ -428,6 +428,7 @@
           :options="receive.units"
         ></q-select>
         <q-input
+          ref="setAmount"
           filled
           dense
           v-model.number="receive.data.amount"
@@ -652,6 +653,7 @@
           <q-responsive :ratio="1">
             <qrcode-stream
               @decode="decodeQR"
+              @init="onInitQR"
               class="rounded-borders"
             ></qrcode-stream>
           </q-responsive>
@@ -670,6 +672,7 @@
       <div class="text-center q-mb-lg">
         <qrcode-stream
           @decode="decodeQR"
+          @init="onInitQR"
           class="rounded-borders"
         ></qrcode-stream>
       </div>
@@ -710,7 +713,7 @@
     <q-card class="q-pa-lg">
       <h6 class="q-my-md text-primary">Warning</h6>
       <p>
-        Login functionality to be released in v0.2, for now,
+        Login functionality to be released in a future update, for now,
         <strong
           >make sure you bookmark this page for future access to your
           wallet</strong

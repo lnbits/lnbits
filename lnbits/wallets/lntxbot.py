@@ -97,10 +97,11 @@ class LntxbotWallet(Wallet):
             except:
                 error_message = r.text
                 pass
-
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
+        if data.get("type") != "paid_invoice":
+            return PaymentResponse(None)
         checking_id = data["payment_hash"]
         fee_msat = -data["fee_msat"]
         preimage = data["payment_preimage"]
