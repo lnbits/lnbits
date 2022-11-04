@@ -202,22 +202,25 @@ page_container %}
         <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
       </q-tabs>
 
-      <q-dialog v-model="parse.show" @hide="closeParseDialog">
+      <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="parse.invoice">
+          <div v-if="payInvoiceData.invoice">
             <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
+              {% raw %} {{
+              parseFloat(String(payInvoiceData.invoice.fsat).replaceAll(",",
               "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
             </h6>
             <h6 v-else class="q-my-none">
-              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
-              raw %}
+              {{ payInvoiceData.invoice.fsat }}{% endraw %}
+              {{LNBITS_DENOMINATION}} {% raw %}
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong>Description:</strong> {{ parse.invoice.description }}<br />
-              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-              <strong>Hash:</strong> {{ parse.invoice.hash }}
+              <strong>Description:</strong> {{
+              payInvoiceData.invoice.description }}<br />
+              <strong>Expire date:</strong> {{ payInvoiceData.invoice.expireDate
+              }}<br />
+              <strong>Hash:</strong> {{ payInvoiceData.invoice.hash }}
             </p>
             {% endraw %}
             <div v-if="canPay" class="row q-mt-lg">
@@ -235,22 +238,27 @@ page_container %}
               >
             </div>
           </div>
-          <div v-else-if="parse.lnurlauth">
+          <div v-else-if="payInvoiceData.lnurlauth">
             {% raw %}
             <q-form @submit="authLnurl" class="q-gutter-md">
               <p class="q-my-none text-h6">
-                Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
+                Authenticate with <b>{{ payInvoiceData.lnurlauth.domain }}</b>?
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <p>
                 For every website and for every LNbits wallet, a new keypair
                 will be deterministically generated so your identity can't be
                 tied to your LNbits wallet or linked across websites. No other
-                data will be shared with {{ parse.lnurlauth.domain }}.
+                data will be shared with {{ payInvoiceData.lnurlauth.domain }}.
               </p>
-              <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
+              <p>
+                Your public key for
+                <b>{{ payInvoiceData.lnurlauth.domain }}</b> is:
+              </p>
               <p class="q-mx-xl">
-                <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
+                <code class="text-wrap">
+                  {{ payInvoiceData.lnurlauth.pubkey }}
+                </code>
               </p>
               <div class="row q-mt-lg">
                 <q-btn unelevated color="primary" type="submit">Login</q-btn>
@@ -261,37 +269,45 @@ page_container %}
             </q-form>
             {% endraw %}
           </div>
-          <div v-else-if="parse.lnurlpay">
+          <div v-else-if="payInvoiceData.lnurlpay">
             {% raw %}
             <q-form @submit="payLnurl" class="q-gutter-md">
-              <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-                <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
-                parse.lnurlpay.maxSendable | msatoshiFormat }}
+              <p v-if="payInvoiceData.lnurlpay.fixed" class="q-my-none text-h6">
+                <b>{{ payInvoiceData.lnurlpay.domain }}</b> is requesting {{
+                payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}
                 {{LNBITS_DENOMINATION}}
-                <span v-if="parse.lnurlpay.commentAllowed > 0">
+                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
                   <br />
-                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                  and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
                 </span>
               </p>
               <p v-else class="q-my-none text-h6 text-center">
-                <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b>
+                <b
+                  >{{ payInvoiceData.lnurlpay.targetUser ||
+                  payInvoiceData.lnurlpay.domain }}</b
+                >
                 is requesting <br />
                 between
-                <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
-                <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
+                <b
+                  >{{ payInvoiceData.lnurlpay.minSendable | msatoshiFormat }}</b
+                >
+                and
+                <b
+                  >{{ payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}</b
+                >
                 {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-                <span v-if="parse.lnurlpay.commentAllowed > 0">
+                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
                   <br />
-                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                  and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
                 </span>
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <div class="row">
                 <p class="col text-justify text-italic">
-                  {{ parse.lnurlpay.description }}
+                  {{ payInvoiceData.lnurlpay.description }}
                 </p>
-                <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
-                  <q-img :src="parse.lnurlpay.image" />
+                <p class="col-4 q-pl-md" v-if="payInvoiceData.lnurlpay.image">
+                  <q-img :src="payInvoiceData.lnurlpay.image" />
                 </p>
               </div>
               <div class="row">
@@ -300,26 +316,26 @@ page_container %}
                   <q-input
                     filled
                     dense
-                    v-model.number="parse.data.amount"
+                    v-model.number="payInvoiceData.data.amount"
                     type="number"
                     label="Amount ({{LNBITS_DENOMINATION}}) *"
-                    :min="parse.lnurlpay.minSendable / 1000"
-                    :max="parse.lnurlpay.maxSendable / 1000"
-                    :readonly="parse.lnurlpay.fixed"
+                    :min="payInvoiceData.lnurlpay.minSendable / 1000"
+                    :max="payInvoiceData.lnurlpay.maxSendable / 1000"
+                    :readonly="payInvoiceData.lnurlpay.fixed"
                   ></q-input>
                   {% raw %}
                 </div>
                 <div
                   class="col-8 q-pl-md"
-                  v-if="parse.lnurlpay.commentAllowed > 0"
+                  v-if="payInvoiceData.lnurlpay.commentAllowed > 0"
                 >
                   <q-input
                     filled
                     dense
-                    v-model="parse.data.comment"
-                    :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    v-model="payInvoiceData.data.comment"
+                    :type="payInvoiceData.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
                     label="Comment (optional)"
-                    :maxlength="parse.lnurlpay.commentAllowed"
+                    :maxlength="payInvoiceData.lnurlpay.commentAllowed"
                   ></q-input>
                 </div>
               </div>
@@ -336,14 +352,15 @@ page_container %}
           </div>
           <div v-else>
             <q-form
-              v-if="!parse.camera.show"
+              v-if="!payInvoiceData.camera.show"
               @submit="decodeRequest"
               class="q-gutter-md"
             >
               <q-input
+                ref="pasteInput"
                 filled
                 dense
-                v-model.trim="parse.data.request"
+                v-model.trim="payInvoiceData.data.request"
                 type="textarea"
                 label="Paste an invoice, payment request or lnurl code *"
               >
@@ -352,7 +369,7 @@ page_container %}
                 <q-btn
                   unelevated
                   color="primary"
-                  :disable="parse.data.request == ''"
+                  :disable="payInvoiceData.data.request == ''"
                   type="submit"
                   >Read</q-btn
                 >
@@ -378,7 +395,7 @@ page_container %}
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="parse.camera.show">
+      <q-dialog v-model="payInvoiceData.camera.show">
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
@@ -435,6 +452,7 @@ page_container %}
               reverse-fill-mask
               autofocus
               class="q-mb-lg"
+              @keyup.enter="requestMintButton"
             ></q-input>
             <q-input
               filled
@@ -591,7 +609,7 @@ page_container %}
             <q-input
               filled
               dense
-              v-model="payInvoiceData.bolt11"
+              v-model="payInvoiceData.data.request"
               label="Paste invoice"
               autofocus
               type="textarea"
@@ -692,8 +710,22 @@ page_container %}
         },
         invoiceCheckListener: () => {},
         payInvoiceData: {
-          invoice: '',
+          // invoice: '',
           bolt11: '',
+          // camera: {
+          //   show: false,
+          //   camera: 'auto'
+          // }
+          show: false,
+          invoice: null,
+          lnurlpay: null,
+          lnurlauth: null,
+          data: {
+            request: '',
+            amount: 0,
+            comment: ''
+          },
+          paymentChecker: null,
           camera: {
             show: false,
             camera: 'auto'
@@ -846,8 +878,8 @@ page_container %}
       },
 
       canPay: function () {
-        if (!this.parse.invoice) return false
-        return this.parse.invoice.sat <= this.balance
+        if (!this.payInvoiceData.invoice) return false
+        return this.payInvoiceData.invoice.sat <= this.balance
       },
       pendingPaymentsExist: function () {
         return this.payments.findIndex(payment => payment.pending) !== -1
@@ -884,10 +916,10 @@ page_container %}
         return row.payment_hash + row.amount
       },
       closeCamera: function () {
-        this.parse.camera.show = false
+        this.payInvoiceData.camera.show = false
       },
       showCamera: function () {
-        this.parse.camera.show = true
+        this.payInvoiceData.camera.show = true
       },
       showChart: function () {
         this.paymentsChart.show = true
@@ -912,14 +944,15 @@ page_container %}
         this.focusInput('setAmount')
       },
       showParseDialog: function () {
-        this.parse.show = true
-        this.parse.invoice = null
-        this.parse.lnurlpay = null
-        this.parse.lnurlauth = null
-        this.parse.data.request = ''
-        this.parse.data.comment = ''
-        this.parse.data.paymentChecker = null
-        this.parse.camera.show = false
+        this.payInvoiceData.show = true
+        this.payInvoiceData.invoice = null
+        this.payInvoiceData.lnurlpay = null
+        this.payInvoiceData.lnurlauth = null
+        this.payInvoiceData.data.request = ''
+        this.payInvoiceData.data.comment = ''
+        this.payInvoiceData.data.paymentChecker = null
+        this.payInvoiceData.camera.show = false
+        this.focusInput('pasteInput')
       },
 
       closeReceiveDialog: function () {
@@ -929,7 +962,7 @@ page_container %}
       },
       closeParseDialog: function () {
         setTimeout(() => {
-          clearInterval(this.parse.paymentChecker)
+          clearInterval(this.payInvoiceData.paymentChecker)
         }, 10000)
       },
       onPaymentReceived: function (paymentHash) {
@@ -994,33 +1027,43 @@ page_container %}
           })
       },
       decodeQR: function (res) {
-        this.parse.data.request = res
+        this.payInvoiceData.data.request = res
         this.decodeRequest()
-        this.parse.camera.show = false
+        this.payInvoiceData.camera.show = false
       },
       decodeRequest: function () {
-        this.parse.show = true
-        let req = this.parse.data.request.toLowerCase()
-        if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
-          this.parse.data.request = this.parse.data.request.slice(10)
-        } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
-          this.parse.data.request = this.parse.data.request.slice(6)
+        this.payInvoiceData.show = true
+        let req = this.payInvoiceData.data.request.toLowerCase()
+        if (
+          this.payInvoiceData.data.request
+            .toLowerCase()
+            .startsWith('lightning:')
+        ) {
+          this.payInvoiceData.data.request = this.payInvoiceData.data.request.slice(
+            10
+          )
+        } else if (
+          this.payInvoiceData.data.request.toLowerCase().startsWith('lnurl:')
+        ) {
+          this.payInvoiceData.data.request = this.payInvoiceData.data.request.slice(
+            6
+          )
         } else if (req.indexOf('lightning=lnurl1') !== -1) {
-          this.parse.data.request = this.parse.data.request
+          this.payInvoiceData.data.request = this.payInvoiceData.data.request
             .split('lightning=')[1]
             .split('&')[0]
         }
 
         if (
-          this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
-          this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
+          this.payInvoiceData.data.request.toLowerCase().startsWith('lnurl1') ||
+          this.payInvoiceData.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
         ) {
           return
         }
 
         let invoice
         try {
-          invoice = decode(this.parse.data.request)
+          invoice = decode(this.payInvoiceData.data.request)
         } catch (error) {
           this.$q.notify({
             timeout: 3000,
@@ -1028,7 +1071,7 @@ page_container %}
             message: error + '.',
             caption: '400 BAD REQUEST'
           })
-          this.parse.show = false
+          this.payInvoiceData.show = false
           throw error
           return
         }
@@ -1060,7 +1103,7 @@ page_container %}
           }
         })
 
-        this.parse.invoice = Object.freeze(cleanInvoice)
+        this.payInvoiceData.invoice = Object.freeze(cleanInvoice)
       },
       payInvoice: function () {
         let dismissPaymentMsg = this.$q.notify({
@@ -1125,7 +1168,7 @@ page_container %}
       showPayInvoiceDialog: function () {
         console.log('### showPayInvoiceDialog')
         this.payInvoiceData.invoice = ''
-        this.payInvoiceData.bolt11 = ''
+        this.payInvoiceData.data.request = ''
         this.showPayInvoice = true
         this.payInvoiceData.camera.show = false
       },
@@ -1491,7 +1534,7 @@ page_container %}
         const payload = {
           proofs: scndProofs.flat(),
           amount,
-          invoice: this.payInvoiceData.bolt11
+          invoice: this.payInvoiceData.data.request
         }
         console.log('#### payload', JSON.stringify(payload))
         try {
@@ -1506,6 +1549,8 @@ page_container %}
             type: 'positive',
             message: 'Invoice paid'
           })
+          this.payInvoiceData.invoice = null
+          this.payInvoiceData.show = false
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -1645,7 +1690,7 @@ page_container %}
       checkInvoice: function () {
         console.log('#### checkInvoice')
         try {
-          const invoice = decode(this.payInvoiceData.bolt11)
+          const invoice = decode(this.payInvoiceData.data.request)
 
           const cleanInvoice = {
             msat: invoice.human_readable_part.amount,
@@ -1709,7 +1754,7 @@ page_container %}
       //   const payload = {
       //     proofs: proofs.flat(),
       //     amount,
-      //     invoice: this.payInvoiceData.bolt11
+      //     invoice: this.payInvoiceData.data.request
       //   }
       //   console.log('#### payload', JSON.stringify(payload))
       //   try {
