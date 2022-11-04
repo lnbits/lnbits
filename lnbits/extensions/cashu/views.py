@@ -60,9 +60,7 @@ async def manifest(cashu_id: str):
         "name": cashu.name + " - " + "Cashu",
         "icons": [
             {
-                "src": LNBITS_CUSTOM_LOGO
-                if LNBITS_CUSTOM_LOGO
-                else "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
+                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
                 "type": "image/png",
                 "sizes": "96x96",
             }
