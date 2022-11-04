@@ -56,8 +56,8 @@ async def manifest(cashu_id: str):
         )
 
     return {
-        "short_name": "Cashu wallet",
-        "name": cashu.name + " - " + "Cashu wallet",
+        "short_name": "Cashu",
+        "name": cashu.name + " - " + "Cashu",
         "icons": [
             {
                 "src": LNBITS_CUSTOM_LOGO
@@ -71,7 +71,7 @@ async def manifest(cashu_id: str):
         "background_color": "#1F2234",
         "description": "Cashu ecash wallet",
         "display": "standalone",
-        "scope": "/cashu/wallet?mint_id=" + cashu_id,
+        "scope": "/cashu/",
         "theme_color": "#1F2234",
         "shortcuts": [
             {
