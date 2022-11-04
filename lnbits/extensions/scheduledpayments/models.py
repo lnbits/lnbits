@@ -34,7 +34,7 @@ class ScheduleEvent(BaseModel):
         orm_mode = True
 
     @classmethod
-    def from_row(cls, row: Row) -> "Schedule":
+    def from_row(cls, row: Row) -> "ScheduleEvent":
         return cls(**dict(row))
 
 
