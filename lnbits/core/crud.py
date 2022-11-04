@@ -552,7 +552,7 @@ async def get_balance_notify(
 # db versions
 # --------------
 async def get_dbversions(conn: Optional[Connection] = None):
-    rows = await (await (conn or db).execute("SELECT * FROM dbversions")).fetchall()
+    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
     return {row["db"]: row["version"] for row in rows}
 
 async def update_migration_version(conn, db_name, version):

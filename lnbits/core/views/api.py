@@ -23,6 +23,7 @@ from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
+from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -41,6 +42,7 @@ from lnbits.utils.exchange_rates import (
 from .. import core_app, core_app_extra, db
 from ..crud import (
     create_payment,
+    get_dbversions,
     get_payments,
     get_standalone_payment,
     get_total_balance,
@@ -702,15 +704,24 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @core_app.post("/api/v1/extension")
 async def api_install_extension(request: Request):
-    print("### api_install_extension 1", request)
-    print("### api_install_extension register_new_ext_routes", getattr(core_app_extra, "register_new_ext_routes"))
-   
+
     try:
+        print("### api_install_extension 1", request)
+        print("### api_install_extension register_new_ext_routes", getattr(core_app_extra, "register_new_ext_routes"))
+   
         shutil.copytree(
             "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
             "/Users/moto/Documents/GitHub/motorina0/lnbits/lnbits/extensions/watchonly",
         )
+
+        ext = Extension("watchonly",True, False, "WatchONly", "xxxxx", "extension")
+
+        current_versions = await get_dbversions()
+        current_version =  current_versions.get(ext.code, 0)
+        await  migrate_extension_database(ext, current_version)
+        
         register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
-        register_new_ext_routes(Extension("watchonly",True, False, "WatchONly", "xxxxx", "extension"))
+        register_new_ext_routes(ext)
     except Exception as ex:
         print(ex)
+        return ""
