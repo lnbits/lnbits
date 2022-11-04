@@ -22,7 +22,7 @@ page_container %}
               <div class="col-6">
                 <h3 class="q-my-none">
                   <center>
-                    <strong>{% raw %} {{balance}} </strong>
+                    <strong>{% raw %} {{getBalance()}} </strong>
                     {{tickershort}}{% endraw %}
                   </center>
                 </h3>
@@ -81,7 +81,7 @@ page_container %}
                 <q-table
                   dense
                   flat
-                  :data="tokenList"
+                  :data="getTokenList()"
                   :columns="tokensTable.columns"
                   :pagination.sync="tokensTable.pagination"
                   no-data-label="No tokens yet"
@@ -912,6 +912,26 @@ page_container %}
       }
     },
     methods: {
+      getBalance: function () {
+        return this.proofs
+          .map(t => t)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
+      },
+      getTokenList: function () {
+        const x = this.proofs
+          .map(t => t.amount)
+          .reduce((acc, amount) => {
+            acc[amount] = acc[amount] + amount || 1
+            return acc
+          }, {})
+        return Object.keys(x).map(k => ({
+          value: k,
+          count: x[k],
+          sum: k * x[k]
+        }))
+      },
+        
       paymentTableRowKey: function (row) {
         return row.payment_hash + row.amount
       },
@@ -1269,7 +1289,7 @@ page_container %}
           if (!proofs.length) {
             throw 'could not mint'
           }
-          this.proofs.push(...proofs)
+          this.proofs = this.proofs.concat(proofs)
           this.storeProofs()
           await this.setInvoicePaid(payment_hash)
           return proofs
@@ -1398,8 +1418,7 @@ page_container %}
           const usedSecrets = proofs.map(p => p.secret)
           this.proofs = this.proofs.filter(p => !usedSecrets.includes(p.secret))
           // add new fristProofs, scndProofs to this.proofs
-          this.proofs.push(...fristProofs)
-          this.proofs.push(...scndProofs)
+          this.proofs = this.proofs.concat(fristProofs).concat(scndProofs)
           this.storeProofs()
           return {fristProofs, scndProofs}
         } catch (error) {
