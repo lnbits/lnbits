@@ -113,7 +113,9 @@ async def extensions_install(
             raise HTTPException(status_code=404, detail="Unable to fetch extension")
 
         extensions = r.json()["extensions"]
-        # print('### extensions', extensions)
+        installed_extensions = list(map(lambda e: e.code,  get_valid_extensions()))
+        for ext in extensions:
+            ext["isInstalled"] = ext["id"] in installed_extensions
 
         return template_renderer().TemplateResponse(
             "core/install.html", {"request": request, "user": user.dict(), "extensions": extensions}

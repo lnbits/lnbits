@@ -28,13 +28,13 @@
     :key="extension.id"
   >
     <q-card>
-      <q-card-section v-if="extension.html">
-        <iframe
+      <!-- <q-card-section v-if="extension.html">
+        <iframe referrerpolicy="unsafe-url"
           :src="extension.html"
           style="width: 100%; border: 0"
         ></iframe>
-      </q-card-section>
-      <q-card-section v-else>
+      </q-card-section> -->
+      <q-card-section>
         <q-icon
           :name="extension.icon"
           color="grey-5"
@@ -46,19 +46,10 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
-        <div v-if="extension.isEnabled">
-          <q-btn
-            flat
-            color="primary"
-            type="a"
-            :href="[extension.url, '?usr=', g.user.id].join('')"
-            >Open</q-btn
-          >
+        <div v-if="extension.isInstalled">
           <q-btn
             flat
             color="grey-5"
-            type="a"
-            :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&disable=', extension.id].join('')"
           >
             Uninstall</q-btn
           >
