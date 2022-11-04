@@ -10,8 +10,9 @@ page_container %}
             <div class="row">
               <div class="col-3">
                 <q-btn
+                  class="gt-sm"
                   size="18px"
-                  rounded
+                  rectangle
                   color="secondary"
                   class="full-width"
                   @click="showInvoicesDialog"
@@ -28,9 +29,10 @@ page_container %}
               </div>
               <div class="col-3">
                 <q-btn
+                  class="gt-sm"
                   @click="showPayInvoiceDialog"
                   size="18px"
-                  rounded
+                  rectangle
                   color="secondary"
                   class="full-width"
                   >Pay invoice
@@ -43,28 +45,28 @@ page_container %}
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-sm-5 col-md-2">
+              <div class="col-5 col-sm-4 col-md-4">
                 <q-btn
-                  size="18px"
+                  size="12px"
                   icon="arrow_downward"
-                  rounded
+                  rectangle
                   color="primary"
                   class="full-width"
                   @click="showReceiveTokensDialog"
-                  >Receive</q-btn
+                  >Receive Tokens</q-btn
                 >
               </div>
-              <div class="col-sm-2 col-md-8"></div>
-              <div class="col-sm-5 col-md-2">
+              <div class="col-2 col-sm-4 col-md-4"></div>
+              <div class="col-5 col-sm-4 col-md-4">
                 <q-btn
-                  size="18px"
+                  size="12px"
                   icon="arrow_upward"
-                  rounded
+                  rectangle
                   color="primary"
                   class="full-width"
                   @click="showSendTokensDialog"
                 >
-                  Send</q-btn
+                  Send Tokens</q-btn
                 >
               </div>
             </div>
@@ -82,24 +84,24 @@ page_container %}
                   :data="tokenList"
                   :columns="tokensTable.columns"
                   :pagination.sync="tokensTable.pagination"
-                  no-data-label="No tokens made yet"
+                  no-data-label="No tokens yet"
                   :filter="tokensTable.filter"
                 >
                   {% raw %}
                   <template v-slot:body="props">
                     <q-tr :props="props">
                       <q-td
-                        key="denomination"
+                        key="value"
                         :props="props"
-                        :class="props.row.denomination > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        :class="props.row.value > 0 ? 'text-green-13 text-weight-bold' : ''"
                       >
-                        <div>{{props.row.denomination}}</div>
+                        <div>{{props.row.value}}</div>
                       </q-td>
                       <q-td key="count" :props="props">
                         <div>{{props.row.count}}</div>
                       </q-td>
-                      <q-td key="value" :props="props">
-                        <div>{{props.row.value}}</div>
+                      <q-td key="sum" :props="props">
+                        <div>{{props.row.sum}}</div>
                       </q-td>
                       <q-td key="memo" :props="props">
                         <div>{{props.row.memo}}</div>
@@ -181,14 +183,14 @@ page_container %}
         indicator-color="transparent"
       >
         <q-tab
-          icon="arrow_right"
+          icon="arrow_downward"
           label="Create Invoice"
           @click="showInvoicesDialog"
         >
         </q-tab>
-        <q-tab icon="arrow_downward" label="Receive Tokens"></q-tab>
-        <q-tab icon="arrow_upward" label="Send Token"></q-tab>
-        <q-tab icon="arrow_right" label="Pay Invoice"> </q-tab>
+        <!-- <q-tab icon="arrow_downward" label="Receive Tokens"></q-tab>
+        <q-tab icon="arrow_upward" label="Send Token"></q-tab> -->
+        <q-tab icon="arrow_upward" label="Pay Invoice"> </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
@@ -227,13 +229,12 @@ page_container %}
               dense
               v-model.number="invoiceData.amount"
               label="Amount ({{LNBITS_DENOMINATION}}) *"
-              mask="#.##"
+              mask="#"
               fill-mask="0"
               reverse-fill-mask
-              type="number"
+              autofocus
               class="q-mb-lg"
             ></q-input>
-
             <q-input
               filled
               dense
@@ -258,11 +259,19 @@ page_container %}
               v-if="invoiceData.bolt11"
               @click="copyText(invoiceData.bolt11)"
               outline
-              color="grey"
+              color="primary"
               >Copy invoice</q-btn
             >
-            <q-btn v-else outline color="grey" @click="requestMint"
-              >Request Invoice</q-btn
+            <!-- <q-btn
+              v-if="invoiceData.bolt11"
+              @click="recheckInvoice(invoiceData.hash)"
+              outline
+              color="primary"
+            >
+              Recheck
+            </q-btn> -->
+            <q-btn v-else outline color="primary" @click="requestMintButton"
+              >Create Invoice</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
@@ -285,11 +294,14 @@ page_container %}
               filled
               dense
               v-model.number="sendData.amount"
-              label="Amount (tokens) *"
-              type="number"
+              label="Amount ({{LNBITS_DENOMINATION}}) *"
+              mask="#"
+              fill-mask="0"
+              reverse-fill-mask
+              autofocus
               class="q-mb-lg"
+              @keyup.enter="sendTokens"
             ></q-input>
-
             <q-input
               filled
               dense
@@ -302,7 +314,7 @@ page_container %}
               filled
               dense
               v-model="sendData.tokensBase64"
-              label="tokens"
+              label="Tokens"
               type="textarea"
               class="q-mb-lg"
             ></q-input>
@@ -310,13 +322,22 @@ page_container %}
           <div class="row q-mt-lg">
             <q-btn
               v-if="!sendData.tokens"
+              :disable="sendData.amount == null || sendData.amount <= 0"
               @click="sendTokens"
               outline
-              color="grey"
+              color="primary"
+              type="submit"
               >Send Tokens</q-btn
             >
-            <q-btn v-else @click="burnTokens" outline color="grey"
+            <!-- <q-btn v-else @click="burnTokens" outline color="grey"
               >Burn Tokens</q-btn
+            > -->
+            <q-btn
+              v-else
+              outline
+              color="primary"
+              @click="copyText(sendData.tokensBase64)"
+              >Copy token</q-btn
             >
 
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -338,14 +359,15 @@ page_container %}
               filled
               dense
               v-model="receiveData.tokensBase64"
-              label="tokens"
+              label="Paste Cashu tokens"
               type="textarea"
+              autofocus
               class="q-mb-lg"
             ></q-input>
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="receiveTokens" outline color="grey"
+            <q-btn @click="redeem" outline color="primary"
               >Receive Tokens</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -370,6 +392,7 @@ page_container %}
               dense
               v-model="payInvoiceData.bolt11"
               label="Paste invoice"
+              autofocus
               type="textarea"
               class="q-mb-lg"
             ></q-input>
@@ -394,7 +417,9 @@ page_container %}
               color="grey"
               >Check Invoice</q-btn
             >
-            <q-btn v-else outline color="grey" @click="melt">Pay invoice</q-btn>
+            <q-btn v-else outline color="primary" @click="melt"
+              >Pay invoice</q-btn
+            >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
             >
@@ -464,6 +489,7 @@ page_container %}
           bolt11: '',
           hash: ''
         },
+        invoiceCheckListener: () => {},
         payInvoiceData: {
           invoice: '',
           bolt11: ''
@@ -553,6 +579,8 @@ page_container %}
             }
           ],
           pagination: {
+            sortBy: 'date',
+            descending: true,
             rowsPerPage: 10
           },
           filter: null
@@ -561,10 +589,10 @@ page_container %}
         tokensTable: {
           columns: [
             {
-              name: 'denomination',
+              name: 'value',
               align: 'left',
-              label: 'Denomination',
-              field: 'denomination',
+              label: 'Value ({{LNBITS_DENOMINATION}})',
+              field: 'value',
               sortable: true
             },
             {
@@ -575,19 +603,19 @@ page_container %}
               sortable: true
             },
             {
-              name: 'value',
+              name: 'sum',
               align: 'left',
-              label: 'Value',
-              field: 'value',
-              sortable: true
-            },
-            {
-              name: 'memo',
-              align: 'left',
-              label: 'Memo',
-              field: 'memo',
+              label: 'Sum ({{LNBITS_DENOMINATION}})',
+              field: 'sum',
               sortable: true
             }
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // }
           ],
           pagination: {
             rowsPerPage: 10
@@ -622,23 +650,15 @@ page_container %}
 
       tokenList: function () {
         const x = this.proofs
-          .filter(t => t.promises?.length)
-          .map(t => t.blindedMessages)
-          .flat()
-          .map(t => ({
-            blindingFactor: t.B_,
-            denomination: t.amount
-          }))
-          .reduce((y, t) => {
-            y[`_${t.denomination}`] = y[`_${t.denomination}`] || []
-            y[`_${t.denomination}`].push(t)
-            return y
+          .map(t => t.amount)
+          .reduce((acc, amount) => {
+            acc[amount] = acc[amount] + amount || 1
+            return acc
           }, {})
-
         return Object.keys(x).map(k => ({
-          denomination: x[k][0].denomination,
-          count: x[k].length,
-          value: x[k][0].denomination * x[k].length
+          value: k,
+          count: x[k],
+          sum: k * x[k]
         }))
       },
 
@@ -804,6 +824,7 @@ page_container %}
             caption: '400 BAD REQUEST'
           })
           this.parse.show = false
+          throw error
           return
         }
 
@@ -891,6 +912,7 @@ page_container %}
       },
 
       showInvoiceDialog: function (data) {
+        console.log('##### showInvoiceDialog')
         this.invoiceData = _.clone(data)
         this.showInvoiceDetails = true
       },
@@ -915,29 +937,25 @@ page_container %}
         this.showReceiveTokens = true
       },
 
-      recheckPendingInvoices: async function () {
-        for (const invoice of this.invoicesCashu) {
-          if (invoice.status === 'pending') {
-            this.recheckInvoice(invoice.hash)
-            // try {
-            //   const {data} = await LNbits.api.request(
-            //     'POST',
-            //     `/cashu/api/v1/${this.mintId}/mint?payment_hash=${invoice.hash}`,
-            //     '',
-            //     {
-            //       blinded_messages: []
-            //     }
-            //   )
-            //   console.log('### data', data)
-            // } catch (error) {
-            //   console.error(error)
-            //   LNbits.utils.notifyApiError(error)
-            // }
-          }
-        }
-      },
-
       //////////////////////// MINT //////////////////////////////////////////
+      requestMintButton: async function () {
+        await this.requestMint()
+        console.log('this is your invoice BEFORE')
+        console.log(this.invoiceData)
+        this.invoiceCheckListener = setInterval(async () => {
+          try {
+            console.log('this is your invoice AFTER')
+            console.log(this.invoiceData)
+            await this.recheckInvoice(this.invoiceData.hash, false)
+            clearInterval(this.invoiceCheckListener)
+            this.invoiceData.bolt11 = ''
+            this.showInvoiceDetails = false
+            this.fetchBalance()
+          } catch (error) {
+            console.log('not paid yet')
+          }
+        }, 3000)
+      },
 
       requestMint: async function () {
         // gets an invoice from the mint to get new tokens
@@ -961,9 +979,10 @@ page_container %}
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
+          throw error
         }
       },
-      mintApi: async function (amounts, payment_hash) {
+      mintApi: async function (amounts, payment_hash, verbose = true) {
         console.log('### promises', payment_hash)
         try {
           let secrets = await this.generateSecrets(amounts)
@@ -984,19 +1003,29 @@ page_container %}
           return proofs
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          if (verbose) {
+            LNbits.utils.notifyApiError(error)
+          }
+          throw error
         }
       },
-      mint: async function (amount, payment_hash) {
+      mint: async function (amount, payment_hash, verbose = true) {
         try {
           const split = splitAmount(amount)
-          const proofs = await this.mintApi(split, payment_hash)
+          const proofs = await this.mintApi(split, payment_hash, verbose)
+          if (!proofs.length) {
+            throw 'could not mint'
+          }
           this.proofs.push(...proofs)
           this.storeProofs()
           await this.setInvoicePaid(payment_hash)
+          return proofs
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          if (verbose) {
+            LNbits.utils.notifyApiError(error)
+          }
+          throw error
         }
       },
       setInvoicePaid: async function (payment_hash) {
@@ -1004,10 +1033,16 @@ page_container %}
         invoice.status = 'paid'
         this.storeinvoicesCashu()
       },
-      recheckInvoice: async function (payment_hash) {
+      recheckInvoice: async function (payment_hash, verbose = true) {
         console.log('### recheckInvoice.hash', payment_hash)
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
-        this.mint(invoice.amount, invoice.hash)
+        try {
+          proofs = await this.mint(invoice.amount, invoice.hash, verbose)
+          return proofs
+        } catch (error) {
+          console.log('Invoice still pending')
+          throw error
+        }
       },
 
       // requestTokens: async function (amounts, paymentHash) {
@@ -1100,6 +1135,7 @@ page_container %}
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
+          throw error
         }
       },
 
@@ -1120,6 +1156,7 @@ page_container %}
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
+          throw error
         }
       },
       splitApi: async function (proofs, amount) {
@@ -1176,79 +1213,27 @@ page_container %}
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
+          throw error
         }
       },
 
-      ////////////////////////////////////////////////////////////////////////////////////
-
-      receiveTokens: async function () {
+      redeem: async function () {
         this.showReceiveTokens = false
         console.log('### receive tokens', this.receiveData.tokensBase64)
-        if (this.receiveData.tokensBase64) {
+        try {
+          if (this.receiveData.tokensBase64.length == 0) {
+            throw new Error('no tokens provided.')
+          }
           const tokensJson = atob(this.receiveData.tokensBase64)
           const proofs = JSON.parse(tokensJson)
           const amount = proofs.reduce((s, t) => (s += t.amount), 0)
-          const amounts = splitAmount(amount)
-          const newTokens = await this.buildTokens(amounts)
-          console.log('newTokens', newTokens)
-
-          const payload = {
-            amount,
-            proofs,
-            outputs: {
-              blinded_messages: newTokens.blindedMessages
-            }
-          }
-
-          console.log('payload', JSON.stringify(payload))
-          try {
-            const {data} = await LNbits.api.request(
-              'POST',
-              `/cashu/api/v1/${this.mintId}/split`,
-              '',
-              payload
-            )
-
-            newTokens.promises = data.snd
-            // console.log('split data', JSON.stringify(data.snd))
-            // for (let i =0 ;i < newTokens.length; i++) {
-            //   Object.assign(newTokens[i], promises)
-            // }
-            console.log('newTokens 2', newTokens)
-            this.proofs.push(newTokens)
-            this.storeProofs()
-          } catch (error) {
-            console.error(error)
-            LNbits.utils.notifyApiError(error)
-          }
+          let {fristProofs, scndProofs} = await this.split(proofs, amount)
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
         }
-      },
-
-      buildTokens: async function (amounts, paymentHash) {
-        const blindedMessages = []
-        const secrets = []
-        const rs = []
-        for (let i = 0; i < amounts.length; i++) {
-          const secret = nobleSecp256k1.utils.randomBytes(32)
-          // const secret = nobleSecp256k1.utils.hexToBytes(
-          //   '0000000000000000000000000000000000000000000000000000000000000000'
-          // )
-          // todo: base64Url
-          const encodedSecret = uint8ToBase64.encode(secret)
-          secrets.push(encodedSecret)
-          const {B_, r} = await step1Alice(secret)
-          rs.push(r)
-          blindedMessages.push({amount: amounts[i], B_: B_})
-        }
-
-        const newTokens = {
-          hash: paymentHash,
-          blindedMessages,
-          rs,
-          secrets,
-          status: 'pending'
-        }
-        return newTokens
+        // }
       },
 
       sendTokens: async function () {
@@ -1257,67 +1242,172 @@ page_container %}
           this.proofs,
           this.sendData.amount
         )
-
-        // const amounts = splitAmount(this.sendData.amount)
-        // const sendTokens = []
-        // sendTokens.push(this.proofs)
-        // for (const amount of amounts) {
-        //   const token = this.findTokenForAmount(amount)
-        //   if (token) {
-        //     sendTokens.push(token)
-        //   } else {
-        //     this.$q.notify({
-        //       timeout: 5000,
-        //       type: 'warning',
-        //       message: `Cannot select amount for denomination ${amount}`
-        //     })
-        //     this.sendData.tokens = ''
-        //     this.sendData.tokensBase64 = ''
-        //     return
-        //   }
-        // }
         this.sendData.tokens = ''
         this.sendData.tokensBase64 = ''
-        // console.log('### sendTokens', sendTokens)
-        // this.sendData.tokens = sendTokens.map((token, tokenIndex) => {
-        //   return this.promiseToProof(
-        //     token.promises[tokenIndex].amount,
-        //     token.promises[tokenIndex]['C_'],
-        //     token.promises[tokenIndex].secret,
-        //     token.promises[tokenIndex].r
-        //   )
-        // })
         this.sendData.tokens = scndProofs
         console.log('### this.sendData.tokens', this.sendData.tokens)
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+
+        // delete tokens from db
+        this.proofs = fristProofs
+        // add new fristProofs, scndProofs to this.proofs
+        this.storeProofs()
       },
 
-      burnTokens: function () {
-        for (const sentToken of this.sendData.tokens) {
-          for (const token of this.proofs) {
-            if (token.status === 'paid') {
-              const secretIndex = token.secrets.findIndex(
-                s => s === sentToken.secret
-              )
-              console.log('### secretIndex', secretIndex)
-              if (secretIndex >= 0) {
-                token.blindedMessages?.splice(secretIndex, 1)
-                token.promises?.splice(secretIndex, 1)
-                token.rs?.splice(secretIndex, 1)
-                token.secrets?.splice(secretIndex, 1)
-              }
-            }
+      melt: async function () {
+        console.log('#### sell tokens')
+        const amount = this.payInvoiceData.invoice.sat
+        const paidTokens = this.proofs.filter(t => t.promises?.length)
+        console.log('### paidTokens', paidTokens)
+        const proofs = paidTokens.map(token => {
+          return token.promises.map((promise, promiseIndex) => {
+            console.log('### promise', promise)
+
+            const secret = token.secrets[promiseIndex]
+            const r = token.rs[promiseIndex]
+
+            return this.promiseToProof(promise.amount, promise['C_'], secret, r)
+          })
+        })
+        const payload = {
+          proofs: proofs.flat(),
+          amount,
+          invoice: this.payInvoiceData.bolt11
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/melt`,
+            '',
+            payload
+          )
+          this.$q.notify({
+            timeout: 5000,
+            message: 'Invoice paid'
+          })
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      recheckPendingInvoices: async function () {
+        for (const invoice of this.invoicesCashu) {
+          if (invoice.status === 'pending') {
+            this.recheckInvoice(invoice.hash, false)
           }
         }
-
-        this.$q.notify({
-          timeout: 5000,
-          message: 'Tokens burned'
-        })
-        this.storeProofs()
-        this.showSendTokens = false
-        console.log('###  this.proofs', this.proofs)
       },
+
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+      // receiveTokens: async function () {
+      //   this.showReceiveTokens = false
+      //   console.log('### receive tokens', this.receiveData.tokensBase64)
+      //   // if (this.receiveData.tokensBase64) {
+      //   //   const tokensJson = atob(this.receiveData.tokensBase64)
+      //   //   const proofs = JSON.parse(tokensJson)
+      //   //   const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+      //   //   const amounts = splitAmount(amount)
+      //   //   const newTokens = await this.buildTokens(amounts)
+      //   //   console.log('newTokens', newTokens)
+
+      //   //   const payload = {
+      //   //     amount,
+      //   //     proofs,
+      //   //     outputs: {
+      //   //       blinded_messages: newTokens.blindedMessages
+      //   //     }
+      //   //   }
+
+      //   // console.log('payload', JSON.stringify(payload))
+      //   try {
+      //     if (this.receiveData.tokensBase64.length == 0) {
+      //       throw new Error('no tokens provided.')
+      //     }
+      //     const tokensJson = atob(this.receiveData.tokensBase64)
+      //     const proofs = JSON.parse(tokensJson)
+      //     const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+      //     let {fristProofs, scndProofs} = await this.split(proofs, amount)
+      //     // const {data} = await LNbits.api.request(
+      //     //   'POST',
+      //     //   `/cashu/api/v1/${this.mintId}/split`,
+      //     //   '',
+      //     //   payload
+      //     // )
+      //     // newTokens.promises = data.snd
+      //     // // console.log('split data', JSON.stringify(data.snd))
+      //     // // for (let i =0 ;i < newTokens.length; i++) {
+      //     // //   Object.assign(newTokens[i], promises)
+      //     // // }
+      //     // console.log('newTokens 2', newTokens)
+      //     // this.proofs.push(newTokens)
+      //     // this.storeProofs()
+      //   } catch (error) {
+      //     console.error(error)
+      //     LNbits.utils.notifyApiError(error)
+      //   }
+      //   // }
+      // },
+
+      // buildTokens: async function (amounts, paymentHash) {
+      //   const blindedMessages = []
+      //   const secrets = []
+      //   const rs = []
+      //   for (let i = 0; i < amounts.length; i++) {
+      //     const secret = nobleSecp256k1.utils.randomBytes(32)
+      //     // const secret = nobleSecp256k1.utils.hexToBytes(
+      //     //   '0000000000000000000000000000000000000000000000000000000000000000'
+      //     // )
+      //     // todo: base64Url
+      //     const encodedSecret = uint8ToBase64.encode(secret)
+      //     secrets.push(encodedSecret)
+      //     const {B_, r} = await step1Alice(secret)
+      //     rs.push(r)
+      //     blindedMessages.push({amount: amounts[i], B_: B_})
+      //   }
+
+      //   const newTokens = {
+      //     hash: paymentHash,
+      //     blindedMessages,
+      //     rs,
+      //     secrets,
+      //     status: 'pending'
+      //   }
+      //   return newTokens
+      // },
+
+      // burnTokens: function () {
+      //   for (const sentToken of this.sendData.tokens) {
+      //     for (const token of this.proofs) {
+      //       if (token.status === 'paid') {
+      //         const secretIndex = token.secrets.findIndex(
+      //           s => s === sentToken.secret
+      //         )
+      //         console.log('### secretIndex', secretIndex)
+      //         if (secretIndex >= 0) {
+      //           token.blindedMessages?.splice(secretIndex, 1)
+      //           token.promises?.splice(secretIndex, 1)
+      //           token.rs?.splice(secretIndex, 1)
+      //           token.secrets?.splice(secretIndex, 1)
+      //         }
+      //       }
+      //     }
+      //   }
+
+      //   this.$q.notify({
+      //     timeout: 5000,
+      //     message: 'Tokens burned'
+      //   })
+      //   this.storeProofs()
+      //   this.showSendTokens = false
+      //   console.log('###  this.proofs', this.proofs)
+      // },
 
       findTokenForAmount: function (amount) {
         for (const token of this.proofs) {
@@ -1377,46 +1467,47 @@ page_container %}
             message: 'Cannot decode invoice',
             caption: error + ''
           })
+          throw error
         }
       },
 
-      melt: async function () {
-        console.log('#### sell tokens')
-        const amount = this.payInvoiceData.invoice.sat
-        const paidTokens = this.proofs.filter(t => t.promises?.length)
-        console.log('### paidTokens', paidTokens)
-        const proofs = paidTokens.map(token => {
-          return token.promises.map((promise, promiseIndex) => {
-            console.log('### promise', promise)
+      // melt: async function () {
+      //   console.log('#### sell tokens')
+      //   const amount = this.payInvoiceData.invoice.sat
+      //   const paidTokens = this.proofs.filter(t => t.promises?.length)
+      //   console.log('### paidTokens', paidTokens)
+      //   const proofs = paidTokens.map(token => {
+      //     return token.promises.map((promise, promiseIndex) => {
+      //       console.log('### promise', promise)
 
-            const secret = token.secrets[promiseIndex]
-            const r = token.rs[promiseIndex]
+      //       const secret = token.secrets[promiseIndex]
+      //       const r = token.rs[promiseIndex]
 
-            return this.promiseToProof(promise.amount, promise['C_'], secret, r)
-          })
-        })
-        const payload = {
-          proofs: proofs.flat(),
-          amount,
-          invoice: this.payInvoiceData.bolt11
-        }
-        console.log('#### payload', JSON.stringify(payload))
-        try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/melt`,
-            '',
-            payload
-          )
-          this.$q.notify({
-            timeout: 5000,
-            message: 'Invoice paid'
-          })
-        } catch (error) {
-          console.error(error)
-          LNbits.utils.notifyApiError(error)
-        }
-      },
+      //       return this.promiseToProof(promise.amount, promise['C_'], secret, r)
+      //     })
+      //   })
+      //   const payload = {
+      //     proofs: proofs.flat(),
+      //     amount,
+      //     invoice: this.payInvoiceData.bolt11
+      //   }
+      //   console.log('#### payload', JSON.stringify(payload))
+      //   try {
+      //     const {data} = await LNbits.api.request(
+      //       'POST',
+      //       `/cashu/api/v1/${this.mintId}/melt`,
+      //       '',
+      //       payload
+      //     )
+      //     this.$q.notify({
+      //       timeout: 5000,
+      //       message: 'Invoice paid'
+      //     })
+      //   } catch (error) {
+      //     console.error(error)
+      //     LNbits.utils.notifyApiError(error)
+      //   }
+      // },
 
       // C_hex = promise['C_']
       // amount = promise.amount
@@ -1445,7 +1536,7 @@ page_container %}
     },
     watch: {
       payments: function () {
-        this.fetchBalance()
+        this.balance()
       }
     },
 
