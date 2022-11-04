@@ -106,7 +106,6 @@ async def _run_migration(db, migrations_module, current_version):
             version = int(match.group(1))
             if version > current_version:
                 logger.debug(f"running migration {db_name}.{version}")
-                print(f"running migration {db_name}.{version}")
                 await migrate(db)
 
                 if db.schema == None:
