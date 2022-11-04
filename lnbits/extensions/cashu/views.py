@@ -60,10 +60,15 @@ async def manifest(cashu_id: str):
         "name": cashu.name + " - " + "Cashu",
         "icons": [
             {
+                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/512x512.png",
+                "type": "image/png",
+                "sizes": "512x512",
+            },
+            {
                 "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
                 "type": "image/png",
                 "sizes": "96x96",
-            }
+            },
         ],
         "start_url": "/cashu/wallet?mint_id=" + cashu_id,
         "background_color": "#1F2234",
@@ -77,6 +82,16 @@ async def manifest(cashu_id: str):
                 "short_name": cashu.name,
                 "description": cashu.name + " - " + "Cashu wallet",
                 "url": "/cashu/wallet?mint_id=" + cashu_id,
+                "icons": [
+                    {
+                        "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
+                        "sizes": "96x96",
+                    },
+                    {
+                        "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/512x512.png",
+                        "sizes": "512x512",
+                    },
+                ],
             }
         ],
     }
