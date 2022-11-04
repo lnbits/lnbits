@@ -25,16 +25,16 @@
   <div
     class="col-6"
     v-for="extension in filteredExtensions"
-    :key="extension.code"
+    :key="extension.id"
   >
     <q-card>
-      <!-- <q-card-section v-if="showInstallPage">
+      <q-card-section v-if="extension.html">
         <iframe
-          src="http://neverssl.com"
+          :src="extension.html"
           style="width: 100%; border: 0"
         ></iframe>
-      </q-card-section> -->
-      <q-card-section>
+      </q-card-section>
+      <q-card-section v-else>
         <q-icon
           :name="extension.icon"
           color="grey-5"
@@ -58,9 +58,9 @@
             flat
             color="grey-5"
             type="a"
-            :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&disable=', extension.code].join('')"
+            :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&disable=', extension.id].join('')"
           >
-            Disable</q-btn
+            Uninstall</q-btn
           >
         </div>
         <q-btn
@@ -68,9 +68,9 @@
           flat
           color="primary"
           type="a"
-          :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
+          :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&enable=', extension.id].join('')"
         >
-          Enable</q-btn
+          Install</q-btn
         >
       </q-card-actions>
     </q-card>
