@@ -64,7 +64,7 @@ async def manifest(cashu_id: str):
                 if LNBITS_CUSTOM_LOGO
                 else "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
                 "type": "image/png",
-                "sizes": "512x512",
+                "sizes": "96x96",
             }
         ],
         "start_url": "/cashu/wallet?mint_id=" + cashu_id,
