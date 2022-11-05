@@ -345,6 +345,15 @@ async def split(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     proofs = payload.proofs
+
+    # !!!!!!! MAKE SURE THAT PROOFS ARE ONLY FROM THIS CASHU KEYSET ID
+    # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
+    # TOKENS
+    assert all([p.id == cashu.keyset_id for p in proofs]), HTTPException(
+        status_code=HTTPStatus.BAD_REQUEST,
+        detail="Proofs include tokens from another mint.",
+    )
+
     amount = payload.amount
     outputs = payload.outputs.blinded_messages
     assert outputs, Exception("no outputs provided.")
