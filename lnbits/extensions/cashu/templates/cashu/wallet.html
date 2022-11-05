@@ -307,7 +307,7 @@
             </p>
             {% endraw %}
             <div v-if="canPay" class="row q-mt-lg">
-              <q-btn unelevated color="primary" @click="melt">Pay</q-btn>
+              <q-btn unelevated color="primary" :disabled="payInvoiceData.blocking" @click="melt">Pay</q-btn>
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"
                 >Cancel</q-btn
               >
@@ -759,6 +759,7 @@
         },
         invoiceCheckListener: () => {},
         payInvoiceData: {
+          blocking: false,
           // invoice: '',
           bolt11: '',
           // camera: {
@@ -1590,6 +1591,7 @@
 
           return {fristProofs, scndProofs}
         } catch (error) {
+          this.payInvoiceData.blocking = false
           console.error(error)
           LNbits.utils.notifyApiError(error)
           throw error
@@ -1680,6 +1682,8 @@
       },
       melt: async function () {
         // todo: get fees from server and add to inputs
+        this.payInvoiceData.blocking = true
+
         console.log('#### pay lightning')
         const amount_invoice = this.payInvoiceData.invoice.sat
         const amount =
@@ -1718,9 +1722,8 @@
             type: 'positive',
             message: 'Invoice paid'
           })
-          // delete tokens from db
+          // delete spent tokens from db
           this.proofs = fristProofs
-          // add new fristProofs, scndProofs to this.proofs
           this.storeProofs()
           console.log({
               amount: -amount,
@@ -1741,8 +1744,10 @@
 
           this.payInvoiceData.invoice = false
           this.payInvoiceData.show = false
+          this.payInvoiceData.blocking = false
 
         } catch (error) {
+          this.payInvoiceData.blocking = false
           console.error(error)
           LNbits.utils.notifyApiError(error)
           throw error
