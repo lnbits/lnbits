@@ -1565,6 +1565,15 @@ page_container %}
         }
       },
 
+      fetchMintKeys: async function () {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/cashu/api/v1/${this.mintId}/keys`
+        )
+        this.keys = data
+        localStorage.setItem(this.mintKey(this.mintId, 'keys'), JSON.stringify(data))
+      },      
+
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1625,34 +1634,32 @@ page_container %}
           this.$q.notify({
             timeout: 5000,
             type: 'warning',
-            message: 'Cannot decode invoice',
+            message: 'Could not decode invoice',
             caption: error + ''
           })
           throw error
         }
       },
 
-      fetchMintKeys: async function () {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/cashu/api/v1/${this.mintId}/keys`
-        )
-        this.keys = data
-        localStorage.setItem('cashu.keys', JSON.stringify(data))
-      },
-
       storeinvoicesCashu: function () {
         localStorage.setItem(
-          'cashu.invoicesCashu',
+          this.mintKey(this.mintId, 'invoicesCashu'),
           JSON.stringify(this.invoicesCashu)
         )
       },
       storeProofs: function () {
         localStorage.setItem(
-          'cashu.proofs',
+          this.mintKey(this.mintId, 'proofs'),
           JSON.stringify(this.proofs, bigIntStringify)
         )
-      }
+      },
+      
+      mintKey: function(mintId, key) {
+        // returns a key for the local storage
+        // depending on the current mint
+        return "cashu." + mintId + "." + key
+      },
+
     },
     watch: {
       payments: function () {
@@ -1662,20 +1669,6 @@ page_container %}
 
     created: function () {
       let params = new URL(document.location).searchParams
-
-      // get ticker
-      if (
-        !params.get('tsh') &&
-        !this.$q.localStorage.getItem('cashu.tickershort')
-      ) {
-        this.$q.localStorage.set('cashu.tickershort', 'sats')
-        this.tickershort = 'sats'
-      } else if (params.get('tsh')) {
-        this.$q.localStorage.set('cashu.tickershort', params.get('tsh'))
-        this.tickershort = params.get('tsh')
-      } else if (this.$q.localStorage.getItem('cashu.tickershort')) {
-        this.tickershort = this.$q.localStorage.getItem('cashu.tickershort')
-      }
 
       // get mint
       if (params.get('mint_id')) {
@@ -1693,12 +1686,26 @@ page_container %}
       // get name
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
-        this.$q.localStorage.set('cashu.mintName', params.get('mint_name'))
+        this.$q.localStorage.set(this.mintKey(this.mintId, 'mintName'), this.mintName)
       } else if (this.$q.localStorage.getItem('cashu.name')) {
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
 
-      const keysJson = localStorage.getItem('cashu.keys')
+      // get ticker
+      if (
+        !params.get('tsh') &&
+        !this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      ) {
+        this.$q.localStorage.set(this.mintKey(this.mintId, 'tickershort'), 'sats')
+        this.tickershort = 'sats'
+      } else if (params.get('tsh')) {
+        this.$q.localStorage.set(this.mintKey(this.mintId, 'tickershort'), params.get('tsh'))
+        this.tickershort = params.get('tsh')
+      } else if (this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))) {
+        this.tickershort = this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      }
+
+      const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
       if (!keysJson) {
         this.fetchMintKeys()
       } else {
@@ -1706,9 +1713,9 @@ page_container %}
       }
 
       this.invoicesCashu = JSON.parse(
-        localStorage.getItem('cashu.invoicesCashu') || '[]'
+        localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
       )
-      this.proofs = JSON.parse(localStorage.getItem('cashu.proofs') || '[]')
+      this.proofs = JSON.parse(localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]')
       console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.proofs)
       console.log('#### this.mintId', this.mintId)
