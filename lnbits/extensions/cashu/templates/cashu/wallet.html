@@ -11,12 +11,13 @@ page_container %}
               <div class="col-3">
                 <q-btn
                   class="gt-sm"
-                  size="18px"
+                  size="16px"
+                  icon="arrow_downward"
                   rectangle
                   color="secondary"
                   class="full-width"
                   @click="showInvoicesDialog"
-                  >Create invoice
+                  >Receive invoice
                 </q-btn>
               </div>
               <div class="col-6">
@@ -30,8 +31,9 @@ page_container %}
               <div class="col-3">
                 <q-btn
                   class="gt-sm"
-                  @click="showPayInvoiceDialog"
-                  size="18px"
+                  @click="showParseDialog"
+                  size="16px"
+                  icon="arrow_upward"
                   rectangle
                   color="secondary"
                   class="full-width"
@@ -143,7 +145,10 @@ page_container %}
                           </q-badge>
                         </div>
                         <div v-if="props.row.status === 'paid'">
-                          <q-icon name="call_received" color="green"></q-icon>
+                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"></q-icon>
+                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"></q-icon>
+                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+
                         </div>
                       </q-td>
                       <q-td
@@ -185,21 +190,21 @@ page_container %}
       >
         <q-tab
           icon="arrow_downward"
-          label="Create Invoice"
+          label="Receive Invoice"
           @click="showInvoicesDialog"
         >
         </q-tab>
         <!-- <q-tab icon="arrow_downward" label="Receive Tokens"></q-tab>
         <q-tab icon="arrow_upward" label="Send Token"></q-tab> -->
-        <q-tab
+        <!-- <q-tab
           icon="arrow_upward"
           label="Pay Invoice"
           @click="showPayInvoiceDialog"
-        >
+        > -->
         </q-tab>
-        <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
+        <q-tab icon="arrow_upward" label="Pay Invoice" @click="showParseDialog">
         </q-tab>
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <!-- <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab> -->
       </q-tabs>
 
       <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
@@ -371,8 +376,9 @@ page_container %}
                   color="primary"
                   :disable="payInvoiceData.data.request == ''"
                   type="submit"
-                  >Read</q-btn
+                  >Continue</q-btn
                 >
+                <q-btn unelevated icon="photo_camera" label="Scan" class="q-ml-auto" @click="showCamera"> </q-btn>
                 <q-btn v-close-popup flat color="grey" class="q-ml-auto"
                   >Cancel</q-btn
                 >
@@ -595,7 +601,7 @@ page_container %}
           </div>
         </q-card>
       </q-dialog>
-
+      <!-- 
       <q-dialog v-model="showPayInvoice" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="!payInvoiceData.invoice">
@@ -634,7 +640,7 @@ page_container %}
               @click="checkInvoice"
               outline
               color="grey"
-              >Check Invoice</q-btn
+              >Continue</q-btn
             >
             <q-btn v-else outline color="primary" @click="melt"
               >Pay invoice</q-btn
@@ -644,7 +650,7 @@ page_container %}
             >
           </div>
         </q-card>
-      </q-dialog>
+      </q-dialog> -->
     </div>
   </q-page>
 </q-page-container>
@@ -885,20 +891,6 @@ page_container %}
         return this.payments.findIndex(payment => payment.pending) !== -1
       },
 
-      tokenList: function () {
-        const x = this.proofs
-          .map(t => t.amount)
-          .reduce((acc, amount) => {
-            acc[amount] = acc[amount] + amount || 1
-            return acc
-          }, {})
-        return Object.keys(x).map(k => ({
-          value: k,
-          count: x[k],
-          sum: k * x[k]
-        }))
-      },
-
       balance: function () {
         return this.proofs
           .map(t => t)
@@ -931,7 +923,7 @@ page_container %}
           sum: k * x[k]
         }))
       },
-        
+
       paymentTableRowKey: function (row) {
         return row.payment_hash + row.amount
       },
@@ -1376,7 +1368,7 @@ page_container %}
       sumProofs: function (proofs) {
         return proofs.reduce((s, t) => (s += t.amount), 0)
       },
-      splitToSend: async function (proofs, amount) {
+      splitToSend: async function (proofs, amount, invlalidate = false) {
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
           if (this.sumProofs(spendableProofs) < amount) {
@@ -1395,11 +1387,13 @@ page_container %}
               this.proofs[i].reserved = true
             }
           }
+          if (invlalidate) {
+            // delete tokens from db
+            this.proofs = fristProofs
+            // add new fristProofs, scndProofs to this.proofs
+            this.storeProofs()
+          }
 
-          // delete tokens from db
-          this.proofs = fristProofs
-          // add new fristProofs, scndProofs to this.proofs
-          this.storeProofs()
           return {fristProofs, scndProofs}
         } catch (error) {
           console.error(error)
@@ -1508,7 +1502,8 @@ page_container %}
         // keep firstProofs, send scndProofs
         let {fristProofs, scndProofs} = await this.splitToSend(
           this.proofs,
-          this.sendData.amount
+          this.sendData.amount,
+          true
         )
         this.sendData.tokens = ''
         this.sendData.tokensBase64 = ''
@@ -1516,11 +1511,39 @@ page_container %}
         console.log('### this.sendData.tokens', this.sendData.tokens)
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
       },
-
+      checkFees: async function (payment_request) {
+        const payload = {
+          pr: payment_request
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/checkfees`,
+            '',
+            payload
+          )
+          console.log('#### checkFees', payment_request, data.fee)
+          return data.fee
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
       melt: async function () {
         // todo: get fees from server and add to inputs
         console.log('#### pay lightning')
-        const amount = this.payInvoiceData.invoice.sat
+        const amount_invoice = this.payInvoiceData.invoice.sat
+        const amount =
+          amount_invoice +
+          (await this.checkFees(this.payInvoiceData.data.request))
+        console.log(
+          '#### amount invoice',
+          amount_invoice,
+          'amount with fees',
+          amount
+        )
         // if (amount > balance()) {
         //   LNbits.utils.notifyApiError('Balance too low')
         //   return
@@ -1547,8 +1570,30 @@ page_container %}
             type: 'positive',
             message: 'Invoice paid'
           })
-          this.payInvoiceData.invoice = null
+          // delete tokens from db
+          this.proofs = fristProofs
+          // add new fristProofs, scndProofs to this.proofs
+          this.storeProofs()
+          console.log({
+              amount: -amount,
+              bolt11: this.payInvoiceData.data.request,
+              hash: this.payInvoiceData.data.hash,
+              memo: this.payInvoiceData.data.memo,
+            })
+          this.invoicesCashu.push({
+            amount: -amount,
+            bolt11: this.payInvoiceData.data.request,
+            hash: this.payInvoiceData.data.hash,
+            memo: this.payInvoiceData.data.memo,
+            date: currentDateStr(),
+            status: 'paid'
+          })
+          this.storeinvoicesCashu()
+          this.tab = 'invoices'
+
+          this.payInvoiceData.invoice = false
           this.payInvoiceData.show = false
+
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -1558,7 +1603,7 @@ page_container %}
 
       recheckPendingInvoices: async function () {
         for (const invoice of this.invoicesCashu) {
-          if (invoice.status === 'pending') {
+          if (invoice.status === 'pending' && invoice.sat > 0) {
             this.recheckInvoice(invoice.hash, false)
           }
         }
