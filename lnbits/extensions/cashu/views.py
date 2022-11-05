@@ -86,10 +86,17 @@ async def manifest(cashu_id: str):
                     {
                         "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/96x96.png",
                         "sizes": "96x96",
+                        "type": "image/png",
+                    },
+                    {
+                        "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/180x180.png",
+                        "sizes": "180x180",
+                        "type": "image/png",
                     },
                     {
                         "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/512x512.png",
                         "sizes": "512x512",
+                        "type": "image/png",
                     },
                 ],
             }

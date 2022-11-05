@@ -1,9 +1,6 @@
-<head>
-  <link rel="shortcut icon" href="https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/180x180.png">
-  <link rel="apple-touch-icon" href="https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/180x180.png">
-</head>
-{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Cashu {% endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
-page_container %}
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Cashu {% endraw %} {% endblock %} 
+{% block footer %}{% endblock %} 
+{% block page_container %}
 <q-page-container>
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
@@ -1321,6 +1318,7 @@ page_container %}
         return proofs.reduce((s, t) => (s += t.amount), 0)
       },
       splitToSend: async function (proofs, amount, invlalidate = false) {
+        // splits proofs so the user can keep firstProofs, send scndProofs
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
           if (this.sumProofs(spendableProofs) < amount) {
@@ -1330,7 +1328,6 @@ page_container %}
             spendableProofs,
             amount
           )
-          // keep firstProofs, send scndProofs
 
           // set scndProofs in this.proofs as reserved
           const usedSecrets = proofs.map(p => p.secret)
