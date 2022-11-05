@@ -248,13 +248,22 @@
             </q-tab-panels>
           </q-card-section>
         </q-card>
-        <div>
+        <div class="q-pa-sd">
           <q-btn 
+          class="q-mx-sm"
           size="12px"
           rectangle
           color="warning"
           outline
           @click="showDisclaimerDialog"> Warning</q-btn>
+          
+          <q-btn 
+          class="q-mx-sm"
+          size="12px"
+          outline 
+          rectangle
+          color="warning" 
+          @click="getLocalstorageToFile">Backup</q-btn>
         </div>
       </div>
       
@@ -511,6 +520,7 @@
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >I understand</q-btn
             >
+            
           </div>
         </q-card>
       </q-dialog>
@@ -1923,6 +1933,36 @@
         }
       },
 
+      ////////////// STORAGE /////////////
+
+      getLocalstorageToFile: async function() {
+        // https://stackoverflow.com/questions/24263682/save-restore-local-storage-to-a-local-file
+        const fileName = `cashu_backup_${currentDateStr()}.json`
+        var a = {};
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          var v = localStorage.getItem(k);
+          a[k] = v;
+        }
+        var textToSave = JSON.stringify(a)
+        var textToSaveAsBlob = new Blob([textToSave], {
+          type: "text/plain"
+        });
+        var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
+
+        var downloadLink = document.createElement("a");
+        downloadLink.download = fileName;
+        downloadLink.innerHTML = "Download File";
+        downloadLink.href = textToSaveAsURL;
+        downloadLink.onclick = function () {
+          document.body.removeChild(event.target);
+        };
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        
+      },
+
       storeinvoicesCashu: function () {
         localStorage.setItem(
           this.mintKey(this.mintId, 'invoicesCashu'),
@@ -2013,7 +2053,6 @@
       console.table('### tokens', this.proofs)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
-
       this.recheckPendingInvoices()
     }
   })
