@@ -201,7 +201,7 @@
                       <q-td key="status" :props="props">
                         <div v-if="props.row.status == 'pending'">
                           <q-icon
-                            @click="showInvoiceDialog(props.row)"
+                            @click="showTokenDialog(props.row.token)"
                             name="settings_ethernet"
                             color="grey"
                           >
@@ -913,6 +913,8 @@
             }
           ],
           pagination: {
+            sortBy: 'date',
+            descending: true,
             rowsPerPage: 5
           },
           filter: null
@@ -1230,6 +1232,8 @@
         console.log('##### showInvoiceDialog')
         this.invoiceData = _.clone(data)
         this.showInvoiceDetails = true
+        // kick off invoice check worker
+        this.invoiceCheckWorker()
       },
 
       showPayInvoiceDialog: function () {
@@ -1240,7 +1244,18 @@
         this.payInvoiceData.camera.show = false
       },
 
+      showTokenDialog: function (token) {
+        console.log('##### showTokenDialog')
+        // TODO: this must be decoded and desiarlized!
+        this.sendData.tokens = _.clone(token) 
+        this.sendData.tokensBase64 = _.clone(token) 
+        this.showSendTokens = true
+        // kick off token check worker
+        this.checkTokenSpendableWorker()        
+      },
+
       showSendTokensDialog: function () {
+        console.log('##### showSendTokensDialog')
         this.sendData.tokens = ''
         this.sendData.tokensBase64 = ''
         this.sendData.amount = 0
@@ -1317,9 +1332,7 @@
 
       //////////// API ///////////
 
-      requestMintButton: async function () {
-        await this.requestMint()
-        console.log("#### request mint", this.invoiceData)
+      invoiceCheckWorker: async function () {
         let nInterval = 0
         this.invoiceCheckListener = setInterval(async () => {
           try {
@@ -1351,6 +1364,12 @@
             console.log('not paid yet')
           }
         }, 3000)
+      },
+
+      requestMintButton: async function () {
+        await this.requestMint()
+        console.log("#### request mint", this.invoiceData)
+        await this.invoiceCheckWorker()
       },
 
       requestMint: async function () {
@@ -1578,8 +1597,6 @@
           this.sendData.amount,
           true
         )
-        this.sendData.tokens = ''
-        this.sendData.tokensBase64 = ''
         this.sendData.tokens = scndProofs
         console.log('### this.sendData.tokens', this.sendData.tokens)
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
@@ -1591,8 +1608,7 @@
             token: this.sendData.tokensBase64
           })
           this.storehistoryTokens()
-
-        navigator.vibrate(200)
+          this.checkTokenSpendableWorker()
       },
       checkFees: async function (payment_request) {
         const payload = {
@@ -1712,7 +1728,38 @@
         invoice.status = 'paid'
         this.storehistoryTokens()
       },
-      checkTokenSpendable: async function(token) {
+
+
+      checkTokenSpendableWorker: async function () {
+        let nInterval = 0
+        this.tokensCheckSpendableListener = setInterval(async () => {
+          try {
+            nInterval += 1
+
+            // exit loop after 5m
+            if (nInterval > 100) {
+              console.log("### stopping token check worker")
+              clearInterval(this.tokensCheckSpendableListener)
+            }
+            console.log('### setInterval', nInterval)
+            console.log(this.sendData)
+
+            // this will throw an error if the invoice is pending
+            paid = await this.checkTokenSpendable(this.sendData.tokensBase64, false)
+            if (paid) {
+              console.log("### stopping token check worker")
+              clearInterval(this.tokensCheckSpendableListener)
+              this.sendData.tokens = ''
+              this.showSendTokens = false
+            }
+
+          } catch (error) {
+            console.log('not paid yet')
+          }
+        }, 3000)
+      },
+
+      checkTokenSpendable: async function(token, verbose=true) {
         const tokenJson = atob(token)
         const proofs = JSON.parse(tokenJson)
         const payload = {
@@ -1735,25 +1782,32 @@
               }
           }
           if (paid){
+            console.log("### token paid")
             navigator.vibrate(200)
             this.$q.notify({
               timeout: 5000,
               type: 'positive',
-              message: 'Token sent'
+              message: 'Token paid'
             })
           } else {
-            this.$q.notify({
+            console.log("### token not paid yet")
+            if (verbose) {
+              this.$q.notify({
               timeout: 5000,
               color: 'gray',
               message: 'Token still pending'
             })
+            }
+            this.sendData.tokens = token
           }
+          return paid
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
           throw error
         }          
       },
+
       fetchMintKeys: async function () {
         const {data} = await LNbits.api.request(
           'GET',
