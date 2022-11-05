@@ -445,7 +445,7 @@
                   color="primary"
                   :disable="payInvoiceData.data.request == ''"
                   type="submit"
-                  outline
+                  flat
                   >Continue</q-btn
                 >
                 <q-btn unelevated icon="photo_camera" label="Scan" class="q-ml-auto" @click="showCamera"> </q-btn>
@@ -563,7 +563,7 @@
               color="primary"
               >Copy invoice</q-btn
             >
-            <q-btn v-else color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
+            <q-btn v-else flat color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
               >Create Invoice</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -632,6 +632,7 @@
               :disable="sendData.amount == null || sendData.amount <= 0"
               @click="sendTokens"
               color="primary"
+              flat
               type="submit"
               >Send Tokens</q-btn
             >
@@ -673,7 +674,7 @@
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="redeem" outline color="grey"
+            <q-btn @click="redeem" flat color="primary"
               >Receive Tokens</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
