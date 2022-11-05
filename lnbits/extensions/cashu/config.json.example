@@ -1,7 +1,7 @@
 {
-  "name": "Cashu Ecash",
+  "name": "Cashu",
   "short_description": "Ecash mints with LN peg in/out",
-  "icon": "approval",
-  "contributors": ["arcbtc", "calle"],
+  "icon": "account_balance",
+  "contributors": ["calle", "vlad", "arcbtc"],
   "hidden": true
 }

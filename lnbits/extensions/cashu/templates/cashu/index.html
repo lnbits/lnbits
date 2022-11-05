@@ -46,12 +46,12 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="launch"
+                  icon="account_balance_wallet"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'wallet/?tsh=' + (props.row.tickershort || '') + '&mint_id=' + props.row.id + '&mint_name=' + props.row.name"
+                  :href="'wallet/?' + 'mint_id=' + props.row.id"
                   target="_blank"
-                  ><q-tooltip>Shareable wallet page</q-tooltip></q-btn
+                  ><q-tooltip>Shareable wallet</q-tooltip></q-btn
                 >
 
                 <q-btn
