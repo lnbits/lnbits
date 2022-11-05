@@ -526,6 +526,7 @@
             <q-input
               filled
               dense
+              type="number"
               v-model.number="invoiceData.amount"
               label="Amount ({{LNBITS_DENOMINATION}}) *"
               mask="#"
@@ -585,6 +586,7 @@
             <q-input
               filled
               dense
+              type="number"
               v-model.number="sendData.amount"
               label="Amount ({{LNBITS_DENOMINATION}}) *"
               mask="#"
@@ -602,11 +604,24 @@
             ></q-input>
           </div>
           <div v-else class="text-center q-mb-lg">
+            <div class="text-center q-mb-lg">
+              <!-- <a :href="'cashu:' + sendData.tokensBase64"> -->
+                <q-responsive :ratio="1" class="q-mx-xl">
+                  <qrcode
+                    :value="sendData.tokensBase64"
+                    :options="{width: 340}"
+                    class="rounded-borders"
+                  >
+                  </qrcode>
+                </q-responsive>
+              </a>
+            </div>
             <q-input
-              filled
+              outlined
               dense
+              readonly
               v-model="sendData.tokensBase64"
-              label="Tokens"
+              label="Token"
               type="textarea"
               class="q-mb-lg"
             ></q-input>
@@ -1232,7 +1247,7 @@
       /////////////////////////////////// WALLET ///////////////////////////////////
       showInvoicesDialog: async function () {
         console.log('##### showInvoicesDialog')
-        this.invoiceData.amount = 0
+        this.invoiceData.amount = ''
         this.invoiceData.bolt11 = ''
         this.invoiceData.hash = ''
         this.invoiceData.memo = ''
@@ -1269,7 +1284,7 @@
         console.log('##### showSendTokensDialog')
         this.sendData.tokens = ''
         this.sendData.tokensBase64 = ''
-        this.sendData.amount = 0
+        this.sendData.amount = ''
         this.sendData.memo = ''
         this.showSendTokens = true
       },
