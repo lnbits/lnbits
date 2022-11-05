@@ -72,13 +72,19 @@
                 >
               </div>
             </div>
-
+            
+            <!-- ///////////////////////////////////////////
+            ////////////////// TABLES /////////////////
+            /////////////////////////////////////////// -->
             <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
               <q-tab name="tokens" label="Tokens"></q-tab>
               <q-tab name="invoices" label="Invoices"></q-tab>
               <q-tab name="history" label="History"></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
+
+              <!-- ////////////////// TOKEN LIST ///////////////// -->
+
               <q-tab-panel name="tokens">
                 <q-table
                   dense
@@ -113,6 +119,9 @@
                   {% endraw %}
                 </q-table>
               </q-tab-panel>
+
+              <!-- ////////////////// INVOICE LIST ///////////////// -->
+
               <q-tab-panel name="invoices">
                 <q-table
                   dense
@@ -159,9 +168,9 @@
                         <div>{{props.row.amount}}</div>
                       </q-td>
 
-                      <q-td key="memo" :props="props">
+                      <!-- <q-td key="memo" :props="props">
                         <div>{{props.row.memo}}</div>
-                      </q-td>
+                      </q-td> -->
                       <q-td key="date" :props="props">
                         <div>{{props.row.date}}</div>
                       </q-td>
@@ -173,10 +182,68 @@
                   {% endraw %}
                 </q-table>
               </q-tab-panel>
+              
+              <!-- ////////////////// HISTORY LIST ///////////////// -->
 
               <q-tab-panel name="history">
-                <span>History</span>
+                <q-table
+                  dense
+                  flat
+                  :data="historyTokens"
+                  :columns="historyTable.columns"
+                  :pagination.sync="historyTable.pagination"
+                  no-data-label="There are no tokens here yet"
+                  :filter="historyTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showInvoiceDialog(props.row)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="checkTokenSpendable(props.row.token)"
+                          >
+                            Check
+                          </q-badge>
+                        </div>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"><q-tooltip>Received</q-tooltip></q-icon>
+                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"><q-tooltip>Paid</q-tooltip></q-icon>
+                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+
+                        </div>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
+
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <q-td key="token" :props="props">
+                        <div>{{props.row.token}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
               </q-tab-panel>
+
+
             </q-tab-panels>
           </q-card-section>
         </q-card>
@@ -653,6 +720,7 @@
         mintName: '',
         keys: '',
         invoicesCashu: [],
+        historyTokens: [],
         invoiceData: {
           amount: 0,
           memo: '',
@@ -736,21 +804,23 @@
               name: 'status',
               align: 'left',
               label: '',
-              field: 'status'
+              field: 'status',
+              sortable: true
             },
             {
               name: 'amount',
               align: 'left',
               label: 'Amount',
-              field: 'amount'
-            },
-            {
-              name: 'memo',
-              align: 'left',
-              label: 'Memo',
-              field: 'memo',
+              field: 'amount',
               sortable: true
             },
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // },
             {
               name: 'date',
               align: 'left',
@@ -763,7 +833,7 @@
               align: 'right',
               label: 'Hash',
               field: 'hash',
-              sortable: true
+              sortable: false
             }
           ],
           pagination: {
@@ -804,6 +874,43 @@
             //   field: 'memo',
             //   sortable: true
             // }
+          ],
+          pagination: {
+            rowsPerPage: 5
+          },
+          filter: null
+        },
+
+        historyTable: {
+          columns: [
+          {
+              name: 'status',
+              align: 'left',
+              label: '',
+              field: 'status',
+              sortable: true
+            },            
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Value ({{LNBITS_DENOMINATION}})',
+              field: 'amount',
+              sortable: true
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
+            },
+            {
+              name: 'token',
+              align: 'left',
+              label: 'Token',
+              field: 'token',
+              sortable: false
+            }
           ],
           pagination: {
             rowsPerPage: 5
@@ -1147,15 +1254,90 @@
       },
 
       //////////////////////// MINT //////////////////////////////////////////
+
+      generateSecrets: async function (amounts) {
+        const secrets = []
+        for (let i = 0; i < amounts.length; i++) {
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          secrets.push(secret)
+        }
+        return secrets
+      },
+
+      constructOutputs: async function (amounts, secrets) {
+        const blindedMessages = []
+        const rs = []
+        for (let i = 0; i < amounts.length; i++) {
+          const {B_, r} = await step1Alice(secrets[i])
+          blindedMessages.push({amount: amounts[i], B_: B_})
+          rs.push(r)
+        }
+        return {
+          blindedMessages,
+          rs
+        }
+      },
+
+      constructProofs: function (promises, secrets, rs) {
+        const proofs = []
+        for (let i = 0; i < promises.length; i++) {
+          const encodedSecret = uint8ToBase64.encode(secrets[i])
+          let {id, amount, C, secret} = this.promiseToProof(
+            promises[i].id,
+            promises[i].amount,
+            promises[i]['C_'],
+            encodedSecret,
+            rs[i]
+          )
+          proofs.push({id, amount, C, secret})
+        }
+        return proofs
+      },
+
+      promiseToProof: function (id, amount, C_hex, secret, r) {
+        const C_ = nobleSecp256k1.Point.fromHex(C_hex)
+        const A = this.keys[amount]
+        const C = step3Alice(
+          C_,
+          nobleSecp256k1.utils.hexToBytes(r),
+          nobleSecp256k1.Point.fromHex(A)
+        )
+        return {
+          id,
+          amount,
+          C: C.toHex(true),
+          secret
+        }
+      },
+
+      sumProofs: function (proofs) {
+        return proofs.reduce((s, t) => (s += t.amount), 0)
+      },
+
+
+      //////////// API ///////////
+
       requestMintButton: async function () {
         await this.requestMint()
-        console.log('this is your invoice BEFORE')
-        console.log(this.invoiceData)
+        console.log("#### request mint", this.invoiceData)
+        let nInterval = 0
         this.invoiceCheckListener = setInterval(async () => {
           try {
-            console.log('this is your invoice AFTER')
+            nInterval += 1
+
+            // exit loop after 5m
+            if (nInterval > 100) {
+              console.log("### stopping invoice check worker")
+              clearInterval(this.invoiceCheckListener)
+            }
+            console.log('### setInterval', nInterval)
             console.log(this.invoiceData)
+
+            // this will throw an error if the invoice is pending
             await this.recheckInvoice(this.invoiceData.hash, false)
+
+            // only without error (invoice paid) will we reach here
+            console.log("### stopping invoice check worker")
             clearInterval(this.invoiceCheckListener)
             this.invoiceData.bolt11 = ''
             this.showInvoiceDetails = false
@@ -1241,81 +1423,6 @@
           }
           throw error
         }
-      },
-      setInvoicePaid: async function (payment_hash) {
-        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
-        invoice.status = 'paid'
-        this.storeinvoicesCashu()
-      },
-      recheckInvoice: async function (payment_hash, verbose = true) {
-        console.log('### recheckInvoice.hash', payment_hash)
-        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
-        try {
-          proofs = await this.mint(invoice.amount, invoice.hash, verbose)
-          return proofs
-        } catch (error) {
-          console.log('Invoice still pending')
-          throw error
-        }
-      },
-
-      generateSecrets: async function (amounts) {
-        const secrets = []
-        for (let i = 0; i < amounts.length; i++) {
-          const secret = nobleSecp256k1.utils.randomBytes(32)
-          secrets.push(secret)
-        }
-        return secrets
-      },
-
-      constructOutputs: async function (amounts, secrets) {
-        const blindedMessages = []
-        const rs = []
-        for (let i = 0; i < amounts.length; i++) {
-          const {B_, r} = await step1Alice(secrets[i])
-          blindedMessages.push({amount: amounts[i], B_: B_})
-          rs.push(r)
-        }
-        return {
-          blindedMessages,
-          rs
-        }
-      },
-
-      constructProofs: function (promises, secrets, rs) {
-        const proofs = []
-        for (let i = 0; i < promises.length; i++) {
-          const encodedSecret = uint8ToBase64.encode(secrets[i])
-          let {id, amount, C, secret} = this.promiseToProof(
-            promises[i].id,
-            promises[i].amount,
-            promises[i]['C_'],
-            encodedSecret,
-            rs[i]
-          )
-          proofs.push({id, amount, C, secret})
-        }
-        return proofs
-      },
-
-      promiseToProof: function (id, amount, C_hex, secret, r) {
-        const C_ = nobleSecp256k1.Point.fromHex(C_hex)
-        const A = this.keys[amount]
-        const C = step3Alice(
-          C_,
-          nobleSecp256k1.utils.hexToBytes(r),
-          nobleSecp256k1.Point.fromHex(A)
-        )
-        return {
-          id,
-          amount,
-          C: C.toHex(true),
-          secret
-        }
-      },
-
-      sumProofs: function (proofs) {
-        return proofs.reduce((s, t) => (s += t.amount), 0)
       },
       splitToSend: async function (proofs, amount, invlalidate = false) {
         // splits proofs so the user can keep firstProofs, send scndProofs
@@ -1435,12 +1542,21 @@
           if (this.receiveData.tokensBase64.length == 0) {
             throw new Error('no tokens provided.')
           }
-          const tokensJson = atob(this.receiveData.tokensBase64)
-          const proofs = JSON.parse(tokensJson)
+          const tokenJson = atob(this.receiveData.tokensBase64)
+          const proofs = JSON.parse(tokenJson)
           const amount = proofs.reduce((s, t) => (s += t.amount), 0)
           let {fristProofs, scndProofs} = await this.split(proofs, amount)
           // HACK: we need to do this so the balance updates
           this.proofs = this.proofs.concat([])
+
+          this.historyTokens.push({
+            status: 'paid',
+            amount: amount,
+            date: currentDateStr(),
+            token: this.receiveData.tokensBase64
+          })
+          this.storehistoryTokens()
+
           navigator.vibrate(200)
           this.$q.notify({
             timeout: 5000,
@@ -1467,6 +1583,15 @@
         this.sendData.tokens = scndProofs
         console.log('### this.sendData.tokens', this.sendData.tokens)
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+
+        this.historyTokens.push({
+            status: 'pending',
+            amount: -this.sendData.amount,
+            date: currentDateStr(),
+            token: this.sendData.tokensBase64
+          })
+          this.storehistoryTokens()
+
         navigator.vibrate(200)
       },
       checkFees: async function (payment_request) {
@@ -1559,7 +1684,22 @@
           throw error
         }
       },
-
+      setInvoicePaid: async function (payment_hash) {
+        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
+        invoice.status = 'paid'
+        this.storeinvoicesCashu()
+      },
+      recheckInvoice: async function (payment_hash, verbose = true) {
+        console.log('### recheckInvoice.hash', payment_hash)
+        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
+        try {
+          proofs = await this.mint(invoice.amount, invoice.hash, verbose)
+          return proofs
+        } catch (error) {
+          console.log('Invoice still pending')
+          throw error
+        }
+      },
       recheckPendingInvoices: async function () {
         for (const invoice of this.invoicesCashu) {
           if (invoice.status === 'pending' && invoice.sat > 0) {
@@ -1567,7 +1707,53 @@
           }
         }
       },
-
+      setTokenPaid: async function (token) {
+        const invoice = this.historyTokens.find(i => i.token === token)
+        invoice.status = 'paid'
+        this.storehistoryTokens()
+      },
+      checkTokenSpendable: async function(token) {
+        const tokenJson = atob(token)
+        const proofs = JSON.parse(tokenJson)
+        const payload = {
+          proofs: proofs.flat(),
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/check`,
+            '',
+            payload
+          )
+          // iterate through response of form {0: true, 1: false, ...}
+          let paid = false
+          for (const [key, spendable] of Object.entries(data)) {
+              if (!spendable){
+                this.setTokenPaid(token)
+                paid = true
+              }
+          }
+          if (paid){
+            navigator.vibrate(200)
+            this.$q.notify({
+              timeout: 5000,
+              type: 'positive',
+              message: 'Token sent'
+            })
+          } else {
+            this.$q.notify({
+              timeout: 5000,
+              color: 'gray',
+              message: 'Token still pending'
+            })
+          }
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }          
+      },
       fetchMintKeys: async function () {
         const {data} = await LNbits.api.request(
           'GET',
@@ -1576,6 +1762,7 @@
         this.keys = data
         localStorage.setItem(this.mintKey(this.mintId, 'keys'), JSON.stringify(data))
       },      
+
 
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1650,6 +1837,12 @@
           JSON.stringify(this.invoicesCashu)
         )
       },
+      storehistoryTokens: function () {
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'historyTokens'),
+          JSON.stringify(this.historyTokens)
+        )
+      },      
       storeProofs: function () {
         localStorage.setItem(
           this.mintKey(this.mintId, 'proofs'),
@@ -1718,6 +1911,11 @@
       this.invoicesCashu = JSON.parse(
         localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
       )
+
+      this.historyTokens = JSON.parse(
+        localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
+      )
+
       this.proofs = JSON.parse(localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]')
       console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.proofs)
