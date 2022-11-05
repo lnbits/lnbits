@@ -903,7 +903,7 @@
             {
               name: 'amount',
               align: 'left',
-              label: 'Value ({{LNBITS_DENOMINATION}})',
+              label: 'Amount',
               field: 'amount',
               sortable: true
             },
@@ -982,7 +982,7 @@
             return acc
           }, {})
         return Object.keys(x).map(k => ({
-          value: k,
+          value: parseInt(k),
           count: x[k],
           sum: k * x[k]
         }))
