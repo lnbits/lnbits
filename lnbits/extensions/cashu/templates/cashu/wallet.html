@@ -1448,7 +1448,12 @@
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
           if (this.sumProofs(spendableProofs) < amount) {
-            throw new Error('balance too low.')
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: 'Balance too low'
+            })
+            throw Error('balance too low.')
           }
           let {fristProofs, scndProofs} = await this.split(
             spendableProofs,
@@ -1591,6 +1596,7 @@
       },
 
       sendTokens: async function () {
+        try {
         // keep firstProofs, send scndProofs
         let {fristProofs, scndProofs} = await this.splitToSend(
           this.proofs,
@@ -1609,6 +1615,11 @@
           })
           this.storehistoryTokens()
           this.checkTokenSpendableWorker()
+        } catch (error) {
+          console.error(error)
+          throw error
+        }
+
       },
       checkFees: async function (payment_request) {
         const payload = {
@@ -1794,7 +1805,7 @@
             if (verbose) {
               this.$q.notify({
               timeout: 5000,
-              color: 'gray',
+              color: 'grey',
               message: 'Token still pending'
             })
             }
