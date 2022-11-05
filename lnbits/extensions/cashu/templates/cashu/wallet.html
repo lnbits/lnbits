@@ -54,7 +54,6 @@ page_container %}
                   color="primary"
                   class="full-width"
                   @click="showReceiveTokensDialog"
-                  outline
                   >Receive Tokens</q-btn
                 >
               </div>
@@ -67,7 +66,6 @@ page_container %}
                   color="primary"
                   class="full-width"
                   @click="showSendTokensDialog"
-                  outline
                 >
                   Send Tokens</q-btn
                 >
@@ -499,7 +497,7 @@ page_container %}
               color="primary"
               >Copy invoice</q-btn
             >
-            <q-btn v-else outline color="primary" @click="requestMintButton"
+            <q-btn v-else color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
               >Create Invoice</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -580,14 +578,14 @@ page_container %}
           <div>
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
-                <span class="text-subtitle1">Paste Cashu tokens</span>
+                <span class="text-subtitle1">Receive Cashu tokens</span>
               </div>
             </div>
             <q-input
               filled
               dense
               v-model="receiveData.tokensBase64"
-              label="Paste Cashu tokens"
+              label="Paste encoded tokens *"
               type="textarea"
               autofocus
               class="q-mb-lg"
@@ -595,7 +593,7 @@ page_container %}
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="redeem" outline color="primary"
+            <q-btn @click="redeem" outline color="grey"
               >Receive Tokens</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
