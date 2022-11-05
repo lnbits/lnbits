@@ -181,8 +181,18 @@ page_container %}
             </q-tab-panels>
           </q-card-section>
         </q-card>
+        <div>
+          <q-btn class="gt-sm"
+          size="16px"
+          icon="warning"
+          rectangle
+          color="warning"
+          outline
+          class="full-width"
+          @click="showDisclaimerDialog"></q-btn>
+        </div>
       </div>
-
+      
       <q-tabs
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
@@ -423,19 +433,21 @@ page_container %}
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
           <p>
-            <strong
-              >BOOKMARK THIS PAGE! If only mobile you can also click the 3 dots
-              and "Save to homescreen"/"Install app"</strong
-            >!
+            <strong>Bookmark this page!</strong>
           </p>
           <p>
-            Ecash is a bearer asset, meaning you have the funds saved on this
-            page, losing the page without exporting the page will mean you will
-            lose the funds.
+            Ecash is a bearer asset, meaning losing access to this wallet will mean you will
+            lose the funds. This wallet stores tokens in its database. If you lose the link or request
+            your data, you will lose your tokens. Bookmark this page or press the 
+            hamburger icon and add this page to your home screen.
+          </p>
+          <p>
+            This service is in BETA, and we hold no responsibility for people losing
+            access to funds. Use at your own risk!
           </p>
           <div class="row q-mt-lg">
-            <q-btn outline color="grey">Copy wallet URL</q-btn>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            <q-btn outline color="grey" @click="copyText(disclaimerDialog.location.href)">Copy wallet URL</q-btn>
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >I understand</q-btn
             >
           </div>
@@ -489,14 +501,6 @@ page_container %}
               color="primary"
               >Copy invoice</q-btn
             >
-            <!-- <q-btn
-              v-if="invoiceData.bolt11"
-              @click="recheckInvoice(invoiceData.hash)"
-              outline
-              color="primary"
-            >
-              Recheck
-            </q-btn> -->
             <q-btn v-else outline color="primary" @click="requestMintButton"
               >Create Invoice</q-btn
             >
@@ -578,7 +582,7 @@ page_container %}
           <div>
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-12">
-                <span class="text-subtitle1">Paste tokens please</span>
+                <span class="text-subtitle1">Paste Cashu tokens</span>
               </div>
             </div>
             <q-input
@@ -602,56 +606,6 @@ page_container %}
           </div>
         </q-card>
       </q-dialog>
-      <!-- 
-      <q-dialog v-model="showPayInvoice" position="top">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <div v-if="!payInvoiceData.invoice">
-            <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-12">
-                <span class="text-subtitle1"
-                  >Please paste a Lightning invoice</span
-                >
-              </div>
-            </div>
-            <q-input
-              filled
-              dense
-              v-model="payInvoiceData.data.request"
-              label="Paste invoice"
-              autofocus
-              type="textarea"
-              class="q-mb-lg"
-            ></q-input>
-          </div>
-          <div v-else class="q-mb-lg">
-            {% raw %}
-            <strong>Amount:</strong> {{ payInvoiceData.invoice.sat }}
-            <strong>sats</strong><br />
-            <strong>Description:</strong> {{ payInvoiceData.invoice.description
-            }}<br />
-            <strong>Expire date:</strong> {{ payInvoiceData.invoice.expireDate
-            }}<br />
-            <strong>Expired:</strong> {{ payInvoiceData.invoice.expired }}<br />
-            <strong>Hash:</strong> {{ payInvoiceData.invoice.hash }} {% endraw
-            %}
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn
-              v-if="!payInvoiceData.invoice"
-              @click="checkInvoice"
-              outline
-              color="grey"
-              >Continue</q-btn
-            >
-            <q-btn v-else outline color="primary" @click="melt"
-              >Pay invoice</q-btn
-            >
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-              >Close</q-btn
-            >
-          </div>
-        </q-card>
-      </q-dialog> -->
     </div>
   </q-page>
 </q-page-container>
@@ -966,6 +920,9 @@ page_container %}
         this.payInvoiceData.data.paymentChecker = null
         this.payInvoiceData.camera.show = false
         this.focusInput('pasteInput')
+      },
+      showDisclaimerDialog: function() {
+        this.disclaimerDialog.show = true
       },
 
       closeReceiveDialog: function () {
