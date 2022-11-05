@@ -119,7 +119,7 @@ page_container %}
                   :data="invoicesCashu"
                   :columns="invoicesTable.columns"
                   :pagination.sync="invoicesTable.pagination"
-                  no-data-label="No invoices made yet"
+                  no-data-label="There are no invoices here yet"
                   :filter="invoicesTable.filter"
                 >
                   {% raw %}
@@ -140,12 +140,12 @@ page_container %}
                             class="q-mr-md cursor-pointer"
                             @click="recheckInvoice(props.row.hash)"
                           >
-                            Recheck
+                            Check
                           </q-badge>
                         </div>
                         <div v-if="props.row.status === 'paid'">
-                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"></q-icon>
-                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"></q-icon>
+                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"><q-tooltip>Received</q-tooltip></q-icon>
+                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"><q-tooltip>Paid</q-tooltip></q-icon>
                           <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
 
                         </div>
