@@ -724,12 +724,12 @@
 <script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
 <script>
   var currentDateStr = function () {
-    return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+    return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
   }
   var mapMint = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
+      'YYYY-MM-DD HH:mm:ss'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.cashu = ['/cashu/', obj.id].join('')
