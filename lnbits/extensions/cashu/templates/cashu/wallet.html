@@ -377,6 +377,7 @@ page_container %}
                   color="primary"
                   :disable="payInvoiceData.data.request == ''"
                   type="submit"
+                  outline
                   >Continue</q-btn
                 >
                 <q-btn unelevated icon="photo_camera" label="Scan" class="q-ml-auto" @click="showCamera"> </q-btn>
@@ -550,7 +551,6 @@ page_container %}
               v-if="!sendData.tokens"
               :disable="sendData.amount == null || sendData.amount <= 0"
               @click="sendTokens"
-              outline
               color="primary"
               type="submit"
               >Send Tokens</q-btn
