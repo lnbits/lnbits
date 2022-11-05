@@ -1158,6 +1158,7 @@ page_container %}
             clearInterval(this.invoiceCheckListener)
             this.invoiceData.bolt11 = ''
             this.showInvoiceDetails = false
+            navigator.vibrate(200)
             this.$q.notify({
               timeout: 5000,
               type: 'positive',
@@ -1437,6 +1438,12 @@ page_container %}
           const proofs = JSON.parse(tokensJson)
           const amount = proofs.reduce((s, t) => (s += t.amount), 0)
           let {fristProofs, scndProofs} = await this.split(proofs, amount)
+          navigator.vibrate(200)
+          this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: 'Tokens received'
+          })
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -1457,6 +1464,7 @@ page_container %}
         this.sendData.tokens = scndProofs
         console.log('### this.sendData.tokens', this.sendData.tokens)
         this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+        navigator.vibrate(200)
       },
       checkFees: async function (payment_request) {
         const payload = {
@@ -1512,6 +1520,7 @@ page_container %}
             '',
             payload
           )
+          navigator.vibrate(200)
           this.$q.notify({
             timeout: 5000,
             type: 'positive',
