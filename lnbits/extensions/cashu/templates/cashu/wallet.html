@@ -1003,16 +1003,18 @@
           .reduce((sum, el) => (sum += el.amount), 0)
       },
       getTokenList: function () {
-        const x = this.proofs
-          .map(t => t.amount)
-          .reduce((acc, amount) => {
-            acc[amount] = acc[amount] + amount || 1
-            return acc
-          }, {})
-        return Object.keys(x).map(k => ({
+        console.log(this.proofs)
+        const amounts = this.proofs.map(t => t.amount)
+        const counts = {};
+
+        for (const num of amounts) {
+          counts[num] = counts[num] ? counts[num] + 1 : 1;
+        }
+        console.log("counts", counts)
+        return Object.keys(counts).map(k => ({
           value: parseInt(k),
-          count: x[k],
-          sum: k * x[k]
+          count: parseInt(counts[k]),
+          sum: k * counts[k]
         }))
       },
 
