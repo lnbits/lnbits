@@ -43,7 +43,8 @@ async def wallet(request: Request, mint_id: str):
 async def cashu(request: Request, mintID):
     cashu = await get_cashu(mintID)
     return cashu_renderer().TemplateResponse(
-        "cashu/mint.html", {"request": request, "mint_name": cashu.name}
+        "cashu/mint.html",
+        {"request": request, "mint_name": cashu.name, "mint_id": mintID},
     )
 
 
@@ -57,7 +58,7 @@ async def manifest(cashu_id: str):
 
     return {
         "short_name": "Cashu",
-        "name": cashu.name + " - " + "Cashu",
+        "name": "Cashu" + " - " + cashu.name,
         "icons": [
             {
                 "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/512x512.png",
@@ -78,9 +79,9 @@ async def manifest(cashu_id: str):
         "theme_color": "#1F2234",
         "shortcuts": [
             {
-                "name": cashu.name + " - " + "Cashu",
-                "short_name": cashu.name,
-                "description": cashu.name + " - " + "Cashu",
+                "name": "Cashu" + " - " + cashu.name,
+                "short_name": "Cashu",
+                "description": "Cashu" + " - " + cashu.name,
                 "url": "/cashu/wallet?mint_id=" + cashu_id,
                 "icons": [
                     {
