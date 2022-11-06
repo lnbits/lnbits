@@ -1847,9 +1847,7 @@ page_container %}
 
       recheckPendingTokens: async function () {
         for (const token of this.historyTokens) {
-          console.log(token.status, token.amount)
           if (token.status === 'pending' && token.amount < 0) {
-            print('CHEKABLE')
             this.checkTokenSpendable(token.token, false)
           }
         }
