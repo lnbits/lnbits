@@ -2149,8 +2149,18 @@ page_container %}
 
       // get recv_token
       if (params.get('recv_token')) {
-        this.receiveData.tokensBase64 = params.get('recv_token')
-        this.showReceiveTokens = true
+        tokenBase64 = params.get('recv_token')
+        let seen = false
+        for (var i = 0; i < this.historyTokens.length; i++) {
+          var thisToken = this.historyTokens[i].token
+          if (thisToken == tokenBase64) {
+            seen = true
+          }
+        }
+        if (!seen) {
+          this.receiveData.tokensBase64 = params.get('recv_token')
+          this.showReceiveTokens = true
+        }
       }
 
       console.log('### invoicesCashu', this.invoicesCashu)
