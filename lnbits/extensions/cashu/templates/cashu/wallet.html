@@ -5,44 +5,61 @@
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
       <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
-        <q-card>
+        <q-scroll-area style="height: 640px; max-width: 1024px;">
+        <q-card class="q-mb-sm">
           <q-card-section>
-            <div class="row">
-              <div class="col-3 q-pt-sm">
-                <q-btn
-                  class="gt-sm full-width"
-                  size="14px"
-                  icon="bolt"
-                  rectangle
-                  color="primary"
-                  @click="showInvoicesDialog"
-                  ><strong>Receive invoice</strong>
-                </q-btn>
-              </div>
-              <div class="col-6">
-                <h3 class="q-my-none">
-                  <center>
-                    <strong>{% raw %} {{getBalance()}} </strong>
-                    {{tickershort}}{% endraw %}
-                  </center>
-                </h3>
-              </div>
-              <div class="col-3 q-pt-sm">
-                <q-btn
-                  class="gt-sm full-width"
-                  @click="showParseDialog"
-                  size="14px"
-                  icon="bolt"
-                  rectangle
-                  color="primary"
-                  class="full-width"
-                  ><strong>Pay invoice</strong>
-                </q-btn>
+            <div class="gt-sm">
+              <div class="row">
+                <div class="col-3 q-pt-sm">
+                  <q-btn
+                    class="full-width"
+                    size="14px"
+                    icon="bolt"
+                    rectangle
+                    color="primary"
+                    @click="showInvoicesDialog"
+                    ><strong>Receive invoice</strong>
+                  </q-btn>
+                </div>
+                <div class="col-6">
+                  <h3 class="q-my-none q-py-none">
+                    <center>
+                      <strong>{% raw %} {{getBalance()}} </strong>
+                      {{tickershort}}{% endraw %}
+                    </center>
+                  </h3>
+                </div>
+                <div class="col-3 q-pt-sm">
+                  <q-btn
+                    class="full-width"
+                    @click="showParseDialog"
+                    size="14px"
+                    icon="bolt"
+                    rectangle
+                    color="primary"
+                    class="full-width"
+                    ><strong>Pay invoice</strong>
+                  </q-btn>
+                </div>
               </div>
             </div>
+            <div class="lt-md">
+              <div class="row">
+                <div class="col-12">
+                  <h3 class="q-my-none q-py-none">
+                    <center>
+                      <strong>{% raw %} {{getBalance()}} </strong>
+                      {{tickershort}}{% endraw %}
+                    </center>
+                  </h3>
+                </div>
+              </div>
+            </div>
+
           </q-card-section>
         </q-card>
 
+        
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
@@ -70,6 +87,8 @@
               </div>
             </div>
             
+            
+
             <!-- ///////////////////////////////////////////
             ////////////////// TABLES /////////////////
             /////////////////////////////////////////// -->
@@ -247,7 +266,8 @@
             </q-tab-panels>
           </q-card-section>
         </q-card>
-        <div class="q-pa-sd">
+        
+        <div class="q-pa-sd q-py-md">
           <q-btn 
           class="q-mx-sm"
           size="10px"
@@ -266,7 +286,9 @@
           @click="getLocalstorageToFile">Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn>
         </div>
       </div>
-      
+    
+    </q-scroll-area>
+
       <q-tabs
         class="lt-md fixed-bottom q-px-none q-py-sm left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
