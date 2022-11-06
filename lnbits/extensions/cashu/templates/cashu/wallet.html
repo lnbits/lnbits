@@ -5,7 +5,7 @@ page_container %}
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
       <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
-        <q-scroll-area style="height: 750px; max-width: 1024px">
+        <q-scroll-area style="height: 1024px; max-width: 1024px">
           <q-card class="q-mb-sm">
             <q-card-section>
               <div class="gt-sm">
@@ -315,18 +315,18 @@ page_container %}
         <q-tab
           class="q-pa-none"
           icon="arrow_downwards"
-          label="Receive Invoice"
+          label="Receive"
           @click="showInvoicesDialog"
         >
         </q-tab>
+        <q-tab icon="photo_camera" @click="showCamera"> </q-tab>
         <q-tab
           icon="arrow_upwards"
           class="q-pa-none"
-          label="Pay Invoice"
+          label="Send"
           @click="showParseDialog"
         >
         </q-tab>
-        <!-- <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab> -->
       </q-tabs>
 
       <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
