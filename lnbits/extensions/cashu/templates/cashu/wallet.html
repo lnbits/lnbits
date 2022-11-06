@@ -684,7 +684,7 @@ page_container %}
               <!-- <a :href="'cashu:' + sendData.tokensBase64"> -->
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="sendData.tokensBase64"
+                  :value="disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
