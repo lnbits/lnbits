@@ -1070,14 +1070,12 @@ page_container %}
           .reduce((sum, el) => (sum += el.amount), 0)
       },
       getTokenList: function () {
-        console.log(this.proofs)
         const amounts = this.proofs.map(t => t.amount)
         const counts = {}
 
         for (const num of amounts) {
           counts[num] = counts[num] ? counts[num] + 1 : 1
         }
-        console.log('counts', counts)
         return Object.keys(counts).map(k => ({
           value: parseInt(k),
           count: parseInt(counts[k]),
