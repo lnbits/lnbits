@@ -290,8 +290,7 @@
     </q-scroll-area>
 
       <q-tabs
-        class="lt-md fixed-bottom q-px-none q-py-sm left-0 right-0 bg-primary text-white shadow-2 z-top"
-        active-class="px-0"
+        class="lt-md fixed-bottom q-px-none q-py-xs left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
         align="justify"
         indicator-color="transparent"
       >
@@ -476,7 +475,6 @@
                   color="primary"
                   :disable="payInvoiceData.data.request == ''"
                   type="submit"
-                  flat
                   >Continue</q-btn
                 >
                 <q-btn unelevated icon="photo_camera" label="Scan" class="q-ml-auto" @click="showCamera"> </q-btn>
@@ -595,7 +593,7 @@
               color="primary"
               >Copy invoice</q-btn
             >
-            <q-btn v-else flat color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
+            <q-btn v-else color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
               >Create Invoice</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -664,7 +662,6 @@
               :disable="sendData.amount == null || sendData.amount <= 0"
               @click="sendTokens"
               color="primary"
-              flat
               type="submit"
               >Send Tokens</q-btn
             >
@@ -706,7 +703,7 @@
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="redeem" flat color="primary"
+            <q-btn @click="redeem" color="primary"
               >Receive Tokens</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -1400,8 +1397,8 @@
           try {
             nInterval += 1
 
-            // exit loop after 5m
-            if (nInterval > 100) {
+            // exit loop after 2m
+            if (nInterval > 40) {
               console.log("### stopping invoice check worker")
               clearInterval(this.invoiceCheckListener)
             }
@@ -1813,8 +1810,8 @@
           try {
             nInterval += 1
 
-            // exit loop after 5m
-            if (nInterval > 100) {
+            // exit loop after 2m
+            if (nInterval > 24) {
               console.log("### stopping token check worker")
               clearInterval(this.tokensCheckSpendableListener)
             }
@@ -1833,7 +1830,7 @@
           } catch (error) {
             console.log('not paid yet')
           }
-        }, 3000)
+        }, 5000)
       },
 
       checkTokenSpendable: async function(token, verbose=true) {
