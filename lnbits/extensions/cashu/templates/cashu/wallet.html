@@ -8,19 +8,18 @@
         <q-card>
           <q-card-section>
             <div class="row">
-              <div class="col-2">
+              <div class="col-3 q-pt-sm">
                 <q-btn
-                  class="gt-sm"
-                  size="16px"
-                  icon="arrow_downward"
+                  class="gt-sm full-width"
+                  size="14px"
+                  icon="bolt"
                   rectangle
-                  color="secondary"
-                  class="full-width"
+                  color="primary"
                   @click="showInvoicesDialog"
-                  >Receive invoice
+                  ><strong>Receive invoice</strong>
                 </q-btn>
               </div>
-              <div class="col-8">
+              <div class="col-6">
                 <h3 class="q-my-none">
                   <center>
                     <strong>{% raw %} {{getBalance()}} </strong>
@@ -28,16 +27,16 @@
                   </center>
                 </h3>
               </div>
-              <div class="col-2">
+              <div class="col-3 q-pt-sm">
                 <q-btn
-                  class="gt-sm"
+                  class="gt-sm full-width"
                   @click="showParseDialog"
-                  size="16px"
-                  icon="arrow_upward"
+                  size="14px"
+                  icon="bolt"
                   rectangle
-                  color="secondary"
+                  color="primary"
                   class="full-width"
-                  >Pay invoice
+                  ><strong>Pay invoice</strong>
                 </q-btn>
               </div>
             </div>
@@ -251,16 +250,17 @@
         <div class="q-pa-sd">
           <q-btn 
           class="q-mx-sm"
-          size="12px"
+          size="10px"
           rectangle
           color="warning"
           outline
           @click="showDisclaimerDialog"> Warning</q-btn>
           <q-btn 
           class="q-mx-sm"
-          size="12px"
+          size="10px"
           outline 
           rectangle
+          icon="file_download"
           color="warning" 
           tooltip="asd"
           @click="getLocalstorageToFile">Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn>

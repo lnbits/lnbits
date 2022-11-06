@@ -78,9 +78,9 @@ async def manifest(cashu_id: str):
         "theme_color": "#1F2234",
         "shortcuts": [
             {
-                "name": cashu.name + " - " + "Cashu wallet",
+                "name": cashu.name + " - " + "Cashu",
                 "short_name": cashu.name,
-                "description": cashu.name + " - " + "Cashu wallet",
+                "description": cashu.name + " - " + "Cashu",
                 "url": "/cashu/wallet?mint_id=" + cashu_id,
                 "icons": [
                     {
