@@ -2153,7 +2153,7 @@ page_container %}
         let seen = false
         for (var i = 0; i < this.historyTokens.length; i++) {
           var thisToken = this.historyTokens[i].token
-          if (thisToken == tokenBase64) {
+          if (thisToken == tokenBase64 && this.historyTokens[i].amount > 0) {
             seen = true
           }
         }
