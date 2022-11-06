@@ -71,6 +71,7 @@ async def manifest(cashu_id: str):
                 "sizes": "96x96",
             },
         ],
+        "id": "/cashu/wallet?mint_id=" + cashu_id,
         "start_url": "/cashu/wallet?mint_id=" + cashu_id,
         "background_color": "#1F2234",
         "description": "Cashu ecash wallet",
