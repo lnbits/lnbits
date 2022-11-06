@@ -220,7 +220,7 @@ You need to edit the `.env` file.
 
 ```sh
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<myPassword>@<host>:5432/<lnbits> - alter line bellow with your user, password and db name
+# postgres://<user>:<myPassword>@<host>:<port>/<lnbits> - alter line bellow with your user, password and db name
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
 # save and exit
 ```
