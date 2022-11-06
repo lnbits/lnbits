@@ -1,295 +1,312 @@
-{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Cashu {% endraw %} {% endblock %} 
-{% block footer %}{% endblock %} 
-{% block page_container %}
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} {{name}} Cashu
+{% endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
+page_container %}
 <q-page-container>
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
-      <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
-        <q-scroll-area style="height: 640px; max-width: 1024px;">
-        <q-card class="q-mb-sm">
-          <q-card-section>
-            <div class="gt-sm">
-              <div class="row">
-                <div class="col-3 q-pt-sm">
+      <q-scroll-area style="height: 640px; max-width: 1024px">
+        <div
+          class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md"
+        >
+          <q-card class="q-mb-sm">
+            <q-card-section>
+              <div class="gt-sm">
+                <div class="row">
+                  <div class="col-3 q-pt-sm">
+                    <q-btn
+                      class="full-width"
+                      size="14px"
+                      icon="bolt"
+                      rectangle
+                      color="primary"
+                      @click="showInvoicesDialog"
+                      ><strong>Receive invoice</strong>
+                    </q-btn>
+                  </div>
+                  <div class="col-6">
+                    <h3 class="q-my-none q-py-none">
+                      <center>
+                        <strong>{% raw %} {{getBalance()}} </strong>
+                        {{tickershort}}{% endraw %}
+                      </center>
+                    </h3>
+                  </div>
+                  <div class="col-3 q-pt-sm">
+                    <q-btn
+                      class="full-width"
+                      @click="showParseDialog"
+                      size="14px"
+                      icon="bolt"
+                      rectangle
+                      color="primary"
+                      class="full-width"
+                      ><strong>Pay invoice</strong>
+                    </q-btn>
+                  </div>
+                </div>
+              </div>
+              <div class="lt-md">
+                <div class="row">
+                  <div class="col-12">
+                    <h3 class="q-my-none q-py-none">
+                      <center>
+                        <strong>{% raw %} {{getBalance()}} </strong>
+                        {{tickershort}}{% endraw %}
+                      </center>
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <q-card>
+            <q-card-section>
+              <div class="row items-center no-wrap q-mb-sm">
+                <div class="col-6 col-sm-5 col-md-4 q-px-xs">
                   <q-btn
-                    class="full-width"
-                    size="14px"
-                    icon="bolt"
+                    size="12px"
                     rectangle
+                    unelevated
                     color="primary"
-                    @click="showInvoicesDialog"
-                    ><strong>Receive invoice</strong>
-                  </q-btn>
+                    class="full-width"
+                    @click="showReceiveTokensDialog"
+                    >Receive Tokens</q-btn
+                  >
                 </div>
-                <div class="col-6">
-                  <h3 class="q-my-none q-py-none">
-                    <center>
-                      <strong>{% raw %} {{getBalance()}} </strong>
-                      {{tickershort}}{% endraw %}
-                    </center>
-                  </h3>
-                </div>
-                <div class="col-3 q-pt-sm">
+                <div class="col-0 col-sm-2 col-md-4"></div>
+                <div class="col-6 col-sm-5 col-md-4 q-px-xs">
                   <q-btn
-                    class="full-width"
-                    @click="showParseDialog"
-                    size="14px"
-                    icon="bolt"
+                    size="12px"
                     rectangle
+                    unelevated
                     color="primary"
                     class="full-width"
-                    ><strong>Pay invoice</strong>
-                  </q-btn>
+                    @click="showSendTokensDialog"
+                  >
+                    Send Tokens</q-btn
+                  >
                 </div>
               </div>
-            </div>
-            <div class="lt-md">
-              <div class="row">
-                <div class="col-12">
-                  <h3 class="q-my-none q-py-none">
-                    <center>
-                      <strong>{% raw %} {{getBalance()}} </strong>
-                      {{tickershort}}{% endraw %}
-                    </center>
-                  </h3>
-                </div>
-              </div>
-            </div>
 
-          </q-card-section>
-        </q-card>
-
-        
-        <q-card>
-          <q-card-section>
-            <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
-                <q-btn
-                  size="12px"
-                  rectangle
-                  unelevated
-                  color="primary"
-                  class="full-width"
-                  @click="showReceiveTokensDialog"
-                  >Receive Tokens</q-btn
-                >
-              </div>
-              <div class="col-0 col-sm-2 col-md-4"></div>
-              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
-                <q-btn
-                  size="12px"
-                  rectangle
-                  unelevated
-                  color="primary"
-                  class="full-width"
-                  @click="showSendTokensDialog"
-                >
-                  Send Tokens</q-btn
-                >
-              </div>
-            </div>
-            
-            
-
-            <!-- ///////////////////////////////////////////
+              <!-- ///////////////////////////////////////////
             ////////////////// TABLES /////////////////
             /////////////////////////////////////////// -->
-            <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
-              <q-tab name="tokens" label="Tokens"></q-tab>
-              <q-tab name="invoices" label="Invoices"></q-tab>
-              <q-tab name="history" label="History"></q-tab>
-            </q-tabs>
-            <q-tab-panels v-model="tab">
+              <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
+                <q-tab name="tokens" label="Tokens"></q-tab>
+                <q-tab name="invoices" label="Invoices"></q-tab>
+                <q-tab name="history" label="History"></q-tab>
+              </q-tabs>
+              <q-tab-panels v-model="tab">
+                <!-- ////////////////// TOKEN LIST ///////////////// -->
 
-              <!-- ////////////////// TOKEN LIST ///////////////// -->
+                <q-tab-panel name="tokens">
+                  <q-table
+                    dense
+                    flat
+                    :data="getTokenList()"
+                    :columns="tokensTable.columns"
+                    :pagination.sync="tokensTable.pagination"
+                    no-data-label="No tokens yet"
+                    :filter="tokensTable.filter"
+                  >
+                    {% raw %}
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td
+                          key="value"
+                          :props="props"
+                          :class="props.row.value > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        >
+                          <div>{{props.row.value}}</div>
+                        </q-td>
+                        <q-td key="count" :props="props">
+                          <div>{{props.row.count}}</div>
+                        </q-td>
+                        <q-td key="sum" :props="props">
+                          <div>{{props.row.sum}}</div>
+                        </q-td>
+                        <q-td key="memo" :props="props">
+                          <div>{{props.row.memo}}</div>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                    {% endraw %}
+                  </q-table>
+                </q-tab-panel>
 
-              <q-tab-panel name="tokens">
-                <q-table
-                  dense
-                  flat
-                  :data="getTokenList()"
-                  :columns="tokensTable.columns"
-                  :pagination.sync="tokensTable.pagination"
-                  no-data-label="No tokens yet"
-                  :filter="tokensTable.filter"
-                >
-                  {% raw %}
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td
-                        key="value"
-                        :props="props"
-                        :class="props.row.value > 0 ? 'text-green-13 text-weight-bold' : ''"
-                      >
-                        <div>{{props.row.value}}</div>
-                      </q-td>
-                      <q-td key="count" :props="props">
-                        <div>{{props.row.count}}</div>
-                      </q-td>
-                      <q-td key="sum" :props="props">
-                        <div>{{props.row.sum}}</div>
-                      </q-td>
-                      <q-td key="memo" :props="props">
-                        <div>{{props.row.memo}}</div>
-                      </q-td>
-                    </q-tr>
-                  </template>
-                  {% endraw %}
-                </q-table>
-              </q-tab-panel>
+                <!-- ////////////////// INVOICE LIST ///////////////// -->
 
-              <!-- ////////////////// INVOICE LIST ///////////////// -->
+                <q-tab-panel name="invoices">
+                  <q-table
+                    dense
+                    flat
+                    :data="invoicesCashu"
+                    :columns="invoicesTable.columns"
+                    :pagination.sync="invoicesTable.pagination"
+                    no-data-label="There are no invoices here yet"
+                    :filter="invoicesTable.filter"
+                  >
+                    {% raw %}
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td key="status" :props="props">
+                          <div v-if="props.row.status == 'pending'">
+                            <q-icon
+                              @click="showInvoiceDialog(props.row)"
+                              name="settings_ethernet"
+                              color="grey"
+                            >
+                              <q-tooltip>Pending</q-tooltip>
+                            </q-icon>
+                            <q-badge
+                              size="lg"
+                              color="secondary"
+                              class="q-mr-md cursor-pointer"
+                              @click="recheckInvoice(props.row.hash)"
+                            >
+                              Check
+                            </q-badge>
+                          </div>
+                          <div v-if="props.row.status === 'paid'">
+                            <q-icon
+                              v-if="props.row.amount>0"
+                              name="call_received"
+                              color="green"
+                              ><q-tooltip>Received</q-tooltip></q-icon
+                            >
+                            <q-icon
+                              v-if="props.row.amount<0"
+                              name="call_made"
+                              color="red"
+                              ><q-tooltip>Paid</q-tooltip></q-icon
+                            >
+                            <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+                          </div>
+                        </q-td>
+                        <q-td
+                          key="amount"
+                          :props="props"
+                          :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        >
+                          <div>{{props.row.amount}}</div>
+                        </q-td>
 
-              <q-tab-panel name="invoices">
-                <q-table
-                  dense
-                  flat
-                  :data="invoicesCashu"
-                  :columns="invoicesTable.columns"
-                  :pagination.sync="invoicesTable.pagination"
-                  no-data-label="There are no invoices here yet"
-                  :filter="invoicesTable.filter"
-                >
-                  {% raw %}
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td key="status" :props="props">
-                        <div v-if="props.row.status == 'pending'">
-                          <q-icon
-                            @click="showInvoiceDialog(props.row)"
-                            name="settings_ethernet"
-                            color="grey"
-                          >
-                            <q-tooltip>Pending</q-tooltip>
-                          </q-icon>
-                          <q-badge
-                            size="lg"
-                            color="secondary"
-                            class="q-mr-md cursor-pointer"
-                            @click="recheckInvoice(props.row.hash)"
-                          >
-                            Check
-                          </q-badge>
-                        </div>
-                        <div v-if="props.row.status === 'paid'">
-                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"><q-tooltip>Received</q-tooltip></q-icon>
-                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"><q-tooltip>Paid</q-tooltip></q-icon>
-                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
-
-                        </div>
-                      </q-td>
-                      <q-td
-                        key="amount"
-                        :props="props"
-                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
-                      >
-                        <div>{{props.row.amount}}</div>
-                      </q-td>
-
-                      <!-- <q-td key="memo" :props="props">
+                        <!-- <q-td key="memo" :props="props">
                         <div>{{props.row.memo}}</div>
                       </q-td> -->
-                      <q-td key="date" :props="props">
-                        <div>{{props.row.date}}</div>
-                      </q-td>
-                      <q-td key="bolt11" :props="props">
-                        <div>{{props.row.bolt11}}</div>
-                      </q-td>                      
-                      <q-td key="hash" :props="props">
-                        <div>{{props.row.hash}}</div>
-                      </q-td>
-                    </q-tr>
-                  </template>
-                  {% endraw %}
-                </q-table>
-              </q-tab-panel>
-              
-              <!-- ////////////////// HISTORY LIST ///////////////// -->
+                        <q-td key="date" :props="props">
+                          <div>{{props.row.date}}</div>
+                        </q-td>
+                        <q-td key="bolt11" :props="props">
+                          <div>{{props.row.bolt11}}</div>
+                        </q-td>
+                        <q-td key="hash" :props="props">
+                          <div>{{props.row.hash}}</div>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                    {% endraw %}
+                  </q-table>
+                </q-tab-panel>
 
-              <q-tab-panel name="history">
-                <q-table
-                  dense
-                  flat
-                  :data="historyTokens"
-                  :columns="historyTable.columns"
-                  :pagination.sync="historyTable.pagination"
-                  no-data-label="There are no tokens here yet"
-                  :filter="historyTable.filter"
-                >
-                  {% raw %}
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td key="status" :props="props">
-                        <div v-if="props.row.status == 'pending'">
-                          <q-icon
-                            @click="showTokenDialog(props.row.token)"
-                            name="settings_ethernet"
-                            color="grey"
-                          >
-                            <q-tooltip>Pending</q-tooltip>
-                          </q-icon>
-                          <q-badge
-                            size="lg"
-                            color="secondary"
-                            class="q-mr-md cursor-pointer"
-                            @click="checkTokenSpendable(props.row.token)"
-                          >
-                            Check
-                          </q-badge>
-                        </div>
-                        <div v-if="props.row.status === 'paid'">
-                          <q-icon v-if="props.row.amount>0" name= "call_received" color="green"><q-tooltip>Received</q-tooltip></q-icon>
-                          <q-icon v-if="props.row.amount<0" name= "call_made" color="red"><q-tooltip>Paid</q-tooltip></q-icon>
-                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+                <!-- ////////////////// HISTORY LIST ///////////////// -->
 
-                        </div>
-                      </q-td>
-                      <q-td
-                        key="amount"
-                        :props="props"
-                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
-                      >
-                        <div>{{props.row.amount}}</div>
-                      </q-td>
+                <q-tab-panel name="history">
+                  <q-table
+                    dense
+                    flat
+                    :data="historyTokens"
+                    :columns="historyTable.columns"
+                    :pagination.sync="historyTable.pagination"
+                    no-data-label="There are no tokens here yet"
+                    :filter="historyTable.filter"
+                  >
+                    {% raw %}
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td key="status" :props="props">
+                          <div v-if="props.row.status == 'pending'">
+                            <q-icon
+                              @click="showTokenDialog(props.row.token)"
+                              name="settings_ethernet"
+                              color="grey"
+                            >
+                              <q-tooltip>Pending</q-tooltip>
+                            </q-icon>
+                            <q-badge
+                              size="lg"
+                              color="secondary"
+                              class="q-mr-md cursor-pointer"
+                              @click="checkTokenSpendable(props.row.token)"
+                            >
+                              Check
+                            </q-badge>
+                          </div>
+                          <div v-if="props.row.status === 'paid'">
+                            <q-icon
+                              v-if="props.row.amount>0"
+                              name="call_received"
+                              color="green"
+                              ><q-tooltip>Received</q-tooltip></q-icon
+                            >
+                            <q-icon
+                              v-if="props.row.amount<0"
+                              name="call_made"
+                              color="red"
+                              ><q-tooltip>Paid</q-tooltip></q-icon
+                            >
+                            <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+                          </div>
+                        </q-td>
+                        <q-td
+                          key="amount"
+                          :props="props"
+                          :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        >
+                          <div>{{props.row.amount}}</div>
+                        </q-td>
 
-                      <q-td key="date" :props="props">
-                        <div>{{props.row.date}}</div>
-                      </q-td>
-                      <q-td key="token" :props="props">
-                        <div>{{props.row.token}}</div>
-                      </q-td>
-                    </q-tr>
-                  </template>
-                  {% endraw %}
-                </q-table>
-              </q-tab-panel>
+                        <q-td key="date" :props="props">
+                          <div>{{props.row.date}}</div>
+                        </q-td>
+                        <q-td key="token" :props="props">
+                          <div>{{props.row.token}}</div>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                    {% endraw %}
+                  </q-table>
+                </q-tab-panel>
+              </q-tab-panels>
+            </q-card-section>
+          </q-card>
 
-
-            </q-tab-panels>
-          </q-card-section>
-        </q-card>
-        
-        <div class="q-pa-sd q-py-md">
-          <q-btn 
-          class="q-mx-sm"
-          size="10px"
-          rectangle
-          color="warning"
-          outline
-          @click="showDisclaimerDialog"> Warning</q-btn>
-          <q-btn 
-          class="q-mx-sm"
-          size="10px"
-          outline 
-          rectangle
-          icon="file_download"
-          color="warning" 
-          tooltip="asd"
-          @click="getLocalstorageToFile">Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn>
+          <div class="q-pa-sd q-py-md">
+            <q-btn
+              class="q-mx-sm"
+              size="10px"
+              rectangle
+              color="warning"
+              outline
+              @click="showDisclaimerDialog"
+            >
+              Warning</q-btn
+            >
+            <q-btn
+              class="q-mx-sm"
+              size="10px"
+              outline
+              rectangle
+              icon="file_download"
+              color="warning"
+              tooltip="asd"
+              @click="getLocalstorageToFile"
+              >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
+            >
+          </div>
         </div>
-      </div>
-    
-    </q-scroll-area>
+      </q-scroll-area>
 
       <q-tabs
         class="lt-md fixed-bottom q-px-none q-py-xs left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
@@ -304,12 +321,12 @@
           @click="showInvoicesDialog"
         >
         </q-tab>
-        </q-tab>
-        <q-tab 
-        icon="arrow_upwards"
-        class="q-pa-none"
-        label="Pay Invoice" 
-        @click="showParseDialog">
+        <q-tab
+          icon="arrow_upwards"
+          class="q-pa-none"
+          label="Pay Invoice"
+          @click="showParseDialog"
+        >
         </q-tab>
         <!-- <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab> -->
       </q-tabs>
@@ -336,7 +353,13 @@
             </p>
             {% endraw %}
             <div v-if="canPay" class="row q-mt-lg">
-              <q-btn unelevated color="primary" :disabled="payInvoiceData.blocking" @click="melt">Pay</q-btn>
+              <q-btn
+                unelevated
+                color="primary"
+                :disabled="payInvoiceData.blocking"
+                @click="melt"
+                >Pay</q-btn
+              >
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"
                 >Cancel</q-btn
               >
@@ -485,7 +508,13 @@
                   type="submit"
                   >Enter</q-btn
                 >
-                <q-btn unelevated icon="photo_camera" class="q-mx-0" @click="showCamera"> </q-btn>
+                <q-btn
+                  unelevated
+                  icon="photo_camera"
+                  class="q-mx-0"
+                  @click="showCamera"
+                >
+                </q-btn>
                 <q-btn v-close-popup flat color="grey" class="q-ml-auto"
                   >Cancel</q-btn
                 >
@@ -529,27 +558,33 @@
           <h6 class="q-my-md text-primary">Warning</h6>
           <p>
             <strong>Bookmark this page and backup your tokens!</strong>
-            Ecash is a bearer asset, meaning losing access to this wallet will mean you will
-            lose the funds. This wallet stores ecash tokens in its database. If you lose the link or delete your
-            your data without backing up, you will lose your tokens. Press the Backup button to download
-            a copy of your tokens.
+            Ecash is a bearer asset, meaning losing access to this wallet will
+            mean you will lose the funds. This wallet stores ecash tokens in its
+            database. If you lose the link or delete your your data without
+            backing up, you will lose your tokens. Press the Backup button to
+            download a copy of your tokens.
           </p>
-          <p>        
-            <strong>Add to home screen.</strong> 
-            You can add Cashu to your home screen as a progressive web app (PWA).
-            On Android Chrome, click the hamburger menu at the upper right.
-            On iOS Safari, click the share button. Now press the Add to Home screen button.
-          </p>          
-          <p>         
-            <strong>This service is in BETA!</strong> We hold no responsibility for people losing
-            access to funds. Use at your own risk!
+          <p>
+            <strong>Add to home screen.</strong>
+            You can add Cashu to your home screen as a progressive web app
+            (PWA). On Android Chrome, click the hamburger menu at the upper
+            right. On iOS Safari, click the share button. Now press the Add to
+            Home screen button.
+          </p>
+          <p>
+            <strong>This service is in BETA!</strong> We hold no responsibility
+            for people losing access to funds. Use at your own risk!
           </p>
           <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText(disclaimerDialog.location.href)">Copy wallet URL</q-btn>
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            <q-btn
+              outline
+              color="grey"
+              @click="copyText(disclaimerDialog.location.href)"
+              >Copy wallet URL</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >I understand</q-btn
             >
-            
           </div>
         </q-card>
       </q-dialog>
@@ -602,7 +637,11 @@
               color="primary"
               >Copy invoice</q-btn
             >
-            <q-btn v-else color="primary" @click="requestMintButton" :disable="!invoiceData.amount > 0"
+            <q-btn
+              v-else
+              color="primary"
+              @click="requestMintButton"
+              :disable="!invoiceData.amount > 0"
               >Create Invoice</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -645,15 +684,15 @@
           <div v-else class="text-center q-mb-lg">
             <div class="text-center q-mb-lg">
               <!-- <a :href="'cashu:' + sendData.tokensBase64"> -->
-                <q-responsive :ratio="1" class="q-mx-xl">
-                  <qrcode
-                    :value="sendData.tokensBase64"
-                    :options="{width: 340}"
-                    class="rounded-borders"
-                  >
-                  </qrcode>
-                </q-responsive>
-              </a>
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="sendData.tokensBase64"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                >
+                </qrcode>
+              </q-responsive>
+              <!-- </a> -->
             </div>
             <q-input
               outlined
@@ -712,9 +751,7 @@
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="redeem" color="primary"
-              >Receive Tokens</q-btn
-            >
+            <q-btn @click="redeem" color="primary">Receive Tokens</q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
             >
@@ -930,7 +967,7 @@
               label: 'Payment request',
               field: 'bolt11',
               sortable: false
-            },         
+            },
             {
               name: 'hash',
               align: 'left',
@@ -949,13 +986,13 @@
 
         historyTable: {
           columns: [
-          {
+            {
               name: 'status',
               align: 'left',
               label: '',
               field: 'status',
               sortable: true
-            },            
+            },
             {
               name: 'amount',
               align: 'left',
@@ -1033,12 +1070,12 @@
       getTokenList: function () {
         console.log(this.proofs)
         const amounts = this.proofs.map(t => t.amount)
-        const counts = {};
+        const counts = {}
 
         for (const num of amounts) {
-          counts[num] = counts[num] ? counts[num] + 1 : 1;
+          counts[num] = counts[num] ? counts[num] + 1 : 1
         }
-        console.log("counts", counts)
+        console.log('counts', counts)
         return Object.keys(counts).map(k => ({
           value: parseInt(k),
           count: parseInt(counts[k]),
@@ -1088,7 +1125,7 @@
         this.payInvoiceData.camera.show = false
         this.focusInput('pasteInput')
       },
-      showDisclaimerDialog: function() {
+      showDisclaimerDialog: function () {
         this.disclaimerDialog.show = true
       },
 
@@ -1315,11 +1352,11 @@
       showTokenDialog: function (token) {
         console.log('##### showTokenDialog')
         // TODO: this must be decoded and desiarlized!
-        this.sendData.tokens = _.clone(token) 
-        this.sendData.tokensBase64 = _.clone(token) 
+        this.sendData.tokens = _.clone(token)
+        this.sendData.tokensBase64 = _.clone(token)
         this.showSendTokens = true
         // kick off token check worker
-        this.checkTokenSpendableWorker()        
+        this.checkTokenSpendableWorker()
       },
 
       showSendTokensDialog: function () {
@@ -1397,7 +1434,6 @@
         return proofs.reduce((s, t) => (s += t.amount), 0)
       },
 
-
       //////////// API ///////////
 
       invoiceCheckWorker: async function () {
@@ -1408,7 +1444,7 @@
 
             // exit loop after 2m
             if (nInterval > 40) {
-              console.log("### stopping invoice check worker")
+              console.log('### stopping invoice check worker')
               clearInterval(this.invoiceCheckListener)
             }
             console.log('### setInterval', nInterval)
@@ -1418,7 +1454,7 @@
             await this.recheckInvoice(this.invoiceData.hash, false)
 
             // only without error (invoice paid) will we reach here
-            console.log("### stopping invoice check worker")
+            console.log('### stopping invoice check worker')
             clearInterval(this.invoiceCheckListener)
             this.invoiceData.bolt11 = ''
             this.showInvoiceDetails = false
@@ -1436,7 +1472,7 @@
 
       requestMintButton: async function () {
         await this.requestMint()
-        console.log("#### request mint", this.invoiceData)
+        console.log('#### request mint', this.invoiceData)
         await this.invoiceCheckWorker()
       },
 
@@ -1666,17 +1702,19 @@
 
       sendTokens: async function () {
         try {
-        // keep firstProofs, send scndProofs
-        let {fristProofs, scndProofs} = await this.splitToSend(
-          this.proofs,
-          this.sendData.amount,
-          true
-        )
-        this.sendData.tokens = scndProofs
-        console.log('### this.sendData.tokens', this.sendData.tokens)
-        this.sendData.tokensBase64 = btoa(JSON.stringify(this.sendData.tokens))
+          // keep firstProofs, send scndProofs
+          let {fristProofs, scndProofs} = await this.splitToSend(
+            this.proofs,
+            this.sendData.amount,
+            true
+          )
+          this.sendData.tokens = scndProofs
+          console.log('### this.sendData.tokens', this.sendData.tokens)
+          this.sendData.tokensBase64 = btoa(
+            JSON.stringify(this.sendData.tokens)
+          )
 
-        this.historyTokens.push({
+          this.historyTokens.push({
             status: 'pending',
             amount: -this.sendData.amount,
             date: currentDateStr(),
@@ -1688,7 +1726,6 @@
           console.error(error)
           throw error
         }
-
       },
       checkFees: async function (payment_request) {
         const payload = {
@@ -1756,11 +1793,11 @@
           this.proofs = fristProofs
           this.storeProofs()
           console.log({
-              amount: -amount,
-              bolt11: this.payInvoiceData.data.request,
-              hash: this.payInvoiceData.data.hash,
-              memo: this.payInvoiceData.data.memo,
-            })
+            amount: -amount,
+            bolt11: this.payInvoiceData.data.request,
+            hash: this.payInvoiceData.data.hash,
+            memo: this.payInvoiceData.data.memo
+          })
           this.invoicesCashu.push({
             amount: -amount,
             bolt11: this.payInvoiceData.data.request,
@@ -1775,7 +1812,6 @@
           this.payInvoiceData.invoice = false
           this.payInvoiceData.show = false
           this.payInvoiceData.blocking = false
-
         } catch (error) {
           this.payInvoiceData.blocking = false
           console.error(error)
@@ -1812,7 +1848,6 @@
         this.storehistoryTokens()
       },
 
-
       checkTokenSpendableWorker: async function () {
         let nInterval = 0
         this.tokensCheckSpendableListener = setInterval(async () => {
@@ -1821,32 +1856,34 @@
 
             // exit loop after 2m
             if (nInterval > 24) {
-              console.log("### stopping token check worker")
+              console.log('### stopping token check worker')
               clearInterval(this.tokensCheckSpendableListener)
             }
             console.log('### setInterval', nInterval)
             console.log(this.sendData)
 
             // this will throw an error if the invoice is pending
-            paid = await this.checkTokenSpendable(this.sendData.tokensBase64, false)
+            paid = await this.checkTokenSpendable(
+              this.sendData.tokensBase64,
+              false
+            )
             if (paid) {
-              console.log("### stopping token check worker")
+              console.log('### stopping token check worker')
               clearInterval(this.tokensCheckSpendableListener)
               this.sendData.tokens = ''
               this.showSendTokens = false
             }
-
           } catch (error) {
             console.log('not paid yet')
           }
         }, 5000)
       },
 
-      checkTokenSpendable: async function(token, verbose=true) {
+      checkTokenSpendable: async function (token, verbose = true) {
         const tokenJson = atob(token)
         const proofs = JSON.parse(tokenJson)
         const payload = {
-          proofs: proofs.flat(),
+          proofs: proofs.flat()
         }
         console.log('#### payload', JSON.stringify(payload))
         try {
@@ -1859,13 +1896,13 @@
           // iterate through response of form {0: true, 1: false, ...}
           let paid = false
           for (const [key, spendable] of Object.entries(data)) {
-              if (!spendable){
-                this.setTokenPaid(token)
-                paid = true
-              }
+            if (!spendable) {
+              this.setTokenPaid(token)
+              paid = true
+            }
           }
-          if (paid){
-            console.log("### token paid")
+          if (paid) {
+            console.log('### token paid')
             if (window.navigator.vibrate) navigator.vibrate(200)
             this.$q.notify({
               timeout: 5000,
@@ -1873,13 +1910,13 @@
               message: 'Token paid'
             })
           } else {
-            console.log("### token not paid yet")
+            console.log('### token not paid yet')
             if (verbose) {
               this.$q.notify({
-              timeout: 5000,
-              color: 'grey',
-              message: 'Token still pending'
-            })
+                timeout: 5000,
+                color: 'grey',
+                message: 'Token still pending'
+              })
             }
             this.sendData.tokens = token
           }
@@ -1888,7 +1925,7 @@
           console.error(error)
           LNbits.utils.notifyApiError(error)
           throw error
-        }          
+        }
       },
 
       fetchMintKeys: async function () {
@@ -1897,9 +1934,11 @@
           `/cashu/api/v1/${this.mintId}/keys`
         )
         this.keys = data
-        localStorage.setItem(this.mintKey(this.mintId, 'keys'), JSON.stringify(data))
-      },      
-
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'keys'),
+          JSON.stringify(data)
+        )
+      },
 
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1970,32 +2009,31 @@
 
       ////////////// STORAGE /////////////
 
-      getLocalstorageToFile: async function() {
+      getLocalstorageToFile: async function () {
         // https://stackoverflow.com/questions/24263682/save-restore-local-storage-to-a-local-file
         const fileName = `cashu_backup_${currentDateStr()}.json`
-        var a = {};
+        var a = {}
         for (var i = 0; i < localStorage.length; i++) {
-          var k = localStorage.key(i);
-          var v = localStorage.getItem(k);
-          a[k] = v;
+          var k = localStorage.key(i)
+          var v = localStorage.getItem(k)
+          a[k] = v
         }
         var textToSave = JSON.stringify(a)
         var textToSaveAsBlob = new Blob([textToSave], {
-          type: "text/plain"
-        });
-        var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
+          type: 'text/plain'
+        })
+        var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob)
 
-        var downloadLink = document.createElement("a");
-        downloadLink.download = fileName;
-        downloadLink.innerHTML = "Download File";
-        downloadLink.href = textToSaveAsURL;
+        var downloadLink = document.createElement('a')
+        downloadLink.download = fileName
+        downloadLink.innerHTML = 'Download File'
+        downloadLink.href = textToSaveAsURL
         downloadLink.onclick = function () {
-          document.body.removeChild(event.target);
-        };
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        
+          document.body.removeChild(event.target)
+        }
+        downloadLink.style.display = 'none'
+        document.body.appendChild(downloadLink)
+        downloadLink.click()
       },
 
       storeinvoicesCashu: function () {
@@ -2009,20 +2047,19 @@
           this.mintKey(this.mintId, 'historyTokens'),
           JSON.stringify(this.historyTokens)
         )
-      },      
+      },
       storeProofs: function () {
         localStorage.setItem(
           this.mintKey(this.mintId, 'proofs'),
           JSON.stringify(this.proofs, bigIntStringify)
         )
       },
-      
-      mintKey: function(mintId, key) {
+
+      mintKey: function (mintId, key) {
         // returns a key for the local storage
         // depending on the current mint
-        return "cashu." + mintId + "." + key
-      },
-
+        return 'cashu.' + mintId + '.' + key
+      }
     },
     watch: {
       payments: function () {
@@ -2049,7 +2086,10 @@
       // get name
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
-        this.$q.localStorage.set(this.mintKey(this.mintId, 'mintName'), this.mintName)
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'mintName'),
+          this.mintName
+        )
       } else if (this.$q.localStorage.getItem('cashu.name')) {
         this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
@@ -2059,13 +2099,23 @@
         !params.get('tsh') &&
         !this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
       ) {
-        this.$q.localStorage.set(this.mintKey(this.mintId, 'tickershort'), 'sats')
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'tickershort'),
+          'sats'
+        )
         this.tickershort = 'sats'
       } else if (params.get('tsh')) {
-        this.$q.localStorage.set(this.mintKey(this.mintId, 'tickershort'), params.get('tsh'))
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'tickershort'),
+          params.get('tsh')
+        )
         this.tickershort = params.get('tsh')
-      } else if (this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))) {
-        this.tickershort = this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      } else if (
+        this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      ) {
+        this.tickershort = this.$q.localStorage.getItem(
+          this.mintKey(this.mintId, 'tickershort')
+        )
       }
 
       const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
@@ -2083,7 +2133,9 @@
         localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
       )
 
-      this.proofs = JSON.parse(localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]')
+      this.proofs = JSON.parse(
+        localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
+      )
       console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.proofs)
       console.log('#### this.mintId', this.mintId)
