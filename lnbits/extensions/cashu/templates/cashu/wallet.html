@@ -714,13 +714,16 @@ page_container %}
             <!-- <q-btn v-else @click="burnTokens" outline color="grey"
               >Burn Tokens</q-btn
             > -->
-            <q-btn
-              v-else
-              outline
-              color="primary"
-              @click="copyText(sendData.tokensBase64)"
-              >Copy token</q-btn
-            >
+            <div v-else>
+              <q-btn color="primary" @click="copyText(sendData.tokensBase64)"
+                >Copy token</q-btn
+              >
+              <q-btn
+                color="primary"
+                @click="copyText(disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64)"
+                >Copy link</q-btn
+              >
+            </div>
 
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
@@ -1026,7 +1029,8 @@ page_container %}
         },
         disclaimerDialog: {
           show: false,
-          location: window.location
+          location: window.location,
+          base_url: location.protocol + '//' + location.host + location.pathname
         },
 
         credit: 0,
@@ -1840,6 +1844,16 @@ page_container %}
           }
         }
       },
+
+      recheckPendingTokens: async function () {
+        for (const token of this.historyTokens) {
+          console.log(token.status, token.amount)
+          if (token.status === 'pending' && token.amount < 0) {
+            print('CHEKABLE')
+            this.checkTokenSpendable(token.token, false)
+          }
+        }
+      },
       setTokenPaid: async function (token) {
         const invoice = this.historyTokens.find(i => i.token === token)
         invoice.status = 'paid'
@@ -2134,11 +2148,19 @@ page_container %}
       this.proofs = JSON.parse(
         localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
       )
+
+      // get recv_token
+      if (params.get('recv_token')) {
+        this.receiveData.tokensBase64 = params.get('recv_token')
+        this.showReceiveTokens = true
+      }
+
       console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.proofs)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
       this.recheckPendingInvoices()
+      this.recheckPendingTokens()
     }
   })
 </script>
