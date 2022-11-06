@@ -5,7 +5,7 @@ page_container %}
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-lg">
       <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
-        <q-scroll-area style="height: 700px; max-width: 1024px">
+        <q-scroll-area style="height: 550px; max-width: 1024px" class="lt-md">
           <q-card class="q-mb-sm">
             <q-card-section>
               <div class="gt-sm">
@@ -67,9 +67,10 @@ page_container %}
                     rectangle
                     unelevated
                     color="primary"
+                    icon="file_download"
                     class="full-width"
                     @click="showReceiveTokensDialog"
-                    >Receive Tokens</q-btn
+                    >Get Tokens</q-btn
                   >
                 </div>
                 <div class="col-0 col-sm-2 col-md-4"></div>
@@ -79,10 +80,11 @@ page_container %}
                     rectangle
                     unelevated
                     color="primary"
+                    icon="file_upload"
                     class="full-width"
                     @click="showSendTokensDialog"
                   >
-                    Send Tokens</q-btn
+                    Pay Tokens</q-btn
                   >
                 </div>
               </div>
@@ -280,7 +282,7 @@ page_container %}
             </q-card-section>
           </q-card>
 
-          <div class="q-pa-sd q-py-md">
+          <div class="q-pa-sd q-py-md" align="center">
             <q-btn
               class="q-mx-sm"
               size="10px"
@@ -296,9 +298,7 @@ page_container %}
               size="10px"
               outline
               rectangle
-              icon="file_download"
               color="warning"
-              tooltip="asd"
               @click="getLocalstorageToFile"
               >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
             >
@@ -308,22 +308,22 @@ page_container %}
 
       <q-tabs
         class="lt-md fixed-bottom q-px-none q-py-xs left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
-        align="justify"
+        align="center"
         inline-label
         indicator-color="transparent"
       >
         <q-tab
           class="q-pa-none"
-          icon="arrow_downwards"
-          label="Receive"
+          icon="bolt"
+          label="Get Invoice"
           @click="showInvoicesDialog"
         >
         </q-tab>
         <q-tab icon="photo_camera" @click="showCamera"> </q-tab>
         <q-tab
-          icon="arrow_upwards"
+          icon="bolt"
           class="q-pa-none"
-          label="Send"
+          label="Pay invoice"
           @click="showParseDialog"
         >
         </q-tab>
