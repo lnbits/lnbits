@@ -292,16 +292,22 @@
       <q-tabs
         class="lt-md fixed-bottom q-px-none q-py-xs left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
         align="justify"
+        inline-label
         indicator-color="transparent"
       >
         <q-tab
-          icon="arrow_downward"
+          class="q-pa-none"
+          icon="arrow_downwards"
           label="Receive Invoice"
           @click="showInvoicesDialog"
         >
         </q-tab>
         </q-tab>
-        <q-tab icon="arrow_upward" label="Pay Invoice" @click="showParseDialog">
+        <q-tab 
+        icon="arrow_upwards"
+        class="q-pa-none"
+        label="Pay Invoice" 
+        @click="showParseDialog">
         </q-tab>
         <!-- <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab> -->
       </q-tabs>
@@ -466,7 +472,7 @@
                 dense
                 v-model.trim="payInvoiceData.data.request"
                 type="textarea"
-                label="Paste an invoice, payment request or lnurl code *"
+                label="Enter an invoice *"
               >
               </q-input>
               <div class="row q-mt-lg">
@@ -520,10 +526,11 @@
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
           <p>
-            <strong>Bookmark this page!</strong>
+            <strong>Bookmark this page and backup your tokens!</strong>
             Ecash is a bearer asset, meaning losing access to this wallet will mean you will
-            lose the funds. This wallet stores tokens in its database. If you lose the link or delete your
-            your browser data, you will lose your tokens. Bookmark this page.
+            lose the funds. This wallet stores ecash tokens in its database. If you lose the link or delete your
+            your data without backing up, you will lose your tokens. Press the Backup button to download
+            a copy of your tokens.
           </p>
           <p>        
             <strong>Add to home screen.</strong> 
