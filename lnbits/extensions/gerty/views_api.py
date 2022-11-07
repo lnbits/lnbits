@@ -369,16 +369,16 @@ async def get_mempool_stat(stat_slug: str, gerty):
 
                 pos_y = 280 + y_offset
                 text.append(
-                    get_text_item_dict("{0}".format("No Priority"), 15, 30, pos_y)
+                    get_text_item_dict("{0}".format("None"), 15, 30, pos_y)
                 )
                 text.append(
-                    get_text_item_dict("{0}".format("Low Priority"), 15, 235, pos_y)
+                    get_text_item_dict("{0}".format("Low"), 15, 235, pos_y)
                 )
                 text.append(
-                    get_text_item_dict("{0}".format("Medium Priority"), 15, 460, pos_y)
+                    get_text_item_dict("{0}".format("Medium"), 15, 460, pos_y)
                 )
                 text.append(
-                    get_text_item_dict("{0}".format("High Priority"), 15, 750, pos_y)
+                    get_text_item_dict("{0}".format("High"), 15, 750, pos_y)
                 )
 
                 pos_y = 340 + y_offset
