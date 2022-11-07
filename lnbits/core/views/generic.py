@@ -1,6 +1,6 @@
 import asyncio
 from http import HTTPStatus
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import Request, status
@@ -22,6 +22,7 @@ from lnbits.settings import (
     LNBITS_CUSTOM_LOGO,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
+    LNBITS_EXTENSIONS_MANIFESTS,
 )
 
 from ...helpers import get_valid_extensions
@@ -102,6 +103,8 @@ async def extensions_install(
     user: User = Depends(check_user_exists),
 ):
 
+    urls: List[str] = LNBITS_EXTENSIONS_MANIFESTS
+    print("### URLS", urls)
     async with httpx.AsyncClient() as client:
         # r = await client.get(f"https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json")
         url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json"
@@ -111,14 +114,28 @@ async def extensions_install(
         if r.status_code != 200:
             raise HTTPException(status_code=404, detail="Unable to fetch extension")
 
-        extensions = r.json()["extensions"]
+        # extensions = r.json()["extensions"]
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
-        for ext in extensions:
-            ext["isInstalled"] = ext["id"] in installed_extensions
+        extensions = list(
+            map(
+                lambda ext: {
+                    "id": ext["id"],
+                    "name": ext["name"],
+                    "icon": ext["icon"],
+                    "shortDescription": ext["shortDescription"],
+                    "isInstalled": ext["id"] in installed_extensions,
+                },
+                r.json()["extensions"],
+            )
+        )
 
         return template_renderer().TemplateResponse(
             "core/install.html",
-            {"request": request, "user": user.dict(), "extensions": extensions},
+            {
+                "request": request,
+                "user": user.dict(),
+                "extensions": extensions,
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
