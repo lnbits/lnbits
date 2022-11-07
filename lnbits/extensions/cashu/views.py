@@ -78,6 +78,10 @@ async def manifest(cashu_id: str):
         "display": "standalone",
         "scope": "/cashu/",
         "theme_color": "#1F2234",
+        "protocol_handlers": [
+            {"protocol": "cashu", "url": "&recv_token=%s"},
+            {"protocol": "lightning", "url": "&lightning=%s"},
+        ],
         "shortcuts": [
             {
                 "name": "Cashu" + " - " + cashu.name,
