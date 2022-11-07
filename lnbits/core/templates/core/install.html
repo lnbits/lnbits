@@ -28,12 +28,6 @@
     :key="extension.id"
   >
     <q-card>
-      <!-- <q-card-section v-if="extension.html">
-        <iframe referrerpolicy="unsafe-url"
-          :src="extension.html"
-          style="width: 100%; border: 0"
-        ></iframe>
-      </q-card-section> -->
       <q-card-section>
         <q-icon
           :name="extension.icon"
@@ -47,20 +41,9 @@
       <q-separator></q-separator>
       <q-card-actions>
         <div v-if="extension.isInstalled">
-          <q-btn
-            flat
-            color="grey-5"
-          >
-            Uninstall</q-btn
-          >
+          <q-btn flat color="grey-5"> Uninstall</q-btn>
         </div>
-        <q-btn
-          v-else
-          flat
-          color="primary"
-          type="a"
-          :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&enable=', extension.id].join('')"
-        >
+        <q-btn v-else flat color="primary" @click="installExtension(extension)">
           Install</q-btn
         >
       </q-card-actions>
@@ -101,14 +84,18 @@
       }
     },
     methods: {
-      installExtension: async function () {
-        console.log('### installExtension')
-        const resp = await LNbits.api.request(
-          'POST',
-          '/api/v1/extension',
-          this.g.user.wallets[0].adminkey
-        )
-        console.log('### resp', resp)
+      installExtension: async function (extension) {
+        console.log('### installExtension', extension)
+        try {
+          await LNbits.api.request(
+            'POST',
+            `/api/v1/extension/${extension.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          extension.isInstalled = true
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
       }
     },
     created: function () {
