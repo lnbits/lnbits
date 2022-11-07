@@ -6,6 +6,7 @@ from loguru import logger
 from . import db as core_db
 from .crud import update_migration_version
 
+
 async def migrate_extension_database(ext, current_version):
     try:
         ext_migrations = importlib.import_module(
@@ -19,6 +20,7 @@ async def migrate_extension_database(ext, current_version):
 
     async with ext_db.connect() as ext_conn:
         await run_migration(ext_conn, ext_migrations, current_version)
+
 
 async def run_migration(db, migrations_module, current_version):
     matcher = re.compile(r"^m(\d\d\d)_")

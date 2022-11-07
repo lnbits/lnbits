@@ -9,7 +9,6 @@ from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import get_dbversions
 from .core.helpers import migrate_extension_database, run_migration
-
 from .db import COCKROACH, POSTGRES, SQLITE
 from .helpers import (
     get_css_vendored,
@@ -71,11 +70,11 @@ async def migrate_databases():
             await core_migrations.m000_create_migrations_table(conn)
 
         current_versions = await get_dbversions(conn)
-        core_version =  current_versions.get("core", 0)
+        core_version = current_versions.get("core", 0)
         await run_migration(conn, core_migrations, core_version)
 
     for ext in get_valid_extensions():
-       current_version =  current_versions.get(ext.code, 0)
-       await  migrate_extension_database(ext, current_version)
+        current_version = current_versions.get(ext.code, 0)
+        await migrate_extension_database(ext, current_version)
 
     logger.info("✔️ All migrations done.")
