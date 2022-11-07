@@ -103,18 +103,17 @@ async def extensions_install(
     user: User = Depends(check_user_exists),
 ):
 
-    urls: List[str] = LNBITS_EXTENSIONS_MANIFESTS
-    print("### URLS", urls)
+    extension_list: List[str] = []
+
     async with httpx.AsyncClient() as client:
-        # r = await client.get(f"https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json")
-        url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json"
-        r = await client.get(url)
+        for url in LNBITS_EXTENSIONS_MANIFESTS:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=404, detail="Unable to fetch extension")
+            extension_list += resp.json()["extensions"]
 
+    print("### URLS", extension_list)
     try:
-        if r.status_code != 200:
-            raise HTTPException(status_code=404, detail="Unable to fetch extension")
-
-        # extensions = r.json()["extensions"]
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         extensions = list(
             map(
@@ -125,7 +124,7 @@ async def extensions_install(
                     "shortDescription": ext["shortDescription"],
                     "isInstalled": ext["id"] in installed_extensions,
                 },
-                r.json()["extensions"],
+                extension_list,
             )
         )
 
