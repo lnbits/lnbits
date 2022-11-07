@@ -15,17 +15,15 @@ def get_percent_difference(current, previous, precision=4):
 # A helper function get a nicely formated dict for the text
 def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
     # Get line size by font size
-    line_width = 60
+    line_width = 20
     if font_size <= 12:
-        line_width = 75
+        line_width = 60
     elif font_size <= 15:
-        line_width = 58
+        line_width = 45
     elif font_size <= 20:
-        line_width = 40
+        line_width = 35
     elif font_size <= 40:
-        line_width = 30
-    else:
-        line_width = 20
+        line_width = 25
 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
