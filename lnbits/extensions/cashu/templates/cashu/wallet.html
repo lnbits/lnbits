@@ -92,8 +92,8 @@ page_container %}
             ////////////////// TABLES /////////////////
             /////////////////////////////////////////// -->
             <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
-              <q-tab name="tokens" label="Tokens"></q-tab>
               <q-tab name="invoices" label="Invoices"></q-tab>
+              <q-tab name="tokens" label="Tokens"></q-tab>
               <q-tab name="history" label="History"></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
@@ -874,7 +874,7 @@ page_container %}
         showReceiveTokens: false,
         promises: [],
         tokens: [],
-        tab: 'tokens',
+        tab: 'invoices',
 
         receive: {
           show: false,
