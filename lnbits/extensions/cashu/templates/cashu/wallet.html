@@ -321,7 +321,8 @@ page_container %}
           @click="showInvoicesDialog"
         >
         </q-tab>
-        <q-tab icon="photo_camera" @click="showCamera"> </q-tab>
+        <q-tab icon="photo_camera" v-if="hasCamera" @click="showCamera">
+        </q-tab>
         <q-tab
           icon="bolt"
           class="q-pa-none"
@@ -487,7 +488,7 @@ page_container %}
           </div>
           <div v-else>
             <q-form
-              v-if="!payInvoiceData.camera.show"
+              v-if="!camera.show"
               @submit="decodeRequest"
               class="q-gutter-md"
             >
@@ -512,11 +513,12 @@ page_container %}
                   unelevated
                   icon="photo_camera"
                   class="q-mx-0"
+                  v-if="hasCamera"
                   @click="showCamera"
                 >
                 </q-btn>
                 <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                  >Cancel</q-btn
+                  >Close</q-btn
                 >
               </div>
             </q-form>
@@ -537,7 +539,7 @@ page_container %}
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="payInvoiceData.camera.show">
+      <q-dialog v-model="camera.show">
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
@@ -755,6 +757,13 @@ page_container %}
 
           <div class="row q-mt-lg">
             <q-btn @click="redeem" color="primary">Receive Tokens</q-btn>
+            <q-btn
+                  unelevated
+                  icon="photo_camera"
+                  class="q-mx-0"
+                  v-if="hasCamera"
+                  @click="showCamera"
+                >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
             >
@@ -824,6 +833,11 @@ page_container %}
           memo: '',
           bolt11: '',
           hash: ''
+        },
+        camera: {
+          data: null,
+          show: false,
+          camera: 'auto'
         },
         invoiceCheckListener: () => {},
         payInvoiceData: {
@@ -1089,10 +1103,15 @@ page_container %}
         return row.payment_hash + row.amount
       },
       closeCamera: function () {
-        this.payInvoiceData.camera.show = false
+        this.camera.show = false
       },
       showCamera: function () {
-        this.payInvoiceData.camera.show = true
+        this.camera.show = true
+      },
+      hasCamera: function () {
+        navigator.permissions.query({name: 'camera'}).then(res => {
+          return res.state == 'granted'
+        })
       },
       showChart: function () {
         this.paymentsChart.show = true
@@ -1124,7 +1143,7 @@ page_container %}
         this.payInvoiceData.data.request = ''
         this.payInvoiceData.data.comment = ''
         this.payInvoiceData.data.paymentChecker = null
-        this.payInvoiceData.camera.show = false
+        this.camera.show = false
         this.focusInput('pasteInput')
       },
       showDisclaimerDialog: function () {
@@ -1203,83 +1222,96 @@ page_container %}
           })
       },
       decodeQR: function (res) {
-        this.payInvoiceData.data.request = res
+        this.camera.data = res
+        // this.payInvoiceData.data.request = res
         this.decodeRequest()
-        this.payInvoiceData.camera.show = false
+        this.camera.show = false
       },
       decodeRequest: function () {
-        this.payInvoiceData.show = true
-        let req = this.payInvoiceData.data.request.toLowerCase()
-        if (
-          this.payInvoiceData.data.request
-            .toLowerCase()
-            .startsWith('lightning:')
-        ) {
-          this.payInvoiceData.data.request = this.payInvoiceData.data.request.slice(
-            10
-          )
-        } else if (
-          this.payInvoiceData.data.request.toLowerCase().startsWith('lnurl:')
-        ) {
-          this.payInvoiceData.data.request = this.payInvoiceData.data.request.slice(
-            6
-          )
+        // let req = this.payInvoiceData.data.request.toLowerCase()
+        reqtype = null
+        let req = this.camera.data
+        if (req.toLowerCase().startsWith('lnbc')) {
+          this.payInvoiceData.data.request = req
+          reqtype = 'bolt11'
+        } else if (req.toLowerCase().startsWith('lightning:')) {
+          this.payInvoiceData.data.request = req.slice(10)
+          reqtype = 'bolt11'
+        } else if (req.toLowerCase().startsWith('lnurl:')) {
+          this.payInvoiceData.data.request = req.slice(6)
+          reqtype = 'lnurl'
         } else if (req.indexOf('lightning=lnurl1') !== -1) {
-          this.payInvoiceData.data.request = this.payInvoiceData.data.request
+          this.payInvoiceData.data.request = req
             .split('lightning=')[1]
             .split('&')[0]
-        }
-
-        if (
-          this.payInvoiceData.data.request.toLowerCase().startsWith('lnurl1') ||
-          this.payInvoiceData.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
+          reqtype = 'lnurl'
+        } else if (
+          req.toLowerCase().startsWith('lnurl1') ||
+          req.match(/[\w.+-~_]+@[\w.+-~_]/)
         ) {
+          this.payInvoiceData.data.request = req
+          reqtype = 'lnurl'
           return
+        } else if (req.indexOf('W3siaWQ') !== 1) {
+          // very dirty way of parsing cashu tokens
+
+          this.receiveData.tokensBase64 = req.slice(req.indexOf('W3siaWQ'))
+          reqtype = 'cashu'
         }
 
-        let invoice
-        try {
-          invoice = decode(this.payInvoiceData.data.request)
-        } catch (error) {
-          this.$q.notify({
-            timeout: 3000,
-            type: 'warning',
-            message: error + '.',
-            caption: '400 BAD REQUEST'
-          })
-          this.payInvoiceData.show = false
-          throw error
-          return
-        }
-
-        let cleanInvoice = {
-          msat: invoice.human_readable_part.amount,
-          sat: invoice.human_readable_part.amount / 1000,
-          fsat: LNbits.utils.formatSat(
-            invoice.human_readable_part.amount / 1000
-          )
-        }
-
-        _.each(invoice.data.tags, tag => {
-          if (_.isObject(tag) && _.has(tag, 'description')) {
-            if (tag.description === 'payment_hash') {
-              cleanInvoice.hash = tag.value
-            } else if (tag.description === 'description') {
-              cleanInvoice.description = tag.value
-            } else if (tag.description === 'expiry') {
-              var expireDate = new Date(
-                (invoice.data.time_stamp + tag.value) * 1000
-              )
-              cleanInvoice.expireDate = Quasar.utils.date.formatDate(
-                expireDate,
-                'YYYY-MM-DDTHH:mm:ss.SSSZ'
-              )
-              cleanInvoice.expired = false // TODO
-            }
+        if (reqtype == 'bolt11') {
+          console.log('#### QR CODE: BOLT11')
+          this.payInvoiceData.show = true
+          let invoice
+          try {
+            invoice = decode(this.payInvoiceData.data.request)
+          } catch (error) {
+            this.$q.notify({
+              timeout: 3000,
+              type: 'warning',
+              message: error + '.',
+              caption: '400 BAD REQUEST'
+            })
+            this.payInvoiceData.show = false
+            throw error
+            return
           }
-        })
 
-        this.payInvoiceData.invoice = Object.freeze(cleanInvoice)
+          let cleanInvoice = {
+            msat: invoice.human_readable_part.amount,
+            sat: invoice.human_readable_part.amount / 1000,
+            fsat: LNbits.utils.formatSat(
+              invoice.human_readable_part.amount / 1000
+            )
+          }
+
+          _.each(invoice.data.tags, tag => {
+            if (_.isObject(tag) && _.has(tag, 'description')) {
+              if (tag.description === 'payment_hash') {
+                cleanInvoice.hash = tag.value
+              } else if (tag.description === 'description') {
+                cleanInvoice.description = tag.value
+              } else if (tag.description === 'expiry') {
+                var expireDate = new Date(
+                  (invoice.data.time_stamp + tag.value) * 1000
+                )
+                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                  expireDate,
+                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                )
+                cleanInvoice.expired = false // TODO
+              }
+            }
+          })
+
+          this.payInvoiceData.invoice = Object.freeze(cleanInvoice)
+        } else if (reqtype == 'lnurl') {
+          console.log('#### QR CODE: LNURL')
+          // not supported yet
+        } else if (reqtype == 'cashu') {
+          console.log('#### QR CODE: CASHU TOKEN')
+          this.showReceiveTokens = true
+        }
       },
       payInvoice: function () {
         let dismissPaymentMsg = this.$q.notify({
@@ -1348,7 +1380,7 @@ page_container %}
         this.payInvoiceData.invoice = ''
         this.payInvoiceData.data.request = ''
         this.showPayInvoice = true
-        this.payInvoiceData.camera.show = false
+        this.camera.show = false
       },
 
       showTokenDialog: function (token) {
