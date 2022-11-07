@@ -2,6 +2,7 @@ import asyncio
 import binascii
 import hashlib
 import json
+import os
 import shutil
 import time
 import uuid
@@ -32,7 +33,12 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import Extension, url_for, urlsafe_short_hash
-from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
+from lnbits.settings import (
+    LNBITS_ADMIN_USERS,
+    LNBITS_DATA_FOLDER,
+    LNBITS_SITE_TITLE,
+    WALLET,
+)
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -702,24 +708,33 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
     }
 
 
-@core_app.post("/api/v1/extension")
-async def api_install_extension(request: Request):
-
+@core_app.post("/api/v1/extension/{ext_id}")
+async def api_install_extension(
+    ext_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     try:
-        print("### api_install_extension 1", request)
-        print("### api_install_extension register_new_ext_routes", getattr(core_app_extra, "register_new_ext_routes"))
-   
+        # as back-up for container re-create
+        # todo: recheck on start-up
+        ext_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
+        shutil.rmtree(os.path.join(ext_data_dir, ext_id), True)
         shutil.copytree(
             "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
-            "/Users/moto/Documents/GitHub/motorina0/lnbits/lnbits/extensions/watchonly",
+            f"{ext_data_dir}/watchonly",
         )
 
-        ext = Extension("watchonly",True, False, "WatchONly", "xxxxx", "extension")
+        ext_dir = os.path.join("lnbits/extensions", ext_id)
+        shutil.rmtree(ext_dir, True)
+        shutil.copytree(
+            "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
+            ext_dir,
+        )
+
+        ext = Extension("watchonly", True, False, "WatchOnly", "xxxxx", "extension")
 
         current_versions = await get_dbversions()
-        current_version =  current_versions.get(ext.code, 0)
-        await  migrate_extension_database(ext, current_version)
-        
+        current_version = current_versions.get(ext.code, 0)
+        await migrate_extension_database(ext, current_version)
+
         register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
         register_new_ext_routes(ext)
     except Exception as ex:

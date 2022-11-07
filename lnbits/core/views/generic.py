@@ -1,8 +1,8 @@
 import asyncio
 from http import HTTPStatus
-import httpx
 from typing import Optional
 
+import httpx
 from fastapi import Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
@@ -95,14 +95,13 @@ async def extensions(
         "core/extensions.html", {"request": request, "user": user.dict()}
     )
 
-@core_html_routes.get(
-    "/install", name="core.install", response_class=HTMLResponse
-)
+
+@core_html_routes.get("/install", name="core.install", response_class=HTMLResponse)
 async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
-    
+
     async with httpx.AsyncClient() as client:
         # r = await client.get(f"https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json")
         url = "https://raw.githubusercontent.com/motorina0/lnbits-extensions/main/extensions.json"
@@ -113,17 +112,16 @@ async def extensions_install(
             raise HTTPException(status_code=404, detail="Unable to fetch extension")
 
         extensions = r.json()["extensions"]
-        installed_extensions = list(map(lambda e: e.code,  get_valid_extensions()))
+        installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         for ext in extensions:
             ext["isInstalled"] = ext["id"] in installed_extensions
 
         return template_renderer().TemplateResponse(
-            "core/install.html", {"request": request, "user": user.dict(), "extensions": extensions}
+            "core/install.html",
+            {"request": request, "user": user.dict(), "extensions": extensions},
         )
     except Exception as e:
-       raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @core_html_routes.get(
