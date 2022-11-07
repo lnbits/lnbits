@@ -758,12 +758,12 @@ page_container %}
           <div class="row q-mt-lg">
             <q-btn @click="redeem" color="primary">Receive Tokens</q-btn>
             <q-btn
-                  unelevated
-                  icon="photo_camera"
-                  class="q-mx-0"
-                  v-if="hasCamera"
-                  @click="showCamera"
-                >
+              unelevated
+              icon="photo_camera"
+              class="q-mx-0"
+              v-if="hasCamera"
+              @click="showCamera"
+            ></q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
               >Close</q-btn
             >
@@ -2110,6 +2110,8 @@ page_container %}
       }
     },
 
+    mounted: function () {},
+
     created: function () {
       let params = new URL(document.location).searchParams
 
@@ -2180,7 +2182,7 @@ page_container %}
         localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
       )
 
-      // get recv_token
+      // get recv_token to receive tokens from a link
       if (params.get('recv_token')) {
         tokenBase64 = params.get('recv_token')
         let seen = false
@@ -2214,6 +2216,7 @@ page_container %}
       console.table('### tokens', this.proofs)
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
+
       this.recheckPendingInvoices()
       this.recheckPendingTokens()
     }
