@@ -155,7 +155,7 @@ async def api_gerty_json(gerty_id: str, p: int = None):  # page number
 def get_screen_slug_by_index(index: int, screens_list):
     logger.debug("Index: {0}".format(index))
     logger.debug("len(screens_list) - 1: {0} ".format(len(screens_list) - 1))
-    if(index <= len(screens_list) - 1):
+    if index <= len(screens_list) - 1:
         return list(screens_list)[index - 1]
     else:
         return None
@@ -302,38 +302,26 @@ async def get_onchain_dashboard(gerty):
             )
             text = []
             stat = round(r.json()["progressPercent"])
-            text.append(
-                get_text_item_dict("Progress through current epoch", 12)
-            )
+            text.append(get_text_item_dict("Progress through current epoch", 12))
             text.append(get_text_item_dict("{0}%".format(stat), 60))
             areas.append(text)
 
             text = []
             stat = r.json()["estimatedRetargetDate"]
             dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
-            text.append(
-                get_text_item_dict("Date of next difficulty adjustment", 12)
-            )
+            text.append(get_text_item_dict("Date of next difficulty adjustment", 12))
             text.append(get_text_item_dict(dt, 20))
             areas.append(text)
 
             text = []
             stat = r.json()["remainingBlocks"]
-            text.append(
-                get_text_item_dict(
-                    "Blocks until next adjustment", 12
-                )
-            )
+            text.append(get_text_item_dict("Blocks until next adjustment", 12))
             text.append(get_text_item_dict("{0}".format(format_number(stat)), 60))
             areas.append(text)
 
             text = []
             stat = r.json()["remainingTime"]
-            text.append(
-                get_text_item_dict(
-                    "Blocks until next adjustment", 12
-                )
-            )
+            text.append(get_text_item_dict("Blocks until next adjustment", 12))
             text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 60))
             areas.append(text)
 
