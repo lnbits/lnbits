@@ -555,6 +555,7 @@ async def get_dbversions(conn: Optional[Connection] = None):
     rows = await (conn or db).fetchall("SELECT * FROM dbversions")
     return {row["db"]: row["version"] for row in rows}
 
+
 async def update_migration_version(conn, db_name, version):
     await (conn or db).execute(
         """

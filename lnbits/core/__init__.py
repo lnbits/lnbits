@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
-from lnbits.core.models import CoreAppExtra
 
+from lnbits.core.models import CoreAppExtra
 from lnbits.db import Database
 
 db = Database("database")

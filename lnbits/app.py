@@ -4,9 +4,9 @@ import logging
 import signal
 import sys
 import traceback
-from typing import Callable
 import warnings
 from http import HTTPStatus
+from typing import Callable
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -101,7 +101,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     register_exception_handlers(app)
 
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    
+
     return app
 
 
@@ -137,8 +137,9 @@ def check_funding_source(app: FastAPI) -> None:
 def register_new_ext_routes(app: FastAPI) -> Callable:
     def register_new_ext_routes_fn(ext: Extension):
         register_ext_routes(app, ext)
+
     return register_new_ext_routes_fn
-    
+
 
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
