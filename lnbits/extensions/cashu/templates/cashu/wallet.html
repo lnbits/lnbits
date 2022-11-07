@@ -1225,7 +1225,16 @@ page_container %}
       },
       decodeRequest: function () {
         let reqtype = null
-        let req = this.camera.data
+        let req = null
+        // get request
+        if (this.camera.data) {
+          // get request from camera
+          req = this.camera.data
+        } else if (this.payInvoiceData.data.request) {
+          // get request from pay invoice dialog
+          req = this.payInvoiceData.data.request
+        }
+
         if (req.toLowerCase().startsWith('lnbc')) {
           this.payInvoiceData.data.request = req
           reqtype = 'bolt11'
