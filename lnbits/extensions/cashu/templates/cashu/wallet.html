@@ -16,7 +16,7 @@ page_container %}
                     icon="bolt"
                     rectangle
                     color="primary"
-                    @click="showInvoicesDialog"
+                    @click="showInvoiceCreateDialog"
                     ><strong>Get invoice</strong>
                   </q-btn>
                 </div>
@@ -152,7 +152,7 @@ page_container %}
                       <q-td key="status" :props="props">
                         <div v-if="props.row.status == 'pending'">
                           <q-icon
-                            @click="showInvoiceDialog(props.row)"
+                            @click="showInvoicInfoDialog(props.row)"
                             name="settings_ethernet"
                             color="grey"
                           >
@@ -314,7 +314,7 @@ page_container %}
           class="q-pa-none"
           icon="bolt"
           label="Get invoice"
-          @click="showInvoicesDialog"
+          @click="showInvoiceCreateDialog"
         >
         </q-tab>
         <q-tab icon="photo_camera" v-if="hasCamera" @click="showCamera">
@@ -494,7 +494,7 @@ page_container %}
                 dense
                 v-model.trim="payInvoiceData.data.request"
                 type="textarea"
-                label="Enter an invoice *"
+                label="Enter a Lightning invoice *"
               >
               </q-input>
               <div class="row q-mt-lg">
@@ -1194,7 +1194,15 @@ page_container %}
                   timeout: 5000,
                   type: 'warning',
                   message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                  caption: response.data.lnurl_response
+                  caption: response.data.lnurl_response,
+                  position: 'top',
+                  actions: [
+                    {
+                      icon: 'close',
+                      color: 'white',
+                      handler: () => {}
+                    }
+                  ]
                 })
                 return
               } else if (response.data.lnurl_response === true) {
@@ -1202,7 +1210,15 @@ page_container %}
                 this.$q.notify({
                   timeout: 5000,
                   message: `Invoice sent to ${this.receive.lnurl.domain}!`,
-                  spinner: true
+                  spinner: true,
+                  position: 'top',
+                  actions: [
+                    {
+                      icon: 'close',
+                      color: 'white',
+                      handler: () => {}
+                    }
+                  ]
                 })
               }
             }
@@ -1276,7 +1292,15 @@ page_container %}
               timeout: 3000,
               type: 'warning',
               message: error + '.',
-              caption: '400 BAD REQUEST'
+              caption: 'Failed to decode invoice',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
             })
             this.payInvoiceData.show = false
             throw error
@@ -1322,19 +1346,43 @@ page_container %}
       payInvoice: function () {
         let dismissPaymentMsg = this.$q.notify({
           timeout: 0,
-          message: 'Processing payment...'
+          message: 'Processing payment...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
         })
       },
       payLnurl: function () {
         let dismissPaymentMsg = this.$q.notify({
           timeout: 0,
-          message: 'Processing payment...'
+          message: 'Processing payment...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
         })
       },
       authLnurl: function () {
         let dismissAuthMsg = this.$q.notify({
           timeout: 10,
-          message: 'Performing authentication...'
+          message: 'Performing authentication...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
         })
       },
 
@@ -1364,8 +1412,8 @@ page_container %}
       },
 
       /////////////////////////////////// WALLET ///////////////////////////////////
-      showInvoicesDialog: async function () {
-        console.log('##### showInvoicesDialog')
+      showInvoiceCreateDialog: async function () {
+        console.log('##### showInvoiceCreateDialog')
         this.invoiceData.amount = ''
         this.invoiceData.bolt11 = ''
         this.invoiceData.hash = ''
@@ -1373,21 +1421,21 @@ page_container %}
         this.showInvoiceDetails = true
       },
 
-      showInvoiceDialog: function (data) {
-        console.log('##### showInvoiceDialog')
+      showInvoicInfoDialog: function (data) {
+        console.log('##### showInvoicInfoDialog')
         this.invoiceData = _.clone(data)
         this.showInvoiceDetails = true
         // kick off invoice check worker
         this.invoiceCheckWorker()
       },
 
-      showPayInvoiceDialog: function () {
-        console.log('### showPayInvoiceDialog')
-        this.payInvoiceData.invoice = ''
-        this.payInvoiceData.data.request = ''
-        this.showPayInvoice = true
-        this.camera.show = false
-      },
+      // showPayInvoiceDialog: function () {
+      //   console.log('### showPayInvoiceDialog')
+      //   this.payInvoiceData.invoice = ''
+      //   this.payInvoiceData.data.request = ''
+      //   this.showPayInvoice = true
+      //   this.camera.show = false
+      // },
 
       showTokenDialog: function (token) {
         console.log('##### showTokenDialog')
@@ -1502,7 +1550,15 @@ page_container %}
             this.$q.notify({
               timeout: 5000,
               type: 'positive',
-              message: 'Payment received'
+              message: 'Payment received',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
             })
           } catch (error) {
             console.log('not paid yet')
@@ -1595,7 +1651,15 @@ page_container %}
             this.$q.notify({
               timeout: 5000,
               type: 'warning',
-              message: 'Balance too low'
+              message: 'Balance too low',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
             })
             throw Error('balance too low.')
           }
@@ -1730,7 +1794,15 @@ page_container %}
           this.$q.notify({
             timeout: 5000,
             type: 'positive',
-            message: 'Tokens received'
+            message: 'Tokens received',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
           })
         } catch (error) {
           console.error(error)
@@ -1827,7 +1899,15 @@ page_container %}
           this.$q.notify({
             timeout: 5000,
             type: 'positive',
-            message: 'Invoice paid'
+            message: 'Invoice paid',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
           })
           // delete spent tokens from db
           this.proofs = fristProofs
@@ -1955,7 +2035,15 @@ page_container %}
             this.$q.notify({
               timeout: 5000,
               type: 'positive',
-              message: 'Token paid'
+              message: 'Token paid',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
             })
           } else {
             console.log('### token not paid yet')
@@ -1963,7 +2051,15 @@ page_container %}
               this.$q.notify({
                 timeout: 5000,
                 color: 'grey',
-                message: 'Token still pending'
+                message: 'Token still pending',
+                position: 'top',
+                actions: [
+                  {
+                    icon: 'close',
+                    color: 'white',
+                    handler: () => {}
+                  }
+                ]
               })
             }
             this.sendData.tokens = token
@@ -2049,7 +2145,15 @@ page_container %}
             timeout: 5000,
             type: 'warning',
             message: 'Could not decode invoice',
-            caption: error + ''
+            caption: error + '',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
           })
           throw error
         }
@@ -2129,7 +2233,8 @@ page_container %}
       } else {
         this.$q.notify({
           color: 'red',
-          message: 'No mint set!'
+          message: 'No mint set!',
+          position: 'center'
         })
       }
 
@@ -2190,6 +2295,7 @@ page_container %}
       // get recv_token to receive tokens from a link
       if (params.get('recv_token')) {
         tokenBase64 = params.get('recv_token')
+        // make sure to react only to tokens not in the users history
         let seen = false
         for (var i = 0; i < this.historyTokens.length; i++) {
           var thisToken = this.historyTokens[i].token
@@ -2198,24 +2304,17 @@ page_container %}
           }
         }
         if (!seen) {
+          // show receive token dialog
           this.receiveData.tokensBase64 = params.get('recv_token')
           this.showReceiveTokens = true
         }
       }
 
-      var body = document.body,
-        html = document.documentElement
-
-      var height = Math.max(
-        body.scrollHeight,
-        body.offsetHeight,
-        html.clientHeight,
-        html.scrollHeight,
-        html.offsetHeight
-      )
-
-      console.log('height', height)
-      this.height = height
+      // get lightning invoice from a link
+      if (params.get('lightning')) {
+        this.showParseDialog()
+        this.payInvoiceData.data.request = params.get('lightning')
+      }
 
       console.log('### invoicesCashu', this.invoicesCashu)
       console.table('### tokens', this.proofs)
@@ -2224,6 +2323,24 @@ page_container %}
 
       this.recheckPendingInvoices()
       this.recheckPendingTokens()
+
+      // register lightning: link
+      // Intercept any `lightning:` requests
+      window.addEventListener('click', ev => {
+        // Use composedPath() for detecting links inside a Shadow DOM
+        // https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath
+        const target = ev.composedPath()[0]
+
+        if (!target || !target.closest) {
+          return
+        }
+        const lightningLink = target.closest('[href^="lightning:" i]')
+        if (lightningLink) {
+          href = lightningLink.getAttribute('href').toLowerCase()
+          paymentRequest = href.replace('lightning:', '')
+          link = lightningLink
+        }
+      })
     }
   })
 </script>
