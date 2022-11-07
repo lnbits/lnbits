@@ -1228,8 +1228,7 @@ page_container %}
         this.camera.show = false
       },
       decodeRequest: function () {
-        // let req = this.payInvoiceData.data.request.toLowerCase()
-        reqtype = null
+        let reqtype = null
         let req = this.camera.data
         if (req.toLowerCase().startsWith('lnbc')) {
           this.payInvoiceData.data.request = req
@@ -1252,9 +1251,11 @@ page_container %}
           this.payInvoiceData.data.request = req
           reqtype = 'lnurl'
           return
+        } else if (req.indexOf('cashu:') !== 1) {
+          this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
+          reqtype = 'cashu'
         } else if (req.indexOf('W3siaWQ') !== 1) {
           // very dirty way of parsing cashu tokens
-
           this.receiveData.tokensBase64 = req.slice(req.indexOf('W3siaWQ'))
           reqtype = 'cashu'
         }
