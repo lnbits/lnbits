@@ -95,6 +95,8 @@ async def extensions_install(
         )
 
     try:
+        await toggle_extension(activate, deactivate, USER_ID_ALL)
+
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
         extensions = list(
@@ -110,8 +112,6 @@ async def extensions_install(
                 extension_list,
             )
         )
-
-        await toggle_extension(activate, deactivate, USER_ID_ALL)
 
         return template_renderer().TemplateResponse(
             "core/install.html",
