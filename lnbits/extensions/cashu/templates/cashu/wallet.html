@@ -1523,12 +1523,17 @@ page_container %}
       },
 
       //////////// API ///////////
-
-      invoiceCheckWorker: async function () {
-        let nInterval = 0
+      clearAllWorkers: function () {
         if (this.invoiceCheckListener) {
           clearInterval(this.invoiceCheckListener)
         }
+        if (this.tokensCheckSpendableListener) {
+          clearInterval(this.tokensCheckSpendableListener)
+        }
+      },
+      invoiceCheckWorker: async function () {
+        let nInterval = 0
+        this.clearAllWorkers()
         this.invoiceCheckListener = setInterval(async () => {
           try {
             nInterval += 1
@@ -1536,9 +1541,9 @@ page_container %}
             // exit loop after 2m
             if (nInterval > 40) {
               console.log('### stopping invoice check worker')
-              clearInterval(this.invoiceCheckListener)
+              this.clearAllWorkers()
             }
-            console.log('### setInterval', nInterval)
+            console.log('### invoiceCheckWorker setInterval', nInterval)
             console.log(this.invoiceData)
 
             // this will throw an error if the invoice is pending
@@ -1546,7 +1551,7 @@ page_container %}
 
             // only without error (invoice paid) will we reach here
             console.log('### stopping invoice check worker')
-            clearInterval(this.invoiceCheckListener)
+            this.clearAllWorkers()
             this.invoiceData.bolt11 = ''
             this.showInvoiceDetails = false
             if (window.navigator.vibrate) navigator.vibrate(200)
@@ -1981,19 +1986,16 @@ page_container %}
 
       checkTokenSpendableWorker: async function () {
         let nInterval = 0
-        if (this.tokensCheckSpendableListener) {
-          clearInterval(this.tokensCheckSpendableListener)
-        }
+        this.clearAllWorkers()
         this.tokensCheckSpendableListener = setInterval(async () => {
           try {
             nInterval += 1
-
             // exit loop after 2m
             if (nInterval > 24) {
               console.log('### stopping token check worker')
-              clearInterval(this.tokensCheckSpendableListener)
+              this.clearAllWorkers()
             }
-            console.log('### setInterval', nInterval)
+            console.log('### checkTokenSpendableWorker setInterval', nInterval)
             console.log(this.sendData)
 
             // this will throw an error if the invoice is pending
@@ -2003,7 +2005,7 @@ page_container %}
             )
             if (paid) {
               console.log('### stopping token check worker')
-              clearInterval(this.tokensCheckSpendableListener)
+              this.clearAllWorkers()
               this.sendData.tokens = ''
               this.showSendTokens = false
             }
