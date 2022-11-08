@@ -2,7 +2,6 @@ import asyncio
 from http import HTTPStatus
 from typing import List, Optional
 
-import httpx
 from fastapi import Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
@@ -13,6 +12,7 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
+from lnbits.core.helpers import get_installable_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
@@ -22,7 +22,6 @@ from lnbits.settings import (
     LNBITS_CUSTOM_LOGO,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
-    LNBITS_EXTENSIONS_MANIFESTS,
 )
 
 from ...helpers import get_valid_extensions
@@ -102,17 +101,14 @@ async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
+    
+    try:
+        extension_list: List[str] = await get_installable_extensions()
+    except Exception:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch installable extension list"
+        )
 
-    extension_list: List[str] = []
-
-    async with httpx.AsyncClient() as client:
-        for url in LNBITS_EXTENSIONS_MANIFESTS:
-            resp = await client.get(url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=404, detail="Unable to fetch extension")
-            extension_list += resp.json()["extensions"]
-
-    print("### URLS", extension_list)
     try:
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         extensions = list(

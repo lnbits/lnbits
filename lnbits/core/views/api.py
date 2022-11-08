@@ -24,7 +24,7 @@ from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import get_installable_extensions, migrate_extension_database
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -713,6 +713,20 @@ async def api_install_extension(
     ext_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     try:
+        extension_list: List[str] = await get_installable_extensions()
+        extensions_ids = list(map(lambda e: e["id"], extension_list))
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch installable extension list"
+        )
+    
+    if ext_id not in extensions_ids:
+        raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown extension id: {ext_id}",
+            )
+
+    try:
         # as back-up for container re-create
         # todo: recheck on start-up
         ext_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
@@ -738,5 +752,6 @@ async def api_install_extension(
         register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
         register_new_ext_routes(ext)
     except Exception as ex:
-        print(ex)
-        return ""
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
