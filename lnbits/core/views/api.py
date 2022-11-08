@@ -1,6 +1,5 @@
 import asyncio
 import binascii
-from genericpath import isfile
 import hashlib
 import json
 import os
@@ -19,6 +18,7 @@ import pyqrcode
 from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
+from genericpath import isfile
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
@@ -26,7 +26,11 @@ from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.helpers import download_url, get_installable_extensions, migrate_extension_database
+from lnbits.core.helpers import (
+    download_url,
+    get_installable_extensions,
+    migrate_extension_database,
+)
 from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -712,27 +716,26 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @core_app.post("/api/v1/extension/{ext_id}")
-async def api_install_extension(
-    ext_id: str, user: User = Depends(check_user_exists)
-):
+async def api_install_extension(ext_id: str, user: User = Depends(check_user_exists)):
     if not user.admin:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
         )
-        
+
     try:
         extension_list: List[str] = await get_installable_extensions()
     except Exception as ex:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch installable extension list"
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
         )
-    
+
     extension = [e for e in extension_list if e["id"] == ext_id][0]
     if not extension:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Unknown extension id: {ext_id}",
-            )
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
 
     extensions_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
     os.makedirs(extensions_data_dir, exist_ok=True)
@@ -749,15 +752,16 @@ async def api_install_extension(
             zip_ref.extractall(extensions_data_dir)
     except Exception as ex:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch extension archvive file"
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch extension archvive file",
         )
 
     try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
-        shutil.copytree( ext_data_dir,  ext_dir)
+        shutil.copytree(ext_data_dir, ext_dir)
 
-        #todo: is admin only
+        # todo: is admin only
         ext = Extension(extension["id"], True, False, extension["name"])
 
         current_versions = await get_dbversions()
@@ -773,12 +777,11 @@ async def api_install_extension(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
 
+
 @core_app.delete("/api/v1/extension/{ext_id}")
-async def api_install_extension(
-    ext_id: str, user: User = Depends(check_user_exists)
-):
+async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_exists)):
     if not user.admin:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
         )
-    print('uninstall ',ext_id)
+    print("uninstall ", ext_id)
