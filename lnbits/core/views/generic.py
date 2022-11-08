@@ -73,31 +73,6 @@ async def extensions(
         "core/extensions.html", {"request": request, "user": user.dict()}
     )
 
-async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
-    if extension_to_enable and extension_to_disable:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
-
-    # check if extension exists
-    if extension_to_enable or extension_to_disable:
-        ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
-            )
-
-    if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_enable, active=True
-        )
-    elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_disable, active=False
-        )
-
 @core_html_routes.get("/install",  name="install.extensions", response_class=HTMLResponse)
 async def extensions_install(
     request: Request,
@@ -366,3 +341,28 @@ async def manifest(usr: str):
             for wallet in user.wallets
         ],
     }
+
+async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
+    if extension_to_enable and extension_to_disable:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
+        )
+
+    # check if extension exists
+    if extension_to_enable or extension_to_disable:
+        ext = extension_to_enable or extension_to_disable
+        if ext not in [e.code for e in get_valid_extensions()]:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
+            )
+
+    if extension_to_enable:
+        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
+        await update_user_extension(
+            user_id=user_id, extension=extension_to_enable, active=True
+        )
+    elif extension_to_disable:
+        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
+        await update_user_extension(
+            user_id=user_id, extension=extension_to_disable, active=False
+        )
