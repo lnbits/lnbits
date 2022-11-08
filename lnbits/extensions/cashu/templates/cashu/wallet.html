@@ -1526,6 +1526,9 @@ page_container %}
 
       invoiceCheckWorker: async function () {
         let nInterval = 0
+        if (this.invoiceCheckListener) {
+          clearInterval(this.invoiceCheckListener)
+        }
         this.invoiceCheckListener = setInterval(async () => {
           try {
             nInterval += 1
@@ -1978,6 +1981,9 @@ page_container %}
 
       checkTokenSpendableWorker: async function () {
         let nInterval = 0
+        if (this.tokensCheckSpendableListener) {
+          clearInterval(this.tokensCheckSpendableListener)
+        }
         this.tokensCheckSpendableListener = setInterval(async () => {
           try {
             nInterval += 1
