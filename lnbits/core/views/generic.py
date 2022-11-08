@@ -62,6 +62,7 @@ async def extensions(
 ):
     extension_to_enable = enable
     extension_to_disable = disable
+    user_id = user.id
 
     if extension_to_enable and extension_to_disable:
         raise HTTPException(
@@ -77,19 +78,19 @@ async def extensions(
             )
 
     if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
+        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
         await update_user_extension(
-            user_id=user.id, extension=extension_to_enable, active=True
+            user_id=user_id, extension=extension_to_enable, active=True
         )
     elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user.id}")
+        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
         await update_user_extension(
-            user_id=user.id, extension=extension_to_disable, active=False
+            user_id=user_id, extension=extension_to_disable, active=False
         )
 
     # Update user as his extensions have been updated
     if extension_to_enable or extension_to_disable:
-        user = await get_user(user.id)  # type: ignore
+        user = await get_user(user_id)  # type: ignore
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
@@ -105,12 +106,13 @@ async def extensions_install(
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
         )
-        
+
     try:
         extension_list: List[str] = await get_installable_extensions()
     except Exception:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch installable extension list"
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
         )
 
     try:
