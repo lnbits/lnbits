@@ -90,7 +90,6 @@ async def api_tpos_get_latest_invoices(tpos_id: str = None):
             "checking_id": payment.checking_id,
             "amount": payment.amount,
             "time": payment.time,
-            "bolt11": payment.bolt11,
             "pending": payment.pending,
         }
         for payment in payments

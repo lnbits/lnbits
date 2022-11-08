@@ -53,7 +53,13 @@ async def delete_tpos(tpos_id: str) -> None:
 async def get_tpos_payments(tpos_id: str, limit: int = 5):
 
     rows = await db.fetchall(
-        f"SELECT * FROM apipayments WHERE extra LIKE '%tposId%' AND extra LIKE '%{tpos_id}%' ORDER BY time DESC LIMIT {limit}"
+        f"""
+        SELECT * FROM apipayments 
+        WHERE pending = 'false' 
+        AND extra LIKE '%tposId%' 
+        AND extra LIKE '%{tpos_id}%' 
+        ORDER BY time DESC LIMIT {limit}
+        """
     )
 
     return [Payment.from_row(row) for row in rows]

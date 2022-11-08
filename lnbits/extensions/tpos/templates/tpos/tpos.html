@@ -275,17 +275,16 @@
           <q-item v-for="(payment, idx) in lastPaymentsDialog.data" :key="idx">
             {%raw%}
             <q-item-section>
-              <q-item-label>{{payment.amount / 1000}} sats</q-item-label>
+              <q-item-label class="text-bold"
+                >{{payment.amount / 1000}} sats</q-item-label
+              >
               <q-item-label caption lines="2"
-                >{{payment.checking_id}}</q-item-label
+                >Hash: {{payment.checking_id.slice(0, 30)}}...</q-item-label
               >
             </q-item-section>
             <q-item-section side top>
               <q-item-label caption>{{payment.dateFrom}}</q-item-label>
-              <q-icon
-                :name="payment.pending ? 'settings_ethernet' : 'check'"
-                :color="payment.pending ? 'grey' : 'green'"
-              />
+              <q-icon name="check" color="green" />
             </q-item-section>
             {%endraw%}
           </q-item>
