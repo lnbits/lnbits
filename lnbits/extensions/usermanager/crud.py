@@ -63,10 +63,11 @@ async def get_usermanager_users(user_id: str) -> List[Users]:
     return [Users(**row) for row in rows]
 
 
-async def delete_usermanager_user(user_id: str) -> None:
-    wallets = await get_usermanager_wallets(user_id)
-    for wallet in wallets:
-        await delete_wallet(user_id=user_id, wallet_id=wallet.id)
+async def delete_usermanager_user(user_id: str, delete_core: bool = True) -> None:
+    if delete_core:
+        wallets = await get_usermanager_wallets(user_id)
+        for wallet in wallets:
+            await delete_wallet(user_id=user_id, wallet_id=wallet.id)
 
     await db.execute("DELETE FROM usermanager.users WHERE id = ?", (user_id,))
     await db.execute("""DELETE FROM usermanager.wallets WHERE "user" = ?""", (user_id,))
