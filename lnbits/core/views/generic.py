@@ -31,10 +31,13 @@ from ..crud import (
     delete_wallet,
     get_balance_check,
     get_user,
+    get_inactive_extensions,
     save_balance_notify,
     update_user_extension,
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
+
+USER_ID_ALL = "all"
 
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 
@@ -60,10 +63,17 @@ async def extensions(
     enable: str = Query(None),  # type: ignore
     disable: str = Query(None),  # type: ignore
 ):
-    extension_to_enable = enable
-    extension_to_disable = disable
-    user_id = user.id
+    await toggle_extension(enable, disable, user.id)
 
+    # Update user as his extensions have been updated
+    if enable or disable:
+        user = await get_user(user.id)  # type: ignore
+
+    return template_renderer().TemplateResponse(
+        "core/extensions.html", {"request": request, "user": user.dict()}
+    )
+
+async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
     if extension_to_enable and extension_to_disable:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
@@ -88,19 +98,12 @@ async def extensions(
             user_id=user_id, extension=extension_to_disable, active=False
         )
 
-    # Update user as his extensions have been updated
-    if extension_to_enable or extension_to_disable:
-        user = await get_user(user_id)  # type: ignore
-
-    return template_renderer().TemplateResponse(
-        "core/extensions.html", {"request": request, "user": user.dict()}
-    )
-
-
-@core_html_routes.get("/install", name="core.install", response_class=HTMLResponse)
+@core_html_routes.get("/install",  name="install.extensions", response_class=HTMLResponse)
 async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
+    activate: str = Query(None),  # type: ignore
+    deactivate: str = Query(None),  # type: ignore
 ):
     if not user.admin:
         raise HTTPException(
@@ -109,7 +112,8 @@ async def extensions_install(
 
     try:
         extension_list: List[str] = await get_installable_extensions()
-    except Exception:
+        
+    except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot fetch installable extension list",
@@ -117,6 +121,7 @@ async def extensions_install(
 
     try:
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
+        inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
         extensions = list(
             map(
                 lambda ext: {
@@ -125,10 +130,13 @@ async def extensions_install(
                     "icon": ext["icon"],
                     "shortDescription": ext["shortDescription"],
                     "isInstalled": ext["id"] in installed_extensions,
+                    "isInactive": ext["id"] in inactive_extensions,
                 },
                 extension_list,
             )
         )
+
+        await toggle_extension(activate, deactivate, USER_ID_ALL)
 
         return template_renderer().TemplateResponse(
             "core/install.html",
