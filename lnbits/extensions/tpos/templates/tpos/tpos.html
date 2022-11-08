@@ -149,7 +149,12 @@
       </div>
     </q-page-sticky>
     <q-page-sticky position="top-right" :offset="[18, 18]">
-      <q-btn @click="showLastPayments" fab icon="receipt_long" color="primary" />
+      <q-btn
+        @click="showLastPayments"
+        fab
+        icon="receipt_long"
+        color="primary"
+      />
     </q-page-sticky>
     <q-dialog
       v-model="invoiceDialog.show"
@@ -271,16 +276,21 @@
             {%raw%}
             <q-item-section>
               <q-item-label>{{payment.amount / 1000}} sats</q-item-label>
-              <q-item-label caption lines="2">{{payment.checking_id}}</q-item-label>
+              <q-item-label caption lines="2"
+                >{{payment.checking_id}}</q-item-label
+              >
             </q-item-section>
             <q-item-section side top>
               <q-item-label caption>{{payment.dateFrom}}</q-item-label>
-              <q-icon :name="payment.pending ? 'settings_ethernet' : 'check'" :color="payment.pending ? 'grey' : 'green'" />
+              <q-icon
+                :name="payment.pending ? 'settings_ethernet' : 'check'"
+                :color="payment.pending ? 'grey' : 'green'"
+              />
             </q-item-section>
             {%endraw%}
           </q-item>
         </q-list>
-    </q-card>
+      </q-card>
     </q-dialog>
   </q-page>
 </q-page-container>
@@ -551,11 +561,11 @@
             response.data.data['BTC' + self.currency][self.currency]
         })
       },
-      getLastPayments(){
+      getLastPayments() {
         return axios
           .get(`/tpos/api/v1/tposs/${this.tposId}/invoices`)
           .then(res => {
-            if(res.data && res.data.length){
+            if (res.data && res.data.length) {
               let last = [...res.data]
               //last.length = Math.min(last.length, 5)
               this.lastPaymentsDialog.data = last.map(obj => {
@@ -566,7 +576,7 @@
           })
           .catch(e => console.error(e))
       },
-      showLastPayments(){
+      showLastPayments() {
         this.getLastPayments()
         this.lastPaymentsDialog.show = true
       }
