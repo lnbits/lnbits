@@ -101,7 +101,11 @@ async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
-    
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+        
     try:
         extension_list: List[str] = await get_installable_extensions()
     except Exception:
