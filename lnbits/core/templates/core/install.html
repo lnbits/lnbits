@@ -41,9 +41,11 @@
       <q-separator></q-separator>
       <q-card-actions>
         <div v-if="extension.isInstalled">
-          <q-btn flat color="grey-5"> Uninstall</q-btn>
+          <q-btn @click="uninstallExtension(extension)" flat color="grey-5">
+            Uninstall</q-btn
+          >
         </div>
-        <q-btn v-else flat color="primary" @click="installExtension(extension)">
+        <q-btn v-else @click="installExtension(extension)" flat color="primary">
           Install</q-btn
         >
       </q-card-actions>
@@ -85,14 +87,25 @@
     },
     methods: {
       installExtension: async function (extension) {
-        console.log('### installExtension', extension)
         try {
           await LNbits.api.request(
             'POST',
-            `/api/v1/extension/${extension.id}`,
+            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
           extension.isInstalled = true
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      uninstallExtension: async function (extension) {
+        try {
+          await LNbits.api.request(
+            'DELETE',
+            `/api/v1/extension/${extension.id}}?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          extension.isInstalled = false
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }

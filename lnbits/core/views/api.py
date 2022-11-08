@@ -27,9 +27,10 @@ from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.helpers import download_url, get_installable_extensions, migrate_extension_database
-from lnbits.core.models import Payment, Wallet
+from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_user_exists,
     get_key_type,
     require_admin_key,
     require_invoice_key,
@@ -712,8 +713,13 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @core_app.post("/api/v1/extension/{ext_id}")
 async def api_install_extension(
-    ext_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    ext_id: str, user: User = Depends(check_user_exists)
 ):
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+        
     try:
         extension_list: List[str] = await get_installable_extensions()
     except Exception as ex:
@@ -766,3 +772,13 @@ async def api_install_extension(
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
+
+@core_app.delete("/api/v1/extension/{ext_id}")
+async def api_install_extension(
+    ext_id: str, user: User = Depends(check_user_exists)
+):
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+    print('uninstall ',ext_id)

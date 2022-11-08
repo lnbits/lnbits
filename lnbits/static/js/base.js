@@ -140,7 +140,8 @@ window.LNbits = {
         id: data.id,
         email: data.email,
         extensions: data.extensions,
-        wallets: data.wallets
+        wallets: data.wallets,
+        admin: data.admin
       }
       var mapWallet = this.wallet
       obj.wallets = obj.wallets
