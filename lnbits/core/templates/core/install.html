@@ -44,6 +44,26 @@
           <q-btn @click="uninstallExtension(extension)" flat color="grey-5">
             Uninstall</q-btn
           >
+
+          <q-btn
+            v-if="!extension.isInactive"
+            flat
+            color="grey-5"
+            type="a"
+            :href="['{{ url_for('install.extensions') }}', '?usr=', g.user.id, '&deactivate=', extension.id].join('')"
+          >
+            Deactivate</q-btn
+          >
+
+          <q-btn
+            v-else
+            flat
+            color="primary"
+            type="a"
+            :href="['{{ url_for('install.extensions') }}', '?usr=', g.user.id, '&activate=', extension.id].join('')"
+          >
+            Activate</q-btn
+          >
         </div>
         <q-btn v-else @click="installExtension(extension)" flat color="primary">
           Install</q-btn
