@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from lnbits.core.models import Payment
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -47,3 +48,12 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
 
 async def delete_tpos(tpos_id: str) -> None:
     await db.execute("DELETE FROM tpos.tposs WHERE id = ?", (tpos_id,))
+
+
+async def get_tpos_payments(tpos_id: str, limit: int = 5):
+
+    rows = await db.fetchall(
+        f"SELECT * FROM apipayments WHERE extra LIKE '%tposId%' AND extra LIKE '%{tpos_id}%' ORDER BY time DESC LIMIT {limit}"
+    )
+
+    return [Payment.from_row(row) for row in rows]
