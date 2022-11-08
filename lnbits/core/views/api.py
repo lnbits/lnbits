@@ -1,11 +1,13 @@
 import asyncio
 import binascii
+from genericpath import isfile
 import hashlib
 import json
 import os
 import shutil
 import time
 import uuid
+import zipfile
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
@@ -24,7 +26,7 @@ from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.helpers import get_installable_extensions, migrate_extension_database
+from lnbits.core.helpers import download_url, get_installable_extensions, migrate_extension_database
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -714,36 +716,43 @@ async def api_install_extension(
 ):
     try:
         extension_list: List[str] = await get_installable_extensions()
-        extensions_ids = list(map(lambda e: e["id"], extension_list))
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch installable extension list"
         )
     
-    if ext_id not in extensions_ids:
+    extension = [e for e in extension_list if e["id"] == ext_id][0]
+    if not extension:
         raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=f"Unknown extension id: {ext_id}",
             )
 
+    extensions_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
+    os.makedirs(extensions_data_dir, exist_ok=True)
+    ext_data_dir = os.path.join(extensions_data_dir, ext_id)
+    shutil.rmtree(ext_data_dir, True)
+    ext_zip_file = os.path.join(extensions_data_dir, f"{ext_id}.zip")
+    if os.path.isfile(ext_zip_file):
+        os.remove(ext_zip_file)
+
     try:
-        # as back-up for container re-create
-        # todo: recheck on start-up
-        ext_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
-        shutil.rmtree(os.path.join(ext_data_dir, ext_id), True)
-        shutil.copytree(
-            "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
-            f"{ext_data_dir}/watchonly",
+        zip_file_url = extension["archive"]
+        download_url(zip_file_url, ext_zip_file)
+        with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
+            zip_ref.extractall(extensions_data_dir)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Cannot fetch extension archvive file"
         )
 
+    try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
-        shutil.copytree(
-            "/Users/moto/Documents/GitHub/motorina0/temp/watchonly",
-            ext_dir,
-        )
+        shutil.copytree( ext_data_dir,  ext_dir)
 
-        ext = Extension("watchonly", True, False, "WatchOnly", "xxxxx", "extension")
+        #todo: is admin only
+        ext = Extension(extension["id"], True, False, extension["name"])
 
         current_versions = await get_dbversions()
         current_version = current_versions.get(ext.code, 0)
@@ -752,6 +761,8 @@ async def api_install_extension(
         register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
         register_new_ext_routes(ext)
     except Exception as ex:
+        shutil.rmtree(ext_data_dir, True)
+        shutil.rmtree(ext_dir, True)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
