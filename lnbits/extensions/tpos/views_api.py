@@ -13,7 +13,7 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
-from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
+from .crud import create_tpos, delete_tpos, get_tpos, get_tpos_payments, get_tposs
 from .models import CreateTposData, PayLnurlWData
 
 
@@ -79,6 +79,22 @@ async def api_tpos_create_invoice(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
+
+
+@tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices")
+async def api_tpos_get_latest_invoices(tpos_id: str = None):
+    payments = await get_tpos_payments(tpos_id)
+
+    return [
+        {
+            "checking_id": payment.checking_id,
+            "amount": payment.amount,
+            "time": payment.time,
+            "bolt11": payment.bolt11,
+            "pending": payment.pending,
+        }
+        for payment in payments
+    ]
 
 
 @tpos_ext.post(
