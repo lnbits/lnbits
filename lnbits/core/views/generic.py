@@ -27,6 +27,7 @@ from lnbits.settings import (
 
 from ...helpers import get_valid_extensions
 from ..crud import (
+    USER_ID_ALL,
     create_account,
     create_wallet,
     delete_wallet,
@@ -37,8 +38,6 @@ from ..crud import (
     update_user_extension,
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
-
-USER_ID_ALL = "all"
 
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 
@@ -99,7 +98,7 @@ async def extensions_install(
         )
 
     try:
-        
+
         if deactivate:
             g().config.LNBITS_DISABLED_EXTENSIONS += [deactivate]
         elif activate:

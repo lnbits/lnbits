@@ -16,6 +16,8 @@ from .models import BalanceCheck, Payment, User, Wallet
 # accounts
 # --------
 
+USER_ID_ALL = "all"
+
 
 async def create_account(conn: Optional[Connection] = None) -> User:
     user_id = uuid4().hex

@@ -40,13 +40,13 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import Extension, url_for, urlsafe_short_hash
+from lnbits.requestvars import g
 from lnbits.settings import (
     LNBITS_ADMIN_USERS,
     LNBITS_DATA_FOLDER,
     LNBITS_SITE_TITLE,
     WALLET,
 )
-from lnbits.requestvars import g
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -55,6 +55,7 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, core_app_extra, db
 from ..crud import (
+    USER_ID_ALL,
     create_payment,
     get_dbversions,
     get_payments,
@@ -64,6 +65,7 @@ from ..crud import (
     get_wallet_for_key,
     save_balance_check,
     update_payment_status,
+    update_user_extension,
     update_wallet,
 )
 from ..services import (
@@ -769,9 +771,10 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         current_version = current_versions.get(ext.code, 0)
         await migrate_extension_database(ext, current_version)
 
-        register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
-        # core_app_extra.register_new_ext_routes(ext)
-        register_new_ext_routes(ext)
+        core_app_extra.register_new_ext_routes(ext)
+        await update_user_extension(
+            user_id=USER_ID_ALL, extension=ext.code, active=False
+        )
     except Exception as ex:
         shutil.rmtree(ext_data_dir, True)
         shutil.rmtree(ext_dir, True)
