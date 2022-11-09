@@ -113,7 +113,7 @@
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          extension.isInstalled = true
+          window.location.href += ''
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -122,10 +122,10 @@
         try {
           await LNbits.api.request(
             'DELETE',
-            `/api/v1/extension/${extension.id}}?usr=${this.g.user.id}`,
+            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          extension.isInstalled = false
+          window.location.href += ''
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
