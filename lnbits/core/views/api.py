@@ -772,9 +772,9 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         await migrate_extension_database(ext, current_version)
 
         core_app_extra.register_new_ext_routes(ext)
-        await update_user_extension(
-            user_id=USER_ID_ALL, extension=ext.code, active=False
-        )
+        # disable by default
+        await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
+        g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
     except Exception as ex:
         shutil.rmtree(ext_data_dir, True)
         shutil.rmtree(ext_dir, True)
