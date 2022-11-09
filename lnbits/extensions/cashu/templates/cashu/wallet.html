@@ -2331,24 +2331,6 @@ page_container %}
 
       this.recheckPendingInvoices()
       this.recheckPendingTokens()
-
-      // register lightning: link
-      // Intercept any `lightning:` requests
-      window.addEventListener('click', ev => {
-        // Use composedPath() for detecting links inside a Shadow DOM
-        // https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath
-        const target = ev.composedPath()[0]
-
-        if (!target || !target.closest) {
-          return
-        }
-        const lightningLink = target.closest('[href^="lightning:" i]')
-        if (lightningLink) {
-          href = lightningLink.getAttribute('href').toLowerCase()
-          paymentRequest = href.replace('lightning:', '')
-          link = lightningLink
-        }
-      })
     }
   })
 </script>
