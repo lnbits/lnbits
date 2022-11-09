@@ -2,6 +2,7 @@ import glob
 import json
 import os
 from typing import Any, List, NamedTuple, Optional
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 import jinja2
 import shortuuid  # type: ignore
@@ -73,6 +74,22 @@ class ExtensionManager:
 
         return output
 
+
+class EnabledExtensionMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        pathname = scope["path"].split("/")[1]
+        if pathname in g().config.LNBITS_DISABLED_EXTENSIONS:
+            response = JSONResponse(
+                status_code=HTTPStatus.NOT_FOUND,
+                content={"detail": f"Extension '{pathname}' disabled"},
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
 
 def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
     return [
