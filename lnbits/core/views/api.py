@@ -46,6 +46,7 @@ from lnbits.settings import (
     LNBITS_SITE_TITLE,
     WALLET,
 )
+from lnbits.requestvars import g
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -802,6 +803,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         )
 
     try:
+        g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
         ext_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions", ext_id)
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_data_dir, True)
