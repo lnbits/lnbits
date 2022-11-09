@@ -15,7 +15,6 @@ async def startup_cashu_mint():
     await migrate_databases(db, migrations)
     await ledger.load_used_proofs()
     await ledger.init_keysets()
-    print(ledger.get_keyset())
     pass
 
 
