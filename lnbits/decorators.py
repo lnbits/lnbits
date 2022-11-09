@@ -130,11 +130,6 @@ async def get_key_type(
     # 2: invalid
     pathname = r["path"].split("/")[1]
 
-    if pathname in g().config.LNBITS_DISABLED_EXTENSIONS:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Extension disabled."
-        )
-
     token = api_key_header or api_key_query
 
     if not token:

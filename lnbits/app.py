@@ -23,6 +23,7 @@ from .core import core_app, core_app_extra
 from .core.views.generic import core_html_routes
 from .helpers import (
     Extension,
+    EnabledExtensionMiddleware,
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
@@ -93,6 +94,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(EnabledExtensionMiddleware)
 
     check_funding_source(app)
     register_assets(app)
