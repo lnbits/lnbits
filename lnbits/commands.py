@@ -16,8 +16,9 @@ from .helpers import (
     get_valid_extensions,
     url_for_vendored,
 )
-from .settings import LNBITS_PATH
 from .requestvars import g
+from .settings import LNBITS_PATH
+
 
 @click.command("migrate")
 def db_migrate():
