@@ -7,7 +7,7 @@ from loguru import logger
 
 from .core import db as core_db
 from .core import migrations as core_migrations
-from .core.crud import get_dbversions
+from .core.crud import USER_ID_ALL, get_dbversions, get_inactive_extensions
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .helpers import (
@@ -17,7 +17,7 @@ from .helpers import (
     url_for_vendored,
 )
 from .settings import LNBITS_PATH
-
+from .requestvars import g
 
 @click.command("migrate")
 def db_migrate():
@@ -78,3 +78,8 @@ async def migrate_databases():
         await migrate_extension_database(ext, current_version)
 
     logger.info("✔️ All migrations done.")
+
+
+async def load_disabled_extension_list() -> None:
+    inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
+    g().config.LNBITS_DISABLED_EXTENSIONS += inactive_extensions

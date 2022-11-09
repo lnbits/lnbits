@@ -4,7 +4,7 @@ import uvloop
 from loguru import logger
 from starlette.requests import Request
 
-from .commands import migrate_databases
+from .commands import load_disabled_extension_list, migrate_databases
 from .settings import (
     DEBUG,
     HOST,
@@ -19,6 +19,7 @@ from .settings import (
 uvloop.install()
 
 asyncio.create_task(migrate_databases())
+asyncio.create_task(load_disabled_extension_list())
 
 from .app import create_app
 
