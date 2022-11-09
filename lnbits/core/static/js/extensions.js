@@ -32,8 +32,5 @@ new Vue({
       }
     }
   },
-  created: function () {
-    console.log('### created g.user.admin', this.g.user)
-  },
   mixins: [windowMixin]
 })
