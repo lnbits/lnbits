@@ -90,7 +90,6 @@ async def extensions_install(
 
     try:
         extension_list: List[str] = await get_installable_extensions()
-
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -98,7 +97,6 @@ async def extensions_install(
         )
 
     try:
-
         if deactivate:
             g().config.LNBITS_DISABLED_EXTENSIONS += [deactivate]
         elif activate:
