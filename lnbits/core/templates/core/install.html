@@ -113,7 +113,11 @@
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          window.location.href += ''
+          window.location.href = [
+            "{{ url_for('install.extensions') }}",
+            '?usr=',
+            this.g.user.id
+          ].join('')
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -125,7 +129,11 @@
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          window.location.href += ''
+          window.location.href = [
+            "{{ url_for('install.extensions') }}",
+            '?usr=',
+            this.g.user.id
+          ].join('')
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
