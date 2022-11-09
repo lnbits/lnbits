@@ -769,6 +769,7 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         await migrate_extension_database(ext, current_version)
 
         register_new_ext_routes = getattr(core_app_extra, "register_new_ext_routes")
+        # core_app_extra.register_new_ext_routes(ext)
         register_new_ext_routes(ext)
     except Exception as ex:
         shutil.rmtree(ext_data_dir, True)
@@ -784,4 +785,28 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
         )
-    print("uninstall ", ext_id)
+
+    try:
+        extension_list: List[str] = await get_installable_extensions()
+    except Exception:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
+        )
+
+    extension = [e for e in extension_list if e["id"] == ext_id][0] #todo fails
+    if not extension:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+
+    try:
+        ext_data_dir = os.path.join(LNBITS_DATA_FOLDER,  "extensions", ext_id)
+        ext_dir = os.path.join("lnbits/extensions", ext_id)
+        shutil.rmtree(ext_data_dir, True)
+        shutil.rmtree(ext_dir, True)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
