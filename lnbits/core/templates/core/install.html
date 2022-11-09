@@ -35,7 +35,7 @@
           style="font-size: 4rem"
         ></q-icon>
         {% raw %}
-        <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
+        <h5 class="q-mt-lg q-mb-xs">{{ extension.name}}</h5>
         <small>{{ extension.shortDescription }} </small>{% endraw %}
       </q-card-section>
       <q-separator></q-separator>
@@ -65,9 +65,21 @@
             Activate</q-btn
           >
         </div>
-        <q-btn v-else @click="installExtension(extension)" flat color="primary">
-          Install</q-btn
-        >
+        <div v-else>
+          <q-spinner
+            v-if="extension.inProgress "
+            color="primary"
+            size="2.55em"
+          ></q-spinner>
+          <q-btn
+            v-else
+            @click="installExtension(extension)"
+            flat
+            color="primary"
+          >
+            Install</q-btn
+          >
+        </div>
       </q-card-actions>
     </q-card>
   </div>
@@ -108,6 +120,7 @@
     methods: {
       installExtension: async function (extension) {
         try {
+          extension.inProgress = true
           await LNbits.api.request(
             'POST',
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
@@ -120,10 +133,12 @@
           ].join('')
         } catch (error) {
           LNbits.utils.notifyApiError(error)
+          extension.inProgress = false
         }
       },
       uninstallExtension: async function (extension) {
         try {
+          extension.inProgress = true
           await LNbits.api.request(
             'DELETE',
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
@@ -136,11 +151,15 @@
           ].join('')
         } catch (error) {
           LNbits.utils.notifyApiError(error)
+          extension.inProgress = false
         }
       }
     },
     created: function () {
-      this.extensions = JSON.parse('{{extensions | tojson | safe}}')
+      this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
+        ...e,
+        inProgress: false
+      }))
       this.filteredExtensions = this.extensions.concat([])
     },
     mixins: [windowMixin]
