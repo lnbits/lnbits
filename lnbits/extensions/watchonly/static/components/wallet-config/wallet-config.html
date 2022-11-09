@@ -1,0 +1,80 @@
+<div>
+  <q-card>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col-md-2 col-xs-4 q-ml-lg">
+        <q-btn unelevated @click="show = true" color="primary" icon="settings">
+        </q-btn>
+      </div>
+      <div class="col-md-8 col-xs-4">
+        <div class="row justify-center q-gutter-x-md items-center">
+          <div :class="{'text-h4': $q.screen.gt.md}">{{satBtc(total)}}</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-xs-4 q-pr-lg">
+        <slot name="serial"></slot>
+      </div>
+    </div>
+  </q-card>
+
+  <q-dialog v-model="show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="updateConfig" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="config.mempool_endpoint"
+          type="text"
+          label="Mempool Endpoint"
+        >
+        </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.number="config.receive_gap_limit"
+          type="number"
+          min="0"
+          label="Receive Gap Limit"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.number="config.change_gap_limit"
+          type="number"
+          min="0"
+          label="Change Gap Limit"
+        ></q-input>
+
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="config.network"
+          :options="networOptions"
+          label="Network"
+        ></q-select>
+
+        <q-toggle
+          :label="config.sats_denominated ? 'sats denominated' : 'BTC denominated'"
+          color="secodary"
+          v-model="config.sats_denominated"
+        ></q-toggle>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="
+            !config.mempool_endpoint "
+            type="submit"
+            >Update</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>

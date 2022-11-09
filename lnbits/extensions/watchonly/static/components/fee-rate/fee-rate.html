@@ -1,0 +1,61 @@
+<div>
+  <div class="row items-center no-wrap q-mb-md">
+    <div class="col-2 q-pr-lg">Fee Rate:</div>
+    <div class="col-3 q-pr-lg">
+      <q-input
+        filled
+        dense
+        v-model.number="feeRate"
+        :rules="[val => !!val || 'Field is required']"
+        type="number"
+        label="sats/vbyte"
+      ></q-input>
+    </div>
+    <div class="col-7">
+      <q-slider
+        v-model="feeRate"
+        color="orange"
+        markers
+        snap
+        label
+        label-always
+        :label-value="getFeeRateLabel(feeRate)"
+        :min="1"
+        :max="recommededFees.fastestFee"
+      />
+    </div>
+  </div>
+  <div
+    v-if="feeRate < recommededFees.hourFee || feeRate > recommededFees.fastestFee"
+    class="row items-center no-wrap q-mb-md"
+  >
+    <div class="col-2 q-pr-lg"></div>
+    <div class="col-10 q-pr-lg">
+      <q-badge v-if="feeRate < recommededFees.hourFee" color="pink" size="lg">
+        Warning! The fee is too low. The transaction might take a long time to
+        confirm.
+      </q-badge>
+      <q-badge v-if="feeRate > recommededFees.fastestFee" color="pink">
+        Warning! The fee is too high. You might be overpaying for this
+        transaction.
+      </q-badge>
+    </div>
+  </div>
+
+  <div class="row items-center no-wrap q-mb-md">
+    <div class="col-2 q-pr-lg">Fee:</div>
+    <div class="col-3 q-pr-lg">{{feeValue}} sats</div>
+    <div class="col-7">
+      <q-btn
+        outline
+        dense
+        size="md"
+        icon="refresh"
+        color="grey"
+        class="float-right"
+        @click="refreshRecommendedFees()"
+        >Refresh Fee Rates</q-btn
+      >
+    </div>
+  </div>
+</div>

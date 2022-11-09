@@ -1,0 +1,9 @@
+{
+  "name": "Onchain Wallet",
+  "short_description": "Onchain watch only wallets",
+  "icon": "visibility",
+  "contributors": [
+    "arcbtc",
+    "motorina0"
+  ]
+}
