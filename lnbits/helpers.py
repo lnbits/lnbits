@@ -1,11 +1,13 @@
 import glob
 import json
 import os
+from http import HTTPStatus
 from typing import Any, List, NamedTuple, Optional
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 import jinja2
 import shortuuid  # type: ignore
+from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
@@ -90,6 +92,7 @@ class EnabledExtensionMiddleware:
             return
 
         await self.app(scope, receive, send)
+
 
 def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
     return [

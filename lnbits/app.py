@@ -22,8 +22,8 @@ from lnbits.core.tasks import register_task_listeners
 from .core import core_app, core_app_extra
 from .core.views.generic import core_html_routes
 from .helpers import (
-    Extension,
     EnabledExtensionMiddleware,
+    Extension,
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
