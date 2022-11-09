@@ -16,6 +16,7 @@ from lnbits.core.helpers import get_installable_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
+from lnbits.requestvars import g
 from lnbits.settings import (
     LNBITS_ADMIN_USERS,
     LNBITS_ALLOWED_USERS,
@@ -30,8 +31,8 @@ from ..crud import (
     create_wallet,
     delete_wallet,
     get_balance_check,
-    get_user,
     get_inactive_extensions,
+    get_user,
     save_balance_notify,
     update_user_extension,
 )
@@ -73,7 +74,10 @@ async def extensions(
         "core/extensions.html", {"request": request, "user": user.dict()}
     )
 
-@core_html_routes.get("/install",  name="install.extensions", response_class=HTMLResponse)
+
+@core_html_routes.get(
+    "/install", name="install.extensions", response_class=HTMLResponse
+)
 async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
@@ -87,7 +91,7 @@ async def extensions_install(
 
     try:
         extension_list: List[str] = await get_installable_extensions()
-        
+
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -95,9 +99,16 @@ async def extensions_install(
         )
 
     try:
+        
+        if deactivate:
+            g().config.LNBITS_DISABLED_EXTENSIONS += [deactivate]
+        elif activate:
+            g().config.LNBITS_DISABLED_EXTENSIONS = list(
+                filter(lambda e: e != activate, g().config.LNBITS_DISABLED_EXTENSIONS)
+            )
         await toggle_extension(activate, deactivate, USER_ID_ALL)
 
-        installed_extensions = list(map(lambda e: e.code, get_valid_extensions()))
+        installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
         inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
         extensions = list(
             map(
@@ -342,6 +353,7 @@ async def manifest(usr: str):
         ],
     }
 
+
 async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
     if extension_to_enable and extension_to_disable:
         raise HTTPException(
@@ -351,7 +363,7 @@ async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
     # check if extension exists
     if extension_to_enable or extension_to_disable:
         ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
+        if ext not in [e.code for e in get_valid_extensions(True)]:
             raise HTTPException(
                 HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
             )

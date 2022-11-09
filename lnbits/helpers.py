@@ -23,8 +23,10 @@ class Extension(NamedTuple):
 
 
 class ExtensionManager:
-    def __init__(self):
-        self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
+    def __init__(self, include_disabled_exts=False):
+        self._disabled: List[str] = (
+            [] if include_disabled_exts else settings.LNBITS_DISABLED_EXTENSIONS
+        )
         self._admin_only: List[str] = [
             x.strip(" ") for x in settings.LNBITS_ADMIN_EXTENSIONS
         ]
@@ -72,9 +74,11 @@ class ExtensionManager:
         return output
 
 
-def get_valid_extensions() -> List[Extension]:
+def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
     return [
-        extension for extension in ExtensionManager().extensions if extension.is_valid
+        extension
+        for extension in ExtensionManager(include_disabled_exts).extensions
+        if extension.is_valid
     ]
 
 
