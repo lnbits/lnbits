@@ -82,5 +82,6 @@ async def migrate_databases():
 
 
 async def load_disabled_extension_list() -> None:
+    """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
     g().config.LNBITS_DISABLED_EXTENSIONS += inactive_extensions
