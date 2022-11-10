@@ -766,8 +766,6 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
 
     try:
         download_url(extension.archive, ext_zip_file)
-        with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
-            zip_ref.extractall(extensions_data_dir)
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -777,10 +775,11 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
     try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
-        shutil.copytree(ext_data_dir, ext_dir)
+        with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
+            zip_ref.extractall("lnbits/extensions")
 
         # todo: is admin only
-        ext = Extension(extension.id, True, False, extension.name)
+        ext = Extension(extension.id, True, extension.is_admin_only, extension.name)
 
         current_versions = await get_dbversions()
         current_version = current_versions.get(ext.code, 0)
@@ -791,7 +790,11 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
         g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
     except Exception as ex:
-        shutil.rmtree(ext_data_dir, True)
+        # remove downloaded archive
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+
+        # remove module from extensions
         shutil.rmtree(ext_dir, True)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
@@ -833,9 +836,14 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
 
     try:
         g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
-        ext_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions", ext_id)
+
+        # remove downloaded archive
+        ext_zip_file = os.path.join(LNBITS_DATA_FOLDER, "extensions", f"{ext_id}.zip")
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+
+        # remove module from extensions
         ext_dir = os.path.join("lnbits/extensions", ext_id)
-        shutil.rmtree(ext_data_dir, True)
         shutil.rmtree(ext_dir, True)
     except Exception as ex:
         raise HTTPException(

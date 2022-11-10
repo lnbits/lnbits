@@ -101,6 +101,7 @@ class InstallableExtension(NamedTuple):
     short_description: Optional[str] = None
     icon: Optional[str] = None
     dependencies: List[str] = []
+    is_admin_only: bool = False
 
 
 def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:

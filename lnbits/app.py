@@ -1,11 +1,15 @@
 import asyncio
+import glob
 import importlib
 import logging
+import os
 import signal
 import sys
 import traceback
 import warnings
+import zipfile
 from http import HTTPStatus
+from pathlib import Path
 from typing import Callable
 
 from fastapi import FastAPI, Request
@@ -31,7 +35,7 @@ from .helpers import (
     url_for_vendored,
 )
 from .requestvars import g
-from .settings import WALLET
+from .settings import LNBITS_DATA_FOLDER, WALLET
 from .tasks import (
     catch_everything_and_restart,
     check_pending_payments,
@@ -96,6 +100,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(EnabledExtensionMiddleware)
 
+    check_installed_extensions()
     check_funding_source(app)
     register_assets(app)
     register_routes(app)
@@ -134,6 +139,22 @@ def check_funding_source(app: FastAPI) -> None:
         logger.success(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
+
+
+def check_installed_extensions():
+    """
+    Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
+    One reason might be a docker-container that was re-created. 
+    The 'data' directory (where the '.zip' files live) is expected to persist state.
+    """
+    extensions_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
+
+    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
+    for zip_file in zip_files:
+        ext_name = Path(zip_file).stem
+        if not Path(f"lnbits/extensions/{ext_name}").is_dir():
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall("lnbits/extensions/")
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
