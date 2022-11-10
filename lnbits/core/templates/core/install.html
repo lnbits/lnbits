@@ -36,7 +36,15 @@
         ></q-icon>
         {% raw %}
         <h5 class="q-mt-lg q-mb-xs">{{ extension.name}}</h5>
-        <small>{{ extension.shortDescription }} </small>{% endraw %}
+        <small>{{ extension.shortDescription }} </small>
+        <div>
+          <small v-if="extension.dependencies?.length">Depends on:</small>
+          <small v-else>&nbsp;</small>
+          <q-badge v-for="dep in extension.dependencies" color="orange">
+            <small v-text="dep"></small>
+          </q-badge>
+        </div>
+        {% endraw %}
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>

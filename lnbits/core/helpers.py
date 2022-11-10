@@ -7,6 +7,7 @@ import httpx
 from fastapi.exceptions import HTTPException
 from loguru import logger
 
+from lnbits.helpers import InstallableExtension
 from lnbits.settings import LNBITS_EXTENSIONS_MANIFESTS
 
 from . import db as core_db
@@ -47,8 +48,8 @@ async def run_migration(db, migrations_module, current_version):
                         await update_migration_version(conn, db_name, version)
 
 
-async def get_installable_extensions():
-    extension_list: List[str] = []
+async def get_installable_extensions() -> List[InstallableExtension]:
+    extension_list: List[InstallableExtension] = []
 
     async with httpx.AsyncClient() as client:
         for url in LNBITS_EXTENSIONS_MANIFESTS:
@@ -58,7 +59,17 @@ async def get_installable_extensions():
                     status_code=404,
                     detail=f"Unable to fetch extension list for repository: {url}",
                 )
-            extension_list += resp.json()["extensions"]
+            for e in resp.json()["extensions"]:
+                extension_list += [
+                    InstallableExtension(
+                        e["id"],
+                        e["name"],
+                        e["archive"],
+                        e["shortDescription"],
+                        e["icon"],
+                        e["dependencies"] if "dependencies" in e else [],
+                    )
+                ]
 
     return extension_list
 

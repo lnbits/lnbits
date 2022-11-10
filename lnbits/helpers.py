@@ -94,6 +94,15 @@ class EnabledExtensionMiddleware:
         await self.app(scope, receive, send)
 
 
+class InstallableExtension(NamedTuple):
+    id: str
+    name: str
+    archive: str
+    short_description: Optional[str] = None
+    icon: Optional[str] = None
+    dependencies: List[str] = []
+
+
 def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
     return [
         extension

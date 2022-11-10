@@ -89,7 +89,7 @@ async def extensions_install(
         )
 
     try:
-        extension_list: List[str] = await get_installable_extensions()
+        extension_list: List[extensions] = await get_installable_extensions()
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -110,12 +110,13 @@ async def extensions_install(
         extensions = list(
             map(
                 lambda ext: {
-                    "id": ext["id"],
-                    "name": ext["name"],
-                    "icon": ext["icon"],
-                    "shortDescription": ext["shortDescription"],
-                    "isInstalled": ext["id"] in installed_extensions,
-                    "isInactive": ext["id"] in inactive_extensions,
+                    "id": ext.id,
+                    "name": ext.name,
+                    "icon": ext.icon,
+                    "shortDescription": ext.short_description,
+                    "dependencies": ext.dependencies,
+                    "isInstalled": ext.id in installed_extensions,
+                    "isInactive": ext.id in inactive_extensions,
                 },
                 extension_list,
             )

@@ -39,7 +39,13 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import Extension, url_for, urlsafe_short_hash
+from lnbits.helpers import (
+    Extension,
+    InstallableExtension,
+    get_valid_extensions,
+    url_for,
+    urlsafe_short_hash,
+)
 from lnbits.requestvars import g
 from lnbits.settings import (
     LNBITS_ADMIN_USERS,
@@ -726,20 +732,31 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         )
 
     try:
-        extension_list: List[str] = await get_installable_extensions()
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot fetch installable extension list",
         )
 
-    extension = [e for e in extension_list if e["id"] == ext_id][0]
-    if not extension:
+    extensions = [e for e in extension_list if e.id == ext_id]
+    if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Unknown extension id: {ext_id}",
         )
+    extension = extensions[0]
 
+    # check that all dependecies are installed
+    dependencies = extension["dependencies"] if "dependencies" in extension else []
+    installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+    if not set(dependencies).issubset(installed_extensions):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Not all dependencies are installed: {dependencies}",
+        )
+
+    # move files to the right location
     extensions_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
     os.makedirs(extensions_data_dir, exist_ok=True)
     ext_data_dir = os.path.join(extensions_data_dir, ext_id)
@@ -791,15 +808,15 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         )
 
     try:
-        extension_list: List[str] = await get_installable_extensions()
-    except Exception:
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
+    except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot fetch installable extension list",
         )
 
-    extension = [e for e in extension_list if e["id"] == ext_id][0]  # todo fails
-    if not extension:
+    extensions = [e for e in extension_list if e.id == ext_id]
+    if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Unknown extension id: {ext_id}",
