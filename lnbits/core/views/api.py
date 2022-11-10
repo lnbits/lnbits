@@ -748,12 +748,11 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
     extension = extensions[0]
 
     # check that all dependecies are installed
-    dependencies = extension["dependencies"] if "dependencies" in extension else []
     installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
-    if not set(dependencies).issubset(installed_extensions):
+    if not set(extension.dependencies).issubset(installed_extensions):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Not all dependencies are installed: {dependencies}",
+            detail=f"Not all dependencies are installed: {extension.dependencies}",
         )
 
     # move files to the right location
@@ -766,14 +765,13 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         os.remove(ext_zip_file)
 
     try:
-        zip_file_url = extension["archive"]
-        download_url(zip_file_url, ext_zip_file)
+        download_url(extension.archive, ext_zip_file)
         with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
             zip_ref.extractall(extensions_data_dir)
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot fetch extension archvive file",
+            detail="Cannot fetch extension archive file",
         )
 
     try:
@@ -782,7 +780,7 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         shutil.copytree(ext_data_dir, ext_dir)
 
         # todo: is admin only
-        ext = Extension(extension["id"], True, False, extension["name"])
+        ext = Extension(extension.id, True, False, extension.name)
 
         current_versions = await get_dbversions()
         current_version = current_versions.get(ext.code, 0)
@@ -821,6 +819,17 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Unknown extension id: {ext_id}",
         )
+
+    # check that other extensions do not depend on this one
+    for active_ext_id in list(map(lambda e: e.code, get_valid_extensions(True))):
+        active_ext = next(
+            (ext for ext in extension_list if ext.id == active_ext_id), None
+        )
+        if active_ext and ext_id in active_ext.dependencies:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot uninstall. Extension '{active_ext.name}' depends on this one.",
+            )
 
     try:
         g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
