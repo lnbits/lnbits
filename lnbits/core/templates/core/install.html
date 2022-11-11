@@ -49,7 +49,11 @@
         <div>
           <small v-if="extension.dependencies?.length">Depends on:</small>
           <small v-else>&nbsp;</small>
-          <q-badge v-for="dep in extension.dependencies" color="orange">
+          <q-badge
+            v-for="dep in extension.dependencies"
+            :key="dep"
+            color="orange"
+          >
             <small v-text="dep"></small>
           </q-badge>
         </div>
@@ -62,9 +66,10 @@
             Uninstall</q-btn
           >
           <q-toggle
-            :label="extension.isInactive ? 'Deactivated' : 'Activated'"
+            :label="extension.isActive ? 'Activated':  'Deactivated' "
             color="secodary"
-            v-model="!extension.isInactive"
+            v-model="extension.isActive"
+            @input="toggleExtension(extension)"
           ></q-toggle>
           <!-- <q-btn
             v-if="!extension.isInactive"
@@ -179,6 +184,16 @@
           LNbits.utils.notifyApiError(error)
           extension.inProgress = false
         }
+      },
+      toggleExtension: function (extension) {
+        const action = extension.isActive ? 'activate' : 'deactivate'
+        window.location.href = [
+          "{{ url_for('install.extensions') }}",
+          '?usr=',
+          this.g.user.id,
+          `&${action}=`,
+          extension.id
+        ].join('')
       }
     },
     created: function () {
