@@ -61,31 +61,64 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
-        <div v-if="extension.isInstalled">
-          <q-btn @click="showUninstall(extension)" flat color="grey-5">
-            Uninstall</q-btn
-          >
-          <q-toggle
-            :label="extension.isActive ? 'Activated':  'Deactivated' "
-            color="secodary"
-            v-model="extension.isActive"
-            @input="toggleExtension(extension)"
-          ></q-toggle>
+        <div class="col-6">
+          <div v-if="extension.isInstalled">
+            <q-btn @click="showUninstall(extension)" flat color="grey-5">
+              Uninstall</q-btn
+            >
+            <q-toggle
+              :label="extension.isActive ? 'Activated':  'Deactivated' "
+              color="secodary"
+              v-model="extension.isActive"
+              @input="toggleExtension(extension)"
+            ></q-toggle>
+          </div>
+          <div v-else>
+            <q-spinner
+              v-if="extension.inProgress "
+              color="primary"
+              size="2.55em"
+            ></q-spinner>
+            <q-btn
+              v-else
+              @click="installExtension(extension)"
+              flat
+              color="primary"
+            >
+              Install</q-btn
+            >
+          </div>
         </div>
-        <div v-else>
-          <q-spinner
-            v-if="extension.inProgress "
-            color="primary"
-            size="2.55em"
-          ></q-spinner>
-          <q-btn
-            v-else
-            @click="installExtension(extension)"
-            flat
-            color="primary"
+       
+        <div class="col-6">
+          <q-rating
+            v-model="maxStars"
+            max="5"
+            size="3.5em"
+            color="yellow"
+            icon="star_border"
+            icon-selected="star"
+            icon-half="star_half"
+            readonly
+            no-dimming
+            class="float-right"
           >
-            Install</q-btn
-          >
+            <template v-slot:tip-1>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-2>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-3>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-4>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-5>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+          </q-rating>
         </div>
       </q-card-actions>
     </q-card>
@@ -117,7 +150,8 @@
         showOnlyInstalledExtensions: false,
         filteredExtensions: null,
         showUninstallDialog: false,
-        selectedExtension: null
+        selectedExtension: null,
+        maxStars: 5
       }
     },
     watch: {
