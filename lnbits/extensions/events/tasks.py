@@ -28,7 +28,6 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
-    logger.debug(f"cunt: sdvcsd")
     if (
         "events" == payment.extra.get("tag")
         and payment.extra.get("name")
