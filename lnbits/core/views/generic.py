@@ -114,6 +114,7 @@ async def extensions_install(
                     "name": ext.name,
                     "icon": ext.icon,
                     "shortDescription": ext.short_description,
+                    "details": ext.details,
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_extensions,
                     "isActive": not ext.id in inactive_extensions,

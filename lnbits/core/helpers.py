@@ -66,6 +66,7 @@ async def get_installable_extensions() -> List[InstallableExtension]:
                         e["name"],
                         e["archive"],
                         e["shortDescription"],
+                        e["details"] if "details" in e else "",
                         e["icon"],
                         e["dependencies"] if "dependencies" in e else [],
                     )
