@@ -296,15 +296,15 @@
       },
       async generateKeys(payment_hash) {
         return await LNbits.api
-        .request('GET', `/diagonalley/api/v1/keys/${payment_hash}`, null)
-        .then(response => {
-          if (response.data) {
-            let data = {
-              keys: {
-                privatekey: response.data.privkey,
-                publickey: response.data.pubkey
+          .request('GET', `/diagonalley/api/v1/keys/${payment_hash}`, null)
+          .then(response => {
+            if (response.data) {
+              let data = {
+                keys: {
+                  privatekey: response.data.privkey,
+                  publickey: response.data.pubkey
+                }
               }
-            }
               this.user.keys = data.keys
               return
             }
@@ -388,7 +388,8 @@
         }
       })
 
-      let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`) || false
+      let data =
+        this.$q.localStorage.getItem(`lnbits.diagonalley.data`) || false
 
       if (data) {
         this.user = data
@@ -415,7 +416,7 @@
   })
 </script>
 <style scoped>
-  .q-field__native span{
+  .q-field__native span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

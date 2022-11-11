@@ -51,11 +51,11 @@ from .crud import (
     get_diagonalley_stalls_by_ids,
     get_diagonalley_zone,
     get_diagonalley_zones,
+    set_diagonalley_order_pubkey,
     update_diagonalley_market,
     update_diagonalley_product,
     update_diagonalley_stall,
     update_diagonalley_zone,
-    set_diagonalley_order_pubkey,
 )
 from .models import (
     CreateMarket,
