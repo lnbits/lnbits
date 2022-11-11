@@ -144,7 +144,7 @@ def check_funding_source(app: FastAPI) -> None:
 def check_installed_extensions():
     """
     Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
-    One reason might be a docker-container that was re-created. 
+    One reason might be a docker-container that was re-created.
     The 'data' directory (where the '.zip' files live) is expected to persist state.
     """
     extensions_data_dir = os.path.join(LNBITS_DATA_FOLDER, "extensions")
