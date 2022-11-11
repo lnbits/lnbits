@@ -62,7 +62,7 @@
       <q-separator></q-separator>
       <q-card-actions>
         <div v-if="extension.isInstalled">
-          <q-btn @click="uninstallExtension(extension)" flat color="grey-5">
+          <q-btn @click="showUninstall(extension)" flat color="grey-5">
             Uninstall</q-btn
           >
           <q-toggle
@@ -90,6 +90,22 @@
       </q-card-actions>
     </q-card>
   </div>
+  <q-dialog v-model="showUninstallDialog">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">Warning</h6>
+      <p>
+        You are about to remove the extension for all users. <br />
+        Are you sure you want to continue?
+      </p>
+
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="uninstallExtension()"
+          >Yes, Uninstall</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -99,7 +115,9 @@
       return {
         searchTerm: '',
         showOnlyInstalledExtensions: false,
-        filteredExtensions: null
+        filteredExtensions: null,
+        showUninstallDialog: false,
+        selectedExtension: null
       }
     },
     watch: {
@@ -148,7 +166,8 @@
           extension.inProgress = false
         }
       },
-      uninstallExtension: async function (extension) {
+      uninstallExtension: async function () {
+        extension = this.selectedExtension
         try {
           extension.inProgress = true
           await LNbits.api.request(
@@ -175,6 +194,11 @@
           `&${action}=`,
           extension.id
         ].join('')
+      },
+
+      showUninstall: function (extension) {
+        this.selectedExtension = extension
+        this.showUninstallDialog = true
       }
     },
     created: function () {
