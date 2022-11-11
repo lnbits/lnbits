@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-7 col-xs-6 mt-lg">
+  <div class="col-sm-1 col-xs-4 mt-lg">
     <q-btn
       type="a"
       :href="['/extensions?usr=', g.user.id].join('')"
@@ -9,7 +9,16 @@
       >Back</q-btn
     >
   </div>
-  <div class="col-sm-3 col-xs-6 q-ml-auto">
+  <div class="col-sm-6 col-xs-4 mt-lg">
+    <q-toggle
+      label="Installed Only"
+      color="secodary"
+      class="float-left"
+      v-model="showOnlyInstalledExtensions"
+    ></q-toggle>
+  </div>
+
+  <div class="col-sm-3 col-xs-4 q-ml-auto">
     <q-input v-model="searchTerm" label="Search extensions">
       <q-icon
         v-if="searchTerm !== ''"
@@ -52,8 +61,12 @@
           <q-btn @click="uninstallExtension(extension)" flat color="grey-5">
             Uninstall</q-btn
           >
-
-          <q-btn
+          <q-toggle
+            :label="extension.isInactive ? 'Deactivated' : 'Activated'"
+            color="secodary"
+            v-model="!extension.isInactive"
+          ></q-toggle>
+          <!-- <q-btn
             v-if="!extension.isInactive"
             flat
             color="grey-5"
@@ -71,7 +84,7 @@
             :href="['{{ url_for('install.extensions') }}', '?usr=', g.user.id, '&activate=', extension.id].join('')"
           >
             Activate</q-btn
-          >
+          > -->
         </div>
         <div v-else>
           <q-spinner
@@ -99,33 +112,38 @@
     data: function () {
       return {
         searchTerm: '',
+        showOnlyInstalledExtensions: false,
         filteredExtensions: null
       }
     },
     watch: {
       searchTerm(term) {
-        if (term !== '') {
-          // Filter the extensions list
-          function extensionNameContains(searchTerm) {
-            return function (extension) {
-              return (
-                extension.name
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                extension.shortDescription
-                  ?.toLowerCase()
-                  .includes(searchTerm.toLowerCase())
-              )
-            }
-          }
-
-          this.filteredExtensions = this.extensions.filter(
-            extensionNameContains(term)
-          )
-        }
+        this.filterExtensions(term, this.onlyInstalled)
+      },
+      showOnlyInstalledExtensions(onlyInstalled) {
+        this.filterExtensions(this.searchTerm, onlyInstalled)
       }
     },
     methods: {
+      filterExtensions: function (term, onlyInstalled) {
+        // Filter the extensions list
+        function extensionNameContains(searchTerm) {
+          return function (extension) {
+            return (
+              extension.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              extension.shortDescription
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase())
+            )
+          }
+        }
+
+        this.filteredExtensions = this.extensions
+          .filter(e =>
+            this.showOnlyInstalledExtensions ? e.isInstalled : true
+          )
+          .filter(extensionNameContains(term))
+      },
       installExtension: async function (extension) {
         try {
           extension.inProgress = true
