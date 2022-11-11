@@ -93,6 +93,7 @@
         <div class="col-6">
           <q-rating
             max="5"
+            v-model="maxStars"
             size="3.5em"
             color="yellow"
             icon="star_border"
@@ -150,7 +151,7 @@
         filteredExtensions: null,
         showUninstallDialog: false,
         selectedExtension: null,
-        maxStars: 5
+        maxStars: 0
       }
     },
     watch: {
