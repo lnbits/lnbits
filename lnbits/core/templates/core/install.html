@@ -71,25 +71,6 @@
             v-model="extension.isActive"
             @input="toggleExtension(extension)"
           ></q-toggle>
-          <!-- <q-btn
-            v-if="!extension.isInactive"
-            flat
-            color="grey-5"
-            type="a"
-            :href="['{{ url_for('install.extensions') }}', '?usr=', g.user.id, '&deactivate=', extension.id].join('')"
-          >
-            Deactivate</q-btn
-          >
-
-          <q-btn
-            v-else
-            flat
-            color="primary"
-            type="a"
-            :href="['{{ url_for('install.extensions') }}', '?usr=', g.user.id, '&activate=', extension.id].join('')"
-          >
-            Activate</q-btn
-          > -->
         </div>
         <div v-else>
           <q-spinner
