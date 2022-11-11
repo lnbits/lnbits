@@ -68,10 +68,11 @@
             dense
             emit-value
             v-model="selectedOrder"
-            :options="Object.keys(user.orders)"
+            :options="Object.keys(user.orders).map(o => ({label: `${o.slice(0, 25)}...`, value: o}))"
             label="Order"
             hint="Select an order from this merchant"
             @input="val => { changeOrder() }"
+            emit-value
           ></q-select>
         </q-form>
       </q-card-section>
@@ -224,7 +225,9 @@
         selectedOrder: null,
         products: [],
         orders: [],
-        user: null,
+        user: {
+          keys: {}
+        },
         keysDialog: {
           show: false,
           data: {}
@@ -291,18 +294,18 @@
             this.user = null
           })
       },
-      async generateKeys() {
-        await LNbits.api
-          .request('GET', '/diagonalley/api/v1/keys', null)
-          .then(response => {
-            if (response.data) {
-              let data = {
-                keys: {
-                  privatekey: response.data.privkey,
-                  publickey: response.data.pubkey
-                }
+      async generateKeys(payment_hash) {
+        return await LNbits.api
+        .request('GET', `/diagonalley/api/v1/keys/${payment_hash}`, null)
+        .then(response => {
+          if (response.data) {
+            let data = {
+              keys: {
+                privatekey: response.data.privkey,
+                publickey: response.data.pubkey
               }
-              this.user = data
+            }
+              this.user.keys = data.keys
               return
             }
           })
@@ -385,37 +388,39 @@
         }
       })
 
-      let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+      let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`) || false
 
-      try {
-        if (data) {
-          this.user = data
-          //add chat key (merchant pubkey) if not set
-          if (!this.user.orders[`${order_id}`]) {
-            this.$set(this.user.orders, order_id, this.products)
-          }
-        } else {
-          // generate keys
-          await this.generateKeys()
-          // populate user data
-          this.user.orders = {
-            [`${order_id}`]: this.products
-          }
+      if (data) {
+        this.user = data
+        //add chat key (merchant pubkey) if not set
+        if (!this.user.orders[`${order_id}`]) {
+          this.$set(this.user.orders, order_id, this.products)
         }
-
-        this.selectedOrder = order_id
-
-        await this.getMessages(order_id)
-
-        this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
-        this.startChat(order_id)
-      } catch (e) {
-        console.error(e)
+      } else {
+        // generate keys
+        this.generateKeys(order_id)
+        // populate user data
+        this.user.orders = {
+          [`${order_id}`]: this.products
+        }
       }
+
+      this.selectedOrder = order_id
+
+      await this.getMessages(order_id)
+
+      this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+      this.startChat(order_id)
     }
   })
 </script>
 <style scoped>
+  .q-field__native span{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .chat-container {
     position: relative;
     display: grid;

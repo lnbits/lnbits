@@ -859,9 +859,10 @@
       <q-card-section>
         <q-select
           v-model="customerKey"
-          :options="Object.keys(messages)"
+          :options="Object.keys(messages).map(k => ({label: `${k.slice(0, 25)}...`, value: k}))"
           label="Customers"
           @input="chatRoom(customerKey)"
+          emit-value
         ></q-select>
       </q-card-section>
       <div class="chat-container q-pa-md" ref="chatCard">
@@ -1787,7 +1788,6 @@
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
-              // console.log(this.markets)
             }
           })
           .catch(error => {
@@ -1904,7 +1904,7 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      createOrder: function () {
+      /*createOrder: function () {
         var data = {
           address: this.orderDialog.data.address,
           email: this.orderDialog.data.email,
@@ -1929,7 +1929,7 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-      },
+      },*/
       deleteOrder: function (orderId) {
         var self = this
         var order = _.findWhere(self.orders, {id: orderId})
@@ -1941,7 +1941,7 @@
               .request(
                 'DELETE',
                 '/diagonalley/api/v1/orders/' + orderId,
-                _.findWhere(self.g.user.wallets, {id: order.wallet}).inkey
+                _.findWhere(self.g.user.wallets, {id: order.wallet}).adminkey
               )
               .then(function (response) {
                 self.orders = _.reject(self.orders, function (obj) {
@@ -1961,7 +1961,6 @@
             this.g.user.wallets[0].inkey
           )
           .then(response => {
-            console.log(response.data)
             this.orders = _.reject(this.orders, obj => {
               return obj.id == order_id
             })
@@ -1987,7 +1986,6 @@
           .then(res => {
             this.messages = _.groupBy(res.data, 'id_conversation')
             this.checkUnreadMessages()
-            console.log('Get new messages!')
           })
           .catch(error => {
             LNbits.utils.notifyApiError(error)
@@ -2005,7 +2003,6 @@
             ]
           }
         }
-        //console.log({chat})
         this.$q.localStorage.set(`lnbits.diagonalley.${this.g.user.id}`, {
           ...data,
           chat
@@ -2031,7 +2028,6 @@
           } else {
             this.$set(this.orders[idx], 'unread', false)
           }
-          console.log('Order:', this.orders[idx])
         }
       },
       clearMessage() {
@@ -2122,6 +2118,11 @@
   })
 </script>
 <style scoped>
+  .q-field__native span{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .chat-container {
     position: relative;
     display: grid;

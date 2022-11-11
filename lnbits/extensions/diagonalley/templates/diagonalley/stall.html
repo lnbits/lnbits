@@ -357,7 +357,6 @@
         this.cartMenu = Array.from(this.cart.products, item => {
           return {id: item[0], ...item[1]}
         })
-        console.log(this.cartMenu, this.cart)
       },
       getPubkey() {
         let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
@@ -446,7 +445,6 @@
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
 
-      console.log(this.stall, this.products)
     }
   })
 </script>

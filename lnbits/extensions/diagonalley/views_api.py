@@ -55,6 +55,7 @@ from .crud import (
     update_diagonalley_product,
     update_diagonalley_stall,
     update_diagonalley_zone,
+    set_diagonalley_order_pubkey,
 )
 from .models import (
     CreateMarket,
@@ -202,7 +203,6 @@ async def api_diagonalley_stall_create(
 
     if stall_id:
         stall = await get_diagonalley_stall(stall_id)
-        print("ID", stall_id)
         if not stall:
             return {"message": "Withdraw stall does not exist."}
 
@@ -306,7 +306,7 @@ async def api_diagonalley_check_payment(payment_hash: str):
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
 async def api_diagonalley_order_delete(
-    order_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    order_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     order = await get_diagonalley_order(order_id)
 
@@ -364,7 +364,6 @@ async def api_diagonalley_stall_products(
     rows = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
-    print(rows[1])
     if not rows:
         return {"message": "Stall does not exist."}
 
@@ -393,44 +392,44 @@ async def api_diagonalley_stall_checkshipped(
 ###Place order
 
 
-@diagonalley_ext.post("/api/v1/stall/order/{stall_id}")
-async def api_diagonalley_stall_order(
-    stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    product = await get_diagonalley_product(data.productid)
-    shipping = await get_diagonalley_stall(stall_id)
+# @diagonalley_ext.post("/api/v1/stall/order/{stall_id}")
+# async def api_diagonalley_stall_order(
+#     stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
+# ):
+#     product = await get_diagonalley_product(data.productid)
+#     shipping = await get_diagonalley_stall(stall_id)
 
-    if data.shippingzone == 1:
-        shippingcost = shipping.zone1cost  # missing in model
-    else:
-        shippingcost = shipping.zone2cost  # missing in model
+#     if data.shippingzone == 1:
+#         shippingcost = shipping.zone1cost  # missing in model
+#     else:
+#         shippingcost = shipping.zone2cost  # missing in model
 
-    checking_id, payment_request = await create_invoice(
-        wallet_id=product.wallet,
-        amount=shippingcost + (data.quantity * product.price),
-        memo=shipping.wallet,
-    )
-    selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
-    await db.execute(
-        """
-            INSERT INTO diagonalley.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-        (
-            selling_id,
-            data.productid,
-            product.wallet,  # doesn't exist in model
-            product.product,
-            data.quantity,
-            data.shippingzone,
-            data.address,
-            data.email,
-            checking_id,
-            False,
-            False,
-        ),
-    )
-    return {"checking_id": checking_id, "payment_request": payment_request}
+#     checking_id, payment_request = await create_invoice(
+#         wallet_id=product.wallet,
+#         amount=shippingcost + (data.quantity * product.price),
+#         memo=shipping.wallet,
+#     )
+#     selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
+#     await db.execute(
+#         """
+#             INSERT INTO diagonalley.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
+#             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+#             """,
+#         (
+#             selling_id,
+#             data.productid,
+#             product.wallet,  # doesn't exist in model
+#             product.product,
+#             data.quantity,
+#             data.shippingzone,
+#             data.address,
+#             data.email,
+#             checking_id,
+#             False,
+#             False,
+#         ),
+#     )
+#     return {"checking_id": checking_id, "payment_request": payment_request}
 
 
 ##
@@ -482,13 +481,16 @@ async def api_diagonalley_stall_create(
 ## KEYS
 
 
-@diagonalley_ext.get("/api/v1/keys")
-async def api_diagonalley_generate_keys():
+@diagonalley_ext.get("/api/v1/keys/{payment_hash}")
+async def api_diagonalley_generate_keys(payment_hash: str):
     private_key = PrivateKey()
     public_key = private_key.pubkey.serialize().hex()
     while not public_key.startswith("02"):
         private_key = PrivateKey()
         public_key = private_key.pubkey.serialize().hex()
+
+    # set pubkey in order
+    await set_diagonalley_order_pubkey(payment_hash, pubkey=public_key[2:])
     return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
 
 
