@@ -785,10 +785,12 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         current_version = current_versions.get(ext.code, 0)
         await migrate_extension_database(ext, current_version)
 
-        core_app_extra.register_new_ext_routes(ext)
         # disable by default
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
         g().config.LNBITS_DISABLED_EXTENSIONS += [ext_id]
+
+        # mount routes at the very end
+        core_app_extra.register_new_ext_routes(ext)
     except Exception as ex:
         # remove downloaded archive
         if os.path.isfile(ext_zip_file):
