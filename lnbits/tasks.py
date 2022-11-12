@@ -75,7 +75,7 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     invoice_listeners[name_unique] = send_chan
 
 
-async def webhook_handler(request):
+async def webhook_handler():
     """
     Returns the webhook_handler for the selected wallet if present. Used by API.
     """
