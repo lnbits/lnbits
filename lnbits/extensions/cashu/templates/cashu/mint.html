@@ -1,7 +1,7 @@
 {% extends "public.html" %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-    <q-card class="q-pa-lg">
+    <q-card class="q-pa-lg q-mb-xl">
       <q-card-section class="q-pa-none">
         <center>
           <q-icon
@@ -9,10 +9,10 @@
             class="text-grey"
             style="font-size: 10rem"
           ></q-icon>
-          <h3 class="q-my-none">{{ mint_name }}</h3>
-          <p style="font-size: 1rem" class="q-my-sm">Cashu mint</p>
+          <h4 class="q-mt-none q-mb-md">{{ mint_name }}</h4>
           <a
-            style="font-size: 1.5rem; color: white"
+            class="q-my-xl text-white"
+            style="font-size: 1.5rem"
             href="../wallet?mint_id={{ mint_id }}"
             target="”_blank”"
             >Open wallet</a
@@ -21,7 +21,7 @@
         <br />
         <br />
         <h6 class="q-my-none">
-          <p><strong>Read the following text carefully!</strong></p>
+          <p><strong>Read the following carefully!</strong></p>
           <p>
             This is a
             <a
@@ -30,14 +30,20 @@
               target="”_blank”"
               >Cashu</a
             >
-            mint. Cashu is a Ecash system on Bitcoin.
+            mint which is an Ecash system on Bitcoin.
+          </p>
+          <p>
+            <strong>Open this page in your browser</strong><br />
+            Before you continue, make sure to open this page in your device's
+            native browser application (Safari for iOS, Chrome for Android) if
+            you want to add Cashu wallet to your home screen.
           </p>
           <p>
             <strong>Add to home screen</strong><br />
             You can add Cashu to your home screen as a progressive web app
-            (PWA). When you open the wallet in your browser, on Android Chrome,
-            click the menu at the upper right. On iOS Safari, click the share
-            button. Now press the Add to Home screen button.
+            (PWA). When you open the wallet in your browser, on Android
+            (Chrome), click the menu at the upper right. On iOS (Safari), click
+            the share button. Now press the Add to Home screen button.
           </p>
           <p>
             <strong>Backup your wallet</strong><br />
