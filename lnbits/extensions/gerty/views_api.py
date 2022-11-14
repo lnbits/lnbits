@@ -173,16 +173,37 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     if screen_slug == "dashboard":
         title = gerty.name
         areas = await get_dashboard(gerty)
+    if screen_slug == "lnbits_wallets_balance":
+        wallets = await get_lnbits_wallet_balances(gerty)
+        text = []
+        for wallet in wallets:
+            text.append(get_text_item_dict("{0}'s Wallet".format(wallet['name']), 20))
+            text.append(get_text_item_dict("{0} sats".format(format_number(wallet['balance'])), 40))
+        areas.append(text)
     elif screen_slug == "fun_satoshi_quotes":
         areas.append(await get_satoshi_quotes())
     elif screen_slug == "fun_exchange_market_rate":
         areas.append(await get_exchange_rate(gerty))
-    elif screen_slug == "onchain_dashboard":
+    elif screen_slug == "onchain_difficulty_epoch_progress":
+       areas.append(await get_onchain_stat(screen_slug, gerty))
+    elif screen_slug == "onchain_difficulty_retarget_date":
+       areas.append(await get_onchain_stat(screen_slug, gerty))
+    elif screen_slug == "onchain_difficulty_blocks_remaining":
+       areas.append(await get_onchain_stat(screen_slug, gerty))
+    elif screen_slug == "onchain_difficulty_epoch_time_remaining":
+       areas.append(await get_onchain_stat(screen_slug, gerty))
+    elif screen_slug == "dashboard_onchain":
         title = "Onchain Data"
         areas = await get_onchain_dashboard(gerty)
     elif screen_slug == "mempool_recommended_fees":
         areas.append(await get_mempool_stat(screen_slug, gerty))
-    elif screen_slug == "mining_dashboard":
+    elif screen_slug == "mempool_tx_count":
+       areas.append(await get_mempool_stat(screen_slug, gerty))
+    elif screen_slug == "mining_current_hash_rate":
+       areas.append(await get_mining_stat(screen_slug, gerty))
+    elif screen_slug == "mining_current_difficulty":
+       areas.append(await get_mining_stat(screen_slug, gerty))
+    elif screen_slug == "dashboard_mining":
         title = "Mining Data"
         areas = await get_mining_dashboard(gerty)
     elif screen_slug == "lightning_dashboard":
@@ -292,6 +313,34 @@ async def get_exchange_rate(gerty):
             pass
     return text
 
+async def get_onchain_stat(stat_slug: str, gerty):
+    text = []
+    if (
+            stat_slug == "onchain_difficulty_epoch_progress" or
+            stat_slug == "onchain_difficulty_retarget_date" or
+            stat_slug == "onchain_difficulty_blocks_remaining" or
+            stat_slug == "onchain_difficulty_epoch_time_remaining"
+    ):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")
+            if stat_slug == "onchain_difficulty_epoch_progress":
+                stat = round(r.json()['progressPercent'])
+                text.append(get_text_item_dict("Progress through current difficulty epoch", 15))
+                text.append(get_text_item_dict("{0}%".format(stat), 80))
+            elif stat_slug == "onchain_difficulty_retarget_date":
+                stat = r.json()['estimatedRetargetDate']
+                dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
+                text.append(get_text_item_dict("Estimated date of next difficulty adjustment", 15))
+                text.append(get_text_item_dict(dt, 40))
+            elif stat_slug == "onchain_difficulty_blocks_remaining":
+                stat = r.json()['remainingBlocks']
+                text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 15))
+                text.append(get_text_item_dict("{0}".format(format_number(stat)), 80))
+            elif stat_slug == "onchain_difficulty_epoch_time_remaining":
+                stat = r.json()['remainingTime']
+                text.append(get_text_item_dict("Blocks remaining until next difficulty adjustment", 15))
+                text.append(get_text_item_dict(get_time_remaining(stat / 1000, 4), 20))
+    return text
 
 async def get_onchain_dashboard(gerty):
     areas = []
@@ -440,3 +489,30 @@ async def get_mempool_stat(stat_slug: str, gerty):
                     )
                 )
     return text
+
+
+def get_date_suffix(dayNumber):
+    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
+        return "th"
+    else:
+        return ["st", "nd", "rd"][dayNumber % 10 - 1]
+
+def get_time_remaining(seconds, granularity=2):
+    intervals = (
+        # ('weeks', 604800),  # 60 * 60 * 24 * 7
+        ('days', 86400),  # 60 * 60 * 24
+        ('hours', 3600),  # 60 * 60
+        ('minutes', 60),
+        ('seconds', 1),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip('s')
+            result.append("{} {}".format(round(value), name))
+    return ', '.join(result[:granularity])
