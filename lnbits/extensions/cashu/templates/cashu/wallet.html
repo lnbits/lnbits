@@ -125,9 +125,6 @@ page_container %}
                       <q-td key="sum" :props="props">
                         <div>{{props.row.sum}}</div>
                       </q-td>
-                      <q-td key="memo" :props="props">
-                        <div>{{props.row.memo}}</div>
-                      </q-td>
                     </q-tr>
                   </template>
                   {% endraw %}
@@ -186,17 +183,17 @@ page_container %}
                       <q-td
                         key="amount"
                         :props="props"
-                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                        :class="props.row.amount > 0 && props.row.status === 'paid' ? 'text-green-13 text-weight-bold' : ''"
                       >
                         <div>{{props.row.amount}}</div>
                       </q-td>
 
-                      <!-- <q-td key="memo" :props="props">
-                        <div>{{props.row.memo}}</div>
-                      </q-td> -->
                       <q-td key="date" :props="props">
                         <div>{{props.row.date}}</div>
                       </q-td>
+                      <!-- <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td> -->
                       <q-td key="bolt11" :props="props">
                         <div>{{props.row.bolt11}}</div>
                       </q-td>
@@ -269,6 +266,9 @@ page_container %}
                       <q-td key="date" :props="props">
                         <div>{{props.row.date}}</div>
                       </q-td>
+                      <!-- <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td> -->
                       <q-td key="token" :props="props">
                         <div>{{props.row.token}}</div>
                       </q-td>
@@ -931,13 +931,6 @@ page_container %}
               field: 'sum',
               sortable: true
             }
-            // {
-            //   name: 'memo',
-            //   align: 'left',
-            //   label: 'Memo',
-            //   field: 'memo',
-            //   sortable: true
-            // }
           ],
           pagination: {
             rowsPerPage: 5
@@ -960,13 +953,6 @@ page_container %}
               field: 'amount',
               sortable: true
             },
-            // {
-            //   name: 'memo',
-            //   align: 'left',
-            //   label: 'Memo',
-            //   field: 'memo',
-            //   sortable: true
-            // },
             {
               name: 'date',
               align: 'left',
@@ -974,6 +960,13 @@ page_container %}
               field: 'date',
               sortable: true
             },
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // },
             {
               name: 'bolt11',
               align: 'left',
@@ -1020,6 +1013,13 @@ page_container %}
               field: 'date',
               sortable: true
             },
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // },
             {
               name: 'token',
               align: 'left',
