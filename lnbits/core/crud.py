@@ -85,12 +85,14 @@ async def update_user_extension(
 
 async def get_inactive_extensions(
     *, user_id: str, conn: Optional[Connection] = None
-) -> None:
+) -> List[str]:
     inactive_extensions = await (conn or db).fetchall(
         """SELECT extension FROM extensions WHERE "user" = ? AND NOT active""",
         (user_id,),
     )
-    return [ext[0] for ext in inactive_extensions]
+    return (
+        [ext[0] for ext in inactive_extensions] if len(inactive_extensions) != 0 else []
+    )
 
 
 # wallets

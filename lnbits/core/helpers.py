@@ -62,13 +62,13 @@ async def get_installable_extensions() -> List[InstallableExtension]:
             for e in resp.json()["extensions"]:
                 extension_list += [
                     InstallableExtension(
-                        e["id"],
-                        e["name"],
-                        e["archive"],
-                        e["shortDescription"],
-                        e["details"] if "details" in e else "",
-                        e["icon"],
-                        e["dependencies"] if "dependencies" in e else [],
+                        id=e["id"],
+                        name=e["name"],
+                        archive=e["archive"],
+                        short_description=e["shortDescription"],
+                        details=e["details"] if "details" in e else "",
+                        icon=e["icon"],
+                        dependencies=e["dependencies"] if "dependencies" in e else [],
                     )
                 ]
 

@@ -99,6 +99,7 @@ class InstallableExtension(NamedTuple):
     name: str
     archive: str
     short_description: Optional[str] = None
+    details: Optional[str] = None
     icon: Optional[str] = None
     dependencies: List[str] = []
     is_admin_only: bool = False

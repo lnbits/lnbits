@@ -25,7 +25,7 @@ from lnbits.settings import (
     SERVICE_FEE,
 )
 
-from ...helpers import get_valid_extensions
+from ...helpers import InstallableExtension, get_valid_extensions
 from ..crud import (
     USER_ID_ALL,
     create_account,
@@ -79,7 +79,7 @@ async def extensions(
 )
 async def extensions_install(
     request: Request,
-    user: User = Depends(check_user_exists),
+    user: User = Depends(check_user_exists),  # type: ignore
     activate: str = Query(None),  # type: ignore
     deactivate: str = Query(None),  # type: ignore
 ):
@@ -89,7 +89,7 @@ async def extensions_install(
         )
 
     try:
-        extension_list: List[extensions] = await get_installable_extensions()
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

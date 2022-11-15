@@ -199,4 +199,4 @@ class BalanceCheck(BaseModel):
 
 
 class CoreAppExtra:
-    register_new_ext_routes: Optional[Callable]
+    register_new_ext_routes: Callable
