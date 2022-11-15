@@ -169,7 +169,6 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
-    print('### response.details', response)
     assert response.status_code < 300  # should pass
 
 
