@@ -15,17 +15,15 @@ def get_percent_difference(current, previous, precision=4):
 # A helper function get a nicely formated dict for the text
 def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
     # Get line size by font size
-    line_width = 60
+    line_width = 20
     if font_size <= 12:
-        line_width = 75
+        line_width = 60
     elif font_size <= 15:
-        line_width = 58
+        line_width = 45
     elif font_size <= 20:
-        line_width = 40
+        line_width = 35
     elif font_size <= 40:
-        line_width = 30
-    else:
-        line_width = 20
+        line_width = 25
 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
@@ -241,3 +239,42 @@ def get_time_remaining(seconds, granularity=2):
                 name = name.rstrip("s")
             result.append("{} {}".format(round(value), name))
     return ", ".join(result[:granularity])
+
+
+async def get_mining_stat(stat_slug: str, gerty):
+    text = []
+    if stat_slug == "mining_current_hash_rate":
+        stat = await api_get_mining_stat(stat_slug, gerty)
+        logger.debug(stat)
+        current = "{0}hash".format(si_format(stat['current'], 6, True, " "))
+        text.append(get_text_item_dict("Current Mining Hashrate", 20))
+        text.append(get_text_item_dict(current, 40))
+        # compare vs previous time period
+        difference = get_percent_difference(current=stat['current'], previous=stat['1w'])
+        text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    elif stat_slug == "mining_current_difficulty":
+        stat = await api_get_mining_stat(stat_slug, gerty)
+        text.append(get_text_item_dict("Current Mining Difficulty", 20))
+        text.append(get_text_item_dict(format_number(stat['current']), 40))
+        difference = get_percent_difference(current=stat['current'], previous=stat['previous'])
+        text.append(get_text_item_dict("{0} since last adjustment".format(difference), 12))
+        # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
+    return text
+
+async def api_get_mining_stat(stat_slug: str, gerty):
+    stat = ""
+    if stat_slug == "mining_current_hash_rate":
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
+            data = r.json()
+            stat = {}
+            stat['current'] = data['currentHashrate']
+            stat['1w'] = data['hashrates'][len(data['hashrates']) - 7]['avgHashrate']
+    elif stat_slug == "mining_current_difficulty":
+        async with httpx.AsyncClient() as client:
+            r = await client.get(gerty.mempool_endpoint + "/api/v1/mining/hashrate/1m")
+            data = r.json()
+            stat = {}
+            stat['current'] = data['currentDifficulty']
+            stat['previous'] = data['difficulty'][len(data['difficulty']) - 2]['difficulty']
+    return stat

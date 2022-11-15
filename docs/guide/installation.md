@@ -48,7 +48,9 @@ poetry run lnbits
 # Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
-## Option 2: Nix
+## Option 2: Nix 
+
+> note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -155,6 +157,7 @@ kill_timeout = 30
   HOST="127.0.0.1"
   PORT=5000
   LNBITS_FORCE_HTTPS=true
+  FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
   
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
