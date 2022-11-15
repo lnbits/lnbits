@@ -133,12 +133,13 @@ async def m002_add_chat_messages(db):
     """
     )
 
-    """
-    Create indexes for message fetching 
-    """
-    await db.execute(
-        "CREATE INDEX idx_messages_timestamp ON diagonalley.messages (timestamp DESC)"
-    )
-    await db.execute(
-        "CREATE INDEX idx_messages_conversations ON diagonalley.messages (id_conversation)"
-    )
+    if db.type != "SQLITE":
+        """
+        Create indexes for message fetching
+        """
+        await db.execute(
+            "CREATE INDEX idx_messages_timestamp ON diagonalley.messages (timestamp DESC)"
+        )
+        await db.execute(
+            "CREATE INDEX idx_messages_conversations ON diagonalley.messages (id_conversation)"
+        )
