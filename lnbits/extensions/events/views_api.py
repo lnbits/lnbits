@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi.param_functions import Query
 from fastapi.params import Depends
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
@@ -10,7 +11,6 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.events.models import CreateEvent, CreateTicket
-from loguru import logger
 
 from . import events_ext
 from .crud import (
