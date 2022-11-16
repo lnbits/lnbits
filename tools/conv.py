@@ -1,5 +1,5 @@
 import argparse
-import os
+import os, sys
 import sqlite3
 from typing import List
 
@@ -24,7 +24,7 @@ sqfolder = env.str("LNBITS_DATA_FOLDER", default=None)
 LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 if LNBITS_DATABASE_URL is None:
     print("missing LNBITS_DATABASE_URL")
-    os.sys.exit(1)
+    sys.exit(1)
 else:
     # parse postgres://lnbits:postgres@localhost:5432/lnbits
     pgdb = LNBITS_DATABASE_URL.split("/")[-1]
