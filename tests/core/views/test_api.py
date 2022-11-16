@@ -162,7 +162,9 @@ async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: payment with admin key [should pass]
 @pytest.mark.asyncio
-@pytest.mark.skipif(is_regtest, reason="this only works in fakewallet")
+@pytest.mark.skipif(
+    True, reason="this only works in fakewallet"
+)  # is_regtest - must clarify with @calle the purpose of this test. Overlaps with `test_pay_invoice`
 async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     # try payment with admin key
