@@ -51,7 +51,7 @@ async def api_tpos_delete(
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your TPoS.")
 
     await delete_tpos(tpos_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
