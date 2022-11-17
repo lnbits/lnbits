@@ -1,5 +1,5 @@
 import argparse
-import os
+import os, sys
 import sqlite3
 from typing import List
 
