@@ -306,6 +306,7 @@
 
                             <q-toggle
                                     v-model="formDialog.data.display_preferences.mempool_recommended_fees"
+                                    v-if="!isMiniGerty"
                                     label="Recommended fees"
                             ></q-toggle>
 
