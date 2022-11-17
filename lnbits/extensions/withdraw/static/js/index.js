@@ -291,7 +291,11 @@ new Vue({
       }
     },
     exportCSV() {
-      LNbits.utils.exportCSV(this.withdrawLinksTable.columns, this.withdrawLinks)
+      LNbits.utils.exportCSV(
+        this.withdrawLinksTable.columns,
+        this.withdrawLinks,
+        'withdraw-links'
+      )
     }
   },
   created: function () {
