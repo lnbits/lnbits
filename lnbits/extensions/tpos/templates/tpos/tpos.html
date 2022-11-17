@@ -238,6 +238,7 @@
               ref="inputRounding"
               v-model.number="tipRounding"
               :placeholder="roundToSugestion"
+              type="number"
               hint="Total amount including tip"
               :prefix="currency"
             >
@@ -673,4 +674,18 @@
     }
   })
 </script>
+<style scoped>
+  
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+  
+</style>
 {% endblock %}
