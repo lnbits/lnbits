@@ -131,6 +131,14 @@
                             filled
                             dense
                             emit-value
+                            v-model="formDialog.data.type"
+                            :options="['Gerty', 'Mini Gerty']"
+                            label="Gerty Type *"
+                    ></q-select>
+                    <q-select
+                            filled
+                            dense
+                            emit-value
                             v-model="formDialog.data.wallet"
                             :options="g.user.walletOptions"
                             label="Wallet *"
@@ -583,6 +591,7 @@
                         show: false,
                         data: {
                             utc_offset: 0,
+                            type: 'Gerty',
                             display_preferences: {
                                 dashboard: true,
                                 fun_satoshi_quotes: true,
@@ -619,6 +628,7 @@
                         lnbits_wallets: [],
                         mempool_endpoint: "https://mempool.space",
                         refresh_time: 300,
+                        type: 'Gerty',
                         display_preferences: {},
                     }
                 },
@@ -641,6 +651,7 @@
                     console.log('gerty.display_preferences', gerty.display_preferences)
                     this.formDialog.data.id = gerty.id
                     this.formDialog.data.name = gerty.name
+                    this.formDialog.data.type = gerty.type
                     this.formDialog.data.wallet = gerty.wallet
                     this.formDialog.data.utc_offset = gerty.utc_offset
                     this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
@@ -669,6 +680,7 @@
                         name: this.formDialog.data.name,
                         wallet: this.formDialog.data.wallet,
                         utc_offset: this.formDialog.data.utc_offset,
+                        type: this.formDialog.data.type,
                         lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
                         exchange: this.formDialog.data.exchange,
                         mempool_endpoint: this.formDialog.data.mempool_endpoint,
@@ -697,6 +709,7 @@
                 updateGerty: function (wallet, data) {
                     var self = this
                     data.utc_offset = this.formDialog.data.utc_offset
+                    data.type = this.formDialog.data.type
                     data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
                     data.display_preferences = JSON.stringify(this.formDialog.data.display_preferences)
                     LNbits.api

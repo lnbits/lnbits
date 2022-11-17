@@ -15,19 +15,21 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
         name,
         wallet,
         utc_offset,
+        type,
         lnbits_wallets,
         mempool_endpoint,
         exchange,
         display_preferences,
         refresh_time
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             gerty_id,
             data.name,
             data.wallet,
             data.utc_offset,
+            data.type,
             data.lnbits_wallets,
             data.mempool_endpoint,
             data.exchange,
