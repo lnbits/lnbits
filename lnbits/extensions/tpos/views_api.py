@@ -7,13 +7,14 @@ from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_user, get_latest_payments_by_extension
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.core.models import Payment
 
 from . import tpos_ext
-from .crud import create_tpos, delete_tpos, get_tpos, get_tpos_payments, get_tposs
+from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
 from .models import CreateTposData, PayLnurlWData
 
 
@@ -83,7 +84,12 @@ async def api_tpos_create_invoice(
 
 @tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices")
 async def api_tpos_get_latest_invoices(tpos_id: str = None):
-    payments = await get_tpos_payments(tpos_id)
+    payments = [
+        Payment.from_row(row)
+        for row in await get_latest_payments_by_extension(
+            ext_name="tpos", ext_id=tpos_id
+        )
+    ]
 
     return [
         {
