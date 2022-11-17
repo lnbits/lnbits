@@ -566,7 +566,6 @@
           .then(res => {
             if (res.data && res.data.length) {
               let last = [...res.data]
-              //last.length = Math.min(last.length, 5)
               this.lastPaymentsDialog.data = last.map(obj => {
                 obj.dateFrom = moment(obj.time * 1000).fromNow()
                 return obj
