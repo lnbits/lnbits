@@ -198,7 +198,9 @@
 
                     <p>Use the toggles below to control what your Gerty will display</p>
 
+
                     <q-expansion-item
+                            v-if="!isMiniGerty"
                             expand-separator
                             icon="grid_view"
                             label="Dashboards"
@@ -206,17 +208,6 @@
                         <q-toggle
                                 v-model="formDialog.data.display_preferences.dashboard"
                                 label="LNbits Dashboard"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
-                                label="Satoshi Quotes"
-                        >
-                            <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
-                        </q-toggle>
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
-                                label="Fiat to BTC  price"
                         ></q-toggle>
 
                         <q-toggle
@@ -241,8 +232,20 @@
                             expand-separator
                             icon="pin"
                             label="Single Data Points"
+                            ref="single-data-points-expansion"
                     >
 
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
+                                label="Fiat to BTC  price"
+                        ></q-toggle>
+                        <q-toggle
+                                v-if="!isMiniGerty"
+                                v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
+                                label="Satoshi Quotes"
+                        >
+                            <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
+                        </q-toggle>
                         <q-expansion-item
                                 expand-separator
                                 icon="perm_identity"
@@ -757,12 +760,30 @@
                     LNbits.utils.exportCSV(this.gertysTable.columns, this.gertys)
                 }
             },
+            computed: {
+                isMiniGerty() {
+                    return (this.formDialog.data.type == 'Mini Gerty')
+                }
+            },
             created: function () {
                 if (this.g.user.wallets.length) {
                     this.getGertys()
                 }
             },
             watch: {
+                'formDialog.data.type': {
+                    handler(value) {
+                        if (value == 'Mini Gerty') {
+                            this.formDialog.data.display_preferences.dashboard = false;
+                            this.formDialog.data.display_preferences.dashboard_onchain = false;
+                            this.formDialog.data.display_preferences.dashboard_mining = false;
+                            this.formDialog.data.display_preferences.lightning_dashboard = false;
+                            this.formDialog.data.display_preferences.fun_satoshi_quotes = false;
+                            this.formDialog.data.display_preferences.mempool_recommended_fees = false;
+                            this.formDialog.data.display_preferences.onchain = false;
+                        }
+                    }
+                },
                 toggleStates: {
                     handler(toggleStatesValue) {
                         // Switch all the toggles in each section to the relevant state

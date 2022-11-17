@@ -13,7 +13,7 @@ def get_percent_difference(current, previous, precision=4):
 
 
 # A helper function get a nicely formated dict for the text
-def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None):
+def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int = None, gerty_type: str = 'Gerty'):
     # Get line size by font size
     line_width = 20
     if font_size <= 12:
@@ -24,6 +24,19 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
         line_width = 35
     elif font_size <= 40:
         line_width = 25
+
+    # Get font sizes for Gerty mini
+    if(gerty_type.lower() == 'mini gerty'):
+        if font_size <= 15:
+            font_size = 2
+        elif font_size <= 20:
+            font_size = 3
+        elif font_size <= 40:
+            font_size = 4
+        else:
+            font_size = 5
+
+
 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
@@ -68,18 +81,18 @@ async def get_mining_dashboard(gerty):
             hashrateOneWeekAgo = data["hashrates"][6]["avgHashrate"]
 
             text = []
-            text.append(get_text_item_dict("Current mining hashrate", 12))
+            text.append(get_text_item_dict(text="Current mining hashrate", font_size=12,gerty_type=gerty.type))
             text.append(
                 get_text_item_dict(
-                    "{0}hash".format(si_format(hashrateNow, 6, True, " ")), 20
+                    text="{0}hash".format(si_format(hashrateNow, 6, True, " ")), font_size=20,gerty_type=gerty.type
                 )
             )
             text.append(
                 get_text_item_dict(
-                    "{0} vs 7 days ago".format(
+                    text="{0} vs 7 days ago".format(
                         get_percent_difference(hashrateNow, hashrateOneWeekAgo, 3)
                     ),
-                    12,
+                    font_size=12,gerty_type=gerty.type
                 )
             )
             areas.append(text)
@@ -91,27 +104,27 @@ async def get_mining_dashboard(gerty):
             # timeAvg
             text = []
             progress = "{0}%".format(round(r.json()["progressPercent"], 2))
-            text.append(get_text_item_dict("Progress through current epoch", 12))
-            text.append(get_text_item_dict(progress, 60))
+            text.append(get_text_item_dict(text="Progress through current epoch", font_size=12,gerty_type=gerty.type))
+            text.append(get_text_item_dict(text=progress, font_size=60,gerty_type=gerty.type))
             areas.append(text)
 
             # difficulty adjustment
             text = []
             stat = r.json()["remainingTime"]
-            text.append(get_text_item_dict("Time to next difficulty adjustment", 12))
-            text.append(get_text_item_dict(get_time_remaining(stat / 1000, 3), 12))
+            text.append(get_text_item_dict(text="Time to next difficulty adjustment", font_size=12,gerty_type=gerty.type))
+            text.append(get_text_item_dict(text=get_time_remaining(stat / 1000, 3), font_size=12,gerty_type=gerty.type))
             areas.append(text)
 
             # difficultyChange
             text = []
             difficultyChange = round(r.json()["difficultyChange"], 2)
-            text.append(get_text_item_dict("Estimated difficulty change", 12))
+            text.append(get_text_item_dict(text="Estimated difficulty change", font_size=12,gerty_type=gerty.type))
             text.append(
                 get_text_item_dict(
-                    "{0}{1}%".format(
+                    text="{0}{1}%".format(
                         "+" if difficultyChange > 0 else "", round(difficultyChange, 2)
                     ),
-                    60,
+                    font_size=60,gerty_type=gerty.type
                 )
             )
             areas.append(text)
@@ -142,49 +155,49 @@ async def get_lightning_stats(gerty):
     areas = []
 
     text = []
-    text.append(get_text_item_dict("Channel Count", 12))
-    text.append(get_text_item_dict(format_number(data["latest"]["channel_count"]), 20))
+    text.append(get_text_item_dict(text="Channel Count", font_size=12, gerty_type=gerty.type))
+    text.append(get_text_item_dict(text=format_number(data["latest"]["channel_count"]), font_size=20, gerty_type=gerty.type))
     difference = get_percent_difference(
         current=data["latest"]["channel_count"],
         previous=data["previous"]["channel_count"],
     )
-    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    text.append(get_text_item_dict(text="{0} in last 7 days".format(difference), font_size=12, gerty_type=gerty.type))
     areas.append(text)
 
     text = []
-    text.append(get_text_item_dict("Number of Nodes", 12))
-    text.append(get_text_item_dict(format_number(data["latest"]["node_count"]), 20))
+    text.append(get_text_item_dict(text="Number of Nodes", font_size=12,gerty_type=gerty.type))
+    text.append(get_text_item_dict(text=format_number(data["latest"]["node_count"]), font_size=20,gerty_type=gerty.type))
     difference = get_percent_difference(
         current=data["latest"]["node_count"], previous=data["previous"]["node_count"]
     )
-    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    text.append(get_text_item_dict(text="{0} in last 7 days".format(difference), font_size=12,gerty_type=gerty.type))
     areas.append(text)
 
     text = []
-    text.append(get_text_item_dict("Total Capacity", 12))
+    text.append(get_text_item_dict(text="Total Capacity", font_size=12,gerty_type=gerty.type))
     avg_capacity = float(data["latest"]["total_capacity"]) / float(100000000)
     text.append(
-        get_text_item_dict("{0} BTC".format(format_number(avg_capacity, 2)), 20)
+        get_text_item_dict(text="{0} BTC".format(format_number(avg_capacity, 2)), font_size=20,gerty_type=gerty.type)
     )
     difference = get_percent_difference(
         current=data["latest"]["total_capacity"],
         previous=data["previous"]["total_capacity"],
     )
-    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    text.append(get_text_item_dict(text="{0} in last 7 days".format(difference), font_size=12,gerty_type=gerty.type))
     areas.append(text)
 
     text = []
-    text.append(get_text_item_dict("Average Channel Capacity", 12))
+    text.append(get_text_item_dict(text="Average Channel Capacity", font_size=12,gerty_type=gerty.type))
     text.append(
         get_text_item_dict(
-            "{0} sats".format(format_number(data["latest"]["avg_capacity"])), 20
+            text="{0} sats".format(format_number(data["latest"]["avg_capacity"])), font_size=20,gerty_type=gerty.type
         )
     )
     difference = get_percent_difference(
         current=data["latest"]["avg_capacity"],
         previous=data["previous"]["avg_capacity"],
     )
-    text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+    text.append(get_text_item_dict(text="{0} in last 7 days".format(difference), font_size=12, gerty_type=gerty.type))
     areas.append(text)
 
     return areas
@@ -247,17 +260,17 @@ async def get_mining_stat(stat_slug: str, gerty):
         stat = await api_get_mining_stat(stat_slug, gerty)
         logger.debug(stat)
         current = "{0}hash".format(si_format(stat['current'], 6, True, " "))
-        text.append(get_text_item_dict("Current Mining Hashrate", 20))
-        text.append(get_text_item_dict(current, 40))
+        text.append(get_text_item_dict(text="Current Mining Hashrate", font_size=20,gerty_type=gerty.type))
+        text.append(get_text_item_dict(text=current, font_size=40,gerty_type=gerty.type))
         # compare vs previous time period
         difference = get_percent_difference(current=stat['current'], previous=stat['1w'])
-        text.append(get_text_item_dict("{0} in last 7 days".format(difference), 12))
+        text.append(get_text_item_dict(text="{0} in last 7 days".format(difference), font_size=12,gerty_type=gerty.type))
     elif stat_slug == "mining_current_difficulty":
         stat = await api_get_mining_stat(stat_slug, gerty)
-        text.append(get_text_item_dict("Current Mining Difficulty", 20))
-        text.append(get_text_item_dict(format_number(stat['current']), 40))
+        text.append(get_text_item_dict(text="Current Mining Difficulty", font_size=20,gerty_type=gerty.type))
+        text.append(get_text_item_dict(text=format_number(stat['current']), font_size=40,gerty_type=gerty.type))
         difference = get_percent_difference(current=stat['current'], previous=stat['previous'])
-        text.append(get_text_item_dict("{0} since last adjustment".format(difference), 12))
+        text.append(get_text_item_dict(text="{0} since last adjustment".format(difference), font_size=12,gerty_type=gerty.type))
         # text.append(get_text_item_dict("Required threshold for mining proof-of-work", 12))
     return text
 
