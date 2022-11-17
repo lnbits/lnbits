@@ -230,21 +230,25 @@
             :outline="!($q.dark.isActive)"
             rounded
             color="primary"
-            label="Custom"
+            label="Round to"
           ></q-btn>
-          <q-input
-            class="q-my-lg"
-            ref="inputRounding"
-            v-if="rounding"
-            filled
-            v-model.number="tipRounding"
-            :placeholder="roundToSugestion"
-            hint="Total amount including tip"
+          <div class="row q-my-lg" v-if="rounding">
+            <q-input
+              class="col"
+              ref="inputRounding"
+              v-model.number="tipRounding"
+              :placeholder="roundToSugestion"
+              hint="Total amount including tip"
+              :prefix="currency"
+            >
+              <!-- <template v-slot:append>
+                <q-icon name="send" @click="calculatePercent" />
+              </template> -->
+            </q-input>
+            <q-btn class="q-ml-sm" style="margin-bottom: 20px;" color="primary" @click="calculatePercent"
+            >Ok</q-btn
           >
-            <template v-slot:append>
-              <q-icon name="check" @click="calculatePercent" />
-            </template>
-          </q-input>
+          </div>
         </div>
         <div class="row q-mt-lg">
           <q-btn flat color="primary" @click="processTipSelection(0)"
@@ -478,6 +482,8 @@
       },
       submitForm: function () {
         if (this.tip_options && this.tip_options.length) {
+          this.rounding = false
+          this.tipRounding = null
           this.showTipModal()
         } else {
           this.showInvoice()
