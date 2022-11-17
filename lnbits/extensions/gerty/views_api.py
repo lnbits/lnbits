@@ -186,6 +186,11 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         areas.append(await get_exchange_rate(gerty))
     elif screen_slug == "onchain_difficulty_epoch_progress":
        areas.append(await get_onchain_stat(screen_slug, gerty))
+    elif screen_slug == "onchain_block_height":
+        logger.debug("iam block height")
+        text = []
+        text.append(get_text_item_dict(text=format_number(await get_block_height(gerty)), font_size=80, gerty_type=gerty.type))
+        areas.append(text)
     elif screen_slug == "onchain_difficulty_retarget_date":
        areas.append(await get_onchain_stat(screen_slug, gerty))
     elif screen_slug == "onchain_difficulty_blocks_remaining":
@@ -320,6 +325,7 @@ async def get_onchain_stat(stat_slug: str, gerty):
             stat_slug == "onchain_difficulty_retarget_date" or
             stat_slug == "onchain_difficulty_blocks_remaining" or
             stat_slug == "onchain_difficulty_epoch_time_remaining"
+
     ):
         async with httpx.AsyncClient() as client:
             r = await client.get(gerty.mempool_endpoint + "/api/v1/difficulty-adjustment")

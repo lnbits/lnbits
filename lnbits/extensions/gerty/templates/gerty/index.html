@@ -290,6 +290,10 @@
                                     v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining"
                                     label="Estimated time until next difficulty adjustment"
                             ></q-toggle>
+                            <q-toggle
+                                    v-model="formDialog.data.display_preferences.onchain_block_height"
+                                    label="Current block height"
+                            ></q-toggle>
                         </q-expansion-item>
                         <q-expansion-item
                                 expand-separator
@@ -609,6 +613,7 @@
                                 onchain_difficulty_retarget_date: true,
                                 onchain_difficulty_blocks_remaining: true,
                                 onchain_difficulty_epoch_time_remaining: true,
+                                onchain_block_height: true,
                                 mempool_tx_count: true,
                                 mining_current_hash_rate: true,
                                 mining_current_difficulty: true,
