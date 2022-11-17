@@ -28,11 +28,11 @@ def get_text_item_dict(text: str, font_size: int, x_pos: int = None, y_pos: int 
     # Get font sizes for Gerty mini
     if(gerty_type.lower() == 'mini gerty'):
         if font_size <= 15:
-            font_size = 2
+            font_size = 1
         elif font_size <= 20:
             font_size = 2
         elif font_size <= 40:
-            font_size = 4
+            font_size = 3
         else:
             font_size = 5
 
