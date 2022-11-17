@@ -18,8 +18,8 @@ async def m001_initial(db):
             completelink TEXT,
             completelinktext TEXT,
             time INTEGER,
-            amount INTEGER,
-            balance INTEGER DEFAULT 0,
+            amount {db.big_int},
+            balance {db.big_int} DEFAULT 0,
             timestamp TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """

@@ -10,7 +10,7 @@ async def m001_initial(db):
             secret TEXT NOT NULL,
             url TEXT NOT NULL,
             memo TEXT NOT NULL,
-            amount INTEGER NOT NULL,
+            amount {db.big_int} NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """
@@ -32,7 +32,7 @@ async def m002_redux(db):
             url TEXT NOT NULL,
             memo TEXT NOT NULL,
             description TEXT NULL,
-            amount INTEGER DEFAULT 0,
+            amount {db.big_int} DEFAULT 0,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """,

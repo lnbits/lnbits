@@ -8,7 +8,7 @@ async def m001_initial(db):
             id {db.serial_primary_key},
             wallet TEXT NOT NULL,
             description TEXT NOT NULL,
-            amount INTEGER NOT NULL,
+            amount {db.big_int} NOT NULL,
             served_meta INTEGER NOT NULL,
             served_pr INTEGER NOT NULL
         );
