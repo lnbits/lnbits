@@ -10,7 +10,7 @@ async def m001_initial(db):
             title TEXT,
             min_bet INTEGER,
             max_bet INTEGER,
-            amount INTEGER DEFAULT 0,
+            amount {db.big_int} DEFAULT 0,
             served_meta INTEGER NOT NULL,
             served_pr INTEGER NOT NULL,
             multiplier FLOAT,
@@ -32,7 +32,7 @@ async def m002_initial(db):
         CREATE TABLE satsdice.satsdice_withdraw (
             id TEXT PRIMARY KEY,
             satsdice_pay TEXT,
-            value INTEGER DEFAULT 1,
+            value {db.big_int} DEFAULT 1,
             unique_hash TEXT UNIQUE,
             k1 TEXT,
             open_time INTEGER,
@@ -51,7 +51,7 @@ async def m003_initial(db):
         CREATE TABLE satsdice.satsdice_payment (
             payment_hash TEXT PRIMARY KEY,
             satsdice_pay TEXT,
-            value INTEGER,
+            value {db.big_int},
             paid BOOL DEFAULT FALSE,
             lost BOOL DEFAULT FALSE
         );

@@ -10,7 +10,7 @@ async def m001_initial(db):
             masterpub TEXT NOT NULL,
             title TEXT NOT NULL,
             address_no INTEGER NOT NULL DEFAULT 0,
-            balance INTEGER NOT NULL
+            balance {db.big_int} NOT NULL
         );
     """
     )
@@ -21,7 +21,7 @@ async def m001_initial(db):
             id TEXT NOT NULL PRIMARY KEY,
             address TEXT NOT NULL,
             wallet TEXT NOT NULL,
-            amount INTEGER NOT NULL
+            amount {db.big_int} NOT NULL
         );
     """
     )
