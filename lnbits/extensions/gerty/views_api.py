@@ -336,15 +336,15 @@ async def get_onchain_stat(stat_slug: str, gerty):
             elif stat_slug == "onchain_difficulty_retarget_date":
                 stat = r.json()['estimatedRetargetDate']
                 dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
-                text.append(get_text_item_dict(text="Estimated date of next difficulty adjustment", font_size=15,gerty_type=gerty.type))
+                text.append(get_text_item_dict(text="Date of next difficulty adjustment", font_size=15,gerty_type=gerty.type))
                 text.append(get_text_item_dict(text=dt, font_size=40,gerty_type=gerty.type))
             elif stat_slug == "onchain_difficulty_blocks_remaining":
                 stat = r.json()['remainingBlocks']
-                text.append(get_text_item_dict(text="Blocks remaining until next difficulty adjustment", font_size=15,gerty_type=gerty.type))
+                text.append(get_text_item_dict(text="Blocks until next difficulty adjustment", font_size=15,gerty_type=gerty.type))
                 text.append(get_text_item_dict(text="{0}".format(format_number(stat)), font_size=80,gerty_type=gerty.type))
             elif stat_slug == "onchain_difficulty_epoch_time_remaining":
                 stat = r.json()['remainingTime']
-                text.append(get_text_item_dict(text="Blocks remaining until next difficulty adjustment", font_size=15,gerty_type=gerty.type))
+                text.append(get_text_item_dict(text="Time until next difficulty adjustment", font_size=15,gerty_type=gerty.type))
                 text.append(get_text_item_dict(text=get_time_remaining(stat / 1000, 4), font_size=20,gerty_type=gerty.type))
     return text
 
