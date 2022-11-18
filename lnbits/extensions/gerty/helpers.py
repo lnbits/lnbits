@@ -7,7 +7,7 @@ from loguru import logger
 from .number_prefixer import *
 
 
-def get_percent_difference(current, previous, precision=4):
+def get_percent_difference(current, previous, precision=3):
     difference = (current - previous) / current * 100
     return "{0}{1}%".format("+" if difference > 0 else "", round(difference, precision))
 
