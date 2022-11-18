@@ -242,9 +242,6 @@
               hint="Total amount including tip"
               :prefix="currency"
             >
-              <!-- <template v-slot:append>
-                <q-icon name="send" @click="calculatePercent" />
-              </template> -->
             </q-input>
             <q-btn
               class="q-ml-sm"
@@ -428,7 +425,6 @@
         return this.tipRounding > this.amount
       },
       roundToSugestion() {
-        //let toNext = 1
         switch (true) {
           case this.amount > 50:
             toNext = 10
@@ -675,17 +671,15 @@
   })
 </script>
 <style scoped>
-  
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
 
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
-}
-  
+  /* Firefox */
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
 </style>
 {% endblock %}
