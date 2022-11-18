@@ -150,6 +150,7 @@ new Vue({
       },
       qrCodeDialog: {
         show: false,
+        wipe: false,
         data: null
       }
     }
@@ -260,9 +261,10 @@ new Vue({
           })
         })
     },
-    openQrCodeDialog(cardId) {
+    openQrCodeDialog(cardId, wipe) {
       var card = _.findWhere(this.cards, {id: cardId})
       this.qrCodeDialog.data = {
+        id: card.id,
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
         name: card.card_name,
         uid: card.uid,
@@ -274,6 +276,18 @@ new Vue({
         k4: card.k2,
         webhook_url: card.webhook_url
       }
+      this.qrCodeDialog.data_wipe = JSON.stringify({
+        action: 'wipe',
+        id: 1,
+        k0: card.k0,
+        k1: card.k1,
+        k2: card.k2,
+        k3: card.k1,
+        k4: card.k2,
+        uid: card.uid,
+        version: 1
+      })
+      this.qrCodeDialog.wipe = wipe
       this.qrCodeDialog.show = true
     },
     addCardOpen: function () {
