@@ -13,7 +13,7 @@
     <q-page-sticky v-if="exchangeRate" expand position="top">
       <div class="row justify-center full-width">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
-          <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h3 class="q-mb-md">{% raw %}{{ amountFormatted }}{% endraw %}</h3>
           <h5 class="q-mt-none q-mb-sm">
             {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
           </h5>
@@ -173,12 +173,14 @@
           ></qrcode>
         </q-responsive>
         <div class="text-center">
-          <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h3 class="q-my-md">
+            {% raw %}{{ amountWithTipFormatted }}{% endraw %}
+          </h3>
           <h5 class="q-mt-none">
             {% raw %}{{ fsat }}
             <small>sat</small>
             <span v-show="tip_options" style="font-size: 0.75rem"
-              >( + {{ tipAmountSat }} tip)</span
+              >( + {{ tipAmountFormatted }} tip)</span
             >
             {% endraw %}
           </h5>
@@ -362,9 +364,15 @@
         if (!this.stack.length) return 0.0
         return Number(this.stack.join('') / 100)
       },
-      famount: function () {
+      amountFormatted: function () {
         return LNbits.utils.formatCurrency(
           this.amount.toFixed(2),
+          this.currency
+        )
+      },
+      amountWithTipFormatted: function () {
+        return LNbits.utils.formatCurrency(
+          (this.amount + this.tipAmount).toFixed(2),
           this.currency
         )
       },
@@ -375,6 +383,9 @@
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
         return Math.ceil((this.tipAmount / this.exchangeRate) * 100000000)
+      },
+      tipAmountFormatted: function () {
+        return LNbits.utils.formatSat(this.tipAmountSat)
       },
       fsat: function () {
         return LNbits.utils.formatSat(this.sat)
@@ -393,7 +404,10 @@
       processTipSelection: function (selectedTipOption) {
         this.tipDialog.show = false
 
-        if (!selectedTipOption) return this.showInvoice()
+        if (!selectedTipOption) {
+          this.tipAmount = 0.0
+          return this.showInvoice()
+        }
 
         this.tipAmount = (selectedTipOption / 100) * this.amount
         this.showInvoice()
