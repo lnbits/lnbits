@@ -395,22 +395,7 @@
 
         if (!selectedTipOption) return this.showInvoice()
 
-        const tipAmount = (selectedTipOption / 100) * this.amount
-        const subtotal = this.amount
-        const grandTotal = tipAmount + subtotal
-        const totalString = grandTotal.toFixed(2)
-
-        this.stack = []
-        for (var i = 0; i < totalString.length; i++) {
-          const char = totalString[i]
-
-          if (char !== '.') {
-            this.stack.push(char)
-          }
-        }
-
-        this.tipAmount = tipAmount
-
+        this.tipAmount = (selectedTipOption / 100) * this.amount
         this.showInvoice()
       },
       submitForm: function () {
