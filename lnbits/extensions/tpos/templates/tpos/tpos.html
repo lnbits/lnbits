@@ -272,6 +272,13 @@
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-list separator class="q-mb-lg">
+          <q-item v-if="!lastPaymentsDialog.data.length">
+            <q-item-section>
+              <q-item-label class="text-bold"
+                >No paid invoices</q-item-label
+              >
+            </q-item-section>
+          </q-item>
           <q-item v-for="(payment, idx) in lastPaymentsDialog.data" :key="idx">
             {%raw%}
             <q-item-section>
