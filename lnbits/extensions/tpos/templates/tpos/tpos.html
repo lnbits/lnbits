@@ -214,19 +214,48 @@
             style="padding: 10px; margin: 3px"
             unelevated
             @click="processTipSelection(tip)"
-            size="xl"
+            size="lg"
             :outline="!($q.dark.isActive)"
             rounded
             color="primary"
-            v-for="tip in this.tip_options"
+            v-for="tip in tip_options.filter(f => f != 'Round')"
             :key="tip"
             >{% raw %}{{ tip }}{% endraw %}%</q-btn
           >
-        </div>
-        <div class="text-center q-mb-xl">
-          <p><a @click="processTipSelection(0)"> No, thanks</a></p>
+          <q-btn
+            style="padding: 10px; margin: 3px"
+            unelevated
+            @click="setRounding"
+            size="lg"
+            :outline="!($q.dark.isActive)"
+            rounded
+            color="primary"
+            label="Round to"
+          ></q-btn>
+          <div class="row q-my-lg" v-if="rounding">
+            <q-input
+              class="col"
+              ref="inputRounding"
+              v-model.number="tipRounding"
+              :placeholder="roundToSugestion"
+              type="number"
+              hint="Total amount including tip"
+              :prefix="currency"
+            >
+            </q-input>
+            <q-btn
+              class="q-ml-sm"
+              style="margin-bottom: 20px"
+              color="primary"
+              @click="calculatePercent"
+              >Ok</q-btn
+            >
+          </div>
         </div>
         <div class="row q-mt-lg">
+          <q-btn flat color="primary" @click="processTipSelection(0)"
+            >No, thanks</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>
@@ -336,6 +365,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        tipRounding: null,
         hasNFC: false,
         nfcTagReading: false,
         lastPaymentsDialog: {
@@ -356,7 +386,8 @@
         },
         complete: {
           show: false
-        }
+        },
+        rounding: false
       }
     },
     computed: {
@@ -389,9 +420,47 @@
       },
       fsat: function () {
         return LNbits.utils.formatSat(this.sat)
+      },
+      isRoundValid() {
+        return this.tipRounding > this.amount
+      },
+      roundToSugestion() {
+        switch (true) {
+          case this.amount > 50:
+            toNext = 10
+            break
+          case this.amount > 6:
+            toNext = 5
+            break
+          case this.amount > 2.5:
+            toNext = 1
+            break
+          default:
+            toNext = 0.5
+            break
+        }
+
+        return Math.ceil(this.amount / toNext) * toNext
       }
     },
     methods: {
+      setRounding() {
+        this.rounding = true
+        this.tipRounding = this.roundToSugestion
+        this.$nextTick(() => this.$refs.inputRounding.focus())
+      },
+      calculatePercent() {
+        let change = ((this.tipRounding - this.amount) / this.amount) * 100
+        if (change < 0) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Amount with tip must be greater than initial amount.'
+          })
+          this.tipRounding = this.roundToSugestion
+          return
+        }
+        this.processTipSelection(change)
+      },
       closeInvoiceDialog: function () {
         this.stack = []
         this.tipAmount = 0.0
@@ -414,6 +483,8 @@
       },
       submitForm: function () {
         if (this.tip_options && this.tip_options.length) {
+          this.rounding = false
+          this.tipRounding = null
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -589,10 +660,26 @@
         '{{ tpos.tip_options | tojson }}' == 'null'
           ? null
           : JSON.parse('{{ tpos.tip_options }}')
+
+      if ('{{ tpos.tip_wallet }}') {
+        this.tip_options.push('Round')
+      }
       setInterval(function () {
         getRates()
       }, 120000)
     }
   })
 </script>
+<style scoped>
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+</style>
 {% endblock %}
