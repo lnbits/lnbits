@@ -148,6 +148,14 @@
         </div>
       </div>
     </q-page-sticky>
+    <q-page-sticky position="top-right" :offset="[18, 18]">
+      <q-btn
+        @click="showLastPayments"
+        fab
+        icon="receipt_long"
+        color="primary"
+      />
+    </q-page-sticky>
     <q-dialog
       v-model="invoiceDialog.show"
       position="top"
@@ -256,6 +264,38 @@
         style="font-size: min(90vw, 40em)"
       ></q-icon>
     </q-dialog>
+
+    <q-dialog v-model="lastPaymentsDialog.show" position="bottom">
+      <q-card class="lnbits__dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-list separator class="q-mb-lg">
+          <q-item v-if="!lastPaymentsDialog.data.length">
+            <q-item-section>
+              <q-item-label class="text-bold">No paid invoices</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item v-for="(payment, idx) in lastPaymentsDialog.data" :key="idx">
+            {%raw%}
+            <q-item-section>
+              <q-item-label class="text-bold"
+                >{{payment.amount / 1000}} sats</q-item-label
+              >
+              <q-item-label caption lines="2"
+                >Hash: {{payment.checking_id.slice(0, 30)}}...</q-item-label
+              >
+            </q-item-section>
+            <q-item-section side top>
+              <q-item-label caption>{{payment.dateFrom}}</q-item-label>
+              <q-icon name="check" color="green" />
+            </q-item-section>
+            {%endraw%}
+          </q-item>
+        </q-list>
+      </q-card>
+    </q-dialog>
   </q-page>
 </q-page-container>
 {% endblock %} {% block styles %}
@@ -296,6 +336,10 @@
         tipAmount: 0.0,
         hasNFC: false,
         nfcTagReading: false,
+        lastPaymentsDialog: {
+          show: false,
+          data: []
+        },
         invoiceDialog: {
           show: false,
           data: null,
@@ -520,6 +564,24 @@
           self.exchangeRate =
             response.data.data['BTC' + self.currency][self.currency]
         })
+      },
+      getLastPayments() {
+        return axios
+          .get(`/tpos/api/v1/tposs/${this.tposId}/invoices`)
+          .then(res => {
+            if (res.data && res.data.length) {
+              let last = [...res.data]
+              this.lastPaymentsDialog.data = last.map(obj => {
+                obj.dateFrom = moment(obj.time * 1000).fromNow()
+                return obj
+              })
+            }
+          })
+          .catch(e => console.error(e))
+      },
+      showLastPayments() {
+        this.getLastPayments()
+        this.lastPaymentsDialog.show = true
       }
     },
     created: function () {
