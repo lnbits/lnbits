@@ -84,12 +84,16 @@ async def api_tpos_create_invoice(
 
 @tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices")
 async def api_tpos_get_latest_invoices(tpos_id: str = None):
-    payments = [
-        Payment.from_row(row)
-        for row in await get_latest_payments_by_extension(
-            ext_name="tpos", ext_id=tpos_id
-        )
-    ]
+    try:
+        payments = [
+            Payment.from_row(row)
+            for row in await get_latest_payments_by_extension(
+                ext_name="tpos", ext_id=tpos_id
+            )
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return [
         {
