@@ -3,7 +3,7 @@ async def m001_initial(db):
     Initial paywalls table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE paywall.paywalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -25,7 +25,7 @@ async def m002_redux(db):
     """
     await db.execute("ALTER TABLE paywall.paywalls RENAME TO paywalls_old")
     await db.execute(
-        """
+        f"""
         CREATE TABLE paywall.paywalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
