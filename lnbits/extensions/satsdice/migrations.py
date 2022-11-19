@@ -3,7 +3,7 @@ async def m001_initial(db):
     Creates an improved satsdice table and migrates the existing data.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE satsdice.satsdice_pay (
             id TEXT PRIMARY KEY,
             wallet TEXT,
@@ -28,7 +28,7 @@ async def m002_initial(db):
     Creates an improved satsdice table and migrates the existing data.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE satsdice.satsdice_withdraw (
             id TEXT PRIMARY KEY,
             satsdice_pay TEXT,
@@ -47,7 +47,7 @@ async def m003_initial(db):
     Creates an improved satsdice table and migrates the existing data.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE satsdice.satsdice_payment (
             payment_hash TEXT PRIMARY KEY,
             satsdice_pay TEXT,
