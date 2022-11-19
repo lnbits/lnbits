@@ -21,7 +21,7 @@ The key #00, K0 (also know as auth key) is skipped to be used as authentificatio
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
 ## Setting the card - Boltcard NFC Card Creator (easy way)
-Updated for v0.1.1
+Updated for v0.1.2
 
 - Add new card in the extension. 
     - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
@@ -38,7 +38,20 @@ Updated for v0.1.1
 - Click the QR code button next to a card to view its details. Backup the keys now! They'll be comfortable in your password manager.
     - Now you can scan the QR code with the Android app (Create Bolt Card -> SCAN QR CODE). 
     - Or you can Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. Then paste it into the Android app (Create Bolt Card -> PASTE AUTH URL).
-- Click WRITE CARD NOW and tap the NFC card to set it up. DO NOT REMOVE THE CARD PREMATURELY! 
+- Click WRITE CARD NOW and approach the NFC card to set it up. DO NOT REMOVE THE CARD PREMATURELY! 
+
+## Erasing the card - Boltcard NFC Card Creator
+Updated for v0.1.2
+
+Since v0.1.2 of Boltcard NFC Card Creator it is possible not only reset the keys but also disable the SUN function and do the complete erase so the card can be use again as a static tag (or set as a new Bolt Card, ofc).
+
+- Click the QR code button next to a card to view its details and select WIPE 
+- OR click the red cross icon on the right side to reach the same 
+- In the android app (Advanced -> Reset Keys)
+    - Click SCAN QR CODE to scan the QR
+    - Or click WIPE DATA in LNbits to copy and paste in to the app (PASTE KEY JSON)
+- Click RESET CARD NOW and approach the NFC card to erase it. DO NOT REMOVE THE CARD PREMATURELY! 
+- Now if there is all success the card can be safely delete from LNbits (but keep the keys backuped anyway; batter safe than brick).
 
 ## Setting the card - computer (hard way)
 

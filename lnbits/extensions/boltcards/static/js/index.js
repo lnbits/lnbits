@@ -278,7 +278,6 @@ new Vue({
       }
       this.qrCodeDialog.data_wipe = JSON.stringify({
         action: 'wipe',
-        id: 1,
         k0: card.k0,
         k1: card.k1,
         k2: card.k2,
