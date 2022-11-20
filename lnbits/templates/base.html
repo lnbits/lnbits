@@ -12,7 +12,7 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+      content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no"
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -199,6 +199,18 @@
             >
           </q-toolbar-title>
           <q-space></q-space>
+          <q-btn
+            flat
+            dense
+            :color="($q.dark.isActive) ? 'white' : 'primary'"
+            type="a"
+            href="/docs"
+            target="_blank"
+            rel="noopener"
+          >
+            API DOCS
+            <q-tooltip>View LNbits Swagger API docs</q-tooltip>
+          </q-btn>
           <q-btn
             flat
             dense

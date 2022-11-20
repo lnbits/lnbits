@@ -29,7 +29,7 @@ async def m001_initial(db):
     )
 
     await db.execute(
-        """
+        f"""
         CREATE TABLE boltcards.hits (
             id TEXT PRIMARY KEY UNIQUE,
             card_id TEXT NOT NULL,
@@ -38,7 +38,7 @@ async def m001_initial(db):
             useragent TEXT,
             old_ctr INT NOT NULL DEFAULT 0,
             new_ctr INT NOT NULL DEFAULT 0,
-            amount INT NOT NULL,
+            amount {db.big_int} NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """
@@ -47,11 +47,11 @@ async def m001_initial(db):
     )
 
     await db.execute(
-        """
+        f"""
         CREATE TABLE boltcards.refunds (
             id TEXT PRIMARY KEY UNIQUE,
             hit_id TEXT NOT NULL,
-            refund_amount INT NOT NULL,
+            refund_amount {db.big_int} NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """

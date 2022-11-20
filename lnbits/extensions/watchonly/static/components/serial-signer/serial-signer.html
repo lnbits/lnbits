@@ -49,7 +49,7 @@
       <q-item
         v-for="device in pairedDevices"
         :key="device.id"
-        v-if="!selectedPort"
+        v-if="!selectedPort && showPairedDevices"
         clickable
         v-close-popup
       >
@@ -170,6 +170,31 @@
           type="password"
           label="Password"
         ></q-input>
+        <q-separator></q-separator>
+        <q-toggle
+          label="Passphrase (optional)"
+          color="secodary"
+          v-model="hww.hasPassphrase"
+        ></q-toggle>
+        <q-input
+          v-if="hww.hasPassphrase"
+          v-model.trim="hww.passphrase"
+          filled
+          :type="hww.showPassphrase ? 'text' : 'password'"
+          filled
+          dense
+          label="Passphrase"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassphrase ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassphrase = !hww.showPassphrase"
+            />
+          </template>
+        </q-input>
+
+        <br />
 
         <div class="row q-mt-lg">
           <q-btn
@@ -351,6 +376,18 @@
 
   <q-dialog v-model="showConsole" position="top">
     <q-card class="q-pa-lg q-pt-xl">
+      <div class="row q-mt-lg q-mb-lg">
+        <div class="col">
+          <q-badge
+            class="text-subtitle2 float-right"
+            color="yellow"
+            text-color="black"
+          >
+            Open the browser Developer Console for more Details!
+          </q-badge>
+        </div>
+      </div>
+
       <q-input
         filled
         dense
@@ -361,16 +398,29 @@
         cols="200"
         label="Console"
       ></q-input>
-
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="hww.showSeedDialog" position="top">
+  <q-dialog v-model="hww.showSeedDialog" @hide="closeSeedDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl">
-      <span>Check word at position {{hww.seedWordPosition}} on display</span>
+      <span>Check word at position {{hww.seedWordPosition}} on device</span>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-toggle
+            label="Show Seed Word"
+            color="secodary"
+            v-model="hww.showSeedWord"
+          ></q-toggle>
+        </div>
+      </div>
+      <div v-if="hww.showSeedWord" class="row q-mt-lg">
+        <div class="col-12">
+          <q-input readonly v-model.trim="hww.seedWord"></q-input>
+        </div>
+      </div>
 
       <div class="row q-mt-lg">
         <div class="col-4">
@@ -409,48 +459,35 @@
         >
           For test purposes only. Do not enter word list with real funds!!!
         </q-badge>
-        <br /><br /><br />
-        <span>Enter new word list separated by space</span>
-        <q-input
-          v-model.trim="hww.mnemonic"
-          filled
-          :type="hww.showMnemonic ? 'text' : 'password'"
-          filled
-          dense
-          label="Word List"
-        >
-          <template v-slot:append>
-            <q-icon
-              :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
-              class="cursor-pointer"
-              @click="hww.showMnemonic = !hww.showMnemonic"
-            />
-          </template>
-        </q-input>
         <br />
         <q-toggle
-          label="Passphrase (optional)"
+          label="Enter word list separated by space"
           color="secodary"
-          v-model="hww.hasPassphrase"
+          v-model="hww.quickMnemonicInput"
         ></q-toggle>
         <br />
-        <q-input
-          v-if="hww.hasPassphrase"
-          v-model.trim="hww.passphrase"
-          filled
-          :type="hww.showPassphrase ? 'text' : 'password'"
-          filled
-          dense
-          label="Passphrase"
-        >
-          <template v-slot:append>
-            <q-icon
-              :name="hww.showPassphrase ? 'visibility' : 'visibility_off'"
-              class="cursor-pointer"
-              @click="hww.showPassphrase = !hww.showPassphrase"
-            />
-          </template>
-        </q-input>
+
+        <div v-if="hww.quickMnemonicInput">
+          <q-input
+            v-model.trim="hww.mnemonic"
+            filled
+            :type="hww.showMnemonic ? 'text' : 'password'"
+            filled
+            dense
+            label="Word List"
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
+                class="cursor-pointer"
+                @click="hww.showMnemonic = !hww.showMnemonic"
+              />
+            </template>
+          </q-input>
+        </div>
+
+        <seed-input v-else @on-seed-input-done="seedInputDone"></seed-input>
+        <br />
         <q-separator></q-separator>
         <br />
         <span>Enter new password (8 numbers/letters)</span>

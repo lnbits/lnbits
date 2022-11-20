@@ -16,6 +16,8 @@ async function walletList(path) {
       return {
         walletAccounts: [],
         address: {},
+        showQrCodeDialog: false,
+        qrCodeValue: null,
         formDialog: {
           show: false,
 
@@ -118,9 +120,11 @@ async function walletList(path) {
       },
       createWalletAccount: async function (data) {
         try {
+          const meta = {accountPath: this.accountPath}
           if (this.formDialog.useSerialPort) {
             const {xpub, fingerprint} = await this.fetchXpubFromHww()
             if (!xpub) return
+            meta.xpub = xpub
             const path = this.accountPath.substring(2)
             const outputType = this.formDialog.addressType.id
             if (outputType === 'sh') {
@@ -129,6 +133,7 @@ async function walletList(path) {
               data.masterpub = `${outputType}([${fingerprint}/${path}]${xpub}/{0,1}/*)`
             }
           }
+          data.meta = JSON.stringify(meta)
           const response = await LNbits.api.request(
             'POST',
             '/watchonly/api/v1/wallet',
@@ -233,7 +238,7 @@ async function walletList(path) {
         const addressData = mapAddressesData(data)
 
         addressData.note = `Shared on ${currentDateTime()}`
-        const lastAcctiveAddress =
+        const lastActiveAddress =
           this.addresses
             .filter(
               a =>
@@ -243,11 +248,11 @@ async function walletList(path) {
         addressData.gapLimitExceeded =
           !addressData.isChange &&
           addressData.addressIndex >
-            lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+            lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
 
         const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
         wallet.address_no = addressData.addressIndex
-        this.$emit('new-receive-address', addressData)
+        this.$emit('new-receive-address', {addressData, wallet})
       },
       showAddAccountDialog: function () {
         this.formDialog.show = true
@@ -283,6 +288,20 @@ async function walletList(path) {
         const addressType =
           this.addressTypeOptions.find(t => t.id === value.id) || {}
         this.accountPath = addressType[`path${this.network}`]
+      },
+      // todo: bad. base.js not present in custom components
+      copyText: function (text, message, position) {
+        var notify = this.$q.notify
+        Quasar.utils.copyToClipboard(text).then(function () {
+          notify({
+            message: message || 'Copied to clipboard!',
+            position: position || 'bottom'
+          })
+        })
+      },
+      openQrCodeDialog: function (qrCodeValue) {
+        this.qrCodeValue = qrCodeValue
+        this.showQrCodeDialog = true
       }
     },
     created: async function () {

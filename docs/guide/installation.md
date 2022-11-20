@@ -18,21 +18,25 @@ If you have problems installing LNbits using these instructions, please have a l
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
-# for making sure python 3.9 is installed, skip if installed
+# for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
-export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
+# Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
+export PATH="/home/user/.local/bin:$PATH" 
+# Next command, you can exchange with python3.10 or newer versions. 
+# Identify your version with python3 --version and specify in the next line
+# command is only needed when your default python is not ^3.9 or ^3.10
 poetry env use python3.9
-poetry install --no-dev
-poetry run python build.py
+poetry install --only main
 
 mkdir data
 cp .env.example .env
-nano .env # set funding source
+# set funding source amongst other options
+nano .env 
 ```
 
 #### Running the server
@@ -40,9 +44,13 @@ nano .env # set funding source
 ```sh
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+# adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
+# Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
-## Option 2: Nix
+## Option 2: Nix 
+
+> note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -149,6 +157,7 @@ kill_timeout = 30
   HOST="127.0.0.1"
   PORT=5000
   LNBITS_FORCE_HTTPS=true
+  FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
   
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
@@ -211,8 +220,8 @@ You need to edit the `.env` file.
 
 ```sh
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
-LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
+# postgres://<user>:<myPassword>@<host>:<port>/<lnbits> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
 # save and exit
 ```
 
@@ -291,6 +300,43 @@ Save the file and run the following commands:
 ```sh
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
+```
+## Reverse proxy with automatic https using Caddy
+
+Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
+
+Point your domain at the IP of the server you're running LNbits on, by making an `A` record.
+
+Install Caddy on the server
+https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+
+```
+sudo caddy stop
+```
+Create a Caddyfile
+```
+sudo nano Caddyfile
+```
+Assuming your LNbits is running on port `5000` add:
+```
+yourdomain.com {
+  handle /api/v1/payments/sse* {
+    reverse_proxy 0.0.0.0:5000 {
+      header_up X-Forwarded-Host yourdomain.com
+      transport http {
+         keepalive off
+         compression off
+      }
+    }
+  }
+  reverse_proxy 0.0.0.0:5000 {
+    header_up X-Forwarded-Host yourdomain.com
+  }
+}
+```
+Save and exit `CTRL + x`
+```
+sudo caddy start
 ```
 
 ## Running behind an apache2 reverse proxy over https

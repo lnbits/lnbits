@@ -93,7 +93,7 @@ async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your domain")
 
     await delete_domain(domain_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 # ADDRESSES
@@ -253,4 +253,4 @@ async def api_address_delete(address_id, g: WalletTypeInfo = Depends(get_key_typ
         )
 
     await delete_address(address_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

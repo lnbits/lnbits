@@ -9,11 +9,11 @@ class CreateWallet(BaseModel):
     masterpub: str = Query("")
     title: str = Query("")
     network: str = "Mainnet"
+    meta: str = "{}"
 
 
 class WalletAccount(BaseModel):
     id: str
-    user: str
     masterpub: str
     fingerprint: str
     title: str
@@ -21,6 +21,7 @@ class WalletAccount(BaseModel):
     balance: int
     type: Optional[str] = ""
     network: str = "Mainnet"
+    meta: str = "{}"
 
     @classmethod
     def from_row(cls, row: Row) -> "WalletAccount":
@@ -78,6 +79,7 @@ class CreatePsbt(BaseModel):
 class ExtractPsbt(BaseModel):
     psbtBase64 = ""  # // todo snake case
     inputs: List[TransactionInput]
+    network = "Mainnet"
 
 
 class SignedTransaction(BaseModel):

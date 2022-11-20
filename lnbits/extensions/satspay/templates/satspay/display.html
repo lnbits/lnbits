@@ -328,7 +328,7 @@
         )
       },
       checkBalances: async function () {
-        if (!this.charge.hasStaleBalance) await this.refreshCharge()
+        if (this.charge.hasStaleBalance) return
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -339,18 +339,9 @@
           LNbits.utils.notifyApiError(error)
         }
       },
-      refreshCharge: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            `/satspay/api/v1/charge/${this.charge.id}`
-          )
-          this.charge = mapCharge(data, this.charge)
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
       checkPendingOnchain: async function () {
+        if (!this.charge.onchainaddress) return
+
         const {
           bitcoin: {addresses: addressesAPI}
         } = mempoolJS({

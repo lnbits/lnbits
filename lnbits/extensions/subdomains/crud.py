@@ -3,10 +3,10 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateDomain, Domains, Subdomains
+from .models import CreateDomain, CreateSubdomain, Domains, Subdomains
 
 
-async def create_subdomain(payment_hash, wallet, data: CreateDomain) -> Subdomains:
+async def create_subdomain(payment_hash, wallet, data: CreateSubdomain) -> Subdomains:
     await db.execute(
         """
         INSERT INTO subdomains.subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)

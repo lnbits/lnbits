@@ -187,9 +187,9 @@ async def pay_invoice(
             )
 
         # notify receiver asynchronously
-
         from lnbits.tasks import internal_invoice_queue
 
+        logger.debug(f"enqueuing internal invoice {internal_checking_id}")
         await internal_invoice_queue.put(internal_checking_id)
     else:
         logger.debug(f"backend: sending payment {temp_id}")
@@ -224,8 +224,8 @@ async def pay_invoice(
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_wallet_payment(temp_id, wallet_id, conn=conn)
             raise PaymentFailure(
-                f"payment failed: {payment.error_message}"
-                or "payment failed, but backend didn't give us an error message"
+                f"Payment failed: {payment.error_message}"
+                or "Payment failed, but backend didn't give us an error message."
             )
         else:
             logger.warning(

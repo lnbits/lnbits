@@ -361,6 +361,35 @@ new Vue({
           this.receive.status = 'pending'
         })
     },
+    onInitQR: async function (promise) {
+      try {
+        await promise
+      } catch (error) {
+        let mapping = {
+          NotAllowedError: 'ERROR: you need to grant camera access permission',
+          NotFoundError: 'ERROR: no camera on this device',
+          NotSupportedError:
+            'ERROR: secure context required (HTTPS, localhost)',
+          NotReadableError: 'ERROR: is the camera already in use?',
+          OverconstrainedError: 'ERROR: installed cameras are not suitable',
+          StreamApiNotSupportedError:
+            'ERROR: Stream API is not supported in this browser',
+          InsecureContextError:
+            'ERROR: Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.'
+        }
+        let valid_error = Object.keys(mapping).filter(key => {
+          return error.name === key
+        })
+        let camera_error = valid_error
+          ? mapping[valid_error]
+          : `ERROR: Camera error (${error.name})`
+        this.parse.camera.show = false
+        this.$q.notify({
+          message: camera_error,
+          type: 'negative'
+        })
+      }
+    },
     decodeQR: function (res) {
       this.parse.data.request = res
       this.decodeRequest()
@@ -675,7 +704,7 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = this.paymentsTable.columns
+      let columns = structuredClone(this.paymentsTable.columns)
       columns.unshift({
         name: 'pending',
         align: 'left',
