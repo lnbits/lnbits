@@ -38,7 +38,9 @@ LNBITS_DISABLED_EXTENSIONS: List[str] = [
     for x in env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
 ]
 
-LNBITS_AD_SPACE_TITLE = env.str("LNBITS_AD_SPACE_TITLE", default="Optional Advert Space")
+LNBITS_AD_SPACE_TITLE = env.str(
+    "LNBITS_AD_SPACE_TITLE", default="Optional Advert Space"
+)
 LNBITS_AD_SPACE = [x.strip(" ") for x in env.list("LNBITS_AD_SPACE", default=[])]
 LNBITS_HIDE_API = env.bool("LNBITS_HIDE_API", default=False)
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
