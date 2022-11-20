@@ -18,8 +18,6 @@ DEBUG = env.bool("DEBUG", default=False)
 HOST = env.str("HOST", default="127.0.0.1")
 PORT = env.int("PORT", default=5000)
 
-FORWARDED_ALLOW_IPS = env.str("FORWARDED_ALLOW_IPS", default="127.0.0.1")
-
 LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str(
     "LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data")
@@ -40,6 +38,7 @@ LNBITS_DISABLED_EXTENSIONS: List[str] = [
     for x in env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
 ]
 
+LNBITS_AD_SPACE_TITLE = env.str("LNBITS_AD_SPACE_TITLE", default="Optional Advert Space")
 LNBITS_AD_SPACE = [x.strip(" ") for x in env.list("LNBITS_AD_SPACE", default=[])]
 LNBITS_HIDE_API = env.bool("LNBITS_HIDE_API", default=False)
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
