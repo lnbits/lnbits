@@ -131,6 +131,14 @@
                             filled
                             dense
                             emit-value
+                            v-model="formDialog.data.type"
+                            :options="['Gerty', 'Mini Gerty']"
+                            label="Gerty Type *"
+                    ></q-select>
+                    <q-select
+                            filled
+                            dense
+                            emit-value
                             v-model="formDialog.data.wallet"
                             :options="g.user.walletOptions"
                             label="Wallet *"
@@ -190,7 +198,9 @@
 
                     <p>Use the toggles below to control what your Gerty will display</p>
 
+
                     <q-expansion-item
+                            v-if="!isMiniGerty"
                             expand-separator
                             icon="grid_view"
                             label="Dashboards"
@@ -198,17 +208,6 @@
                         <q-toggle
                                 v-model="formDialog.data.display_preferences.dashboard"
                                 label="LNbits Dashboard"
-                        ></q-toggle>
-
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
-                                label="Satoshi Quotes"
-                        >
-                            <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
-                        </q-toggle>
-                        <q-toggle
-                                v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
-                                label="Fiat to BTC  price"
                         ></q-toggle>
 
                         <q-toggle
@@ -233,8 +232,20 @@
                             expand-separator
                             icon="pin"
                             label="Single Data Points"
+                            ref="single-data-points-expansion"
                     >
 
+                        <q-toggle
+                                v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
+                                label="Fiat to BTC  price"
+                        ></q-toggle>
+                        <q-toggle
+                                v-if="!isMiniGerty"
+                                v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
+                                label="Satoshi Quotes"
+                        >
+                            <q-tooltip>Displays random quotes from Satoshi</q-tooltip>
+                        </q-toggle>
                         <q-expansion-item
                                 expand-separator
                                 icon="perm_identity"
@@ -279,6 +290,10 @@
                                     v-model="formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining"
                                     label="Estimated time until next difficulty adjustment"
                             ></q-toggle>
+                            <q-toggle
+                                    v-model="formDialog.data.display_preferences.onchain_block_height"
+                                    label="Current block height"
+                            ></q-toggle>
                         </q-expansion-item>
                         <q-expansion-item
                                 expand-separator
@@ -295,6 +310,7 @@
 
                             <q-toggle
                                     v-model="formDialog.data.display_preferences.mempool_recommended_fees"
+                                    v-if="!isMiniGerty"
                                     label="Recommended fees"
                             ></q-toggle>
 
@@ -583,6 +599,7 @@
                         show: false,
                         data: {
                             utc_offset: 0,
+                            type: 'Gerty',
                             display_preferences: {
                                 dashboard: true,
                                 fun_satoshi_quotes: true,
@@ -596,6 +613,7 @@
                                 onchain_difficulty_retarget_date: true,
                                 onchain_difficulty_blocks_remaining: true,
                                 onchain_difficulty_epoch_time_remaining: true,
+                                onchain_block_height: true,
                                 mempool_tx_count: true,
                                 mining_current_hash_rate: true,
                                 mining_current_difficulty: true,
@@ -619,6 +637,7 @@
                         lnbits_wallets: [],
                         mempool_endpoint: "https://mempool.space",
                         refresh_time: 300,
+                        type: 'Gerty',
                         display_preferences: {},
                     }
                 },
@@ -641,6 +660,7 @@
                     console.log('gerty.display_preferences', gerty.display_preferences)
                     this.formDialog.data.id = gerty.id
                     this.formDialog.data.name = gerty.name
+                    this.formDialog.data.type = gerty.type
                     this.formDialog.data.wallet = gerty.wallet
                     this.formDialog.data.utc_offset = gerty.utc_offset
                     this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
@@ -669,6 +689,7 @@
                         name: this.formDialog.data.name,
                         wallet: this.formDialog.data.wallet,
                         utc_offset: this.formDialog.data.utc_offset,
+                        type: this.formDialog.data.type,
                         lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
                         exchange: this.formDialog.data.exchange,
                         mempool_endpoint: this.formDialog.data.mempool_endpoint,
@@ -697,6 +718,7 @@
                 updateGerty: function (wallet, data) {
                     var self = this
                     data.utc_offset = this.formDialog.data.utc_offset
+                    data.type = this.formDialog.data.type
                     data.lnbits_wallets = JSON.stringify(this.formDialog.data.lnbits_wallets)
                     data.display_preferences = JSON.stringify(this.formDialog.data.display_preferences)
                     LNbits.api
@@ -744,12 +766,30 @@
                     LNbits.utils.exportCSV(this.gertysTable.columns, this.gertys)
                 }
             },
+            computed: {
+                isMiniGerty() {
+                    return (this.formDialog.data.type == 'Mini Gerty')
+                }
+            },
             created: function () {
                 if (this.g.user.wallets.length) {
                     this.getGertys()
                 }
             },
             watch: {
+                'formDialog.data.type': {
+                    handler(value) {
+                        if (value == 'Mini Gerty') {
+                            this.formDialog.data.display_preferences.dashboard = false;
+                            this.formDialog.data.display_preferences.dashboard_onchain = false;
+                            this.formDialog.data.display_preferences.dashboard_mining = false;
+                            this.formDialog.data.display_preferences.lightning_dashboard = false;
+                            this.formDialog.data.display_preferences.fun_satoshi_quotes = false;
+                            this.formDialog.data.display_preferences.mempool_recommended_fees = false;
+                            this.formDialog.data.display_preferences.onchain = false;
+                        }
+                    }
+                },
                 toggleStates: {
                     handler(toggleStatesValue) {
                         // Switch all the toggles in each section to the relevant state
