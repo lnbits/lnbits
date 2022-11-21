@@ -253,6 +253,7 @@ async def pay_with_keysend(
     public_key: str,
     amount_msat: int,
     description: str = "",
+    extra: Optional[Dict] = None,
     conn: Optional[Connection] = None,
 ) -> str:
     """
@@ -293,7 +294,7 @@ async def pay_with_keysend(
             payment_hash=payment_hash,
             amount=-amount_msat,
             memo=description or "",
-            extra={},
+            extra=extra,
         )
 
         # check_internal() returns the checking_id of the payment we're waiting for
