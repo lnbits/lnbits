@@ -278,6 +278,16 @@
             </q-btn>
           </div>
         </div>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="cardDialog.data.message"
+          type="text"
+          label="Message"
+        >
+          <q-tooltip>Message that gets shown on scan.</q-tooltip>
+        </q-input>
 
         <q-toggle
           v-model="toggleAdvanced"

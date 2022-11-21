@@ -58,3 +58,10 @@ async def m001_initial(db):
         );
     """
     )
+
+
+async def m002_add_message(db):
+    """
+    Add column for card message that gets shown on scan.
+    """
+    await db.execute("ALTER TABLE boltcards.cards ADD COLUMN message TEXT NOT NULL DEFAULT 'Boltcard (refund address {refund_url})'")
