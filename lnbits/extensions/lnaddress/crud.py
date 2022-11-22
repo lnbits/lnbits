@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from os import getenv
 from typing import List, Optional, Union
 
 from loguru import logger
@@ -62,6 +63,21 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
     )
 
     return [Domains(**row) for row in rows]
+
+
+async def check_domain_available(domain: str):
+    (row,) = await db.fetchone(
+        "SELECT COUNT(*) FROM lnaddress.domain WHERE domain = ?",
+        (domain),
+    )
+    return row == 0
+
+
+def check_domain_restricted(domain: str):
+    lnaddress_restricted_domains = getenv("LNADDRESS_RESTRICTED_DOMAINS", "")
+    restricted_domains = [d.strip() for d in lnaddress_restricted_domains.split(",")]
+
+    return domain in restricted_domains
 
 
 ## ADRESSES

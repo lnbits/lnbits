@@ -240,8 +240,9 @@
       amountSats() {
         let dialog = this.renewDialog.info ? this.renewDialog : this.formDialog
         if (!dialog.data.duration) return 0
-        let sats = Math.max(
-          parseInt(dialog.data.duration * parseInt('{{ domain_cost }}'), 1)
+        const sats = Math.max(
+          parseInt(dialog.data.duration) * parseInt('{{ domain_cost }}'),
+          1
         )
         dialog.data.sats = sats
         return sats
