@@ -18,6 +18,8 @@ DEBUG = env.bool("DEBUG", default=False)
 HOST = env.str("HOST", default="127.0.0.1")
 PORT = env.int("PORT", default=5000)
 
+FORWARDED_ALLOW_IPS = env.str("FORWARDED_ALLOW_IPS", default="127.0.0.1")
+
 LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str(
     "LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data")
