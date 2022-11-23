@@ -733,6 +733,10 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
 async def websocket_update(item_id: str, data: str):
     await updater(item_id, data)
 
+@core_app.get("/api/v1/ws/{item_id}/{data}")
+async def websocket_update(item_id: str, data: str):
+    await updater(item_id, data)
+
 async def updater(item_id, data):
     return await manager.send_data(
         f"{data}", item_id
