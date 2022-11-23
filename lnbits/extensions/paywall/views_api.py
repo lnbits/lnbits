@@ -49,7 +49,7 @@ async def api_paywall_delete(
         )
 
     await delete_paywall(paywall_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @paywall_ext.post("/api/v1/paywalls/invoice/{paywall_id}")

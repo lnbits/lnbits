@@ -6,6 +6,7 @@
         filled
         dense
         v-model.number="feeRate"
+        step="any"
         :rules="[val => !!val || 'Field is required']"
         type="number"
         label="sats/vbyte"

@@ -11,5 +11,5 @@ An easy, fast and secure way to accept Bitcoin, over Lightning Network, at your 
    ![create](https://imgur.com/8jNj8Zq.jpg)
 3. Open TPOS on the browser\
    ![open](https://imgur.com/LZuoWzb.jpg)
-4. Present invoice QR to costumer\
+4. Present invoice QR to customer\
    ![pay](https://imgur.com/tOwxn77.jpg)

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -6,11 +6,9 @@ from . import db
 from .models import CreateJukeboxPayment, CreateJukeLinkData, Jukebox, JukeboxPayment
 
 
-async def create_jukebox(
-    data: CreateJukeLinkData, inkey: Optional[str] = ""
-) -> Jukebox:
+async def create_jukebox(data: CreateJukeLinkData) -> Jukebox:
     juke_id = urlsafe_short_hash()
-    result = await db.execute(
+    await db.execute(
         """
         INSERT INTO jukebox.jukebox (id, "user", title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -36,13 +34,13 @@ async def create_jukebox(
 
 
 async def update_jukebox(
-    data: CreateJukeLinkData, juke_id: Optional[str] = ""
+    data: Union[CreateJukeLinkData, Jukebox], juke_id: str = ""
 ) -> Optional[Jukebox]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
     items.append(juke_id)
     q = q.replace("user", '"user"', 1)  # hack to make user be "user"!
-    await db.execute(f"UPDATE jukebox.jukebox SET {q} WHERE id = ?", (items))
+    await db.execute(f"UPDATE jukebox.jukebox SET {q} WHERE id = ?", (items,))
     row = await db.fetchone("SELECT * FROM jukebox.jukebox WHERE id = ?", (juke_id,))
     return Jukebox(**row) if row else None
 
@@ -72,7 +70,7 @@ async def delete_jukebox(juke_id: str):
         """
         DELETE FROM jukebox.jukebox WHERE id = ?
         """,
-        (juke_id),
+        (juke_id,),
     )
 
 
@@ -80,7 +78,7 @@ async def delete_jukebox(juke_id: str):
 
 
 async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
-    result = await db.execute(
+    await db.execute(
         """
         INSERT INTO jukebox.jukebox_payment (payment_hash, juke_id, song_id, paid)
         VALUES (?, ?, ?, ?)

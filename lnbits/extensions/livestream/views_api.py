@@ -60,14 +60,14 @@ async def api_update_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
 
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await update_current_track(ls.id, id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @livestream_ext.put("/api/v1/livestream/fee/{fee_pct}")
 async def api_update_fee(fee_pct, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await update_livestream_fee(ls.id, int(fee_pct))
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @livestream_ext.post("/api/v1/livestream/tracks")
@@ -93,8 +93,8 @@ async def api_add_track(
     return
 
 
-@livestream_ext.route("/api/v1/livestream/tracks/{track_id}")
+@livestream_ext.delete("/api/v1/livestream/tracks/{track_id}")
 async def api_delete_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await delete_track_from_livestream(ls.id, track_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

@@ -105,9 +105,9 @@ async def lnurl_v1_params(
     paymentcheck = await get_lnurlpayload(p)
     if device.device == "atm":
         if paymentcheck:
-            return {"status": "ERROR", "reason": f"Payment already claimed"}
+            if paymentcheck.payhash != "payment_hash":
+                return {"status": "ERROR", "reason": f"Payment already claimed"}
     if device.device == "switch":
-
         price_msat = (
             await fiat_amount_as_satoshis(float(profit), device.currency)
             if device.currency != "sat"
@@ -177,7 +177,7 @@ async def lnurl_v1_params(
             "callback": request.url_for(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             ),
-            "k1": lnurldevicepayment.id,
+            "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
             "defaultDescription": device.title,
@@ -227,14 +227,13 @@ async def lnurl_callback(
                 status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
             )
         else:
-            if lnurldevicepayment.id != k1:
+            if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": f"Payment already claimed"}
             lnurldevicepayment = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
-
             await pay_invoice(
                 wallet_id=device.wallet,
                 payment_request=pr,
