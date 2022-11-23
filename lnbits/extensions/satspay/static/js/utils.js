@@ -14,7 +14,7 @@ const retryWithDelay = async function (fn, retryCount = 0) {
 }
 
 const mapCharge = (obj, oldObj = {}) => {
-  const charge = _.clone(obj)
+  const charge = {...obj, ...oldObj}
 
   charge.progress = obj.time_left < 0 ? 1 : 1 - obj.time_left / obj.time
   charge.time = minutesToTime(obj.time)
