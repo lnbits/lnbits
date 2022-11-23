@@ -98,6 +98,7 @@ class InstallableExtension(NamedTuple):
     id: str
     name: str
     archive: str
+    hash: str
     short_description: Optional[str] = None
     details: Optional[str] = None
     icon: Optional[str] = None

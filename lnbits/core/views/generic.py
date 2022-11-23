@@ -91,6 +91,7 @@ async def extensions_install(
     try:
         extension_list: List[InstallableExtension] = await get_installable_extensions()
     except Exception as ex:
+        logger.warning(ex)
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Cannot fetch installable extension list",
@@ -112,6 +113,7 @@ async def extensions_install(
                 lambda ext: {
                     "id": ext.id,
                     "name": ext.name,
+                    "hash": ext.hash,
                     "icon": ext.icon,
                     "shortDescription": ext.short_description,
                     "details": ext.details,
@@ -132,6 +134,7 @@ async def extensions_install(
             },
         )
     except Exception as e:
+        logger.warning(e)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 

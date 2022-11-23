@@ -220,7 +220,7 @@
           extension.inProgress = true
           await LNbits.api.request(
             'POST',
-            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
+            `/api/v1/extension/${extension.id}/${extension.hash}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
           window.location.href = [

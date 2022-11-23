@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import re
 import urllib.request
@@ -65,6 +66,7 @@ async def get_installable_extensions() -> List[InstallableExtension]:
                         id=e["id"],
                         name=e["name"],
                         archive=e["archive"],
+                        hash=e["hash"],
                         short_description=e["shortDescription"],
                         details=e["details"] if "details" in e else "",
                         icon=e["icon"],
@@ -79,3 +81,13 @@ def download_url(url, save_path):
     with urllib.request.urlopen(url) as dl_file:
         with open(save_path, "wb") as out_file:
             out_file.write(dl_file.read())
+
+
+def file_hash(filename):
+    h = hashlib.sha256()
+    b = bytearray(128 * 1024)
+    mv = memoryview(b)
+    with open(filename, "rb", buffering=0) as f:
+        while n := f.readinto(mv):
+            h.update(mv[:n])
+    return h.hexdigest()
