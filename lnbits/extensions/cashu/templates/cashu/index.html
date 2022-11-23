@@ -46,12 +46,12 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="launch"
+                  icon="account_balance_wallet"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'wallet/?tsh=' + (props.row.tickershort || '') + '&mint_id=' + props.row.id + '&mint_name=' + props.row.name"
+                  :href="'wallet/?' + 'mint_id=' + props.row.id"
                   target="_blank"
-                  ><q-tooltip>Shareable wallet page</q-tooltip></q-btn
+                  ><q-tooltip>Shareable wallet</q-tooltip></q-btn
                 >
 
                 <q-btn
@@ -218,18 +218,18 @@
         toggleAdvanced: false,
         cashusTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'id', align: 'left', label: 'Mint ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {
               name: 'tickershort',
               align: 'left',
-              label: 'tickershort',
+              label: 'Ticker',
               field: 'tickershort'
             },
             {
               name: 'wallet',
               align: 'left',
-              label: 'Cashu wallet',
+              label: 'Mint wallet',
               field: 'wallet'
             },
             {
@@ -271,7 +271,7 @@
         LNbits.api
           .request(
             'GET',
-            '/cashu/api/v1/cashus?all_wallets=true',
+            '/cashu/api/v1/mints?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -294,7 +294,7 @@
         LNbits.api
           .request(
             'POST',
-            '/cashu/api/v1/cashus',
+            '/cashu/api/v1/mints',
             _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
               .inkey,
             data
@@ -314,13 +314,13 @@
 
         LNbits.utils
           .confirmDialog(
-            'Are you sure you want to delete this Mint? It will suck for users.'
+            "Are you sure you want to delete this Mint? This mint's users will not be able to redeem their tokens!"
           )
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/cashu/api/v1/cashus/' + cashuId,
+                '/cashu/api/v1/mints/' + cashuId,
                 _.findWhere(self.g.user.wallets, {id: cashu.wallet}).adminkey
               )
               .then(function (response) {

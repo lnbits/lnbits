@@ -1,5 +1,6 @@
 import asyncio
 
+from environs import Env  # type: ignore
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
 
@@ -20,10 +21,12 @@ cashu_static_files = [
 ]
 from cashu.mint.ledger import Ledger
 
+env = Env()
+env.read_env()
+
 ledger = Ledger(
     db=db,
-    # seed=MINT_PRIVATE_KEY,
-    seed="asd",
+    seed=env.str("CASHU_PRIVATE_KEY", default="SuperSecretPrivateKey"),
     derivation_path="0/0/0/1",
 )
 
