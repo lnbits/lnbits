@@ -113,6 +113,14 @@ Vue.component('lnbits-extension-list', {
   template: `
     <q-list v-if="user && extensions.length" dense class="lnbits-drawer__q-list">
       <q-item-label header>Extensions</q-item-label>
+      <q-item clickable tag="a" :href="['/extensions?usr=', user.id].join('')">
+        <q-item-section side>
+          <q-icon name="clear_all" color="grey-5" size="md"></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" class="text-caption">Manage extensions</q-item-label>
+        </q-item-section>
+      </q-item>
       <q-item v-for="extension in userExtensions" :key="extension.code"
         clickable
         :active="extension.isActive"
@@ -131,14 +139,6 @@ Vue.component('lnbits-extension-list', {
         </q-item-section>
         <q-item-section side v-show="extension.isActive">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
-      <q-item clickable tag="a" :href="['/extensions?usr=', user.id].join('')">
-        <q-item-section side>
-          <q-icon name="clear_all" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" class="text-caption">Manage extensions</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
