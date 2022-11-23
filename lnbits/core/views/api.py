@@ -713,14 +713,10 @@ class websocketConnectionManager:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def send_personal_message(self, message: str, item_id: str):
+    async def send_data(self, message: str, item_id: str):
         for connection in self.active_connections:
             if connection.id == item_id:
                 await connection.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
 
 manager = websocketConnectionManager()
 
@@ -738,6 +734,6 @@ async def websocket_endpoint(item_id: str, data: str):
     await updater(item_id, data)
 
 async def updater(item_id, data):
-    return await manager.send_personal_message(
+    return await manager.send_data(
         f"{data}", item_id
     )
