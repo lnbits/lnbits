@@ -721,7 +721,7 @@ class websocketConnectionManager:
 manager = websocketConnectionManager()
 
 @core_app.websocket("/api/v1/ws/{item_id}")
-async def websocket_endpoint(websocket: WebSocket, item_id: str):
+async def websocket_connect(websocket: WebSocket, item_id: str):
     await manager.connect(websocket, item_id)
     try:
         while True:
@@ -730,7 +730,7 @@ async def websocket_endpoint(websocket: WebSocket, item_id: str):
         manager.disconnect(websocket)
 
 @core_app.post("/api/v1/ws/{item_id}")
-async def websocket_endpoint(item_id: str, data: str):
+async def websocket_update(item_id: str, data: str):
     await updater(item_id, data)
 
 async def updater(item_id, data):
