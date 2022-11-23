@@ -409,7 +409,7 @@
         balance: null,
         walletLinks: [],
         chargeLinks: [],
-        onchainwallet: '',
+        onchainwallet: null,
         rescanning: false,
         mempool: {
           endpoint: ''
@@ -505,6 +505,7 @@
     methods: {
       cancelCharge: function (data) {
         this.formDialogCharge.data.description = ''
+        this.formDialogCharge.data.onchain = false
         this.formDialogCharge.data.onchainwallet = ''
         this.formDialogCharge.data.lnbitswallet = ''
         this.formDialogCharge.data.time = null
@@ -577,7 +578,8 @@
         const data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
-        data.onchainwallet = this.onchainwallet?.id
+        data.lnbitswallet = data.lnbits ? this.lnbitswallet : null
+        data.onchainwallet = data.onchain ? this.onchainwallet?.id : null
         this.createCharge(wallet, data)
       },
       refreshActiveChargesBalance: async function () {
