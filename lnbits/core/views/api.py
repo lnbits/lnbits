@@ -3,10 +3,13 @@ import binascii
 import hashlib
 import json
 import os
+import sys
 import shutil
 import time
 import uuid
 import zipfile
+import importlib
+import inspect
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
@@ -24,10 +27,12 @@ from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
+from pathlib import Path
 
 from lnbits import bolt11, lnurl
 from lnbits.core.helpers import (
     download_url,
+    file_hash,
     get_installable_extensions,
     migrate_extension_database,
 )
@@ -724,8 +729,10 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
     }
 
 
-@core_app.post("/api/v1/extension/{ext_id}")
-async def api_install_extension(ext_id: str, user: User = Depends(check_user_exists)):
+@core_app.post("/api/v1/extension/{ext_id}/{hash}")
+async def api_install_extension(
+    ext_id: str, hash: str, user: User = Depends(check_user_exists)
+):
     if not user.admin:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
@@ -739,7 +746,9 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
             detail="Cannot fetch installable extension list",
         )
 
-    extensions = [e for e in extension_list if e.id == ext_id]
+    extensions = [
+        e for e in extension_list if e.id == ext_id and e.hash == hash
+    ]
     if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -772,6 +781,16 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
             detail="Cannot fetch extension archive file",
         )
 
+    archive_hash = file_hash(ext_zip_file)
+    if extension.hash != archive_hash:
+        # remove downloaded archive
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="File hash missmatch. Will not install.",
+        )
+
     try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
@@ -783,6 +802,18 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
 
         current_versions = await get_dbversions()
         current_version = current_versions.get(ext.code, 0)
+
+        module_name = f"lnbits.extensions.{ext.code}"
+        # if module_name in sys.modules:
+        #     importlib.reload(sys.modules[module_name])
+        ext_module = importlib.import_module(module_name)
+        # sys.modules[module_name] = importlib.reload(ext_module)
+
+        modules_to_reload = list_modules_for_extension(ext_id)
+        print('### modules_to_reload', modules_to_reload)
+        for m in modules_to_reload:
+            importlib.reload(sys.modules[m])
+        
         await migrate_extension_database(ext, current_version)
 
         # disable by default
@@ -792,6 +823,7 @@ async def api_install_extension(ext_id: str, user: User = Depends(check_user_exi
         # mount routes at the very end
         core_app_extra.register_new_ext_routes(ext)
     except Exception as ex:
+        logger.warning(ex)
         # remove downloaded archive
         if os.path.isfile(ext_zip_file):
             os.remove(ext_zip_file)
@@ -844,6 +876,16 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         if os.path.isfile(ext_zip_file):
             os.remove(ext_zip_file)
 
+        # module_name = f"lnbits.extensions.{ext_id}"
+
+        # modules_to_delete = list_modules_for_extension(ext_id)
+        # print('### modules_to_delete', modules_to_delete)
+        # for m in modules_to_delete:
+        #     module = sys.modules[m]
+        #     del sys.modules[m]
+        #     del module    
+
+
         # remove module from extensions
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
@@ -851,3 +893,19 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
+
+def list_modules_for_extension(ext_id: str)-> List[str]:
+    modules_for_extension = []
+    for key in sys.modules.keys():
+        try:
+            module = sys.modules[key]
+            moduleFilePath = inspect.getfile(module).lower()
+            
+            dir_name = str(Path(moduleFilePath).parent.absolute())
+            if dir_name.endswith(f"lnbits/extensions/{ext_id}"):
+                print('## moduleFilePath', moduleFilePath)
+                modules_for_extension +=[key]
+
+        except:
+            pass # built in modules throw if queried
+    return modules_for_extension
