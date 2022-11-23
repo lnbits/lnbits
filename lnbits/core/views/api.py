@@ -701,6 +701,7 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 ##################UNIVERSAL WEBSOCKET MANAGER########################
 
+
 class websocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -718,7 +719,9 @@ class websocketConnectionManager:
             if connection.id == item_id:
                 await connection.send_text(message)
 
+
 manager = websocketConnectionManager()
+
 
 @core_app.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
@@ -729,6 +732,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+
 @core_app.post("/api/v1/ws/{item_id}")
 async def websocket_update(item_id: str, data: str):
     try:
@@ -736,6 +740,7 @@ async def websocket_update(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
 
 @core_app.get("/api/v1/ws/{item_id}/{data}")
 async def websocket_update(item_id: str, data: str):
@@ -745,7 +750,6 @@ async def websocket_update(item_id: str, data: str):
     except:
         return {"sent": False, "data": data}
 
+
 async def updater(item_id, data):
-    return await manager.send_data(
-        f"{data}", item_id
-    )
+    return await manager.send_data(f"{data}", item_id)
