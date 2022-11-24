@@ -10,7 +10,8 @@ from ..watchonly.crud import get_config, get_fresh_address
 
 # from lnbits.db import open_ext_db
 from . import db
-from .models import Charges, CreateCharge, SatsPaySettings
+from .models import Charges, CreateCharge, SatsPayThemes
+
 
 ###############CHARGES##########################
 
@@ -48,9 +49,10 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             completelinktext,
             time,
             amount,
+            custom_css,
             balance
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             charge_id,
@@ -66,6 +68,7 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.completelinktext,
             data.time,
             data.amount,
+            data.custom_css,
             0,
         ),
     )
@@ -132,41 +135,51 @@ async def get_charge_config(charge_id: str):
 
 
 ################## SETTINGS ###################
-async def save_settings(user_id: str, data: SatsPaySettings):
+
+
+async def save_theme(data: SatsPayThemes, css_id: str = None):
     # insert or update
-    row = await db.fetchone(
-        """SELECT user_id FROM satspay.settings WHERE user_id = ?""", (user_id,)
-    )
-    if row:
+    if css_id:
         await db.execute(
             """
-            UPDATE satspay.settings SET custom_css = ? WHERE user_id = ?
+            UPDATE satspay.themes SET custom_css = ?, title = ? WHERE css_id = ?
             """,
-            (data.custom_css, user_id),
+            (data.custom_css, data.title, css_id),
         )
     else:
+        css_id = urlsafe_short_hash()
         await db.execute(
             """
-            INSERT INTO satspay.settings (
-                user_id,
+            INSERT INTO satspay.themes (
+                css_id,
+                title,
+                user,
                 custom_css
                 )
-            VALUES (?, ?)
+            VALUES (?, ?, ?, ?)
             """,
             (
-                user_id,
+                css_id,
+                data.title,
+                data.user,
                 data.custom_css,
             ),
         )
-    return True
+    return await get_theme(css_id)
 
 
-async def get_settings(user_id: str) -> SatsPaySettings:
-    row = await db.fetchone(
-        """SELECT * FROM satspay.settings WHERE user_id = ?""",
+async def get_theme(css_id: str) -> SatsPayThemes:
+    row = await db.fetchone("SELECT * FROM satspay.themes WHERE css_id = ?", (css_id,))
+    return SatsPayThemes.from_row(row) if row else None
+
+
+async def get_themes(user_id: str) -> List[SatsPayThemes]:
+    rows = await db.fetchall(
+        """SELECT * FROM satspay.themes WHERE "user" = ? ORDER BY "timestamp" DESC """,
         (user_id,),
     )
-    if row:
-        return SatsPaySettings.from_row(row)
-    else:
-        return None
+    return [SatsPayThemes.from_row(row) for row in rows]
+
+
+async def delete_theme(theme_id: str) -> None:
+    await db.execute("DELETE FROM satspay.themes WHERE css_id = ?", (theme_id,))

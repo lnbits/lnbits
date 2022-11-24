@@ -13,6 +13,7 @@ class CreateCharge(BaseModel):
     webhook: str = Query(None)
     completelink: str = Query(None)
     completelinktext: str = Query(None)
+    custom_css: Optional[str]
     time: int = Query(..., ge=1)
     amount: int = Query(..., ge=1)
 
@@ -28,6 +29,7 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
+    custom_css: Optional[str]
     time: int
     amount: int
     balance: int
@@ -56,9 +58,12 @@ class Charges(BaseModel):
             return False
 
 
-class SatsPaySettings(BaseModel):
+class SatsPayThemes(BaseModel):
+    css_id: str = Query(None)
+    title: str = Query(None)
     custom_css: str = Query(None)
+    user: Optional[str]
 
     @classmethod
-    def from_row(cls, row: Row) -> "SatsPaySettings":
+    def from_row(cls, row: Row) -> "SatsPayThemes":
         return cls(**dict(row))

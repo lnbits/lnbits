@@ -12,7 +12,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import satspay_ext, satspay_renderer
-from .crud import get_charge, get_charge_config, get_settings
+from .crud import get_charge, get_charge_config, get_themes, get_theme
 
 templates = Jinja2Templates(directory="templates")
 
@@ -48,16 +48,10 @@ async def display(request: Request, charge_id: str):
     )
 
 
-@satspay_ext.get("/css/{charge_id}")
-async def display(charge_id: str, response: Response):
-    charge = await get_charge(charge_id)
-    if not charge:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
-        )
-    wallet = await get_wallet(charge.lnbitswallet)
-    settings = await get_settings(wallet.user)
-    if settings:
-        return Response(content=settings.custom_css, media_type="text/css")
+@satspay_ext.get("/css/{css_id}")
+async def display(css_id: str, response: Response):
+    theme = await get_theme(css_id)
+    if theme:
+        return Response(content=theme.custom_css, media_type="text/css")
 
     return None

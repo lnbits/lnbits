@@ -291,7 +291,7 @@
 </div>
 {% endblock %} {% block styles %}
 <link
-  href="/satspay/css/{{ charge_data.id }}"
+  href="/satspay/css/{{ charge_data.custom_css }}"
   rel="stylesheet"
   type="text/css"
 />
@@ -315,6 +315,7 @@
         customCss: '',
         charge: JSON.parse('{{charge_data | tojson}}'),
         mempool_endpoint: '{{mempool_endpoint}}',
+        css_id: '{{ charge_data.css_id }}',
         pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
@@ -440,8 +441,10 @@
     },
     created: async function () {
       // Remove a user defined theme
-      document.body.setAttribute('data-theme', '')
-
+      console.log(this.charge.custom_css)
+      if (this.charge.custom_css) {
+        document.body.setAttribute('data-theme', '')
+      }
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
       await this.checkBalances()
