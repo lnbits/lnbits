@@ -218,7 +218,7 @@
           <div class="col text-center">
             <a
               style="color: unset"
-              :href="mempool_endpoint + '/address/' + charge.onchainaddress"
+              :href="mempoolEndpoint + '/address/' + charge.onchainaddress"
               target="_blank"
               ><span
                 class="text-subtitle1"
@@ -303,7 +303,8 @@
     data() {
       return {
         charge: JSON.parse('{{charge_data | tojson}}'),
-        mempool_endpoint: '{{mempool_endpoint}}',
+        mempoolEndpoint: '{{mempool_endpoint}}',
+        network: '{{network}}',
         pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
@@ -314,6 +315,15 @@
           inkey: ''
         },
         cancelListener: () => {}
+      }
+    },
+    computed: {
+      mempoolHostname: function () {
+        let hostname = new URL(this.mempoolEndpoint).hostname
+        if (this.network === 'Testnet') {
+          hostname += '/testnet'
+        }
+        return hostname
       }
     },
     methods: {
@@ -335,7 +345,7 @@
         const {
           bitcoin: {addresses: addressesAPI}
         } = mempoolJS({
-          hostname: new URL(this.mempool_endpoint).hostname
+          hostname: new URL(this.mempoolEndpoint).hostname
         })
 
         try {
@@ -378,10 +388,10 @@
         const {
           bitcoin: {websocket}
         } = mempoolJS({
-          hostname: new URL(this.mempool_endpoint).hostname
+          hostname: new URL(this.mempoolEndpoint).hostname
         })
 
-        this.ws = new WebSocket('wss://mempool.space/api/v1/ws')
+        this.ws = new WebSocket(`wss://${this.mempoolHostname}/api/v1/ws`)
         this.ws.addEventListener('open', x => {
           if (this.charge.onchainaddress) {
             this.trackAddress(this.charge.onchainaddress)
