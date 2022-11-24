@@ -21,13 +21,15 @@ from .crud import (
     delete_charge,
     get_charge,
     get_charges,
-    get_settings,
-    save_settings,
+    get_theme,
+    get_themes,
+    delete_theme,
+    save_theme,
     update_charge,
 )
 from .helpers import call_webhook, public_charge
 from .helpers import compact_charge
-from .models import CreateCharge, SatsPaySettings
+from .models import CreateCharge, SatsPayThemes
 
 #############################CHARGES##########################
 
@@ -145,22 +147,42 @@ async def api_charge_balance(charge_id):
     return {**public_charge(charge)}
 
 
-#############################CHARGES##########################
+#############################THEMES##########################
 
 
-@satspay_ext.post("/api/v1/settings")
-async def api_settings_save(
-    data: SatsPaySettings, wallet: WalletTypeInfo = Depends(require_invoice_key)
+@satspay_ext.post("/api/v1/themes")
+@satspay_ext.post("/api/v1/themes/{css_id}")
+async def api_themes_save(
+    data: SatsPayThemes,
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    css_id: str = None,
 ):
-    await save_settings(user_id=wallet.wallet.user, data=data)
-    return True
+    if css_id:
+        theme = await save_theme(css_id=css_id, data=data)
+    else:
+        data.user = wallet.wallet.user
+        theme = await save_theme(data=data)
+    return theme
 
 
-@satspay_ext.get("/api/v1/settings")
-async def api_settings_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+@satspay_ext.get("/api/v1/themes")
+async def api_themes_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
-        return await get_settings(wallet.wallet.user)
+        return await get_themes(wallet.wallet.user)
     except HTTPException:
-        logger.error("Error loading satspay settings")
+        logger.error("Error loading satspay themes")
         logger.error(HTTPException)
         return ""
+
+
+@satspay_ext.delete("/api/v1/themes/{theme_id}")
+async def api_charge_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+    theme = await get_theme(theme_id)
+
+    if not theme:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Theme does not exist."
+        )
+
+    await delete_theme(theme_id)
+    return "", HTTPStatus.NO_CONTENT

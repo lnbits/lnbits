@@ -12,8 +12,8 @@
         <q-btn
           unelevated
           color="primary"
-          @click="getSettings();formDialogSettings.show = true"
-          >SatsPay settings
+          @click="getThemes();formDialogThemes.show = true"
+          >New CSS Theme
         </q-btn>
       </q-card-section>
     </q-card>
@@ -266,6 +266,63 @@
         </q-table>
       </q-card-section>
     </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Themes</h5>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="themeLinks"
+          row-key="id"
+          :columns="customCSSTable.columns"
+          :pagination.sync="customCSSTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateformDialog(props.row.css_id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteTheme(props.row.css_id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
@@ -384,6 +441,15 @@
           label="Wallet *"
         >
         </q-select>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogCharge.data.custom_css"
+          :options="themeOptions"
+          label="Custom CSS theme (optional)"
+        >
+        </q-select>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -402,23 +468,36 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="formDialogSettings.show" position="top">
+  <q-dialog v-model="formDialogThemes.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormDataSettings" class="q-gutter-md">
+      <q-form @submit="sendFormDataThemes" class="q-gutter-md">
         <q-input
           filled
           dense
-          v-model.trim="formDialogSettings.data.custom_css"
+          v-model.trim="formDialogThemes.data.title"
+          type="text"
+          label="*Title"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogThemes.data.custom_css"
           type="textarea"
           label="Custom CSS"
         >
-          <q-tooltip
-            >Custom CSS to apply styles to your SatsPay invoice</q-tooltip
-          >
         </q-input>
         <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">Save Settings</q-btn>
-          <q-btn @click="cancelSettings" flat color="grey" class="q-ml-auto"
+          <q-btn
+            v-if="formDialogThemes.data.css_id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update CSS theme</q-btn
+          >
+          <q-btn v-else unelevated color="primary" type="submit"
+            >Save CSS theme</q-btn
+          >
+          <q-btn @click="cancelThemes" flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
         </div>
@@ -446,7 +525,9 @@
         balance: null,
         walletLinks: [],
         chargeLinks: [],
-        onchainwallet: null,
+        themeLinks: [],
+        themeOptions: [],
+        onchainwallet: '',
         rescanning: false,
         mempool: {
           endpoint: '',
@@ -526,7 +607,25 @@
             rowsPerPage: 10
           }
         },
-
+        customCSSTable: {
+          columns: [
+            {
+              name: 'css_id',
+              align: 'left',
+              label: 'ID',
+              field: 'css_id'
+            },
+            {
+              name: 'title',
+              align: 'left',
+              label: 'Title',
+              field: 'title'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
         formDialogCharge: {
           show: false,
           data: {
@@ -534,11 +633,12 @@
             onchainwallet: '',
             lnbits: false,
             description: '',
+            custom_css: '',
             time: null,
             amount: null
           }
         },
-        formDialogSettings: {
+        formDialogThemes: {
           show: false,
           data: {
             custom_css: ''
@@ -547,9 +647,9 @@
       }
     },
     methods: {
-      cancelSettings: function (data) {
+      cancelThemes: function (data) {
         this.formDialogCharge.data.custom_css = ''
-        this.formDialogSettings.show = false
+        this.formDialogThemes.show = false
       },
       cancelCharge: function (data) {
         this.formDialogCharge.data.description = ''
@@ -559,6 +659,7 @@
         this.formDialogCharge.data.time = null
         this.formDialogCharge.data.amount = null
         this.formDialogCharge.data.webhook = ''
+        this.formDialogCharge.data.custom_css = ''
         this.formDialogCharge.data.completelink = ''
         this.formDialogCharge.show = false
       },
@@ -623,30 +724,38 @@
         }
       },
 
-      getSettings: async function () {
+      getThemes: async function () {
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            '/satspay/api/v1/settings',
+            '/satspay/api/v1/themes',
             this.g.user.wallets[0].inkey
           )
-          if (data) {
-            this.formDialogSettings.data.custom_css = data.custom_css
-          }
+          console.log(data)
+          this.themeLinks = data.map(c =>
+            mapCSS(
+              c,
+              this.themeLinks.find(old => old.css_id === c.css_id)
+            )
+          )
+          this.themeOptions = data.map(w => ({
+            id: w.css_id,
+            label: w.title + ' - ' + w.css_id
+          }))
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
       },
 
-      sendFormDataSettings: function () {
+      sendFormDataThemes: function () {
         const wallet = this.g.user.wallets[0].inkey
-        const data = this.formDialogSettings.data
-        data.custom_css = data.custom_css
-        this.saveSettings(wallet, data)
+        const data = this.formDialogThemes.data
+        this.createTheme(wallet, data)
       },
       sendFormDataCharge: function () {
-        const wallet = this.g.user.wallets[0].inkey
+        this.formDialogCharge.data.custom_css = this.formDialogCharge.data.custom_css.id
         const data = this.formDialogCharge.data
+        const wallet = this.g.user.wallets[0].inkey
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
         data.lnbitswallet = data.lnbits ? data.lnbitswallet : null
@@ -715,22 +824,67 @@
           this.rescanning = false
         }
       },
-      saveSettings: async function (wallet, data) {
+      updateformDialog: function (themeId) {
+        const theme = _.findWhere(this.themeLinks, {css_id: themeId})
+        console.log(theme.css_id)
+        this.formDialogThemes.data.css_id = theme.css_id
+        this.formDialogThemes.data.title = theme.title
+        this.formDialogThemes.data.custom_css = theme.custom_css
+        this.formDialogThemes.show = true
+      },
+      createTheme: async function (wallet, data) {
+        console.log(data.css_id)
         try {
-          const resp = await LNbits.api.request(
-            'POST',
-            '/satspay/api/v1/settings',
-            wallet,
-            data
-          )
-
-          this.formDialogSettings.show = false
-          this.formDialogSettings.data = {
+          if (data.css_id) {
+            const resp = await LNbits.api.request(
+              'POST',
+              '/satspay/api/v1/themes/' + data.css_id,
+              wallet,
+              data
+            )
+            this.themeLinks = _.reject(this.themeLinks, function (obj) {
+              return obj.css_id === data.css_id
+            })
+            this.themeLinks.unshift(mapCSS(resp.data))
+          } else {
+            const resp = await LNbits.api.request(
+              'POST',
+              '/satspay/api/v1/themes',
+              wallet,
+              data
+            )
+            this.themeLinks.unshift(mapCSS(resp.data))
+          }
+          this.formDialogThemes.show = false
+          this.formDialogThemes.data = {
+            title: '',
             custom_css: ''
           }
         } catch (error) {
+          console.log('cun')
           LNbits.utils.notifyApiError(error)
         }
+      },
+
+      deleteTheme: function (themeId) {
+        const theme = _.findWhere(this.themeLinks, {id: themeId})
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this theme?')
+          .onOk(async () => {
+            try {
+              const response = await LNbits.api.request(
+                'DELETE',
+                '/satspay/api/v1/themes/' + themeId,
+                this.g.user.wallets[0].adminkey
+              )
+
+              this.themeLinks = _.reject(this.themeLinks, function (obj) {
+                return obj.css_id === themeId
+              })
+            } catch (error) {
+              LNbits.utils.notifyApiError(error)
+            }
+          })
       },
       createCharge: async function (wallet, data) {
         try {
@@ -784,7 +938,7 @@
       }
     },
     created: async function () {
-      await this.getSettings()
+      await this.getThemes()
       await this.getCharges()
       await this.getWalletConfig()
       await this.getWalletLinks()
