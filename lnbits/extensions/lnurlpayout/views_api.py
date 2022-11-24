@@ -80,7 +80,7 @@ async def api_lnurlpayout_delete(
         )
 
     await delete_lnurlpayout(lnurlpayout_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts/{lnurlpayout_id}", status_code=HTTPStatus.OK)

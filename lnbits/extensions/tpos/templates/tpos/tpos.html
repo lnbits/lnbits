@@ -13,7 +13,7 @@
     <q-page-sticky v-if="exchangeRate" expand position="top">
       <div class="row justify-center full-width">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
-          <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h3 class="q-mb-md">{% raw %}{{ amountFormatted }}{% endraw %}</h3>
           <h5 class="q-mt-none q-mb-sm">
             {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
           </h5>
@@ -148,6 +148,14 @@
         </div>
       </div>
     </q-page-sticky>
+    <q-page-sticky position="top-right" :offset="[18, 18]">
+      <q-btn
+        @click="showLastPayments"
+        fab
+        icon="receipt_long"
+        color="primary"
+      />
+    </q-page-sticky>
     <q-dialog
       v-model="invoiceDialog.show"
       position="top"
@@ -165,12 +173,14 @@
           ></qrcode>
         </q-responsive>
         <div class="text-center">
-          <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h3 class="q-my-md">
+            {% raw %}{{ amountWithTipFormatted }}{% endraw %}
+          </h3>
           <h5 class="q-mt-none">
             {% raw %}{{ fsat }}
             <small>sat</small>
             <span v-show="tip_options" style="font-size: 0.75rem"
-              >( + {{ tipAmountSat }} tip)</span
+              >( + {{ tipAmountFormatted }} tip)</span
             >
             {% endraw %}
           </h5>
@@ -204,19 +214,48 @@
             style="padding: 10px; margin: 3px"
             unelevated
             @click="processTipSelection(tip)"
-            size="xl"
+            size="lg"
             :outline="!($q.dark.isActive)"
             rounded
             color="primary"
-            v-for="tip in this.tip_options"
+            v-for="tip in tip_options.filter(f => f != 'Round')"
             :key="tip"
             >{% raw %}{{ tip }}{% endraw %}%</q-btn
           >
-        </div>
-        <div class="text-center q-mb-xl">
-          <p><a @click="processTipSelection(0)"> No, thanks</a></p>
+          <q-btn
+            style="padding: 10px; margin: 3px"
+            unelevated
+            @click="setRounding"
+            size="lg"
+            :outline="!($q.dark.isActive)"
+            rounded
+            color="primary"
+            label="Round to"
+          ></q-btn>
+          <div class="row q-my-lg" v-if="rounding">
+            <q-input
+              class="col"
+              ref="inputRounding"
+              v-model.number="tipRounding"
+              :placeholder="roundToSugestion"
+              type="number"
+              hint="Total amount including tip"
+              :prefix="currency"
+            >
+            </q-input>
+            <q-btn
+              class="q-ml-sm"
+              style="margin-bottom: 20px"
+              color="primary"
+              @click="calculatePercent"
+              >Ok</q-btn
+            >
+          </div>
         </div>
         <div class="row q-mt-lg">
+          <q-btn flat color="primary" @click="processTipSelection(0)"
+            >No, thanks</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>
@@ -256,6 +295,38 @@
         style="font-size: min(90vw, 40em)"
       ></q-icon>
     </q-dialog>
+
+    <q-dialog v-model="lastPaymentsDialog.show" position="bottom">
+      <q-card class="lnbits__dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-list separator class="q-mb-lg">
+          <q-item v-if="!lastPaymentsDialog.data.length">
+            <q-item-section>
+              <q-item-label class="text-bold">No paid invoices</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item v-for="(payment, idx) in lastPaymentsDialog.data" :key="idx">
+            {%raw%}
+            <q-item-section>
+              <q-item-label class="text-bold"
+                >{{payment.amount / 1000}} sats</q-item-label
+              >
+              <q-item-label caption lines="2"
+                >Hash: {{payment.checking_id.slice(0, 30)}}...</q-item-label
+              >
+            </q-item-section>
+            <q-item-section side top>
+              <q-item-label caption>{{payment.dateFrom}}</q-item-label>
+              <q-icon name="check" color="green" />
+            </q-item-section>
+            {%endraw%}
+          </q-item>
+        </q-list>
+      </q-card>
+    </q-dialog>
   </q-page>
 </q-page-container>
 {% endblock %} {% block styles %}
@@ -294,8 +365,13 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        tipRounding: null,
         hasNFC: false,
         nfcTagReading: false,
+        lastPaymentsDialog: {
+          show: false,
+          data: []
+        },
         invoiceDialog: {
           show: false,
           data: null,
@@ -310,32 +386,81 @@
         },
         complete: {
           show: false
-        }
+        },
+        rounding: false
       }
     },
     computed: {
       amount: function () {
         if (!this.stack.length) return 0.0
-        return (Number(this.stack.join('')) / 100).toFixed(2)
+        return Number(this.stack.join('') / 100)
       },
-      famount: function () {
-        return LNbits.utils.formatCurrency(this.amount, this.currency)
+      amountFormatted: function () {
+        return LNbits.utils.formatCurrency(
+          this.amount.toFixed(2),
+          this.currency
+        )
+      },
+      amountWithTipFormatted: function () {
+        return LNbits.utils.formatCurrency(
+          (this.amount + this.tipAmount).toFixed(2),
+          this.currency
+        )
       },
       sat: function () {
         if (!this.exchangeRate) return 0
-        return Math.ceil(
-          ((this.amount - this.tipAmount) / this.exchangeRate) * 100000000
-        )
+        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
       },
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
         return Math.ceil((this.tipAmount / this.exchangeRate) * 100000000)
       },
+      tipAmountFormatted: function () {
+        return LNbits.utils.formatSat(this.tipAmountSat)
+      },
       fsat: function () {
         return LNbits.utils.formatSat(this.sat)
+      },
+      isRoundValid() {
+        return this.tipRounding > this.amount
+      },
+      roundToSugestion() {
+        switch (true) {
+          case this.amount > 50:
+            toNext = 10
+            break
+          case this.amount > 6:
+            toNext = 5
+            break
+          case this.amount > 2.5:
+            toNext = 1
+            break
+          default:
+            toNext = 0.5
+            break
+        }
+
+        return Math.ceil(this.amount / toNext) * toNext
       }
     },
     methods: {
+      setRounding() {
+        this.rounding = true
+        this.tipRounding = this.roundToSugestion
+        this.$nextTick(() => this.$refs.inputRounding.focus())
+      },
+      calculatePercent() {
+        let change = ((this.tipRounding - this.amount) / this.amount) * 100
+        if (change < 0) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Amount with tip must be greater than initial amount.'
+          })
+          this.tipRounding = this.roundToSugestion
+          return
+        }
+        this.processTipSelection(change)
+      },
       closeInvoiceDialog: function () {
         this.stack = []
         this.tipAmount = 0.0
@@ -348,30 +473,18 @@
       processTipSelection: function (selectedTipOption) {
         this.tipDialog.show = false
 
-        if (selectedTipOption) {
-          const tipAmount = parseFloat(
-            parseFloat((selectedTipOption / 100) * this.amount)
-          )
-          const subtotal = parseFloat(this.amount)
-          const grandTotal = parseFloat((tipAmount + subtotal).toFixed(2))
-          const totalString = grandTotal.toFixed(2).toString()
-
-          this.stack = []
-          for (var i = 0; i < totalString.length; i++) {
-            const char = totalString[i]
-
-            if (char !== '.') {
-              this.stack.push(char)
-            }
-          }
-
-          this.tipAmount = tipAmount
+        if (!selectedTipOption) {
+          this.tipAmount = 0.0
+          return this.showInvoice()
         }
 
+        this.tipAmount = (selectedTipOption / 100) * this.amount
         this.showInvoice()
       },
       submitForm: function () {
         if (this.tip_options && this.tip_options.length) {
+          this.rounding = false
+          this.tipRounding = null
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -520,6 +633,24 @@
           self.exchangeRate =
             response.data.data['BTC' + self.currency][self.currency]
         })
+      },
+      getLastPayments() {
+        return axios
+          .get(`/tpos/api/v1/tposs/${this.tposId}/invoices`)
+          .then(res => {
+            if (res.data && res.data.length) {
+              let last = [...res.data]
+              this.lastPaymentsDialog.data = last.map(obj => {
+                obj.dateFrom = moment(obj.time * 1000).fromNow()
+                return obj
+              })
+            }
+          })
+          .catch(e => console.error(e))
+      },
+      showLastPayments() {
+        this.getLastPayments()
+        this.lastPaymentsDialog.show = true
       }
     },
     created: function () {
@@ -529,10 +660,26 @@
         '{{ tpos.tip_options | tojson }}' == 'null'
           ? null
           : JSON.parse('{{ tpos.tip_options }}')
+
+      if ('{{ tpos.tip_wallet }}') {
+        this.tip_options.push('Round')
+      }
       setInterval(function () {
         getRates()
       }, 120000)
     }
   })
 </script>
+<style scoped>
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+</style>
 {% endblock %}

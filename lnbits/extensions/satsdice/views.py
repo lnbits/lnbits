@@ -1,6 +1,8 @@
 import random
 from http import HTTPStatus
+from io import BytesIO
 
+import pyqrcode
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
@@ -20,13 +22,15 @@ from .crud import (
     get_satsdice_withdraw,
     update_satsdice_payment,
 )
-from .models import CreateSatsDiceWithdraw, satsdiceLink
+from .models import CreateSatsDiceWithdraw
 
 templates = Jinja2Templates(directory="templates")
 
 
 @satsdice_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request, user: User = Depends(check_user_exists)  # type: ignore
+):
     return satsdice_renderer().TemplateResponse(
         "satsdice/index.html", {"request": request, "user": user.dict()}
     )
@@ -67,7 +71,7 @@ async def displaywin(
         )
     withdrawLink = await get_satsdice_withdraw(payment_hash)
     payment = await get_satsdice_payment(payment_hash)
-    if payment.lost:
+    if not payment or payment.lost:
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
             {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
@@ -96,13 +100,18 @@ async def displaywin(
         )
     await update_satsdice_payment(payment_hash, paid=1)
     paylink = await get_satsdice_payment(payment_hash)
+    if not paylink:
+        return satsdice_renderer().TemplateResponse(
+            "satsdice/error.html",
+            {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
+        )
 
-    data: CreateSatsDiceWithdraw = {
-        "satsdice_pay": satsdicelink.id,
-        "value": paylink.value * satsdicelink.multiplier,
-        "payment_hash": payment_hash,
-        "used": 0,
-    }
+    data = CreateSatsDiceWithdraw(
+        satsdice_pay=satsdicelink.id,
+        value=paylink.value * satsdicelink.multiplier,
+        payment_hash=payment_hash,
+        used=0,
+    )
 
     withdrawLink = await create_satsdice_withdraw(data)
     return satsdice_renderer().TemplateResponse(
@@ -121,9 +130,12 @@ async def displaywin(
 
 @satsdice_ext.get("/img/{link_id}", response_class=HTMLResponse)
 async def img(link_id):
-    link = await get_satsdice_pay(link_id) or abort(
-        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
-    )
+    link = await get_satsdice_pay(link_id)
+    if not link:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
+        )
+
     qr = pyqrcode.create(link.lnurl)
     stream = BytesIO()
     qr.svg(stream, scale=3)

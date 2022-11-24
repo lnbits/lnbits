@@ -8,6 +8,7 @@ from typing import Optional
 from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
@@ -91,6 +92,9 @@ async def lnurl_v1_params(
     device_id: str = Query(None),
     p: str = Query(None),
     atm: str = Query(None),
+    gpio: str = Query(None),
+    profit: str = Query(None),
+    amount: str = Query(None),
 ):
     device = await get_lnurldevice(device_id)
     if not device:
@@ -101,20 +105,28 @@ async def lnurl_v1_params(
     paymentcheck = await get_lnurlpayload(p)
     if device.device == "atm":
         if paymentcheck:
-            return {"status": "ERROR", "reason": f"Payment already claimed"}
+            if paymentcheck.payhash != "payment_hash":
+                return {"status": "ERROR", "reason": f"Payment already claimed"}
     if device.device == "switch":
-
         price_msat = (
-            await fiat_amount_as_satoshis(float(device.profit), device.currency)
+            await fiat_amount_as_satoshis(float(profit), device.currency)
             if device.currency != "sat"
             else amount_in_cent
         ) * 1000
 
+        # Check they're not trying to trick the switch!
+        check = False
+        for switch in device.switches(request):
+            if switch[0] == gpio and switch[1] == profit and switch[2] == amount:
+                check = True
+        if not check:
+            return {"status": "ERROR", "reason": f"Switch params wrong"}
+
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
-            payload="bla",
+            payload=amount,
             sats=price_msat,
-            pin=1,
+            pin=gpio,
             payhash="bla",
         )
         if not lnurldevicepayment:
@@ -126,7 +138,7 @@ async def lnurl_v1_params(
             ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
-            "metadata": await device.lnurlpay_metadata(),
+            "metadata": device.lnurlpay_metadata,
         }
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
@@ -165,7 +177,7 @@ async def lnurl_v1_params(
             "callback": request.url_for(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             ),
-            "k1": lnurldevicepayment.id,
+            "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
             "defaultDescription": device.title,
@@ -188,7 +200,7 @@ async def lnurl_v1_params(
         ),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
-        "metadata": await device.lnurlpay_metadata(),
+        "metadata": device.lnurlpay_metadata,
     }
 
 
@@ -215,14 +227,13 @@ async def lnurl_callback(
                 status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
             )
         else:
-            if lnurldevicepayment.id != k1:
+            if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": f"Payment already claimed"}
             lnurldevicepayment = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
-
             await pay_invoice(
                 wallet_id=device.wallet,
                 payment_request=pr,
@@ -233,11 +244,17 @@ async def lnurl_callback(
     if device.device == "switch":
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
-            amount=lnurldevicepayment.sats / 1000,
-            memo=device.title + "-" + lnurldevicepayment.id,
-            unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
-            extra={"tag": "Switch", "id": paymentid, "time": device.amount},
+            amount=int(lnurldevicepayment.sats / 1000),
+            memo=device.id + " PIN " + str(lnurldevicepayment.pin),
+            unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
+            extra={
+                "tag": "Switch",
+                "pin": str(lnurldevicepayment.pin),
+                "amount": str(lnurldevicepayment.payload),
+                "id": paymentid,
+            },
         )
+
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
@@ -248,9 +265,9 @@ async def lnurl_callback(
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
-        amount=lnurldevicepayment.sats / 1000,
+        amount=int(lnurldevicepayment.sats / 1000),
         memo=device.title,
-        unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
+        unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
         extra={"tag": "PoS"},
     )
     lnurldevicepayment = await update_lnurldevicepayment(

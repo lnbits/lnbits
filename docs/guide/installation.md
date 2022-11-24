@@ -48,7 +48,9 @@ poetry run lnbits
 # Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
-## Option 2: Nix
+## Option 2: Nix 
+
+> note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -155,6 +157,7 @@ kill_timeout = 30
   HOST="127.0.0.1"
   PORT=5000
   LNBITS_FORCE_HTTPS=true
+  FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
   
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
@@ -217,8 +220,8 @@ You need to edit the `.env` file.
 
 ```sh
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
-LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
+# postgres://<user>:<myPassword>@<host>:<port>/<lnbits> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
 # save and exit
 ```
 
