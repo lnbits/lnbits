@@ -8,7 +8,6 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.settings import LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE
 
 from . import cashu_ext, cashu_renderer
 from .crud import get_cashu
@@ -21,11 +20,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     return cashu_renderer().TemplateResponse(
         "cashu/index.html", {"request": request, "user": user.dict()}
     )
-
-
-# @cashu_ext.get("/wallet")
-# async def wallet(request: Request):
-#     return cashu_renderer().TemplateResponse("cashu/wallet.html", {"request": request})
 
 
 @cashu_ext.get("/wallet")
