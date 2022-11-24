@@ -261,8 +261,8 @@ async def melt_coins(
     # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
     # TOKENS
     assert all([p.id == cashu.keyset_id for p in proofs]), HTTPException(
-        status_code=HTTPStatus.BAD_REQUEST,
-        detail="Proofs include tokens from another mint.",
+        status_code=HTTPStatus.METHOD_NOT_ALLOWED,
+        detail="Tokens are from another mint.",
     )
 
     assert all([ledger._verify_proof(p) for p in proofs]), HTTPException(
@@ -355,8 +355,8 @@ async def split(
     # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
     # TOKENS
     assert all([p.id == cashu.keyset_id for p in proofs]), HTTPException(
-        status_code=HTTPStatus.BAD_REQUEST,
-        detail="Proofs include tokens from another mint.",
+        status_code=HTTPStatus.METHOD_NOT_ALLOWED,
+        detail="Tokens are from another mint.",
     )
 
     amount = payload.amount
