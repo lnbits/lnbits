@@ -328,7 +328,8 @@
     },
     methods: {
       checkBalances: async function () {
-        if (this.charge.hasStaleBalance) return
+        if (!this.charge.lnbitswallet && this.charge.hasOnchainStaleBalance)
+          return
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -353,7 +354,7 @@
             address: this.charge.onchainaddress
           })
           const newBalance = utxos.reduce((t, u) => t + u.value, 0)
-          this.charge.hasStaleBalance = this.charge.balance === newBalance
+          this.charge.hasOnchainStaleBalance = this.charge.balance === newBalance
 
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
@@ -430,6 +431,7 @@
     created: async function () {
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
+
       await this.checkBalances()
 
       if (!this.charge.paid) {
