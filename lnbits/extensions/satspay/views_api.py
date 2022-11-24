@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import httpx
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -119,16 +118,6 @@ async def api_charge_balance(charge_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
 
-    if charge.paid and charge.webhook:
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.post(
-                    charge.webhook,
-                    json=compact_charge(charge),
-                    timeout=40,
-                )
-            except AssertionError:
-                charge.webhook = None
     return {
         **compact_charge(charge),
         **{"time_elapsed": charge.time_elapsed},
