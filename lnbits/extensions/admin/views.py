@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @admin_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):
+async def index(request: Request, user: User = Depends(check_admin)):  # type: ignore
     WALLET = get_wallet_class()
     error, balance = await WALLET.status()
 

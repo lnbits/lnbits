@@ -19,7 +19,11 @@ from lnbits.settings import set_cli_settings, settings
 )
 @click.option("--port", default=settings.port, help="Port to listen on")
 @click.option("--host", default=settings.host, help="Host to run LNBits on")
-@click.option("--forwarded-allow-ips", default=settings.forwarded_allow_ips, help="Allowed proxy servers")
+@click.option(
+    "--forwarded-allow-ips",
+    default=settings.forwarded_allow_ips,
+    help="Allowed proxy servers",
+)
 @click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
 @click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
 @click.pass_context

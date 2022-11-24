@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
@@ -9,7 +9,7 @@ from . import db
 from .models import AdminSettings, UpdateSettings
 
 
-async def update_wallet_balance(wallet_id: str, amount: int) -> str:
+async def update_wallet_balance(wallet_id: str, amount: int) -> None:
     temp_id = f"temp_{urlsafe_short_hash()}"
     internal_id = f"internal_{urlsafe_short_hash()}"
 
@@ -36,7 +36,7 @@ async def get_settings() -> AdminSettings:
     return settings
 
 
-async def update_settings(data: UpdateSettings) -> Settings:
+async def update_settings(data: UpdateSettings) -> Optional[Settings]:
     fields = []
     for key, value in data.dict(exclude_none=True).items():
         if not key in read_only_variables:

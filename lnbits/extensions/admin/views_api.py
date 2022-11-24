@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
-from fastapi import Body, Depends, Query
+from fastapi import Body
+from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
@@ -51,7 +52,8 @@ async def api_update_settings(
     data: UpdateSettings = Body(...),
 ):
     settings = await update_settings(data)
-    return {"status": "Success", "settings": settings.dict()}
+    if settings:
+        return {"status": "Success", "settings": settings.dict()}
 
 
 @admin_ext.delete(
