@@ -98,7 +98,7 @@ async def delete_charge(charge_id: str) -> None:
     await db.execute("DELETE FROM satspay.charges WHERE id = ?", (charge_id,))
 
 
-async def check_address_balance(charge_id: str) -> List[Charges]:
+async def check_address_balance(charge_id: str) -> Optional[Charges]:
     charge = await get_charge(charge_id)
     if not charge.paid:
         if charge.onchainaddress:
@@ -120,8 +120,7 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
 
             if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
-    row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
-    return Charges.from_row(row) if row else None
+    return await get_charge(charge_id)
 
 
 async def get_charge_config(charge_id: str):
