@@ -16,7 +16,10 @@ templates = Jinja2Templates(directory="templates")
 
 
 @cashu_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request,
+    user: User = Depends(check_user_exists),  # type: ignore
+):
     return cashu_renderer().TemplateResponse(
         "cashu/index.html", {"request": request, "user": user.dict()}
     )
@@ -36,6 +39,10 @@ async def wallet(request: Request, mint_id: str):
 @cashu_ext.get("/mint/{mintID}")
 async def cashu(request: Request, mintID):
     cashu = await get_cashu(mintID)
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
     return cashu_renderer().TemplateResponse(
         "cashu/mint.html",
         {"request": request, "mint_name": cashu.name, "mint_id": mintID},
