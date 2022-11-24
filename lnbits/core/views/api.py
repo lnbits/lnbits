@@ -56,8 +56,8 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
-    websocketManager, 
-    websocketUpdater
+    websocketManager,
+    websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
 

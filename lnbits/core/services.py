@@ -383,6 +383,7 @@ async def check_transaction_status(
 def fee_reserve(amount_msat: int) -> int:
     return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
 
+
 class websocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -400,7 +401,9 @@ class websocketConnectionManager:
             if connection.id == item_id:
                 await connection.send_text(message)
 
+
 websocketManager = websocketConnectionManager()
+
 
 async def websocketUpdater(item_id, data):
     return await websocketManager.send_data(f"{data}", item_id)
