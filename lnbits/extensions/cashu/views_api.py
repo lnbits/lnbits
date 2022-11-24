@@ -56,20 +56,25 @@ LIGHTNING = True
 
 @cashu_ext.get("/api/v1/mints", status_code=HTTPStatus.OK)
 async def api_cashus(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     """
     Get all mints of this wallet.
     """
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        if user:
+            wallet_ids = user.wallet_ids
 
     return [cashu.dict() for cashu in await get_cashus(wallet_ids)]
 
 
 @cashu_ext.post("/api/v1/mints", status_code=HTTPStatus.CREATED)
-async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_cashu_create(
+    data: Cashu,
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+):
     """
     Create a new mint for this wallet.
     """
@@ -86,7 +91,7 @@ async def api_cashu_create(data: Cashu, wallet: WalletTypeInfo = Depends(get_key
 
 @cashu_ext.delete("/api/v1/mints/{cashu_id}")
 async def api_cashu_delete(
-    cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+    cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
 ):
     """
     Delete an existing cashu mint.
