@@ -170,13 +170,17 @@
                 name="check"
                 style="color: green; font-size: 21.4em"
               ></q-icon>
-              <q-btn
-                outline
-                v-if="charge.webhook"
-                type="a"
-                :href="charge.completelink"
-                :label="charge.completelinktext"
-              ></q-btn>
+              <div class="row text-center q-mt-lg">
+                <div class="col text-center">
+                  <q-btn
+                    outline
+                    v-if="charge.webhook"
+                    type="a"
+                    :href="charge.completelink"
+                    :label="charge.completelinktext"
+                  ></q-btn>
+                </div>
+              </div>
             </div>
             <div v-else>
               <div class="row text-center q-mb-sm">
@@ -241,13 +245,17 @@
                 name="check"
                 style="color: green; font-size: 21.4em"
               ></q-icon>
-              <q-btn
-                outline
-                v-if="charge.webhook"
-                type="a"
-                :href="charge.completelink"
-                :label="charge.completelinktext"
-              ></q-btn>
+              <div class="row text-center q-mt-lg">
+                <div class="col text-center">
+                  <q-btn
+                    outline
+                    v-if="charge.webhook"
+                    type="a"
+                    :href="charge.completelink"
+                    :label="charge.completelinktext"
+                  ></q-btn>
+                </div>
+              </div>
             </div>
             <div v-else>
               <div class="row items-center q-mb-sm">
@@ -354,7 +362,8 @@
             address: this.charge.onchainaddress
           })
           const newBalance = utxos.reduce((t, u) => t + u.value, 0)
-          this.charge.hasOnchainStaleBalance = this.charge.balance === newBalance
+          this.charge.hasOnchainStaleBalance =
+            this.charge.balance === newBalance
 
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
