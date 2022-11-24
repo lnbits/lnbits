@@ -45,6 +45,7 @@ class UpdateSettings(BaseModel):
     lnd_grpc_port: int = Query(None, ge=0)
     lnd_grpc_admin_macaroon: str = Query(None)
     lnd_grpc_invoice_macaroon: str = Query(None)
+    lnd_grpc_macaroon: str = Query(None)
     lnd_grpc_macaroon_encrypted: str = Query(None)
     lnpay_api_endpoint: str = Query(None)
     lnpay_api_key: str = Query(None)

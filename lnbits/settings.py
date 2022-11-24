@@ -102,6 +102,7 @@ class Settings(BaseSettings):
     lnd_grpc_port: Optional[int] = Field(default=None)
     lnd_grpc_admin_macaroon: Optional[str] = Field(default=None)
     lnd_grpc_invoice_macaroon: Optional[str] = Field(default=None)
+    lnd_grpc_macaroon: Optional[str] = Field(default=None)
     lnd_grpc_macaroon_encrypted: Optional[str] = Field(default=None)
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)

@@ -47,6 +47,7 @@ async def m001_create_admin_settings_table(db):
             lnd_grpc_port INTEGER,
             lnd_grpc_admin_macaroon TEXT,
             lnd_grpc_invoice_macaroon TEXT,
+            lnd_grpc_macaroon TEXT,
             lnd_grpc_macaroon_encrypted TEXT,
             lnpay_api_endpoint TEXT,
             lnpay_api_key TEXT,
