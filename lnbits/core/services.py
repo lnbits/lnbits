@@ -6,7 +6,7 @@ from typing import Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, WebSocket, WebSocketDisconnect
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -382,3 +382,25 @@ async def check_transaction_status(
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
+
+class websocketConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, item_id: str):
+        await websocket.accept()
+        websocket.id = item_id
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_data(self, message: str, item_id: str):
+        for connection in self.active_connections:
+            if connection.id == item_id:
+                await connection.send_text(message)
+
+websocketManager = websocketConnectionManager()
+
+async def websocketUpdater(item_id, data):
+    return await websocketManager.send_data(f"{data}", item_id)

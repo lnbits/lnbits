@@ -56,6 +56,8 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    websocketManager, 
+    websocketUpdater
 )
 from ..tasks import api_invoice_listeners
 
@@ -702,27 +704,6 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 ##################UNIVERSAL WEBSOCKET MANAGER########################
 
 
-class websocketConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket, item_id: str):
-        await websocket.accept()
-        websocket.id = item_id
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def send_data(self, message: str, item_id: str):
-        for connection in self.active_connections:
-            if connection.id == item_id:
-                await connection.send_text(message)
-
-
-websocketManager = websocketConnectionManager()
-
-
 @core_app.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket, item_id)
@@ -749,7 +730,3 @@ async def websocket_update(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
-
-
-async def websocketUpdater(item_id, data):
-    return await websocketManager.send_data(f"{data}", item_id)
