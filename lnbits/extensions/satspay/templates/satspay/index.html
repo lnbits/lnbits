@@ -578,7 +578,7 @@
         const data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
-        data.lnbitswallet = data.lnbits ? this.lnbitswallet : null
+        data.lnbitswallet = data.lnbits ? data.lnbitswallet : null
         data.onchainwallet = data.onchain ? this.onchainwallet?.id : null
         this.createCharge(wallet, data)
       },
