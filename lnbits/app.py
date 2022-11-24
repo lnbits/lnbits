@@ -58,6 +58,10 @@ def create_app() -> FastAPI:
         name="core_static",
     )
 
+    # needed for lnurlw?
+    # g().config = settings
+    g().base_url = f"http://{settings.host}:{settings.port}"
+
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
