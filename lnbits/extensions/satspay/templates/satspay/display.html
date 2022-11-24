@@ -317,16 +317,6 @@
       }
     },
     methods: {
-      startPaymentNotifier() {
-        this.cancelListener()
-        if (!this.lnbitswallet) return
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.checkInvoiceBalance()
-          }
-        )
-      },
       checkBalances: async function () {
         if (this.charge.hasStaleBalance) return
         try {
@@ -431,10 +421,6 @@
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
       await this.checkBalances()
-
-      // empty for onchain
-      this.wallet.inkey = '{{ wallet_inkey }}'
-      this.startPaymentNotifier()
 
       if (!this.charge.paid) {
         this.loopRefresh()
