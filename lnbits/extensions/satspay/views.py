@@ -41,7 +41,6 @@ async def display(request: Request, charge_id: str):
         {
             "request": request,
             "charge_data": charge.dict(),
-            "wallet_inkey": inkey,
             "mempool_endpoint": mempool_endpoint,
         },
     )
