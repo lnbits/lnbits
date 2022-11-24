@@ -28,17 +28,11 @@ from .crud import (
     get_gerty, 
     get_gertys, 
     update_gerty,
-    get_fees_recommended, 
-    get_hashrate_1w, 
-    get_hashrate_1m, 
-    get_statistics, 
-    get_difficulty_adjustment,
-    get_tip_height,
-    get_mempool
+    get_mempool_info
     )
 from .helpers import *
-from .models import Gerty
 
+from .models import Gerty, MempoolEndpoint
 
 @gerty_ext.get("/api/v1/gerty", status_code=HTTPStatus.OK)
 async def api_gertys(
@@ -164,37 +158,42 @@ async def api_gerty_json(gerty_id: str, p: int = None):  # page number
 
 @gerty_ext.get("/api/v1/gerty/fees-recommended/{gerty_id}")
 async def api_gerty_get_fees_recommended(gerty_id):
-    logger.debug("gerty_id")
+    
     gerty = await get_gerty(gerty_id)
-    logger.debug(gerty)
-    return get_fees_recommended(gerty)
+    return await get_mempool_info("fees_recommended", gerty)
 
 @gerty_ext.get("/api/v1/gerty/hashrate-1w/{gerty_id}")
 async def api_gerty_get_hashrate_1w(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_hashrate_1w(gerty)
+    return await get_mempool_info("hashrate_1w", gerty)
 
 @gerty_ext.get("/api/v1/gerty/hashrate-1m/{gerty_id}")
 async def api_gerty_get_hashrate_1m(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_hashrate_1m(gerty)
+    return await get_mempool_info("hashrate_1m", gerty)
 
 @gerty_ext.get("/api/v1/gerty/statistics/{gerty_id}")
 async def api_gerty_get_statistics(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_statistics(gerty)
+    return await get_mempool_info("statistics", gerty)
 
 @gerty_ext.get("/api/v1/gerty/difficulty-adjustment/{gerty_id}")
 async def api_gerty_get_difficulty_adjustment(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_difficulty_adjustment(gerty)
+    return await get_mempool_info("difficulty_adjustment", gerty)
 
 @gerty_ext.get("/api/v1/gerty/tip-height/{gerty_id}")
 async def api_gerty_get_tip_height(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_tip_height(gerty)
+    return await get_mempool_info("tip_height", gerty)
 
 @gerty_ext.get("/api/v1/gerty/mempool/{gerty_id}")
 async def api_gerty_get_mempool(gerty_id):
     gerty = await get_gerty(gerty_id)
-    return get_mempool(gerty)
+    return await get_mempool_info("mempool", gerty)
+
+@gerty_ext.get("/api/v1/gerty/wibble/{gerty_id}")
+async def api_gerty_get_wibble(gerty_id):
+    endPoint = "fees_recommended"
+    gerty = await get_gerty(gerty_id)
+    return await get_mempool_info("fees_recommended", gerty)

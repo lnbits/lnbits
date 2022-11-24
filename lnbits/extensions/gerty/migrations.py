@@ -6,9 +6,9 @@ async def m001_initial(db):
         """
         CREATE TABLE gerty.gertys (
             id TEXT PRIMARY KEY,
+            wallet TEXT NOT NULL,
             refresh_time INT,
             name TEXT NOT NULL,
-            wallet TEXT NOT NULL,
             lnbits_wallets TEXT,
             mempool_endpoint TEXT,
             exchange TEXT,
@@ -39,55 +39,8 @@ async def m004_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE gerty.fees_recommended (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
-        CREATE TABLE gerty.hashrate_1w (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
-        CREATE TABLE gerty.hashrate_1m (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
-        CREATE TABLE gerty.statistics (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
-        CREATE TABLE gerty.difficulty_adjustment (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
-        CREATE TABLE gerty.tip_height (
-            data TEXT NOT NULL,
-            time TIMESTAMP
-        );
-    """
-    )
-    await db.execute(
-        """
         CREATE TABLE gerty.mempool (
+            endpoint TEXT NOT NULL,
             data TEXT NOT NULL,
             time TIMESTAMP
         );

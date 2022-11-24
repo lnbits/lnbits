@@ -27,30 +27,16 @@ class Gerty(BaseModel):
 
 #########MEMPOOL MODELS###########
 
-class Fees_recommended(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
-
-class Hashrate_1w(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
-
-class Hashrate_1m(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
-
-class Statistics(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
-
-class Difficulty_adjustment(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
-
-class Tip_height(BaseModel):
-    data: str = Query(None)
-    time: int = Query(None)
+class MempoolEndpoint(BaseModel):
+    fees_recommended: str = "/api/v1/fees/recommended"
+    hashrate_1w: str = "/api/v1/mining/hashrate/1w"
+    hashrate_1m: str = "/api/v1/mining/hashrate/1m"
+    statistics: str = "/api/v1/lightning/statistics/latest"
+    difficulty_adjustment: str = "/api/v1/difficulty-adjustment"
+    tip_height: str = "/api/blocks/tip/height"
+    mempool: str = "/api/mempool"
 
 class Mempool(BaseModel):
+    endpoint: str = Query(None)
     data: str = Query(None)
     time: int = Query(None)

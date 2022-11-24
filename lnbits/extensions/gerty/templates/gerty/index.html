@@ -137,14 +137,6 @@
                     ></q-select>
                     <q-select
                             filled
-                            dense
-                            emit-value
-                            v-model="formDialog.data.wallet"
-                            :options="g.user.walletOptions"
-                            label="Wallet *"
-                    ></q-select>
-                    <q-select
-                            filled
                             multiple
                             dense
                             emit-value
@@ -350,7 +342,7 @@
                         <q-btn
                                 unelevated
                                 color="primary"
-                                :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+                                :disable="formDialog.data.name == null"
                                 type="submit"
                                 class="q-mr-md"
                                 v-if="!formDialog.data.id"
@@ -360,7 +352,7 @@
                                 v-else
                                 unelevated
                                 color="primary"
-                                :disable="formDialog.data.wallet == null || formDialog.data.name == null"
+                                :disable="formDialog.data.name == null"
                                 type="submit"
                         >Update Gerty
                         </q-btn>
@@ -661,7 +653,6 @@
                     this.formDialog.data.id = gerty.id
                     this.formDialog.data.name = gerty.name
                     this.formDialog.data.type = gerty.type
-                    this.formDialog.data.wallet = gerty.wallet
                     this.formDialog.data.utc_offset = gerty.utc_offset
                     this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
                     this.formDialog.data.exchange = gerty.exchange,
@@ -677,7 +668,6 @@
                             this.formDialog.data
                         )
                     } else {
-                        {#console.log('sendFormDataGerty', this.formDialog.data)#}
                         this.createGerty(
                             this.g.user.wallets[0].adminkey,
                             this.formDialog.data
@@ -687,7 +677,6 @@
                 createGerty: function () {
                     var data = {
                         name: this.formDialog.data.name,
-                        wallet: this.formDialog.data.wallet,
                         utc_offset: this.formDialog.data.utc_offset,
                         type: this.formDialog.data.type,
                         lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
@@ -696,15 +685,13 @@
                         refresh_time: this.formDialog.data.refresh_time,
                         display_preferences: JSON.stringify(this.formDialog.data.display_preferences)
                     }
-                    console.log('createGerty', data)
                     var self = this
 
                     LNbits.api
                         .request(
                             'POST',
                             '/gerty/api/v1/gerty',
-                            _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
-                                .inkey,
+                            this.g.user.wallets[0].inkey,
                             data
                         )
                         .then(function (response) {

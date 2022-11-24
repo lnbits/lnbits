@@ -4,15 +4,7 @@ from datetime import datetime, timedelta
 import httpx
 from loguru import logger
 
-from .crud import (
-    get_fees_recommended, 
-    get_hashrate_1w, 
-    get_hashrate_1m, 
-    get_statistics, 
-    get_difficulty_adjustment,
-    get_tip_height,
-    get_mempool
-)
+from .crud import get_mempool_info
 
 from .number_prefixer import *
 
@@ -80,7 +72,7 @@ async def get_mining_dashboard(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             # current hashrate
-            r = await get_hashrate_1w(gerty)
+            r = await get_mempool_info("get_hashrate_1w", gerty)
             data = r.json()
             hashrateNow = data["currentHashrate"]
             hashrateOneWeekAgo = data["hashrates"][6]["avgHashrate"]
@@ -102,7 +94,7 @@ async def get_mining_dashboard(gerty):
             )
             areas.append(text)
 
-            r = await get_difficulty_adjustment(gerty)
+            r = await get_mempool_info("difficulty_adjustment", gerty)
 
             # timeAvg
             text = []
@@ -132,7 +124,7 @@ async def get_mining_dashboard(gerty):
             )
             areas.append(text)
 
-            r = await get_hashrate_1m(gerty)
+            r = await get_mempool_info("hashrate_1m", gerty)
             data = r.json()
             stat = {}
             stat["current"] = data["currentDifficulty"]
@@ -144,7 +136,7 @@ async def get_mining_dashboard(gerty):
 
 
 async def get_lightning_stats(gerty):
-    data = await get_statistics(gerty)
+    data = await get_mempool_info("statistics", gerty)
     areas = []
 
     text = []
@@ -271,14 +263,14 @@ async def api_get_mining_stat(stat_slug: str, gerty):
     stat = ""
     if stat_slug == "mining_current_hash_rate":
         async with httpx.AsyncClient() as client:
-            r = await get_hashrate_1m(gerty)
+            r = await get_mempool_info("hashrate_1m", gerty)
             data = r.json()
             stat = {}
             stat['current'] = data['currentHashrate']
             stat['1w'] = data['hashrates'][len(data['hashrates']) - 7]['avgHashrate']
     elif stat_slug == "mining_current_difficulty":
         async with httpx.AsyncClient() as client:
-            r = await get_hashrate_1m(gerty)
+            r = await get_mempool_info("hashrate_1m", gerty)
             data = r.json()
             stat = {}
             stat['current'] = data['currentDifficulty']
@@ -328,7 +320,7 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_block_height":
         logger.debug("iam block height")
         text = []
-        text.append(get_text_item_dict(text=format_number(await get_tip_height(gerty)), font_size=80, gerty_type=gerty.type))
+        text.append(get_text_item_dict(text=format_number(await get_mempool_info("tip_height", gerty)), font_size=80, gerty_type=gerty.type))
         areas.append(text)
     elif screen_slug == "onchain_difficulty_retarget_date":
        areas.append(await get_onchain_stat(screen_slug, gerty))
@@ -383,7 +375,7 @@ async def get_dashboard(gerty):
 
     # Mempool fees
     text = []
-    text.append(get_text_item_dict(text=format_number(await get_tip_height(gerty)), font_size=40,gerty_type=gerty.type))
+    text.append(get_text_item_dict(text=format_number(await get_mempool_info("tip_height", gerty)), font_size=40,gerty_type=gerty.type))
     text.append(get_text_item_dict(text="Current block height", font_size=15,gerty_type=gerty.type))
     areas.append(text)
 
@@ -467,7 +459,7 @@ async def get_onchain_stat(stat_slug: str, gerty):
 
     ):
         async with httpx.AsyncClient() as client:
-            r = await get_difficulty_adjustment(gerty)
+            r = await get_mempool_info("difficulty_adjustment", gerty)
             if stat_slug == "onchain_difficulty_epoch_progress":
                 stat = round(r.json()['progressPercent'])
                 text.append(get_text_item_dict(text="Progress through current difficulty epoch", font_size=15,gerty_type=gerty.type))
@@ -491,7 +483,7 @@ async def get_onchain_dashboard(gerty):
     areas = []
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
-            r = await get_difficulty_adjustment(gerty)
+            r = await get_mempool_info("difficulty_adjustment", gerty)
             text = []
             stat = round(r.json()["progressPercent"])
             text.append(get_text_item_dict(text="Progress through epoch", font_size=12,gerty_type=gerty.type))
@@ -523,7 +515,7 @@ async def get_onchain_dashboard(gerty):
 async def get_time_remaining_next_difficulty_adjustment(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
-            r = await get_difficulty_adjustment(gerty)
+            r = await get_mempool_info("difficulty_adjustment", gerty)
             stat = r.json()["remainingTime"]
             time = get_time_remaining(stat / 1000, 3)
     return time
@@ -534,7 +526,7 @@ async def get_mempool_stat(stat_slug: str, gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             if stat_slug == "mempool_tx_count":
-                r = get_mempool(gerty)
+                r = get_mempool_info("mempool", gerty)
                 if stat_slug == "mempool_tx_count":
                     stat = round(r.json()["count"])
                     text.append(get_text_item_dict(text="Transactions in the mempool", font_size=15,gerty_type=gerty.type))
@@ -543,7 +535,7 @@ async def get_mempool_stat(stat_slug: str, gerty):
                     )
             elif stat_slug == "mempool_recommended_fees":
                 y_offset = 60
-                fees = await get_fees_recommended()
+                fees = await get_mempool_info("fees_recommended", gerty)
                 pos_y = 80 + y_offset
                 text.append(get_text_item_dict("mempool.space", 40, 160, pos_y, gerty.type))
                 pos_y = 180 + y_offset
