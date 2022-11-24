@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
+    forwarded_allow_ips: str = Field(default="*")
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
 

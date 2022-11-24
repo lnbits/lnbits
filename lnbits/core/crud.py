@@ -229,6 +229,24 @@ async def get_wallet_payment(
     return Payment.from_row(row) if row else None
 
 
+async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
+    rows = await db.fetchall(
+        f"""
+        SELECT * FROM apipayments 
+        WHERE pending = 'false' 
+        AND extra LIKE ?
+        AND extra LIKE ?
+        ORDER BY time DESC LIMIT {limit}
+        """,
+        (
+            f"%{ext_name}%",
+            f"%{ext_id}%",
+        ),
+    )
+
+    return rows
+
+
 async def get_payments(
     *,
     wallet_id: Optional[str] = None,

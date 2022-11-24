@@ -94,7 +94,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/events.
     | ^lnbits/extensions/hivemind.
     | ^lnbits/extensions/invoices.
-    | ^lnbits/extensions/jukebox.
     | ^lnbits/extensions/livestream.
     | ^lnbits/extensions/lnaddress.
     | ^lnbits/extensions/lndhub.
@@ -102,10 +101,8 @@ exclude = """(?x)(
     | ^lnbits/extensions/lnurldevice.
     | ^lnbits/extensions/lnurlp.
     | ^lnbits/extensions/lnurlpayout.
-    | ^lnbits/extensions/ngrok.
     | ^lnbits/extensions/offlineshop.
     | ^lnbits/extensions/paywall.
-    | ^lnbits/extensions/satsdice.
     | ^lnbits/extensions/satspay.
     | ^lnbits/extensions/scrub.
     | ^lnbits/extensions/splitpayments.

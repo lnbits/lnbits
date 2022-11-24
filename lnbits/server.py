@@ -19,14 +19,21 @@ from lnbits.settings import set_cli_settings, settings
 )
 @click.option("--port", default=settings.port, help="Port to listen on")
 @click.option("--host", default=settings.host, help="Host to run LNBits on")
-@click.option("--reload", is_flag=True, help="Reload LNBits on changes in code")
+@click.option("--forwarded-allow-ips", default=settings.forwarded_allow_ips, help="Allowed proxy servers")
 @click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
 @click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
 @click.pass_context
-def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload: bool):
+def main(
+    ctx,
+    port: int,
+    host: str,
+    forwarded_allow_ips: str,
+    ssl_keyfile: str,
+    ssl_certfile: str,
+):
     """Launched with `poetry run lnbits` at root level"""
 
-    set_cli_settings(host=host, port=port)
+    set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server
     d = dict()
@@ -48,8 +55,7 @@ def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str, reload:
             loop="uvloop",
             port=port,
             host=host,
-            reload=reload,
-            forwarded_allow_ips="*",
+            forwarded_allow_ips=forwarded_allow_ips,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             **d

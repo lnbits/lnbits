@@ -1,6 +1,7 @@
 import argparse
 import os
 import sqlite3
+import sys
 from typing import List
 
 import psycopg2
