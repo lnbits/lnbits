@@ -103,8 +103,10 @@ async def websocket_endpoint(websocket: WebSocket, lnurldevice_id: str):
         manager.disconnect(websocket)
 
 
-async def updater(lnurldevice_id):
+async def updater(lnurldevice_id, lnurldevice_pin, lnurldevice_amount):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
     if not lnurldevice:
         return
-    await manager.send_personal_message(f"{lnurldevice.amount}", lnurldevice_id)
+    return await manager.send_personal_message(
+        f"{lnurldevice_pin}-{lnurldevice_amount}", lnurldevice_id
+    )

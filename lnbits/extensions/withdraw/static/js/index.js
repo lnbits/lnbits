@@ -290,8 +290,12 @@ new Vue({
         })
       }
     },
-    exportCSV: function () {
-      LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
+    exportCSV() {
+      LNbits.utils.exportCSV(
+        this.withdrawLinksTable.columns,
+        this.withdrawLinks,
+        'withdraw-links'
+      )
     }
   },
   created: function () {

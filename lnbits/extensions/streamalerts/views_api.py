@@ -245,7 +245,7 @@ async def api_delete_donation(donation_id, g: WalletTypeInfo = Depends(get_key_t
             detail="Not authorized to delete this donation!",
         )
     await delete_donation(donation_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @streamalerts_ext.delete("/api/v1/services/{service_id}")
@@ -262,4 +262,4 @@ async def api_delete_service(service_id, g: WalletTypeInfo = Depends(get_key_typ
             detail="Not authorized to delete this service!",
         )
     await delete_service(service_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
