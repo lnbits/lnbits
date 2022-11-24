@@ -8,7 +8,6 @@ from pydantic import BaseModel
 class Gerty(BaseModel):
     id: str = Query(None)
     name: str
-    wallet: str
     refresh_time: int = Query(None)
     utc_offset: int = Query(None)
     type: str
@@ -24,3 +23,34 @@ class Gerty(BaseModel):
     @classmethod
     def from_row(cls, row: Row) -> "Gerty":
         return cls(**dict(row))
+
+
+#########MEMPOOL MODELS###########
+
+class Fees_recommended(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Hashrate_1w(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Hashrate_1m(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Statistics(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Difficulty_adjustment(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Tip_height(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
+
+class Mempool(BaseModel):
+    data: str = Query(None)
+    time: int = Query(None)
