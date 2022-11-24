@@ -715,7 +715,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
 
 
 @core_app.post("/api/v1/ws/{item_id}")
-async def websocket_update(item_id: str, data: str):
+async def websocket_update_post(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
@@ -724,7 +724,7 @@ async def websocket_update(item_id: str, data: str):
 
 
 @core_app.get("/api/v1/ws/{item_id}/{data}")
-async def websocket_update(item_id: str, data: str):
+async def websocket_update_get(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
