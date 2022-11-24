@@ -252,19 +252,6 @@
           label="Wallet *"
         >
         </q-select>
-        <!-- NOSTR -->
-        <div class="row">
-          <div class="col-5">
-            <q-btn unelevated @click="generateKeys" color="primary"
-              >Generate keys</q-btn
-            >
-          </div>
-          <div class="col-5">
-            <q-btn unelevated @click="restoreKeys" color="primary"
-              >Restore keys</q-btn
-            >
-          </div>
-        </div>
         <q-input
           v-if="keys"
           filled
@@ -279,6 +266,19 @@
           v-model.trim="stallDialog.data.privatekey"
           label="Private Key"
         ></q-input>
+        <!-- NOSTR -->
+        <div class="row">
+          <div class="col-5">
+            <q-btn unelevated @click="generateKeys" color="primary"
+              >Generate keys</q-btn
+            >
+          </div>
+          <div class="col-5">
+            <q-btn unelevated @click="restoreKeys" color="primary"
+              >Restore keys</q-btn
+            >
+          </div>
+        </div>
         <q-select
           :options="zoneOptions"
           filled
@@ -325,7 +325,9 @@
             unelevated
             color="primary"
             :disable="stallDialog.data.wallet == null
-              || stallDialog.data.shippingzones == null"
+              || stallDialog.data.shippingzones == null
+              || stallDialog.data.publickey == null
+              || stallDialog.data.privatekey == null"
             type="submit"
             >Create Stall</q-btn
           >
@@ -832,6 +834,44 @@
           </template>
           {% endraw %}
         </q-table>
+      </q-card-section>
+    </q-card>
+    <!-- KEYS -->
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Keys</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportKeysCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section>
+        <div v-if="keys" class="row">
+          <div
+            class="col-6"
+            v-for="type in ['pubkey', 'privkey']"
+            v-bind:key="type"
+          >
+            <div class="text-center q-mb-lg">
+              {% raw %}
+              <q-responsive :ratio="1" class="q-mx-xl" @click="copyText(keys[type])">
+                <qrcode
+                  :value="keys[type]"
+                  :options="{width: 250}"
+                  class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>{{ keys[type] }}</q-tooltip>
+              </q-responsive>
+              <p>{{ type == 'pubkey' ? 'Public Key' : 'Private Key' }}<br /><small>Click to copy</small></p>
+              {% endraw %}
+            </div>
+          </div>
+        </div>
       </q-card-section>
     </q-card>
   </div>
@@ -1369,6 +1409,23 @@
             message: 'No keys found.'
           })
         }
+      },
+      exportKeysCSV: function () {
+        let colls = [
+        {
+          name: 'privatekey',
+          align: 'left',
+          label: 'Private Key',
+          field: 'privkey'
+        },
+        {
+          name: 'publickey',
+          align: 'left',
+          label: 'Public Key',
+          field: 'pubkey'
+        },
+        ]
+        LNbits.utils.exportCSV(colls, [this.keys])
       },
       capitalizeFirstLetter: function (string) {
         return string.charAt(0).toUpperCase() + string.slice(1)
