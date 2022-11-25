@@ -66,3 +66,13 @@ class Charges(BaseModel):
             return True
         else:
             return False
+
+class SatsPayThemes(BaseModel):
+    css_id: str = Query(None)
+    title: str = Query(None)
+    custom_css: str = Query(None)
+    user: Optional[str]
+
+    @classmethod
+    def from_row(cls, row: Row) -> "SatsPayThemes":
+        return cls(**dict(row))
