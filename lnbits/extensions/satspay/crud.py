@@ -1,7 +1,6 @@
 import json
 from typing import List, Optional
 
-import httpx
 from loguru import logger
 
 from lnbits.core.services import create_invoice
@@ -9,9 +8,8 @@ from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
 from ..watchonly.crud import get_config, get_fresh_address
-
-# from lnbits.db import open_ext_db
 from . import db
+from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge
 
 ###############CHARGES##########################
@@ -111,19 +109,10 @@ async def check_address_balance(charge_id: str) -> Optional[Charges]:
 
     if not charge.paid:
         if charge.onchainaddress:
-            endpoint = (
-                f"{charge.config['mempool_endpoint']}/testnet"
-                if charge.config["network"] == "Testnet"
-                else charge.config["mempool_endpoint"]
-            )
             try:
-                async with httpx.AsyncClient() as client:
-                    r = await client.get(
-                        endpoint + "/api/address/" + charge.onchainaddress
-                    )
-                    respAmount = r.json()["chain_stats"]["funded_txo_sum"]
-                    if respAmount > charge.balance:
-                        await update_charge(charge_id=charge_id, balance=respAmount)
+                respAmount = await fetch_onchain_balance(charge)
+                if respAmount > charge.balance:
+                    await update_charge(charge_id=charge_id, balance=respAmount)
             except Exception as e:
                 logger.warning(e)
         if charge.lnbitswallet:
