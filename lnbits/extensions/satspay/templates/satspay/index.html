@@ -203,8 +203,13 @@
                       :href="props.row.webhook"
                       target="_blank"
                       style="color: unset; text-decoration: none"
-                      >{{props.row.webhook || props.row.webhook}}</a
+                      >{{props.row.webhook}}</a
                     >
+                  </div>
+                  <div class="col-4 q-pr-lg">
+                    <q-badge v-if="props.row.webhook_message" color="blue">
+                      {{props.row.webhook_message }}
+                    </q-badge>
                   </div>
                 </div>
                 <div class="row items-center q-mt-md q-mb-lg">

@@ -34,10 +34,9 @@ async def display(request: Request, charge_id: str):
     view_data = {
         "request": request,
         "charge_data": public_charge(charge),
+        "mempool_endpoint": charge.config.mempool_endpoint,
+        "network": charge.config.network
     }
-    if "mempool_endpoint" in charge.config:
-        view_data["mempool_endpoint"] = charge.config["mempool_endpoint"]
-        view_data["network"] = charge.config["network"]
 
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",

@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 
 from fastapi.params import Depends
@@ -19,7 +20,7 @@ from .crud import (
     get_charges,
     update_charge,
 )
-from .helpers import public_charge
+from .helpers import call_webhook, public_charge
 from .models import CreateCharge
 
 #############################CHARGES##########################
@@ -57,6 +58,7 @@ async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
                 **{"time_elapsed": charge.time_elapsed},
                 **{"time_left": charge.time_left},
                 **{"paid": charge.paid},
+                **{"webhook_message": charge.config.webhook_message},
             }
             for charge in await get_charges(wallet.wallet.user)
         ]
@@ -117,5 +119,10 @@ async def api_charge_balance(charge_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
+
+    if charge.must_call_webhook():
+        resp = await call_webhook(charge)
+        extra = {**charge.config.dict(), **resp}
+        await update_charge(charge_id=charge.id, extra=json.dumps(extra))
 
     return {**public_charge(charge)}

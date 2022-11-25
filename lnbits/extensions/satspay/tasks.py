@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from loguru import logger
 
@@ -7,6 +8,7 @@ from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
+from .crud import update_charge
 from .helpers import call_webhook
 
 
@@ -32,5 +34,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     await payment.set_pending(False)
     charge = await check_address_balance(charge_id=charge.id)
 
-    if charge.paid and charge.webhook:
-        await call_webhook(charge)
+    if charge.must_call_webhook():
+        resp = await call_webhook(charge)
+        extra = {**charge.config.dict(), **resp}
+        await update_charge(charge_id=charge.id, extra=json.dumps(extra))

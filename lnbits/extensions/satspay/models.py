@@ -19,6 +19,13 @@ class CreateCharge(BaseModel):
     extra: str = "{}"
 
 
+class ChargeConfig(BaseModel):
+    mempool_endpoint: Optional[str]
+    network: Optional[str]
+    webhook_success: Optional[bool] = False
+    webhook_message: Optional[str]
+
+
 class Charges(BaseModel):
     id: str
     description: Optional[str]
@@ -59,5 +66,9 @@ class Charges(BaseModel):
             return False
 
     @property
-    def config(self):
-        return json.loads(self.extra)
+    def config(self) -> ChargeConfig:
+        charge_config = json.loads(self.extra)
+        return ChargeConfig(**charge_config)
+
+    def must_call_webhook(self):
+        return self.webhook and self.paid and self.config.webhook_success == False
