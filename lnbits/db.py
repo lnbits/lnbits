@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import re
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -71,6 +72,16 @@ class Connection(Compat):
         if self.type in {POSTGRES, COCKROACH}:
             query = query.replace("%", "%%")
             query = query.replace("?", "%s")
+
+            # strip html
+            CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
+
+            def cleanhtml(raw_html):
+                cleantext = re.sub(CLEANR, "", raw_html)
+                return cleantext
+
+            query = cleanhtml(query)
+
         return query
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
