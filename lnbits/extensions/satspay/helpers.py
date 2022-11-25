@@ -44,7 +44,7 @@ async def call_webhook(charge: Charges):
 
 async def fetch_onchain_balance(charge: Charges):
     endpoint = (
-        f"{charge.config['mempool_endpoint']}/testnet"
+        f"{charge.config.mempool_endpoint}/testnet"
         if charge.config.network == "Testnet"
         else charge.config.mempool_endpoint
     )
