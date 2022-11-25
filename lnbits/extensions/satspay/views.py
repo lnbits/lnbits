@@ -7,10 +7,10 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
-from lnbits.core.crud import get_wallet
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.settings import LNBITS_ADMIN_USERS
+from lnbits.extensions.satspay.helpers import public_charge
 
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge, get_charge_config, get_themes, get_theme
@@ -34,19 +34,14 @@ async def display(request: Request, charge_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
-    wallet = await get_wallet(charge.lnbitswallet)
-    onchainwallet_config = await get_charge_config(charge_id)
-    inkey = wallet.inkey if wallet else None
-    mempool_endpoint = (
-        onchainwallet_config.mempool_endpoint if onchainwallet_config else None
-    )
+
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
         {
             "request": request,
-            "charge_data": charge.dict(),
-            "wallet_inkey": inkey,
-            "mempool_endpoint": mempool_endpoint,
+            "charge_data": public_charge(charge),
+            "mempool_endpoint": charge.config.mempool_endpoint,
+            "network": charge.config.network,
         },
     )
 

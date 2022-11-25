@@ -28,6 +28,17 @@ async def m001_initial(db):
     )
 
 
+async def m002_add_charge_extra_data(db):
+    """
+    Add 'extra' column for storing various config about the charge (JSON format)
+    """
+    await db.execute(
+        """ALTER TABLE satspay.charges 
+            ADD COLUMN extra TEXT DEFAULT '{"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}';
+        """
+    )
+
+
 async def m003_add_themes_table(db):
     """
     Themes table

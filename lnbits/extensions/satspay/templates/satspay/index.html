@@ -219,8 +219,13 @@
                       :href="props.row.webhook"
                       target="_blank"
                       style="color: unset; text-decoration: none"
-                      >{{props.row.webhook || props.row.webhook}}</a
+                      >{{props.row.webhook}}</a
                     >
+                  </div>
+                  <div class="col-4 q-pr-lg">
+                    <q-badge v-if="props.row.webhook_message" color="blue">
+                      {{props.row.webhook_message }}
+                    </q-badge>
                   </div>
                 </div>
                 <div class="row items-center q-mt-md q-mb-lg">
@@ -532,10 +537,11 @@
         chargeLinks: [],
         themeLinks: [],
         themeOptions: [],
-        onchainwallet: '',
+        onchainwallet: null,
         rescanning: false,
         mempool: {
-          endpoint: ''
+          endpoint: '',
+          network: 'Mainnet'
         },
 
         chargesTable: {
@@ -657,6 +663,7 @@
       },
       cancelCharge: function (data) {
         this.formDialogCharge.data.description = ''
+        this.formDialogCharge.data.onchain = false
         this.formDialogCharge.data.onchainwallet = ''
         this.formDialogCharge.data.lnbitswallet = ''
         this.formDialogCharge.data.time = null
@@ -671,7 +678,7 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            '/watchonly/api/v1/wallet',
+            `/watchonly/api/v1/wallet?network=${this.mempool.network}`,
             this.g.user.wallets[0].inkey
           )
           this.walletLinks = data.map(w => ({
@@ -691,6 +698,7 @@
             this.g.user.wallets[0].inkey
           )
           this.mempool.endpoint = data.mempool_endpoint
+          this.mempool.network = data.network || 'Mainnet'
           const url = new URL(this.mempool.endpoint)
           this.mempool.hostname = url.hostname
         } catch (error) {
@@ -760,7 +768,8 @@
         const wallet = this.g.user.wallets[0].inkey
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
-        data.onchainwallet = this.onchainwallet?.id
+        data.lnbitswallet = data.lnbits ? data.lnbitswallet : null
+        data.onchainwallet = data.onchain ? this.onchainwallet?.id : null
         this.createCharge(wallet, data)
       },
       refreshActiveChargesBalance: async function () {
@@ -942,8 +951,8 @@
       console.log(this.admin)
       await this.getThemes()
       await this.getCharges()
-      await this.getWalletLinks()
       await this.getWalletConfig()
+      await this.getWalletLinks()
       setInterval(() => this.refreshActiveChargesBalance(), 10 * 2000)
       await this.rescanOnchainAddresses()
       setInterval(() => this.rescanOnchainAddresses(), 10 * 1000)
