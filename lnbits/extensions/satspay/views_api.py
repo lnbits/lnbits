@@ -32,9 +32,9 @@ from .crud import (
     save_theme,
     update_charge,
 )
-from .helpers import call_webhook, public_charge
-from .helpers import compact_charge
+
 from .models import CreateCharge, SatsPayThemes
+from .helpers import call_webhook, public_charge
 
 #############################CHARGES##########################
 
