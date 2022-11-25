@@ -30,7 +30,7 @@ async def m001_initial(db):
 
 async def m002_add_charge_extra_data(db):
     """
-    Add 'exta' for storing various config about the charge
+    Add 'extra' column for storing various config about the charge (JSON format)
     """
     await db.execute(
         """ALTER TABLE satspay.charges 
