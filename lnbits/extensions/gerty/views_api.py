@@ -93,16 +93,7 @@ async def api_gerty_delete(
 
 @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
 async def api_gerty_satoshi():
-    maxQuoteLength = 186
-    with open(os.path.join(LNBITS_PATH, "extensions/gerty/static/satoshi.json")) as fd:
-        satoshiQuotes = json.load(fd)
-    quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
-    # logger.debug(quote.text)
-    if len(quote["text"]) > maxQuoteLength:
-        logger.debug("Quote is too long, getting another")
-        return await api_gerty_satoshi()
-    else:
-        return quote
+    return await get_satoshi
 
 
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
@@ -191,9 +182,3 @@ async def api_gerty_get_tip_height(gerty_id):
 async def api_gerty_get_mempool(gerty_id):
     gerty = await get_gerty(gerty_id)
     return await get_mempool_info("mempool", gerty)
-
-@gerty_ext.get("/api/v1/gerty/wibble/{gerty_id}")
-async def api_gerty_get_wibble(gerty_id):
-    endPoint = "fees_recommended"
-    gerty = await get_gerty(gerty_id)
-    return await get_mempool_info("fees_recommended", gerty)
