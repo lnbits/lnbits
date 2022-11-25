@@ -52,12 +52,13 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             completelink,
             completelinktext,
             time,
+            custom_css,
             amount,
             balance,
             extra,
             custom_css,
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             charge_id,
