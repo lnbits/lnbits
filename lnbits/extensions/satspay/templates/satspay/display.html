@@ -308,6 +308,17 @@
     display: none;
   }
 </style>
+{% endblock %} % block styles %}
+<link
+  href="/satspay/css/{{ charge_data.custom_css }}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<style>
+  header button.q-btn-dropdown {
+    display: none;
+  }
+</style>
 {% endblock %} {% block scripts %}
 
 <script src="https://mempool.space/mempool.js"></script>
@@ -450,6 +461,9 @@
       }
     },
     created: async function () {
+      if (this.charge.custom_css) {
+        document.body.setAttribute('data-theme', '')
+      }
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
 
