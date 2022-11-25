@@ -35,18 +35,18 @@ async def call_webhook(charge: Charges):
                 json=public_charge(charge),
                 timeout=40,
             )
-        except AssertionError:
-            charge.webhook = None
+            return {"webhook_success": r.is_success, "webhook_message": r.reason_phrase}
         except Exception as e:
             logger.warning(f"Failed to call webhook for charge {charge.id}")
             logger.warning(e)
+            return {"webhook_success": False, "webhook_message": str(e)}
 
 
 async def fetch_onchain_balance(charge: Charges):
     endpoint = (
         f"{charge.config['mempool_endpoint']}/testnet"
-        if charge.config["network"] == "Testnet"
-        else charge.config["mempool_endpoint"]
+        if charge.config.network == "Testnet"
+        else charge.config.mempool_endpoint
     )
     async with httpx.AsyncClient() as client:
         r = await client.get(endpoint + "/api/address/" + charge.onchainaddress)
