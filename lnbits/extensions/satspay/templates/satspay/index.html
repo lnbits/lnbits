@@ -539,7 +539,6 @@
             '/watchonly/api/v1/config',
             this.g.user.wallets[0].inkey
           )
-          console.log('### data', data)
           this.mempool.endpoint = data.mempool_endpoint
           this.mempool.network = data.network || 'Mainnet'
           const url = new URL(this.mempool.endpoint)
