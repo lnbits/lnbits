@@ -101,38 +101,39 @@
       </q-card-section>
       <q-card-section>
         <q-separator></q-separator>
-        <p>
-          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
-          quasi.
-        </p>
-        <div v-if="user?.keys" class="row">
-          <div
-            class="col-6"
-            v-for="type in ['publickey', 'privatekey']"
-            v-bind:key="type"
-          >
-            <div class="text-center q-mb-lg">
-              {% raw %}
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <qrcode
-                  :value="user.keys[type]"
-                  :options="{width: 250}"
-                  class="rounded-borders"
-                ></qrcode>
-                <q-tooltip>{{ user.keys[type] }}</q-tooltip>
-              </q-responsive>
-              <p>{{ type == 'publickey' ? 'Public Key' : 'Private Key' }}</p>
-              {% endraw %}
+        <q-list>
+          <q-expansion-item
+            group="extras"
+            icon="vpn_key"
+            label="Keys"
+            ><p>
+              Bellow are the keys needed to contact the merchant. They are
+              stored in the browser!
+            </p>
+            <div v-if="user?.keys" class="row q-col-gutter-md">
+              <div
+                class="col-12 col-sm-6"
+                v-for="type in ['publickey', 'privatekey']"
+                v-bind:key="type"
+              >
+                <div class="text-center q-mb-lg">
+                  {% raw %}
+                  <q-responsive :ratio="1" class="q-mx-auto" style="max-width: 250px;">
+                    <qrcode
+                      :value="user.keys[type]"
+                      :options="{width: 500}"
+                      class="rounded-borders"
+                    ></qrcode>
+                    <q-tooltip>{{ user.keys[type] }}</q-tooltip>
+                  </q-responsive>
+                  <p>
+                    {{ type == 'publickey' ? 'Public Key' : 'Private Key' }}
+                  </p>
+                  {% endraw %}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <p>
-          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolore,
-          quasi.
-        </p>
-      </q-card-section>
-      <q-card-section>
-        <q-separator></q-separator>
+            <q-separator></q-separator>
         <div class="row q-mt-lg">
           <q-btn outline color="grey" @click="downloadKeys"
             >Backup keys
@@ -157,6 +158,38 @@
             <q-tooltip>Delete all data from browser</q-tooltip>
           </q-btn>
         </div>
+            </q-expansion-item
+          >
+        </q-list>
+        <q-expansion-item
+            icon="qr_code"
+            label="Export page"
+            >
+            <p>
+              Export, or send, this page to another device
+            </p>
+            <div class="text-center q-mb-lg">
+              <q-responsive :ratio="1" class="q-my-xl q-mx-auto" style="max-width: 250px;" @click="copyText(exportURL)">
+                <qrcode
+                :value="exportURL"
+                :options="{width: 500}"
+                class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>Click to copy</q-tooltip>
+              </q-responsive>
+            </div>
+            <div class="row q-mt-lg">
+              <q-btn
+                @click="copyText(exportURL)"
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                >Copy URL
+                <q-tooltip>Export, or send, this page to another device</q-tooltip>
+              </q-btn>
+            </div>
+          </q-expansion-item>
       </q-card-section>
     </q-card>
   </div>
@@ -234,7 +267,11 @@
         }
       }
     },
-    computed: {},
+    computed: {
+      exportURL(){
+        return '{{request.url}}' + `&keys=${this.user.keys.publickey},${this.user.keys.privatekey}`
+      }
+    },
     methods: {
       clearMessage() {
         this.newMessage = ''
@@ -295,6 +332,9 @@
           })
       },
       async generateKeys(payment_hash) {
+        //check if the keys are set
+        if("publickey" in this.user.keys && "privatekey" in this.user.keys) return
+        
         return await LNbits.api
           .request('GET', `/diagonalley/api/v1/keys/${payment_hash}`, null)
           .then(response => {
@@ -373,10 +413,19 @@
       }
     },
     async created() {
+      console.log('{{request.url}}')
       let order_details = JSON.parse('{{ order | tojson }}')
       let products = JSON.parse('{{ products | tojson }}')
       let order_id = '{{ order_id }}'
+      let hasKeys = Boolean(JSON.parse('{{ publickey | tojson }}') && JSON.parse('{{ privatekey | tojson }}'))
 
+      if(hasKeys) {
+        this.user.keys = {
+          privatekey: '{{ privatekey }}',
+          publickey: '{{ publickey }}'
+        }
+      }
+      
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = order_details.map(o => {
         let product = products.find(p => p.id == o.product_id)
