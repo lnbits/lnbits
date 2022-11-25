@@ -14,6 +14,11 @@ from lnbits.decorators import (
 )
 from lnbits.extensions.satspay import satspay_ext
 
+from lnbits.settings import (
+    LNBITS_ADMIN_EXTENSIONS,
+    LNBITS_ADMIN_USERS,
+)
+
 from .crud import (
     check_address_balance,
     create_charge,
@@ -153,6 +158,11 @@ async def api_themes_save(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     css_id: str = None,
 ):
+    if LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Only server admins can create themes.",
+        )
     if css_id:
         theme = await save_theme(css_id=css_id, data=data)
     else:

@@ -10,11 +10,20 @@
         </q-btn>
 
         <q-btn
+          v-if="admin == 'True'"
           unelevated
           color="primary"
           @click="getThemes();formDialogThemes.show = true"
           >New CSS Theme
         </q-btn>
+        <q-btn
+          v-else
+          disable
+          unelevated
+          color="primary"
+          @click="getThemes();formDialogThemes.show = true"
+          >New CSS Theme
+        <q-tooltip>For security reason, custom css is only available to server admins.</q-tooltip></q-btn>
       </q-card-section>
     </q-card>
 
@@ -262,7 +271,7 @@
       </q-card-section>
     </q-card>
 
-    <q-card>
+    <q-card  v-if="admin == 'True'">
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
@@ -517,6 +526,7 @@
       return {
         settings: {},
         filter: '',
+        admin: '{{ admin }}',
         balance: null,
         walletLinks: [],
         chargeLinks: [],
@@ -929,6 +939,7 @@
       }
     },
     created: async function () {
+      console.log(this.admin)
       await this.getThemes()
       await this.getCharges()
       await this.getWalletLinks()

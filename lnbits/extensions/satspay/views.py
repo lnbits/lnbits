@@ -10,17 +10,20 @@ from starlette.responses import HTMLResponse
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
+from lnbits.settings import LNBITS_ADMIN_USERS
 
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge, get_charge_config, get_themes, get_theme
 
 templates = Jinja2Templates(directory="templates")
 
-
 @satspay_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
+    admin = False
+    if LNBITS_ADMIN_USERS and user.id not in LNBITS_ADMIN_USERS:
+        admin = True
     return satspay_renderer().TemplateResponse(
-        "satspay/index.html", {"request": request, "user": user.dict()}
+        "satspay/index.html", {"request": request, "user": user.dict(), "admin": admin}
     )
 
 

@@ -28,7 +28,7 @@ async def m001_initial(db):
     )
 
 
-async def m002_add_themes_table(db):
+async def m003_add_themes_table(db):
     """
     Themes table
     """
@@ -45,7 +45,7 @@ async def m002_add_themes_table(db):
     )
 
 
-async def m003_add_custom_css_to_charges(db):
+async def m004_add_custom_css_to_charges(db):
     """
     Add custom css option column to the 'charges' table
     """
