@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import re
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -73,18 +74,39 @@ class Connection(Compat):
             query = query.replace("?", "%s")
         return query
 
+    def rewrite_values(self, values):
+        # strip html
+        CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
+
+        def cleanhtml(raw_html):
+            if type(raw_html) == str:
+                cleantext = re.sub(CLEANR, "", raw_html)
+                return cleantext
+            else:
+                return raw_html
+
+        # tuple to list and back to tuple
+        values = tuple([cleanhtml(l) for l in list(values)])
+        return values
+
     async def fetchall(self, query: str, values: tuple = ()) -> list:
-        result = await self.conn.execute(self.rewrite_query(query), values)
+        result = await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
         return await result.fetchall()
 
     async def fetchone(self, query: str, values: tuple = ()):
-        result = await self.conn.execute(self.rewrite_query(query), values)
+        result = await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
         row = await result.fetchone()
         await result.close()
         return row
 
     async def execute(self, query: str, values: tuple = ()):
-        return await self.conn.execute(self.rewrite_query(query), values)
+        return await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
 
 
 class Database(Compat):
