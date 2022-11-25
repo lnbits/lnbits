@@ -82,7 +82,6 @@ async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
     endpoints = MempoolEndpoint()
     url = ""
     for endpoint in endpoints:
-        logger.debug(endpoint)
         if endPoint == endpoint[0]:
             url = endpoint[1]
     row = await db.fetchone("SELECT * FROM gerty.mempool WHERE endpoint = ?", (endPoint,))
@@ -92,13 +91,13 @@ async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
             await db.execute(
             """
                 INSERT INTO gerty.mempool (
-                    endpoint,
                     data,
-                    time,
+                    endpoint,
+                    time
                 )
                 VALUES (?, ?, ?)
                 """,
-                (endPoint, json.dumps(response.json()), int(time.time())),
+                (json.dumps(response.json()), endPoint, int(time.time())),
             )
             return response.json()
     if int(time.time()) - row.time > 20:

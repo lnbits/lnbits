@@ -1,5 +1,6 @@
 import textwrap
 from datetime import datetime, timedelta
+import json
 
 import httpx
 from loguru import logger
@@ -8,6 +9,7 @@ from .crud import get_mempool_info
 
 from .number_prefixer import *
 
+from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 def get_percent_difference(current, previous, precision=3):
     difference = (current - previous) / current * 100
@@ -203,8 +205,6 @@ def gerty_should_sleep(utc_offset: int = 0):
     local_time = utc_now + timedelta(hours=utc_offset)
     hours = local_time.strftime("%H")
     hours = int(hours)
-    logger.debug("HOURS")
-    logger.debug(hours)
     if hours >= 22 and hours <= 23:
         return True
     else:
@@ -243,7 +243,6 @@ async def get_mining_stat(stat_slug: str, gerty):
     text = []
     if stat_slug == "mining_current_hash_rate":
         stat = await api_get_mining_stat(stat_slug, gerty)
-        logger.debug(stat)
         current = "{0}hash".format(si_format(stat['current'], 6, True, " "))
         text.append(get_text_item_dict(text="Current Mining Hashrate", font_size=20,gerty_type=gerty.type))
         text.append(get_text_item_dict(text=current, font_size=40,gerty_type=gerty.type))
@@ -284,8 +283,6 @@ async def api_get_mining_stat(stat_slug: str, gerty):
 
 # Get a screen slug by its position in the screens_list
 def get_screen_slug_by_index(index: int, screens_list):
-    logger.debug("Index: {0}".format(index))
-    logger.debug("len(screens_list) - 1: {0} ".format(len(screens_list) - 1))
     if index <= len(screens_list) - 1:
         return list(screens_list)[index - 1]
     else:
@@ -296,8 +293,6 @@ def get_screen_slug_by_index(index: int, screens_list):
 async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     screen_slug = get_screen_slug_by_index(screen_num, screens_list)
     # first get the relevant slug from the display_preferences
-    logger.debug("screen_slug")
-    logger.debug(screen_slug)
     areas = []
     title = ""
 
@@ -318,7 +313,6 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
     elif screen_slug == "onchain_difficulty_epoch_progress":
        areas.append(await get_onchain_stat(screen_slug, gerty))
     elif screen_slug == "onchain_block_height":
-        logger.debug("iam block height")
         text = []
         text.append(get_text_item_dict(text=format_number(await get_mempool_info("tip_height", gerty)), font_size=80, gerty_type=gerty.type))
         areas.append(text)
@@ -398,7 +392,6 @@ async def get_lnbits_wallet_balances(gerty):
     if gerty.lnbits_wallets != "":
         for lnbits_wallet in json.loads(gerty.lnbits_wallets):
             wallet = await get_wallet_for_key(key=lnbits_wallet)
-            logger.debug(wallet.name)
             if wallet:
                 wallets.append(
                     {
@@ -514,109 +507,107 @@ async def get_onchain_dashboard(gerty):
 
 async def get_time_remaining_next_difficulty_adjustment(gerty):
     if isinstance(gerty.mempool_endpoint, str):
-        async with httpx.AsyncClient() as client:
-            r = await get_mempool_info("difficulty_adjustment", gerty)
-            stat = r.json()["remainingTime"]
-            time = get_time_remaining(stat / 1000, 3)
+        r = await get_mempool_info("difficulty_adjustment", gerty)
+        stat = r.json()["remainingTime"]
+        time = get_time_remaining(stat / 1000, 3)
     return time
 
 
 async def get_mempool_stat(stat_slug: str, gerty):
     text = []
     if isinstance(gerty.mempool_endpoint, str):
-        async with httpx.AsyncClient() as client:
+        if stat_slug == "mempool_tx_count":
+            r = get_mempool_info("mempool", gerty)
             if stat_slug == "mempool_tx_count":
-                r = get_mempool_info("mempool", gerty)
-                if stat_slug == "mempool_tx_count":
-                    stat = round(r.json()["count"])
-                    text.append(get_text_item_dict(text="Transactions in the mempool", font_size=15,gerty_type=gerty.type))
-                    text.append(
-                        get_text_item_dict(text="{0}".format(format_number(stat)), font_size=80,gerty_type=gerty.type)
-                    )
-            elif stat_slug == "mempool_recommended_fees":
-                y_offset = 60
-                fees = await get_mempool_info("fees_recommended", gerty)
-                pos_y = 80 + y_offset
-                text.append(get_text_item_dict("mempool.space", 40, 160, pos_y, gerty.type))
-                pos_y = 180 + y_offset
-                text.append(get_text_item_dict("Recommended Tx Fees", 20, 240, pos_y, gerty.type))
+                stat = round(r.json()["count"])
+                text.append(get_text_item_dict(text="Transactions in the mempool", font_size=15,gerty_type=gerty.type))
+                text.append(
+                    get_text_item_dict(text="{0}".format(format_number(stat)), font_size=80,gerty_type=gerty.type)
+                )
+        elif stat_slug == "mempool_recommended_fees":
+            y_offset = 60
+            fees = await get_mempool_info("fees_recommended", gerty)
+            pos_y = 80 + y_offset
+            text.append(get_text_item_dict("mempool.space", 40, 160, pos_y, gerty.type))
+            pos_y = 180 + y_offset
+            text.append(get_text_item_dict("Recommended Tx Fees", 20, 240, pos_y, gerty.type))
 
-                pos_y = 280 + y_offset
-                text.append(
-                    get_text_item_dict("{0}".format("None"), 15, 30, pos_y, gerty.type)
-                )
-                text.append(
-                    get_text_item_dict("{0}".format("Low"), 15, 235, pos_y, gerty.type)
-                )
-                text.append(
-                    get_text_item_dict("{0}".format("Medium"), 15, 460, pos_y, gerty.type)
-                )
-                text.append(
-                    get_text_item_dict("{0}".format("High"), 15, 750, pos_y, gerty.type)
-                )
+            pos_y = 280 + y_offset
+            text.append(
+                get_text_item_dict("{0}".format("None"), 15, 30, pos_y, gerty.type)
+            )
+            text.append(
+                get_text_item_dict("{0}".format("Low"), 15, 235, pos_y, gerty.type)
+            )
+            text.append(
+                get_text_item_dict("{0}".format("Medium"), 15, 460, pos_y, gerty.type)
+            )
+            text.append(
+                get_text_item_dict("{0}".format("High"), 15, 750, pos_y, gerty.type)
+            )
 
-                pos_y = 340 + y_offset
-                font_size = 15
-                fee_append = "/vB"
-                fee_rate = fees["economyFee"]
-                text.append(
-                    get_text_item_dict(
-                        text="{0} {1}{2}".format(
-                            format_number(fee_rate),
-                            ("sat" if fee_rate == 1 else "sats"),
-                            fee_append,
-                        ),
-                        font_size=font_size,
-                        x_pos=30,
-                        y_pos=pos_y,
-                     gerty_type=gerty.type
-                    )
+            pos_y = 340 + y_offset
+            font_size = 15
+            fee_append = "/vB"
+            fee_rate = fees["economyFee"]
+            text.append(
+                get_text_item_dict(
+                    text="{0} {1}{2}".format(
+                        format_number(fee_rate),
+                        ("sat" if fee_rate == 1 else "sats"),
+                        fee_append,
+                    ),
+                    font_size=font_size,
+                    x_pos=30,
+                    y_pos=pos_y,
+                 gerty_type=gerty.type
                 )
+            )
 
-                fee_rate = fees["hourFee"]
-                text.append(
-                    get_text_item_dict(
-                        text="{0} {1}{2}".format(
-                            format_number(fee_rate),
-                            ("sat" if fee_rate == 1 else "sats"),
-                            fee_append,
-                        ),
-                        font_size=font_size,
-                        x_pos=235,
-                        y_pos=pos_y,
-                     gerty_type=gerty.type
-                    )
+            fee_rate = fees["hourFee"]
+            text.append(
+                get_text_item_dict(
+                    text="{0} {1}{2}".format(
+                        format_number(fee_rate),
+                        ("sat" if fee_rate == 1 else "sats"),
+                        fee_append,
+                    ),
+                    font_size=font_size,
+                    x_pos=235,
+                    y_pos=pos_y,
+                    gerty_type=gerty.type
                 )
+            )
 
-                fee_rate = fees["halfHourFee"]
-                text.append(
-                    get_text_item_dict(
-                        text="{0} {1}{2}".format(
-                            format_number(fee_rate),
-                            ("sat" if fee_rate == 1 else "sats"),
-                            fee_append,
-                        ),
-                        font_size=font_size,
-                        x_pos=460,
-                        y_pos=pos_y,
-                     gerty_type=gerty.type
-                    )
+            fee_rate = fees["halfHourFee"]
+            text.append(
+                get_text_item_dict(
+                    text="{0} {1}{2}".format(
+                        format_number(fee_rate),
+                        ("sat" if fee_rate == 1 else "sats"),
+                        fee_append,
+                    ),
+                    font_size=font_size,
+                    x_pos=460,
+                    y_pos=pos_y,
+                    gerty_type=gerty.type
                 )
+            )
 
-                fee_rate = fees["fastestFee"]
-                text.append(
-                    get_text_item_dict(
-                        text="{0} {1}{2}".format(
-                            format_number(fee_rate),
-                            ("sat" if fee_rate == 1 else "sats"),
-                            fee_append,
-                        ),
-                        font_size=font_size,
-                        x_pos=750,
-                        y_pos=pos_y,
-                        gerty_type=gerty.type
-                    )
+            fee_rate = fees["fastestFee"]
+            text.append(
+                get_text_item_dict(
+                    text="{0} {1}{2}".format(
+                        format_number(fee_rate),
+                        ("sat" if fee_rate == 1 else "sats"),
+                        fee_append,
+                    ),
+                    font_size=font_size,
+                    x_pos=750,
+                    y_pos=pos_y,
+                    gerty_type=gerty.type
                 )
+            )
     return text
 
 
