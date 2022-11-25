@@ -143,7 +143,7 @@ async def api_charge_balance(charge_id):
             try:
                 r = await client.post(
                     charge.webhook,
-                    json=compact_charge(charge),
+                    json=public_charge(charge),
                     timeout=40,
                 )
             except AssertionError:
