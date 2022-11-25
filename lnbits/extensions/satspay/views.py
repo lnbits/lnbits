@@ -31,14 +31,12 @@ async def display(request: Request, charge_id: str):
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
 
-    view_data = {
-        "request": request,
-        "charge_data": public_charge(charge),
-        "mempool_endpoint": charge.config.mempool_endpoint,
-        "network": charge.config.network,
-    }
-
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
-        view_data,
+        {
+            "request": request,
+            "charge_data": public_charge(charge),
+            "mempool_endpoint": charge.config.mempool_endpoint,
+            "network": charge.config.network,
+        },
     )
