@@ -1,6 +1,8 @@
+import json
 from typing import List, Optional
 
 import httpx
+from loguru import logger
 
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
@@ -18,6 +20,10 @@ from .models import Charges, CreateCharge
 async def create_charge(user: str, data: CreateCharge) -> Charges:
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:
+        config = await get_config(user)
+        data.extra = json.dumps(
+            {"mempool_endpoint": config.mempool_endpoint, "network": config.network}
+        )
         onchain = await get_fresh_address(data.onchainwallet)
         onchainaddress = onchain.address
     else:
@@ -48,9 +54,10 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             completelinktext,
             time,
             amount,
-            balance
+            balance,
+            extra
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             charge_id,
@@ -67,6 +74,7 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.time,
             data.amount,
             0,
+            data.extra,
         ),
     )
     return await get_charge(charge_id)
@@ -100,31 +108,27 @@ async def delete_charge(charge_id: str) -> None:
 
 async def check_address_balance(charge_id: str) -> Optional[Charges]:
     charge = await get_charge(charge_id)
+
     if not charge.paid:
         if charge.onchainaddress:
-            config = await get_charge_config(charge_id)
+            endpoint = (
+                f"{charge.config['mempool_endpoint']}/testnet"
+                if charge.config["network"] == "Testnet"
+                else charge.config["mempool_endpoint"]
+            )
             try:
                 async with httpx.AsyncClient() as client:
                     r = await client.get(
-                        config.mempool_endpoint
-                        + "/api/address/"
-                        + charge.onchainaddress
+                        endpoint + "/api/address/" + charge.onchainaddress
                     )
                     respAmount = r.json()["chain_stats"]["funded_txo_sum"]
                     if respAmount > charge.balance:
                         await update_charge(charge_id=charge_id, balance=respAmount)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(e)
         if charge.lnbitswallet:
             invoice_status = await api_payment(charge.payment_hash)
 
             if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     return await get_charge(charge_id)
-
-
-async def get_charge_config(charge_id: str):
-    row = await db.fetchone(
-        """SELECT "user" FROM satspay.charges WHERE id = ?""", (charge_id,)
-    )
-    return await get_config(row.user)

@@ -412,7 +412,8 @@
         onchainwallet: null,
         rescanning: false,
         mempool: {
-          endpoint: ''
+          endpoint: '',
+          network: 'Mainnet'
         },
 
         chargesTable: {
@@ -519,7 +520,7 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            '/watchonly/api/v1/wallet',
+            `/watchonly/api/v1/wallet?network=${this.mempool.network}`,
             this.g.user.wallets[0].inkey
           )
           this.walletLinks = data.map(w => ({
@@ -538,7 +539,9 @@
             '/watchonly/api/v1/config',
             this.g.user.wallets[0].inkey
           )
+          console.log('### data', data)
           this.mempool.endpoint = data.mempool_endpoint
+          this.mempool.network = data.network || 'Mainnet'
           const url = new URL(this.mempool.endpoint)
           this.mempool.hostname = url.hostname
         } catch (error) {
@@ -697,8 +700,8 @@
     },
     created: async function () {
       await this.getCharges()
-      await this.getWalletLinks()
       await this.getWalletConfig()
+      await this.getWalletLinks()
       setInterval(() => this.refreshActiveChargesBalance(), 10 * 2000)
       await this.rescanOnchainAddresses()
       setInterval(() => this.rescanOnchainAddresses(), 10 * 1000)

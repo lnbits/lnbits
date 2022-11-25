@@ -19,7 +19,7 @@ from .crud import (
     get_charges,
     update_charge,
 )
-from .helpers import compact_charge
+from .helpers import public_charge
 from .models import CreateCharge
 
 #############################CHARGES##########################
@@ -118,9 +118,4 @@ async def api_charge_balance(charge_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
 
-    return {
-        **compact_charge(charge),
-        **{"time_elapsed": charge.time_elapsed},
-        **{"time_left": charge.time_left},
-        **{"paid": charge.paid},
-    }
+    return {**public_charge(charge)}

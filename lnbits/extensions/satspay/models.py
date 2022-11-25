@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from sqlite3 import Row
 from typing import Optional
@@ -15,6 +16,7 @@ class CreateCharge(BaseModel):
     completelinktext: str = Query(None)
     time: int = Query(..., ge=1)
     amount: int = Query(..., ge=1)
+    extra: str = "{}"
 
 
 class Charges(BaseModel):
@@ -28,6 +30,7 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
+    extra: str = "{}"
     time: int
     amount: int
     balance: int
@@ -54,3 +57,7 @@ class Charges(BaseModel):
             return True
         else:
             return False
+
+    @property
+    def config(self):
+        return json.loads(self.extra)

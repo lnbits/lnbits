@@ -8,7 +8,7 @@ from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .helpers import compact_charge
+from .helpers import public_charge
 from .models import Charges
 
 
@@ -43,7 +43,7 @@ async def call_webhook(charge: Charges):
         try:
             r = await client.post(
                 charge.webhook,
-                json=compact_charge(charge),
+                json=public_charge(charge),
                 timeout=40,
             )
         except AssertionError:
