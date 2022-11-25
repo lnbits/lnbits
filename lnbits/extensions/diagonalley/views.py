@@ -95,7 +95,10 @@ async def display(request: Request, market_id):
 
 @diagonalley_ext.get("/order", response_class=HTMLResponse)
 async def chat_page(
-    request: Request, merch: str = Query(...), invoice_id: str = Query(...), keys: str = Query(None)
+    request: Request,
+    merch: str = Query(...),
+    invoice_id: str = Query(...),
+    keys: str = Query(None),
 ):
     stall = await get_diagonalley_stall(merch)
     order = await get_diagonalley_order_invoiceid(invoice_id)
@@ -112,8 +115,8 @@ async def chat_page(
                 "publickey": stall.publickey,
                 "wallet": stall.wallet,
             },
-            "publickey": keys.split(',')[0] if keys else None,
-            "privatekey": keys.split(',')[1] if keys else None,
+            "publickey": keys.split(",")[0] if keys else None,
+            "privatekey": keys.split(",")[1] if keys else None,
             "order_id": order.invoiceid,
             "order": [details.dict() for details in _order],
             "products": [product.dict() for product in products],

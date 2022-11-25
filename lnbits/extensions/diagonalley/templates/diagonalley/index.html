@@ -859,7 +859,11 @@
           >
             <div class="text-center q-mb-lg">
               {% raw %}
-              <q-responsive :ratio="1" class="q-mx-xl" @click="copyText(keys[type])">
+              <q-responsive
+                :ratio="1"
+                class="q-mx-xl"
+                @click="copyText(keys[type])"
+              >
                 <qrcode
                   :value="keys[type]"
                   :options="{width: 250}"
@@ -867,7 +871,11 @@
                 ></qrcode>
                 <q-tooltip>{{ keys[type] }}</q-tooltip>
               </q-responsive>
-              <p>{{ type == 'pubkey' ? 'Public Key' : 'Private Key' }}<br /><small>Click to copy</small></p>
+              <p>
+                {{ type == 'pubkey' ? 'Public Key' : 'Private Key' }}<br /><small
+                  >Click to copy</small
+                >
+              </p>
               {% endraw %}
             </div>
           </div>
@@ -1412,18 +1420,18 @@
       },
       exportKeysCSV: function () {
         let colls = [
-        {
-          name: 'privatekey',
-          align: 'left',
-          label: 'Private Key',
-          field: 'privkey'
-        },
-        {
-          name: 'publickey',
-          align: 'left',
-          label: 'Public Key',
-          field: 'pubkey'
-        },
+          {
+            name: 'privatekey',
+            align: 'left',
+            label: 'Private Key',
+            field: 'privkey'
+          },
+          {
+            name: 'publickey',
+            align: 'left',
+            label: 'Public Key',
+            field: 'pubkey'
+          }
         ]
         LNbits.utils.exportCSV(colls, [this.keys])
       },
