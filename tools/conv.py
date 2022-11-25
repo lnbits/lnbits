@@ -212,7 +212,7 @@ if os.path.isdir(args.sqlite_path):
 else:
     files = [args.sqlite_path]
 
-excluded_exts = ["ext_lnurlpos.sqlite3"]
+excluded_exts = ["ext_lnurlpos.sqlite3", "cashu.sqlite3"]
 for file in files:
     filename = os.path.basename(file)
     if filename.startswith("ext_") and filename not in excluded_exts:
