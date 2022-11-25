@@ -1,6 +1,5 @@
 import asyncio
 
-import httpx
 from loguru import logger
 
 from lnbits.core.models import Payment
@@ -8,8 +7,7 @@ from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .helpers import public_charge
-from .models import Charges
+from .helpers import call_webhook
 
 
 async def wait_for_paid_invoices():
@@ -36,18 +34,3 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     if charge.paid and charge.webhook:
         await call_webhook(charge)
-
-
-async def call_webhook(charge: Charges):
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.post(
-                charge.webhook,
-                json=public_charge(charge),
-                timeout=40,
-            )
-        except AssertionError:
-            charge.webhook = None
-        except Exception as e:
-            logger.warning(f"Failed to call webhook for charge {charge.id}")
-            logger.warning(e)
