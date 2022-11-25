@@ -949,7 +949,9 @@
     },
     created: async function () {
       console.log(this.admin)
-      await this.getThemes()
+      if(this.admin == "True"){
+          await this.getThemes()
+      }
       await this.getCharges()
       await this.getWalletConfig()
       await this.getWalletLinks()
