@@ -1,8 +1,8 @@
 from .models import Charges
 
 
-def compact_charge(charge: Charges):
-    return {
+def public_charge(charge: Charges):
+    c = {
         "id": charge.id,
         "description": charge.description,
         "onchainaddress": charge.onchainaddress,
@@ -13,5 +13,12 @@ def compact_charge(charge: Charges):
         "balance": charge.balance,
         "paid": charge.paid,
         "timestamp": charge.timestamp,
-        "completelink": charge.completelink,  # should be secret?
+        "time_elapsed": charge.time_elapsed,
+        "time_left": charge.time_left,
+        "paid": charge.paid,
     }
+
+    if charge.paid:
+        c["completelink"] = charge.completelink
+
+    return c

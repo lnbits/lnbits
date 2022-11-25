@@ -109,7 +109,7 @@
               <q-btn
                 flat
                 disable
-                v-if="!charge.lnbitswallet || charge.time_elapsed"
+                v-if="!charge.payment_request || charge.time_elapsed"
                 style="color: primary; width: 100%"
                 label="lightning⚡"
               >
@@ -131,7 +131,7 @@
               <q-btn
                 flat
                 disable
-                v-if="!charge.onchainwallet || charge.time_elapsed"
+                v-if="!charge.onchainaddress || charge.time_elapsed"
                 style="color: primary; width: 100%"
                 label="onchain⛓️"
               >
@@ -222,7 +222,7 @@
           <div class="col text-center">
             <a
               style="color: unset"
-              :href="mempoolEndpoint + '/address/' + charge.onchainaddress"
+              :href="'https://' + mempoolHostname + '/address/' + charge.onchainaddress"
               target="_blank"
               ><span
                 class="text-subtitle1"
@@ -336,7 +336,7 @@
     },
     methods: {
       checkBalances: async function () {
-        if (!this.charge.lnbitswallet && this.charge.hasOnchainStaleBalance)
+        if (!this.charge.payment_request && this.charge.hasOnchainStaleBalance)
           return
         try {
           const {data} = await LNbits.api.request(
@@ -438,7 +438,7 @@
       }
     },
     created: async function () {
-      if (this.charge.lnbitswallet) this.payInvoice()
+      if (this.charge.payment_request) this.payInvoice()
       else this.payOnchain()
 
       await this.checkBalances()
