@@ -20,7 +20,7 @@ templates = Jinja2Templates(directory="templates")
 @satspay_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     admin = False
-    if LNBITS_ADMIN_USERS and user.id not in LNBITS_ADMIN_USERS:
+    if LNBITS_ADMIN_USERS and user.id in LNBITS_ADMIN_USERS:
         admin = True
     return satspay_renderer().TemplateResponse(
         "satspay/index.html", {"request": request, "user": user.dict(), "admin": admin}
