@@ -1,8 +1,10 @@
-from http import HTTPStatus
 import json
+from http import HTTPStatus
+
 from fastapi import Response
 from fastapi.param_functions import Depends
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
