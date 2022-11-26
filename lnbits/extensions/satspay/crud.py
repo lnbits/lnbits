@@ -7,12 +7,10 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
-from ..watchonly.crud import get_config, get_fresh_address
 from . import db
+from ..watchonly.crud import get_config, get_fresh_address
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
-
-from loguru import logger
 
 ###############CHARGES##########################
 
