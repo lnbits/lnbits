@@ -485,8 +485,9 @@
         outline
         color="grey"
         @click="copyText(lnurlValue, 'LNURL copied to clipboard!')"
-        >Copy LNURL</q-btn
-      >
+        >Copy LNURL</q-btn>
+      <br />
+      {{ websocketMessage }}
       <br />
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
@@ -534,6 +535,7 @@
         filter: '',
         currency: 'USD',
         lnurlValue: '',
+        websocketMessage: '',
         switches: 0,
         lnurldeviceLinks: [],
         lnurldeviceLinksObj: [],
@@ -631,11 +633,12 @@
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
-        this.lnurlValueFetch(this.qrCodeDialog.data.switches[0][3])
+        this.lnurlValueFetch(this.qrCodeDialog.data.switches[0][3], this.qrCodeDialog.data.switches[0][0])
         this.qrCodeDialog.show = true
       },
-      lnurlValueFetch: function (lnurl) {
+      lnurlValueFetch: function (lnurl, switchId) {
         this.lnurlValue = lnurl
+        this.websocketConnector('wss://' + window.location.host + '/lnurldevice/ws/' + switchId)
       },
       addSwitch: function () {
         var self = this
@@ -796,6 +799,21 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      websocketConnector: function(websocketUrl){
+        if ("WebSocket" in window) {
+          this.websocketMessage = "Websocket connected"
+          var ws = new WebSocket(websocketUrl)
+          ws.onmessage = function (evt) { 
+            var received_msg = evt.data
+            this.websocketMessage = "Message recieved: " + received_msg
+          }
+				  ws.onclose = function() { 
+            this.websocketMessage = "Connection closed"
+          };
+        } else {
+          this.websocketMessage = "WebSocket NOT supported by your Browser!"
+        }
       },
       clearFormDialoglnurldevice() {
         this.formDialoglnurldevice.data = {
