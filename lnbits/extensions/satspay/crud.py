@@ -27,6 +27,9 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         onchainaddress = onchain.address
     else:
         onchainaddress = None
+        data.extra = json.dumps(
+            {"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}
+        )
     if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.lnbitswallet,

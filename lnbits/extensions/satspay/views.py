@@ -1,5 +1,5 @@
 from http import HTTPStatus
-
+import json
 from fastapi import Response
 from fastapi.param_functions import Depends
 from fastapi.templating import Jinja2Templates
@@ -36,15 +36,15 @@ async def display(request: Request, charge_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
-    logger.debug(charge)
+    extra = json.loads(charge.extra)
 
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
         {
             "request": request,
             "charge_data": public_charge(charge),
-            "mempool_endpoint": charge.extra.mempool_endpoint,
-            "network": charge.extra.network,
+            "mempool_endpoint": extra["mempool_endpoint"],
+            "network": extra["network"],
         },
     )
 
