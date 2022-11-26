@@ -1,21 +1,21 @@
-from http import HTTPStatus
 import json
+from http import HTTPStatus
+
 from fastapi import Response
 from fastapi.param_functions import Depends
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.settings import LNBITS_ADMIN_USERS
 from lnbits.extensions.satspay.helpers import public_charge
+from lnbits.settings import LNBITS_ADMIN_USERS
 
 from . import satspay_ext, satspay_renderer
-from .crud import get_charge, get_charge_config, get_themes, get_theme
-
-from loguru import logger
+from .crud import get_charge, get_charge_config, get_theme, get_themes
 
 templates = Jinja2Templates(directory="templates")
 
