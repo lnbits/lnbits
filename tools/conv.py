@@ -203,7 +203,8 @@ if os.path.isdir(args.sqlite_path):
     file = os.path.join(args.sqlite_path, "database.sqlite3")
     check_db_versions(file)
     if not args.extensions_only:
-        migrate_core(file, exclude_tables)
+        # migrate_core(file, exclude_tables)
+        pass
 
 if os.path.isdir(args.sqlite_path):
     files = [
@@ -216,4 +217,5 @@ excluded_exts = ["ext_lnurlpos.sqlite3", "cashu.sqlite3"]
 for file in files:
     filename = os.path.basename(file)
     if filename.startswith("ext_") and filename not in excluded_exts:
-        migrate_ext(file)
+        # migrate_ext(file)
+        pass
