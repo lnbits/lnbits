@@ -15,6 +15,8 @@ from lnbits.settings import LNBITS_ADMIN_USERS
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge, get_theme
 
+from loguru import logger
+
 templates = Jinja2Templates(directory="templates")
 
 @satspay_ext.get("/", response_class=HTMLResponse)
@@ -34,14 +36,15 @@ async def display(request: Request, charge_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
+    logger.debug(charge)
 
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
         {
             "request": request,
             "charge_data": public_charge(charge),
-            "mempool_endpoint": charge.config.mempool_endpoint,
-            "network": charge.config.network,
+            "mempool_endpoint": charge.extra.mempool_endpoint,
+            "network": charge.extra.network,
         },
     )
 
