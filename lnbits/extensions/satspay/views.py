@@ -54,5 +54,4 @@ async def display(css_id: str, response: Response):
     theme = await get_theme(css_id)
     if theme:
         return Response(content=theme.custom_css, media_type="text/css")
-
     return None
