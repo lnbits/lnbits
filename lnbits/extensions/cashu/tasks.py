@@ -14,7 +14,7 @@ from .crud import get_cashu
 async def startup_cashu_mint():
     await migrate_databases(db, migrations)
     await ledger.load_used_proofs()
-    await ledger.init_keysets()
+    await ledger.init_keysets(autosave=False)
     pass
 
 
