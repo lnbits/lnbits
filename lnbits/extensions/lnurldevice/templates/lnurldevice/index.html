@@ -485,9 +485,19 @@
         outline
         color="grey"
         @click="copyText(lnurlValue, 'LNURL copied to clipboard!')"
-        >Copy LNURL</q-btn>
-      <br />
-      {{ websocketMessage }}
+        >Copy LNURL</q-btn
+      >
+      <q-chip
+        v-if="websocketMessage == 'WebSocket NOT supported by your Browser!' || websocketMessage == 'Connection closed'"
+        clickable
+        color="red"
+        text-color="white"
+        icon="error"
+        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
+      >
+      <q-chip v-else clickable color="green" text-color="white" icon="check"
+        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
+      >
       <br />
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
@@ -624,6 +634,11 @@
         }
       }
     },
+    computed: {
+      wsMessage: function () {
+        return this.websocketMessage
+      }
+    },
     methods: {
       openQrCodeDialog: function (lnurldevice_id) {
         var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
@@ -633,12 +648,17 @@
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
-        this.lnurlValueFetch(this.qrCodeDialog.data.switches[0][3], this.qrCodeDialog.data.switches[0][0])
+        this.lnurlValueFetch(
+          this.qrCodeDialog.data.switches[0][3],
+          this.qrCodeDialog.data.id
+        )
         this.qrCodeDialog.show = true
       },
       lnurlValueFetch: function (lnurl, switchId) {
         this.lnurlValue = lnurl
-        this.websocketConnector('wss://' + window.location.host + '/lnurldevice/ws/' + switchId)
+        this.websocketConnector(
+          'wss://' + window.location.host + '/lnurldevice/ws/' + switchId
+        )
       },
       addSwitch: function () {
         var self = this
@@ -800,20 +820,24 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      websocketConnector: function(websocketUrl){
-        if ("WebSocket" in window) {
-          this.websocketMessage = "Websocket connected"
+      websocketConnector: function (websocketUrl) {
+        if ('WebSocket' in window) {
+          self = this
           var ws = new WebSocket(websocketUrl)
-          ws.onmessage = function (evt) { 
+          self.updateWsMessage('Websocket connected')
+          ws.onmessage = function (evt) {
             var received_msg = evt.data
-            this.websocketMessage = "Message recieved: " + received_msg
+            self.updateWsMessage('Message recieved: ' + received_msg)
           }
-				  ws.onclose = function() { 
-            this.websocketMessage = "Connection closed"
-          };
+          ws.onclose = function () {
+            self.updateWsMessage('Connection closed')
+          }
         } else {
-          this.websocketMessage = "WebSocket NOT supported by your Browser!"
+          self.updateWsMessage('WebSocket NOT supported by your Browser!')
         }
+      },
+      updateWsMessage: function (message) {
+        this.websocketMessage = message
       },
       clearFormDialoglnurldevice() {
         this.formDialoglnurldevice.data = {
