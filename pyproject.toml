@@ -63,7 +63,7 @@ protobuf = "^4.21.6"
 Cerberus = "^1.3.4"
 async-timeout = "^4.0.2"
 pyln-client = "0.11.1"
-cashu = "^0.5.1"
+cashu = "^0.5.3"
 
 
 [tool.poetry.dev-dependencies]
