@@ -155,7 +155,7 @@ def build_insert_query(schema, tableName, columns):
 def to_column_type(columnType):
     if columnType == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if columnType == "BOOLEAN":
+    if columnType in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 
