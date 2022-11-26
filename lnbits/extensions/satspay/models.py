@@ -67,6 +67,14 @@ class Charges(BaseModel):
         else:
             return False
 
+    @property
+    def config(self) -> ChargeConfig:
+        charge_config = json.loads(self.extra)
+        return ChargeConfig(**charge_config)
+
+    def must_call_webhook(self):
+        return self.webhook and self.paid and self.config.webhook_success == False
+
 class SatsPayThemes(BaseModel):
     css_id: str = Query(None)
     title: str = Query(None)
