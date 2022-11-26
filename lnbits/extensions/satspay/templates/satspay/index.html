@@ -23,7 +23,11 @@
           color="primary"
           @click="getThemes();formDialogThemes.show = true"
           >New CSS Theme
-        <q-tooltip>For security reason, custom css is only available to server admins.</q-tooltip></q-btn>
+          <q-tooltip
+            >For security reason, custom css is only available to server
+            admins.</q-tooltip
+          ></q-btn
+        >
       </q-card-section>
     </q-card>
 
@@ -276,7 +280,7 @@
       </q-card-section>
     </q-card>
 
-    <q-card  v-if="admin == 'True'">
+    <q-card v-if="admin == 'True'">
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
@@ -949,8 +953,8 @@
     },
     created: async function () {
       console.log(this.admin)
-      if(this.admin == "True"){
-          await this.getThemes()
+      if (this.admin == 'True') {
+        await this.getThemes()
       }
       await this.getCharges()
       await this.getWalletConfig()
