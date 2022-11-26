@@ -133,6 +133,10 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
 
     for table in tables:
         tableName = table[0]
+        print(f"Migrating table {tableName}")
+        # hard coded skip for dbversions (already produced during startup)
+        if tableName == "dbversions":
+            continue
         if tableName in exclude_tables:
             continue
 
@@ -217,7 +221,7 @@ if os.path.isdir(args.sqlite_path):
 else:
     files = [args.sqlite_path]
 
-excluded_exts = ["ext_lnurlpos.sqlite3", "ext_cashu.sqlite3"]
+excluded_exts = ["ext_lnurlpos.sqlite3"]
 for file in files:
     filename = os.path.basename(file)
     if filename.startswith("ext_") and filename not in excluded_exts:
