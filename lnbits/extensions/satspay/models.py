@@ -75,6 +75,7 @@ class Charges(BaseModel):
     def must_call_webhook(self):
         return self.webhook and self.paid and self.config.webhook_success == False
 
+
 class SatsPayThemes(BaseModel):
     css_id: str = Query(None)
     title: str = Query(None)

@@ -13,6 +13,7 @@ from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
 
 from loguru import logger
+
 ###############CHARGES##########################
 
 
@@ -96,7 +97,7 @@ async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
 
 async def get_charge(charge_id: str) -> Charges:
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
-    
+
     return Charges.from_row(row) if row else None
 
 
@@ -136,7 +137,6 @@ async def get_charge_config(charge_id: str):
         """SELECT "user" FROM satspay.charges WHERE id = ?""", (charge_id,)
     )
     return await get_config(row.user)
-
 
 
 ################## SETTINGS ###################
