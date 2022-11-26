@@ -4,9 +4,22 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New Mint</q-btn
-        >
+        <b>Cashu mint and wallet</b>
+        <p></p>
+        <p>
+          Here you can create multiple cashu mints that you can share. Each mint
+          can service many users but all ecash tokens of a mint are only valid
+          inside that mint and not across different mints. To exchange funds
+          between mints, use Lightning payments.
+        </p>
+        <b>Important</b>
+        <p></p>
+        <p>
+          If you are the operator of this LNbits instance, make sure to set
+          CASHU_PRIVATE_KEY="randomkey" in your configuration file. Do not
+          create mints before setting the key and do not change the key once
+          set.
+        </p>
       </q-card-section>
     </q-card>
 
@@ -84,6 +97,13 @@
           </template>
           {% endraw %}
         </q-table>
+        <q-btn
+          class="q-pt-l"
+          unelevated
+          color="primary"
+          @click="formDialog.show = true"
+          >New Mint</q-btn
+        >
       </q-card-section>
     </q-card>
   </div>
@@ -220,36 +240,36 @@
           columns: [
             {name: 'id', align: 'left', label: 'Mint ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
-            {
-              name: 'tickershort',
-              align: 'left',
-              label: 'Ticker',
-              field: 'tickershort'
-            },
+            // {
+            //   name: 'tickershort',
+            //   align: 'left',
+            //   label: 'Ticker',
+            //   field: 'tickershort'
+            // },
             {
               name: 'wallet',
               align: 'left',
               label: 'Mint wallet',
               field: 'wallet'
-            },
-            {
-              name: 'fraction',
-              align: 'left',
-              label: 'Using fraction',
-              field: 'fraction'
-            },
-            {
-              name: 'maxsats',
-              align: 'left',
-              label: 'Max Sats',
-              field: 'maxsats'
-            },
-            {
-              name: 'coins',
-              align: 'left',
-              label: 'No. of coins',
-              field: 'coins'
             }
+            // {
+            //   name: 'fraction',
+            //   align: 'left',
+            //   label: 'Using fraction',
+            //   field: 'fraction'
+            // },
+            // {
+            //   name: 'maxsats',
+            //   align: 'left',
+            //   label: 'Max Sats',
+            //   field: 'maxsats'
+            // },
+            // {
+            //   name: 'coins',
+            //   align: 'left',
+            //   label: 'No. of coins',
+            //   field: 'coins'
+            // }
           ],
           pagination: {
             rowsPerPage: 10
