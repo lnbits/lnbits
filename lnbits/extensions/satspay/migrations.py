@@ -46,7 +46,7 @@ async def m003_add_themes_table(db):
     await db.execute(
         """
         CREATE TABLE satspay.themes (
-            css_id TEXT,
+            css_id TEXT NOT NULL PRIMARY KEY,
             user TEXT,
             title TEXT,
             custom_css TEXT
