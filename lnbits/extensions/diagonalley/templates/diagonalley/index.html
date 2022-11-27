@@ -1027,6 +1027,52 @@
       </q-card-section>
     </q-card> -->
   </div>
+  <q-dialog v-model="onboarding.show">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">How to use Diagon Alley</h6>
+      <q-stepper v-model="step" color="primary" vertical animated>
+        <q-step
+          :name="1"
+          title="Create a Shipping Zone"
+          icon="settings"
+          :done="step > 1"
+        >
+          Create Shipping Zones you're willing to ship to. You can define
+          different values for different zones.
+          <q-stepper-navigation>
+            <q-btn @click="step = step + 1" color="primary" label="Next" />
+          </q-stepper-navigation>
+        </q-step>
+        <q-step
+          :name="2"
+          title="Create a Stall"
+          icon="create_new_folder"
+          :done="step > 2"
+        >
+          Create a Stall and provide private and public keys to use for
+          communication. If you don't have one, LNbits will create a key pair
+          for you. It will be saved and can be used on other stalls.
+          <q-stepper-navigation>
+            <q-btn @click="step = step + 1" color="primary" label="Next" />
+          </q-stepper-navigation>
+        </q-step>
+
+        <q-step :name="3" title="Create Products" icon="assignment">
+          Create your products, add a small description and an image. Choose to
+          what stall, if you have more than one, it belongs to
+          <q-stepper-navigation>
+            <q-btn @click="onboarding.finish" color="primary" label="Finish" />
+          </q-stepper-navigation>
+          <div>
+            <q-checkbox
+              v-model="onboarding.showAgain"
+              label="Show this again?"
+            />
+          </div>
+        </q-step>
+      </q-stepper>
+    </q-card>
+  </q-dialog>
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
@@ -1097,6 +1143,18 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        step: 1,
+        onboarding: {
+          show: true,
+          showAgain: false,
+          finish: () => {
+            this.$q.localStorage.set(
+              'lnbits.DAOnboarding',
+              this.onboarding.showAgain
+            )
+            this.onboarding.show = false
+          }
+        },
         keys: null,
         products: [],
         orders: [],
@@ -2163,6 +2221,9 @@
     },
     async created() {
       if (this.g.user.wallets.length) {
+        let showOnboard = this.$q.localStorage.getItem('lnbits.DAOnboarding')
+        this.onboarding.show = showOnboard === true || showOnboard == null
+        this.onboarding.showAgain = showOnboard || false
         this.getStalls()
         this.getProducts()
         this.getZones()
