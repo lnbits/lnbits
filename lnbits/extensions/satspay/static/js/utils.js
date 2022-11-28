@@ -26,5 +26,10 @@ const mapCharge = (obj, oldObj = {}) => {
   return charge
 }
 
+const mapCSS = (obj, oldObj = {}) => {
+  const theme = _.clone(obj)
+  return theme
+}
+
 const minutesToTime = min =>
   min > 0 ? new Date(min * 1000).toISOString().substring(14, 19) : ''

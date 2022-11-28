@@ -37,3 +37,28 @@ async def m002_add_charge_extra_data(db):
             ADD COLUMN extra TEXT DEFAULT '{"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}';
         """
     )
+
+
+async def m003_add_themes_table(db):
+    """
+    Themes table
+    """
+
+    await db.execute(
+        """
+        CREATE TABLE satspay.themes (
+            css_id TEXT NOT NULL PRIMARY KEY,
+            "user" TEXT,
+            title TEXT,
+            custom_css TEXT
+        );
+    """
+    )
+
+
+async def m004_add_custom_css_to_charges(db):
+    """
+    Add custom css option column to the 'charges' table
+    """
+
+    await db.execute("ALTER TABLE satspay.charges ADD COLUMN custom_css TEXT;")

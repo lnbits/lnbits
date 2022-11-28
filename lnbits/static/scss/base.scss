@@ -7,7 +7,7 @@ $colors in $themes {
             [data-theme='#{$theme}'] .q-drawer--dark,
             body[data-theme='#{$theme}'].body--dark,
             [data-theme='#{$theme}'] .q-menu--dark {
-                background: $color !important;
+                background: $color;
             }
             /* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
       // set a darker body bg for all themes, when in "dark mode"
@@ -19,7 +19,7 @@ $colors in $themes {
         @if $name=='info' {
             [data-theme='#{$theme}'] .q-card--dark,
             [data-theme='#{$theme}'] .q-stepper--dark {
-                background: $color !important;
+                background: $color;
             }
         }
     }
@@ -27,37 +27,37 @@ $colors in $themes {
         @each $name,
         $color in $colors {
             .bg-#{$name} {
-                background: $color !important;
+                background: $color;
             }
             .text-#{$name} {
-                color: $color !important;
+                color: $color;
             }
         }
     }
 }
 
 [data-theme='freedom'] .q-drawer--dark {
-    background: #0a0a0a !important;
+    background: #0a0a0a;
 }
 
 [data-theme='freedom'] .q-header {
-    background: #0a0a0a !important;
+    background: #0a0a0a;
 }
 
 [data-theme='salvador'] .q-drawer--dark {
-    background: #242424 !important;
+    background: #242424;
 }
 
 [data-theme='salvador'] .q-header {
-    background: #0f47af !important;
+    background: #0f47af;
 }
 
 [data-theme='flamingo'] .q-drawer--dark {
-    background: #e75480 !important;
+    background: #e75480;
 }
 
 [data-theme='flamingo'] .q-header {
-    background: #e75480 !important;
+    background: #e75480;
 }
 
 [v-cloak] {
