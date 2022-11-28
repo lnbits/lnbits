@@ -38,6 +38,7 @@ async def m002_add_charge_extra_data(db):
         """
     )
 
+
 async def m003_add_themes_table(db):
     """
     Themes table
