@@ -2,7 +2,7 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -384,25 +384,30 @@ def fee_reserve(amount_msat: int) -> int:
     return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
 
 
-class websocketConnectionManager:
+class WebsocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        return
 
     async def connect(self, websocket: WebSocket, item_id: str):
         await websocket.accept()
-        websocket.id = item_id
-        self.active_connections.append(websocket)
+        if item_id not in self.active_connections:
+            websocket.id = item_id
+            self.active_connections.append(websocket)
+        return
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
+        return
 
     async def send_data(self, message: str, item_id: str):
         for connection in self.active_connections:
             if connection.id == item_id:
                 await connection.send_text(message)
+        return
 
 
-websocketManager = websocketConnectionManager()
+websocketManager = WebsocketConnectionManager()
 
 
 async def websocketUpdater(item_id, data):
