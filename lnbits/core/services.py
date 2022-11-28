@@ -2,7 +2,7 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -13,27 +13,18 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
+from lnbits.decorators import (WalletTypeInfo, get_key_type, require_admin_key,
+                               require_invoice_key)
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
+from lnbits.settings import (FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT,
+                             WALLET)
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
-from .crud import (
-    check_internal,
-    create_payment,
-    delete_wallet_payment,
-    get_wallet,
-    get_wallet_payment,
-    update_payment_details,
-    update_payment_status,
-)
+from .crud import (check_internal, create_payment, delete_wallet_payment,
+                   get_wallet, get_wallet_payment, update_payment_details,
+                   update_payment_status)
 from .models import Payment
 
 try:
