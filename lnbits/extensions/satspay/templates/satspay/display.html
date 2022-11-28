@@ -449,7 +449,6 @@
     },
     created: async function () {
       await this.getCustomCss()
-      if (this.charge.payment_request) this.payInvoice()
       // Remove a user defined theme
       if (this.charge.custom_css) {
         document.body.setAttribute('data-theme', '')
