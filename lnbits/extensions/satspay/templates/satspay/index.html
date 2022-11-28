@@ -405,6 +405,15 @@
           label="Completed button text (ie 'Back to merchant')"
         >
         </q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogCharge.data.custom_css"
+          :options="themeOptions"
+          label="Custom CSS theme (optional)"
+        >
+        </q-select>
 
         <div class="row">
           <div class="col">
@@ -452,15 +461,6 @@
           v-model="formDialogCharge.data.lnbitswallet"
           :options="g.user.walletOptions"
           label="Wallet *"
-        >
-        </q-select>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialogCharge.data.custom_css"
-          :options="themeOptions"
-          label="Custom CSS theme (optional)"
         >
         </q-select>
         <div class="row q-mt-lg">

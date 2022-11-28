@@ -74,7 +74,7 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.amount,
             0,
             data.extra,
-            data.custom_css
+            data.custom_css,
         ),
     )
     return await get_charge(charge_id)
