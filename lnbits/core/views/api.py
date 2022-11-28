@@ -11,8 +11,7 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
-from fastapi import (Depends, Header, Query, Request, WebSocket,
-                     WebSocketDisconnect)
+from fastapi import Depends, Header, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -24,20 +23,42 @@ from starlette.responses import HTMLResponse, StreamingResponse
 import async_timeout
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
-from lnbits.decorators import (WalletTypeInfo, get_key_type, require_admin_key,
-                               require_invoice_key)
+from lnbits.decorators import (
+    WalletTypeInfo,
+    get_key_type,
+    require_admin_key,
+    require_invoice_key,
+)
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
-from lnbits.utils.exchange_rates import (currencies, fiat_amount_as_satoshis,
-                                         satoshis_amount_as_fiat)
+from lnbits.utils.exchange_rates import (
+    currencies,
+    fiat_amount_as_satoshis,
+    satoshis_amount_as_fiat,
+)
 
 from .. import core_app, db
-from ..crud import (create_payment, get_payments, get_standalone_payment,
-                    get_total_balance, get_wallet, get_wallet_for_key,
-                    save_balance_check, update_payment_status, update_wallet)
-from ..services import (InvoiceFailure, PaymentFailure,
-                        check_transaction_status, create_invoice, pay_invoice,
-                        perform_lnurlauth, websocketManager, websocketUpdater)
+from ..crud import (
+    create_payment,
+    get_payments,
+    get_standalone_payment,
+    get_total_balance,
+    get_wallet,
+    get_wallet_for_key,
+    save_balance_check,
+    update_payment_status,
+    update_wallet,
+)
+from ..services import (
+    InvoiceFailure,
+    PaymentFailure,
+    check_transaction_status,
+    create_invoice,
+    pay_invoice,
+    perform_lnurlauth,
+    websocketManager,
+    websocketUpdater,
+)
 from ..tasks import api_invoice_listeners
 
 
