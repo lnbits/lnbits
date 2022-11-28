@@ -197,7 +197,7 @@ async def save_theme(data: SatsPayThemes, css_id: str = None):
             INSERT INTO satspay.themes (
                 css_id,
                 title,
-                user,
+                "user",
                 custom_css
                 )
             VALUES (?, ?, ?, ?)
@@ -219,7 +219,7 @@ async def get_theme(css_id: str) -> SatsPayThemes:
 
 async def get_themes(user_id: str) -> List[SatsPayThemes]:
     rows = await db.fetchall(
-        """SELECT * FROM satspay.themes WHERE "user" = ? ORDER BY "timestamp" DESC """,
+        """SELECT * FROM satspay.themes WHERE "user" = ? ORDER BY "title" DESC """,
         (user_id,),
     )
     return [SatsPayThemes.from_row(row) for row in rows]
