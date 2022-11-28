@@ -24,6 +24,7 @@ def public_charge(charge: Charges):
 
     if charge.paid:
         c["completelink"] = charge.completelink
+        c["completelinktext"] = charge.completelinktext
 
     return c
 
