@@ -3,7 +3,7 @@ async def m001_initial(db):
     Initial wallet table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE watchonly.wallets (
             id TEXT NOT NULL PRIMARY KEY,
             "user" TEXT,
@@ -16,7 +16,7 @@ async def m001_initial(db):
     )
 
     await db.execute(
-        """
+        f"""
         CREATE TABLE watchonly.addresses (
             id TEXT NOT NULL PRIMARY KEY,
             address TEXT NOT NULL,
