@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
 
     await db.execute(
-        """
+        f"""
         CREATE TABLE satspay.charges (
             id TEXT NOT NULL PRIMARY KEY,
             "user" TEXT,
