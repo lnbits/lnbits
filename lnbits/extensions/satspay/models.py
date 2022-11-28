@@ -38,8 +38,8 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
-    custom_css: Optional[str]
     extra: str = "{}"
+    custom_css: Optional[str]
     time: int
     amount: int
     balance: int

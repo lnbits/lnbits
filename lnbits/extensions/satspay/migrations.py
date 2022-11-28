@@ -48,7 +48,7 @@ async def m003_add_themes_table(db):
         """
         CREATE TABLE satspay.themes (
             css_id TEXT NOT NULL PRIMARY KEY,
-            user TEXT,
+            "user" TEXT,
             title TEXT,
             custom_css TEXT
         );

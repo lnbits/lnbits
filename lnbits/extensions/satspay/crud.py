@@ -7,8 +7,8 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
-from . import db
 from ..watchonly.crud import get_config, get_fresh_address
+from . import db
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
 
@@ -26,9 +26,6 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         onchainaddress = onchain.address
     else:
         onchainaddress = None
-        data.extra = json.dumps(
-            {"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}
-        )
     if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.lnbitswallet,
@@ -55,9 +52,9 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             completelinktext,
             time,
             amount,
-            custom_css,
             balance,
-            extra
+            extra,
+            custom_css
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -75,12 +72,11 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.completelinktext,
             data.time,
             data.amount,
-            data.custom_css,
             0,
             data.extra,
+            data.custom_css,
         ),
     )
-    logger.debug(await get_charge(charge_id))
     return await get_charge(charge_id)
 
 
@@ -95,7 +91,6 @@ async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
 
 async def get_charge(charge_id: str) -> Charges:
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
-
     return Charges.from_row(row) if row else None
 
 
@@ -128,13 +123,6 @@ async def check_address_balance(charge_id: str) -> Optional[Charges]:
             if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     return await get_charge(charge_id)
-
-
-async def get_charge_config(charge_id: str):
-    row = await db.fetchone(
-        """SELECT "user" FROM satspay.charges WHERE id = ?""", (charge_id,)
-    )
-    return await get_config(row.user)
 
 
 ################## SETTINGS ###################
@@ -179,6 +167,53 @@ async def get_theme(css_id: str) -> SatsPayThemes:
 async def get_themes(user_id: str) -> List[SatsPayThemes]:
     rows = await db.fetchall(
         """SELECT * FROM satspay.themes WHERE "user" = ? ORDER BY "timestamp" DESC """,
+        (user_id,),
+    )
+    return await get_config(row.user)
+
+
+################## SETTINGS ###################
+
+
+async def save_theme(data: SatsPayThemes, css_id: str = None):
+    # insert or update
+    if css_id:
+        await db.execute(
+            """
+            UPDATE satspay.themes SET custom_css = ?, title = ? WHERE css_id = ?
+            """,
+            (data.custom_css, data.title, css_id),
+        )
+    else:
+        css_id = urlsafe_short_hash()
+        await db.execute(
+            """
+            INSERT INTO satspay.themes (
+                css_id,
+                title,
+                "user",
+                custom_css
+                )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                css_id,
+                data.title,
+                data.user,
+                data.custom_css,
+            ),
+        )
+    return await get_theme(css_id)
+
+
+async def get_theme(css_id: str) -> SatsPayThemes:
+    row = await db.fetchone("SELECT * FROM satspay.themes WHERE css_id = ?", (css_id,))
+    return SatsPayThemes.from_row(row) if row else None
+
+
+async def get_themes(user_id: str) -> List[SatsPayThemes]:
+    rows = await db.fetchall(
+        """SELECT * FROM satspay.themes WHERE "user" = ? ORDER BY "title" DESC """,
         (user_id,),
     )
     return [SatsPayThemes.from_row(row) for row in rows]

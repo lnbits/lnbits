@@ -380,32 +380,6 @@
         >
         </q-input>
 
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.webhook"
-          type="url"
-          label="Webhook (URL to send transaction data to once paid)"
-        >
-        </q-input>
-
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.completelink"
-          type="url"
-          label="Completed button URL"
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.completelinktext"
-          type="text"
-          label="Completed button text (ie 'Back to merchant')"
-        >
-        </q-input>
-
         <div class="row">
           <div class="col">
             <div v-if="walletLinks.length > 0">
@@ -454,15 +428,52 @@
           label="Wallet *"
         >
         </q-select>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialogCharge.data.custom_css"
-          :options="themeOptions"
-          label="Custom CSS theme (optional)"
-        >
-        </q-select>
+        <q-toggle
+          v-model="showAdvanced"
+          label="Show advanced options"
+        ></q-toggle>
+        <div v-if="showAdvanced" class="row">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialogCharge.data.webhook"
+              type="url"
+              label="Webhook (URL to send transaction data to once paid)"
+              class="q-mt-lg"
+            >
+            </q-input>
+
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialogCharge.data.completelink"
+              type="url"
+              label="Completed button URL"
+              class="q-mt-lg"
+            >
+            </q-input>
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialogCharge.data.completelinktext"
+              type="text"
+              label="Completed button text (ie 'Back to merchant')"
+              class="q-mt-lg"
+            >
+            </q-input>
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="formDialogCharge.data.custom_css"
+              :options="themeOptions"
+              label="Custom CSS theme (optional)"
+              class="q-mt-lg"
+            >
+            </q-select>
+          </div>
+        </div>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -541,12 +552,13 @@
         chargeLinks: [],
         themeLinks: [],
         themeOptions: [],
-        onchainwallet: null,
+        onchainwallet: '',
         rescanning: false,
         mempool: {
           endpoint: '',
           network: 'Mainnet'
         },
+        showAdvanced: false,
 
         chargesTable: {
           columns: [
@@ -767,7 +779,7 @@
         this.createTheme(wallet, data)
       },
       sendFormDataCharge: function () {
-        this.formDialogCharge.data.custom_css = this.formDialogCharge.data.custom_css.id
+        this.formDialogCharge.data.custom_css = this.formDialogCharge.data.custom_css?.id
         const data = this.formDialogCharge.data
         const wallet = this.g.user.wallets[0].inkey
         data.amount = parseInt(data.amount)
@@ -952,7 +964,6 @@
       }
     },
     created: async function () {
-      console.log(this.admin)
       if (this.admin == 'True') {
         await this.getThemes()
       }
