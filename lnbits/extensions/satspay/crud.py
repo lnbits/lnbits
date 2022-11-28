@@ -52,7 +52,6 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             completelinktext,
             time,
             amount,
-            custom_css,
             balance,
             extra,
             custom_css,
@@ -73,9 +72,9 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.completelinktext,
             data.time,
             data.amount,
-            data.custom_css,
             0,
             data.extra,
+            data.custom_css,
         ),
     )
     return await get_charge(charge_id)
