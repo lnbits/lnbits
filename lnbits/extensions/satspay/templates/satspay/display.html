@@ -448,7 +448,6 @@
       }
     },
     created: async function () {
-      await this.getCustomCss()
       // Remove a user defined theme
       if (this.charge.custom_css) {
         document.body.setAttribute('data-theme', '')
