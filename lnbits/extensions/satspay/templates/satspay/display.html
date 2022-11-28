@@ -320,11 +320,9 @@
     mixins: [windowMixin],
     data() {
       return {
-        customCss: '',
         charge: JSON.parse('{{charge_data | tojson}}'),
         mempoolEndpoint: '{{mempool_endpoint}}',
         network: '{{network}}',
-        css_id: '{{ charge_data.css_id }}',
         pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
@@ -347,16 +345,6 @@
       }
     },
     methods: {
-      startPaymentNotifier() {
-        this.cancelListener()
-        if (!this.lnbitswallet) return
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.checkInvoiceBalance()
-          }
-        )
-      },
       checkBalances: async function () {
         if (!this.charge.payment_request && this.charge.hasOnchainStaleBalance)
           return
@@ -463,7 +451,6 @@
       await this.getCustomCss()
       if (this.charge.payment_request) this.payInvoice()
       // Remove a user defined theme
-      console.log(this.charge.custom_css)
       if (this.charge.custom_css) {
         document.body.setAttribute('data-theme', '')
       }

@@ -7,8 +7,8 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
-from . import db
 from ..watchonly.crud import get_config, get_fresh_address
+from . import db
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
 
@@ -26,9 +26,6 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         onchainaddress = onchain.address
     else:
         onchainaddress = None
-        data.extra = json.dumps(
-            {"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}
-        )
     if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.lnbitswallet,
@@ -81,7 +78,6 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             data.extra,
         ),
     )
-    logger.debug(await get_charge(charge_id))
     return await get_charge(charge_id)
 
 
@@ -96,7 +92,6 @@ async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
 
 async def get_charge(charge_id: str) -> Charges:
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
-
     return Charges.from_row(row) if row else None
 
 
