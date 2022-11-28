@@ -14,15 +14,14 @@ const retryWithDelay = async function (fn, retryCount = 0) {
 }
 
 const mapCharge = (obj, oldObj = {}) => {
-  const charge = _.clone(obj)
+  const charge = {...oldObj, ...obj}
 
   charge.progress = obj.time_left < 0 ? 1 : 1 - obj.time_left / obj.time
   charge.time = minutesToTime(obj.time)
   charge.timeLeft = minutesToTime(obj.time_left)
 
-  charge.expanded = false
   charge.displayUrl = ['/satspay/', obj.id].join('')
-  charge.expanded = oldObj.expanded
+  charge.expanded = oldObj.expanded || false
   charge.pendingBalance = oldObj.pendingBalance || 0
   return charge
 }

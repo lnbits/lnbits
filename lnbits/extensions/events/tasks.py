@@ -5,16 +5,16 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import HTTPException
+from loguru import logger
 
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
+from lnbits.extensions.events.models import CreateTicket
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .views_api import api_ticket_send_ticket
-from loguru import logger
-from lnbits.extensions.events.models import CreateTicket
 
 
 async def wait_for_paid_invoices():

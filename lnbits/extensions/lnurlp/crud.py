@@ -21,13 +21,15 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             served_meta,
             served_pr,
             webhook_url,
+            webhook_headers,
+            webhook_body,
             success_text,
             success_url,
             comment_chars,
             currency,
             fiat_base_multiplier
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)
         {returning}
         """,
         (
@@ -36,6 +38,8 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.min,
             data.max,
             data.webhook_url,
+            data.webhook_headers,
+            data.webhook_body,
             data.success_text,
             data.success_url,
             data.comment_chars,
