@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from sqlite3 import Row
 from typing import Optional
@@ -15,6 +16,14 @@ class CreateCharge(BaseModel):
     completelinktext: str = Query(None)
     time: int = Query(..., ge=1)
     amount: int = Query(..., ge=1)
+    extra: str = "{}"
+
+
+class ChargeConfig(BaseModel):
+    mempool_endpoint: Optional[str]
+    network: Optional[str]
+    webhook_success: Optional[bool] = False
+    webhook_message: Optional[str]
 
 
 class Charges(BaseModel):
@@ -28,6 +37,7 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
+    extra: str = "{}"
     time: int
     amount: int
     balance: int
@@ -54,3 +64,11 @@ class Charges(BaseModel):
             return True
         else:
             return False
+
+    @property
+    def config(self) -> ChargeConfig:
+        charge_config = json.loads(self.extra)
+        return ChargeConfig(**charge_config)
+
+    def must_call_webhook(self):
+        return self.webhook and self.paid and self.config.webhook_success == False
