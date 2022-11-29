@@ -94,6 +94,17 @@ class EnabledExtensionMiddleware:
             await response(scope, receive, send)
             return
 
+        # re-route trafic if the extension has been upgraded
+        upgraded_extensions = list(
+            filter(
+                lambda ext: ext.endswith(f"/{pathname}"), g().config.LNBITS_UPGRADED_EXTENSIONS)
+            )
+        if len(upgraded_extensions) != 0:
+            upgrade_path = upgraded_extensions[0]
+            tail = "/".join(rest)
+            scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
+
+
         await self.app(scope, receive, send)
 
 

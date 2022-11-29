@@ -34,7 +34,7 @@ from genericpath import isfile
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse
+from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
@@ -800,7 +800,13 @@ async def api_install_extension(
 
         # todo: is admin only
         # lnbits/extensions/satspay/upgrade/111/satspay/__init__.py
-        ext = Extension(code=extension.id, is_valid=True, is_admin_only=False, name=extension.name, version="111")
+        ext = Extension(
+            code=extension.id,
+            is_valid=True,
+            is_admin_only=False,
+            name=extension.name,
+            version="111",
+        )
 
         # current_versions = await get_dbversions()
         # current_version = current_versions.get(ext.code, 0)
@@ -809,6 +815,7 @@ async def api_install_extension(
         # disable by default
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
         settings.lnbits_disabled_extensions += [ext_id]
+        settings.LNBITS_UPGRADED_EXTENSIONS += [f"{ext.version}/{ext.code}"] #todo: re-visit
 
         # mount routes at the very end
         core_app_extra.register_new_ext_routes(ext)
