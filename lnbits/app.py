@@ -156,6 +156,14 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
+    if ext.version != "":
+        if f"lnbits.extensions.{ext.code}" in sys.modules:
+            del sys.modules[f"lnbits.extensions.{ext.code}"]
+            del ext_module
+            ext_module = importlib.import_module(f"lnbits.upgrades.{ext.version}.{ext.code}-{ext.version}")
+    # else:
+    #     ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
+
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
     if hasattr(ext_module, f"{ext.code}_start"):
@@ -168,7 +176,11 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             app.mount(s["path"], s["app"], s["name"])
 
     logger.trace(f"adding route for extension {ext_module}")
-    app.include_router(ext_route)
+    if ext.version != "":
+        # ext_route.prefix = "/sss"
+        app.include_router(router=ext_route, prefix="/sss")
+    else:
+        app.include_router(router=ext_route)
 
 
 def register_startup(app: FastAPI):

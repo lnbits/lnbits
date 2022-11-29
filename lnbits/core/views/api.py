@@ -794,16 +794,17 @@ async def api_install_extension(
 
     try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
-        shutil.rmtree(ext_dir, True)
-        with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
-            zip_ref.extractall("lnbits/extensions")
+        # shutil.rmtree(ext_dir, True)
+        # with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
+        #     zip_ref.extractall("lnbits/extensions")
 
         # todo: is admin only
-        ext = Extension(extension.id, True, extension.is_admin_only, extension.name)
+        # lnbits/extensions/satspay/upgrade/111/satspay/__init__.py
+        ext = Extension(code=extension.id, is_valid=True, is_admin_only=False, name=extension.name, version="111")
 
-        current_versions = await get_dbversions()
-        current_version = current_versions.get(ext.code, 0)
-        await migrate_extension_database(ext, current_version)
+        # current_versions = await get_dbversions()
+        # current_version = current_versions.get(ext.code, 0)
+        # await migrate_extension_database(ext, current_version) # todo: test
 
         # disable by default
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
@@ -818,7 +819,7 @@ async def api_install_extension(
             os.remove(ext_zip_file)
 
         # remove module from extensions
-        shutil.rmtree(ext_dir, True)
+        # shutil.rmtree(ext_dir, True)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )

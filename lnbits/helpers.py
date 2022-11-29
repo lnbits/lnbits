@@ -25,6 +25,7 @@ class Extension(NamedTuple):
     hidden: bool = False
     migration_module: Optional[str] = None
     db_name: Optional[str] = None
+    version: Optional[str] = ""
 
 
 class ExtensionManager:
