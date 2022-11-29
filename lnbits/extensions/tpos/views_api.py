@@ -3,6 +3,7 @@ from http import HTTPStatus
 import httpx
 from fastapi import Query
 from fastapi.params import Depends
+from lnbits.settings import LNBITS_COMMIT
 from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -134,7 +135,8 @@ async def api_tpos_pay_invoice(
 
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.get(lnurl, follow_redirects=True)
+            headers = {"user-agent": f"lnbits/tpos commit {LNBITS_COMMIT[:7]}"}
+            r = await client.get(lnurl, follow_redirects=True, headers=headers)
             if r.is_error:
                 lnurl_response = {"success": False, "detail": "Error loading"}
             else:
@@ -145,6 +147,7 @@ async def api_tpos_pay_invoice(
                     r2 = await client.get(
                         resp["callback"],
                         follow_redirects=True,
+                        headers=headers,
                         params={
                             "k1": resp["k1"],
                             "pr": payment_request,
