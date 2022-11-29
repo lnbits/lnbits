@@ -3,7 +3,6 @@ from http import HTTPStatus
 import httpx
 from fastapi import Query
 from fastapi.params import Depends
-from lnbits.settings import LNBITS_COMMIT
 from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -13,6 +12,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.settings import LNBITS_COMMIT
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
