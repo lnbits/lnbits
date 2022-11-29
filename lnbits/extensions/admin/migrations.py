@@ -6,6 +6,7 @@ async def m001_create_admin_settings_table(db):
             debug TEXT,
             host TEXT,
             port INTEGER,
+            forwarded_allow_ips TEXT,
             lnbits_saas_instance_id TEXT,
             lnbits_saas_callback TEXT,
             lnbits_saas_secret TEXT,
