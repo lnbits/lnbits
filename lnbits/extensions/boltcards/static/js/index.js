@@ -412,6 +412,12 @@ new Vue({
       let self = this
       let cards = _.findWhere(this.cards, {id: cardId})
 
+      Quasar.utils.exportFile(
+        cards.card_name + '.json',
+        this.qrCodeDialog.data_wipe,
+        'application/json'
+      )
+
       LNbits.utils
         .confirmDialog(
           "Are you sure you want to delete this card? Without access to the card keys you won't be able to reset them in the future!"
