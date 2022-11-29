@@ -21,7 +21,7 @@ def list_parse_fallback(v):
             return []
 
 
-read_only_variables = ["host", "port", "lnbits_commit", "lnbits_path"]
+read_only_variables = ["host", "port", "lnbits_commit", "lnbits_path", "forwarded_allow_ips"]
 
 
 class Settings(BaseSettings):
