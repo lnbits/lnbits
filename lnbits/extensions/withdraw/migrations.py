@@ -3,13 +3,13 @@ async def m001_initial(db):
     Creates an improved withdraw table and migrates the existing data.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE withdraw.withdraw_links (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
-            min_withdrawable INTEGER DEFAULT 1,
-            max_withdrawable INTEGER DEFAULT 1,
+            min_withdrawable {db.big_int} DEFAULT 1,
+            max_withdrawable {db.big_int} DEFAULT 1,
             uses INTEGER DEFAULT 1,
             wait_time INTEGER,
             is_unique INTEGER DEFAULT 0,
@@ -28,13 +28,13 @@ async def m002_change_withdraw_table(db):
     Creates an improved withdraw table and migrates the existing data.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE withdraw.withdraw_link (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
-            min_withdrawable INTEGER DEFAULT 1,
-            max_withdrawable INTEGER DEFAULT 1,
+            min_withdrawable {db.big_int} DEFAULT 1,
+            max_withdrawable {db.big_int} DEFAULT 1,
             uses INTEGER DEFAULT 1,
             wait_time INTEGER,
             is_unique INTEGER DEFAULT 0,
