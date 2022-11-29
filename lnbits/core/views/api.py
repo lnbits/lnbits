@@ -803,18 +803,6 @@ async def api_install_extension(
 
         current_versions = await get_dbversions()
         current_version = current_versions.get(ext.code, 0)
-
-        module_name = f"lnbits.extensions.{ext.code}"
-        # if module_name in sys.modules:
-        #     importlib.reload(sys.modules[module_name])
-        ext_module = importlib.import_module(module_name)
-        # sys.modules[module_name] = importlib.reload(ext_module)
-
-        modules_to_reload = list_modules_for_extension(ext_id)
-        print("### modules_to_reload", modules_to_reload)
-        for m in modules_to_reload:
-            importlib.reload(sys.modules[m])
-
         await migrate_extension_database(ext, current_version)
 
         # disable by default
