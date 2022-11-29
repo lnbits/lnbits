@@ -170,7 +170,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     logger.trace(f"adding route for extension {ext_module}")
 
-    prefix = f"/upgrades/{ext.version}" if ext.version != "" else ""
+    prefix = f"/upgrades/{ext.hash}" if ext.hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
 
 
