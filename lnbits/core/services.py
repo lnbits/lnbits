@@ -387,24 +387,19 @@ def fee_reserve(amount_msat: int) -> int:
 class WebsocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
-        return
 
     async def connect(self, websocket: WebSocket, item_id: str):
         await websocket.accept()
-        if item_id not in self.active_connections:
-            websocket.id = item_id
-            self.active_connections.append(websocket)
-        return
+        websocket.id = item_id
+        self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
-        return
 
     async def send_data(self, message: str, item_id: str):
         for connection in self.active_connections:
             if connection.id == item_id:
                 await connection.send_text(message)
-        return
 
 
 websocketManager = WebsocketConnectionManager()
