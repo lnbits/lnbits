@@ -87,24 +87,34 @@ class InstalledExtensionMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         pathname = scope["path"].split("/")[1]
         if pathname in settings.lnbits_disabled_extensions:
+            path_elements = scope["path"].split("/")
+            if len(path_elements) > 2:
+                _, path_name, path_type, *rest = path_elements
+            else:
+                _, path_name = path_elements
+                path_type = None
+
+        # block path for all users if the extension is disabled
+        if path_name in settings.LNBITS_DISABLED_EXTENSIONS:
             response = JSONResponse(
                 status_code=HTTPStatus.NOT_FOUND,
-                content={"detail": f"Extension '{pathname}' disabled"},
+                content={"detail": f"Extension '{path_name}' disabled"},
             )
             await response(scope, receive, send)
             return
 
-        # re-route trafic if the extension has been upgraded
-        upgraded_extensions = list(
-            filter(
-                lambda ext: ext.endswith(f"/{pathname}"),
-                g().config.LNBITS_UPGRADED_EXTENSIONS,
+        # re-route API trafic if the extension has been upgraded
+        if path_type == "api":
+            upgraded_extensions = list(
+                filter(
+                    lambda ext: ext.endswith(f"/{path_name}"),
+                    g().config.LNBITS_UPGRADED_EXTENSIONS,
+                )
             )
-        )
-        if len(upgraded_extensions) != 0:
-            upgrade_path = upgraded_extensions[0]
-            tail = "/".join(rest)
-            scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
+            if len(upgraded_extensions) != 0:
+                upgrade_path = upgraded_extensions[0]
+                tail = "/".join(rest)
+                scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
 
         await self.app(scope, receive, send)
 
