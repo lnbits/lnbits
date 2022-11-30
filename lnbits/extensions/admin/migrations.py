@@ -24,6 +24,7 @@ async def m001_create_admin_settings_table(db):
             lnbits_theme_options TEXT,
             lnbits_custom_logo TEXT,
             lnbits_ad_space TEXT,
+            lnbits_ad_space_title TEXT,
             lnbits_data_folder TEXT,
             lnbits_database_url TEXT,
             lnbits_force_https TEXT,
@@ -62,7 +63,11 @@ async def m001_create_admin_settings_table(db):
             boltz_network TEXT,
             boltz_url TEXT,
             boltz_mempool_space_url TEXT,
-            boltz_mempool_space_url_ws TEXT
+            boltz_mempool_space_url_ws TEXT,
+            lntips_api_endpoint TEXT,
+            lntips_api_key TEXT,
+            lntips_admin_key TEXT,
+            lntips_invoice_key TEXT
         );
     """
     )

@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 import json
 import time
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
@@ -16,16 +15,18 @@ from .base import (
     Wallet,
 )
 
+from lnbits.settings import settings
+
 
 class LnTipsWallet(Wallet):
     def __init__(self):
-        endpoint = getenv("LNTIPS_API_ENDPOINT")
+        endpoint = settings.lntips_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
         key = (
-            getenv("LNTIPS_API_KEY")
-            or getenv("LNTIPS_ADMIN_KEY")
-            or getenv("LNTIPS_INVOICE_KEY")
+            settings.lntips_api_key
+            or settings.lntips_admin_key
+            or settings.lntips_invoice_key
         )
         self.auth = {"Authorization": f"Basic {key}"}
 

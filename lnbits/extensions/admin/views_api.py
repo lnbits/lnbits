@@ -5,13 +5,14 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
-from lnbits.core.models import User
 from lnbits.decorators import check_admin
 from lnbits.extensions.admin import admin_ext
 from lnbits.extensions.admin.models import UpdateSettings
 from lnbits.server import server_restart
 
 from .crud import delete_settings, get_settings, update_settings, update_wallet_balance
+
+from lnbits.settings import settings, set_settings
 
 
 @admin_ext.get(
@@ -52,6 +53,7 @@ async def api_update_settings(
     data: UpdateSettings = Body(...),
 ):
     settings = await update_settings(data)
+    set_settings(settings)
     if settings:
         return {"status": "Success", "settings": settings.dict()}
 

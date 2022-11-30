@@ -24,6 +24,7 @@ class UpdateSettings(BaseModel):
     lnbits_theme: str = Query(None)
     lnbits_custom_logo: str = Query(None)
     lnbits_ad_space: List[str] = Query(None)
+    lnbits_ad_space_title: str = Query(None)
 
     # funding sources
     fake_wallet_secret: str = Query(None)
@@ -56,6 +57,10 @@ class UpdateSettings(BaseModel):
     opennode_key: str = Query(None)
     spark_url: str = Query(None)
     spark_token: str = Query(None)
+    lntips_api_endpoint: str = Query(None)
+    lntips_api_key: str = Query(None)
+    lntips_admin_key: str = Query(None)
+    lntips_invoice_key: str = Query(None)
 
 
 class AdminSettings(UpdateSettings):

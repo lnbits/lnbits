@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     )
     lnbits_custom_logo: str = Field(default=None)
     lnbits_ad_space: List[str] = Field(default=[])
+    lnbits_ad_space_title: str = Field(default="")
 
     # ops
     lnbits_data_folder: str = Field(default="./data")
@@ -79,8 +80,9 @@ class Settings(BaseSettings):
             "LndWallet",
             "LntxbotWallet",
             "LNPayWallet",
-            "LnbitsWallet",
+            "LNbitsWallet",
             "OpenNodeWallet",
+            "LnTipsWallet",
         ]
     )
     fake_wallet_secret: str = Field(default="ToTheMoon1")
@@ -113,6 +115,10 @@ class Settings(BaseSettings):
     opennode_key: Optional[str] = Field(default=None)
     spark_url: Optional[str] = Field(default=None)
     spark_token: Optional[str] = Field(default=None)
+    lntips_api_endpoint: Optional[str] = Field(default=None)
+    lntips_api_key: Optional[str] = Field(default=None)
+    lntips_admin_key: Optional[str] = Field(default=None)
+    lntips_invoice_key: Optional[str] = Field(default=None)
 
     # boltz
     boltz_network: str = Field(default="main")
@@ -168,6 +174,11 @@ if not settings.lnbits_admin_ui:
     logger.debug(f"Enviroment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
+
+
+def set_settings(**kwargs):
+    for key, value in kwargs.items():
+        setattr(settings, key, value)
 
 
 def set_cli_settings(**kwargs):
