@@ -2,12 +2,11 @@ from typing import Optional
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import Settings, read_only_variables
+from lnbits.settings import Settings, read_only_variables, settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
 from .models import AdminSettings, UpdateSettings
-from lnbits.settings import settings
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):

@@ -7,6 +7,8 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.settings import settings
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -14,8 +16,6 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-
-from lnbits.settings import settings
 
 
 class LnTipsWallet(Wallet):

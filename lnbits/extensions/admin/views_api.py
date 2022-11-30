@@ -13,7 +13,6 @@ from lnbits.server import server_restart
 from .crud import delete_settings, get_settings, update_settings, update_wallet_balance
 
 
-
 @admin_ext.get(
     "/api/v1/restart/", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)]
 )
