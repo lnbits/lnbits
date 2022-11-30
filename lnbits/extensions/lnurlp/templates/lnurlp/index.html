@@ -216,6 +216,24 @@
         <q-input
           filled
           dense
+          v-if="formDialog.data.webhook_url"
+          v-model="formDialog.data.webhook_headers"
+          type="text"
+          label="Webhook headers (optional)"
+          hint="Custom data as JSON string, send headers along with the webhook."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-if="formDialog.data.webhook_url"
+          v-model="formDialog.data.webhook_body"
+          type="text"
+          label="Webhook custom data (optional)"
+          hint="Custom data as JSON string, will get posted along with webhook 'body' field."
+        ></q-input>
+        <q-input
+          filled
+          dense
           v-model="formDialog.data.success_text"
           type="text"
           label="Success message (optional)"

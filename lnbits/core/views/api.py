@@ -12,7 +12,7 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request
+from fastapi import Depends, Header, Query, Request, Response
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -155,30 +155,29 @@ class CreateInvoiceData(BaseModel):
 
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
-    if data.description_hash:
+    if data.description_hash or data.unhashed_description:
         try:
-            description_hash = binascii.unhexlify(data.description_hash)
+            description_hash = (
+                binascii.unhexlify(data.description_hash)
+                if data.description_hash
+                else b""
+            )
+            unhashed_description = (
+                binascii.unhexlify(data.unhashed_description)
+                if data.unhashed_description
+                else b""
+            )
         except binascii.Error:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="'description_hash' must be a valid hex string",
+                detail="'description_hash' and 'unhashed_description' must be a valid hex strings",
             )
-        unhashed_description = b""
-        memo = ""
-    elif data.unhashed_description:
-        try:
-            unhashed_description = binascii.unhexlify(data.unhashed_description)
-        except binascii.Error:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="'unhashed_description' must be a valid hex string",
-            )
-        description_hash = b""
         memo = ""
     else:
         description_hash = b""
         unhashed_description = b""
         memo = data.memo or LNBITS_SITE_TITLE
+
     if data.unit == "sat":
         amount = int(data.amount)
     else:
@@ -585,8 +584,8 @@ class DecodePayment(BaseModel):
     data: str
 
 
-@core_app.post("/api/v1/payments/decode")
-async def api_payments_decode(data: DecodePayment):
+@core_app.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
+async def api_payments_decode(data: DecodePayment, response: Response):
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
@@ -607,6 +606,7 @@ async def api_payments_decode(data: DecodePayment):
                 "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
             }
     except:
+        response.status_code = HTTPStatus.BAD_REQUEST
         return {"message": "Failed to decode"}
 
 

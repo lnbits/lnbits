@@ -109,4 +109,4 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admi
         )
 
     await delete_scrub_link(link_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

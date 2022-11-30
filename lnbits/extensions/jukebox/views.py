@@ -17,7 +17,9 @@ templates = Jinja2Templates(directory="templates")
 
 
 @jukebox_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request, user: User = Depends(check_user_exists)  # type: ignore
+):
     return jukebox_renderer().TemplateResponse(
         "jukebox/index.html", {"request": request, "user": user.dict()}
     )
@@ -31,6 +33,7 @@ async def connect_to_jukebox(request: Request, juke_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Jukebox does not exist."
         )
     devices = await api_get_jukebox_device_check(juke_id)
+    deviceConnected = False
     for device in devices["devices"]:
         if device["id"] == jukebox.sp_device.split("-")[1]:
             deviceConnected = True
@@ -48,5 +51,5 @@ async def connect_to_jukebox(request: Request, juke_id):
     else:
         return jukebox_renderer().TemplateResponse(
             "jukebox/error.html",
-            {"request": request, "jukebox": jukebox.jukebox(req=request)},
+            {"request": request, "jukebox": jukebox.dict()},
         )

@@ -15,9 +15,10 @@ from .crud import (
     delete_satsdice_pay,
     get_satsdice_pay,
     get_satsdice_pays,
+    get_withdraw_hash_checkw,
     update_satsdice_pay,
 )
-from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, satsdiceLink
+from .models import CreateSatsDiceLink
 
 ################LNURL pay
 
@@ -25,13 +26,15 @@ from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, satsdiceLink
 @satsdice_ext.get("/api/v1/links")
 async def api_links(
     request: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        if user:
+            wallet_ids = user.wallet_ids
 
     try:
         links = await get_satsdice_pays(wallet_ids)
@@ -46,7 +49,7 @@ async def api_links(
 
 @satsdice_ext.get("/api/v1/links/{link_id}")
 async def api_link_retrieve(
-    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     link = await get_satsdice_pay(link_id)
 
@@ -67,7 +70,7 @@ async def api_link_retrieve(
 @satsdice_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
     data: CreateSatsDiceLink,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
     link_id: str = Query(None),
 ):
     if data.min_bet > data.max_bet:
@@ -95,10 +98,10 @@ async def api_link_create_or_update(
 
 @satsdice_ext.delete("/api/v1/links/{link_id}")
 async def api_link_delete(
-    wallet: WalletTypeInfo = Depends(get_key_type), link_id: str = Query(None)
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    link_id: str = Query(None),
 ):
     link = await get_satsdice_pay(link_id)
-
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
@@ -117,11 +120,12 @@ async def api_link_delete(
 ##########LNURL withdraw
 
 
-@satsdice_ext.get("/api/v1/withdraws/{the_hash}/{lnurl_id}")
+@satsdice_ext.get(
+    "/api/v1/withdraws/{the_hash}/{lnurl_id}", dependencies=[Depends(get_key_type)]
+)
 async def api_withdraw_hash_retrieve(
-    wallet: WalletTypeInfo = Depends(get_key_type),
     lnurl_id: str = Query(None),
     the_hash: str = Query(None),
 ):
-    hashCheck = await get_withdraw_hash_check(the_hash, lnurl_id)
+    hashCheck = await get_withdraw_hash_checkw(the_hash, lnurl_id)
     return hashCheck
