@@ -481,8 +481,8 @@ async def api_diagonalley_stall_create(
 ## KEYS
 
 
-@diagonalley_ext.get("/api/v1/keys/{payment_hash}")
-async def api_diagonalley_generate_keys(payment_hash: str):
+@diagonalley_ext.get("/api/v1/keys")
+async def api_diagonalley_generate_keys():
     private_key = PrivateKey()
     public_key = private_key.pubkey.serialize().hex()
     while not public_key.startswith("02"):

@@ -336,13 +336,13 @@
             this.user = null
           })
       },
-      async generateKeys(payment_hash) {
+      async generateKeys() {
         //check if the keys are set
         if ('publickey' in this.user.keys && 'privatekey' in this.user.keys)
           return
 
         return await LNbits.api
-          .request('GET', `/diagonalley/api/v1/keys/${payment_hash}`, null)
+          .request('GET', `/diagonalley/api/v1/keys`, null)
           .then(response => {
             if (response.data) {
               let data = {
@@ -457,7 +457,7 @@
         }
       } else {
         // generate keys
-        this.generateKeys(order_id)
+        this.generateKeys()
         // populate user data
         this.user.orders = {
           [`${order_id}`]: this.products
