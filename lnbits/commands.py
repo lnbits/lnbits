@@ -76,7 +76,6 @@ async def migrate_databases():
                 version = int(match.group(1))
                 if version > current_versions.get(db_name, 0):
                     logger.debug(f"running migration {db_name}.{version}")
-                    logger.debug(f"db = {db}")
                     await migrate(db)
 
                     if db.schema == None:
