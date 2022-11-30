@@ -19,10 +19,12 @@ def public_charge(charge: Charges):
         "time_elapsed": charge.time_elapsed,
         "time_left": charge.time_left,
         "paid": charge.paid,
+        "custom_css": charge.custom_css,
     }
 
     if charge.paid:
         c["completelink"] = charge.completelink
+        c["completelinktext"] = charge.completelinktext
 
     return c
 

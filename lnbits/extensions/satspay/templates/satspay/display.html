@@ -174,7 +174,7 @@
                 <div class="col text-center">
                   <q-btn
                     outline
-                    v-if="charge.webhook"
+                    v-if="charge.completelink"
                     type="a"
                     :href="charge.completelink"
                     :label="charge.completelinktext"
@@ -297,7 +297,17 @@
   </div>
   <div class="col-lg- 4 col-md-3 col-sm-1"></div>
 </div>
-
+{% endblock %} {% block styles %}
+<link
+  href="/satspay/css/{{ charge_data.custom_css }}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<style>
+  header button.q-btn-dropdown {
+    display: none;
+  }
+</style>
 {% endblock %} {% block scripts %}
 
 <script src="https://mempool.space/mempool.js"></script>
@@ -438,6 +448,10 @@
       }
     },
     created: async function () {
+      // Remove a user defined theme
+      if (this.charge.custom_css) {
+        document.body.setAttribute('data-theme', '')
+      }
       if (this.charge.payment_request) this.payInvoice()
       else this.payOnchain()
 
