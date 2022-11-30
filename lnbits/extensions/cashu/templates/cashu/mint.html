@@ -1,0 +1,76 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg q-mb-xl">
+      <q-card-section class="q-pa-none">
+        <center>
+          <q-icon
+            name="account_balance"
+            class="text-grey"
+            style="font-size: 10rem"
+          ></q-icon>
+          <h4 class="q-mt-none q-mb-md">{{ mint_name }}</h4>
+          <a
+            class="q-my-xl text-white"
+            style="font-size: 1.5rem"
+            href="../wallet?mint_id={{ mint_id }}"
+            >Open wallet</a
+          >
+        </center>
+      </q-card-section>
+    </q-card>
+    <q-card class="q-pa-lg q-mb-xl">
+      <q-card-section class="q-pa-none">
+        <h5 class="q-my-md">Read the following carefully!</h5>
+        <p>
+          This is a
+          <a href="https://cashu.space/" style="color: white" target="”_blank”"
+            >Cashu</a
+          >
+          mint. Cashu is an ecash system for Bitcoin.
+        </p>
+        <p>
+          <strong>Open this page in your native browser</strong><br />
+          Before you continue to the wallet, make sure to open this page in your
+          device's native browser application (Safari for iOS, Chrome for
+          Android). Do not use Cashu in an embedded browser that opens when you
+          click a link in a messenger.
+        </p>
+        <p>
+          <strong>Add wallet to home screen</strong><br />
+          You can add Cashu to your home screen as a progressive web app (PWA).
+          After opening the wallet in your browser (click the link above), on
+          Android (Chrome), click the menu at the upper right. On iOS (Safari),
+          click the share button. Now press the Add to Home screen button.
+        </p>
+        <p>
+          <strong>Backup your wallet</strong><br />
+          Ecash is a bearer asset. That means losing access to your wallet will
+          make you lose your funds. The wallet stores ecash tokens on your
+          device's database. If you lose the link or delete your your data
+          without backing up, you will lose your tokens. Press the Backup button
+          in the wallet to download a copy of your tokens.
+        </p>
+        <p>
+          <strong>This service is in BETA</strong> <br />
+          We hold no responsibility for people losing access to funds. Use at
+          your own risk!
+        </p>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  {% endblock %} {% block scripts %}
+
+  <script>
+    new Vue({
+      el: '#vue',
+      mixins: [windowMixin],
+      data: function () {
+        return {}
+      }
+    })
+  </script>
+
+  {% endblock %}
+</div>
