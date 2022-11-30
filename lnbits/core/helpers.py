@@ -17,10 +17,8 @@ from .crud import update_migration_version
 
 async def migrate_extension_database(ext, current_version):
     try:
-        ext_migrations = importlib.import_module(
-            f"lnbits.extensions.{ext.code}.migrations"
-        )
-        ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
+        ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
+        ext_db = importlib.import_module(ext.module_name).db
     except ImportError:
         raise ImportError(
             f"Please make sure that the extension `{ext.code}` has a migrations file."
