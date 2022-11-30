@@ -176,11 +176,6 @@ if not settings.lnbits_admin_ui:
         logger.debug(f"{key}: {value}")
 
 
-def set_settings(**kwargs):
-    for key, value in kwargs.items():
-        setattr(settings, key, value)
-
-
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)

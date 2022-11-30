@@ -232,8 +232,8 @@ async def get_wallet_payment(
 async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
     rows = await db.fetchall(
         f"""
-        SELECT * FROM apipayments 
-        WHERE pending = 'false' 
+        SELECT * FROM apipayments
+        WHERE pending = 'false'
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}

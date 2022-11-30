@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
@@ -7,10 +7,10 @@ from lnbits.tasks import internal_invoice_queue
 
 from . import db
 from .models import AdminSettings, UpdateSettings
+from lnbits.settings import settings
 
 
-async def update_wallet_balance(wallet_id: str, amount: int) -> None:
-    temp_id = f"temp_{urlsafe_short_hash()}"
+async def update_wallet_balance(wallet_id: str, amount: int):
     internal_id = f"internal_{urlsafe_short_hash()}"
 
     payment = await create_payment(
@@ -24,6 +24,8 @@ async def update_wallet_balance(wallet_id: str, amount: int) -> None:
     )
     # manually send this for now
     await internal_invoice_queue.put(internal_id)
+
+    return payment
 
 
 async def get_settings() -> AdminSettings:
@@ -39,6 +41,7 @@ async def get_settings() -> AdminSettings:
 async def update_settings(data: UpdateSettings) -> Optional[Settings]:
     fields = []
     for key, value in data.dict(exclude_none=True).items():
+        setattr(settings, key, value)
         if not key in read_only_variables:
             if type(value) == list:
                 joined = ",".join(value)
@@ -52,7 +55,6 @@ async def update_settings(data: UpdateSettings) -> Optional[Settings]:
                 fields.append(f"{key} = '{value}'")
 
     q = ", ".join(fields)
-    print("UPDATE", q)
     await db.execute(f"UPDATE admin.settings SET {q}")
     row = await db.fetchone("SELECT * FROM admin.settings")
     assert row, "Newly updated settings couldn't be retrieved"

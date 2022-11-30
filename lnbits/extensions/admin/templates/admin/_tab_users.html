@@ -3,7 +3,7 @@
     <h6 class="q-my-none">User Management</h6>
     <br />
     <p class="q-my-none">
-      Super Admin: {% raw %}{{settings.lnbits_admin_users[0]}}{% endraw %}
+      Super Admin: {{ settings.lnbits_admin_users[0] }}
     </p>
     <br />
     <div>
@@ -19,18 +19,16 @@
         <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
       </q-input>
       <div>
-        {% raw %}
         <q-chip
-          v-for="user in settings.lnbits_admin_users.slice(1)"
+          v-for="user in settings.lnbits_admin_users"
           :key="user"
           removable
           @remove="removeAdminUser(user)"
           color="primary"
           text-color="white"
         >
-          {{ user }}
+          {{ user.id }}
         </q-chip>
-        {% endraw %}
       </div>
       <br />
     </div>

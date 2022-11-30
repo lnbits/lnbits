@@ -12,7 +12,6 @@ from lnbits.server import server_restart
 
 from .crud import delete_settings, get_settings, update_settings, update_wallet_balance
 
-from lnbits.settings import settings, set_settings
 
 
 @admin_ext.get(
@@ -53,7 +52,6 @@ async def api_update_settings(
     data: UpdateSettings = Body(...),
 ):
     settings = await update_settings(data)
-    set_settings(settings)
     if settings:
         return {"status": "Success", "settings": settings.dict()}
 
