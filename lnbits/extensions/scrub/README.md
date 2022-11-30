@@ -4,6 +4,8 @@
 
 SCRUB is a small but handy extension that allows a user to take advantage of all the functionalities inside **LNbits** and upon a payment received to your LNbits wallet, automatically forward it to your desired wallet via LNURL or LNAddress!
 
+<small>Only whole values, integers, are Scrubbed, amounts will be rounded down (example: 6.3 will be 6)! The decimals, if existing, will be kept in your wallet!</small>
+
 [**Wallets supporting LNURL**](https://github.com/fiatjaf/awesome-lnurl#wallets)
 
 ## Usage

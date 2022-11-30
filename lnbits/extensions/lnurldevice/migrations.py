@@ -29,7 +29,7 @@ async def m001_initial(db):
             payhash TEXT,
             payload TEXT NOT NULL,
             pin INT,
-            sats INT, 
+            sats {db.big_int}, 
             timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
     """
@@ -79,3 +79,12 @@ async def m002_redux(db):
             )
     except:
         return
+
+
+async def m003_redux(db):
+    """
+    Add 'meta' for storing various metadata about the wallet
+    """
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount INT DEFAULT 0;"
+    )

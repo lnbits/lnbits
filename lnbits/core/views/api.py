@@ -2,11 +2,14 @@ import asyncio
 import binascii
 import hashlib
 import json
+import time
+import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
+import async_timeout
 import httpx
 import pyqrcode
 from fastapi import Depends, Header, Query, Request
@@ -15,7 +18,7 @@ from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse
+from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
@@ -27,7 +30,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE
+from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -39,6 +42,7 @@ from ..crud import (
     create_payment,
     get_payments,
     get_standalone_payment,
+    get_total_balance,
     get_wallet,
     get_wallet_for_key,
     save_balance_check,
@@ -364,37 +368,48 @@ async def api_payments_pay_lnurl(
     }
 
 
-async def subscribe(request: Request, wallet: Wallet):
+async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
+    """
+    Subscribe to new invoices for a wallet. Can be wrapped in EventSourceResponse.
+    Listenes invoming payments for a wallet and yields jsons with payment details.
+    """
     this_wallet_id = wallet.id
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    logger.debug("adding sse listener", payment_queue)
-    api_invoice_listeners.append(payment_queue)
+    uid = f"{this_wallet_id}_{str(uuid.uuid4())[:8]}"
+    logger.debug(f"adding sse listener for wallet: {uid}")
+    api_invoice_listeners[uid] = payment_queue
 
     send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
-            payment: Payment = await payment_queue.get()
-            if payment.wallet_id == this_wallet_id:
-                logger.debug("payment received", payment)
-                await send_queue.put(("payment-received", payment))
+            try:
+                async with async_timeout.timeout(1):
+                    payment: Payment = await payment_queue.get()
+                    if payment.wallet_id == this_wallet_id:
+                        logger.debug("sse listener: payment receieved", payment)
+                        await send_queue.put(("payment-received", payment))
+            except asyncio.TimeoutError:
+                pass
 
-    asyncio.create_task(payment_received())
+    task = asyncio.create_task(payment_received())
 
     try:
         while True:
+            if await request.is_disconnected():
+                await request.close()
+                break
             typ, data = await send_queue.get()
-
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
 
-            # yield dict(id=1, event="this", data="1234")
-            # await asyncio.sleep(2)
             yield dict(data=jdata, event=typ)
-            # yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as e:
+        logger.debug(f"CancelledError on listener {uid}: {e}")
+        api_invoice_listeners.pop(uid)
+        task.cancel()
         return
 
 
@@ -403,7 +418,9 @@ async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
-        subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
+        subscribe_wallet_invoices(request, wallet.wallet),
+        ping=20,
+        media_type="text/event-stream",
     )
 
 
@@ -459,7 +476,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     except:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
-        if len(name_domain) == 2 and len(name_domain[1].split(".")) == 2:
+        if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
             name, domain = name_domain
             url = (
                 ("http://" if domain.endswith(".onion") else "https://")
@@ -657,3 +674,26 @@ async def img(request: Request, data):
             "Expires": "0",
         },
     )
+
+
+@core_app.get("/api/v1/audit/")
+async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
+    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
+        )
+
+    total_balance = await get_total_balance()
+    error_message, node_balance = await WALLET.status()
+
+    if not error_message:
+        delta = node_balance - total_balance
+    else:
+        node_balance, delta = None, None
+
+    return {
+        "node_balance_msats": node_balance,
+        "lnbits_balance_msats": total_balance,
+        "delta_msats": delta,
+        "timestamp": int(time.time()),
+    }

@@ -10,7 +10,7 @@ from .models import Address, Config, WalletAccount
 ##########################WALLETS####################
 
 
-async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
+async def create_watch_wallet(user: str, w: WalletAccount) -> WalletAccount:
     wallet_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -30,7 +30,7 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
         """,
         (
             wallet_id,
-            w.user,
+            user,
             w.masterpub,
             w.fingerprint,
             w.title,

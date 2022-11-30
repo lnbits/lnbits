@@ -1,12 +1,13 @@
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
-from typing import List
+from typing import List, Union
 from uuid import uuid4
 
 from fastapi import Request
-from fastapi.param_functions import Query
+from fastapi.param_functions import Body, Query
 from fastapi.params import Depends
 from loguru import logger
+from secp256k1 import PrivateKey, PublicKey
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -33,6 +34,9 @@ from .crud import (
     delete_diagonalley_product,
     delete_diagonalley_stall,
     delete_diagonalley_zone,
+    get_diagonalley_chat_by_merchant,
+    get_diagonalley_chat_messages,
+    get_diagonalley_latest_chat_messages,
     get_diagonalley_market,
     get_diagonalley_market_stalls,
     get_diagonalley_markets,
@@ -47,6 +51,7 @@ from .crud import (
     get_diagonalley_stalls_by_ids,
     get_diagonalley_zone,
     get_diagonalley_zones,
+    set_diagonalley_order_pubkey,
     update_diagonalley_market,
     update_diagonalley_product,
     update_diagonalley_stall,
@@ -198,7 +203,6 @@ async def api_diagonalley_stall_create(
 
     if stall_id:
         stall = await get_diagonalley_stall(stall_id)
-        print("ID", stall_id)
         if not stall:
             return {"message": "Withdraw stall does not exist."}
 
@@ -252,6 +256,14 @@ async def api_diagonalley_orders(
         return {"message": "We could not retrieve the orders."}
 
 
+@diagonalley_ext.get("/api/v1/orders/{order_id}")
+async def api_diagonalley_order_by_id(order_id: str):
+    order = (await get_diagonalley_order(order_id)).dict()
+    order["details"] = await get_diagonalley_order_details(order_id)
+
+    return order
+
+
 @diagonalley_ext.post("/api/v1/orders")
 async def api_diagonalley_order_create(data: createOrder):
     ref = urlsafe_short_hash()
@@ -274,8 +286,6 @@ async def api_diagonalley_order_create(data: createOrder):
         "payment_request": payment_request,
         "order_reference": ref,
     }
-    # order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
-    # return order.dict()
 
 
 @diagonalley_ext.get("/api/v1/orders/payments/{payment_hash}")
@@ -296,7 +306,7 @@ async def api_diagonalley_check_payment(payment_hash: str):
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
 async def api_diagonalley_order_delete(
-    order_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    order_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     order = await get_diagonalley_order(order_id)
 
@@ -340,7 +350,7 @@ async def api_diagonalley_order_shipped(
         "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
     )
 
-    return [order.dict() for order in get_diagonalley_orders(order["wallet"])]
+    return order
 
 
 ###List products based on stall id
@@ -354,7 +364,6 @@ async def api_diagonalley_stall_products(
     rows = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
-    print(rows[1])
     if not rows:
         return {"message": "Stall does not exist."}
 
@@ -383,44 +392,44 @@ async def api_diagonalley_stall_checkshipped(
 ###Place order
 
 
-@diagonalley_ext.post("/api/v1/stall/order/{stall_id}")
-async def api_diagonalley_stall_order(
-    stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    product = await get_diagonalley_product(data.productid)
-    shipping = await get_diagonalley_stall(stall_id)
+# @diagonalley_ext.post("/api/v1/stall/order/{stall_id}")
+# async def api_diagonalley_stall_order(
+#     stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
+# ):
+#     product = await get_diagonalley_product(data.productid)
+#     shipping = await get_diagonalley_stall(stall_id)
 
-    if data.shippingzone == 1:
-        shippingcost = shipping.zone1cost  # missing in model
-    else:
-        shippingcost = shipping.zone2cost  # missing in model
+#     if data.shippingzone == 1:
+#         shippingcost = shipping.zone1cost  # missing in model
+#     else:
+#         shippingcost = shipping.zone2cost  # missing in model
 
-    checking_id, payment_request = await create_invoice(
-        wallet_id=product.wallet,
-        amount=shippingcost + (data.quantity * product.price),
-        memo=shipping.wallet,
-    )
-    selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
-    await db.execute(
-        """
-            INSERT INTO diagonalley.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-        (
-            selling_id,
-            data.productid,
-            product.wallet,  # doesn't exist in model
-            product.product,
-            data.quantity,
-            data.shippingzone,
-            data.address,
-            data.email,
-            checking_id,
-            False,
-            False,
-        ),
-    )
-    return {"checking_id": checking_id, "payment_request": payment_request}
+#     checking_id, payment_request = await create_invoice(
+#         wallet_id=product.wallet,
+#         amount=shippingcost + (data.quantity * product.price),
+#         memo=shipping.wallet,
+#     )
+#     selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
+#     await db.execute(
+#         """
+#             INSERT INTO diagonalley.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
+#             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+#             """,
+#         (
+#             selling_id,
+#             data.productid,
+#             product.wallet,  # doesn't exist in model
+#             product.product,
+#             data.quantity,
+#             data.shippingzone,
+#             data.address,
+#             data.email,
+#             checking_id,
+#             False,
+#             False,
+#         ),
+#     )
+#     return {"checking_id": checking_id, "payment_request": payment_request}
 
 
 ##
@@ -467,3 +476,42 @@ async def api_diagonalley_stall_create(
         await create_diagonalley_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()
+
+
+## KEYS
+
+
+@diagonalley_ext.get("/api/v1/keys/{payment_hash}")
+async def api_diagonalley_generate_keys(payment_hash: str):
+    private_key = PrivateKey()
+    public_key = private_key.pubkey.serialize().hex()
+    while not public_key.startswith("02"):
+        private_key = PrivateKey()
+        public_key = private_key.pubkey.serialize().hex()
+
+    # set pubkey in order
+    await set_diagonalley_order_pubkey(payment_hash, pubkey=public_key[2:])
+    return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
+
+
+## MESSAGES/CHAT
+
+
+@diagonalley_ext.get("/api/v1/chat/messages/merchant")
+async def api_get_merchant_messages(
+    orders: str = Query(...), wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+
+    return [
+        msg.dict() for msg in await get_diagonalley_chat_by_merchant(orders.split(","))
+    ]
+
+
+@diagonalley_ext.get("/api/v1/chat/messages/{room_name}")
+async def api_get_latest_chat_msg(room_name: str, all_messages: bool = Query(False)):
+    if all_messages:
+        messages = await get_diagonalley_chat_messages(room_name)
+    else:
+        messages = await get_diagonalley_latest_chat_messages(room_name)
+
+    return messages

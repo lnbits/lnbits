@@ -9,6 +9,8 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    ChatMessage,
+    CreateChatMessage,
     CreateMarket,
     CreateMarketStalls,
     Market,
@@ -190,7 +192,6 @@ async def get_diagonalley_stall(stall_id: str) -> Optional[Stalls]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
-    print("ROW", row)
     return Stalls(**row) if row else None
 
 
@@ -303,6 +304,20 @@ async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
     )
 
 
+async def set_diagonalley_order_pubkey(payment_hash: str, pubkey: str):
+    await db.execute(
+        """
+            UPDATE diagonalley.orders
+            SET pubkey = ?
+            WHERE invoiceid = ?
+            """,
+        (
+            pubkey,
+            payment_hash,
+        ),
+    )
+
+
 async def update_diagonalley_product_stock(products):
 
     q = "\n".join(
@@ -405,3 +420,48 @@ async def create_diagonalley_market_stalls(
 
 async def update_diagonalley_market(market_id):
     pass
+
+
+### CHAT / MESSAGES
+
+
+async def create_chat_message(data: CreateChatMessage):
+    await db.execute(
+        """
+            INSERT INTO diagonalley.messages (msg, pubkey, id_conversation)
+            VALUES (?, ?, ?)
+            """,
+        (
+            data.msg,
+            data.pubkey,
+            data.room_name,
+        ),
+    )
+
+
+async def get_diagonalley_latest_chat_messages(room_name: str):
+    rows = await db.fetchall(
+        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC LIMIT 20",
+        (room_name,),
+    )
+
+    return [ChatMessage(**row) for row in rows]
+
+
+async def get_diagonalley_chat_messages(room_name: str):
+    rows = await db.fetchall(
+        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC",
+        (room_name,),
+    )
+
+    return [ChatMessage(**row) for row in rows]
+
+
+async def get_diagonalley_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
+
+    q = ",".join(["?"] * len(ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM diagonalley.messages WHERE id_conversation IN ({q})",
+        (*ids,),
+    )
+    return [ChatMessage(**row) for row in rows]

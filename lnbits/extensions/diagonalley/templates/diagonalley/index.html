@@ -252,29 +252,33 @@
           label="Wallet *"
         >
         </q-select>
-        <!-- NOSTR -->
-        <!-- <div class="row">
-          <div class="col-5">
-            <q-btn unelevated @onclick="generateKeys" color="primary">Generate keys</q-btn>
-          </div>
-          <div class="col-5">
-            <q-btn unelevated @onclick="restoreKeys" color="primary">Restore keys</q-btn>
-          </div>
-        </div>
         <q-input
-          v-if="stallDialog.restorekeys"
+          v-if="keys"
           filled
           dense
           v-model.trim="stallDialog.data.publickey"
           label="Public Key"
         ></q-input>
         <q-input
-          v-if="stallDialog.restorekeys"
+          v-if="keys"
           filled
           dense
           v-model.trim="stallDialog.data.privatekey"
           label="Private Key"
-        ></q-input> -->
+        ></q-input>
+        <!-- NOSTR -->
+        <div class="row">
+          <div class="col-5">
+            <q-btn unelevated @click="generateKeys" color="primary"
+              >Generate keys</q-btn
+            >
+          </div>
+          <div class="col-5">
+            <q-btn unelevated @click="restoreKeys" color="primary"
+              >Restore keys</q-btn
+            >
+          </div>
+        </div>
         <q-select
           :options="zoneOptions"
           filled
@@ -314,16 +318,18 @@
             unelevated
             color="primary"
             type="submit"
-            >Update Store</q-btn
+            >Update Stall</q-btn
           >
           <q-btn
             v-else
             unelevated
             color="primary"
             :disable="stallDialog.data.wallet == null
-              || stallDialog.data.shippingzones == null"
+              || stallDialog.data.shippingzones == null
+              || stallDialog.data.publickey == null
+              || stallDialog.data.privatekey == null"
             type="submit"
-            >Create Store</q-btn
+            >Create Stall</q-btn
           >
           <q-btn
             v-close-popup
@@ -341,6 +347,29 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
+        <q-btn unelevated color="primary" @click="zoneDialog.show = true"
+          >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-if="zones.length > 0"
+          color="primary"
+          @click="openStallDialog()"
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-else
+          color="primary"
+          @click="errorMessage('First set shipping zone(s).')"
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
+        >
         <q-btn
           unelevated
           v-if="stalls.length > 0"
@@ -355,29 +384,15 @@
           @click="errorMessage('First set shipping zone(s), then create a stall.')"
           >+ Product <q-tooltip> List a product </q-tooltip></q-btn
         >
-        <q-btn unelevated color="primary" @click="zoneDialog.show = true"
-          >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
-        >
         <q-btn
+          class="float-right"
           unelevated
-          v-if="zones.length > 0"
+          flat
           color="primary"
-          @click="openStallDialog()"
-          >+ Store
-          <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
-        >
-        <q-btn
-          unelevated
-          v-else
-          color="primary"
-          @click="errorMessage('First set shipping zone(s).')"
-          >+ Store
-          <q-tooltip> Create a store to list products on </q-tooltip></q-btn
-        >
-        <q-btn unelevated color="primary" @click="marketDialog.show = true"
-          >Launch frontend shop (not Nostr)
+          @click="marketDialog.show = true"
+          >Create Market
           <q-tooltip>
-            Makes a simple frontend shop for your stalls</q-tooltip
+            Makes a simple frontend shop for your stalls (not NOSTR)</q-tooltip
           ></q-btn
         >
       </q-card-section>
@@ -408,6 +423,7 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -425,6 +441,23 @@
                   @click="props.expand = !props.expand"
                   :icon="props.expand ? 'remove' : 'add'"
                 />
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  size="sm"
+                  color="green"
+                  dense
+                  icon="chat"
+                  @click="chatRoom(props.row.invoiceid)"
+                >
+                  <q-badge
+                    v-if="props.row.unread"
+                    color="red"
+                    rounded
+                    floating
+                    style="padding: 6px; border-radius: 6px"
+                  />
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -549,6 +582,7 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
+                  disabled
                   unelevated
                   dense
                   size="xs"
@@ -596,11 +630,11 @@
     </q-card>
 
     <q-card>
-      <!-- STORES TABLE -->
+      <!-- STALLS TABLE -->
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Stores</h5>
+            <h5 class="text-subtitle1 q-my-none">Market Stalls</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportStallsCSV"
@@ -636,10 +670,10 @@
                   icon="storefront"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'/diagonalley/' + props.row.id"
+                  :href="'/diagonalley/stalls/' + props.row.id"
                   target="_blank"
                 ></q-btn>
-                <q-tooltip> Link to pass to stall relay </q-tooltip>
+                <q-tooltip> Stall simple UI shopping cart </q-tooltip>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -802,6 +836,52 @@
         </q-table>
       </q-card-section>
     </q-card>
+    <!-- KEYS -->
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Keys</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportKeysCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section>
+        <div v-if="keys" class="row">
+          <div
+            class="col-6"
+            v-for="type in ['pubkey', 'privkey']"
+            v-bind:key="type"
+          >
+            <div class="text-center q-mb-lg">
+              {% raw %}
+              <q-responsive
+                :ratio="1"
+                class="q-mx-xl"
+                @click="copyText(keys[type])"
+              >
+                <qrcode
+                  :value="keys[type]"
+                  :options="{width: 250}"
+                  class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>{{ keys[type] }}</q-tooltip>
+              </q-responsive>
+              <p>
+                {{ type == 'pubkey' ? 'Public Key' : 'Private Key' }}<br /><small
+                  >Click to copy</small
+                >
+              </p>
+              {% endraw %}
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
   </div>
 
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
@@ -816,22 +896,115 @@
         <q-list> {% include "diagonalley/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
+    <!-- CHAT BOX -->
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">Messages</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-
-        <div class="column q-ma-md q-pb-lg" style="height: 350px">
-          <div class="col q-pb-md">
+      </q-card-section>
+      <q-card-section>
+        <q-select
+          v-model="customerKey"
+          :options="Object.keys(messages).map(k => ({label: `${k.slice(0, 25)}...`, value: k}))"
+          label="Customers"
+          @input="chatRoom(customerKey)"
+          emit-value
+        ></q-select>
+      </q-card-section>
+      <div class="chat-container q-pa-md" ref="chatCard">
+        <div class="chat-box">
+          <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
+          <div class="chat-messages">
+            <q-chat-message
+              :key="index"
+              v-for="(message, index) in orderMessages"
+              :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
+              :text="[message.msg]"
+              :sent="message.pubkey == keys.pubkey ? true : false"
+              :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
+            />
+          </div>
+        </div>
+        <q-form @submit="sendMessage" class="full-width chat-input">
+          <q-input
+            ref="newMessage"
+            v-model="newMessage"
+            placeholder="Message"
+            class="full-width"
+            dense
+            outlined
+          >
+            <template>
+              <q-btn
+                round
+                dense
+                flat
+                type="submit"
+                icon="send"
+                color="primary"
+              />
+            </template>
+          </q-input>
+        </q-form>
+      </div>
+    </q-card>
+    <!-- <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">Messages</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <div
+          ref="chatCard"
+          class="q-ma-md q-pb-lg"
+          style="height: 350px"
+        >
+          <div class="q-pb-md">
             <q-select
               v-model="customerKey"
               style="width: 80%"
-              :options="customerKeys"
+              :options="Object.keys(messages)"
               label="Customers"
-              @input="getMessages(customerKey)"
+              @input="chatRoom(customerKey)"
             ></q-select>
+            <div class="chat-container q-pa-md"> 
+              <div class="chat-box">
+                <p v-if="Object.keys(messages).length === 0">No messages yet</p>
+                <div class="chat-messages">
+                  <q-chat-message
+                    :key="index"
+                    v-for="(message, index) in orderMessages"
+                    :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
+                    :text="[message.msg]"
+                    :sent="message.pubkey == keys.pubkey ? true : false"
+                    :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
+                  />
+                </div>
+              </div>
+              <q-form @submit="sendMessage" class="full-width chat-input">
+                <q-input
+                  ref="newMessage"
+                  v-model="newMessage"
+                  placeholder="Message"
+                  class="full-width"
+                  dense
+                  outlined
+                >
+                  <template>
+                    <q-btn
+                      round
+                      dense
+                      flat
+                      type="submit"
+                      icon="send"
+                      color="primary"
+                    />
+                  </template>
+                </q-input>
+              </q-form>
+            </div>
           </div>
           <div class="col-8 q-px-md">
             <div v-for="message in customerMessages">
@@ -852,17 +1025,72 @@
           </div>
         </div>
       </q-card-section>
-    </q-card>
+    </q-card> -->
   </div>
+  <q-dialog v-model="onboarding.show">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">How to use Diagon Alley</h6>
+      <q-stepper v-model="step" color="primary" vertical animated>
+        <q-step
+          :name="1"
+          title="Create a Shipping Zone"
+          icon="settings"
+          :done="step > 1"
+        >
+          Create Shipping Zones you're willing to ship to. You can define
+          different values for different zones.
+          <q-stepper-navigation>
+            <q-btn @click="step = step + 1" color="primary" label="Next" />
+          </q-stepper-navigation>
+        </q-step>
+        <q-step
+          :name="2"
+          title="Create a Stall"
+          icon="create_new_folder"
+          :done="step > 2"
+        >
+          Create a Stall and provide private and public keys to use for
+          communication. If you don't have one, LNbits will create a key pair
+          for you. It will be saved and can be used on other stalls.
+          <q-stepper-navigation>
+            <q-btn @click="step = step + 1" color="primary" label="Next" />
+          </q-stepper-navigation>
+        </q-step>
+
+        <q-step :name="3" title="Create Products" icon="assignment">
+          Create your products, add a small description and an image. Choose to
+          what stall, if you have more than one, it belongs to
+          <q-stepper-navigation>
+            <q-btn @click="onboarding.finish" color="primary" label="Finish" />
+          </q-stepper-navigation>
+          <div>
+            <q-checkbox
+              v-model="onboarding.showAgain"
+              label="Show this again?"
+            />
+          </div>
+        </q-step>
+      </q-stepper>
+    </q-card>
+  </q-dialog>
 </div>
-<!-- </div>
-</div> -->
+
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
+
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   const pica = window.pica()
+
+  function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
+    let ratio = Math.min(
+      1,
+      maxWidth / img.naturalWidth,
+      maxHeight / img.naturalHeight
+    )
+    return {width: img.naturalWidth * ratio, height: img.naturalHeight * ratio}
+  }
 
   const mapStalls = obj => {
     obj._data = _.clone(obj)
@@ -882,6 +1110,7 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
+    // obj.unread = false
     return obj
   }
   const mapKeys = obj => {
@@ -914,6 +1143,19 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        step: 1,
+        onboarding: {
+          show: true,
+          showAgain: false,
+          finish: () => {
+            this.$q.localStorage.set(
+              'lnbits.DAOnboarding',
+              this.onboarding.showAgain
+            )
+            this.onboarding.show = false
+          }
+        },
+        keys: null,
         products: [],
         orders: [],
         stalls: [],
@@ -923,8 +1165,12 @@
         customerKeys: [],
         customerKey: '',
         customerMessages: {},
+        messages: {},
+        newMessage: '',
+        orderMessages: {},
         shippedModel: false,
         shippingZoneOptions: [
+          'Free (digital)',
           'Worldwide',
           'Europe',
           'Australia',
@@ -989,17 +1235,17 @@
         ordersTable: {
           columns: [
             /*{
-              name: 'product',
-              align: 'left',
-              label: 'Product',
-              field: 'product'
-            },
-            {
-              name: 'quantity',
-              align: 'left',
-              label: 'Quantity',
-              field: 'quantity'
-            },*/
+            name: 'product',
+            align: 'left',
+            label: 'Product',
+            field: 'product'
+          },
+          {
+            name: 'quantity',
+            align: 'left',
+            label: 'Quantity',
+            field: 'quantity'
+          },*/
             {
               name: 'id',
               align: 'left',
@@ -1030,7 +1276,7 @@
             {
               name: 'stall',
               align: 'left',
-              label: 'Store',
+              label: 'Stall',
               field: 'stall'
             },
             {
@@ -1118,7 +1364,7 @@
             {
               name: 'stores',
               align: 'left',
-              label: 'Stores',
+              label: 'Stalls',
               field: 'stores'
             }
           ],
@@ -1193,24 +1439,60 @@
         this[dialog].show = false
         this[dialog].data = {}
       },
-      generateKeys: function () {
-        var self = this
+      generateKeys() {
         LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/keys',
-            self.g.user.wallets[0].adminkey
+            this.g.user.wallets[0].adminkey
           )
-          .then(function (response) {
+          .then(response => {
             if (response.data) {
-              self.keys = response.data.map(mapKeys)
+              this.keys = response.data
+              this.stallDialog.data.publickey = this.keys.pubkey
+              this.stallDialog.data.privatekey = this.keys.privkey
+              this.$q.localStorage.set(
+                `lnbits.diagonalley.${this.g.user.id}`,
+                this.keys
+              )
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      restoreKeys: function () {},
+      restoreKeys() {
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+          this.stallDialog.data.publickey = this.keys.pubkey
+          this.stallDialog.data.privatekey = this.keys.privkey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No keys found.'
+          })
+        }
+      },
+      exportKeysCSV: function () {
+        let colls = [
+          {
+            name: 'privatekey',
+            align: 'left',
+            label: 'Private Key',
+            field: 'privkey'
+          },
+          {
+            name: 'publickey',
+            align: 'left',
+            label: 'Public Key',
+            field: 'pubkey'
+          }
+        ]
+        LNbits.utils.exportCSV(colls, [this.keys])
+      },
       capitalizeFirstLetter: function (string) {
         return string.charAt(0).toUpperCase() + string.slice(1)
       },
@@ -1414,9 +1696,10 @@
         let image = new Image()
         image.src = blobURL
         image.onload = async () => {
+          let fit = imgSizeFit(image)
           let canvas = document.createElement('canvas')
-          canvas.setAttribute('width', 760)
-          canvas.setAttribute('height', 490)
+          canvas.setAttribute('width', fit.width)
+          canvas.setAttribute('height', fit.height)
           await pica.resize(image, canvas, {
             quality: 0,
             alpha: true,
@@ -1628,7 +1911,6 @@
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
-              console.log(this.markets)
             }
           })
           .catch(error => {
@@ -1727,10 +2009,10 @@
       ////////////////////////////////////////
       ////////////////ORDERS//////////////////
       ////////////////////////////////////////
-      getOrders: function () {
+      getOrders: async function () {
         var self = this
 
-        LNbits.api
+        await LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/orders?all_wallets=true',
@@ -1739,14 +2021,13 @@
           .then(function (response) {
             if (response.data) {
               self.orders = response.data.map(mapOrders)
-              console.log(self.orders)
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      createOrder: function () {
+      /*createOrder: function () {
         var data = {
           address: this.orderDialog.data.address,
           email: this.orderDialog.data.email,
@@ -1771,7 +2052,7 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-      },
+      },*/
       deleteOrder: function (orderId) {
         var self = this
         var order = _.findWhere(self.orders, {id: orderId})
@@ -1783,7 +2064,7 @@
               .request(
                 'DELETE',
                 '/diagonalley/api/v1/orders/' + orderId,
-                _.findWhere(self.g.user.wallets, {id: order.wallet}).inkey
+                _.findWhere(self.g.user.wallets, {id: order.wallet}).adminkey
               )
               .then(function (response) {
                 self.orders = _.reject(self.orders, function (obj) {
@@ -1795,37 +2076,202 @@
               })
           })
       },
-      shipOrder: function (order_id) {
-        var self = this
-
+      shipOrder(order_id) {
         LNbits.api
           .request(
             'GET',
             '/diagonalley/api/v1/orders/shipped/' + order_id,
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            self.orders.push(mapOrders(response.data))
+          .then(response => {
+            this.orders = _.reject(this.orders, obj => {
+              return obj.id == order_id
+            })
+            this.orders.push(mapOrders(response.data))
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
           })
       },
       exportOrdersCSV: function () {
         LNbits.utils.exportCSV(this.ordersTable.columns, this.orders)
+      },
+      /// CHAT
+      async getAllMessages() {
+        await LNbits.api
+          .request(
+            'GET',
+            `/diagonalley/api/v1/chat/messages/merchant?orders=${this.orders
+              .map(o => o.invoiceid)
+              .toString()}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(res => {
+            this.messages = _.groupBy(res.data, 'id_conversation')
+            this.checkUnreadMessages()
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateLastSeenMsg(id) {
+        let data = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        let chat = {
+          ...data.chat,
+          [`${id}`]: {
+            timestamp: Object.keys(this.orderMessages)[
+              Object.keys(this.orderMessages).length - 1
+            ]
+          }
+        }
+        this.$q.localStorage.set(`lnbits.diagonalley.${this.g.user.id}`, {
+          ...data,
+          chat
+        })
+        this.checkUnreadMessages()
+      },
+      checkUnreadMessages() {
+        let lastMsgs = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        ).chat
+        for (let key in this.messages) {
+          let idx = this.orders.findIndex(f => f.invoiceid == key)
+          if (!lastMsgs[key]) {
+            this.updateLastSeenMsg(key)
+            return
+          }
+
+          if (
+            lastMsgs[key].timestamp <
+            Math.max(...this.messages[key].map(c => c.timestamp))
+          ) {
+            this.$set(this.orders[idx], 'unread', true)
+          } else {
+            this.$set(this.orders[idx], 'unread', false)
+          }
+        }
+      },
+      clearMessage() {
+        this.newMessage = ''
+        this.$refs.newMessage.focus()
+      },
+      sendMessage() {
+        let message = {
+          msg: this.newMessage,
+          pubkey: this.keys.pubkey
+        }
+        this.ws.send(JSON.stringify(message))
+
+        this.clearMessage()
+      },
+      chatRoom(id) {
+        this.startChat(id)
+        this.orderMessages = {}
+        this.messages[id].map(m => {
+          this.$set(this.orderMessages, m.timestamp, {
+            msg: m.msg,
+            pubkey: m.pubkey
+          })
+        })
+        this.$refs.chatCard.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'nearest'
+        })
+        this.updateLastSeenMsg(id)
+        //"ea2fbf6c91aa228603681e2cc34bb06e34e6d1375fa4d6c35756182b2fa3307f"
+        //"c7435a04875c26e28db91a377bd6e991dbfefeefea8258415f3ae0c716ed2335"
+      },
+      startChat(room_name) {
+        if (this.ws) {
+          this.ws.close()
+        }
+        if (location.protocol == 'https:') {
+          ws_scheme = 'wss://'
+        } else {
+          ws_scheme = 'ws://'
+        }
+        ws = new WebSocket(
+          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+        )
+
+        function checkWebSocket(event) {
+          if (ws.readyState === WebSocket.CLOSED) {
+            console.log('WebSocket CLOSED: Reopening')
+            ws = new WebSocket(
+              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+            )
+          }
+        }
+
+        ws.onmessage = event => {
+          let event_data = JSON.parse(event.data)
+
+          this.$set(this.orderMessages, Date.now(), event_data)
+          this.updateLastSeenMsg(room_name)
+        }
+
+        ws.onclose = event => {
+          this.updateLastSeenMsg(room_name)
+        }
+
+        this.ws = ws
       }
     },
-    created: function () {
+    async created() {
       if (this.g.user.wallets.length) {
+        let showOnboard = this.$q.localStorage.getItem('lnbits.DAOnboarding')
+        this.onboarding.show = showOnboard === true || showOnboard == null
+        this.onboarding.showAgain = showOnboard || false
         this.getStalls()
         this.getProducts()
         this.getZones()
-        this.getOrders()
+        await this.getOrders()
         this.getMarkets()
-        this.customerKeys = [
-          'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
-          'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'
-        ]
-        console.log(_.pick(this.g.user, 'id'))
+        await this.getAllMessages()
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.diagonalley.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+        }
+        setInterval(() => {
+          this.getAllMessages()
+        }, 300000)
       }
     }
   })
 </script>
+<style scoped>
+  .q-field__native span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-container {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: calc(100vh - 140px);
+  }
+
+  .chat-box {
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .chat-messages {
+    width: auto;
+  }
+
+  .chat-input {
+    position: relative;
+    display: flex;
+    align-items: end;
+    margin-top: 1rem;
+  }
+</style>
 {% endblock %}

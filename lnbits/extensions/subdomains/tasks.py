@@ -3,6 +3,7 @@ import asyncio
 import httpx
 
 from lnbits.core.models import Payment
+from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .cloudflare import cloudflare_create_subdomain
@@ -11,7 +12,7 @@ from .crud import get_domain, set_subdomain_paid
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+    register_invoice_listener(invoice_queue, get_current_extension_name())
 
     while True:
         payment = await invoice_queue.get()
@@ -19,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "lnsubdomain":
+    if not payment.extra or payment.extra.get("tag") != "lnsubdomain":
         # not an lnurlp invoice
         return
 
@@ -36,7 +37,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     )
 
     ### Use webhook to notify about cloudflare registration
-    if domain.webhook:
+    if domain and domain.webhook:
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.post(

@@ -125,7 +125,7 @@
           >
         </div>
         <div v-if="item.categories" class="text-subtitle1">
-          <q-chip v-for="cat in item.categories.split(',')" dense
+          <q-chip v-for="(cat, i) in item.categories.split(',')" :key="i" dense
             >{{cat}}</q-chip
           >
         </div>
@@ -162,6 +162,17 @@
           v-model.trim="checkoutDialog.data.username"
           label="Name *optional"
         ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.pubkey"
+          label="Public key *optional"
+        >
+          <template v-slot:append>
+            <q-icon @click="getPubkey" name="settings_backup_restore" />
+            <q-tooltip>Click to restore saved public key</q-tooltip>
+          </template>
+        </q-input>
         <q-input
           filled
           dense
@@ -206,7 +217,7 @@
           <q-btn
             v-close-popup
             flat
-            @click="checkoutDialog = {show: false, data: {}}"
+            @click="checkoutDialog = {show: false, data: {pubkey: ''}}"
             color="grey"
             class="q-ml-auto"
             >Cancel</q-btn
@@ -276,7 +287,9 @@
         cartMenu: [],
         checkoutDialog: {
           show: false,
-          data: {}
+          data: {
+            pubkey: ''
+          }
         },
         qrCodeDialog: {
           data: {
@@ -344,7 +357,18 @@
         this.cartMenu = Array.from(this.cart.products, item => {
           return {id: item[0], ...item[1]}
         })
-        console.log(this.cartMenu, this.cart)
+      },
+      getPubkey() {
+        let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
+        if (data && data.keys.publickey) {
+          this.checkoutDialog.data.pubkey = data.keys.publickey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No public key stored!',
+            icon: 'settings_backup_restore'
+          })
+        }
       },
       placeOrder() {
         let dialog = this.checkoutDialog.data
@@ -384,12 +408,25 @@
                   if (res.data.paid) {
                     this.$q.notify({
                       type: 'positive',
-                      message: 'Sats received, thanks!',
-                      icon: 'thumb_up'
+                      multiLine: true,
+                      message:
+                        "Sats received, thanks! You'l be redirected to the order page...",
+                      icon: 'thumb_up',
+                      actions: [
+                        {
+                          label: 'See Order',
+                          handler: () => {
+                            window.location.href = `/diagonalley/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                          }
+                        }
+                      ]
                     })
                     clearInterval(this.qrCodeDialog.paymentChecker)
                     this.resetCart()
                     this.closeQrCodeDialog()
+                    setTimeout(() => {
+                      window.location.href = `/diagonalley/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                    }, 5000)
                   }
                 })
                 .catch(error => {
@@ -407,8 +444,6 @@
     created() {
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
-
-      console.log(this.stall, this.products)
     }
   })
 </script>

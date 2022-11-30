@@ -186,9 +186,9 @@ async def pay_invoice(
             )
 
         # notify receiver asynchronously
-
         from lnbits.tasks import internal_invoice_queue
 
+        logger.debug(f"enqueuing internal invoice {internal_checking_id}")
         await internal_invoice_queue.put(internal_checking_id)
     else:
         logger.debug(f"backend: sending payment {temp_id}")
