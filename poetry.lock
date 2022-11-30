@@ -123,7 +123,7 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "cashu"
-version = "0.5.4"
+version = "0.5.5"
 description = "Ecash wallet and mint with Bitcoin Lightning support"
 category = "main"
 optional = false
@@ -1144,7 +1144,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "d8d786accf4ece1207e2f54ac37aba6601d089f9c1ca1269bf235d67b8e3e2a7"
+content-hash = "53a18d7695f02e9ad24dc7d0863b5ae815c18f2f390ef20d7166a54b202642ff"
 
 [metadata.files]
 aiofiles = [
@@ -1208,8 +1208,8 @@ black = [
     {file = "black-22.10.0.tar.gz", hash = "sha256:f513588da599943e0cde4e32cc9879e825d58720d6557062d1098c5ad80080e1"},
 ]
 cashu = [
-    {file = "cashu-0.5.4-py3-none-any.whl", hash = "sha256:de02245387fe0affaa1a02255ab9592c4115fd1deae57ccae3eee4610ab40ebb"},
-    {file = "cashu-0.5.4.tar.gz", hash = "sha256:9fbfe21828282697bcc8ab7690c23509b867c9851beb525efd04ed386b84db10"},
+    {file = "cashu-0.5.5-py3-none-any.whl", hash = "sha256:c1d707479b852e503acca5ed53aa341b1880cd6bd70369488ec002d647970c9b"},
+    {file = "cashu-0.5.5.tar.gz", hash = "sha256:cc0349d3b6d9a2428cb575fee6280b20074ca9c20a1e2e9c68729a73c01f5f9d"},
 ]
 Cerberus = [
     {file = "Cerberus-1.3.4.tar.gz", hash = "sha256:d1b21b3954b2498d9a79edf16b3170a3ac1021df88d197dc2ce5928ba519237c"},
