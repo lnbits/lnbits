@@ -13,21 +13,19 @@
           v-if="admin == 'True'"
           unelevated
           color="primary"
+          tooltip="XX"
           @click="getThemes();formDialogThemes.show = true"
           >New CSS Theme
         </q-btn>
         <q-btn
           v-else
-          disable
-          unelevated
-          color="primary"
-          @click="getThemes();formDialogThemes.show = true"
+          color="grey"
           >New CSS Theme
           <q-tooltip
-            >For security reason, custom css is only available to server
+            >Custom CSS is only available to server
             admins.</q-tooltip
-          ></q-btn
-        >
+          >
+        </q-btn>
       </q-card-section>
     </q-card>
 
