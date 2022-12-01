@@ -12,7 +12,7 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.extensions.satspay.helpers import public_charge
-from lnbits.settings import LNBITS_ADMIN_USERS
+from lnbits.settings import settings
 
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge, get_theme
@@ -23,7 +23,7 @@ templates = Jinja2Templates(directory="templates")
 @satspay_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     admin = False
-    if LNBITS_ADMIN_USERS and user.id in LNBITS_ADMIN_USERS:
+    if settings.lnbits_admin_users and user.id in settings.lnbits_admin_users:
         admin = True
     return satspay_renderer().TemplateResponse(
         "satspay/index.html", {"request": request, "user": user.dict(), "admin": admin}

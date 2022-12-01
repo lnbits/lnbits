@@ -1,12 +1,10 @@
 import json
 from http import HTTPStatus
 
-import httpx
 from fastapi.params import Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
@@ -14,7 +12,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.extensions.satspay import satspay_ext
-from lnbits.settings import LNBITS_ADMIN_EXTENSIONS, LNBITS_ADMIN_USERS
+from lnbits.settings import settings
 
 from .crud import (
     check_address_balance,
@@ -146,7 +144,7 @@ async def api_themes_save(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     css_id: str = None,
 ):
-    if LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS:
+    if settings.lnbits_admin_users and wallet.wallet.user not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Only server admins can create themes.",
