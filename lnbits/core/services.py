@@ -329,12 +329,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30.to_bytes(1, "big", signed=False))
+        signature.write(0x30 .to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
@@ -388,9 +388,9 @@ class WebsocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket, item_id: str):
+    async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        websocket.id = item_id
+        logger.debug(websocket)
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
@@ -398,7 +398,7 @@ class WebsocketConnectionManager:
 
     async def send_data(self, message: str, item_id: str):
         for connection in self.active_connections:
-            if connection.id == item_id:
+            if connection.path_params["item_id"] == item_id:
                 await connection.send_text(message)
 
 

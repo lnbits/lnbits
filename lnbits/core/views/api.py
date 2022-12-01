@@ -9,9 +9,18 @@ from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
+import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Response, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    Header,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -20,7 +29,6 @@ from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse, ServerSentEvent
 from starlette.responses import HTMLResponse, StreamingResponse
 
-import async_timeout
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
@@ -706,7 +714,7 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @core_app.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
-    await websocketManager.connect(websocket, item_id)
+    await websocketManager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
