@@ -657,7 +657,7 @@
       lnurlValueFetch: function (lnurl, switchId) {
         this.lnurlValue = lnurl
         this.websocketConnector(
-          'wss://' + window.location.host + '/lnurldevice/ws/' + switchId
+          'wss://' + window.location.host + '/api/v1/ws/' + switchId
         )
       },
       addSwitch: function () {
