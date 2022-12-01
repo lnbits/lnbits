@@ -65,7 +65,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             except (httpx.ConnectError, httpx.RequestError):
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
-        await websocketUpdater(copilot.id, str(data) + "-" + str(payment.extra.get("comment")))
+        await websocketUpdater(
+            copilot.id, str(data) + "-" + str(payment.extra.get("comment"))
+        )
 
     await websocketUpdater(copilot.id, str(data) + "-none")
 
