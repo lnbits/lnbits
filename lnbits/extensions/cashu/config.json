@@ -1,0 +1,7 @@
+{
+  "name": "Cashu",
+  "short_description": "Ecash mint and wallet",
+  "icon": "account_balance",
+  "contributors": ["calle", "vlad", "arcbtc"],
+  "hidden": false
+}

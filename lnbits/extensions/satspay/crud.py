@@ -16,6 +16,7 @@ from .models import Charges, CreateCharge, SatsPayThemes
 
 
 async def create_charge(user: str, data: CreateCharge) -> Charges:
+    data = CreateCharge(**data.dict())
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:
         config = await get_config(user)
