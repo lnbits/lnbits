@@ -42,13 +42,8 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
-<<<<<<< HEAD
-    extra: str = "{}"
-    custom_css: Optional[str]
-=======
     custom_css: Optional[str]
     extra: str = DEFAULT_MEMPOOL_CONFIG
->>>>>>> main
     time: int
     amount: int
     balance: int
