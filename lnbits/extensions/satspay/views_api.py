@@ -5,6 +5,7 @@ from fastapi.params import Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
 
+from lnbits.core.crud import get_wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
