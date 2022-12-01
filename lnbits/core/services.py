@@ -2,11 +2,11 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, WebSocket, WebSocketDisconnect
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -329,12 +329,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30.to_bytes(1, "big", signed=False))
+        signature.write(0x30 .to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
@@ -382,3 +382,28 @@ async def check_transaction_status(
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
+
+
+class WebsocketConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        logger.debug(websocket)
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_data(self, message: str, item_id: str):
+        for connection in self.active_connections:
+            if connection.path_params["item_id"] == item_id:
+                await connection.send_text(message)
+
+
+websocketManager = WebsocketConnectionManager()
+
+
+async def websocketUpdater(item_id, data):
+    return await websocketManager.send_data(f"{data}", item_id)
