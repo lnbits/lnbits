@@ -11,7 +11,7 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, Header, Query, Response, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
