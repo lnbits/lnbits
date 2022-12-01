@@ -6,6 +6,10 @@ from typing import Optional
 from fastapi.param_functions import Query
 from pydantic import BaseModel
 
+DEFAULT_MEMPOOL_CONFIG = (
+    '{"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}'
+)
+
 
 class CreateCharge(BaseModel):
     onchainwallet: str = Query(None)
@@ -17,7 +21,7 @@ class CreateCharge(BaseModel):
     custom_css: Optional[str]
     time: int = Query(..., ge=1)
     amount: int = Query(..., ge=1)
-    extra: str = "{}"
+    extra: str = DEFAULT_MEMPOOL_CONFIG
 
 
 class ChargeConfig(BaseModel):
@@ -38,8 +42,8 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
-    extra: str = "{}"
     custom_css: Optional[str]
+    extra: str = DEFAULT_MEMPOOL_CONFIG
     time: int
     amount: int
     balance: int
