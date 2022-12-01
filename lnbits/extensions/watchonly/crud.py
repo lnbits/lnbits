@@ -203,7 +203,7 @@ async def update_address(id: str, **kwargs) -> Optional[Address]:
         f"""UPDATE watchonly.addresses SET {q} WHERE id = ? """,
         (*kwargs.values(), id),
     )
-    row = await db.fetchone("SELECT * FROM watchonly.addresses WHERE id = ?", (id))
+    row = await db.fetchone("SELECT * FROM watchonly.addresses WHERE id = ?", (id,))
     return Address.from_row(row) if row else None
 
 

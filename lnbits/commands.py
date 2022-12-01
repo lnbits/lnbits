@@ -69,8 +69,7 @@ async def migrate_databases():
             (db_name, version, version),
         )
 
-    async def run_migration(db, migrations_module):
-        db_name = migrations_module.__name__.split(".")[-2]
+    async def run_migration(db, migrations_module, db_name):
         for key, migrate in migrations_module.__dict__.items():
             match = match = matcher.match(key)
             if match:
@@ -101,20 +100,24 @@ async def migrate_databases():
         rows = await (await conn.execute("SELECT * FROM dbversions")).fetchall()
         current_versions = {row["db"]: row["version"] for row in rows}
         matcher = re.compile(r"^m(\d\d\d)_")
-        await run_migration(conn, core_migrations)
+        db_name = core_migrations.__name__.split(".")[-2]
+        await run_migration(conn, core_migrations, db_name)
 
     for ext in get_valid_extensions():
         try:
-            ext_migrations = importlib.import_module(
-                f"lnbits.extensions.{ext.code}.migrations"
+
+            module_str = (
+                ext.migration_module or f"lnbits.extensions.{ext.code}.migrations"
             )
+            ext_migrations = importlib.import_module(module_str)
             ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
+            db_name = ext.db_name or module_str.split(".")[-2]
         except ImportError:
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` has a migrations file."
             )
 
         async with ext_db.connect() as ext_conn:
-            await run_migration(ext_conn, ext_migrations)
+            await run_migration(ext_conn, ext_migrations, db_name)
 
     logger.info("✔️ All migrations done.")

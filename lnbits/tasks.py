@@ -126,7 +126,7 @@ async def check_pending_payments():
 
     while True:
         async with db.connect() as conn:
-            logger.debug(
+            logger.info(
                 f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
             )
             start_time: float = time.time()
@@ -142,15 +142,15 @@ async def check_pending_payments():
             for payment in pending_payments:
                 await payment.check_status(conn=conn)
 
-            logger.debug(
+            logger.info(
                 f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
             )
             # we delete expired invoices once upon the first pending check
             if incoming:
-                logger.debug("Task: deleting all expired invoices")
+                logger.info("Task: deleting all expired invoices")
                 start_time: float = time.time()
                 await delete_expired_invoices(conn=conn)
-                logger.debug(
+                logger.info(
                     f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
                 )
 

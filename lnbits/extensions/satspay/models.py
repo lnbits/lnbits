@@ -1,9 +1,14 @@
+import json
 from datetime import datetime, timedelta
 from sqlite3 import Row
 from typing import Optional
 
 from fastapi.param_functions import Query
 from pydantic import BaseModel
+
+DEFAULT_MEMPOOL_CONFIG = (
+    '{"mempool_endpoint": "https://mempool.space", "network": "Mainnet"}'
+)
 
 
 class CreateCharge(BaseModel):
@@ -13,8 +18,17 @@ class CreateCharge(BaseModel):
     webhook: str = Query(None)
     completelink: str = Query(None)
     completelinktext: str = Query(None)
+    custom_css: Optional[str]
     time: int = Query(..., ge=1)
     amount: int = Query(..., ge=1)
+    extra: str = DEFAULT_MEMPOOL_CONFIG
+
+
+class ChargeConfig(BaseModel):
+    mempool_endpoint: Optional[str]
+    network: Optional[str]
+    webhook_success: Optional[bool] = False
+    webhook_message: Optional[str]
 
 
 class Charges(BaseModel):
@@ -28,6 +42,13 @@ class Charges(BaseModel):
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
+<<<<<<< HEAD
+    extra: str = "{}"
+    custom_css: Optional[str]
+=======
+    custom_css: Optional[str]
+    extra: str = DEFAULT_MEMPOOL_CONFIG
+>>>>>>> main
     time: int
     amount: int
     balance: int
@@ -54,3 +75,22 @@ class Charges(BaseModel):
             return True
         else:
             return False
+
+    @property
+    def config(self) -> ChargeConfig:
+        charge_config = json.loads(self.extra)
+        return ChargeConfig(**charge_config)
+
+    def must_call_webhook(self):
+        return self.webhook and self.paid and self.config.webhook_success == False
+
+
+class SatsPayThemes(BaseModel):
+    css_id: str = Query(None)
+    title: str = Query(None)
+    custom_css: str = Query(None)
+    user: Optional[str]
+
+    @classmethod
+    def from_row(cls, row: Row) -> "SatsPayThemes":
+        return cls(**dict(row))

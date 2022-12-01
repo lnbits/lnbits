@@ -12,7 +12,7 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request
+from fastapi import Depends, Header, Query, Request, Response
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -584,8 +584,8 @@ class DecodePayment(BaseModel):
     data: str
 
 
-@core_app.post("/api/v1/payments/decode")
-async def api_payments_decode(data: DecodePayment):
+@core_app.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
+async def api_payments_decode(data: DecodePayment, response: Response):
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
@@ -606,6 +606,7 @@ async def api_payments_decode(data: DecodePayment):
                 "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
             }
     except:
+        response.status_code = HTTPStatus.BAD_REQUEST
         return {"message": "Failed to decode"}
 
 
