@@ -437,7 +437,6 @@
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
-            console.log(this.settings)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -455,9 +454,11 @@
             data
           )
           .then(response => {
+            this.needsRestart =
+              this.settings.lnbits_backend_wallet_class !==
+              response.data.settings.lnbits_backend_wallet_class
             this.settings = response.data.settings
             this.formData = _.clone(this.settings)
-            this.needsRestart = true
             this.updateFundingData()
             this.$q.notify({
               type: 'positive',
