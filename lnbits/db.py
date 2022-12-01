@@ -86,7 +86,8 @@ class Connection(Compat):
                 return raw_html
 
         # tuple to list and back to tuple
-        values = tuple([cleanhtml(l) for l in list(values)])
+        value_list = [values] if isinstance(values, str) else list(values)
+        values = tuple([cleanhtml(l) for l in value_list])
         return values
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
