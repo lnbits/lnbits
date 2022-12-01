@@ -75,8 +75,8 @@ LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
-python3 -m venv venv
+# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
+python3.9 -m venv venv
 # If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
 ./venv/bin/pip install -r requirements.txt
 # create the data folder and the .env file
