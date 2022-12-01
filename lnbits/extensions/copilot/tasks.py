@@ -7,11 +7,11 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
+from lnbits.core.services import websocketUpdater
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
-from .views import updater
 
 
 async def wait_for_paid_invoices():
@@ -65,9 +65,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             except (httpx.ConnectError, httpx.RequestError):
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
-        await updater(copilot.id, data, payment.extra.get("comment"))
+        await websocketUpdater(copilot.id, str(data) + "-" + str(payment.extra.get("comment")))
 
-    await updater(copilot.id, data, "none")
+    await websocketUpdater(copilot.id, str(data) + "-none")
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:

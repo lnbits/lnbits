@@ -16,7 +16,7 @@ from .crud import (
     update_copilot,
 )
 from .models import CreateCopilotData
-from .views import updater
+from lnbits.core.services import websocketUpdater
 
 #######################COPILOT##########################
 
@@ -92,7 +92,7 @@ async def api_copilot_ws_relay(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     try:
-        await updater(copilot_id, data, comment)
+        await websocketUpdater(copilot_id, str(data) + "-" + str(comment))
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your copilot")
     return ""

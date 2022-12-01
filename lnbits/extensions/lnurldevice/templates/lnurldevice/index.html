@@ -157,8 +157,8 @@
           unelevated
           color="primary"
           size="md"
-          @click="copyText(wslocation + '/lnurldevice/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
-          >{% raw %}{{wslocation}}/lnurldevice/ws/{{settingsDialog.data.id}}{%
+          @click="copyText(wslocation + '/api/v1/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+          >{% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{%
           endraw %}<q-tooltip> Click to copy URL </q-tooltip>
         </q-btn>
         <q-btn
