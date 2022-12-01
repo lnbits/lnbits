@@ -23,7 +23,7 @@ class UpdateSettings(BaseModel):
     lnbits_denomination: str = Query(None)
     lnbits_theme: str = Query(None)
     lnbits_custom_logo: str = Query(None)
-    lnbits_ad_space: List[str] = Query(None)
+    lnbits_ad_space: str = Query(None)
     lnbits_ad_space_title: str = Query(None)
 
     # funding sources

@@ -62,7 +62,7 @@ class Settings(BaseSettings):
         default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
     )
     lnbits_custom_logo: str = Field(default=None)
-    lnbits_ad_space: List[str] = Field(default=[])
+    lnbits_ad_space: str = Field(default="")
     lnbits_ad_space_title: str = Field(default="")
 
     # ops
@@ -136,7 +136,7 @@ class Settings(BaseSettings):
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_theme_options",
-        "lnbits_ad_space",
+        # "lnbits_ad_space",
         "lnbits_admin_extensions",
         "lnbits_disabled_extensions",
         "lnbits_allowed_funding_sources",

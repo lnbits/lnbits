@@ -364,19 +364,6 @@
           u => u !== user
         )
       },
-      addAdSpace() {
-        let adSpace = this.formData.ad_space_add
-        let spaces = this.settings.lnbits_ad_space
-        if (adSpace.length && !spaces.includes(adSpace)) {
-          spaces.push(adSpace)
-          this.settings.lnbits_ad_space = spaces
-          this.formData.ad_space_add = ''
-        }
-      },
-      removeAdSpace(ad) {
-        let spaces = this.settings.lnbits_ad_space
-        this.settings.lnbits_ad_space = spaces.filter(s => s !== ad)
-      },
       restartServer() {
         LNbits.api
           .request('GET', '/admin/api/v1/restart/?usr=' + this.g.user.id)

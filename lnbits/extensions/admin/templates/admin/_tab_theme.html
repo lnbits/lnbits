@@ -98,27 +98,12 @@
           <p>Advertisement Slots</p>
           <q-input
             filled
-            v-model="formData.ad_space_add"
+            v-model="formData.lnbits_ad_space"
             type="text"
             label="url;img_light_url;img_dark_url, url..."
             hint="Ad url and image filepaths in CSV format, extensions can choose to honor"
           >
-            <!-- <q-btn @click="addAdSpace" dense flat icon="add"></q-btn> -->
           </q-input>
-          <div>
-            {% raw %}
-            <q-chip
-              v-for="space in settings.lnbits_ad_space"
-              :key="space"
-              removable
-              @remove="removeAdSpace(space)"
-              color="primary"
-              text-color="white"
-            >
-              {{ space.slice(0, 8) + " ... " + space.slice(-8) }}
-            </q-chip>
-            {% endraw %}
-          </div>
           <br />
         </div>
       </div>
