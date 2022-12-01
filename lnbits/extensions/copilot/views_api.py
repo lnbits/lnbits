@@ -5,6 +5,7 @@ from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
+from lnbits.core.services import websocketUpdater
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import copilot_ext
@@ -16,7 +17,6 @@ from .crud import (
     update_copilot,
 )
 from .models import CreateCopilotData
-from lnbits.core.services import websocketUpdater
 
 #######################COPILOT##########################
 
