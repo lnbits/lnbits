@@ -178,7 +178,7 @@ class Payment(BaseModel):
 
         logger.debug(f"Status: {status}")
 
-        if self.is_in and self.is_expired:
+        if self.is_in and status.pending and self.is_expired:
             expiration_date = datetime.datetime.fromtimestamp(self.expiry)
             logger.debug(
                 f"Deleting expired incoming payment {self.checking_id}: expired {expiration_date}"
