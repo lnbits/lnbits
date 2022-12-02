@@ -23,7 +23,7 @@ class VoidWallet(Wallet):
         raise Unsupported("")
 
     async def status(self) -> StatusResponse:
-        logger.info(
+        logger.warning(
             "This backend does nothing, it is here just as a placeholder, you must configure an actual backend before being able to do anything useful with LNbits."
         )
         return StatusResponse(None, 0)

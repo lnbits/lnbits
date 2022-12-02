@@ -229,6 +229,24 @@ async def get_wallet_payment(
     return Payment.from_row(row) if row else None
 
 
+async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
+    rows = await db.fetchall(
+        f"""
+        SELECT * FROM apipayments 
+        WHERE pending = 'false' 
+        AND extra LIKE ?
+        AND extra LIKE ?
+        ORDER BY time DESC LIMIT {limit}
+        """,
+        (
+            f"%{ext_name}%",
+            f"%{ext_id}%",
+        ),
+    )
+
+    return rows
+
+
 async def get_payments(
     *,
     wallet_id: Optional[str] = None,
@@ -329,38 +347,6 @@ async def delete_expired_invoices(
           AND expiry < {db.timestamp_now}
         """
     )
-
-    # # then we delete all expired invoices, checking one by one
-    # rows = await (conn or db).fetchall(
-    #     f"""
-    #     SELECT bolt11
-    #     FROM apipayments
-    #     WHERE pending = true
-    #       AND bolt11 IS NOT NULL
-    #       AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
-    #     """
-    # )
-    # logger.debug(f"Checking expiry of {len(rows)} invoices")
-    # for (payment_request,) in rows:
-    #     try:
-    #         invoice = bolt11.decode(payment_request)
-    #     except:
-    #         continue
-
-    #     expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    #     if expiration_date > datetime.datetime.utcnow():
-    #         continue
-    #     logger.debug(
-    #         f"Deleting expired invoice: {invoice.payment_hash} (expired: {expiration_date})"
-    #     )
-    #     await (conn or db).execute(
-    #         """
-    #         DELETE FROM apipayments
-    #         WHERE pending = true AND hash = ?
-    #         """,
-    #         (invoice.payment_hash,),
-    #     )
-
 
 # payments
 # --------

@@ -18,21 +18,25 @@ If you have problems installing LNbits using these instructions, please have a l
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
-# for making sure python 3.9 is installed, skip if installed
+# for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
-export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
+# Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
+export PATH="/home/user/.local/bin:$PATH" 
+# Next command, you can exchange with python3.10 or newer versions. 
+# Identify your version with python3 --version and specify in the next line
+# command is only needed when your default python is not ^3.9 or ^3.10
 poetry env use python3.9
-poetry install --no-dev
-poetry run python build.py
+poetry install --only main
 
 mkdir data
 cp .env.example .env
-nano .env # set funding source
+# set funding source amongst other options
+nano .env 
 ```
 
 #### Running the server
@@ -40,9 +44,13 @@ nano .env # set funding source
 ```sh
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+# adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
+# Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
 
-## Option 2: Nix
+## Option 2: Nix 
+
+> note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -67,8 +75,8 @@ LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
-python3 -m venv venv
+# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
+python3.9 -m venv venv
 # If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
 ./venv/bin/pip install -r requirements.txt
 # create the data folder and the .env file
@@ -98,7 +106,7 @@ docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.en
 
 ## Option 5: Fly.io
 
-Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
 First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
 
@@ -149,6 +157,7 @@ kill_timeout = 30
   HOST="127.0.0.1"
   PORT=5000
   LNBITS_FORCE_HTTPS=true
+  FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
   
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
@@ -160,7 +169,7 @@ kill_timeout = 30
 ...
 ```
 
-Next, create a volume to store the sqlite database for LNBits. Be sure to choose the same region for the volume that you chose earlier.
+Next, create a volume to store the sqlite database for LNbits. Be sure to choose the same region for the volume that you chose earlier.
 
 ```
 fly volumes create lnbits_data --size 1
@@ -211,8 +220,8 @@ You need to edit the `.env` file.
 
 ```sh
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
-LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
+# postgres://<user>:<myPassword>@<host>:<port>/<lnbits> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
 # save and exit
 ```
 

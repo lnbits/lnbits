@@ -57,7 +57,7 @@ async def check_for_pending_swaps():
                 swap_status = get_swap_status(swap)
                 # should only happen while development when regtest is reset
                 if swap_status.exists is False:
-                    logger.warning(f"Boltz - swap: {swap.boltz_id} does not exist.")
+                    logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
                     await update_swap_status(swap.id, "failed")
                     continue
 
@@ -73,7 +73,7 @@ async def check_for_pending_swaps():
                 else:
                     if swap_status.hit_timeout:
                         if not swap_status.has_lockup:
-                            logger.warning(
+                            logger.debug(
                                 f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
                             )
                             await update_swap_status(swap.id, "timeout")

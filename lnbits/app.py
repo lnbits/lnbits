@@ -91,7 +91,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    # app.add_middleware(ASGIProxyFix)
 
     check_funding_source(app)
     register_assets(app)
@@ -126,7 +125,7 @@ def check_funding_source(app: FastAPI) -> None:
             logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
         signal.signal(signal.SIGINT, original_sigint_handler)
-        logger.info(
+        logger.success(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
 

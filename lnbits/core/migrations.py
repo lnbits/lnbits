@@ -53,7 +53,7 @@ async def m001_initial(db):
         f"""
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
-            amount INTEGER NOT NULL,
+            amount {db.big_int} NOT NULL,
             fee INTEGER NOT NULL DEFAULT 0,
             wallet TEXT NOT NULL,
             pending BOOLEAN NOT NULL,

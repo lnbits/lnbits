@@ -109,7 +109,7 @@
               <q-btn
                 flat
                 disable
-                v-if="!charge.lnbitswallet || charge.time_elapsed"
+                v-if="!charge.payment_request || charge.time_elapsed"
                 style="color: primary; width: 100%"
                 label="lightning⚡"
               >
@@ -131,7 +131,7 @@
               <q-btn
                 flat
                 disable
-                v-if="!charge.onchainwallet || charge.time_elapsed"
+                v-if="!charge.onchainaddress || charge.time_elapsed"
                 style="color: primary; width: 100%"
                 label="onchain⛓️"
               >
@@ -170,13 +170,17 @@
                 name="check"
                 style="color: green; font-size: 21.4em"
               ></q-icon>
-              <q-btn
-                outline
-                v-if="charge.webhook"
-                type="a"
-                :href="charge.completelink"
-                :label="charge.completelinktext"
-              ></q-btn>
+              <div class="row text-center q-mt-lg">
+                <div class="col text-center">
+                  <q-btn
+                    outline
+                    v-if="charge.completelink"
+                    type="a"
+                    :href="charge.completelink"
+                    :label="charge.completelinktext"
+                  ></q-btn>
+                </div>
+              </div>
             </div>
             <div v-else>
               <div class="row text-center q-mb-sm">
@@ -218,7 +222,7 @@
           <div class="col text-center">
             <a
               style="color: unset"
-              :href="mempool_endpoint + '/address/' + charge.onchainaddress"
+              :href="'https://' + mempoolHostname + '/address/' + charge.onchainaddress"
               target="_blank"
               ><span
                 class="text-subtitle1"
@@ -241,13 +245,17 @@
                 name="check"
                 style="color: green; font-size: 21.4em"
               ></q-icon>
-              <q-btn
-                outline
-                v-if="charge.webhook"
-                type="a"
-                :href="charge.completelink"
-                :label="charge.completelinktext"
-              ></q-btn>
+              <div class="row text-center q-mt-lg">
+                <div class="col text-center">
+                  <q-btn
+                    outline
+                    v-if="charge.webhook"
+                    type="a"
+                    :href="charge.completelink"
+                    :label="charge.completelinktext"
+                  ></q-btn>
+                </div>
+              </div>
             </div>
             <div v-else>
               <div class="row items-center q-mb-sm">
@@ -289,7 +297,17 @@
   </div>
   <div class="col-lg- 4 col-md-3 col-sm-1"></div>
 </div>
-
+{% endblock %} {% block styles %}
+<link
+  href="/satspay/css/{{ charge_data.custom_css }}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<style>
+  header button.q-btn-dropdown {
+    display: none;
+  }
+</style>
 {% endblock %} {% block scripts %}
 
 <script src="https://mempool.space/mempool.js"></script>
@@ -303,7 +321,8 @@
     data() {
       return {
         charge: JSON.parse('{{charge_data | tojson}}'),
-        mempool_endpoint: '{{mempool_endpoint}}',
+        mempoolEndpoint: '{{mempool_endpoint}}',
+        network: '{{network}}',
         pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
@@ -316,19 +335,19 @@
         cancelListener: () => {}
       }
     },
+    computed: {
+      mempoolHostname: function () {
+        let hostname = new URL(this.mempoolEndpoint).hostname
+        if (this.network === 'Testnet') {
+          hostname += '/testnet'
+        }
+        return hostname
+      }
+    },
     methods: {
-      startPaymentNotifier() {
-        this.cancelListener()
-        if (!this.lnbitswallet) return
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.checkInvoiceBalance()
-          }
-        )
-      },
       checkBalances: async function () {
-        if (!this.charge.hasStaleBalance) await this.refreshCharge()
+        if (!this.charge.payment_request && this.charge.hasOnchainStaleBalance)
+          return
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -339,22 +358,13 @@
           LNbits.utils.notifyApiError(error)
         }
       },
-      refreshCharge: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            `/satspay/api/v1/charge/${this.charge.id}`
-          )
-          this.charge = mapCharge(data, this.charge)
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
       checkPendingOnchain: async function () {
+        if (!this.charge.onchainaddress) return
+
         const {
           bitcoin: {addresses: addressesAPI}
         } = mempoolJS({
-          hostname: new URL(this.mempool_endpoint).hostname
+          hostname: new URL(this.mempoolEndpoint).hostname
         })
 
         try {
@@ -362,7 +372,8 @@
             address: this.charge.onchainaddress
           })
           const newBalance = utxos.reduce((t, u) => t + u.value, 0)
-          this.charge.hasStaleBalance = this.charge.balance === newBalance
+          this.charge.hasOnchainStaleBalance =
+            this.charge.balance === newBalance
 
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
@@ -397,10 +408,10 @@
         const {
           bitcoin: {websocket}
         } = mempoolJS({
-          hostname: new URL(this.mempool_endpoint).hostname
+          hostname: new URL(this.mempoolEndpoint).hostname
         })
 
-        this.ws = new WebSocket('wss://mempool.space/api/v1/ws')
+        this.ws = new WebSocket(`wss://${this.mempoolHostname}/api/v1/ws`)
         this.ws.addEventListener('open', x => {
           if (this.charge.onchainaddress) {
             this.trackAddress(this.charge.onchainaddress)
@@ -437,13 +448,14 @@
       }
     },
     created: async function () {
-      if (this.charge.lnbitswallet) this.payInvoice()
+      // Remove a user defined theme
+      if (this.charge.custom_css) {
+        document.body.setAttribute('data-theme', '')
+      }
+      if (this.charge.payment_request) this.payInvoice()
       else this.payOnchain()
-      await this.checkBalances()
 
-      // empty for onchain
-      this.wallet.inkey = '{{ wallet_inkey }}'
-      this.startPaymentNotifier()
+      await this.checkBalances()
 
       if (!this.charge.paid) {
         this.loopRefresh()

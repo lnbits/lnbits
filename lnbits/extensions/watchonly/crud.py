@@ -10,7 +10,7 @@ from .models import Address, Config, WalletAccount
 ##########################WALLETS####################
 
 
-async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
+async def create_watch_wallet(user: str, w: WalletAccount) -> WalletAccount:
     wallet_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -30,7 +30,7 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
         """,
         (
             wallet_id,
-            w.user,
+            user,
             w.masterpub,
             w.fingerprint,
             w.title,
@@ -203,7 +203,7 @@ async def update_address(id: str, **kwargs) -> Optional[Address]:
         f"""UPDATE watchonly.addresses SET {q} WHERE id = ? """,
         (*kwargs.values(), id),
     )
-    row = await db.fetchone("SELECT * FROM watchonly.addresses WHERE id = ?", (id))
+    row = await db.fetchone("SELECT * FROM watchonly.addresses WHERE id = ?", (id,))
     return Address.from_row(row) if row else None
 
 

@@ -22,8 +22,8 @@
      ![redirect url](https://i.imgur.com/GMzl0lG.png)
    - on Spotify click the "EDIT SETTINGS" button and paste the copied link in the _Redirect URI's_ prompt
      ![spotify app setting](https://i.imgur.com/vb0x4Tl.png)
-   - back on LNBits, click "AUTORIZE ACCESS" and "Agree" on the page that will open
-   - choose on which device the LNBits Jukebox extensions will stream to, you may have to be logged in in order to select the device (browser, smartphone app, etc...)
+   - back on LNbits, click "AUTORIZE ACCESS" and "Agree" on the page that will open
+   - choose on which device the LNbits Jukebox extensions will stream to, you may have to be logged in in order to select the device (browser, smartphone app, etc...)
    - and select what playlist will be available for users to choose songs (you need to have already playlist on Spotify)\
      ![select playlists](https://i.imgur.com/g4dbtED.png)
 

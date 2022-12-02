@@ -78,7 +78,7 @@ async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type
 
     await delete_form(form_id)
 
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #########tickets##########
@@ -160,4 +160,4 @@ async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your ticket.")
 
     await delete_ticket(ticket_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

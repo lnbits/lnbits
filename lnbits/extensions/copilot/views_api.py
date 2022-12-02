@@ -5,6 +5,7 @@ from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
+from lnbits.core.services import websocketUpdater
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import copilot_ext
@@ -16,14 +17,13 @@ from .crud import (
     update_copilot,
 )
 from .models import CreateCopilotData
-from .views import updater
 
 #######################COPILOT##########################
 
 
 @copilot_ext.get("/api/v1/copilot")
 async def api_copilots_retrieve(
-    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     wallet_user = wallet.wallet.user
     copilots = [copilot.dict() for copilot in await get_copilots(wallet_user)]
@@ -37,7 +37,7 @@ async def api_copilots_retrieve(
 async def api_copilot_retrieve(
     req: Request,
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
 ):
     copilot = await get_copilot(copilot_id)
     if not copilot:
@@ -54,7 +54,7 @@ async def api_copilot_retrieve(
 async def api_copilot_create_or_update(
     data: CreateCopilotData,
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
 ):
     data.user = wallet.wallet.user
     data.wallet = wallet.wallet.id
@@ -67,7 +67,8 @@ async def api_copilot_create_or_update(
 
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 async def api_copilot_delete(
-    copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+    copilot_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
 ):
     copilot = await get_copilot(copilot_id)
 
@@ -91,7 +92,7 @@ async def api_copilot_ws_relay(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     try:
-        await updater(copilot_id, data, comment)
+        await websocketUpdater(copilot_id, str(data) + "-" + str(comment))
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your copilot")
     return ""

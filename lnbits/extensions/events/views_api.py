@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi.param_functions import Query
 from fastapi.params import Depends
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
@@ -78,7 +79,7 @@ async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_typ
 
     await delete_event(event_id)
     await delete_event_tickets(event_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #########Tickets##########
@@ -96,8 +97,8 @@ async def api_tickets(
     return [ticket.dict() for ticket in await get_tickets(wallet_ids)]
 
 
-@events_ext.get("/api/v1/tickets/{event_id}")
-async def api_ticket_make_ticket(event_id):
+@events_ext.get("/api/v1/tickets/{event_id}/{name}/{email}")
+async def api_ticket_make_ticket(event_id, name, email):
     event = await get_event(event_id)
     if not event:
         raise HTTPException(
@@ -108,11 +109,10 @@ async def api_ticket_make_ticket(event_id):
             wallet_id=event.wallet,
             amount=event.price_per_ticket,
             memo=f"{event_id}",
-            extra={"tag": "events"},
+            extra={"tag": "events", "name": name, "email": email},
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
-
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
 
@@ -156,7 +156,7 @@ async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_
         )
 
     await delete_ticket(ticket_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 # Event Tickets

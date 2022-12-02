@@ -1,11 +1,13 @@
 from http import HTTPStatus
+from io import BytesIO
 
+import pyqrcode
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
@@ -51,3 +53,13 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         "lnurldevice/error.html",
         {"request": request, "pin": "filler", "not_paid": True},
     )
+
+
+@lnurldevice_ext.get("/img/{lnurldevice_id}", response_class=StreamingResponse)
+async def img(request: Request, lnurldevice_id):
+    lnurldevice = await get_lnurldevice(lnurldevice_id)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
+        )
+    return lnurldevice.lnurl(request)

@@ -38,13 +38,13 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 201 CREATED (application/json)
+          Returns 200 OK (application/json)
         </h5>
         <code>JSON list of users</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url }}usermanager/api/v1/users -H
-          "X-Api-Key: {{ user.wallets[0].inkey }}"
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -57,10 +57,16 @@
           /usermanager/api/v1/users/&lt;user_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+
         <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 201 CREATED (application/json)
+          Returns 200 OK (application/json)
         </h5>
-        <code>JSON list of users</code>
+        <code
+          >{"id": &lt;string&gt;, "name": &lt;string&gt;, "admin":
+          &lt;string&gt;, "email": &lt;string&gt;, "password":
+          &lt;string&gt;}</code
+        >
+
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
@@ -75,20 +81,19 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/wallets/&lt;user_id&gt;</code
+          /usermanager/api/v1/wallets</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 201 CREATED (application/json)
+          Returns 200 OK (application/json)
         </h5>
         <code>JSON wallet data</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url
-          }}usermanager/api/v1/wallets/&lt;user_id&gt; -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          >curl -X GET {{ request.base_url }}usermanager/api/v1/wallets -H
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -104,7 +109,7 @@
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 201 CREATED (application/json)
+          Returns 200 OK (application/json)
         </h5>
         <code>JSON a wallets transactions</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
@@ -215,7 +220,7 @@
         <code
           >curl -X DELETE {{ request.base_url
           }}usermanager/api/v1/users/&lt;user_id&gt; -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -233,7 +238,7 @@
         <code
           >curl -X DELETE {{ request.base_url
           }}usermanager/api/v1/wallets/&lt;wallet_id&gt; -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -254,11 +259,15 @@
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}usermanager/api/v1/extensions -d
-          '{"userid": &lt;string&gt;, "extension": &lt;string&gt;, "active":
-          &lt;integer&gt;}' -H "X-Api-Key: {{ user.wallets[0].inkey }}" -H
-          "Content-type: application/json"
+          >curl -X POST {{ request.base_url
+          }}usermanager/api/v1/extensions?extension=withdraw&userid=user_id&active=true
+          -H "X-Api-Key: {{ user.wallets[0].inkey }}" -H "Content-type:
+          application/json"
         </code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{"extension": "updated"}</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>

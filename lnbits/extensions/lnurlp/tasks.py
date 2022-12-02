@@ -33,17 +33,22 @@ async def on_invoice_paid(payment: Payment) -> None:
     if pay_link and pay_link.webhook_url:
         async with httpx.AsyncClient() as client:
             try:
-                r = await client.post(
-                    pay_link.webhook_url,
-                    json={
+                kwargs = {
+                    "json": {
                         "payment_hash": payment.payment_hash,
                         "payment_request": payment.bolt11,
                         "amount": payment.amount,
                         "comment": payment.extra.get("comment"),
                         "lnurlp": pay_link.id,
                     },
-                    timeout=40,
-                )
+                    "timeout": 40,
+                }
+                if pay_link.webhook_body:
+                    kwargs["json"]["body"] = json.loads(pay_link.webhook_body)
+                if pay_link.webhook_headers:
+                    kwargs["headers"] = json.loads(pay_link.webhook_headers)
+
+                r = await client.post(pay_link.webhook_url, **kwargs)
                 await mark_webhook_sent(payment, r.status_code)
             except (httpx.ConnectError, httpx.RequestError):
                 await mark_webhook_sent(payment, -1)

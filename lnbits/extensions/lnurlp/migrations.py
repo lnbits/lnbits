@@ -8,7 +8,7 @@ async def m001_initial(db):
             id {db.serial_primary_key},
             wallet TEXT NOT NULL,
             description TEXT NOT NULL,
-            amount INTEGER NOT NULL,
+            amount {db.big_int} NOT NULL,
             served_meta INTEGER NOT NULL,
             served_pr INTEGER NOT NULL
         );
@@ -60,3 +60,11 @@ async def m004_fiat_base_multiplier(db):
     await db.execute(
         "ALTER TABLE lnurlp.pay_links ADD COLUMN fiat_base_multiplier INTEGER DEFAULT 1;"
     )
+
+
+async def m005_webhook_headers_and_body(db):
+    """
+    Add headers and body to webhooks
+    """
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_headers TEXT;")
+    await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN webhook_body TEXT;")
