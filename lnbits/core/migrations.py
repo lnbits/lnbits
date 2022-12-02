@@ -1,6 +1,8 @@
-from sqlalchemy.exc import OperationalError  # type: ignore
-from lnbits import bolt11
 import datetime
+
+from sqlalchemy.exc import OperationalError  # type: ignore
+
+from lnbits import bolt11
 
 
 async def m000_create_migrations_table(db):
