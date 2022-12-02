@@ -8,8 +8,9 @@ from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import SseListenersDict, register_invoice_listener
 
 from . import db
-from .crud import get_balance_notify
+from .crud import get_balance_notify, get_wallet
 from .models import Payment
+from .services import websocketUpdater
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
@@ -52,6 +53,9 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                     await mark_webhook_sent(payment, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
+
+        wallet = await get_wallet(payment.wallet_id)
+        await websocketUpdater(wallet.inkey, {"balance": wallet.balance, "payment": payment.dict()})
 
 
 async def dispatch_api_invoice_listeners(payment: Payment):
