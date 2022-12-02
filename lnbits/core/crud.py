@@ -348,6 +348,7 @@ async def delete_expired_invoices(
         """
     )
 
+
 # payments
 # --------
 
@@ -399,7 +400,7 @@ async def create_payment(
             if extra and extra != {} and type(extra) is dict
             else None,
             webhook,
-            expiration_date,
+            db.datetime_to_timestamp(expiration_date),
         ),
     )
 

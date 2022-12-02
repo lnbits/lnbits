@@ -29,6 +29,13 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
+    def datetime_to_timestamp(self, date: datetime.datetime):
+        if self.type in {POSTGRES, COCKROACH}:
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+        elif self.type == SQLITE:
+            return time.mktime(date.timetuple())
+        return "<nothing>"
+
     @property
     def timestamp_now(self) -> str:
         if self.type in {POSTGRES, COCKROACH}:
@@ -149,14 +156,7 @@ class Database(Compat):
 
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    (1184, 1114),
-                    "TIMESTAMP2INT",
-                    _parse_timestamp
-                    # lambda value, curs: time.mktime(
-                    #     datetime.datetime.strptime(
-                    #         value, "%Y-%m-%d %H:%M:%S.%f"
-                    #     ).timetuple()
-                    # ),
+                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
                 )
             )
         else:

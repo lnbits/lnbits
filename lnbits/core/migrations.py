@@ -198,6 +198,10 @@ async def m006_add_invoice_expiry_to_apipayments(db):
     existing entries
     """
     try:
+        await db.execute("ALTER TABLE apipayments ADD COLUMN expiry TIMESTAMP")
+    except OperationalError:
+        pass
+    try:
         rows = await (
             await db.execute(
                 f"""
@@ -206,7 +210,7 @@ async def m006_add_invoice_expiry_to_apipayments(db):
                 WHERE pending = true
                 AND bolt11 IS NOT NULL
                 AND expiry IS NULL
-                AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
+                AND amount > 0 AND time < {db.timestamp_now}
                 """
             )
         ).fetchall()
@@ -237,7 +241,7 @@ async def m006_add_invoice_expiry_to_apipayments(db):
                 WHERE checking_id = ? AND amount > 0
                 """,
                 (
-                    expiration_date,
+                    db.datetime_to_timestamp(expiration_date),
                     invoice.payment_hash,
                 ),
             )
