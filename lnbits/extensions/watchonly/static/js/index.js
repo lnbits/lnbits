@@ -54,7 +54,10 @@ const watchOnly = async () => {
         showPayment: false,
         fetchedUtxos: false,
         utxosFilter: '',
-        network: null
+        network: null,
+
+        showEnterSignedPsbt: false,
+        signedBase64Psbt: null
       }
     },
     computed: {
@@ -171,6 +174,15 @@ const watchOnly = async () => {
 
       updateSignedPsbt: async function (psbtBase64) {
         this.$refs.paymentRef.updateSignedPsbt(psbtBase64)
+      },
+
+      showEnterSignedPsbtDialog: function () {
+        this.signedBase64Psbt = ''
+        this.showEnterSignedPsbt = true
+      },
+
+      checkPsbt: function () {
+        this.$refs.paymentRef.updateSignedPsbt(this.signedBase64Psbt)
       },
 
       //################### UTXOs ###################
