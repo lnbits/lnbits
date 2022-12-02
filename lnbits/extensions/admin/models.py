@@ -25,6 +25,7 @@ class UpdateSettings(BaseModel):
     lnbits_custom_logo: str = Query(None)
     lnbits_ad_space: str = Query(None)
     lnbits_ad_space_title: str = Query(None)
+    lnbits_ad_space_enabled: bool = Query(None)
 
     # funding sources
     fake_wallet_secret: str = Query(None)

@@ -62,8 +62,9 @@ class Settings(BaseSettings):
         default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
     )
     lnbits_custom_logo: str = Field(default=None)
-    lnbits_ad_space: str = Field(default="")
-    lnbits_ad_space_title: str = Field(default="")
+    lnbits_ad_space_title: str = Field(default="Suported by")
+    lnbits_ad_space: str = Field(default="https://shop.lnbits.com/;https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits/static/images/lnbits-shop-light.png;https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits/static/images/lnbits-shop-dark.png") # sneaky sneaky
+    lnbits_ad_space_enabled: bool = Field(default=False)
 
     # ops
     lnbits_data_folder: str = Field(default="./data")
@@ -136,7 +137,6 @@ class Settings(BaseSettings):
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_theme_options",
-        # "lnbits_ad_space",
         "lnbits_admin_extensions",
         "lnbits_disabled_extensions",
         "lnbits_allowed_funding_sources",

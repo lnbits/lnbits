@@ -25,6 +25,7 @@ async def m001_create_admin_settings_table(db):
             lnbits_custom_logo TEXT,
             lnbits_ad_space TEXT,
             lnbits_ad_space_title TEXT,
+            lnbits_ad_space_enabled BOOLEAN,
             lnbits_data_folder TEXT,
             lnbits_database_url TEXT,
             lnbits_force_https TEXT,

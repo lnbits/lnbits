@@ -386,15 +386,23 @@
         </q-card-section>
       </q-card>
       {% endif %} {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD =
-      ADS.split(';') %}
+      ADS.split(";") %}
       <q-card>
         <q-card-section>
-          <h6 class="text-subtitle1 q-mt-none q-mb-sm">{{ AD_TITLE }}</h6>
+          <h6 class="text-subtitle1 q-mt-none q-mb-sm">{{ AD_SPACE_TITLE }}</h6>
         </q-card-section>
         <q-card-section class="q-pa-none">
-          <a href="{{ AD[0] }}" class="q-ma-md">
-            <img v-if="($q.dark.isActive)" src="{{ AD[1] }}" />
-            <img v-else src="{{ AD[2] }}" />
+          <a style="display: inline-block" href="{{ AD[0] }}" class="q-ma-md">
+            <img
+              style="max-width: 100%; height: auto"
+              v-if="($q.dark.isActive)"
+              src="{{ AD[1] }}"
+            />
+            <img
+              style="max-width: 100%; height: auto"
+              v-else
+              src="{{ AD[2] }}"
+            />
           </a> </q-card-section></q-card
       >{% endfor %} {% endif %}
     </div>
