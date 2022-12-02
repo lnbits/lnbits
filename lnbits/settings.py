@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     lnbits_custom_logo: str = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Suported by")
     lnbits_ad_space: str = Field(
-        default="https://shop.lnbits.com/;https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits/static/images/lnbits-shop-light.png;https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits/static/images/lnbits-shop-dark.png"
+        default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
 
