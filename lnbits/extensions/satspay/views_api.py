@@ -145,7 +145,10 @@ async def api_themes_save(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     css_id: str = None,
 ):
-    if settings.lnbits_admin_users and wallet.wallet.user not in settings.lnbits_admin_users:
+    if (
+        settings.lnbits_admin_users
+        and wallet.wallet.user not in settings.lnbits_admin_users
+    ):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Only server admins can create themes.",
