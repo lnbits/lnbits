@@ -55,7 +55,9 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                     pass
 
         wallet = await get_wallet(payment.wallet_id)
-        await websocketUpdater(wallet.inkey, {"balance": wallet.balance, "payment": payment.dict()})
+        await websocketUpdater(
+            wallet.inkey, {"balance": wallet.balance, "payment": payment.dict()}
+        )
 
 
 async def dispatch_api_invoice_listeners(payment: Payment):
