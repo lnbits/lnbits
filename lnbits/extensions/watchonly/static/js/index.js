@@ -177,11 +177,11 @@ const watchOnly = async () => {
       },
 
       showEnterSignedPsbtDialog: function () {
+        this.signedBase64Psbt = ''
         this.showEnterSignedPsbt = true
       },
 
       checkPsbt: function () {
-        console.log('### checkPsbt', this.signedBase64Psbt)
         this.$refs.paymentRef.updateSignedPsbt(this.signedBase64Psbt)
       },
 
