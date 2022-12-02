@@ -6,6 +6,8 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.settings import settings
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,

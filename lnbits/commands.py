@@ -5,10 +5,9 @@ import re
 import warnings
 
 import click
-from genericpath import exists
 from loguru import logger
 
-from lnbits.settings import Settings, settings
+from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations

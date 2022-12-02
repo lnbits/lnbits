@@ -17,6 +17,8 @@ from websockets.exceptions import (
     ConnectionClosedOK,
 )
 
+from lnbits.settings import settings
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,

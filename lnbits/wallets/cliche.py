@@ -7,6 +7,8 @@ import httpx
 from loguru import logger
 from websocket import create_connection
 
+from lnbits.settings import settings
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,

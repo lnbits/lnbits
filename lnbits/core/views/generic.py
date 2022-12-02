@@ -15,7 +15,6 @@ from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.requestvars import g
 from lnbits.settings import settings
 
 from ...helpers import get_valid_extensions
