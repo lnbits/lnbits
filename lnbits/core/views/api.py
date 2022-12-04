@@ -12,7 +12,15 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request, Response
+from fastapi import (
+    Depends,
+    Header,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -56,6 +64,8 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    websocketManager,
+    websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
 
@@ -697,3 +707,34 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
         "delta_msats": delta,
         "timestamp": int(time.time()),
     }
+
+
+##################UNIVERSAL WEBSOCKET MANAGER########################
+
+
+@core_app.websocket("/api/v1/ws/{item_id}")
+async def websocket_connect(websocket: WebSocket, item_id: str):
+    await websocketManager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        websocketManager.disconnect(websocket)
+
+
+@core_app.post("/api/v1/ws/{item_id}")
+async def websocket_update_post(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}
+
+
+@core_app.get("/api/v1/ws/{item_id}/{data}")
+async def websocket_update_get(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}

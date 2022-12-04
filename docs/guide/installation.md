@@ -75,8 +75,8 @@ LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
-python3 -m venv venv
+# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
+python3.9 -m venv venv
 # If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
 ./venv/bin/pip install -r requirements.txt
 # create the data folder and the .env file
@@ -106,7 +106,7 @@ docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.en
 
 ## Option 5: Fly.io
 
-Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
 First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
 
@@ -169,7 +169,7 @@ kill_timeout = 30
 ...
 ```
 
-Next, create a volume to store the sqlite database for LNBits. Be sure to choose the same region for the volume that you chose earlier.
+Next, create a volume to store the sqlite database for LNbits. Be sure to choose the same region for the volume that you chose earlier.
 
 ```
 fly volumes create lnbits_data --size 1
