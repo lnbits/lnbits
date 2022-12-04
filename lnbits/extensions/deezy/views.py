@@ -17,5 +17,5 @@ async def index(
     user: User = Depends(check_user_exists),  # type: ignore
 ):
     return deezy_renderer().TemplateResponse(
-        "example/index.html", {"request": request, "user": user.dict()}
+        "deezy/index.html", {"request": request, "user": user.dict()}
     )
