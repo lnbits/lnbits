@@ -165,6 +165,7 @@ async def lndhub_getuserinvoices(
     limit: int = Query(20, ge=1, le=20),
     offset: int = Query(0, ge=0),
 ):
+    WALLET = get_wallet_class()
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,
@@ -175,7 +176,6 @@ async def lndhub_getuserinvoices(
         offset=offset,
         exclude_uncheckable=True,
     ):
-        WALLET = get_wallet_class()
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
