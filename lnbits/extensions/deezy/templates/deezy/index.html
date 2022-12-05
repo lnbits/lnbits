@@ -53,7 +53,7 @@
           filled
           dense
           emit-value
-          v-model.trim="swapLnToBtc.data.onChainFees"
+          v-model.trim="swapLnToBtc.data.on_chain_sats_per_vbyte"
           label="On chain fees"
           min="1"
           type="number"
@@ -204,9 +204,9 @@
       sendLnToBtc() {
         var self = this
         axios.post('https://api-testnet.deezy.io/v1/swap', {
-          amount_sats: self.swapLnToBtc.data.amount,
+          amount_sats: parseInt(self.swapLnToBtc.data.amount),
           on_chain_address: self.swapLnToBtc.data.on_chain_address,
-          on_chain_sats_per_vbyte: self.swapLnToBtc.data.on_chain_sats_per_vbyte
+          on_chain_sats_per_vbyte: parseInt(self.swapLnToBtc.data.on_chain_sats_per_vbyte)
         })
         .then(function (response) {
           self.swapLnToBtc = {
