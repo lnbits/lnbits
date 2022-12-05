@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
         description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
         license_info={
             "name": "MIT License",
-            "url": "https://raw.githubusercontent.com/lnbits/lnbits-legend/main/LICENSE",
+            "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
         },
     )
 
@@ -58,8 +58,6 @@ def create_app() -> FastAPI:
         name="core_static",
     )
 
-    # needed for lnurlw?
-    # g().config = settings
     g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(
