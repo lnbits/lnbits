@@ -143,28 +143,34 @@ def register_startup(app: FastAPI):
         # 2. setup admin settings
         await check_admin_settings()
 
-        logger.info("Starting LNbits")
-        logger.info(f"Host: {settings.host}")
-        logger.info(f"Port: {settings.port}")
-        logger.info(f"Debug: {settings.debug}")
-        logger.info(f"Site title: {settings.lnbits_site_title}")
-        logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
-        logger.info(f"Data folder: {settings.lnbits_data_folder}")
-        logger.info(f"Git version: {settings.lnbits_commit}")
-
-        db_url = settings.lnbits_database_url
-        database = (
-            "PostgreSQL"
-            if db_url and db_url.startswith("postgres://")
-            else "CockroachDB"
-            if db_url and db_url.startswith("cockroachdb://")
-            else "SQLite"
-        )
-        logger.info(f"Database: {database}")
-        logger.info(f"Service fee: {settings.lnbits_service_fee}")
+        log_server_info()
 
         # 3. initialize funding source
         await check_funding_source()
+
+
+def log_server_info():
+    logger.info("Starting LNbits")
+    logger.info(f"Host: {settings.host}")
+    logger.info(f"Port: {settings.port}")
+    logger.info(f"Debug: {settings.debug}")
+    logger.info(f"Site title: {settings.lnbits_site_title}")
+    logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
+    logger.info(f"Data folder: {settings.lnbits_data_folder}")
+    logger.info(f"Git version: {settings.lnbits_commit}")
+    logger.info(f"Database: {get_db_vendor_name()}")
+    logger.info(f"Service fee: {settings.lnbits_service_fee}")
+
+
+def get_db_vendor_name():
+    db_url = settings.lnbits_database_url
+    return (
+        "PostgreSQL"
+        if db_url and db_url.startswith("postgres://")
+        else "CockroachDB"
+        if db_url and db_url.startswith("cockroachdb://")
+        else "SQLite"
+    )
 
 
 def register_assets(app: FastAPI):

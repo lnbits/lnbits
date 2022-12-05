@@ -19,8 +19,6 @@ from .helpers import (
     url_for_vendored,
 )
 
-path = settings.lnbits_path
-
 
 @click.command("migrate")
 def db_migrate():
@@ -38,15 +36,17 @@ def transpile_scss():
         warnings.simplefilter("ignore")
         from scss.compiler import compile_string  # type: ignore
 
-        with open(os.path.join(path, "static/scss/base.scss")) as scss:
-            with open(os.path.join(path, "static/css/base.css"), "w") as css:
+        with open(os.path.join(settings.lnbits_path, "static/scss/base.scss")) as scss:
+            with open(
+                os.path.join(settings.lnbits_path, "static/css/base.css"), "w"
+            ) as css:
                 css.write(compile_string(scss.read()))
 
 
 def bundle_vendored():
     for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(path, "static/bundle.js")),
-        (get_css_vendored, os.path.join(path, "static/bundle.css")),
+        (get_js_vendored, os.path.join(settings.lnbits_path, "static/bundle.js")),
+        (get_css_vendored, os.path.join(settings.lnbits_path, "static/bundle.css")),
     ]:
         output = ""
         for path in getfiles():
