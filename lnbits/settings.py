@@ -238,7 +238,7 @@ async def check_admin_settings():
             admin_url = (
                 f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
             )
-            logger.warning(f"✔️ Access admin user account at: {admin_url}")
+            logger.success(f"✔️ Access admin user account at: {admin_url}")
 
 
             # callback for saas
@@ -295,23 +295,24 @@ async def create_admin_settings(db):
 
 
 def send_admin_user_to_saas(user):
-    with httpx.Client() as client:
-        headers = {
-            "Content-Type": "application/json; charset=utf-8",
-            "X-API-KEY": settings.lnbits_saas_secret,
-        }
-        payload = {
-            "instance_id": settings.lnbits_saas_instance_id,
-            "adminuser": user,
-        }
-        try:
-            client.post(
-                settings.lnbits_saas_callback,
-                headers=headers,
-                json=payload,
-            )
-            logger.warning("sent admin user to saas application")
-        except:
-            logger.error(
-                f"error sending admin user to saas: {settings.lnbits_saas_callback}"
-            )
+    if settings.lnbits_saas_callback:
+        with httpx.Client() as client:
+            headers = {
+                "Content-Type": "application/json; charset=utf-8",
+                "X-API-KEY": settings.lnbits_saas_secret,
+            }
+            payload = {
+                "instance_id": settings.lnbits_saas_instance_id,
+                "adminuser": user,
+            }
+            try:
+                client.post(
+                    settings.lnbits_saas_callback,
+                    headers=headers,
+                    json=payload,
+                )
+                logger.success("sent admin user to saas application")
+            except:
+                logger.error(
+                    f"error sending admin user to saas: {settings.lnbits_saas_callback}"
+                )
