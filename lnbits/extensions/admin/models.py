@@ -76,3 +76,4 @@ class UpdateSettings(BaseModel):
 
 class AdminSettings(UpdateSettings):
     lnbits_allowed_funding_sources: Optional[List[str]]
+    super_user: Optional[str]

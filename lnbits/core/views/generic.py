@@ -128,7 +128,7 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
-        if user_id in settings.lnbits_admin_users:
+        if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
             user.admin = True
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore

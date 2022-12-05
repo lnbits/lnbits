@@ -40,7 +40,10 @@ async def get_admin_settings() -> AdminSettings:
 
 async def update_admin_settings(data: UpdateSettings) -> Optional[AdminSettings]:
     fields = []
-    for key, value in data.dict().items():
+    # TODO: issue typens?
+    # somehow data, is type dict, but should be type UpdateSettings
+    # for key, value in data.dict().items(): #type: ignore
+    for key, value in data.items():  # type: ignore
         if not key in readonly_variables:
             setattr(settings, key, value)
             if type(value) == list:

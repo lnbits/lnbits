@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     forwarded_allow_ips: str = Field(default="*")
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
+    super_user: str = Field(default="")
 
     # saas
     lnbits_saas_callback: Optional[str] = Field(default=None)
@@ -230,8 +231,7 @@ async def check_admin_settings():
                 logger.debug(f"{key}: {value}")
 
             http = "https" if settings.lnbits_force_https else "http"
-            user = settings.lnbits_admin_users[0]
-            admin_url = f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
+            admin_url = f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
             logger.success(f"✔️ Access admin user account at: {admin_url}")
 
             # callback for saas
@@ -240,7 +240,7 @@ async def check_admin_settings():
                 and settings.lnbits_saas_secret
                 and settings.lnbits_saas_instance_id
             ):
-                send_admin_user_to_saas(user)
+                send_admin_user_to_saas()
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
@@ -258,7 +258,7 @@ async def create_admin_settings(db):
     from lnbits.core.crud import create_account
 
     account = await create_account()
-    settings.lnbits_admin_users.insert(0, account.id)
+    settings.super_user = account.id
     keys = []
     values = ""
     for key, value in settings.dict(exclude_none=True).items():
@@ -285,7 +285,7 @@ async def create_admin_settings(db):
     return row
 
 
-def send_admin_user_to_saas(user):
+def send_admin_user_to_saas():
     if settings.lnbits_saas_callback:
         with httpx.Client() as client:
             headers = {
@@ -294,7 +294,7 @@ def send_admin_user_to_saas(user):
             }
             payload = {
                 "instance_id": settings.lnbits_saas_instance_id,
-                "adminuser": user,
+                "adminuser": settings.super_user,
             }
             try:
                 client.post(

@@ -6,7 +6,7 @@ import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -18,13 +18,14 @@ from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse, ServerSentEvent
-from starlette.responses import HTMLResponse, StreamingResponse
+from sse_starlette.sse import EventSourceResponse
+from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_admin,
     get_key_type,
     require_admin_key,
     require_invoice_key,
@@ -72,14 +73,10 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
-@core_app.put("/api/v1/wallet/balance/{amount}")
+@core_app.put("/api/v1/wallet/balance/{amount}", dependencies=[Depends(check_admin)])
 async def api_update_balance(
     amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    if wallet.wallet.user not in settings.lnbits_admin_users:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
 
     payHash = urlsafe_short_hash()
     await create_payment(
@@ -676,12 +673,9 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/")
-async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in settings.lnbits_admin_users:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
+@core_app.get("/api/v1/audit/", dependencies=[Depends(check_admin)])
+async def api_auditor():
+
     WALLET = get_wallet_class()
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()

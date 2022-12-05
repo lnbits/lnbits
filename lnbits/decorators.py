@@ -146,8 +146,8 @@ async def get_key_type(
                     status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
                 )
             if (
-                settings.lnbits_admin_users
-                and wallet.wallet.user not in settings.lnbits_admin_users
+                wallet.wallet.user != settings.super_user
+                or wallet.wallet.user not in settings.lnbits_admin_users
             ) and (
                 settings.lnbits_admin_extensions
                 and pathname in settings.lnbits_admin_extensions
@@ -241,19 +241,18 @@ async def check_user_exists(usr: UUID4) -> User:
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
 
-    if g().user.id in settings.lnbits_admin_users:
-        g().user.admin = True
-
     return g().user
 
 
 async def check_admin(usr: UUID4) -> User:
     user = await check_user_exists(usr)
-
-    if not user.id in settings.lnbits_admin_users:
+    if user.id != settings.super_user or (
+        len(settings.lnbits_admin_users) > 0
+        and not user.id in settings.lnbits_admin_users
+    ):
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="User not authorized. No admin privileges.",
         )
-
+    user.admin = True
     return user
