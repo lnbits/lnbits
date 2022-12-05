@@ -29,7 +29,9 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 async def get_admin_settings() -> AdminSettings:
     row = await db.fetchone("SELECT * FROM admin.settings")
-    admin_settings = AdminSettings(**row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources)
+    admin_settings = AdminSettings(
+        **row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources
+    )
     for key, _ in row.items():
         if hasattr(admin_settings, key):
             setattr(admin_settings, key, getattr(settings, key))
@@ -38,7 +40,7 @@ async def get_admin_settings() -> AdminSettings:
 
 async def update_admin_settings(data: UpdateSettings) -> Optional[AdminSettings]:
     fields = []
-    for key, value in data.items():
+    for key, value in data.dict().items():
         if not key in readonly_variables:
             setattr(settings, key, value)
             if type(value) == list:

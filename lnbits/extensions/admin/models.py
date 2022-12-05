@@ -5,7 +5,6 @@ from pydantic import BaseModel, validator
 
 
 class UpdateSettings(BaseModel):
-
     @validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",

@@ -10,7 +10,6 @@ from loguru import logger
 from pydantic import BaseSettings, Field, validator
 
 
-
 def list_parse_fallback(v):
     try:
         return json.loads(v)
@@ -200,12 +199,7 @@ def set_cli_settings(**kwargs):
 
 async def check_admin_settings():
     if settings.lnbits_admin_ui:
-        try:
-            ext_db = importlib.import_module(f"lnbits.extensions.admin").db
-        except:
-            logger.error("could not import module lnbits.extensions.admin database")
-            raise
-
+        ext_db = importlib.import_module(f"lnbits.extensions.admin").db
         async with ext_db.connect() as db:
             row = await db.fetchone("SELECT * FROM admin.settings")
 
@@ -218,15 +212,17 @@ async def check_admin_settings():
 
             # setting settings from database into memory
             from lnbits.extensions.admin.models import AdminSettings
-            sets = AdminSettings(**row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources)
+
+            sets = AdminSettings(
+                **row,
+                lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+            )
             for key, value in sets.dict().items():
                 if not key in readonly_variables:
                     try:
                         setattr(settings, key, value)
                     except:
-                        logger.error(
-                            f"error overriding setting: {key}, value: {value}"
-                        )
+                        logger.error(f"error overriding setting: {key}, value: {value}")
 
             # printing settings for debugging
             logger.debug(f"Admin settings:")
@@ -235,11 +231,8 @@ async def check_admin_settings():
 
             http = "https" if settings.lnbits_force_https else "http"
             user = settings.lnbits_admin_users[0]
-            admin_url = (
-                f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
-            )
+            admin_url = f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
             logger.success(f"✔️ Access admin user account at: {admin_url}")
-
 
             # callback for saas
             if (
@@ -286,9 +279,7 @@ async def create_admin_settings(db):
     v = values.rstrip(",")
     sql = f"INSERT INTO admin.settings ({q}) VALUES ({v})"
     await db.execute(sql)
-    logger.warning(
-        "initialized admin.settings from enviroment variables."
-    )
+    logger.warning("initialized admin.settings from enviroment variables.")
     row = await db.fetchone("SELECT * FROM admin.settings")
     assert row, "Newly updated settings couldn't be retrieved"
     return row

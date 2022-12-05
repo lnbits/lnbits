@@ -10,7 +10,12 @@ from lnbits.extensions.admin import admin_ext
 from lnbits.extensions.admin.models import AdminSettings, UpdateSettings
 from lnbits.server import server_restart
 
-from .crud import delete_admin_settings, get_admin_settings, update_admin_settings, update_wallet_balance
+from .crud import (
+    delete_admin_settings,
+    get_admin_settings,
+    update_admin_settings,
+    update_wallet_balance,
+)
 
 
 @admin_ext.get(
