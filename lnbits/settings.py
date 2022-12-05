@@ -22,7 +22,7 @@ def list_parse_fallback(v):
             return []
 
 
-read_only_variables = [
+readonly_variables = [
     "host",
     "port",
     "debug",
@@ -220,7 +220,7 @@ async def check_admin_settings():
             from lnbits.extensions.admin.models import AdminSettings
             sets = AdminSettings(**row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources)
             for key, value in sets.dict().items():
-                if not key in read_only_variables:
+                if not key in readonly_variables:
                     try:
                         setattr(settings, key, value)
                     except:
@@ -269,7 +269,7 @@ async def create_admin_settings(db):
     keys = []
     values = ""
     for key, value in settings.dict(exclude_none=True).items():
-        if not key in read_only_variables:
+        if not key in readonly_variables:
             keys.append(key)
             if type(value) == list:
                 joined = ",".join(value)

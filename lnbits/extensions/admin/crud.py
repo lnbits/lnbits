@@ -2,7 +2,7 @@ from typing import Optional
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import read_only_variables, settings
+from lnbits.settings import readonly_variables, settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
@@ -39,7 +39,7 @@ async def get_admin_settings() -> AdminSettings:
 async def update_admin_settings(data: UpdateSettings) -> Optional[AdminSettings]:
     fields = []
     for key, value in data.items():
-        if not key in read_only_variables:
+        if not key in readonly_variables:
             setattr(settings, key, value)
             if type(value) == list:
                 joined = ",".join(value)
