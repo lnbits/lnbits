@@ -10,6 +10,7 @@ from loguru import logger
 from pydantic import BaseSettings, Field, validator
 
 
+
 def list_parse_fallback(v):
     try:
         return json.loads(v)
@@ -24,6 +25,13 @@ def list_parse_fallback(v):
 read_only_variables = [
     "host",
     "port",
+    "debug",
+    "lnbits_allowed_funding_sources",
+    "lnbits_admin_extensions",
+    "lnbits_saas_secret",
+    "lnbits_saas_callback",
+    "lnbits_saas_instance_id",
+    "lnbits_admin_ui",
     "lnbits_commit",
     "lnbits_path",
     "forwarded_allow_ips",
@@ -178,6 +186,7 @@ except:
     settings.lnbits_commit = "docker"
 
 
+# printing enviroment variable for debugging
 if not settings.lnbits_admin_ui:
     logger.debug(f"Enviroment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
@@ -198,95 +207,47 @@ async def check_admin_settings():
             raise
 
         async with ext_db.connect() as db:
-            try:
-                row = await db.fetchone("SELECT * FROM admin.settings")
-                if not row or len(row) == 0:
-                    logger.warning(
-                        "admin.settings empty. inserting new settings and creating admin account"
-                    )
+            row = await db.fetchone("SELECT * FROM admin.settings")
 
-                    from lnbits.core.crud import create_account
-
-                    account = await create_account()
-                    settings.lnbits_admin_users.insert(0, account.id)
-                    keys = []
-                    values = ""
-                    for key, value in settings.dict(exclude_none=True).items():
-                        keys.append(key)
-                        if type(value) == list:
-                            joined = ",".join(value)
-                            values += f"'{joined}'"
-                        if type(value) == int or type(value) == float:
-                            values += str(value)
-                        if type(value) == bool:
-                            values += "true" if value else "false"
-                        if type(value) == str:
-                            value = value.replace("'", "")
-                            values += f"'{value}'"
-                        values += ","
-                    q = ", ".join(keys)
-                    v = values.rstrip(",")
-                    sql = f"INSERT INTO admin.settings ({q}) VALUES ({v})"
-                    await db.execute(sql)
-                    logger.warning(
-                        "initialized admin.settings from enviroment variables."
-                    )
-
-                    row = await db.fetchone("SELECT * FROM admin.settings")
-                    assert row, "Newly updated settings couldn't be retrieved"
-
-                admin = Settings(**row)
-
-                for key, value in admin.dict(exclude_none=True).items():
-                    if not key in read_only_variables:
-                        try:
-                            setattr(settings, key, value)
-                        except:
-                            logger.error(
-                                f"error overriding setting: {key}, value: {value}"
-                            )
-
-                logger.debug(f"Admin settings:")
-                for key, value in settings.dict(exclude_none=True).items():
-                    logger.debug(f"{key}: {value}")
-
-                http = "https" if settings.lnbits_force_https else "http"
-                user = settings.lnbits_admin_users[0]
-
-                admin_url = (
-                    f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
+            # create new settings if table is empty
+            if not row or len(row) == 0:
+                logger.warning(
+                    "admin.settings empty. inserting new settings and creating admin account"
                 )
-                logger.warning(f"✔️ Access admin user account at: {admin_url}")
+                row = await create_admin_settings(db)
 
-                if (
-                    settings.lnbits_saas_callback
-                    and settings.lnbits_saas_secret
-                    and settings.lnbits_saas_instance_id
-                ):
-                    with httpx.Client() as client:
-                        headers = {
-                            "Content-Type": "application/json; charset=utf-8",
-                            "X-API-KEY": settings.lnbits_saas_secret,
-                        }
-                        payload = {
-                            "instance_id": settings.lnbits_saas_instance_id,
-                            "adminuser": user,
-                        }
-                        try:
-                            client.post(
-                                settings.lnbits_saas_callback,
-                                headers=headers,
-                                json=payload,
-                            )
-                            logger.warning("sent admin user to saas application")
-                        except:
-                            logger.error(
-                                f"error sending admin user to saas: {settings.lnbits_saas_callback}"
-                            )
+            # setting settings from database into memory
+            from lnbits.extensions.admin.models import AdminSettings
+            sets = AdminSettings(**row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources)
+            for key, value in sets.dict().items():
+                if not key in read_only_variables:
+                    try:
+                        setattr(settings, key, value)
+                    except:
+                        logger.error(
+                            f"error overriding setting: {key}, value: {value}"
+                        )
 
-            except:
-                logger.error("admin.settings tables does not exist.")
-                raise
+            # printing settings for debugging
+            logger.debug(f"Admin settings:")
+            for key, value in settings.dict(exclude_none=True).items():
+                logger.debug(f"{key}: {value}")
+
+            http = "https" if settings.lnbits_force_https else "http"
+            user = settings.lnbits_admin_users[0]
+            admin_url = (
+                f"{http}://{settings.host}:{settings.port}/wallet?usr={user}"
+            )
+            logger.warning(f"✔️ Access admin user account at: {admin_url}")
+
+
+            # callback for saas
+            if (
+                settings.lnbits_saas_callback
+                and settings.lnbits_saas_secret
+                and settings.lnbits_saas_instance_id
+            ):
+                send_admin_user_to_saas(user)
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
@@ -296,3 +257,61 @@ FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 def get_wallet_class():
     wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
     return wallet_class()
+
+
+async def create_admin_settings(db):
+
+    # if not imported here, circular import error
+    from lnbits.core.crud import create_account
+
+    account = await create_account()
+    settings.lnbits_admin_users.insert(0, account.id)
+    keys = []
+    values = ""
+    for key, value in settings.dict(exclude_none=True).items():
+        if not key in read_only_variables:
+            keys.append(key)
+            if type(value) == list:
+                joined = ",".join(value)
+                values += f"'{joined}'"
+            if type(value) == int or type(value) == float:
+                values += str(value)
+            if type(value) == bool:
+                values += "true" if value else "false"
+            if type(value) == str:
+                value = value.replace("'", "")
+                values += f"'{value}'"
+            values += ","
+    q = ", ".join(keys)
+    v = values.rstrip(",")
+    sql = f"INSERT INTO admin.settings ({q}) VALUES ({v})"
+    await db.execute(sql)
+    logger.warning(
+        "initialized admin.settings from enviroment variables."
+    )
+    row = await db.fetchone("SELECT * FROM admin.settings")
+    assert row, "Newly updated settings couldn't be retrieved"
+    return row
+
+
+def send_admin_user_to_saas(user):
+    with httpx.Client() as client:
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "X-API-KEY": settings.lnbits_saas_secret,
+        }
+        payload = {
+            "instance_id": settings.lnbits_saas_instance_id,
+            "adminuser": user,
+        }
+        try:
+            client.post(
+                settings.lnbits_saas_callback,
+                headers=headers,
+                json=payload,
+            )
+            logger.warning("sent admin user to saas application")
+        except:
+            logger.error(
+                f"error sending admin user to saas: {settings.lnbits_saas_callback}"
+            )

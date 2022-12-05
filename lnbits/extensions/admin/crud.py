@@ -2,7 +2,7 @@ from typing import Optional
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import Settings, read_only_variables, settings
+from lnbits.settings import read_only_variables, settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
@@ -27,21 +27,20 @@ async def update_wallet_balance(wallet_id: str, amount: int):
     return payment
 
 
-async def get_settings() -> AdminSettings:
+async def get_admin_settings() -> AdminSettings:
     row = await db.fetchone("SELECT * FROM admin.settings")
-    all_settings = Settings(**row)
-    settings = AdminSettings()
-    for key, value in row.items():
-        if hasattr(settings, key):
-            setattr(settings, key, getattr(all_settings, key))
-    return settings
+    admin_settings = AdminSettings(**row, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources)
+    for key, _ in row.items():
+        if hasattr(admin_settings, key):
+            setattr(admin_settings, key, getattr(settings, key))
+    return admin_settings
 
 
-async def update_settings(data: UpdateSettings) -> Optional[Settings]:
+async def update_admin_settings(data: UpdateSettings) -> Optional[AdminSettings]:
     fields = []
-    for key, value in data.dict(exclude_none=True).items():
-        setattr(settings, key, value)
+    for key, value in data.items():
         if not key in read_only_variables:
+            setattr(settings, key, value)
             if type(value) == list:
                 joined = ",".join(value)
                 fields.append(f"{key} = '{joined}'")
@@ -52,13 +51,12 @@ async def update_settings(data: UpdateSettings) -> Optional[Settings]:
             if type(value) == str:
                 value = value.replace("'", "")
                 fields.append(f"{key} = '{value}'")
-
     q = ", ".join(fields)
     await db.execute(f"UPDATE admin.settings SET {q}")
     row = await db.fetchone("SELECT * FROM admin.settings")
     assert row, "Newly updated settings couldn't be retrieved"
-    return Settings(**row) if row else None
+    return AdminSettings(**row) if row else None
 
 
-async def delete_settings():
+async def delete_admin_settings():
     await db.execute("DELETE FROM admin.settings")
