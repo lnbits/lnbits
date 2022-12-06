@@ -197,14 +197,18 @@ async def m005_balance_check_balance_notify(db):
 
 async def m006_add_invoice_expiry_to_apipayments(db):
     """
-    Adds invoice expiry column to apipayments and precomputes them for
-    existing entries
+    Adds invoice expiry column to apipayments.
     """
     try:
         await db.execute("ALTER TABLE apipayments ADD COLUMN expiry TIMESTAMP")
     except OperationalError:
         pass
 
+
+async def m007_set_invoice_expiries(db):
+    """
+    Precomputes invoice expiry for existing pending incoming payments.
+    """
     try:
         rows = await (
             await db.execute(
@@ -232,7 +236,7 @@ async def m006_add_invoice_expiry_to_apipayments(db):
                     invoice.date + invoice.expiry
                 )
                 logger.info(
-                    f"Mirgraion: {i}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                    f"Mirgraion: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
                     """

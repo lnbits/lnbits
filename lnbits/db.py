@@ -132,6 +132,8 @@ class Database(Compat):
             import psycopg2  # type: ignore
 
             def _parse_timestamp(value, _):
+                if value is None:
+                    return None
                 f = "%Y-%m-%d %H:%M:%S.%f"
                 if not "." in value:
                     f = "%Y-%m-%d %H:%M:%S"
