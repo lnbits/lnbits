@@ -23,5 +23,5 @@ Easilly create invoices that support Lightning Network and on-chain BTC payment.
      ![offchain payment](https://i.imgur.com/4191SMV.png)
    - or pay on chain\
      ![onchain payment](https://i.imgur.com/wzLRR5N.png)
-5. You can check the state of your charges in LNBits\
+5. You can check the state of your charges in LNbits\
    ![invoice state](https://i.imgur.com/JnBd22p.png)

@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from fastapi import HTTPException
 from loguru import logger
 from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
 

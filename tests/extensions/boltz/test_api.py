@@ -1,6 +1,7 @@
 import pytest
+import pytest_asyncio
 
-from tests.helpers import is_fake
+from tests.helpers import is_fake, is_regtest
 
 
 @pytest.mark.asyncio

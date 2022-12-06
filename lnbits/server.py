@@ -11,7 +11,7 @@ from lnbits.settings import FORWARDED_ALLOW_IPS, HOST, PORT
     )
 )
 @click.option("--port", default=PORT, help="Port to listen on")
-@click.option("--host", default=HOST, help="Host to run LNBits on")
+@click.option("--host", default=HOST, help="Host to run LNbits on")
 @click.option(
     "--forwarded-allow-ips", default=FORWARDED_ALLOW_IPS, help="Allowed proxy servers"
 )

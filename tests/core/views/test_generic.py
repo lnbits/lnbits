@@ -1,4 +1,7 @@
 import pytest
+import pytest_asyncio
+
+from tests.conftest import client
 
 
 @pytest.mark.asyncio

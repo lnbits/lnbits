@@ -133,6 +133,10 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
 
     for table in tables:
         tableName = table[0]
+        print(f"Migrating table {tableName}")
+        # hard coded skip for dbversions (already produced during startup)
+        if tableName == "dbversions":
+            continue
         if tableName in exclude_tables:
             continue
 
@@ -156,7 +160,7 @@ def build_insert_query(schema, tableName, columns):
 def to_column_type(columnType):
     if columnType == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if columnType == "BOOLEAN":
+    if columnType in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 

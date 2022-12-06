@@ -4,7 +4,7 @@
 
 [![video tutorial offline shop](http://img.youtube.com/vi/_XAvM_LNsoo/0.jpg)](https://youtu.be/_XAvM_LNsoo 'video tutorial offline shop')
 
-LNBits Offline Shop allows for merchants to receive Bitcoin payments while offline and without any electronic device.
+LNbits Offline Shop allows for merchants to receive Bitcoin payments while offline and without any electronic device.
 
 Merchant will create items and associate a QR code ([a LNURLp](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/lnurlp/README.md)) with a price. He can then print the QR codes and display them on their shop. When a customer chooses an item, scans the QR code, gets the description and price. After payment, the customer gets a confirmation code that the merchant can validate to be sure the payment was successful.
 
@@ -23,7 +23,7 @@ Customers must use an LNURL pay capable wallet.
      ![add new item](https://i.imgur.com/pkZqRgj.png)
 3. After creating some products, click on "PRINT QR CODES"\
    ![print qr codes](https://i.imgur.com/2GAiSTe.png)
-4. You'll see a QR code for each product in your LNBits Offline Shop with a title and price ready for printing\
+4. You'll see a QR code for each product in your LNbits Offline Shop with a title and price ready for printing\
    ![qr codes sheet](https://i.imgur.com/faEqOcd.png)
 5. Place the printed QR codes on your shop, or at the fair stall, or have them as a menu style laminated sheet
 6. Choose what type of confirmation do you want customers to report to merchant after a successful payment\
