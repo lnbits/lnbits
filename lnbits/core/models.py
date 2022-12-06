@@ -85,7 +85,7 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
-    expiry: int
+    expiry: float
     extra: Optional[Dict] = {}
     wallet_id: str
     webhook: Optional[str]

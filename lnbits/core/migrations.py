@@ -1,5 +1,5 @@
 import datetime
-
+from loguru import logger
 from sqlalchemy.exc import OperationalError  # type: ignore
 
 from lnbits import bolt11
@@ -216,37 +216,35 @@ async def m006_add_invoice_expiry_to_apipayments(db):
                 """
             )
         ).fetchall()
-        # then we delete all expired invoices, checking one by one
-        print(f"Checking expiry of {len(rows)} invoices")
+        logger.info(f"Checking expiry of {len(rows)} invoices")
         for i, (
             payment_request,
-            payment_hash,
+            checking_id,
         ) in enumerate(rows):
-            print(f"Checking invoice {i}/{len(rows)}")
+            logger.info(f"Checking invoice {i}/{len(rows)}")
             try:
                 invoice = bolt11.decode(payment_request)
+                if invoice.expiry is None:
+                    continue
+
+                expiration_date = datetime.datetime.fromtimestamp(
+                    invoice.date + invoice.expiry
+                )
+                logger.info(
+                    f"Setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                )
+                await db.execute(
+                    """
+                    UPDATE apipayments SET expiry = ?
+                    WHERE checking_id = ? AND amount > 0
+                    """,
+                    (
+                        db.datetime_to_timestamp(expiration_date),
+                        checking_id,
+                    ),
+                )
             except:
                 continue
-            if payment_hash != invoice.payment_hash:
-                print("Error: {payment_hash} != {invoice.payment_hash}")
-                continue
-
-            expiration_date = datetime.datetime.fromtimestamp(
-                invoice.date + invoice.expiry
-            )
-            print(
-                f"Setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
-            )
-            await db.execute(
-                """
-                UPDATE apipayments SET expiry = ?
-                WHERE checking_id = ? AND amount > 0
-                """,
-                (
-                    db.datetime_to_timestamp(expiration_date),
-                    invoice.payment_hash,
-                ),
-            )
     except OperationalError:
         # this is necessary now because it may be the case that this migration will
         # run twice in some environments.

@@ -377,6 +377,7 @@ async def create_payment(
         invoice = bolt11.decode(payment_request)
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
     except:
+        # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 
     await (conn or db).execute(
