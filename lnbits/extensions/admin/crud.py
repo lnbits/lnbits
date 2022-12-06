@@ -39,10 +39,6 @@ async def delete_admin_settings():
 
 
 async def update_admin_settings(data: UpdateSettings):
-    # TODO why are those field here, they are not in UpdateSettings
-    # TODO: why is UpdateSettings of type dict here? thats why type:ignore is needed
-    data.pop("lnbits_allowed_funding_sources")  # type: ignore
-    data.pop("super_user")  # type: ignore
     q, values = get_q_and_values(data)
     await db.execute(f"UPDATE admin.settings SET {q}", (values,))  # type: ignore
 
