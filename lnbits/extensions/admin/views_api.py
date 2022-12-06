@@ -6,6 +6,7 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
+from lnbits.core.models import User
 from lnbits.decorators import check_admin
 from lnbits.extensions.admin import admin_ext
 from lnbits.extensions.admin.models import AdminSettings, UpdateSettings
@@ -27,9 +28,11 @@ async def api_restart_server() -> dict[str, str]:
     return {"status": "Success"}
 
 
-@admin_ext.get("/api/v1/settings/", dependencies=[Depends(check_admin)])
-async def api_get_settings() -> Optional[AdminSettings]:
-    return await get_admin_settings()
+@admin_ext.get("/api/v1/settings/")
+async def api_get_settings(user: User = Depends(check_admin)) -> Optional[AdminSettings]:
+    admin_settings = await get_admin_settings()
+    admin_settings.super_user = user.super_user
+    return admin_settings
 
 
 @admin_ext.put(

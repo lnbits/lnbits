@@ -39,6 +39,7 @@
       ></q-btn> -->
     <q-btn
       flat
+      v-if="isSuperUser"
       label="Reset to defaults"
       color="primary"
       @click="deleteSettings"
@@ -130,6 +131,9 @@
       return {
         settings: {},
         formData: {},
+        formAddAdmin: '',
+        formAddUser: '',
+        isSuperUser: false,
         wallet: {},
         cancel: {},
         topUpDialog: {
@@ -337,30 +341,30 @@
     },
     methods: {
       addAdminUser() {
-        let addUser = this.formData.admin_users_add
-        let admin_users = this.settings.lnbits_admin_users
+        let addUser = this.formAddAdmin
+        let admin_users = this.formData.lnbits_admin_users
         if (addUser && addUser.length && !admin_users.includes(addUser)) {
-          admin_users.push(addUser)
-          this.settings.lnbits_admin_users = admin_users
-          this.formData.admin_users_add = ''
+          //admin_users = [...admin_users, addUser]
+          this.formData.lnbits_admin_users = [...admin_users, addUser]
+          this.formAddAdmin = ''
+          //console.log(this.checkChanges)
         }
       },
       removeAdminUser(user) {
-        let admin_users = this.settings.lnbits_admin_users
-        this.settings.lnbits_admin_users = admin_users.filter(u => u !== user)
+        let admin_users = this.formData.lnbits_admin_users
+        this.formData.lnbits_admin_users = admin_users.filter(u => u !== user)
       },
       addAllowedUser() {
-        let addUser = this.formData.allowed_users_add
-        let allowed_users = this.settings.lnbits_allowed_users
+        let addUser = this.formAddUser
+        let allowed_users = this.formData.lnbits_allowed_users
         if (addUser && addUser.length && !allowed_users.includes(addUser)) {
-          allowed_users.push(addUser)
-          this.settings.lnbits_allowed_users = allowed_users
-          this.formData.allowed_users_add = ''
+          this.formData.lnbits_allowed_users = [...allowed_users, addUser]
+          this.formAddUser = ''
         }
       },
       removeAllowedUser(user) {
-        let allowed_users = this.settings.lnbits_allowed_users
-        this.settings.lnbits_allowed_users = allowed_users.filter(
+        let allowed_users = this.formData.lnbits_allowed_users
+        this.formData.lnbits_allowed_users = allowed_users.filter(
           u => u !== user
         )
       },
@@ -421,18 +425,21 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
+            this.isSuperUser = response.data.super_user || false
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
+            console.log(this.settings)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
       updateSettings() {
-        let data = {
-          ...this.formData
-        }
+        let data = _.omit(this.formData, [
+          'super_user',
+          'lnbits_allowed_funding_sources'
+        ])
         LNbits.api
           .request(
             'PUT',
@@ -441,10 +448,12 @@
             data
           )
           .then(response => {
+            console.log(response)
+            if (response.status != 200) throw new Error('Request Failed')
             this.needsRestart =
               this.settings.lnbits_backend_wallet_class !==
-              response.data.settings.lnbits_backend_wallet_class
-            this.settings = response.data.settings
+              this.formData.lnbits_backend_wallet_class
+            this.settings = this.formData
             this.formData = _.clone(this.settings)
             this.updateFundingData()
             this.$q.notify({
@@ -454,6 +463,7 @@
             })
           })
           .catch(function (error) {
+            console.error(error)
             LNbits.utils.notifyApiError(error)
           })
       },

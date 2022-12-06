@@ -81,4 +81,4 @@ class UpdateSettings(BaseModel, extra=Extra.forbid):
 
 class AdminSettings(UpdateSettings):
     lnbits_allowed_funding_sources: Optional[List[str]]
-    super_user: Optional[str]
+    super_user: Optional[bool]

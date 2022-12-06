@@ -1,14 +1,14 @@
 <q-tab-panel name="users">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none">User Management</h6>
-    <br />
-    <p class="q-my-none">Super Admin: {{ settings.lnbits_admin_users[0] }}</p>
+    <!-- <br />
+    <p class="q-my-none">Super Admin: {{ settings.super_user }}</p> -->
     <br />
     <div>
       <p>Admin Users</p>
       <q-input
         filled
-        v-model="formData.admin_users_add"
+        v-model="formAddAdmin"
         @keydown.enter="addAdminUser"
         type="text"
         label="User ID"
@@ -17,16 +17,18 @@
         <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
       </q-input>
       <div>
+        {%raw%}
         <q-chip
-          v-for="user in settings.lnbits_admin_users"
+          v-for="user in formData.lnbits_admin_users"
           :key="user"
           removable
           @remove="removeAdminUser(user)"
           color="primary"
           text-color="white"
         >
-          {{ user.id }}
+          {{ user }}
         </q-chip>
+        {%endraw%}
       </div>
       <br />
     </div>
@@ -34,7 +36,7 @@
       <p>Allowed Users</p>
       <q-input
         filled
-        v-model="formData.allowed_users_add"
+        v-model="formAddUser"
         @keydown.enter="addAllowedUser"
         type="text"
         label="User ID"
@@ -45,7 +47,7 @@
       <div>
         {% raw %}
         <q-chip
-          v-for="user in settings.lnbits_allowed_users"
+          v-for="user in formData.lnbits_allowed_users"
           :key="user"
           removable
           @remove="removeAllowedUser(user)"
