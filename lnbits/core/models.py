@@ -85,7 +85,7 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
-    expiry: float
+    expiry: Optional[float]
     extra: Optional[Dict] = {}
     wallet_id: str
     webhook: Optional[str]
@@ -134,7 +134,7 @@ class Payment(BaseModel):
 
     @property
     def is_expired(self) -> bool:
-        return self.expiry < time.time()
+        return self.expiry < time.time() if self.expiry else False
 
     @property
     def is_uncheckable(self) -> bool:
@@ -178,10 +178,10 @@ class Payment(BaseModel):
 
         logger.debug(f"Status: {status}")
 
-        if self.is_in and status.pending and self.is_expired:
+        if self.is_in and self.expiry and status.pending and self.is_expired:
             expiration_date = datetime.datetime.fromtimestamp(self.expiry)
             logger.debug(
-                f"Deleting expired incoming payment {self.checking_id}: expired {expiration_date}"
+                f"Deleting expired incoming pending payment {self.checking_id}: expired {expiration_date}"
             )
             await self.delete(conn)
 
