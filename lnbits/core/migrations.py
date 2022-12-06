@@ -216,9 +216,10 @@ async def m007_set_invoice_expiries(db):
                 SELECT bolt11, checking_id
                 FROM apipayments
                 WHERE pending = true
+                AND amount > 0
                 AND bolt11 IS NOT NULL
                 AND expiry IS NULL
-                AND amount > 0 AND time < {db.timestamp_now}
+                AND time < {db.timestamp_now}
                 """
             )
         ).fetchall()
