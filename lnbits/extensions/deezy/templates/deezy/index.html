@@ -1,176 +1,172 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
-<q-card>
-  <q-card-section>
-    <h5 class="text-subtitle1 q-mt-none q-mb-md">
-      Deezy
-    </h5>
-    <q-separator class="q-my-lg"></q-separator>
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn
-          label="Swap (In)"
-          unelevated
-          color="primary"
-          @click="swapLnToBtc.show = true; swapBtcToLn.show = false"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Send onchain funds offchain (BTC -> LN)
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          label="Reverse Swap (Out)"
-          unelevated
-          color="primary"
-          @click="swapBtcToLn.show = true; swapLnToBtc.show = false;"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Send offchain funds to onchain address (LN -> BTC)
-          </q-tooltip>
-        </q-btn>
+        <h5 class="text-subtitle1 q-mt-none q-mb-md">
+          Deezy
+        </h5>
+        <q-separator class="q-my-lg"></q-separator>
+        <q-card>
+          <q-card-section>
+            <q-btn
+              label="SWAP (LIGHTNING -> BTC)"
+              unelevated
+              color="primary"
+              @click="swapLnToBtc.show = true; swapBtcToLn.show = false"
+            >
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send onchain funds offchain (BTC -> LN)
+              </q-tooltip>
+            </q-btn>
+            <q-btn
+              label="SWAP (BTC -> LIGHTNING)"
+              unelevated
+              color="primary"
+              @click="swapBtcToLn.show = true; swapLnToBtc.show = false;"
+            >
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send offchain funds to onchain address (LN -> BTC)
+              </q-tooltip>
+            </q-btn>
+          </q-card-section>
+        </q-card>
+        <div v-show="swapLnToBtc.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <h6 class="q-mt-none">LIGHTNING BTC -> BTC</h6>
+          <q-form @submit="sendLnToBtc" class="q-gutter-md">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.amount"
+              label="Amount"
+              type="number"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.on_chain_address"
+              type="string"
+              label="Onchain address to receive funds"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.on_chain_sats_per_vbyte"
+              label="On chain fees"
+              min="1"
+              type="number"
+            ></q-input>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              label="Create Swap"
+            ></q-btn>
+            <q-btn
+              flat
+              color="grey"
+              class="q-ml-auto"
+              @click="resetSwapLnToBtc"
+            >Cancel</q-btn>
+          </q-form>
+          <q-dialog v-model="swapLnToBtc.showInvoice" persistent>
+            <q-card flat bordered class="my-card">
+              <q-card-section>
+                <div class="flex justify-between">
+                  <div class="text-h6">Pay invoice to complete swap</div>
+                  <q-btn flat v-close-popup>
+                    <q-icon name="close" />
+                  </q-btn>
+                </div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                <qrcode
+                  :value="swapLnToBtc.response"
+                  :options="{width: 360}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-card-section>
+              <q-card-section>
+                <q-btn outline @click="copyLnInvoice" label="Copy" color="primary"></q-btn>
+                <q-input
+                  v-model="swapLnToBtc.response"
+                  type="textarea"
+                  readonly
+                  @click="$event.target.select()"
+                />
+              </q-card-section>
+            </q-card>
+          </q-dialog>
+        </div>
+        <div v-show="swapBtcToLn.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <h6 class="q-mt-none">BTC -> LIGHTNING BTC</h6>
+          <q-form @submit="sendBtcToLn" class="q-gutter-md">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapBtcToLn.data.lnurl_or_lnaddress"
+              label="Lnurl or Lightning Address"
+              type="string"
+            ></q-input>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              label="Create Swap"
+            ></q-btn>
+            <q-btn
+              flat
+              color="grey"
+              class="q-ml-auto"
+              @click="resetSwapBtcToLn"
+            >Cancel</q-btn>
+          </q-form>
+          <q-dialog v-model="swapBtcToLn.showDetails" persistent maximized>
+            <q-card flat bordered class="my-card">
+              <q-card-section>
+                <div class="flex justify-between">
+                  <div class="text-h6">Response - Important</div>
+                  <q-btn flat v-close-popup>
+                    <q-icon name="close" />
+                  </q-btn>
+                </div>
+              </q-card-section>
+              {% raw %}
+              <q-card-section>
+                Address - {{ swapBtcToLn.response.address }} 
+              </q-card-section>
+              <q-card-section>
+                Commitment - {{ swapBtcToLn.response.commitment }}
+              </q-card-section>
+              <q-card-section>
+                Secret Access Key - {{ swapBtcToLn.response.secret_access_key }}
+              </q-card-section>
+              <q-card-section>
+                Signature - {{ swapBtcToLn.response.signature }}
+              </q-card-section>
+              {% endraw %}
+            </q-card>
+          </q-dialog>
+        </div>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Boltz extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "deezy/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
-    <div v-show="swapLnToBtc.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <h6 class="q-mt-none">Lightning Btc -> Btc</h6>
-      <q-form @submit="sendLnToBtc" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapLnToBtc.data.amount"
-          label="Amount"
-          type="number"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapLnToBtc.data.on_chain_address"
-          type="string"
-          label="Onchain address to receive funds"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapLnToBtc.data.on_chain_sats_per_vbyte"
-          label="On chain fees"
-          min="1"
-          type="number"
-        ></q-input>
-        <q-btn
-          unelevated
-          color="primary"
-          type="submit"
-          label="Create Swap"
-        ></q-btn>
-        <q-btn
-          flat
-          color="grey"
-          class="q-ml-auto"
-          @click="resetSwapLnToBtc"
-        >Cancel</q-btn>
-      </q-form>
-      <q-dialog v-model="swapLnToBtc.showInvoice" persistent>
-        <q-card flat bordered class="my-card">
-          <q-card-section>
-            <div class="flex justify-between">
-              <div class="text-h6">Pay invoice to complete swap</div>
-              <q-btn flat v-close-popup>
-                <q-icon name="close" />
-              </q-btn>
-            </div>
-          </q-card-section>
-          <q-card-section class="q-pt-none">
-            <qrcode
-              :value="swapLnToBtc.response"
-              :options="{width: 360}"
-              class="rounded-borders"
-            ></qrcode>
-          </q-card-section>
-          <q-card-section>
-            <q-btn outline @click="copyLnInvoice" label="Copy" color="primary"></q-btn>
-            <q-input
-              v-model="swapLnToBtc.response"
-              type="textarea"
-              readonly
-              @click="$event.target.select()"
-            />
-          </q-card-section>
-        </q-card>
-      </q-dialog>
-    </div>
-    <div v-show="swapBtcToLn.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <h6 class="q-mt-none">Btc -> Lightning Btc</h6>
-      <q-form @submit="sendBtcToLn" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapBtcToLn.data.lnurl_or_lnaddress"
-          label="Lnurl or Lightning Address"
-          type="string"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapBtcToLn.data.secret_access_key"
-          type="string"
-          label="Secret Access Key"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="swapBtcToLn.data.webhook_url"
-          label="Webhook url"
-          type="string"
-        ></q-input>
-        <q-btn
-          unelevated
-          color="primary"
-          type="submit"
-          label="Create Swap"
-        ></q-btn>
-        <q-btn
-          flat
-          color="grey"
-          class="q-ml-auto"
-          @click="resetSwapBtcToLn"
-        >Cancel</q-btn>
-      </q-form>
-      <q-dialog v-model="swapBtcToLn.showDetails" persistent maximized>
-        <q-card flat bordered class="my-card">
-          <q-card-section>
-            <div class="flex justify-between">
-              <div class="text-h6">Response - Important</div>
-              <q-btn flat v-close-popup>
-                <q-icon name="close" />
-              </q-btn>
-            </div>
-          </q-card-section>
-          {% raw %}
-          <q-card-section>
-            Address - {{ swapBtcToLn.response.address }} 
-          </q-card-section>
-          <q-card-section>
-            Commitment - {{ swapBtcToLn.response.commitment }}
-          </q-card-section>
-          <q-card-section>
-            Secret Access Key - {{ swapBtcToLn.response.secret_access_key }}
-          </q-card-section>
-          <q-card-section>
-            Signature - {{ swapBtcToLn.response.signature }}
-          </q-card-section>
-          <q-card-section>
-            Webhook Url - {{ swapBtcToLn.response.webhook_url }}
-          </q-card-section>
-          {% endraw %}
-        </q-card>
-      </q-dialog>
-    </div>
-</q-card>
+  </div>
+</div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -223,8 +219,6 @@
         var self = this
         axios.post('https://api-testnet.deezy.io/v1/source', {
           lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress,
-          secret_access_key: self.swapBtcToLn.data.secret_access_key,
-          webhook_url: self.swapBtcToLn.data.webhook_url
         })
         .then(function (response) {
           self.swapBtcToLn = {
