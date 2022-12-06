@@ -4,7 +4,6 @@ import logging
 import signal
 import sys
 import traceback
-import warnings
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request

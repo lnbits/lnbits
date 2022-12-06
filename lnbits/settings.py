@@ -25,6 +25,8 @@ readonly_variables = [
     "host",
     "port",
     "debug",
+    "lnbits_data_folder",
+    "lnbits_database_url",
     "lnbits_allowed_funding_sources",
     "lnbits_admin_extensions",
     "lnbits_saas_secret",
@@ -70,7 +72,7 @@ class Settings(BaseSettings):
         default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
     )
     lnbits_custom_logo: str = Field(default=None)
-    lnbits_ad_space_title: str = Field(default="Suported by")
+    lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
@@ -199,25 +201,30 @@ def set_cli_settings(**kwargs):
 
 
 async def check_admin_settings():
+
     if settings.lnbits_admin_ui:
-        ext_db = importlib.import_module(f"lnbits.extensions.admin").db
-        async with ext_db.connect() as db:
-            row = await db.fetchone("SELECT * FROM admin.settings")
 
-            # create new settings if table is empty
-            if not row or len(row) == 0:
-                logger.warning(
-                    "admin.settings empty. inserting new settings and creating admin account"
-                )
-                row = await create_admin_settings(db)
+        # if not imported here, circular import error
+        from lnbits.extensions.admin.crud import (
+            create_admin_settings,
+            get_admin_settings,
+        )
 
-            # setting settings from database into memory
-            from lnbits.extensions.admin.models import AdminSettings
+        # ext_db = importlib.import_module(f"lnbits.extensions.admin").db
+        # async with ext_db.connect() as db:
+        #     row = await db.fetchone("SELECT * FROM admin.settings")
 
-            sets = AdminSettings(
-                **row,
-                lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+        sets = await get_admin_settings()
+        # create new settings if table is empty
+        if not sets:
+            logger.warning(
+                "admin.settings empty. inserting new settings and creating admin account"
             )
+            await create_admin_settings()
+            logger.warning("initialized admin.settings from enviroment variables.")
+            sets = await get_admin_settings()
+
+        if sets:
             for key, value in sets.dict().items():
                 if not key in readonly_variables:
                     try:
@@ -225,22 +232,24 @@ async def check_admin_settings():
                     except:
                         logger.error(f"error overriding setting: {key}, value: {value}")
 
-            # printing settings for debugging
-            logger.debug(f"Admin settings:")
-            for key, value in settings.dict(exclude_none=True).items():
-                logger.debug(f"{key}: {value}")
+        # printing settings for debugging
+        logger.debug(f"Admin settings:")
+        for key, value in settings.dict(exclude_none=True).items():
+            logger.debug(f"{key}: {value}")
 
-            http = "https" if settings.lnbits_force_https else "http"
-            admin_url = f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
-            logger.success(f"✔️ Access admin user account at: {admin_url}")
+        http = "https" if settings.lnbits_force_https else "http"
+        admin_url = (
+            f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
+        )
+        logger.success(f"✔️ Access admin user account at: {admin_url}")
 
-            # callback for saas
-            if (
-                settings.lnbits_saas_callback
-                and settings.lnbits_saas_secret
-                and settings.lnbits_saas_instance_id
-            ):
-                send_admin_user_to_saas()
+        # callback for saas
+        if (
+            settings.lnbits_saas_callback
+            and settings.lnbits_saas_secret
+            and settings.lnbits_saas_instance_id
+        ):
+            send_admin_user_to_saas()
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
@@ -250,39 +259,6 @@ FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 def get_wallet_class():
     wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
     return wallet_class()
-
-
-async def create_admin_settings(db):
-
-    # if not imported here, circular import error
-    from lnbits.core.crud import create_account
-
-    account = await create_account()
-    settings.super_user = account.id
-    keys = []
-    values = ""
-    for key, value in settings.dict(exclude_none=True).items():
-        if not key in readonly_variables:
-            keys.append(key)
-            if type(value) == list:
-                joined = ",".join(value)
-                values += f"'{joined}'"
-            if type(value) == int or type(value) == float:
-                values += str(value)
-            if type(value) == bool:
-                values += "true" if value else "false"
-            if type(value) == str:
-                value = value.replace("'", "")
-                values += f"'{value}'"
-            values += ","
-    q = ", ".join(keys)
-    v = values.rstrip(",")
-    sql = f"INSERT INTO admin.settings ({q}) VALUES ({v})"
-    await db.execute(sql)
-    logger.warning("initialized admin.settings from enviroment variables.")
-    row = await db.fetchone("SELECT * FROM admin.settings")
-    assert row, "Newly updated settings couldn't be retrieved"
-    return row
 
 
 def send_admin_user_to_saas():

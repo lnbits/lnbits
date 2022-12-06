@@ -1,10 +1,10 @@
 from typing import List, Optional
 
 from fastapi import Query
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 
 
-class UpdateSettings(BaseModel):
+class UpdateSettings(BaseModel, extra=Extra.forbid):
     @validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
@@ -72,6 +72,11 @@ class UpdateSettings(BaseModel):
     lntips_api_key: str = Query(None)
     lntips_admin_key: str = Query(None)
     lntips_invoice_key: str = Query(None)
+
+    boltz_mempool_space_url: str = Query(None)
+    boltz_mempool_space_url_ws: str = Query(None)
+    boltz_network: str = Query(None)
+    boltz_url: str = Query(None)
 
 
 class AdminSettings(UpdateSettings):

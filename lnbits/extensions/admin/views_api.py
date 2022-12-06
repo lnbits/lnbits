@@ -1,6 +1,7 @@
 from http import HTTPStatus
+from typing import Optional
 
-from fastapi import Body
+from fastapi import Body, Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -27,7 +28,7 @@ async def api_restart_server() -> dict[str, str]:
 
 
 @admin_ext.get("/api/v1/settings/", dependencies=[Depends(check_admin)])
-async def api_get_settings() -> AdminSettings:
+async def api_get_settings() -> Optional[AdminSettings]:
     return await get_admin_settings()
 
 
@@ -52,12 +53,9 @@ async def api_update_balance(
 @admin_ext.put(
     "/api/v1/settings/", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)]
 )
-async def api_update_settings(
-    data: UpdateSettings = Body(...),
-):
-    settings = await update_admin_settings(data)
-    if settings:
-        return {"status": "Success", "settings": settings.dict()}
+async def api_update_settings(data: UpdateSettings):
+    await update_admin_settings(data)
+    return {"status": "Success"}
 
 
 @admin_ext.delete(
