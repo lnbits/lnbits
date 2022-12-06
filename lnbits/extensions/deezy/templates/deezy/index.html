@@ -154,6 +154,23 @@
           </q-dialog>
         </div>
     </q-card>
+    {% raw %}
+    <q-dialog v-model="swapLnToBtc.invoicePaid">
+      <q-card class="bg-teal text-white" style="width: 400px">
+        <q-card-section>
+          <div class="text-h6">Success Bitcoin is on its way</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          Onchain tx id {{ swapLnToBtc.onChainTxId }}
+        </q-card-section>
+
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn flat label="OK" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    {% endraw %}
   </div>
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
@@ -183,7 +200,9 @@
           data: {
             onChainFees: 1
           },
-          response: null
+          response: null,
+          invoicePaid: false,
+          onchainTxId: null,
         },
         swapBtcToLn: {
           show: false,
@@ -194,6 +213,24 @@
       }
     },
     methods: {
+      checkIfInvoiceIsPaid() {
+        if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid ) {
+          var self = this
+          let interval = setInterval(() => {
+            axios.get(`https://api-testnet.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`)
+            .then(function (response){
+              if (response.data.on_chain_txid || count > 4) {
+                self.swapLnToBtc = {
+                  ...self.swapLnToBtc,
+                  invoicePaid: true,
+                  onchainTxId: response.data.on_chain_txid
+                } 
+                clearInterval(interval)
+              }
+            })
+          }, 4000)
+        }
+      },
       copyLnInvoice() {
         Quasar.utils.copyToClipboard(this.swapLnToBtc.response)
       },
@@ -210,6 +247,7 @@
             showInvoice: true,
             response: response.data.bolt11_invoice
           }
+          self.checkIfInvoiceIsPaid()
         })
         .catch(function (error) {
           console.log(error);
