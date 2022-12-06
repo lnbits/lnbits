@@ -210,13 +210,9 @@ async def check_admin_settings():
             get_admin_settings,
         )
 
-        # ext_db = importlib.import_module(f"lnbits.extensions.admin").db
-        # async with ext_db.connect() as db:
-        #     row = await db.fetchone("SELECT * FROM admin.settings")
-
         sets = await get_admin_settings()
-        # create new settings if table is empty
         if not sets:
+            # create new settings if table is empty
             logger.warning(
                 "admin.settings empty. inserting new settings and creating admin account"
             )

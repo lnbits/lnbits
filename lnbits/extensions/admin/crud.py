@@ -46,6 +46,8 @@ async def update_admin_settings(data: UpdateSettings):
 def get_q_and_values(data):
     keys = []
     values = []
+    data.pop("lnbits_allowed_funding_sources")
+    data.pop("super_user")
     for key, value in data.items():
         setattr(settings, key, value)
         keys.append(f"{key} = ?")
