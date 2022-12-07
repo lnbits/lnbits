@@ -79,6 +79,10 @@ class UpdateSettings(BaseModel, extra=Extra.forbid):
     boltz_url: str = Query(None)
 
 
+class SuperSettings(UpdateSettings):
+    super_user: str
+
+
 class AdminSettings(UpdateSettings):
+    super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
-    super_user: Optional[bool]

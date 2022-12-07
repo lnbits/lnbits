@@ -63,6 +63,7 @@ class User(BaseModel):
     wallets: List[Wallet] = []
     password: Optional[str] = None
     admin: bool = False
+    super_user: bool = False
 
     @property
     def wallet_ids(self) -> List[str]:

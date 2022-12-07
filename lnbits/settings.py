@@ -207,10 +207,10 @@ async def check_admin_settings():
         # if not imported here, circular import error
         from lnbits.extensions.admin.crud import (
             create_admin_settings,
-            get_admin_settings,
+            get_super_settings,
         )
 
-        sets = await get_admin_settings()
+        sets = await get_super_settings()
         if not sets:
             # create new settings if table is empty
             logger.warning(
@@ -218,7 +218,7 @@ async def check_admin_settings():
             )
             await create_admin_settings()
             logger.warning("initialized admin.settings from enviroment variables.")
-            sets = await get_admin_settings()
+            sets = await get_super_settings()
 
         if sets:
             for key, value in sets.dict().items():

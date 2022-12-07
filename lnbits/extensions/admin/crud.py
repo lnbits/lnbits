@@ -6,7 +6,7 @@ from lnbits.settings import readonly_variables, settings
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
-from .models import AdminSettings, UpdateSettings
+from .models import SuperSettings, AdminSettings, UpdateSettings
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):
@@ -25,13 +25,24 @@ async def update_wallet_balance(wallet_id: str, amount: int):
     return payment
 
 
-async def get_admin_settings() -> Optional[AdminSettings]:
+async def get_super_settings() -> Optional[SuperSettings]:
     row = await db.fetchone("SELECT * FROM admin.settings")
     if not row:
         return None
-    return AdminSettings(
-        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources, **row
+    return SuperSettings(**row)
+
+
+async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
+    sets = await get_super_settings()
+    if not sets:
+        return None
+    row_dict = dict(sets)
+    row_dict.pop("super_user")
+    admin_settings = AdminSettings(
+        super_user=is_super_user, lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources, **row_dict
     )
+    return admin_settings
+
 
 
 async def delete_admin_settings():
@@ -46,6 +57,7 @@ async def update_admin_settings(data: UpdateSettings):
 def get_q_and_values(data):
     keys = []
     values = []
+    # exclude from api updates
     data.pop("lnbits_allowed_funding_sources")
     data.pop("super_user")
     for key, value in data.items():
