@@ -14,7 +14,6 @@ from lnbits.extensions.bleskomat.helpers import (
     query_to_signing_payload,
 )
 from lnbits.extensions.bleskomat.models import CreateBleskomat
-from lnbits.settings import get_wallet_class
 
 exchange_rate_providers["dummy"] = {
     "name": "dummy",
@@ -66,7 +65,3 @@ async def lnurl(bleskomat):
         "lnurl": lnurl,
         "secret": secret,
     }
-
-@pytest_asyncio.fixture
-async def WALLET(bleskomat):
-    return get_wallet_class()
