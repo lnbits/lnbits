@@ -74,7 +74,9 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     logger.trace(f"sse: registering invoice listener {name_unique}")
     invoice_listeners[name_unique] = send_chan
 
+
 scheduled_tasks = {}
+
 
 async def task_listener():
     """
@@ -91,6 +93,7 @@ async def task_listener():
         for key in scheduled_tasks:
             if int(key) < int(strTime):
                 del scheduled_tasks[key]
+
 
 async def webhook_handler():
     """
