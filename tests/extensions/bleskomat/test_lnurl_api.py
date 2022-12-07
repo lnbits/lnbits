@@ -12,8 +12,7 @@ from lnbits.extensions.bleskomat.helpers import (
 from lnbits.settings import settings
 from tests.conftest import client
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
-from tests.helpers import credit_wallet, is_regtest
-from tests.mocks import WALLET
+from tests.helpers import credit_wallet, is_regtest, WALLET
 
 
 @pytest.mark.asyncio
