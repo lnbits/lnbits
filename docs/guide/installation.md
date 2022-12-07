@@ -47,6 +47,15 @@ poetry run lnbits
 # adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
 # Note that you have to add the line DEBUG=true in your .env file, too. 
 ```
+#### Updating the server
+
+```
+# Stop LNbits with `ctrl + x`
+cd lnbits-legend/
+git pull
+poetry install - - only main
+# Start LNbits with `poetry run lnbits`
+```
 
 ## Option 2: Nix 
 
