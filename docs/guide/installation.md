@@ -53,7 +53,7 @@ poetry run lnbits
 cd lnbits-legend/
 # Stop LNbits with `ctrl + x`
 git pull
-poetry install - - only main
+poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
 
