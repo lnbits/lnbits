@@ -691,7 +691,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/")
+@core_app.get("/api/v1/audit")
 async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
