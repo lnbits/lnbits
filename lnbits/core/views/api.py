@@ -73,7 +73,7 @@ from ..tasks import api_invoice_listeners, timed_job
 async def api_wallet():
     async def torun():
         logger.debug("Cron worked!")
-    await timed_job(torun, int(time.time() + 10))
+    await timed_job(torun, int(time.time() + 5))
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
