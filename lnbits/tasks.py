@@ -1,5 +1,5 @@
 import asyncio
-import time
+import math, time
 import traceback
 import uuid
 from http import HTTPStatus
@@ -74,6 +74,23 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     logger.trace(f"sse: registering invoice listener {name_unique}")
     invoice_listeners[name_unique] = send_chan
 
+scheduled_tasks = {}
+
+async def task_listener():
+    """
+    A cron method for running functions.
+    """
+    while True:
+        now = time.time()
+        await asyncio.sleep(math.ceil(now) - now)
+        strTime = str(int(time.time()))
+        if strTime in scheduled_tasks:
+            for task in scheduled_tasks[strTime]:
+                await task()
+            del scheduled_tasks[strTime]
+        for key in scheduled_tasks:
+            if int(key) < int(strTime):
+                del scheduled_tasks[key]
 
 async def webhook_handler():
     """

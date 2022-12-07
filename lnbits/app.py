@@ -35,6 +35,7 @@ from .tasks import (
     internal_invoice_listener,
     invoice_listener,
     webhook_handler,
+    task_listener,
 )
 
 
@@ -182,6 +183,7 @@ def register_async_tasks(app):
         loop.create_task(catch_everything_and_restart(check_pending_payments))
         loop.create_task(catch_everything_and_restart(invoice_listener))
         loop.create_task(catch_everything_and_restart(internal_invoice_listener))
+        loop.create_task(catch_everything_and_restart(task_listener))
         await register_task_listeners()
         # await run_deferred_async() # calle: doesn't do anyting?
 

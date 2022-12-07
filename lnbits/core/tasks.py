@@ -5,7 +5,7 @@ import httpx
 from loguru import logger
 
 from lnbits.helpers import get_current_extension_name
-from lnbits.tasks import SseListenersDict, register_invoice_listener
+from lnbits.tasks import SseListenersDict, register_invoice_listener, scheduled_tasks
 
 from . import db
 from .crud import get_balance_notify
@@ -15,6 +15,12 @@ api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
 )
 
+async def timed_job(func, time: int):
+    if str(time) not in scheduled_tasks:
+        scheduled_tasks[str(time)] = [func]
+        return
+    scheduled_tasks[str(time)].append(func)
+    return
 
 async def register_task_listeners():
     """
