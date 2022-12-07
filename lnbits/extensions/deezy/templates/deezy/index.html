@@ -17,7 +17,7 @@
               @click="swapLnToBtc.show = true; swapBtcToLn.show = false"
             >
               <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Send onchain funds offchain (BTC -> LN)
+                Send lightning btc and receive on-chain btc
               </q-tooltip>
             </q-btn>
             <q-btn
@@ -27,7 +27,7 @@
               @click="swapBtcToLn.show = true; swapLnToBtc.show = false;"
             >
               <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Send offchain funds to onchain address (LN -> BTC)
+                Send on-chain btc and receive via lightning
               </q-tooltip>
             </q-btn>
           </q-card-section>
@@ -40,7 +40,7 @@
               dense
               emit-value
               v-model.trim="swapLnToBtc.data.amount"
-              label="Amount"
+              label="Amount (sats)"
               type="number"
             ></q-input>
             <q-input
@@ -56,7 +56,7 @@
               dense
               emit-value
               v-model.trim="swapLnToBtc.data.on_chain_sats_per_vbyte"
-              label="On chain fees"
+              label="On chain fee rate (sats/vbyte)"
               min="1"
               type="number"
             ></q-input>
@@ -162,7 +162,7 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          Onchain tx id {{ swapLnToBtc.onChainTxId }}
+          Onchain tx id {{ swapLnToBtc.onchainTxId }}
         </q-card-section>
 
         <q-card-actions align="right" class="bg-white text-teal">
@@ -217,7 +217,7 @@
         if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid ) {
           var self = this
           let interval = setInterval(() => {
-            axios.get(`https://api-testnet.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`)
+            axios.get(`https://api.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`)
             .then(function (response){
               if (response.data.on_chain_txid || count > 4) {
                 self.swapLnToBtc = {
@@ -236,7 +236,7 @@
       },
       sendLnToBtc() {
         var self = this
-        axios.post('https://api-testnet.deezy.io/v1/swap', {
+        axios.post('https://api.deezy.io/v1/swap', {
           amount_sats: parseInt(self.swapLnToBtc.data.amount),
           on_chain_address: self.swapLnToBtc.data.on_chain_address,
           on_chain_sats_per_vbyte: parseInt(self.swapLnToBtc.data.on_chain_sats_per_vbyte)
@@ -255,7 +255,7 @@
       },
       sendBtcToLn() {
         var self = this
-        axios.post('https://api-testnet.deezy.io/v1/source', {
+        axios.post('https://api.deezy.io/v1/source', {
           lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress,
         })
         .then(function (response) {
