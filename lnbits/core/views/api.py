@@ -34,11 +34,12 @@ from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
+    require_admin_user,
     require_admin_key,
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
+from lnbits.settings import LNBITS_SITE_TITLE, WALLET
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -84,12 +85,8 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @core_app.put("/api/v1/wallet/balance/{amount}")
 async def api_update_balance(
-    amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
+    amount: int, wallet: WalletTypeInfo = Depends(require_admin_user)
 ):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
 
     payHash = urlsafe_short_hash()
     await create_payment(
@@ -687,11 +684,7 @@ async def img(request: Request, data):
 
 
 @core_app.get("/api/v1/audit")
-async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
+async def api_auditor(wallet: WalletTypeInfo = Depends(require_admin_user)):
 
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
