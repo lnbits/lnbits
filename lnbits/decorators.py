@@ -146,7 +146,8 @@ async def get_key_type(
                     status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
                 )
             if (
-                wallet.wallet.user != settings.super_user and wallet.wallet.user not in settings.lnbits_admin_users
+                wallet.wallet.user != settings.super_user
+                and wallet.wallet.user not in settings.lnbits_admin_users
             ) and (
                 settings.lnbits_admin_extensions
                 and pathname in settings.lnbits_admin_extensions
@@ -256,6 +257,5 @@ async def check_admin(usr: UUID4) -> User:
     user.super_user = False
     if user.id == settings.super_user:
         user.super_user = True
-    
-    return user
 
+    return user
