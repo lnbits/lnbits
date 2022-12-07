@@ -12,7 +12,7 @@ from lnbits.extensions.bleskomat.helpers import (
 from lnbits.settings import settings, get_wallet_class
 from tests.conftest import client
 
-from tests.extensions.bleskomat.conftest import bleskomat, lnurl
+from tests.extensions.bleskomat.conftest import bleskomat, lnurl, WALLET
 from tests.helpers import credit_wallet, is_regtest
 
 
@@ -99,11 +99,10 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
-async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
+async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl, WALLET):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]
     pr = "lntb500n1pseq44upp5xqd38rgad72lnlh4gl339njlrsl3ykep82j6gj4g02dkule7k54qdqqcqzpgxqyz5vqsp5h0zgewuxdxcl2rnlumh6g520t4fr05rgudakpxm789xgjekha75s9qyyssq5vhwsy9knhfeqg0wn6hcnppwmum8fs3g3jxkgw45havgfl6evchjsz3s8e8kr6eyacz02szdhs7v5lg0m7wehd5rpf6yg8480cddjlqpae52xu"
-    WALLET = get_wallet_class()
     WALLET.pay_invoice.reset_mock()
     response = await client.get(f"/bleskomat/u?k1={secret}&pr={pr}")
     assert response.status_code == 200
@@ -120,7 +119,7 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
-async def test_bleskomat_lnurl_api_action_success(client, lnurl):
+async def test_bleskomat_lnurl_api_action_success(client, lnurl, WALLET):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]
     pr = "lntb500n1pseq44upp5xqd38rgad72lnlh4gl339njlrsl3ykep82j6gj4g02dkule7k54qdqqcqzpgxqyz5vqsp5h0zgewuxdxcl2rnlumh6g520t4fr05rgudakpxm789xgjekha75s9qyyssq5vhwsy9knhfeqg0wn6hcnppwmum8fs3g3jxkgw45havgfl6evchjsz3s8e8kr6eyacz02szdhs7v5lg0m7wehd5rpf6yg8480cddjlqpae52xu"
@@ -130,7 +129,6 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     )
     wallet = await get_wallet(bleskomat.wallet)
     assert wallet.balance_msat == 100000
-    WALLET = get_wallet_class()
     WALLET.pay_invoice.reset_mock()
     response = await client.get(f"/bleskomat/u?k1={secret}&pr={pr}")
     assert response.json() == {"status": "OK"}
