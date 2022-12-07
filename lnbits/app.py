@@ -34,8 +34,8 @@ from .tasks import (
     check_pending_payments,
     internal_invoice_listener,
     invoice_listener,
-    webhook_handler,
     task_listener,
+    webhook_handler,
 )
 
 
