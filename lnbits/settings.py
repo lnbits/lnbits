@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
     lnbits_force_https: bool = Field(default=False)
-    lnbits_reserve_fee_min: int = Field(default=4000)
+    lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)

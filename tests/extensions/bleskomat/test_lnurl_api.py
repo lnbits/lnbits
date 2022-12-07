@@ -9,13 +9,13 @@ from lnbits.extensions.bleskomat.helpers import (
     generate_bleskomat_lnurl_signature,
     query_to_signing_payload,
 )
-from lnbits.settings import settings, get_wallet_class
+from lnbits.settings import get_wallet_class, settings
 from tests.conftest import client
-
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
 from tests.helpers import credit_wallet, is_regtest
 
 WALLET = get_wallet_class()
+
 
 @pytest.mark.asyncio
 async def test_bleskomat_lnurl_api_missing_secret(client):
@@ -141,4 +141,4 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl, not None
     assert bleskomat_lnurl.has_uses_remaining() == False
-    WALLET.pay_invoice.assert_called_once_with(pr, 4000)
+    WALLET.pay_invoice.assert_called_once_with(pr, 2000)
