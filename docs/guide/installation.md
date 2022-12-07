@@ -50,8 +50,8 @@ poetry run lnbits
 #### Updating the server
 
 ```
-# Stop LNbits with `ctrl + x`
 cd lnbits-legend/
+# Stop LNbits with `ctrl + x`
 git pull
 poetry install - - only main
 # Start LNbits with `poetry run lnbits`
