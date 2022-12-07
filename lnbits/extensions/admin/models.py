@@ -10,6 +10,7 @@ class UpdateSettings(BaseModel, extra=Extra.forbid):
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_disabled_extensions",
+        "lnbits_admin_extensions",
         pre=True,
     )
     def validate(cls, val):
@@ -20,6 +21,7 @@ class UpdateSettings(BaseModel, extra=Extra.forbid):
     lnbits_backend_wallet_class: str = Query(None)
     lnbits_admin_users: List[str] = Query(None)
     lnbits_allowed_users: List[str] = Query(None)
+    lnbits_admin_extensions: List[str] = Query(None)
     lnbits_disabled_extensions: List[str] = Query(None)
     lnbits_theme_options: List[str] = Query(None)
     lnbits_force_https: bool = Query(None)

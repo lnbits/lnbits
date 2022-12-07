@@ -3,6 +3,7 @@ async def m001_create_admin_settings_table(db):
         """
         CREATE TABLE IF NOT EXISTS admin.settings (
             super_user TEXT,
+            lnbits_admin_extensions TEXT,
             lnbits_admin_users TEXT,
             lnbits_allowed_users TEXT,
             lnbits_disabled_extensions TEXT,
