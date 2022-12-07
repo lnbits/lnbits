@@ -15,7 +15,12 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.tasks import register_task_listeners
-from lnbits.settings import check_admin_settings, get_wallet_class, settings
+from lnbits.settings import (
+    check_admin_settings,
+    get_wallet_class,
+    set_wallet_class,
+    settings,
+)
 
 from .commands import migrate_databases
 from .core import core_app
@@ -144,7 +149,10 @@ def register_startup(app: FastAPI):
 
         log_server_info()
 
-        # 3. initialize funding source
+        # 3. initialize WALLET
+        set_wallet_class()
+
+        # 4. initialize funding source
         await check_funding_source()
 
 

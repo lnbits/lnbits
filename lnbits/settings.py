@@ -251,10 +251,20 @@ async def check_admin_settings():
 wallets_module = importlib.import_module("lnbits.wallets")
 FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
+# initialize as fake wallet
+WALLET = FAKE_WALLET
+
+
+# set wallet class after settings are loaded
+def set_wallet_class():
+    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+    global WALLET
+    WALLET = wallet_class()
+
 
 def get_wallet_class():
-    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return wallet_class()
+    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+    return WALLET
 
 
 def send_admin_user_to_saas():
