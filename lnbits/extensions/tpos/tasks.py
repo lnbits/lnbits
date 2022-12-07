@@ -3,7 +3,7 @@ import asyncio
 from loguru import logger
 
 from lnbits.core.models import Payment
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice, pay_invoice, websocketUpdater
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
@@ -25,6 +25,16 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     tpos = await get_tpos(payment.extra.get("tposId"))
     tipAmount = payment.extra.get("tipAmount")
+
+    strippedPayment = {
+        "amount":payment.amount,
+        "fee":payment.fee,
+        "checking_id":payment.checking_id,
+        "payment_hash":payment.payment_hash,
+        "bolt11":payment.bolt11,
+    }
+
+    await websocketUpdater(payment.extra.get("tposId"), str(strippedPayment))
 
     if tipAmount is None:
         # no tip amount
