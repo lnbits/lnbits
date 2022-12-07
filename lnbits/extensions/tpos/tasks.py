@@ -27,11 +27,11 @@ async def on_invoice_paid(payment: Payment) -> None:
     tipAmount = payment.extra.get("tipAmount")
 
     strippedPayment = {
-        "amount":payment.amount,
-        "fee":payment.fee,
-        "checking_id":payment.checking_id,
-        "payment_hash":payment.payment_hash,
-        "bolt11":payment.bolt11,
+        "amount": payment.amount,
+        "fee": payment.fee,
+        "checking_id": payment.checking_id,
+        "payment_hash": payment.payment_hash,
+        "bolt11": payment.bolt11,
     }
 
     await websocketUpdater(payment.extra.get("tposId"), str(strippedPayment))
