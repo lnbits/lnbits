@@ -24,6 +24,7 @@ async def m002_add_utc_offset_col(db):
     """
     await db.execute("ALTER TABLE gerty.gertys ADD COLUMN utc_offset INT;")
 
+
 async def m003_add_gerty_model_col(db):
     """
     support for Gerty model col
@@ -33,6 +34,7 @@ async def m003_add_gerty_model_col(db):
 
 #########MEMPOOL MIGRATIONS########
 
+
 async def m004_initial(db):
     """
     Initial Gertys table.
@@ -40,6 +42,7 @@ async def m004_initial(db):
     await db.execute(
         """
         CREATE TABLE gerty.mempool (
+            mempool_endpoint TEXT PRIMARY KEY,
             endpoint TEXT NOT NULL,
             data TEXT NOT NULL,
             time TIMESTAMP

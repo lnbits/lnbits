@@ -10,6 +10,7 @@ from loguru import logger
 from . import db
 from .models import Gerty, Mempool, MempoolEndpoint
 
+
 async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
     gerty_id = urlsafe_short_hash()
     await db.execute(
@@ -78,34 +79,52 @@ async def delete_gerty(gerty_id: str) -> None:
 
 #############MEMPOOL###########
 
+
 async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
     endpoints = MempoolEndpoint()
     url = ""
     for endpoint in endpoints:
         if endPoint == endpoint[0]:
             url = endpoint[1]
-    row = await db.fetchone("SELECT * FROM gerty.mempool WHERE endpoint = ?", (endPoint,))
+    row = await db.fetchone(
+        "SELECT * FROM gerty.mempool WHERE endpoint = ? AND mempool_endpoint = ?",
+        (
+            endPoint,
+            gerty.mempool_endpoint,
+        ),
+    )
     if not row:
         async with httpx.AsyncClient() as client:
             response = await client.get(gerty.mempool_endpoint + url)
             await db.execute(
-            """
+                """
                 INSERT INTO gerty.mempool (
                     data,
                     endpoint,
-                    time
+                    time,
+                    mempool_endpoint
                 )
-                VALUES (?, ?, ?)
+                VALUES (?, ?, ?, ?)
                 """,
-                (json.dumps(response.json()), endPoint, int(time.time())),
+                (
+                    json.dumps(response.json()),
+                    endPoint,
+                    int(time.time()),
+                    gerty.mempool_endpoint,
+                ),
             )
             return response.json()
     if int(time.time()) - row.time > 20:
         async with httpx.AsyncClient() as client:
             response = await client.get(gerty.mempool_endpoint + url)
             await db.execute(
-                "UPDATE gerty.mempool SET data = ?, time = ? WHERE endpoint = ?",
-                (json.dumps(response.json()), int(time.time()), endPoint),
+                "UPDATE gerty.mempool SET data = ?, time = ? WHERE endpoint = ? AND mempool_endpoint = ?",
+                (
+                    json.dumps(response.json()),
+                    int(time.time()),
+                    endPoint,
+                    gerty.mempool_endpoint,
+                ),
             )
             return response.json()
     return json.loads(row.data)

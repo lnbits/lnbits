@@ -27,6 +27,7 @@ class Gerty(BaseModel):
 
 #########MEMPOOL MODELS###########
 
+
 class MempoolEndpoint(BaseModel):
     fees_recommended: str = "/api/v1/fees/recommended"
     hashrate_1w: str = "/api/v1/mining/hashrate/1w"
@@ -36,7 +37,9 @@ class MempoolEndpoint(BaseModel):
     tip_height: str = "/api/blocks/tip/height"
     mempool: str = "/api/mempool"
 
+
 class Mempool(BaseModel):
+    mempool_endpoint: str = Query(None)
     endpoint: str = Query(None)
     data: str = Query(None)
     time: int = Query(None)
