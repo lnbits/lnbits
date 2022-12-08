@@ -9,6 +9,8 @@ import httpx
 from loguru import logger
 from pydantic import BaseSettings, Field, validator
 
+# from .core.crud import create_admin_settings, get_super_settings
+
 
 def list_parse_fallback(v):
     try:
@@ -197,54 +199,6 @@ if not settings.lnbits_admin_ui:
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
-
-
-async def check_admin_settings():
-
-    if settings.lnbits_admin_ui:
-
-        # if not imported here, circular import error
-        from lnbits.extensions.admin.crud import (
-            create_admin_settings,
-            get_super_settings,
-        )
-
-        sets = await get_super_settings()
-        if not sets:
-            # create new settings if table is empty
-            logger.warning(
-                "admin.settings empty. inserting new settings and creating admin account"
-            )
-            await create_admin_settings()
-            logger.warning("initialized admin.settings from enviroment variables.")
-            sets = await get_super_settings()
-
-        if sets:
-            for key, value in sets.dict().items():
-                if not key in readonly_variables:
-                    try:
-                        setattr(settings, key, value)
-                    except:
-                        logger.error(f"error overriding setting: {key}, value: {value}")
-
-        # printing settings for debugging
-        logger.debug(f"Admin settings:")
-        for key, value in settings.dict(exclude_none=True).items():
-            logger.debug(f"{key}: {value}")
-
-        http = "https" if settings.lnbits_force_https else "http"
-        admin_url = (
-            f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
-        )
-        logger.success(f"✔️ Access admin user account at: {admin_url}")
-
-        # callback for saas
-        if (
-            settings.lnbits_saas_callback
-            and settings.lnbits_saas_secret
-            and settings.lnbits_saas_instance_id
-        ):
-            send_admin_user_to_saas()
 
 
 wallets_module = importlib.import_module("lnbits.wallets")

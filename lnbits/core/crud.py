@@ -8,10 +8,18 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import settings
+from lnbits.settings import readonly_variables, settings
 
 from . import db
-from .models import BalanceCheck, Payment, User, Wallet
+from .models import (
+    AdminSettings,
+    BalanceCheck,
+    Payment,
+    SuperSettings,
+    UpdateSettings,
+    User,
+    Wallet,
+)
 
 # accounts
 # --------
@@ -564,3 +572,75 @@ async def get_balance_notify(
         (wallet_id,),
     )
     return row[0] if row else None
+
+
+# admin
+# --------
+
+
+async def get_super_settings() -> Optional[SuperSettings]:
+    row = await db.fetchone("SELECT * FROM settings")
+    if not row:
+        return None
+    return SuperSettings(**row)
+
+
+async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
+    sets = await get_super_settings()
+    if not sets:
+        return None
+    row_dict = dict(sets)
+    row_dict.pop("super_user")
+    admin_settings = AdminSettings(
+        super_user=is_super_user,
+        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+        **row_dict,
+    )
+    return admin_settings
+
+
+async def delete_admin_settings():
+    await db.execute("DELETE FROM settings")
+
+
+async def update_admin_settings(data: UpdateSettings):
+    q, values = get_q_and_values(data)
+    await db.execute(f"UPDATE settings SET {q}", (values,))  # type: ignore
+
+
+def get_q_and_values(data):
+    keys = []
+    values = []
+    for key, value in data.items():
+        setattr(settings, key, value)
+        keys.append(f"{key} = ?")
+        if type(value) == list:
+            value = ",".join(value)
+        values.append(value)
+    return ", ".join(keys), values
+
+
+async def create_admin_settings():
+    account = await create_account()
+    settings.super_user = account.id
+    keys = []
+    values = ""
+    for key, value in settings.dict(exclude_none=True).items():
+        if not key in readonly_variables:
+            keys.append(key)
+            if type(value) == list:
+                joined = ",".join(value)
+                values += f"'{joined}'"
+            if type(value) == int or type(value) == float:
+                values += str(value)
+            if type(value) == bool:
+                values += "true" if value else "false"
+            if type(value) == str:
+                value = value.replace("'", "")
+                values += f"'{value}'"
+            values += ","
+    q = ", ".join(keys)
+    v = values.rstrip(",")
+
+    sql = f"INSERT INTO settings ({q}) VALUES ({v})"
+    await db.execute(sql)

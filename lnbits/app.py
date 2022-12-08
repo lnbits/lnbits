@@ -15,15 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.tasks import register_task_listeners
-from lnbits.settings import (
-    check_admin_settings,
-    get_wallet_class,
-    set_wallet_class,
-    settings,
-)
+from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
 from .commands import migrate_databases
 from .core import core_app
+from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .helpers import (
     get_css_vendored,

@@ -21,14 +21,16 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, get_wallet_class, settings
+from lnbits.settings import FAKE_WALLET, get_wallet_class, readonly_variables, settings
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
 from .crud import (
     check_internal,
+    create_admin_settings,
     create_payment,
     delete_wallet_payment,
+    get_super_settings,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
@@ -385,3 +387,63 @@ def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+async def update_wallet_balance(wallet_id: str, amount: int):
+    internal_id = f"internal_{urlsafe_short_hash()}"
+    payment = await create_payment(
+        wallet_id=wallet_id,
+        checking_id=internal_id,
+        payment_request="admin_internal",
+        payment_hash="admin_internal",
+        amount=amount * 1000,
+        memo="Admin top up",
+        pending=False,
+    )
+    # manually send this for now
+    from lnbits.tasks import internal_invoice_queue
+
+    await internal_invoice_queue.put(internal_id)
+    return payment
+
+
+async def check_admin_settings():
+
+    if settings.lnbits_admin_ui:
+
+        sets = await get_super_settings()
+        if not sets:
+            # create new settings if table is empty
+            logger.warning(
+                "settings empty. inserting new settings and creating admin account"
+            )
+            await create_admin_settings()
+            logger.warning("initialized settings from enviroment variables.")
+            sets = await get_super_settings()
+
+        if sets:
+            for key, value in sets.dict().items():
+                if not key in readonly_variables:
+                    try:
+                        setattr(settings, key, value)
+                    except:
+                        logger.error(f"error overriding setting: {key}, value: {value}")
+
+        # printing settings for debugging
+        logger.debug(f"Admin settings:")
+        for key, value in settings.dict(exclude_none=True).items():
+            logger.debug(f"{key}: {value}")
+
+        http = "https" if settings.lnbits_force_https else "http"
+        admin_url = (
+            f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
+        )
+        logger.success(f"✔️ Access admin user account at: {admin_url}")
+
+        # callback for saas
+        if (
+            settings.lnbits_saas_callback
+            and settings.lnbits_saas_secret
+            and settings.lnbits_saas_instance_id
+        ):
+            settings.send_admin_user_to_saas()

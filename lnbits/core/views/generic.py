@@ -13,9 +13,9 @@ from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
 from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.settings import settings
+from lnbits.settings import get_wallet_class, settings
 
 from ...helpers import get_valid_extensions
 from ..crud import (
@@ -307,3 +307,19 @@ async def manifest(usr: str):
             for wallet in user.wallets
         ],
     }
+
+
+@core_html_routes.get("/admin", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_admin)):  # type: ignore
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "admin/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
+            "balance": balance,
+        },
+    )
