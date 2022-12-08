@@ -4,9 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h5 class="text-subtitle1 q-mt-none q-mb-md">
-          Deezy
-        </h5>
+        <h5 class="text-subtitle1 q-mt-none q-mb-md">Deezy</h5>
         <q-separator class="q-my-lg"></q-separator>
         <q-card>
           <q-card-section>
@@ -32,7 +30,10 @@
             </q-btn>
           </q-card-section>
         </q-card>
-        <div v-show="swapLnToBtc.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <div
+          v-show="swapLnToBtc.show"
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+        >
           <h6 class="q-mt-none">LIGHTNING BTC -> BTC</h6>
           <q-form @submit="sendLnToBtc" class="q-gutter-md">
             <q-input
@@ -66,12 +67,9 @@
               type="submit"
               label="Create Swap"
             ></q-btn>
-            <q-btn
-              flat
-              color="grey"
-              class="q-ml-auto"
-              @click="resetSwapLnToBtc"
-            >Cancel</q-btn>
+            <q-btn flat color="grey" class="q-ml-auto" @click="resetSwapLnToBtc"
+              >Cancel</q-btn
+            >
           </q-form>
           <q-dialog v-model="swapLnToBtc.showInvoice" persistent>
             <q-card flat bordered class="my-card">
@@ -91,7 +89,12 @@
                 ></qrcode>
               </q-card-section>
               <q-card-section>
-                <q-btn outline @click="copyLnInvoice" label="Copy" color="primary"></q-btn>
+                <q-btn
+                  outline
+                  @click="copyLnInvoice"
+                  label="Copy"
+                  color="primary"
+                ></q-btn>
                 <q-input
                   v-model="swapLnToBtc.response"
                   type="textarea"
@@ -102,7 +105,10 @@
             </q-card>
           </q-dialog>
         </div>
-        <div v-show="swapBtcToLn.show" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <div
+          v-show="swapBtcToLn.show"
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+        >
           <h6 class="q-mt-none">BTC -> LIGHTNING BTC</h6>
           <q-form @submit="sendBtcToLn" class="q-gutter-md">
             <q-input
@@ -119,12 +125,9 @@
               type="submit"
               label="Create Swap"
             ></q-btn>
-            <q-btn
-              flat
-              color="grey"
-              class="q-ml-auto"
-              @click="resetSwapBtcToLn"
-            >Cancel</q-btn>
+            <q-btn flat color="grey" class="q-ml-auto" @click="resetSwapBtcToLn"
+              >Cancel</q-btn
+            >
           </q-form>
           <q-dialog v-model="swapBtcToLn.showDetails" persistent maximized>
             <q-card flat bordered class="my-card">
@@ -138,7 +141,7 @@
               </q-card-section>
               {% raw %}
               <q-card-section>
-                Address - {{ swapBtcToLn.response.address }} 
+                Address - {{ swapBtcToLn.response.address }}
               </q-card-section>
               <q-card-section>
                 Commitment - {{ swapBtcToLn.response.commitment }}
@@ -153,6 +156,7 @@
             </q-card>
           </q-dialog>
         </div>
+      </q-card-section>
     </q-card>
     {% raw %}
     <q-dialog v-model="swapLnToBtc.invoicePaid">
@@ -192,7 +196,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        lightning_btc: "",
+        lightning_btc: '',
         tools: [],
         swapLnToBtc: {
           show: false,
@@ -202,32 +206,35 @@
           },
           response: null,
           invoicePaid: false,
-          onchainTxId: null,
+          onchainTxId: null
         },
         swapBtcToLn: {
           show: false,
           showDetails: false,
           data: {},
           response: {}
-        },
+        }
       }
     },
     methods: {
       checkIfInvoiceIsPaid() {
-        if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid ) {
+        if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid) {
           var self = this
           let interval = setInterval(() => {
-            axios.get(`https://api.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`)
-            .then(function (response){
-              if (response.data.on_chain_txid || count > 4) {
-                self.swapLnToBtc = {
-                  ...self.swapLnToBtc,
-                  invoicePaid: true,
-                  onchainTxId: response.data.on_chain_txid
-                } 
-                clearInterval(interval)
-              }
-            })
+            axios
+              .get(
+                `https://api.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`
+              )
+              .then(function (response) {
+                if (response.data.on_chain_txid || count > 4) {
+                  self.swapLnToBtc = {
+                    ...self.swapLnToBtc,
+                    invoicePaid: true,
+                    onchainTxId: response.data.on_chain_txid
+                  }
+                  clearInterval(interval)
+                }
+              })
           }, 4000)
         }
       },
@@ -236,43 +243,47 @@
       },
       sendLnToBtc() {
         var self = this
-        axios.post('https://api.deezy.io/v1/swap', {
-          amount_sats: parseInt(self.swapLnToBtc.data.amount),
-          on_chain_address: self.swapLnToBtc.data.on_chain_address,
-          on_chain_sats_per_vbyte: parseInt(self.swapLnToBtc.data.on_chain_sats_per_vbyte)
-        })
-        .then(function (response) {
-          self.swapLnToBtc = {
-            ...self.swapLnToBtc,
-            showInvoice: true,
-            response: response.data.bolt11_invoice
-          }
-          self.checkIfInvoiceIsPaid()
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
+        axios
+          .post('https://api.deezy.io/v1/swap', {
+            amount_sats: parseInt(self.swapLnToBtc.data.amount),
+            on_chain_address: self.swapLnToBtc.data.on_chain_address,
+            on_chain_sats_per_vbyte: parseInt(
+              self.swapLnToBtc.data.on_chain_sats_per_vbyte
+            )
+          })
+          .then(function (response) {
+            self.swapLnToBtc = {
+              ...self.swapLnToBtc,
+              showInvoice: true,
+              response: response.data.bolt11_invoice
+            }
+            self.checkIfInvoiceIsPaid()
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
       },
       sendBtcToLn() {
         var self = this
-        axios.post('https://api.deezy.io/v1/source', {
-          lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress,
-        })
-        .then(function (response) {
-          self.swapBtcToLn = {
-            ...self.swapBtcToLn,
-            response: response.data,
-            showDetails: true,
-          }
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
+        axios
+          .post('https://api.deezy.io/v1/source', {
+            lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress
+          })
+          .then(function (response) {
+            self.swapBtcToLn = {
+              ...self.swapBtcToLn,
+              response: response.data,
+              showDetails: true
+            }
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
       },
       resetSwapBtcToLn() {
         this.swapBtcToLn = {
           ...this.swapBtcToLn,
-          data: {},
+          data: {}
         }
       },
       resetSwapLnToBtc() {
@@ -280,7 +291,7 @@
           ...this.swapLnToBtc,
           data: {}
         }
-      },
+      }
     }
   })
 </script>
