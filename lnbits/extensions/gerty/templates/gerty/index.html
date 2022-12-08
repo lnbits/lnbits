@@ -294,6 +294,7 @@
               dense
               v-model.trim="formDialog.data.mempool_endpoint"
               label="Mempool link"
+              class="q-pb-sm"
             >
             </q-input>
             <q-input
@@ -302,15 +303,18 @@
               dense
               v-model.trim="formDialog.data.refresh_time"
               label="Refresh time in seconds"
+              class="q-pb-md"
             >
               <q-tooltip
                 >The amount of time in seconds between screen updates
               </q-tooltip>
             </q-input>
-            <br/>
-            <p v-if="toggleStates.advanced">Gerty Device Dashboards (for Gerty <a target="_blank" href="https://shop.lnbits.com/product/gerty-a-bitcoin-assistant">devices</a>):</p>
-            <br/>
-            <q-checkbox size="xs" v-model="shape" val="xs" label=""></q-checkbox>
+            <q-separator class="q-mb-md" v-if="toggleStates.advanced"></q-separator>
+            <p class="q-pl-sm q-mb-xs" v-if="toggleStates.advanced">Gerty Device Dashboards (for Gerty <a target="_blank" href="https://shop.lnbits.com/product/gerty-a-bitcoin-assistant">devices</a>):</p>
+            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard" val="xs" label="LNbits"></q-checkbox>
+            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard_onchain" val="xs" label="Onchain"></q-checkbox>
+            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard_mining" val="xs" label="Mining"></q-checkbox>
+            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.lightning_dashboard" val="xs" label="Lightning"></q-checkbox>
           </div>
         </div>
 
@@ -662,6 +666,7 @@
           (this.formDialog.show = true)
       },
       sendFormDataGerty: function () {
+        console.log(this.formDialog.data)
         if (this.formDialog.data.id) {
           this.updateGerty(
             this.g.user.wallets[0].adminkey,
@@ -688,7 +693,7 @@
           )
         }
         var self = this
-
+        console.log(data)
         LNbits.api
           .request(
             'POST',

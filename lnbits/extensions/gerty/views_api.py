@@ -53,6 +53,7 @@ async def api_link_create_or_update(
     wallet: WalletTypeInfo = Depends(get_key_type),
     gerty_id: str = Query(None),
 ):
+    logger.debug(data)
     if gerty_id:
         gerty = await get_gerty(gerty_id)
         if not gerty:
