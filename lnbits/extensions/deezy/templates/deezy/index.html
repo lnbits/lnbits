@@ -12,7 +12,7 @@
               label="SWAP (LIGHTNING -> BTC)"
               unelevated
               color="primary"
-              @click="swapLnToBtc.show = true; swapBtcToLn.show = false"
+              @click="showLnToBtcForm"
             >
               <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
                 Send lightning btc and receive on-chain btc
@@ -60,7 +60,9 @@
               label="On chain fee rate (sats/vbyte)"
               min="1"
               type="number"
-            ></q-input>
+              :hint="swapLnToBtc.suggested_fees && `Economy Fee - ${swapLnToBtc.suggested_fees?.economyFee} | Half an hour fee - ${swapLnToBtc.suggested_fees?.halfHourFee} | Fastest fee - ${swapLnToBtc.suggested_fees?.fastestFee}`"
+            >
+            </q-input>
             <q-btn
               unelevated
               color="primary"
@@ -202,8 +204,9 @@
           show: false,
           showInvoice: false,
           data: {
-            onChainFees: 1
+            on_chain_sats_per_vbyte: 1
           },
+          suggested_fees: null,
           response: null,
           invoicePaid: false,
           onchainTxId: null
@@ -217,6 +220,18 @@
       }
     },
     methods: {
+      showLnToBtcForm() {
+        this.getSuggestedOnChainFees()
+        this.swapLnToBtc.show = true
+      },
+      getSuggestedOnChainFees() {
+        axios
+          .get('https://mempool.space/api/v1/fees/recommended')
+          .then(result => {
+            console.log(result.data)
+            this.swapLnToBtc.suggested_fees = result.data
+          })
+      },
       checkIfInvoiceIsPaid() {
         if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid) {
           var self = this
