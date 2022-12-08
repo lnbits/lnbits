@@ -296,7 +296,6 @@
               label="Mempool link"
             >
             </q-input>
-            <br />
             <q-input
               v-if="toggleStates.advanced"
               filled
@@ -308,6 +307,10 @@
                 >The amount of time in seconds between screen updates
               </q-tooltip>
             </q-input>
+            <br/>
+            <p v-if="toggleStates.advanced">Gerty Device Dashboards (for Gerty <a target="_blank" href="https://shop.lnbits.com/product/gerty-a-bitcoin-assistant">devices</a>):</p>
+            <br/>
+            <q-checkbox size="xs" v-model="shape" val="xs" label=""></q-checkbox>
           </div>
         </div>
 
