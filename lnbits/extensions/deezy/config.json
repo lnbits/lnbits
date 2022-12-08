@@ -1,6 +1,6 @@
 {
   "name": "Deezy",
-  "short_description": "Join us, make an extension",
+  "short_description": "Swap lightning to on-chain, or receive on-chain to lightning addresses.",
   "icon": "swap_horiz",
   "contributors": ["Uthpala"]
 }
