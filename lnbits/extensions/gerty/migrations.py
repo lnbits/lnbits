@@ -42,7 +42,8 @@ async def m004_initial(db):
     await db.execute(
         """
         CREATE TABLE gerty.mempool (
-            mempool_endpoint TEXT PRIMARY KEY,
+            id TEXT PRIMARY KEY,
+            mempool_endpoint TEXT NOT NULL,
             endpoint TEXT NOT NULL,
             data TEXT NOT NULL,
             time TIMESTAMP

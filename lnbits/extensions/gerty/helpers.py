@@ -80,7 +80,7 @@ async def get_mining_dashboard(gerty):
     if isinstance(gerty.mempool_endpoint, str):
         async with httpx.AsyncClient() as client:
             # current hashrate
-            r = await get_mempool_info("get_hashrate_1w", gerty)
+            r = await get_mempool_info("hashrate_1w", gerty)
             data = r
             hashrateNow = data["currentHashrate"]
             hashrateOneWeekAgo = data["hashrates"][6]["avgHashrate"]

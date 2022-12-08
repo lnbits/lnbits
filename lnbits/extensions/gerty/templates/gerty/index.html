@@ -107,9 +107,21 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">
-          {{ SITE_TITLE }} Gerty extension
-        </h6>
+        <div class="row">
+          <div class="col-9">
+            <h6 class="text-subtitle1 q-my-none">
+              {{ SITE_TITLE }} Gerty extension
+            </h6>
+          </div>
+          <div class="col-3">
+            <q-btn
+              flat
+              label="Swagger API"
+              type="a"
+              href="../docs#/gerty"
+            ></q-btn>
+          </div>
+        </div>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -309,12 +321,50 @@
                 >The amount of time in seconds between screen updates
               </q-tooltip>
             </q-input>
-            <q-separator class="q-mb-md" v-if="toggleStates.advanced"></q-separator>
-            <p class="q-pl-sm q-mb-xs" v-if="toggleStates.advanced">Gerty Device Dashboards (for Gerty <a target="_blank" href="https://shop.lnbits.com/product/gerty-a-bitcoin-assistant">devices</a>):</p>
-            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard" val="xs" label="LNbits"></q-checkbox>
-            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard_onchain" val="xs" label="Onchain"></q-checkbox>
-            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.dashboard_mining" val="xs" label="Mining"></q-checkbox>
-            <q-checkbox class="q-pl-md" v-if="toggleStates.advanced" size="xs" v-model="formDialog.data.display_preferences.lightning_dashboard" val="xs" label="Lightning"></q-checkbox>
+            <q-separator
+              class="q-mb-md"
+              v-if="toggleStates.advanced"
+            ></q-separator>
+            <p class="q-pl-sm q-mb-xs" v-if="toggleStates.advanced">
+              Gerty Device Dashboards (for Gerty
+              <a
+                target="_blank"
+                href="https://shop.lnbits.com/product/gerty-a-bitcoin-assistant"
+                >devices</a
+              >):
+            </p>
+            <q-checkbox
+              class="q-pl-md"
+              v-if="toggleStates.advanced"
+              size="xs"
+              v-model="formDialog.data.display_preferences.dashboard"
+              val="xs"
+              label="LNbits"
+            ></q-checkbox>
+            <q-checkbox
+              class="q-pl-md"
+              v-if="toggleStates.advanced"
+              size="xs"
+              v-model="formDialog.data.display_preferences.dashboard_onchain"
+              val="xs"
+              label="Onchain"
+            ></q-checkbox>
+            <q-checkbox
+              class="q-pl-md"
+              v-if="toggleStates.advanced"
+              size="xs"
+              v-model="formDialog.data.display_preferences.dashboard_mining"
+              val="xs"
+              label="Mining"
+            ></q-checkbox>
+            <q-checkbox
+              class="q-pl-md"
+              v-if="toggleStates.advanced"
+              size="xs"
+              v-model="formDialog.data.display_preferences.lightning_dashboard"
+              val="xs"
+              label="Lightning"
+            ></q-checkbox>
           </div>
         </div>
 
@@ -570,6 +620,8 @@
         formDialog: {
           show: false,
           data: {
+            type: 'Mini Gerty',
+            exchange: 'USD',
             utc_offset: new Date().getTimezoneOffset(),
             display_preferences: {
               dashboard: false,
@@ -597,41 +649,44 @@
         }
       }
     },
-    mounted() {
-      console.log('this.formDialog', this.formDialog.data.display_preferences)
-    },
     methods: {
-        setAdvanced: function(){
-          self = this
-          self.formDialog.data.mempool_endpoint = 'https://mempool.space'
-          self.formDialog.data.refresh_time = 300
-        },
-        setWallets: function() {
-          self = this
-          if(!self.formDialog.data.display_preferences.lnbits_wallets_balance){
-            self.formDialog.data.lnbits_wallets = []
-          }
-        },
-        setOnchain: function() {
-          self = this
-          self.formDialog.data.display_preferences.onchain_difficulty_epoch_progress = self.toggleStates.onchain
-          self.formDialog.data.display_preferences.onchain_difficulty_retarget_date = self.toggleStates.onchain
-          self.formDialog.data.display_preferences.onchain_difficulty_blocks_remaining = !self.toggleStates.onchain
-          self.formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining = self.toggleStates.onchain
-          self.formDialog.data.display_preferences.onchain_block_height = self.toggleStates.onchain
-        },
-        setMining: function() {
-          self = this
-          self.formDialog.data.display_preferences.mining_current_hash_rate = self.toggleStates.mining
-          self.formDialog.data.display_preferences.mining_current_difficulty = self.toggleStates.mining
-        },
+      setAdvanced: function () {
+        self = this
+        self.formDialog.data.mempool_endpoint = 'https://mempool.space'
+        self.formDialog.data.refresh_time = 300
+      },
+      setWallets: function () {
+        self = this
+        if (!self.formDialog.data.display_preferences.lnbits_wallets_balance) {
+          self.formDialog.data.lnbits_wallets = []
+        }
+      },
+      setOnchain: function () {
+        self = this
+        self.formDialog.data.display_preferences.onchain_difficulty_epoch_progress =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_retarget_date =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_blocks_remaining = !self
+          .toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_block_height =
+          self.toggleStates.onchain
+      },
+      setMining: function () {
+        self = this
+        self.formDialog.data.display_preferences.mining_current_hash_rate =
+          self.toggleStates.mining
+        self.formDialog.data.display_preferences.mining_current_difficulty =
+          self.toggleStates.mining
+      },
       closeFormDialog: function () {
         this.formDialog.data = {
           utc_offset: 0,
           lnbits_wallets: [],
           mempool_endpoint: 'https://mempool.space',
           refresh_time: 300,
-          type: 'Gerty',
           display_preferences: {}
         }
       },
@@ -651,7 +706,6 @@
       },
       updateformDialog: function (formId) {
         var gerty = _.findWhere(this.gertys, {id: formId})
-        console.log('gerty.display_preferences', gerty.display_preferences)
         this.formDialog.data.id = gerty.id
         this.formDialog.data.name = gerty.name
         this.formDialog.data.type = gerty.type
@@ -666,7 +720,6 @@
           (this.formDialog.show = true)
       },
       sendFormDataGerty: function () {
-        console.log(this.formDialog.data)
         if (this.formDialog.data.id) {
           this.updateGerty(
             this.g.user.wallets[0].adminkey,
@@ -680,6 +733,14 @@
         }
       },
       createGerty: function () {
+        if (
+          this.formDialog.data.display_preferences.dashboard ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.lightning_dashboard
+        ) {
+          this.formDialog.data.type = 'Gerty'
+        }
         var data = {
           name: this.formDialog.data.name,
           utc_offset: this.formDialog.data.utc_offset,
@@ -693,7 +754,6 @@
           )
         }
         var self = this
-        console.log(data)
         LNbits.api
           .request(
             'POST',
@@ -711,6 +771,14 @@
       },
       updateGerty: function (wallet, data) {
         var self = this
+        if (
+          this.formDialog.data.display_preferences.dashboard ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.lightning_dashboard
+        ) {
+          this.formDialog.data.type = 'Gerty'
+        }
         data.utc_offset = this.formDialog.data.utc_offset
         data.type = this.formDialog.data.type
         data.lnbits_wallets = JSON.stringify(
@@ -734,8 +802,8 @@
       },
       deleteGerty: function (gertyId) {
         var self = this
-        var gerty = _.findWhere(this.gertys, {id: gertyId})
 
+        var gerty = _.findWhere(self.gertys, {id: gertyId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this Gerty?')
           .onOk(function () {

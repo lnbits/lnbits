@@ -81,6 +81,7 @@ async def delete_gerty(gerty_id: str) -> None:
 
 
 async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
+    logger.debug(endPoint)
     endpoints = MempoolEndpoint()
     url = ""
     for endpoint in endpoints:
@@ -96,17 +97,21 @@ async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
     if not row:
         async with httpx.AsyncClient() as client:
             response = await client.get(gerty.mempool_endpoint + url)
+            logger.debug(gerty.mempool_endpoint + url)
+            mempool_id = urlsafe_short_hash()
             await db.execute(
                 """
                 INSERT INTO gerty.mempool (
+                    id,
                     data,
                     endpoint,
                     time,
                     mempool_endpoint
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
+                    mempool_id,
                     json.dumps(response.json()),
                     endPoint,
                     int(time.time()),

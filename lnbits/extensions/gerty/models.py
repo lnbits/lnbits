@@ -10,6 +10,7 @@ class Gerty(BaseModel):
     name: str
     refresh_time: int = Query(None)
     utc_offset: int = Query(None)
+    wallet: str = Query(None)
     type: str
     lnbits_wallets: str = Query(
         None
@@ -39,6 +40,7 @@ class MempoolEndpoint(BaseModel):
 
 
 class Mempool(BaseModel):
+    id: str = Query(None)
     mempool_endpoint: str = Query(None)
     endpoint: str = Query(None)
     data: str = Query(None)
