@@ -28,7 +28,6 @@ readonly_variables = [
     "lnbits_data_folder",
     "lnbits_database_url",
     "lnbits_allowed_funding_sources",
-    "lnbits_admin_extensions",
     "lnbits_saas_secret",
     "lnbits_saas_callback",
     "lnbits_saas_instance_id",
