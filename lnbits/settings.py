@@ -1,4 +1,5 @@
 import importlib
+import inspect
 import json
 import subprocess
 from os import path
@@ -196,6 +197,12 @@ class EditableSetings(
     )
     def validate_editable_settings(cls, val):
         return super().validate(cls, val)
+
+    @classmethod
+    def from_dict(cls, d: dict):
+        return cls(
+            **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
+        )
 
 
 class ReadOnlySettings(LNbitsSetings):

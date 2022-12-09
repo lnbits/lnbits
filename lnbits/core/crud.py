@@ -8,13 +8,7 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import (
-    AdminSettings,
-    EditableSetings,
-    SuperSettings,
-    readonly_variables,
-    settings,
-)
+from lnbits.settings import AdminSettings, EditableSetings, SuperSettings, settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -580,7 +574,8 @@ async def get_super_settings() -> Optional[SuperSettings]:
     row = await db.fetchone("SELECT * FROM settings")
     if not row:
         return None
-    return SuperSettings(**row)
+    editable_settings = json.loads(row["editable_settings"])
+    return SuperSettings(**{"super_user": row["super_user"], **editable_settings})
 
 
 async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
@@ -602,43 +597,14 @@ async def delete_admin_settings():
 
 
 async def update_admin_settings(data: EditableSetings):
-    q, values = get_q_and_values(data)
-    await db.execute(f"UPDATE settings SET {q}", (values,))  # type: ignore
-
-
-def get_q_and_values(data):
-    keys = []
-    values = []
-    for key, value in data.items():
-        setattr(settings, key, value)
-        keys.append(f"{key} = ?")
-        if type(value) == list:
-            value = ",".join(value)
-        values.append(value)
-    return ", ".join(keys), values
+    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))  # type: ignore
 
 
 async def create_admin_settings():
     account = await create_account()
     settings.super_user = account.id
-    keys = []
-    values = ""
-    for key, value in settings.dict(exclude_none=True).items():
-        if not key in readonly_variables:
-            keys.append(key)
-            if type(value) == list:
-                joined = ",".join(value)
-                values += f"'{joined}'"
-            if type(value) == int or type(value) == float:
-                values += str(value)
-            if type(value) == bool:
-                values += "true" if value else "false"
-            if type(value) == str:
-                value = value.replace("'", "")
-                values += f"'{value}'"
-            values += ","
-    q = ", ".join(keys)
-    v = values.rstrip(",")
 
-    sql = f"INSERT INTO settings ({q}) VALUES ({v})"
-    await db.execute(sql)
+    editable_settings = EditableSetings.from_dict(settings.dict())
+
+    sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
+    await db.execute(sql, (settings.super_user, json.dumps(editable_settings.dict())))
