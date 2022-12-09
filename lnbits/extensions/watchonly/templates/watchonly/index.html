@@ -52,14 +52,38 @@
           ></q-spinner>
         </div>
         <div class="col-md-3 col-sm-5 q-pr-md">
-          <q-btn
+          <q-btn-dropdown
             v-if="!showPayment"
+            split
             unelevated
+            label="New Payment"
             color="secondary"
             class="btn-full"
             @click="goToPaymentView"
-            >New Payment</q-btn
           >
+            <q-list>
+              <q-item @click="goToPaymentView" clickable v-close-popup>
+                <q-item-section>
+                  <q-item-label>New Payment</q-item-label>
+                  <q-item-label caption
+                    >Create a new payment by selecting Inputs and
+                    Outputs</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+              <q-item
+                @click="showEnterSignedPsbtDialog"
+                clickable
+                v-close-popup
+              >
+                <q-item-section>
+                  <q-item-label>From Signed PSBT</q-item-label>
+                  <q-item-label caption> Paste a signed PSBT</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+
           <q-btn
             v-if="showPayment"
             outline
@@ -219,6 +243,36 @@
           @click="updateNoteForAddress({addressId: currentAddress.id, note: addressNote})"
           class="q-ml-sm"
           >Save Note</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+      <div class="row q-mt-lg q-gutter-sm"></div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="showEnterSignedPsbt" position="top">
+    <q-card class="q-pa-lg lnbits__dialog-card">
+      <h5 class="text-subtitle1 q-my-none">Enter the Signed PSBT</h5>
+      <q-separator></q-separator><br />
+
+      <p>
+        <q-input
+          filled
+          dense
+          v-model.trim="signedBase64Psbt"
+          type="textarea"
+          label="Signed PSBT"
+        ></q-input>
+      </p>
+
+      <div class="row q-mt-lg q-gutter-sm">
+        <q-btn
+          outline
+          v-close-popup
+          color="grey"
+          @click="checkPsbt"
+          class="q-ml-sm"
+          >Check PSBT</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>

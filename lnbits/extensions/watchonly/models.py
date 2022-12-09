@@ -76,19 +76,19 @@ class CreatePsbt(BaseModel):
     tx_size: int
 
 
+class SerializedTransaction(BaseModel):
+    tx_hex: str
+
+
 class ExtractPsbt(BaseModel):
     psbtBase64 = ""  # // todo snake case
-    inputs: List[TransactionInput]
+    inputs: List[SerializedTransaction]
     network = "Mainnet"
 
 
 class SignedTransaction(BaseModel):
     tx_hex: Optional[str]
     tx_json: Optional[str]
-
-
-class BroadcastTransaction(BaseModel):
-    tx_hex: str
 
 
 class Config(BaseModel):

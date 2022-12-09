@@ -22,7 +22,7 @@ async def accounting_invoice(invoices_wallet):
     invoice_data = CreateInvoiceData(
         status="open",
         currency="USD",
-        company_name="LNBits, Inc",
+        company_name="LNbits, Inc",
         first_name="Ben",
         last_name="Arc",
         items=[{"amount": 10.20, "description": "Item costs 10.20"}],

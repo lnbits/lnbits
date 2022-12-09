@@ -2,11 +2,11 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, WebSocket, WebSocketDisconnect
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -447,3 +447,27 @@ async def check_admin_settings():
             and settings.lnbits_saas_instance_id
         ):
             settings.send_admin_user_to_saas()
+
+class WebsocketConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        logger.debug(websocket)
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_data(self, message: str, item_id: str):
+        for connection in self.active_connections:
+            if connection.path_params["item_id"] == item_id:
+                await connection.send_text(message)
+
+
+websocketManager = WebsocketConnectionManager()
+
+
+async def websocketUpdater(item_id, data):
+    return await websocketManager.send_data(f"{data}", item_id)

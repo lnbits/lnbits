@@ -12,7 +12,15 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request, Response
+from fastapi import (
+    Depends,
+    Header,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -57,6 +65,8 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    websocketManager,
+    websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
 
@@ -675,7 +685,6 @@ async def img(request: Request, data):
 
 @core_app.get("/api/v1/audit/", dependencies=[Depends(check_admin)])
 async def api_auditor():
-
     WALLET = get_wallet_class()
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
@@ -686,8 +695,39 @@ async def api_auditor():
         node_balance, delta = None, None
 
     return {
-        "node_balance_msats": node_balance,
-        "lnbits_balance_msats": total_balance,
-        "delta_msats": delta,
+        "node_balance_msats": int(node_balance),
+        "lnbits_balance_msats": int(total_balance),
+        "delta_msats": int(delta),
         "timestamp": int(time.time()),
     }
+
+
+##################UNIVERSAL WEBSOCKET MANAGER########################
+
+
+@core_app.websocket("/api/v1/ws/{item_id}")
+async def websocket_connect(websocket: WebSocket, item_id: str):
+    await websocketManager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        websocketManager.disconnect(websocket)
+
+
+@core_app.post("/api/v1/ws/{item_id}")
+async def websocket_update_post(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}
+
+
+@core_app.get("/api/v1/ws/{item_id}/{data}")
+async def websocket_update_get(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}
