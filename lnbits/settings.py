@@ -52,14 +52,14 @@ class LNbitsSetings(BaseSettings):
         json_loads = list_parse_fallback
 
 
-class EditableSetings(LNbitsSetings):
-    # users
+class UsersSetings(LNbitsSetings):
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
 
-    # Change theme
+
+class ThemesSetings(LNbitsSetings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
     lnbits_site_description: str = Field(default=None)
@@ -74,7 +74,8 @@ class EditableSetings(LNbitsSetings):
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
 
-    # ops
+
+class OpsSetings(LNbitsSetings):
     lnbits_force_https: bool = Field(default=False)
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
@@ -82,15 +83,30 @@ class EditableSetings(LNbitsSetings):
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
 
-    # funding sources
-    lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+
+class FakeWalletFundingSource(LNbitsSetings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
+
+
+class LNbitsFundingSource(LNbitsSetings):
     lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
+
+
+class ClicheFundingSource(LNbitsSetings):
     cliche_endpoint: Optional[str] = Field(default=None)
+
+
+class CoreLightningFundingSource(LNbitsSetings):
     corelightning_rpc: Optional[str] = Field(default=None)
+
+
+class EclairFundingSource(LNbitsSetings):
     eclair_url: Optional[str] = Field(default=None)
     eclair_pass: Optional[str] = Field(default=None)
+
+
+class LndRestFundingSource(LNbitsSetings):
     lnd_rest_endpoint: Optional[str] = Field(default=None)
     lnd_rest_cert: Optional[str] = Field(default=None)
     lnd_rest_macaroon: Optional[str] = Field(default=None)
@@ -98,6 +114,9 @@ class EditableSetings(LNbitsSetings):
     lnd_cert: Optional[str] = Field(default=None)
     lnd_admin_macaroon: Optional[str] = Field(default=None)
     lnd_invoice_macaroon: Optional[str] = Field(default=None)
+
+
+class LndGrpcFundingSource(LNbitsSetings):
     lnd_grpc_endpoint: Optional[str] = Field(default=None)
     lnd_grpc_cert: Optional[str] = Field(default=None)
     lnd_grpc_port: Optional[int] = Field(default=None)
@@ -105,26 +124,68 @@ class EditableSetings(LNbitsSetings):
     lnd_grpc_invoice_macaroon: Optional[str] = Field(default=None)
     lnd_grpc_macaroon: Optional[str] = Field(default=None)
     lnd_grpc_macaroon_encrypted: Optional[str] = Field(default=None)
+
+
+class LnPayFundingSource(LNbitsSetings):
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)
     lnpay_wallet_key: Optional[str] = Field(default=None)
+
+
+class LnTxtBotFundingSource(LNbitsSetings):
     lntxbot_api_endpoint: Optional[str] = Field(default=None)
     lntxbot_key: Optional[str] = Field(default=None)
+
+
+class OpenNodeFundingSource(LNbitsSetings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
+
+
+class SparkFundingSource(LNbitsSetings):
     spark_url: Optional[str] = Field(default=None)
     spark_token: Optional[str] = Field(default=None)
+
+
+class LnTipsFundingSource(LNbitsSetings):
     lntips_api_endpoint: Optional[str] = Field(default=None)
     lntips_api_key: Optional[str] = Field(default=None)
     lntips_admin_key: Optional[str] = Field(default=None)
     lntips_invoice_key: Optional[str] = Field(default=None)
 
-    # boltz
+
+# todo: must be extracted
+class BoltzExtensionSettings(LNbitsSetings):
     boltz_network: str = Field(default="main")
     boltz_url: str = Field(default="https://boltz.exchange/api")
     boltz_mempool_space_url: str = Field(default="https://mempool.space")
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
+
+class FundingSourcesSetings(
+    FakeWalletFundingSource,
+    LNbitsFundingSource,
+    ClicheFundingSource,
+    CoreLightningFundingSource,
+    EclairFundingSource,
+    LndRestFundingSource,
+    LndGrpcFundingSource,
+    LnPayFundingSource,
+    LnTxtBotFundingSource,
+    OpenNodeFundingSource,
+    SparkFundingSource,
+    LnTipsFundingSource,
+):
+    lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+
+
+class EditableSetings(
+    UsersSetings,
+    ThemesSetings,
+    OpsSetings,
+    FundingSourcesSetings,
+    BoltzExtensionSettings,
+):
     @validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
