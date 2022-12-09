@@ -187,10 +187,7 @@ class EditableSetings(
         )
 
 
-class ReadOnlySettings(LNbitsSetings):
-    lnbits_admin_ui: bool = Field(default=False)
-
-    # .env
+class EnvSettings(LNbitsSetings):
     debug: bool = Field(default=False)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
@@ -199,15 +196,19 @@ class ReadOnlySettings(LNbitsSetings):
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
 
-    # saas
+
+class SaaSSettings(LNbitsSetings):
     lnbits_saas_callback: Optional[str] = Field(default=None)
     lnbits_saas_secret: Optional[str] = Field(default=None)
     lnbits_saas_instance_id: Optional[str] = Field(default=None)
 
-    # ops
+
+class PersistenceSettings(LNbitsSetings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
 
+
+class SuperUserSettings(LNbitsSetings):
     lnbits_allowed_funding_sources: List[str] = Field(
         default=[
             "VoidWallet",
@@ -222,6 +223,12 @@ class ReadOnlySettings(LNbitsSetings):
             "LnTipsWallet",
         ]
     )
+
+
+class ReadOnlySettings(
+    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
+):
+    lnbits_admin_ui: bool = Field(default=False)
 
     @validator(
         "lnbits_allowed_funding_sources",
