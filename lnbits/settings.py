@@ -38,7 +38,19 @@ readonly_variables = [
 ]
 
 
-class EditableSetings(BaseSettings):
+class LNbitsSetings(BaseSettings):
+    def validate(cls, val):
+        if type(val) == str:
+            val = val.split(",") if val else []
+        return val
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
+
+
+class EditableSetings(LNbitsSetings):
     # users
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
@@ -111,8 +123,19 @@ class EditableSetings(BaseSettings):
     boltz_mempool_space_url: str = Field(default="https://mempool.space")
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
+    @validator(
+        "lnbits_admin_users",
+        "lnbits_allowed_users",
+        "lnbits_theme_options",
+        "lnbits_admin_extensions",
+        "lnbits_disabled_extensions",
+        pre=True,
+    )
+    def validate_editable_settings(cls, val):
+        return super().validate(cls, val)
 
-class ReadOnlySettings(BaseSettings):
+
+class ReadOnlySettings(LNbitsSetings):
     lnbits_admin_ui: bool = Field(default=False)
 
     # .env
@@ -122,6 +145,7 @@ class ReadOnlySettings(BaseSettings):
     forwarded_allow_ips: str = Field(default="*")
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
+    super_user: str = Field(default="")
 
     # saas
     lnbits_saas_callback: Optional[str] = Field(default=None)
@@ -132,40 +156,6 @@ class ReadOnlySettings(BaseSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
 
-
-class Settings(EditableSetings, ReadOnlySettings):
-    @validator(
-        "lnbits_admin_users",
-        "lnbits_allowed_users",
-        "lnbits_theme_options",
-        "lnbits_admin_extensions",
-        "lnbits_disabled_extensions",
-        "lnbits_allowed_funding_sources",  # ????
-        pre=True,
-    )
-    def validate(cls, val):
-        if type(val) == str:
-            val = val.split(",") if val else []
-        return val
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Settings":
-        data = dict(row)
-        return cls(**data)
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
-
-
-class SuperSettings(EditableSetings):
-    super_user: str
-
-
-class AdminSettings(EditableSetings):
-    super_user: bool
     lnbits_allowed_funding_sources: List[str] = Field(
         default=[
             "VoidWallet",
@@ -180,6 +170,29 @@ class AdminSettings(EditableSetings):
             "LnTipsWallet",
         ]
     )
+    # @validator(
+    #     "lnbits_allowed_funding_sources",
+    #     pre=True,
+    # )
+    # def validate(cls, val):
+    #     return super().validate(cls, val)
+
+
+class Settings(EditableSetings, ReadOnlySettings):
+    @classmethod
+    def from_row(cls, row: Row) -> "Settings":
+        data = dict(row)
+        return cls(**data)
+
+
+class SuperSettings(EditableSetings):
+    super_user: str
+
+
+class AdminSettings(EditableSetings):
+    super_user: bool
+    lnbits_allowed_funding_sources: Optional[List[str]]
+
 
 
 settings = Settings()
