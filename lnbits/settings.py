@@ -21,6 +21,7 @@ def list_parse_fallback(v):
             return []
 
 
+# todo: remove
 readonly_variables = [
     "host",
     "port",
@@ -43,6 +44,7 @@ class LNbitsSetings(BaseSettings):
         if type(val) == str:
             val = val.split(",") if val else []
         return val
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -170,12 +172,13 @@ class ReadOnlySettings(LNbitsSetings):
             "LnTipsWallet",
         ]
     )
-    # @validator(
-    #     "lnbits_allowed_funding_sources",
-    #     pre=True,
-    # )
-    # def validate(cls, val):
-    #     return super().validate(cls, val)
+
+    @validator(
+        "lnbits_allowed_funding_sources",
+        pre=True,
+    )
+    def validate_readonly_settings(cls, val):
+        return super().validate(cls, val)
 
 
 class Settings(EditableSetings, ReadOnlySettings):
@@ -192,7 +195,6 @@ class SuperSettings(EditableSetings):
 class AdminSettings(EditableSetings):
     super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
-
 
 
 settings = Settings()
