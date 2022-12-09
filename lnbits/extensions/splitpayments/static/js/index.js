@@ -56,7 +56,7 @@ new Vue({
       this.selectedWallet = wallet
       this.getTargets()
     },
-    targetChanged(isPercent, index) {
+    percentageChanged(isPercent, index) {
       // fix percent min and max range
       if (isPercent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100

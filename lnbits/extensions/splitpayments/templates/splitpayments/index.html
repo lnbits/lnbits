@@ -31,6 +31,13 @@
             style="flex-wrap: nowrap"
             v-for="(target, t) in targets"
           >
+          <q-toggle
+      :false-value="'split'"
+      :label="`${target.method}`"
+      :true-value="'tag'"
+      color="primary"
+      v-model="target.method"
+    ></q-toggle>
             <q-select
               dense
               :options="g.user.wallets.filter(w => w.id !== selectedWallet.id).map(o => ({name: o.name, value: o.id}))"
@@ -53,15 +60,24 @@
               :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
               @input="targetChanged(false)"
             ></q-input>
+            
             <q-input
+              v-if="target.method == 'split'"
               dense
               outlined
               v-model.number="target.percent"
               label="Split Share"
-              :hint="t === targets.length - 1 ? 'How much of the incoming payments will go to the target wallet.' : undefined"
               suffix="%"
-              @input="targetChanged(true, t)"
+              @input="percentageChanged(true, t)"
             ></q-input>
+            <q-input
+            v-else
+            dense
+            outlined
+            v-model.number="target.tag"
+            label="Forward by tag"
+            suffix="#"
+          ></q-input>
           </div>
 
           <div class="row justify-evenly q-pa-lg">
