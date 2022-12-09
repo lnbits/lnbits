@@ -8,18 +8,16 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import readonly_variables, settings
+from lnbits.settings import (
+    AdminSettings,
+    EditableSetings,
+    SuperSettings,
+    readonly_variables,
+    settings,
+)
 
 from . import db
-from .models import (
-    AdminSettings,
-    BalanceCheck,
-    Payment,
-    SuperSettings,
-    UpdateSettings,
-    User,
-    Wallet,
-)
+from .models import BalanceCheck, Payment, User, Wallet
 
 # accounts
 # --------
@@ -603,7 +601,7 @@ async def delete_admin_settings():
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: UpdateSettings):
+async def update_admin_settings(data: EditableSetings):
     q, values = get_q_and_values(data)
     await db.execute(f"UPDATE settings SET {q}", (values,))  # type: ignore
 

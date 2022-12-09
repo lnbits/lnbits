@@ -9,8 +9,6 @@ import httpx
 from loguru import logger
 from pydantic import BaseSettings, Field, validator
 
-# from .core.crud import create_admin_settings, get_super_settings
-
 
 def list_parse_fallback(v):
     try:
@@ -40,24 +38,7 @@ readonly_variables = [
 ]
 
 
-class Settings(BaseSettings):
-
-    lnbits_admin_ui: bool = Field(default=False)
-
-    # .env
-    debug: bool = Field(default=False)
-    host: str = Field(default="127.0.0.1")
-    port: int = Field(default=5000)
-    forwarded_allow_ips: str = Field(default="*")
-    lnbits_path: str = Field(default=".")
-    lnbits_commit: str = Field(default="unknown")
-    super_user: str = Field(default="")
-
-    # saas
-    lnbits_saas_callback: Optional[str] = Field(default=None)
-    lnbits_saas_secret: Optional[str] = Field(default=None)
-    lnbits_saas_instance_id: Optional[str] = Field(default=None)
-
+class EditableSetings(BaseSettings):
     # users
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
@@ -80,8 +61,6 @@ class Settings(BaseSettings):
     lnbits_ad_space_enabled: bool = Field(default=False)
 
     # ops
-    lnbits_data_folder: str = Field(default="./data")
-    lnbits_database_url: str = Field(default=None)
     lnbits_force_https: bool = Field(default=False)
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
@@ -91,20 +70,6 @@ class Settings(BaseSettings):
 
     # funding sources
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
-    lnbits_allowed_funding_sources: List[str] = Field(
-        default=[
-            "VoidWallet",
-            "FakeWallet",
-            "CLightningWallet",
-            "LndRestWallet",
-            "LndWallet",
-            "LntxbotWallet",
-            "LNPayWallet",
-            "LNbitsWallet",
-            "OpenNodeWallet",
-            "LnTipsWallet",
-        ]
-    )
     fake_wallet_secret: str = Field(default="ToTheMoon1")
     lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
@@ -146,13 +111,36 @@ class Settings(BaseSettings):
     boltz_mempool_space_url: str = Field(default="https://mempool.space")
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
+
+class ReadOnlySettings(BaseSettings):
+    lnbits_admin_ui: bool = Field(default=False)
+
+    # .env
+    debug: bool = Field(default=False)
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=5000)
+    forwarded_allow_ips: str = Field(default="*")
+    lnbits_path: str = Field(default=".")
+    lnbits_commit: str = Field(default="unknown")
+
+    # saas
+    lnbits_saas_callback: Optional[str] = Field(default=None)
+    lnbits_saas_secret: Optional[str] = Field(default=None)
+    lnbits_saas_instance_id: Optional[str] = Field(default=None)
+
+    # ops
+    lnbits_data_folder: str = Field(default="./data")
+    lnbits_database_url: str = Field(default=None)
+
+
+class Settings(EditableSetings, ReadOnlySettings):
     @validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
         "lnbits_disabled_extensions",
-        "lnbits_allowed_funding_sources",
+        "lnbits_allowed_funding_sources",  # ????
         pre=True,
     )
     def validate(cls, val):
@@ -170,6 +158,28 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
+
+
+class SuperSettings(EditableSetings):
+    super_user: str
+
+
+class AdminSettings(EditableSetings):
+    super_user: bool
+    lnbits_allowed_funding_sources: List[str] = Field(
+        default=[
+            "VoidWallet",
+            "FakeWallet",
+            "CLightningWallet",
+            "LndRestWallet",
+            "LndWallet",
+            "LntxbotWallet",
+            "LNPayWallet",
+            "LNbitsWallet",
+            "OpenNodeWallet",
+            "LnTipsWallet",
+        ]
+    )
 
 
 settings = Settings()

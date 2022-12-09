@@ -6,10 +6,11 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
-from lnbits.core.models import AdminSettings, UpdateSettings, User
+from lnbits.core.models import User
 from lnbits.core.services import update_wallet_balance
 from lnbits.decorators import check_admin
 from lnbits.server import server_restart
+from lnbits.settings import AdminSettings, EditableSetings
 
 from .. import core_app
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -58,7 +59,7 @@ async def api_topup_balance(
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
-async def api_update_settings(data: UpdateSettings):
+async def api_update_settings(data: EditableSetings):
     await update_admin_settings(data)
     return {"status": "Success"}
 
