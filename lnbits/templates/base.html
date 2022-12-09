@@ -163,6 +163,17 @@
           >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
           </q-btn>
+          <q-btn
+            v-if="isAdminUser"
+            dense
+            flat
+            round
+            @click="goToAdminConsole"
+            icon="admin_panel_settings"
+            size="sm"
+          >
+            <q-tooltip>Admin Console</q-tooltip>
+          </q-btn>
         </q-toolbar>
       </q-header>
 

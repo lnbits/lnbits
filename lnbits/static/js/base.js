@@ -138,6 +138,7 @@ window.LNbits = {
     user: function (data) {
       var obj = {
         id: data.id,
+        admin: data.admin,
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets
@@ -326,6 +327,12 @@ window.windowMixin = {
     }
   },
 
+  computed: {
+    isAdminUser: function () {
+      return this.g.user?.admin
+    }
+  },
+
   methods: {
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
@@ -334,6 +341,9 @@ window.windowMixin = {
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+    },
+    goToAdminConsole: function () {
+      window.location.href = '/admin?usr=' + this.g.user.id
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
