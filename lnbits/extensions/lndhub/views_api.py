@@ -21,7 +21,7 @@ from .utils import decoded_as_lndhub, to_buffer
 
 @lndhub_ext.get("/ext/getinfo")
 async def lndhub_getinfo():
-    return {"alias": LNBITS_SITE_TITLE}
+    return {"alias": settings.lnbits_site_title}
 
 
 class AuthData(BaseModel):
