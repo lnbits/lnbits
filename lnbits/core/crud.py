@@ -597,12 +597,13 @@ async def delete_admin_settings():
 
 
 async def update_admin_settings(data: EditableSetings):
-    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))  # type: ignore
+    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
 async def create_admin_settings():
     account = await create_account()
     settings.super_user = account.id
+    settings.lnbits_admin_users += [account.id]
 
     editable_settings = EditableSetings.from_dict(settings.dict())
 
