@@ -22,24 +22,6 @@ def list_parse_fallback(v):
             return []
 
 
-# todo: remove
-readonly_variables = [
-    "host",
-    "port",
-    "debug",
-    "lnbits_data_folder",
-    "lnbits_database_url",
-    "lnbits_allowed_funding_sources",
-    "lnbits_saas_secret",
-    "lnbits_saas_callback",
-    "lnbits_saas_instance_id",
-    "lnbits_admin_ui",
-    "lnbits_commit",
-    "lnbits_path",
-    "forwarded_allow_ips",
-]
-
-
 class LNbitsSetings(BaseSettings):
     def validate(cls, val):
         if type(val) == str:
@@ -248,6 +230,10 @@ class ReadOnlySettings(LNbitsSetings):
     def validate_readonly_settings(cls, val):
         return super().validate(cls, val)
 
+    @classmethod
+    def readonly_fields(cls):
+        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+
 
 class Settings(EditableSetings, ReadOnlySettings):
     @classmethod
@@ -264,6 +250,8 @@ class AdminSettings(EditableSetings):
     super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
 
+
+readonly_variables = ReadOnlySettings.readonly_fields()
 
 settings = Settings()
 
