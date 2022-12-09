@@ -408,9 +408,7 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 
 async def check_admin_settings():
-
     if settings.lnbits_admin_ui:
-
         sets = await get_super_settings()
         if not sets:
             # create new settings if table is empty
@@ -422,12 +420,7 @@ async def check_admin_settings():
             sets = await get_super_settings()
 
         if sets:
-            for key, value in sets.dict().items():
-                if not key in readonly_variables:
-                    try:
-                        setattr(settings, key, value)
-                    except:
-                        logger.error(f"error overriding setting: {key}, value: {value}")
+            update_cached_settings(sets.dict())
 
         # printing settings for debugging
         logger.debug(f"Admin settings:")
@@ -447,6 +440,15 @@ async def check_admin_settings():
             and settings.lnbits_saas_instance_id
         ):
             settings.send_admin_user_to_saas()
+
+
+def update_cached_settings(sets_dict: dict):
+    for key, value in sets_dict.items():
+        if not key in readonly_variables:
+            try:
+                setattr(settings, key, value)
+            except:
+                logger.error(f"error overriding setting: {key}, value: {value}")
 
 
 class WebsocketConnectionManager:

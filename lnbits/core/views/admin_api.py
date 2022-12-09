@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import User
-from lnbits.core.services import update_wallet_balance
+from lnbits.core.services import update_cached_settings, update_wallet_balance
 from lnbits.decorators import check_admin
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, EditableSetings
@@ -61,6 +61,7 @@ async def api_topup_balance(
 )
 async def api_update_settings(data: EditableSetings):
     await update_admin_settings(data)
+    update_cached_settings(dict(data))
     return {"status": "Success"}
 
 
