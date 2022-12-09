@@ -17,7 +17,6 @@ from lnbits.settings import set_cli_settings, settings
         allow_extra_args=True,
     )
 )
-
 @click.option("--port", default=settings.port, help="Port to listen on")
 @click.option("--host", default=settings.host, help="Host to run LNBits on")
 @click.option(

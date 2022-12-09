@@ -448,6 +448,7 @@ async def check_admin_settings():
         ):
             settings.send_admin_user_to_saas()
 
+
 class WebsocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
