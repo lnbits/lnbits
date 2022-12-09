@@ -251,42 +251,9 @@ class AdminSettings(EditableSetings):
     lnbits_allowed_funding_sources: Optional[List[str]]
 
 
-readonly_variables = ReadOnlySettings.readonly_fields()
-
-settings = Settings()
-
-settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
-
-try:
-    settings.lnbits_commit = (
-        subprocess.check_output(
-            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
-            stderr=subprocess.DEVNULL,
-        )
-        .strip()
-        .decode("ascii")
-    )
-except:
-    settings.lnbits_commit = "docker"
-
-
-# printing enviroment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug(f"Enviroment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
-        logger.debug(f"{key}: {value}")
-
-
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
-
-
-wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
-
-# initialize as fake wallet
-WALLET = FAKE_WALLET
 
 
 # set wallet class after settings are loaded
@@ -323,3 +290,38 @@ def send_admin_user_to_saas():
                 logger.error(
                     f"error sending admin user to saas: {settings.lnbits_saas_callback}"
                 )
+
+
+############### INIT #################
+
+readonly_variables = ReadOnlySettings.readonly_fields()
+
+settings = Settings()
+
+settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
+
+try:
+    settings.lnbits_commit = (
+        subprocess.check_output(
+            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        )
+        .strip()
+        .decode("ascii")
+    )
+except:
+    settings.lnbits_commit = "docker"
+
+
+# printing enviroment variable for debugging
+if not settings.lnbits_admin_ui:
+    logger.debug(f"Enviroment Settings:")
+    for key, value in settings.dict(exclude_none=True).items():
+        logger.debug(f"{key}: {value}")
+
+
+wallets_module = importlib.import_module("lnbits.wallets")
+FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
+
+# initialize as fake wallet
+WALLET = FAKE_WALLET
