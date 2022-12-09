@@ -137,19 +137,23 @@ def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
 
-        # 1. wait till migration is done
-        await migrate_databases()
+        try:
+            # 1. wait till migration is done
+            await migrate_databases()
 
-        # 2. setup admin settings
-        await check_admin_settings()
+            # 2. setup admin settings
+            await check_admin_settings()
 
-        log_server_info()
+            log_server_info()
 
-        # 3. initialize WALLET
-        set_wallet_class()
+            # 3. initialize WALLET
+            set_wallet_class()
 
-        # 4. initialize funding source
-        await check_funding_source()
+            # 4. initialize funding source
+            await check_funding_source()
+        except Exception as e:
+            logger.error(str(e))
+            raise ImportError("Failed to run 'startup' event.")
 
 
 def log_server_info():
