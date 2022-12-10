@@ -125,6 +125,8 @@ class Database(Compat):
             import psycopg2  # type: ignore
 
             def _parse_timestamp(value, _):
+                if value is None:
+                    return None
                 f = "%Y-%m-%d %H:%M:%S.%f"
                 if not "." in value:
                     f = "%Y-%m-%d %H:%M:%S"
@@ -149,14 +151,7 @@ class Database(Compat):
 
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    (1184, 1114),
-                    "TIMESTAMP2INT",
-                    _parse_timestamp
-                    # lambda value, curs: time.mktime(
-                    #     datetime.datetime.strptime(
-                    #         value, "%Y-%m-%d %H:%M:%S.%f"
-                    #     ).timetuple()
-                    # ),
+                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
                 )
             )
         else:
