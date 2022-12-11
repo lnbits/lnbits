@@ -1,4 +1,9 @@
+import datetime
+
+from loguru import logger
 from sqlalchemy.exc import OperationalError  # type: ignore
+
+from lnbits import bolt11
 
 
 async def m000_create_migrations_table(db):
@@ -188,3 +193,68 @@ async def m005_balance_check_balance_notify(db):
         );
     """
     )
+
+
+async def m006_add_invoice_expiry_to_apipayments(db):
+    """
+    Adds invoice expiry column to apipayments.
+    """
+    try:
+        await db.execute("ALTER TABLE apipayments ADD COLUMN expiry TIMESTAMP")
+    except OperationalError:
+        pass
+
+
+async def m007_set_invoice_expiries(db):
+    """
+    Precomputes invoice expiry for existing pending incoming payments.
+    """
+    try:
+        rows = await (
+            await db.execute(
+                f"""
+                SELECT bolt11, checking_id
+                FROM apipayments
+                WHERE pending = true
+                AND amount > 0
+                AND bolt11 IS NOT NULL
+                AND expiry IS NULL
+                AND time < {db.timestamp_now}
+                """
+            )
+        ).fetchall()
+        if len(rows):
+            logger.info(f"Mirgraion: Checking expiry of {len(rows)} invoices")
+        for i, (
+            payment_request,
+            checking_id,
+        ) in enumerate(rows):
+            try:
+                invoice = bolt11.decode(payment_request)
+                if invoice.expiry is None:
+                    continue
+
+                expiration_date = datetime.datetime.fromtimestamp(
+                    invoice.date + invoice.expiry
+                )
+                logger.info(
+                    f"Mirgraion: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                )
+                await db.execute(
+                    """
+                    UPDATE apipayments SET expiry = ?
+                    WHERE checking_id = ? AND amount > 0
+                    """,
+                    (
+                        db.datetime_to_timestamp(expiration_date),
+                        checking_id,
+                    ),
+                )
+            except:
+                continue
+    except OperationalError:
+        # this is necessary now because it may be the case that this migration will
+        # run twice in some environments.
+        # catching errors like this won't be necessary in anymore now that we
+        # keep track of db versions so no migration ever runs twice.
+        pass
