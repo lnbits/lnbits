@@ -752,7 +752,13 @@ page_container %}
           </div>
 
           <div class="row q-mt-lg">
-            <q-btn @click="redeem" color="primary">Receive Tokens</q-btn>
+            <q-btn @click="redeem" color="primary">Receive</q-btn>
+            <q-btn
+              unelevated
+              icon="content_copy"
+              class="q-mx-0"
+              @click="copyText(receiveData.tokensBase64)"
+            ></q-btn>
             <q-btn
               unelevated
               icon="photo_camera"
