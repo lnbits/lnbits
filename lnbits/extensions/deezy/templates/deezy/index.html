@@ -223,12 +223,12 @@
       showLnToBtcForm() {
         this.getSuggestedOnChainFees()
         this.swapLnToBtc.show = true
+        this.swapBtcToLn.show = false
       },
       getSuggestedOnChainFees() {
         axios
           .get('https://mempool.space/api/v1/fees/recommended')
           .then(result => {
-            console.log(result.data)
             this.swapLnToBtc.suggested_fees = result.data
           })
       },
