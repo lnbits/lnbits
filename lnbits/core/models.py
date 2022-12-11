@@ -1,6 +1,8 @@
+import datetime
 import hashlib
 import hmac
 import json
+import time
 from sqlite3 import Row
 from typing import Dict, List, NamedTuple, Optional
 
@@ -83,6 +85,7 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
+    expiry: Optional[float]
     extra: Optional[Dict] = {}
     wallet_id: str
     webhook: Optional[str]
@@ -101,6 +104,7 @@ class Payment(BaseModel):
             fee=row["fee"],
             memo=row["memo"],
             time=row["time"],
+            expiry=row["expiry"],
             wallet_id=row["wallet"],
             webhook=row["webhook"],
             webhook_status=row["webhook_status"],
@@ -127,6 +131,10 @@ class Payment(BaseModel):
     @property
     def is_out(self) -> bool:
         return self.amount < 0
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expiry < time.time() if self.expiry else False
 
     @property
     def is_uncheckable(self) -> bool:
@@ -170,7 +178,13 @@ class Payment(BaseModel):
 
         logger.debug(f"Status: {status}")
 
-        if self.is_out and status.failed:
+        if self.is_in and status.pending and self.is_expired and self.expiry:
+            expiration_date = datetime.datetime.fromtimestamp(self.expiry)
+            logger.debug(
+                f"Deleting expired incoming pending payment {self.checking_id}: expired {expiration_date}"
+            )
+            await self.delete(conn)
+        elif self.is_out and status.failed:
             logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )

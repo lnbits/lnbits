@@ -29,6 +29,13 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
+    def datetime_to_timestamp(self, date: datetime.datetime):
+        if self.type in {POSTGRES, COCKROACH}:
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+        elif self.type == SQLITE:
+            return time.mktime(date.timetuple())
+        return "<nothing>"
+
     @property
     def timestamp_now(self) -> str:
         if self.type in {POSTGRES, COCKROACH}:
