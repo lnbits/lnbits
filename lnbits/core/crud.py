@@ -603,7 +603,6 @@ async def update_admin_settings(data: EditableSetings):
 async def create_admin_settings():
     account = await create_account()
     settings.super_user = account.id
-    settings.lnbits_admin_users += [account.id]
 
     editable_settings = EditableSetings.from_dict(settings.dict())
 
