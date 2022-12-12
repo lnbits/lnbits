@@ -33,10 +33,11 @@
           >
           <q-toggle
       :false-value="'split'"
-      :label="`${target.method}`"
       :true-value="'tag'"
       color="primary"
+      label=""
       v-model="target.method"
+      :label="'Split funds by %, or send funds by tag' || `${target.method}`"
     ></q-toggle>
             <q-select
               dense

@@ -20,7 +20,9 @@ new Vue({
     return {
       selectedWallet: null,
       currentHash: '', // a string that must match if the edit data is unchanged
-      targets: []
+      targets: [{
+        method: "split"
+      }]
     }
   },
   computed: {
