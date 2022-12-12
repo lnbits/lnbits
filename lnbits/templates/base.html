@@ -163,17 +163,6 @@
           >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
           </q-btn>
-          <q-btn
-            v-if="isAdminUser"
-            dense
-            flat
-            round
-            @click="goToAdminConsole"
-            icon="admin_panel_settings"
-            size="sm"
-          >
-            <q-tooltip>Admin Console</q-tooltip>
-          </q-btn>
         </q-toolbar>
       </q-header>
 
@@ -186,6 +175,7 @@
         :elevated="$q.screen.lt.md"
       >
         <lnbits-wallet-list></lnbits-wallet-list>
+        <lnbits-admin-ui></lnbits-admin-ui>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
