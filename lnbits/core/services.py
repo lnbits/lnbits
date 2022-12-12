@@ -455,6 +455,8 @@ def update_cached_settings(sets_dict: dict):
                 setattr(settings, key, value)
             except:
                 logger.error(f"error overriding setting: {key}, value: {value}")
+    if "super_user" in sets_dict:
+        setattr(settings, "super_user", sets_dict["super_user"])
 
 
 class WebsocketConnectionManager:
