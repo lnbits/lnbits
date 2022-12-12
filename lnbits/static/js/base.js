@@ -185,6 +185,7 @@ window.LNbits = {
         bolt11: data.bolt11,
         preimage: data.preimage,
         payment_hash: data.payment_hash,
+        expiry: data.expiry,
         extra: data.extra,
         wallet_id: data.wallet_id,
         webhook: data.webhook,
@@ -196,6 +197,11 @@ window.LNbits = {
         'YYYY-MM-DD HH:mm'
       )
       obj.dateFrom = moment(obj.date).fromNow()
+      obj.expirydate = Quasar.utils.date.formatDate(
+        new Date(obj.expiry * 1000),
+        'YYYY-MM-DD HH:mm'
+      )
+      obj.expirydateFrom = moment(obj.expirydate).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra.tag

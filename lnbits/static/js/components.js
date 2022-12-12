@@ -192,9 +192,13 @@ Vue.component('lnbits-payment-details', {
         </q-badge>
       </div>
       <div class="row">
-        <div class="col-3"><b>Date</b>:</div>
+        <div class="col-3"><b>Created</b>:</div>
         <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
       </div>
+      <div class="row">
+        <div class="col-3"><b>Expiry</b>:</div>
+        <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
+      </div>      
       <div class="row">
         <div class="col-3"><b>Description</b>:</div>
         <div class="col-9">{{ payment.memo }}</div>

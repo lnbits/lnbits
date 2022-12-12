@@ -338,37 +338,14 @@ async def delete_expired_invoices(
           AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
         """
     )
-
-    # then we delete all expired invoices, checking one by one
-    rows = await (conn or db).fetchall(
+    # then we delete all invoices whose expiry date is in the past
+    await (conn or db).execute(
         f"""
-        SELECT bolt11
-        FROM apipayments
-        WHERE pending = true
-          AND bolt11 IS NOT NULL
-          AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
+        DELETE FROM apipayments
+        WHERE pending = true AND amount > 0
+          AND expiry < {db.timestamp_now}
         """
     )
-    logger.debug(f"Checking expiry of {len(rows)} invoices")
-    for i, (payment_request,) in enumerate(rows):
-        try:
-            invoice = bolt11.decode(payment_request)
-        except:
-            continue
-
-        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-        if expiration_date > datetime.datetime.utcnow():
-            continue
-        logger.debug(
-            f"Deleting expired invoice {i}/{len(rows)}: {invoice.payment_hash} (expired: {expiration_date})"
-        )
-        await (conn or db).execute(
-            """
-            DELETE FROM apipayments
-            WHERE pending = true AND hash = ?
-            """,
-            (invoice.payment_hash,),
-        )
 
 
 # payments
@@ -395,12 +372,19 @@ async def create_payment(
     # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     # assert previous_payment is None, "Payment already exists"
 
+    try:
+        invoice = bolt11.decode(payment_request)
+        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
+    except:
+        # assume maximum bolt11 expiry of 31 days to be on the safe side
+        expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
+
     await (conn or db).execute(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra, webhook)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, pending, memo, fee, extra, webhook, expiry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -416,6 +400,7 @@ async def create_payment(
             if extra and extra != {} and type(extra) is dict
             else None,
             webhook,
+            db.datetime_to_timestamp(expiration_date),
         ),
     )
 

@@ -147,7 +147,7 @@ async def check_pending_payments():
             )
             # we delete expired invoices once upon the first pending check
             if incoming:
-                logger.info("Task: deleting all expired invoices")
+                logger.debug("Task: deleting all expired invoices")
                 start_time: float = time.time()
                 await delete_expired_invoices(conn=conn)
                 logger.info(
