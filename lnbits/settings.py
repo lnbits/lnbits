@@ -293,9 +293,9 @@ def send_admin_user_to_saas():
                     json=payload,
                 )
                 logger.success("sent admin user to saas application")
-            except:
+            except Exception as e:
                 logger.error(
-                    f"error sending admin user to saas: {settings.lnbits_saas_callback}"
+                    f"error sending admin user to saas: {settings.lnbits_saas_callback}. Error: {str(e)}"
                 )
 
 
