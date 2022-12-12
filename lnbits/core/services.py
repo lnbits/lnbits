@@ -21,7 +21,13 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, get_wallet_class, readonly_variables, settings
+from lnbits.settings import (
+    FAKE_WALLET,
+    get_wallet_class,
+    readonly_variables,
+    send_admin_user_to_saas,
+    settings,
+)
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -439,7 +445,7 @@ async def check_admin_settings():
             and settings.lnbits_saas_secret
             and settings.lnbits_saas_instance_id
         ):
-            settings.send_admin_user_to_saas()
+            send_admin_user_to_saas()
 
 
 def update_cached_settings(sets_dict: dict):
