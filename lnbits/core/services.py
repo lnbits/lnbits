@@ -437,7 +437,7 @@ async def check_admin_settings():
         admin_url = (
             f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
         )
-        logger.success(f"✔️ Access admin user account at: {admin_url}")
+        logger.success(f"✔️ Access super user account at: {admin_url}")
 
         # callback for saas
         if (
