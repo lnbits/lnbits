@@ -259,6 +259,7 @@ async def m007_set_invoice_expiries(db):
         # keep track of db versions so no migration ever runs twice.
         pass
 
+
 async def m008_create_admin_settings_table(db):
     await db.execute(
         """
