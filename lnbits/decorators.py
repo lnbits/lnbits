@@ -259,3 +259,13 @@ async def check_admin(usr: UUID4) -> User:
         user.super_user = True
 
     return user
+
+
+async def check_super_user(usr: UUID4) -> User:
+    user = await check_admin(usr)
+    if user.id != settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="User not authorized. No super user privileges.",
+        )
+    return user

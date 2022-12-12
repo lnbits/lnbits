@@ -1,14 +1,13 @@
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import Body
-from fastapi.params import Depends
+from fastapi import Body, Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import User
 from lnbits.core.services import update_cached_settings, update_wallet_balance
-from lnbits.decorators import check_admin
+from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, EditableSetings
 
@@ -19,7 +18,7 @@ from ..crud import delete_admin_settings, get_admin_settings, update_admin_setti
 @core_app.get(
     "/admin/api/v1/restart/",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_admin)],
+    dependencies=[Depends(check_super_user)],
 )
 async def api_restart_server() -> dict[str, str]:
     server_restart.set()
