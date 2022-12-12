@@ -144,7 +144,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
 
 
 def build_insert_query(schema, tableName, columns):
-    to_columns = ", ".join(map(lambda column: f'"{column[1]}"', columns))
+    to_columns = ", ".join(map(lambda column: f'"{column[1].lower()}"', columns))
     values = ", ".join(map(lambda column: to_column_type(column[2]), columns))
     return f"""
             INSERT INTO {schema}.{tableName}({to_columns})
