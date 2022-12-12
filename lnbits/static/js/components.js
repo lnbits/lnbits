@@ -177,7 +177,6 @@ Vue.component('lnbits-extension-list', {
   }
 })
 
-
 Vue.component('lnbits-admin-ui', {
   data: function () {
     return {
