@@ -17,7 +17,7 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
-    <q-btn label="Restart server" color="primary" @click="restartServer">
+    <q-btn v-if="isSuperUser" label="Restart server" color="primary" @click="restartServer">
       <q-tooltip v-if="needsRestart">
         Restart the server for changes to take effect
       </q-tooltip>
