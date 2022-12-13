@@ -56,7 +56,7 @@ async def m002_float_percent(db):
     await db.execute("DROP TABLE splitpayments.splitpayments_old")
 
 
-async def m003_float_percent(db):
+async def m003_add_id_and_tag(db):
     """
     Add float percent and migrates the existing data.
     """
@@ -66,7 +66,7 @@ async def m003_float_percent(db):
         CREATE TABLE splitpayments.targets (
             wallet TEXT NOT NULL,
             source TEXT NOT NULL,
-            percent INT,
+            percent REAL NOT NULL CHECK (percent >= 0 AND percent <= 100),
             alias TEXT,
 
             UNIQUE (source, wallet)
