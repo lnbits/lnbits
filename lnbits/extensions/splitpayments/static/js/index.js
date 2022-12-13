@@ -39,6 +39,15 @@ new Vue({
         timeout: 500
       })
     },
+    clearTarget(index) {
+      this.targets.splice(index, 1)
+      console.log(this.targets)
+      this.$q.notify({
+        message:
+          'Removed item. You must click to save manually.',
+        timeout: 500
+      })
+    },
     getTargets() {
       LNbits.api
         .request(
@@ -52,8 +61,17 @@ new Vue({
         .then(response => {
           this.currentHash = hashTargets(response.data)
           this.targets = response.data.concat({})
-          for (let i = 0; i < this.targets.length; i++) {
-            if(this.targets[i].tag != 
+          for (let i = 0; i < this.targets.length; i++) { 
+            if(this.targets[i].tag.length > 0){
+              this.targets[i].method = "tag"
+            }
+            else if (this.targets[i].percent.length > 0){
+              this.targets[i].method = "split"
+            }
+            else{
+              this.targets[i].method = ""
+            }
+            
           }
         })
     },
@@ -64,17 +82,19 @@ new Vue({
     clearChanged(index) {
       if(this.targets[index].method == 'split'){
         this.targets[index].tag = null
+        this.targets[index].method = 'split'
       }
       else{
         this.targets[index].percent = null
+        this.targets[index].method = 'tag'
       }
     },
     targetChanged(index) {
       // fix percent min and max range
-     console.log(this.targets)
       if (this.targets[index].percent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100
         if (this.targets[index].percent < 0) this.targets[index].percent = 0
+        this.targets[index].tag = ""
       }
 
       // not percentage
@@ -128,15 +148,12 @@ new Vue({
           if (t !== index) target.percent -= +(diff * target.percent).toFixed(2)
         })
       }
-
       // overwrite so changes appear
       this.targets = this.targets
-      console.log(this.targets)
     },
     saveTargets() {
-      console.log(this.targets)
       for (let i = 0; i < this.targets.length; i++) {
-        if (this.targets[i].tag){
+        if (this.targets[i].tag != ''){
           this.targets[i].percent = 0
         }
         else{

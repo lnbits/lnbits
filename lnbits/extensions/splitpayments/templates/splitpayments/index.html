@@ -67,7 +67,7 @@
             ></q-toggle>
 
             <q-input
-              v-if="target.method == 'tag' || target.tag != ''"
+              v-if="target.method == 'tag'"
               style="width: 150px"
               dense
               outlined
@@ -97,6 +97,7 @@
             >
               <q-tooltip>Add more</q-tooltip>
             </q-btn>
+            <q-btn v-if="t < targets.length - 1" @click="clearTarget(t)" round color="red" size="5px" icon="close"></q-btn>
           </div>
           <div class="row justify-evenly q-pa-lg">
             <div>
