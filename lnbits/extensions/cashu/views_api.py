@@ -293,7 +293,7 @@ async def melt_coins(
 
     try:
         logger.debug(
-            f"Cashu: Wallet {cashu.wallet} fetting PaymentStatus of {invoice_obj.payment_hash}"
+            f"Cashu: Wallet {cashu.wallet} checking PaymentStatus of {invoice_obj.payment_hash}"
         )
         status: PaymentStatus = await check_transaction_status(
             cashu.wallet, invoice_obj.payment_hash
