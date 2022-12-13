@@ -11,6 +11,8 @@ from . import splitpayments_ext
 from .crud import get_targets, set_targets
 from .models import Target, TargetPut
 
+from loguru import logger
+
 
 @splitpayments_ext.get("/api/v1/targets")
 async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
@@ -25,6 +27,7 @@ async def api_targets_set(
     body = await req.json()
     targets = []
     data = TargetPut.parse_obj(body["targets"])
+    logger.debug(data)
     for entry in data.__root__:
         wallet = await get_wallet(entry.wallet)
         if not wallet:
@@ -50,16 +53,15 @@ async def api_targets_set(
             Target(
                 wallet=wallet.id,
                 source=wal.wallet.id,
+                tag=entry.tag,
                 percent=entry.percent,
                 alias=entry.alias,
             )
         )
-
-    percent_sum = sum([target.percent for target in targets])
-    if percent_sum > 100:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
-        )
-
+        percent_sum = sum([target.percent for target in targets])
+        if percent_sum > 100:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
+            )
     await set_targets(wal.wallet.id, targets)
     return ""

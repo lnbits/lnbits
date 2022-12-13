@@ -2,6 +2,7 @@ from typing import List
 
 from . import db
 from .models import Target
+from loguru import logger
 
 
 async def get_targets(source_wallet: str) -> List[Target]:
@@ -12,6 +13,7 @@ async def get_targets(source_wallet: str) -> List[Target]:
 
 
 async def set_targets(source_wallet: str, targets: List[Target]):
+    logger.debug(targets)
     async with db.connect() as conn:
         await conn.execute(
             "DELETE FROM splitpayments.targets WHERE source = ?", (source_wallet,)
@@ -20,8 +22,8 @@ async def set_targets(source_wallet: str, targets: List[Target]):
             await conn.execute(
                 """
                 INSERT INTO splitpayments.targets
-                  (source, wallet, percent, alias)
-                VALUES (?, ?, ?, ?)
+                  (source, wallet, percent, tag, alias)
+                VALUES (?, ?, ?, ?, ?)
             """,
-                (source_wallet, target.wallet, target.percent, target.alias),
+                (source_wallet, target.wallet, target.percent, target.tag, target.alias),
             )

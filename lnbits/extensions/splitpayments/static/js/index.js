@@ -10,7 +10,7 @@ function hashTargets(targets) {
 }
 
 function isTargetComplete(target) {
-  return target.wallet && target.wallet.trim() !== '' && target.percent > 0
+  return target.wallet && target.wallet.trim() !== '' && (target.percent > 0 || target.tag != '')
 }
 
 new Vue({
@@ -52,32 +52,14 @@ new Vue({
         .then(response => {
           this.currentHash = hashTargets(response.data)
           this.targets = response.data.concat({})
+          for (let i = 0; i < this.targets.length; i++) {
+            if(this.targets[i].tag != 
+          }
         })
     },
     changedWallet(wallet) {
       this.selectedWallet = wallet
       this.getTargets()
-    },
-    tagChanged(isTag, index) {
-      // fix percent min and max range
-      if (isTag) {
-        this.targets[index].percent = null
-        this.targets[index].tag.trim()
-      }
-
-      // remove empty lines (except last)
-      if (this.targets.length >= 2) {
-        for (let i = this.targets.length - 2; i >= 0; i--) {
-          let target = this.targets[i]
-          if (
-            (!target.wallet || target.wallet.trim() === '') &&
-            (!target.alias || target.alias.trim() === '') &&
-            !target.percent
-            ) {
-              this.targets.splice(i, 1)
-            }
-          }
-      }
     },
     clearChanged(index) {
       if(this.targets[index].method == 'split'){
@@ -87,11 +69,17 @@ new Vue({
         this.targets[index].percent = null
       }
     },
-    percentageChanged(isPercent, index) {
+    targetChanged(index) {
       // fix percent min and max range
-      if (isPercent) {
+     console.log(this.targets)
+      if (this.targets[index].percent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100
         if (this.targets[index].percent < 0) this.targets[index].percent = 0
+      }
+
+      // not percentage
+      if (!this.targets[index].percent) {
+        this.targets[index].percent = 0
       }
       
       // remove empty lines (except last)
@@ -101,6 +89,7 @@ new Vue({
           if (
             (!target.wallet || target.wallet.trim() === '') &&
             (!target.alias || target.alias.trim() === '') &&
+            (!target.tag || target.tag.trim() === '') &&
             !target.percent
           ) {
             this.targets.splice(i, 1)
@@ -145,6 +134,15 @@ new Vue({
       console.log(this.targets)
     },
     saveTargets() {
+      console.log(this.targets)
+      for (let i = 0; i < this.targets.length; i++) {
+        if (this.targets[i].tag){
+          this.targets[i].percent = 0
+        }
+        else{
+          this.targets[i].tag = ''
+        }
+      }
       LNbits.api
         .request(
           'PUT',
@@ -153,7 +151,7 @@ new Vue({
           {
             targets: this.targets
               .filter(isTargetComplete)
-              .map(({wallet, percent, alias}) => ({wallet, percent, alias}))
+              .map(({wallet, percent, tag, alias}) => ({wallet, percent, tag, alias}))
           }
         )
         .then(response => {

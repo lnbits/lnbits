@@ -37,7 +37,14 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     logger.debug(f"performing split payments to {len(targets)} targets")
     for target in targets:
-        amount = int(payment.amount * target.percent / 100)  # msats
+        
+        if target.tag and payment.extra.get("tag") == target.tag:
+            amount = int(payment.amount)
+        elif target.percent:
+            amount = int(payment.amount * target.percent / 100)  # msats
+        else:
+            return
+
         payment_hash, payment_request = await create_invoice(
             wallet_id=target.wallet,
             amount=int(amount / 1000),  # sats
