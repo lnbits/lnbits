@@ -90,7 +90,7 @@ async def m003_add_id_and_tag(db):
                 tag,
                 alias
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (urlsafe_short_hash(), row[0], row[1], row[2], '', row[3]),
         )
