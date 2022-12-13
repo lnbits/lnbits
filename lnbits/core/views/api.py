@@ -83,31 +83,6 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
-@core_app.put("/api/v1/wallet/balance/{amount}", dependencies=[Depends(check_admin)])
-async def api_update_balance(
-    amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-
-    payHash = urlsafe_short_hash()
-    await create_payment(
-        wallet_id=wallet.wallet.id,
-        checking_id=payHash,
-        payment_request="selfPay",
-        payment_hash=payHash,
-        amount=amount * 1000,
-        memo="selfPay",
-        fee=0,
-    )
-    await update_payment_status(checking_id=payHash, pending=False)
-    updatedWallet = await get_wallet(wallet.wallet.id)
-
-    return {
-        "id": wallet.wallet.id,
-        "name": wallet.wallet.name,
-        "balance": amount,
-    }
-
-
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)

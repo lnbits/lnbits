@@ -259,26 +259,31 @@ new Vue({
       this.parse.camera.show = false
     },
     updateBalance: function (credit) {
-      if (LNBITS_DENOMINATION != 'sats') {
-        credit = credit * 100
-      }
-      LNbits.api
-        .request('PUT', '/api/v1/wallet/balance/' + credit, this.g.wallet.inkey)
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-        .then(response => {
-          let data = response.data
-          if (data.status === 'ERROR') {
+        LNbits.api
+          .request(
+            'PUT',
+            '/admin/api/v1/topup/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey,
+            {
+                amount: credit,
+                id: this.g.user.wallets[0].id
+            }
+          )
+          .then(response => {
             this.$q.notify({
-              timeout: 5000,
-              type: 'warning',
-              message: `Failed to update.`
-            })
-            return
-          }
-          this.balance = this.balance + data.balance
-        })
+              type: 'positive',
+              message:
+                'Success! Added ' +
+                credit +
+                ' sats to ' +
+                this.g.user.wallets[0].id,
+              icon: null
+            });
+            this.balance += parseInt(credit);
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          });
     },
     closeReceiveDialog: function () {
       setTimeout(() => {
