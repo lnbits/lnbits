@@ -63,8 +63,14 @@ new Vue({
       if (isPercent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100
         if (this.targets[index].percent < 0) this.targets[index].percent = 0
+        this.targets[index].tag = ''
       }
 
+      // not percentage
+      if (!isPercent) {
+        this.targets[index].percent = 0
+      }
+      
       // remove empty lines (except last)
       if (this.targets.length >= 2) {
         for (let i = this.targets.length - 2; i >= 0; i--) {
@@ -72,6 +78,7 @@ new Vue({
           if (
             (!target.wallet || target.wallet.trim() === '') &&
             (!target.alias || target.alias.trim() === '') &&
+            (!target.tag || target.tag.trim() === '') &&
             !target.percent
           ) {
             this.targets.splice(i, 1)
@@ -81,7 +88,7 @@ new Vue({
 
       // add a line at the end if the last one is filled
       let last = this.targets[this.targets.length - 1]
-      if (last.wallet && last.wallet.trim() !== '' && last.percent > 0) {
+      if (last.wallet && last.wallet.trim() !== '') {
         this.targets.push({})
       }
 
@@ -113,6 +120,7 @@ new Vue({
 
       // overwrite so changes appear
       this.targets = this.targets
+      console.log(this.targets)
     },
     saveTargets() {
       LNbits.api

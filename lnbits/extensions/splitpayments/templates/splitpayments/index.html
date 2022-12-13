@@ -31,54 +31,63 @@
             style="flex-wrap: nowrap"
             v-for="(target, t) in targets"
           >
-          <q-toggle
-      :false-value="'split'"
-      :true-value="'tag'"
-      color="primary"
-      label=""
-      v-model="target.method"
-      :label="'Split funds by %, or send funds by tag' || `${target.method}`"
-    ></q-toggle>
-            <q-select
-              dense
-              :options="g.user.wallets.filter(w => w.id !== selectedWallet.id).map(o => ({name: o.name, value: o.id}))"
-              v-model="target.wallet"
-              label="Wallet"
-              :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
-              @input="targetChanged(false)"
-              option-label="name"
-              style="width: 1000px"
-              new-value-mode="add-unique"
-              use-input
-              input-debounce="0"
-              emit-value
-            ></q-select>
-            <q-input
+          <q-input
               dense
               outlined
               v-model="target.alias"
               label="Alias"
               :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
               @input="targetChanged(false)"
+              style="width: 150px"
             ></q-input>
             
             <q-input
-              v-if="target.method == 'split'"
+              dense
+              v-model="target.wallet"
+              label="Wallet"
+              :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
+              @input="targetChanged(false)"
+              option-label="name"
+              style="width: 300px"
+              new-value-mode="add-unique"
+              use-input
+              input-debounce="0"
+              emit-value
+            ></q-input>
+           
+            
+            <q-toggle
+            :false-value="'split'"
+            :true-value="'tag'"
+            color="primary"
+            label=""
+            style="width: 180px"
+            v-model="target.method"
+            :label="`${target.method}` === 'tag' ? 'Send funds by tag' : `${target.method}` === 'split' ? 'Split funds by %' : 'Split/tag?'"
+          ></q-toggle>
+
+            <q-input
+              v-if="target.method == 'tag' || target.tag != null"
+              style="width: 150px"
+              dense
+              outlined
+              v-model.number="target.tag"
+              label="Tag name"
+              suffix="#"
+              @input="percentageChanged(false, t)"
+            ></q-input>
+
+            <q-input
+              v-else-if="target.method == 'split' || target.percent >= 0"
+              style="width: 150px"
               dense
               outlined
               v-model.number="target.percent"
-              label="Split Share"
+              label="split"
               suffix="%"
               @input="percentageChanged(true, t)"
             ></q-input>
-            <q-input
-            v-else
-            dense
-            outlined
-            v-model.number="target.tag"
-            label="Forward by tag"
-            suffix="#"
-          ></q-input>
+
           </div>
 
           <div class="row justify-evenly q-pa-lg">
