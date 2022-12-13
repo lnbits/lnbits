@@ -64,9 +64,11 @@ async def m003_add_id_and_tag(db):
     await db.execute(
         """
         CREATE TABLE splitpayments.targets (
+            id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             source TEXT NOT NULL,
             percent REAL NOT NULL CHECK (percent >= 0 AND percent <= 100),
+            tag TEXT NOT NULL,
             alias TEXT,
 
             UNIQUE (source, wallet)
@@ -81,7 +83,7 @@ async def m003_add_id_and_tag(db):
         await db.execute(
             """
             INSERT INTO splitpayments.targets (
-                id
+                id,
                 wallet,
                 source,
                 percent,
