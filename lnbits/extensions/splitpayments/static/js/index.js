@@ -58,17 +58,40 @@ new Vue({
       this.selectedWallet = wallet
       this.getTargets()
     },
+    tagChanged(isTag, index) {
+      // fix percent min and max range
+      if (isTag) {
+        this.targets[index].percent = null
+        this.targets[index].tag.trim()
+      }
+
+      // remove empty lines (except last)
+      if (this.targets.length >= 2) {
+        for (let i = this.targets.length - 2; i >= 0; i--) {
+          let target = this.targets[i]
+          if (
+            (!target.wallet || target.wallet.trim() === '') &&
+            (!target.alias || target.alias.trim() === '') &&
+            !target.percent
+            ) {
+              this.targets.splice(i, 1)
+            }
+          }
+      }
+    },
+    clearChanged(index) {
+      if(this.targets[index].method == 'split'){
+        this.targets[index].tag = null
+      }
+      else{
+        this.targets[index].percent = null
+      }
+    },
     percentageChanged(isPercent, index) {
       // fix percent min and max range
       if (isPercent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100
         if (this.targets[index].percent < 0) this.targets[index].percent = 0
-        this.targets[index].tag = ''
-      }
-
-      // not percentage
-      if (!isPercent) {
-        this.targets[index].percent = 0
       }
       
       // remove empty lines (except last)
@@ -78,7 +101,6 @@ new Vue({
           if (
             (!target.wallet || target.wallet.trim() === '') &&
             (!target.alias || target.alias.trim() === '') &&
-            (!target.tag || target.tag.trim() === '') &&
             !target.percent
           ) {
             this.targets.splice(i, 1)

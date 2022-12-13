@@ -37,7 +37,6 @@
               v-model="target.alias"
               label="Alias"
               :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
-              @input="targetChanged(false)"
               style="width: 150px"
             ></q-input>
             
@@ -46,7 +45,6 @@
               v-model="target.wallet"
               label="Wallet"
               :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
-              @input="targetChanged(false)"
               option-label="name"
               style="width: 300px"
               new-value-mode="add-unique"
@@ -64,7 +62,8 @@
             style="width: 180px"
             v-model="target.method"
             :label="`${target.method}` === 'tag' ? 'Send funds by tag' : `${target.method}` === 'split' ? 'Split funds by %' : 'Split/tag?'"
-          ></q-toggle>
+            @input="clearChanged(t)"
+            ></q-toggle>
 
             <q-input
               v-if="target.method == 'tag' || target.tag != null"
@@ -74,7 +73,7 @@
               v-model.number="target.tag"
               label="Tag name"
               suffix="#"
-              @input="percentageChanged(false, t)"
+              @input="tagChanged(true, t)"
             ></q-input>
 
             <q-input
