@@ -8,7 +8,7 @@ import warnings
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -67,28 +67,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 
     g().config = lnbits.settings
     g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                "error.html",
-                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc.errors()},
-        )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
@@ -192,12 +170,33 @@ def register_async_tasks(app):
 
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
-    async def basic_error(request: Request, err):
-        logger.error("handled error", traceback.format_exc())
-        logger.error("ERROR:", err)
+    async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, err, tb)
-        exc = traceback.format_exc()
+        traceback.print_exception(etype, exc, tb)
+        logger.error(f"Exception: {str(exc)}")
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
+            return template_renderer().TemplateResponse(
+                "error.html", {"request": request, "err": f"Error: {str(exc)}"}
+            )
+
+        return JSONResponse(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
+        logger.error(f"RequestValidationError: {str(exc)}")
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
 
         if (
             request.headers
@@ -205,12 +204,39 @@ def register_exception_handlers(app: FastAPI):
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": err}
+                "error.html",
+                {"request": request, "err": f"Error: {str(exc)}"},
             )
 
         return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": err},
+            status_code=HTTPStatus.BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
+        logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
+
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
+            return template_renderer().TemplateResponse(
+                "error.html",
+                {
+                    "request": request,
+                    "err": f"HTTP Error {exc.status_code}: {exc.detail}",
+                },
+            )
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
         )
 
 
