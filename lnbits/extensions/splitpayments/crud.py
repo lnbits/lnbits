@@ -1,9 +1,11 @@
 from typing import List
 
+from lnbits.helpers import urlsafe_short_hash
+
 from . import db
 from .models import Target
 
-from lnbits.helpers import urlsafe_short_hash
+
 
 
 async def get_targets(source_wallet: str) -> List[Target]:
