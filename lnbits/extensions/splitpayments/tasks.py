@@ -38,7 +38,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     logger.debug(f"checking if tagged for {len(targets)} targets")
     tagged = False
     for target in targets:
-        if payment.extra.get("tag") == target.tag:
+        if target.tag in payment.extra:
             tagged = True
             payment_hash, payment_request = await create_invoice(
                 wallet_id=target.wallet,
