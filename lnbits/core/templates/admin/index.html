@@ -17,7 +17,12 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
-    <q-btn v-if="isSuperUser" label="Restart server" color="primary" @click="restartServer">
+    <q-btn
+      v-if="isSuperUser"
+      label="Restart server"
+      color="primary"
+      @click="restartServer"
+    >
       <q-tooltip v-if="needsRestart">
         Restart the server for changes to take effect
       </q-tooltip>
@@ -29,7 +34,12 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
-    <q-btn label="Topup" color="primary" @click="topUpDialog.show = true">
+    <q-btn
+      v-if="isSuperUser"
+      label="Topup"
+      color="primary"
+      @click="topUpDialog.show = true"
+    >
       <q-tooltip> Add funds to a wallet. </q-tooltip>
     </q-btn>
     <!-- <q-btn
@@ -88,7 +98,7 @@
     </q-card>
   </div>
 </div>
-<q-dialog v-model="topUpDialog.show" position="top">
+<q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <q-form class="q-gutter-md">
       <p>TopUp a wallet</p>
