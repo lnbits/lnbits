@@ -194,8 +194,6 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, exc, tb)
         logger.error(f"RequestValidationError: {str(exc)}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
