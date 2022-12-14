@@ -2859,15 +2859,14 @@ var tipCounter = +vars.get(&quot;tipCounter&quot;)
 if (resp.length !== tipCounter) {
 	AssertionResult.setFailureMessage(&quot;Expected one tip, but got: &quot; + resp.length);
 	AssertionResult.setFailure(true)
-}
-
-var tip = resp[tipCounter - 1]
-var message = &quot;Let&apos;s go ...&quot; + tipCounter+ &quot;!&quot;
-if (!tip || tip.name !== &quot;Hal&quot; || tip.message !== message || tip.sats !== 21) {
-	AssertionResult.setFailureMessage(&quot;Expected tip to &apos;&quot; + message +&quot;&apos;, but was: &quot; + JSON.stringify(resp));
-	AssertionResult.setFailure(true)
-}
-</stringProp>
+} else {
+	var tip = resp[tipCounter - 1]
+	var message = &quot;Let&apos;s go ...&quot; + tipCounter + &quot;!&quot;
+	if (!tip || tip.name !== &quot;Hal&quot; || tip.message !== message || tip.sats !== 21) {
+		AssertionResult.setFailureMessage(&quot;Expected tip to &apos;&quot; + message + &quot;&apos;, but was: &quot; + JSON.stringify(resp));
+		AssertionResult.setFailure(true)
+	}
+}</stringProp>
             </JSR223Assertion>
             <hashTree/>
           </hashTree>
