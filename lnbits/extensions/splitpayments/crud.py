@@ -6,8 +6,6 @@ from . import db
 from .models import Target
 
 
-
-
 async def get_targets(source_wallet: str) -> List[Target]:
     rows = await db.fetchall(
         "SELECT * FROM splitpayments.targets WHERE source = ?", (source_wallet,)
