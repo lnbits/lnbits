@@ -55,9 +55,9 @@ async def on_invoice_paid(payment: Payment) -> None:
                 extra={"tag": "splitpayments"},
             )
             logger.debug(f"paid split invoice: {checking_id}")
-    
+
     logger.debug(f"performing split to {len(targets)} targets")
-    
+
     if tagged == False:
         for target in targets:
             if target.percent > 0:
@@ -77,5 +77,3 @@ async def on_invoice_paid(payment: Payment) -> None:
                     extra={"tag": "splitpayments"},
                 )
                 logger.debug(f"paid split invoice: {checking_id}")
-
-

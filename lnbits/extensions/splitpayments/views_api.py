@@ -11,8 +11,6 @@ from . import splitpayments_ext
 from .crud import get_targets, set_targets
 from .models import Target, TargetPut
 
-from loguru import logger
-
 
 @splitpayments_ext.get("/api/v1/targets")
 async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
@@ -27,7 +25,6 @@ async def api_targets_set(
     body = await req.json()
     targets = []
     data = TargetPut.parse_obj(body["targets"])
-    logger.debug(data)
     for entry in data.__root__:
         wallet = await get_wallet(entry.wallet)
         if not wallet:

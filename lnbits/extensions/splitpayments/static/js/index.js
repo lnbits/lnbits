@@ -10,7 +10,11 @@ function hashTargets(targets) {
 }
 
 function isTargetComplete(target) {
-  return target.wallet && target.wallet.trim() !== '' && (target.percent > 0 || target.tag != '')
+  return (
+    target.wallet &&
+    target.wallet.trim() !== '' &&
+    (target.percent > 0 || target.tag != '')
+  )
 }
 
 new Vue({
@@ -20,9 +24,11 @@ new Vue({
     return {
       selectedWallet: null,
       currentHash: '', // a string that must match if the edit data is unchanged
-      targets: [{
-        method: "split"
-      }]
+      targets: [
+        {
+          method: 'split'
+        }
+      ]
     }
   },
   computed: {
@@ -43,8 +49,7 @@ new Vue({
       this.targets.splice(index, 1)
       console.log(this.targets)
       this.$q.notify({
-        message:
-          'Removed item. You must click to save manually.',
+        message: 'Removed item. You must click to save manually.',
         timeout: 500
       })
     },
@@ -61,17 +66,14 @@ new Vue({
         .then(response => {
           this.currentHash = hashTargets(response.data)
           this.targets = response.data.concat({})
-          for (let i = 0; i < this.targets.length; i++) { 
-            if(this.targets[i].tag.length > 0){
-              this.targets[i].method = "tag"
+          for (let i = 0; i < this.targets.length; i++) {
+            if (this.targets[i].tag.length > 0) {
+              this.targets[i].method = 'tag'
+            } else if (this.targets[i].percent.length > 0) {
+              this.targets[i].method = 'split'
+            } else {
+              this.targets[i].method = ''
             }
-            else if (this.targets[i].percent.length > 0){
-              this.targets[i].method = "split"
-            }
-            else{
-              this.targets[i].method = ""
-            }
-            
           }
         })
     },
@@ -80,11 +82,10 @@ new Vue({
       this.getTargets()
     },
     clearChanged(index) {
-      if(this.targets[index].method == 'split'){
+      if (this.targets[index].method == 'split') {
         this.targets[index].tag = null
         this.targets[index].method = 'split'
-      }
-      else{
+      } else {
         this.targets[index].percent = null
         this.targets[index].method = 'tag'
       }
@@ -94,14 +95,14 @@ new Vue({
       if (this.targets[index].percent) {
         if (this.targets[index].percent > 100) this.targets[index].percent = 100
         if (this.targets[index].percent < 0) this.targets[index].percent = 0
-        this.targets[index].tag = ""
+        this.targets[index].tag = ''
       }
 
       // not percentage
       if (!this.targets[index].percent) {
         this.targets[index].percent = 0
       }
-      
+
       // remove empty lines (except last)
       if (this.targets.length >= 2) {
         for (let i = this.targets.length - 2; i >= 0; i--) {
@@ -153,10 +154,9 @@ new Vue({
     },
     saveTargets() {
       for (let i = 0; i < this.targets.length; i++) {
-        if (this.targets[i].tag != ''){
+        if (this.targets[i].tag != '') {
           this.targets[i].percent = 0
-        }
-        else{
+        } else {
           this.targets[i].tag = ''
         }
       }
@@ -168,7 +168,12 @@ new Vue({
           {
             targets: this.targets
               .filter(isTargetComplete)
-              .map(({wallet, percent, tag, alias}) => ({wallet, percent, tag, alias}))
+              .map(({wallet, percent, tag, alias}) => ({
+                wallet,
+                percent,
+                tag,
+                alias
+              }))
           }
         )
         .then(response => {

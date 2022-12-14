@@ -1,5 +1,6 @@
 from lnbits.helpers import urlsafe_short_hash
 
+
 async def m001_initial(db):
     """
     Initial split payment table.
@@ -92,7 +93,7 @@ async def m003_add_id_and_tag(db):
             )
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (urlsafe_short_hash(), row[0], row[1], row[2], '', row[3]),
+            (urlsafe_short_hash(), row[0], row[1], row[2], "", row[3]),
         )
 
     await db.execute("DROP TABLE splitpayments.splitpayments_old")

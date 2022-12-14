@@ -31,7 +31,7 @@
             style="flex-wrap: nowrap"
             v-for="(target, t) in targets"
           >
-          <q-input
+            <q-input
               dense
               outlined
               v-model="target.alias"
@@ -39,7 +39,7 @@
               :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
               style="width: 150px"
             ></q-input>
-            
+
             <q-input
               dense
               v-model="target.wallet"
@@ -52,18 +52,17 @@
               input-debounce="0"
               emit-value
             ></q-input>
-           
-            
+
             <q-toggle
-            :false-value="'split'"
-            :true-value="'tag'"
-            color="primary"
-            label=""
-            value="True"
-            style="width: 180px"
-            v-model="target.method"
-            :label="`${target.method}` === 'tag' ? 'Send funds by tag' : `${target.method}` === 'split' ? 'Split funds by %' : 'Split/tag?'"
-            @input="clearChanged(t)"
+              :false-value="'split'"
+              :true-value="'tag'"
+              color="primary"
+              label=""
+              value="True"
+              style="width: 180px"
+              v-model="target.method"
+              :label="`${target.method}` === 'tag' ? 'Send funds by tag' : `${target.method}` === 'split' ? 'Split funds by %' : 'Split/tag?'"
+              @input="clearChanged(t)"
             ></q-toggle>
 
             <q-input
@@ -97,7 +96,14 @@
             >
               <q-tooltip>Add more</q-tooltip>
             </q-btn>
-            <q-btn v-if="t < targets.length - 1" @click="clearTarget(t)" round color="red" size="5px" icon="close"></q-btn>
+            <q-btn
+              v-if="t < targets.length - 1"
+              @click="clearTarget(t)"
+              round
+              color="red"
+              size="5px"
+              icon="close"
+            ></q-btn>
           </div>
           <div class="row justify-evenly q-pa-lg">
             <div>
