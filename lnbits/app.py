@@ -184,7 +184,7 @@ def register_exception_handlers(app: FastAPI):
             )
 
         return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             content={"detail": exc_str},
         )
 
@@ -192,6 +192,7 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
+        logger.error(str(exc))
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
@@ -206,7 +207,7 @@ def register_exception_handlers(app: FastAPI):
             )
 
         return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
+            status_code=HTTPStatus.BAD_REQUEST,
             content={"detail": exc.errors()},
         )
 
