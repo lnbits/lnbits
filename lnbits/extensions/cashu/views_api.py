@@ -280,22 +280,33 @@ async def melt_coins(
         fees_msat = fee_reserve(invoice_obj.amount_msat)
     else:
         fees_msat = 0
-    assert total_provided >= amount + fees_msat / 1000, Exception(
+    assert total_provided >= amount + math.ceil(fees_msat / 1000), Exception(
         f"Provided proofs ({total_provided} sats) not enough for Lightning payment ({amount + fees_msat} sats)."
     )
-
+    logger.debug(f"Cashu: Initiating payment of {total_provided} sats")
     await pay_invoice(
         wallet_id=cashu.wallet,
         payment_request=invoice,
-        description=f"pay cashu invoice",
-        extra={"tag": "cashu", "cahsu_name": cashu.name},
+        description=f"Pay cashu invoice",
+        extra={"tag": "cashu", "cashu_name": cashu.name},
     )
 
-    status: PaymentStatus = await check_transaction_status(
-        cashu.wallet, invoice_obj.payment_hash
-    )
-    if status.paid == True:
+    try:
+        logger.debug(
+            f"Cashu: Wallet {cashu.wallet} checking PaymentStatus of {invoice_obj.payment_hash}"
+        )
+        status: PaymentStatus = await check_transaction_status(
+            cashu.wallet, invoice_obj.payment_hash
+        )
+        logger.debug(f"Cashu: Got status.paid: {status.paid}")
+        if status.paid == True:
+            logger.debug("Cashu: Payment successful, invalidating proofs")
+            await ledger._invalidate_proofs(proofs)
+    except Exception as e:
+        logger.error(e)
+        logger.error("Cashu: Error in payment status check, invalidating proofs")
         await ledger._invalidate_proofs(proofs)
+
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
@@ -333,7 +344,7 @@ async def check_fees(
         fees_msat = fee_reserve(invoice_obj.amount_msat)
     else:
         fees_msat = 0
-    return CheckFeesResponse(fee=fees_msat / 1000)
+    return CheckFeesResponse(fee=math.ceil(fees_msat / 1000))
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/split")
