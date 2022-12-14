@@ -16,6 +16,8 @@ from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
 from .views_api import api_gerty_json
 
+from loguru import logger
+
 templates = Jinja2Templates(directory="templates")
 
 
@@ -33,7 +35,12 @@ async def display(request: Request, gerty_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
         )
-    gertyData = await api_gerty_json(gerty_id)
+    gertyData = []
+    gertyData.append(await api_gerty_json(gerty_id, p=0))
+    gertyData.append(await api_gerty_json(gerty_id, p=1))
+    gertyData.append(await api_gerty_json(gerty_id, p=2))
+    gertyData.append(await api_gerty_json(gerty_id, p=3))
+    logger.debug(gertyData)
     return gerty_renderer().TemplateResponse(
         "gerty/gerty.html", {"request": request, "gerty": gertyData}
     )

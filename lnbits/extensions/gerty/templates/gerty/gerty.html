@@ -120,8 +120,12 @@ endblock %}{% block page %} {% raw %}
 
     },
     created: function () {
-      console.log(this.gerty)
+      for (let i = 0; i < this.gerty.length; i++) {
+        console.log(this.gerty[i].screen.group)
+      } 
 
+      console.log(this.gerty)
+        
       for (let i = 0; i < this.gerty.wallets.length; i++) {
           this.gertywallets[i] = {
             "name":this.gerty.wallets[i].name,
