@@ -3,6 +3,8 @@ from typing import List
 from . import db
 from .models import Target
 
+from lnbits.helpers import urlsafe_short_hash
+
 
 async def get_targets(source_wallet: str) -> List[Target]:
     rows = await db.fetchall(
@@ -20,10 +22,11 @@ async def set_targets(source_wallet: str, targets: List[Target]):
             await conn.execute(
                 """
                 INSERT INTO splitpayments.targets
-                  (source, wallet, percent, tag, alias)
-                VALUES (?, ?, ?, ?, ?)
+                  (id, source, wallet, percent, tag, alias)
+                VALUES (?, ?, ?, ?, ?, ?)
             """,
                 (
+                    urlsafe_short_hash(),
                     source_wallet,
                     target.wallet,
                     target.percent,
