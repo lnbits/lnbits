@@ -221,7 +221,7 @@ async def mint_coins(
 
     status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
 
-    if status.paid != True:
+    if LIGHTNING and status.paid != True:
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
         )
@@ -265,47 +265,50 @@ async def melt_coins(
         detail="Error: Tokens are from another mint.",
     )
 
-    assert all([ledger._verify_proof(p) for p in proofs]), HTTPException(
-        status_code=HTTPStatus.BAD_REQUEST,
-        detail="Could not verify proofs.",
-    )
-
-    total_provided = sum([p["amount"] for p in proofs])
-    invoice_obj = bolt11.decode(invoice)
-    amount = math.ceil(invoice_obj.amount_msat / 1000)
-
-    internal_checking_id = await check_internal(invoice_obj.payment_hash)
-
-    if not internal_checking_id:
-        fees_msat = fee_reserve(invoice_obj.amount_msat)
-    else:
-        fees_msat = 0
-    assert total_provided >= amount + math.ceil(fees_msat / 1000), Exception(
-        f"Provided proofs ({total_provided} sats) not enough for Lightning payment ({amount + fees_msat} sats)."
-    )
-    logger.debug(f"Cashu: Initiating payment of {total_provided} sats")
-    await pay_invoice(
-        wallet_id=cashu.wallet,
-        payment_request=invoice,
-        description=f"Pay cashu invoice",
-        extra={"tag": "cashu", "cashu_name": cashu.name},
-    )
+    # set proofs as pending
+    await ledger._set_proofs_pending(proofs)
 
     try:
+        ledger._verify_proofs(proofs)
+
+        total_provided = sum([p["amount"] for p in proofs])
+        invoice_obj = bolt11.decode(invoice)
+        amount = math.ceil(invoice_obj.amount_msat / 1000)
+
+        internal_checking_id = await check_internal(invoice_obj.payment_hash)
+
+        if not internal_checking_id:
+            fees_msat = fee_reserve(invoice_obj.amount_msat)
+        else:
+            fees_msat = 0
+        assert total_provided >= amount + math.ceil(fees_msat / 1000), Exception(
+            f"Provided proofs ({total_provided} sats) not enough for Lightning payment ({amount + fees_msat} sats)."
+        )
+        logger.debug(f"Cashu: Initiating payment of {total_provided} sats")
+        await pay_invoice(
+            wallet_id=cashu.wallet,
+            payment_request=invoice,
+            description=f"Pay cashu invoice",
+            extra={"tag": "cashu", "cashu_name": cashu.name},
+        )
+
         logger.debug(
             f"Cashu: Wallet {cashu.wallet} checking PaymentStatus of {invoice_obj.payment_hash}"
         )
         status: PaymentStatus = await check_transaction_status(
             cashu.wallet, invoice_obj.payment_hash
         )
-        logger.debug(f"Cashu: Got status.paid: {status.paid}")
         if status.paid == True:
             logger.debug("Cashu: Payment successful, invalidating proofs")
             await ledger._invalidate_proofs(proofs)
     except Exception as e:
-        logger.error(e)
-        logger.error("Cashu: Error in payment status check, invalidating proofs")
-        await ledger._invalidate_proofs(proofs)
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Cashu: {str(e)}",
+        )
+    finally:
+        # delete proofs from pending list
+        await ledger._unset_proofs_pending(proofs)
 
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
