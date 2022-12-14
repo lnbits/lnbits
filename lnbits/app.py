@@ -68,28 +68,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     g().config = lnbits.settings
     g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
 
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                "error.html",
-                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc.errors()},
-        )
-
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     check_funding_source(app)
@@ -192,25 +170,22 @@ def register_async_tasks(app):
 
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
-    async def basic_error(request: Request, err):
-        logger.error("handled error", traceback.format_exc())
-        logger.error("ERROR:", err)
+    async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, err, tb)
-        exc = traceback.format_exc()
-
+        traceback.print_exception(etype, exc, tb)
+        exc_str = str(exc)
         if (
             request.headers
             and "accept" in request.headers
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": err}
+                "error.html", {"request": request, "err": exc_str}
             )
 
         return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": err},
+            status_code=HTTPStatus.BAD_REQUEST,
+            content={"detail": exc_str},
         )
 
 
