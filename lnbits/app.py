@@ -174,6 +174,8 @@ def register_exception_handlers(app: FastAPI):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
         logger.error(f"Exception: {str(exc)}")
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
         if (
             request.headers
             and "accept" in request.headers
@@ -192,8 +194,6 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, exc, tb)
         logger.error(f"RequestValidationError: {str(exc)}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
@@ -215,8 +215,6 @@ def register_exception_handlers(app: FastAPI):
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
-        etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, exc, tb)
         logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
