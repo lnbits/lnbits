@@ -8,7 +8,7 @@ import warnings
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -173,26 +173,28 @@ def register_exception_handlers(app: FastAPI):
     async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        exc_str = str(exc)
+        logger.error(f"Exception: {str(exc)}")
         if (
             request.headers
             and "accept" in request.headers
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": exc_str}
+                "error.html", {"request": request, "err": f"Error: {str(exc)}"}
             )
 
         return JSONResponse(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content={"detail": exc_str},
+            content={"detail": str(exc)},
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        logger.error(str(exc))
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
+        logger.error(f"RequestValidationError: {str(exc)}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
@@ -203,12 +205,38 @@ def register_exception_handlers(app: FastAPI):
         ):
             return template_renderer().TemplateResponse(
                 "error.html",
-                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+                {"request": request, "err": f"Error: {str(exc)}"},
             )
 
         return JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": exc.errors()},
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
+        logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
+
+        if (
+            request.headers
+            and "accept" in request.headers
+            and "text/html" in request.headers["accept"]
+        ):
+            return template_renderer().TemplateResponse(
+                "error.html",
+                {
+                    "request": request,
+                    "err": f"HTTP Error {exc.status_code}: {exc.detail}",
+                },
+            )
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
         )
 
 
