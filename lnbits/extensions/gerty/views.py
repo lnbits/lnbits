@@ -35,12 +35,6 @@ async def display(request: Request, gerty_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
         )
-    gertyData = []
-    gertyData.append(await api_gerty_json(gerty_id, p=0))
-    gertyData.append(await api_gerty_json(gerty_id, p=1))
-    gertyData.append(await api_gerty_json(gerty_id, p=2))
-    gertyData.append(await api_gerty_json(gerty_id, p=3))
-    logger.debug(gertyData)
     return gerty_renderer().TemplateResponse(
-        "gerty/gerty.html", {"request": request, "gerty": gertyData}
+        "gerty/gerty.html", {"request": request, "gerty": gerty_id}
     )
