@@ -141,56 +141,52 @@
           placeholder="Son of Gerty"
         ></q-input>
         <q-checkbox
-        class="q-pl-md"
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
+          val="xs"
+          label="Satoshi Quotes"
+          ><q-tooltip
+            >Displays random quotes from Satoshi</q-tooltip
+          ></q-checkbox
+        >
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
+          val="xs"
+          label="Fiat to BTC price"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
+          val="xs"
+          label="LNbits"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.dashboard_onchain"
+          val="xs"
+          label="Onchain"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.dashboard_mining"
+          val="xs"
+          label="Mining"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.lightning_dashboard"
+          val="xs"
+          label="Lightning"
+        ></q-checkbox>
 
-        size="xs"
-        v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
-        val="xs"
-        label="Satoshi Quotes"
-      ><q-tooltip>Displays random quotes from Satoshi</q-tooltip></q-checkbox>
-      <q-checkbox
-        class="q-pl-md"
-
-        size="xs"
-        v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
-        val="xs"
-        label="Fiat to BTC price"
-      ></q-checkbox>
-            <q-checkbox
-              class="q-pl-md"
-
-              size="xs"
-              v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
-              val="xs"
-              label="LNbits"
-            ></q-checkbox>
-            <q-checkbox
-              class="q-pl-md"
-
-              size="xs"
-              v-model="formDialog.data.display_preferences.dashboard_onchain"
-              val="xs"
-              label="Onchain"
-            ></q-checkbox>
-            <q-checkbox
-              class="q-pl-md"
-
-              size="xs"
-              v-model="formDialog.data.display_preferences.dashboard_mining"
-              val="xs"
-              label="Mining"
-            ></q-checkbox>
-            <q-checkbox
-              class="q-pl-md"
-
-              size="xs"
-              v-model="formDialog.data.display_preferences.lightning_dashboard"
-              val="xs"
-              label="Lightning"
-            ></q-checkbox>
-
-
-          <q-select
+        <q-select
           v-if="formDialog.data.display_preferences.fun_exchange_market_rate"
           filled
           dense
@@ -201,49 +197,49 @@
         ></q-select>
 
         <q-select
-        v-if="formDialog.data.display_preferences.lnbits_wallets_balance"
-        filled
-        multiple
-        dense
-        emit-value
-        v-model="formDialog.data.lnbits_wallets"
-        use-input
-        use-chips
-        multiple
-        hide-dropdown-icon
-        new-value-mode="add-unique"
-        label="Invoice keys of wallets to watch"
-      >
-        <q-tooltip>Hit enter to add values</q-tooltip>
-      </q-select>
+          v-if="formDialog.data.display_preferences.lnbits_wallets_balance"
+          filled
+          multiple
+          dense
+          emit-value
+          v-model="formDialog.data.lnbits_wallets"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          new-value-mode="add-unique"
+          label="Invoice keys of wallets to watch"
+        >
+          <q-tooltip>Hit enter to add values</q-tooltip>
+        </q-select>
 
-      <q-toggle
-      label="*Advanced"
-      v-model="toggleStates.advanced"
-      @input="setAdvanced"
-    ></q-toggle>
-    <br />
-    <q-input
-      v-if="toggleStates.advanced"
-      filled
-      dense
-      v-model.trim="formDialog.data.mempool_endpoint"
-      label="Mempool link"
-      class="q-pb-sm"
-    >
-    </q-input>
-    <q-input
-      v-if="toggleStates.advanced"
-      filled
-      dense
-      v-model.trim="formDialog.data.refresh_time"
-      label="Refresh time in seconds"
-      class="q-pb-md"
-    >
-      <q-tooltip
-        >The amount of time in seconds between screen updates
-      </q-tooltip>
-    </q-input>
+        <q-toggle
+          label="*Advanced"
+          v-model="toggleStates.advanced"
+          @input="setAdvanced"
+        ></q-toggle>
+        <br />
+        <q-input
+          v-if="toggleStates.advanced"
+          filled
+          dense
+          v-model.trim="formDialog.data.mempool_endpoint"
+          label="Mempool link"
+          class="q-pb-sm"
+        >
+        </q-input>
+        <q-input
+          v-if="toggleStates.advanced"
+          filled
+          dense
+          v-model.trim="formDialog.data.refresh_time"
+          label="Refresh time in seconds"
+          class="q-pb-md"
+        >
+          <q-tooltip
+            >The amount of time in seconds between screen updates
+          </q-tooltip>
+        </q-input>
 
         <div class="row q-mt-lg">
           <q-btn

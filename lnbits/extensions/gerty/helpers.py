@@ -13,6 +13,7 @@ from ...settings import LNBITS_PATH
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 from lnbits.core.crud import get_user, get_wallet_for_key
 
+
 def get_percent_difference(current, previous, precision=3):
     difference = (current - previous) / current * 100
     return "{0}{1}%".format("+" if difference > 0 else "", round(difference, precision))
@@ -437,7 +438,7 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
         wallets = await get_lnbits_wallet_balances(gerty)
-        
+
         for wallet in wallets:
             text = []
             text.append(
