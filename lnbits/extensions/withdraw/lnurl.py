@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from fastapi.param_functions import Query
 from loguru import logger
 from starlette.requests import Request
-from starlette.responses import HTMLResponse  # type: ignore
+from starlette.responses import HTMLResponse
 
 from lnbits.core.services import pay_invoice
 
@@ -51,10 +51,24 @@ async def api_lnurl_response(request: Request, unique_hash):
 # CALLBACK
 
 
-@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", name="withdraw.api_lnurl_callback")
+@withdraw_ext.get(
+    "/api/v1/lnurl/cb/{unique_hash}",
+    name="withdraw.api_lnurl_callback",
+    summary="lnurl withdraw callback",
+    description="""
+        This enpoints allows you to put unique_hash, k1
+        and a payment_request to get your payment_request paid.
+    """,
+    response_description="JSON with status",
+    responses={
+        200: {"description": "status: OK"},
+        400: {"description": "k1 is wrong or link open time or withdraw not working."},
+        404: {"description": "withdraw link not found."},
+        405: {"description": "withdraw link is spent."},
+    },
+)
 async def api_lnurl_callback(
     unique_hash,
-    request: Request,
     k1: str = Query(...),
     pr: str = Query(...),
     id_unique_hash=None,
@@ -63,49 +77,53 @@ async def api_lnurl_callback(
     now = int(datetime.now().timestamp())
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found"
+            status_code=HTTPStatus.NOT_FOUND, detail="withdraw not found."
         )
 
     if link.is_spent:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent."
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="withdraw is spent."
         )
 
     if link.k1 != k1:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Bad request.")
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="k1 is wrong.")
 
     if now < link.open_time:
-        return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"wait link open_time {link.open_time - now} seconds.",
+        )
 
     usescsv = ""
+
+    for x in range(1, link.uses - link.used):
+        usecv = link.usescsv.split(",")
+        usescsv += "," + str(usecv[x])
+    usecsvback = usescsv
+
+    found = False
+    if id_unique_hash is not None:
+        useslist = link.usescsv.split(",")
+        for ind, x in enumerate(useslist):
+            tohash = link.id + link.unique_hash + str(x)
+            if id_unique_hash == shortuuid.uuid(name=tohash):
+                found = True
+                useslist.pop(ind)
+                usescsv = ",".join(useslist)
+        if not found:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="withdraw not found."
+            )
+    else:
+        usescsv = usescsv[1:]
+
+    changesback = {
+        "open_time": link.wait_time,
+        "used": link.used,
+        "usescsv": usecsvback,
+    }
+
     try:
-        for x in range(1, link.uses - link.used):
-            usecv = link.usescsv.split(",")
-            usescsv += "," + str(usecv[x])
-        usecsvback = usescsv
-
-        found = False
-        if id_unique_hash is not None:
-            useslist = link.usescsv.split(",")
-            for ind, x in enumerate(useslist):
-                tohash = link.id + link.unique_hash + str(x)
-                if id_unique_hash == shortuuid.uuid(name=tohash):
-                    found = True
-                    useslist.pop(ind)
-                    usescsv = ",".join(useslist)
-            if not found:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
-                )
-        else:
-            usescsv = usescsv[1:]
-
-        changesback = {
-            "open_time": link.wait_time,
-            "used": link.used,
-            "usescsv": usecsvback,
-        }
-
         changes = {
             "open_time": link.wait_time + now,
             "used": link.used + 1,
@@ -143,7 +161,9 @@ async def api_lnurl_callback(
     except Exception as e:
         await update_withdraw_link(link.id, **changesback)
         logger.error(traceback.format_exc())
-        return {"status": "ERROR", "reason": "Link not working"}
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=f"withdraw not working. {str(e)}"
+        )
 
 
 # FOR LNURLs WHICH ARE UNIQUE

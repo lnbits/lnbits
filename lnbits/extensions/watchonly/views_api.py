@@ -31,11 +31,11 @@ from .crud import (
 )
 from .helpers import parse_key
 from .models import (
-    BroadcastTransaction,
     Config,
     CreatePsbt,
     CreateWallet,
     ExtractPsbt,
+    SerializedTransaction,
     SignedTransaction,
     WalletAccount,
 )
@@ -291,6 +291,24 @@ async def api_psbt_create(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
+@watchonly_ext.put("/api/v1/psbt/utxos")
+async def api_psbt_extract_tx(
+    req: Request, w: WalletTypeInfo = Depends(require_admin_key)
+):
+    """Extract previous unspent transaction outputs (tx_id, vout) from PSBT"""
+
+    body = await req.json()
+    try:
+        psbt = PSBT.from_base64(body["psbtBase64"])
+        res = []
+        for _, inp in enumerate(psbt.inputs):
+            res.append({"tx_id": inp.txid.hex(), "vout": inp.vout})
+
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+
+
 @watchonly_ext.put("/api/v1/psbt/extract")
 async def api_psbt_extract_tx(
     data: ExtractPsbt, w: WalletTypeInfo = Depends(require_admin_key)
@@ -327,7 +345,7 @@ async def api_psbt_extract_tx(
 
 @watchonly_ext.post("/api/v1/tx")
 async def api_tx_broadcast(
-    data: BroadcastTransaction, w: WalletTypeInfo = Depends(require_admin_key)
+    data: SerializedTransaction, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
         config = await get_config(w.wallet.user)

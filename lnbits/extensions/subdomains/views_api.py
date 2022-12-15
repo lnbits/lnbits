@@ -81,7 +81,7 @@ async def api_domain_delete(
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your domain.")
 
     await delete_domain(domain_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #########subdomains##########
@@ -198,4 +198,4 @@ async def api_subdomain_delete(
         )
 
     await delete_subdomain(subdomain_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

@@ -1,0 +1,2343 @@
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} Cashu {% endraw
+%} - {{mint_name}} {% endblock %} {% block footer %}{% endblock %} {% block
+page_container %}
+<q-page-container>
+  <q-page>
+    <div class="row q-col-gutter-md justify-center q-pt-sm q-pb-md">
+      <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
+        <q-card class="q-my-md q-py-sm">
+          <q-card-section class="q-my-sm q-py-xs">
+            <div class="gt-sm">
+              <div class="row">
+                <div class="col-3 q-pt-sm">
+                  <q-btn
+                    class="full-width"
+                    size="14px"
+                    icon="bolt"
+                    rectangle
+                    color="primary"
+                    @click="showInvoiceCreateDialog"
+                    ><strong>Get invoice</strong>
+                  </q-btn>
+                </div>
+                <div class="col-6">
+                  <h3 class="q-my-none q-py-none">
+                    <center>
+                      <strong>{% raw %} {{getBalance()}} </strong>
+                      {{tickershort}}{% endraw %}
+                    </center>
+                  </h3>
+                </div>
+                <div class="col-3 q-pt-sm">
+                  <q-btn
+                    class="full-width"
+                    @click="showParseDialog"
+                    size="14px"
+                    icon="bolt"
+                    rectangle
+                    color="primary"
+                    class="full-width"
+                    ><strong>Pay invoice</strong>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+            <div class="lt-md">
+              <div class="row">
+                <div class="col-12">
+                  <h3 class="q-my-none q-py-none">
+                    <center>
+                      <strong>{% raw %} {{getBalance()}} </strong>
+                      {{tickershort}}{% endraw %}
+                    </center>
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card class="q-mt-xs">
+          <q-card-section>
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
+                <q-btn
+                  size="12px"
+                  rectangle
+                  unelevated
+                  color="primary"
+                  icon="file_download"
+                  class="full-width"
+                  @click="showReceiveTokensDialog"
+                  >Get Ecash</q-btn
+                >
+              </div>
+              <div class="col-0 col-sm-2 col-md-4"></div>
+              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
+                <q-btn
+                  size="12px"
+                  rectangle
+                  unelevated
+                  color="primary"
+                  icon="file_upload"
+                  class="full-width"
+                  @click="showSendTokensDialog"
+                >
+                  Pay Ecash</q-btn
+                >
+              </div>
+            </div>
+
+            <!-- ///////////////////////////////////////////
+            ////////////////// TABLES /////////////////
+            /////////////////////////////////////////// -->
+            <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
+              <q-tab name="invoices" label="Invoices"></q-tab>
+              <q-tab name="tokens" label="Tokens"></q-tab>
+              <q-tab name="history" label="History"></q-tab>
+            </q-tabs>
+            <q-tab-panels v-model="tab">
+              <!-- ////////////////// TOKEN LIST ///////////////// -->
+
+              <q-tab-panel name="tokens">
+                <q-table
+                  dense
+                  flat
+                  :data="getTokenList()"
+                  :columns="tokensTable.columns"
+                  :pagination.sync="tokensTable.pagination"
+                  no-data-label="There are no tokens here yet"
+                  :filter="tokensTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td
+                        key="value"
+                        :props="props"
+                        :class="props.row.value > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.value}}</div>
+                      </q-td>
+                      <q-td key="count" :props="props">
+                        <div>{{props.row.count}}</div>
+                      </q-td>
+                      <q-td key="sum" :props="props">
+                        <div>{{props.row.sum}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+
+              <!-- ////////////////// INVOICE LIST ///////////////// -->
+
+              <q-tab-panel name="invoices">
+                <q-table
+                  dense
+                  flat
+                  :data="invoicesCashu"
+                  :columns="invoicesTable.columns"
+                  :pagination.sync="invoicesTable.pagination"
+                  no-data-label="There are no invoices here yet"
+                  :filter="invoicesTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showInvoicInfoDialog(props.row)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="recheckInvoice(props.row.hash)"
+                          >
+                            Check
+                          </q-badge>
+                        </div>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon
+                            v-if="props.row.amount>0"
+                            name="call_received"
+                            color="green"
+                            ><q-tooltip>Received</q-tooltip></q-icon
+                          >
+                          <q-icon
+                            v-if="props.row.amount<0"
+                            name="call_made"
+                            color="red"
+                            ><q-tooltip>Paid</q-tooltip></q-icon
+                          >
+                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+                        </div>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 && props.row.status === 'paid' ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
+
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <!-- <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td> -->
+                      <q-td key="bolt11" :props="props">
+                        <div>{{props.row.bolt11}}</div>
+                      </q-td>
+                      <q-td key="hash" :props="props">
+                        <div>{{props.row.hash}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+
+              <!-- ////////////////// HISTORY LIST ///////////////// -->
+
+              <q-tab-panel name="history">
+                <q-table
+                  dense
+                  flat
+                  :data="historyTokens"
+                  :columns="historyTable.columns"
+                  :pagination.sync="historyTable.pagination"
+                  no-data-label="There are no tokens here yet"
+                  :filter="historyTable.filter"
+                >
+                  {% raw %}
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="status" :props="props">
+                        <div v-if="props.row.status == 'pending'">
+                          <q-icon
+                            @click="showTokenDialog(props.row.token)"
+                            name="settings_ethernet"
+                            color="grey"
+                          >
+                            <q-tooltip>Pending</q-tooltip>
+                          </q-icon>
+                          <q-badge
+                            size="lg"
+                            color="secondary"
+                            class="q-mr-md cursor-pointer"
+                            @click="checkTokenSpendable(props.row.token)"
+                          >
+                            Check
+                          </q-badge>
+                        </div>
+                        <div v-if="props.row.status === 'paid'">
+                          <q-icon
+                            v-if="props.row.amount>0"
+                            name="call_received"
+                            color="green"
+                            ><q-tooltip>Received</q-tooltip></q-icon
+                          >
+                          <q-icon
+                            v-if="props.row.amount<0"
+                            name="call_made"
+                            color="red"
+                            ><q-tooltip>Paid</q-tooltip></q-icon
+                          >
+                          <!-- <q-icon name="props.row.amount < 0 ? 'call_made' : 'call_received'" color="green"></q-icon> -->
+                        </div>
+                      </q-td>
+                      <q-td
+                        key="amount"
+                        :props="props"
+                        :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                      >
+                        <div>{{props.row.amount}}</div>
+                      </q-td>
+
+                      <q-td key="date" :props="props">
+                        <div>{{props.row.date}}</div>
+                      </q-td>
+                      <!-- <q-td key="memo" :props="props">
+                        <div>{{props.row.memo}}</div>
+                      </q-td> -->
+                      <q-td key="token" :props="props">
+                        <div>{{props.row.token}}</div>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  {% endraw %}
+                </q-table>
+              </q-tab-panel>
+            </q-tab-panels>
+          </q-card-section>
+        </q-card>
+
+        <div class="q-pa-sd q-pt-xs" style="margin-bottom: 5rem" align="center">
+          <q-btn
+            class="q-mx-sm"
+            size="10px"
+            rectangle
+            color="warning"
+            outline
+            @click="showDisclaimerDialog"
+          >
+            Warning</q-btn
+          >
+          <q-btn
+            class="q-mx-sm"
+            size="10px"
+            outline
+            rectangle
+            color="warning"
+            @click="getLocalstorageToFile"
+            >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
+          >
+        </div>
+      </div>
+
+      <q-tabs
+        class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
+        align="center"
+        inline-label
+        indicator-color="transparent"
+      >
+        <q-tab
+          class="q-pa-none"
+          icon="bolt"
+          label="Get invoice"
+          @click="showInvoiceCreateDialog"
+        >
+        </q-tab>
+        <q-tab icon="photo_camera" v-if="hasCamera" @click="showCamera">
+        </q-tab>
+        <q-tab
+          icon="bolt"
+          class="q-pa-none"
+          label="Pay invoice"
+          @click="showParseDialog"
+        >
+        </q-tab>
+      </q-tabs>
+
+      <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="payInvoiceData.invoice">
+            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+              {% raw %} {{
+              parseFloat(String(payInvoiceData.invoice.fsat).replaceAll(",",
+              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+            </h6>
+            <h6 v-else class="q-my-none">
+              {{ payInvoiceData.invoice.fsat }}{% endraw %}
+              {{LNBITS_DENOMINATION}} {% raw %}
+            </h6>
+            <q-separator class="q-my-sm"></q-separator>
+            <p class="text-wrap">
+              <strong>Description:</strong> {{
+              payInvoiceData.invoice.description }}<br />
+              <strong>Expire date:</strong> {{ payInvoiceData.invoice.expireDate
+              }}<br />
+              <strong>Hash:</strong> {{ payInvoiceData.invoice.hash }}
+            </p>
+            {% endraw %}
+            <div v-if="canPay" class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                :disabled="payInvoiceData.blocking"
+                @click="melt"
+                >Pay</q-btn
+              >
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+            <div v-else class="row q-mt-lg">
+              <q-btn unelevated disabled color="yellow" text-color="black"
+                >Not enough funds!</q-btn
+              >
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+          <div v-else-if="payInvoiceData.lnurlauth">
+            {% raw %}
+            <q-form @submit="authLnurl" class="q-gutter-md">
+              <p class="q-my-none text-h6">
+                Authenticate with <b>{{ payInvoiceData.lnurlauth.domain }}</b>?
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <p>
+                For every website and for every LNbits wallet, a new keypair
+                will be deterministically generated so your identity can't be
+                tied to your LNbits wallet or linked across websites. No other
+                data will be shared with {{ payInvoiceData.lnurlauth.domain }}.
+              </p>
+              <p>
+                Your public key for
+                <b>{{ payInvoiceData.lnurlauth.domain }}</b> is:
+              </p>
+              <p class="q-mx-xl">
+                <code class="text-wrap">
+                  {{ payInvoiceData.lnurlauth.pubkey }}
+                </code>
+              </p>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Login</q-btn>
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+            </q-form>
+            {% endraw %}
+          </div>
+          <div v-else-if="payInvoiceData.lnurlpay">
+            {% raw %}
+            <q-form @submit="payLnurl" class="q-gutter-md">
+              <p v-if="payInvoiceData.lnurlpay.fixed" class="q-my-none text-h6">
+                <b>{{ payInvoiceData.lnurlpay.domain }}</b> is requesting {{
+                payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}
+                {{LNBITS_DENOMINATION}}
+                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
+                  <br />
+                  and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
+                </span>
+              </p>
+              <p v-else class="q-my-none text-h6 text-center">
+                <b
+                  >{{ payInvoiceData.lnurlpay.targetUser ||
+                  payInvoiceData.lnurlpay.domain }}</b
+                >
+                is requesting <br />
+                between
+                <b
+                  >{{ payInvoiceData.lnurlpay.minSendable | msatoshiFormat }}</b
+                >
+                and
+                <b
+                  >{{ payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}</b
+                >
+                {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
+                  <br />
+                  and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
+                </span>
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <div class="row">
+                <p class="col text-justify text-italic">
+                  {{ payInvoiceData.lnurlpay.description }}
+                </p>
+                <p class="col-4 q-pl-md" v-if="payInvoiceData.lnurlpay.image">
+                  <q-img :src="payInvoiceData.lnurlpay.image" />
+                </p>
+              </div>
+              <div class="row">
+                <div class="col">
+                  {% endraw %}
+                  <q-input
+                    filled
+                    dense
+                    v-model.number="payInvoiceData.data.amount"
+                    type="number"
+                    label="Amount ({{LNBITS_DENOMINATION}}) *"
+                    :min="payInvoiceData.lnurlpay.minSendable / 1000"
+                    :max="payInvoiceData.lnurlpay.maxSendable / 1000"
+                    :readonly="payInvoiceData.lnurlpay.fixed"
+                  ></q-input>
+                  {% raw %}
+                </div>
+                <div
+                  class="col-8 q-pl-md"
+                  v-if="payInvoiceData.lnurlpay.commentAllowed > 0"
+                >
+                  <q-input
+                    filled
+                    dense
+                    v-model="payInvoiceData.data.comment"
+                    :type="payInvoiceData.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    label="Comment (optional)"
+                    :maxlength="payInvoiceData.lnurlpay.commentAllowed"
+                  ></q-input>
+                </div>
+              </div>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit"
+                  >Send {{LNBITS_DENOMINATION}}</q-btn
+                >
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+            </q-form>
+            {% endraw %}
+          </div>
+          <div v-else>
+            <q-form
+              v-if="!camera.show"
+              @submit="decodeRequest"
+              class="q-gutter-md"
+            >
+              <q-input
+                ref="pasteInput"
+                filled
+                dense
+                v-model.trim="payInvoiceData.data.request"
+                type="textarea"
+                label="Enter a Lightning invoice *"
+              >
+              </q-input>
+              <div class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="payInvoiceData.data.request == ''"
+                  type="submit"
+                  >Enter</q-btn
+                >
+                <q-btn
+                  unelevated
+                  icon="photo_camera"
+                  class="q-mx-0"
+                  v-if="hasCamera"
+                  @click="showCamera"
+                >
+                </q-btn>
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Close</q-btn
+                >
+              </div>
+            </q-form>
+            <div v-else>
+              <q-responsive :ratio="1">
+                <qrcode-stream
+                  @decode="decodeQR"
+                  class="rounded-borders"
+                ></qrcode-stream>
+              </q-responsive>
+              <div class="row q-mt-lg">
+                <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
+                  Cancel
+                </q-btn>
+              </div>
+            </div>
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="camera.show">
+        <q-card class="q-pa-lg q-pt-xl">
+          <div class="text-center q-mb-lg">
+            <qrcode-stream
+              @decode="decodeQR"
+              class="rounded-borders"
+            ></qrcode-stream>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="disclaimerDialog.show">
+        <q-card class="q-pa-lg">
+          <h6 class="q-my-md text-primary">Warning</h6>
+          <p>
+            <strong>Bookmark this page and backup your tokens!</strong>
+            Ecash is a bearer asset, meaning losing access to this wallet will
+            mean you will lose the funds. This wallet stores ecash tokens in its
+            database. If you lose the link or delete your your data without
+            backing up, you will lose your tokens. Press the Backup button to
+            download a copy of your tokens.
+          </p>
+          <p>
+            <strong>Add to home screen.</strong>
+            You can add Cashu to your home screen as a progressive web app
+            (PWA). On Android Chrome, click the hamburger menu at the upper
+            right. On iOS Safari, click the share button. Now press the Add to
+            Home screen button.
+          </p>
+          <p>
+            <strong>This service is in BETA!</strong> We hold no responsibility
+            for people losing access to funds. Use at your own risk!
+          </p>
+          <div class="row q-mt-lg">
+            <q-btn
+              outline
+              color="grey"
+              @click="copyText(disclaimerDialog.location.href)"
+              >Copy wallet URL</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >I understand</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showInvoiceDetails" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!invoiceData.bolt11">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1">Create a Lightning invoice</span>
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              type="number"
+              v-model.number="invoiceData.amount"
+              label="Amount ({{LNBITS_DENOMINATION}}) *"
+              mask="#"
+              fill-mask="0"
+              reverse-fill-mask
+              autofocus
+              class="q-mb-lg"
+              @keyup.enter="requestMintButton"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model.trim="invoiceData.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <a :href="'lightning:' + invoiceData.bolt11">
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="invoiceData.bolt11"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                >
+                </qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="invoiceData.bolt11"
+              @click="copyText(invoiceData.bolt11)"
+              outline
+              color="primary"
+              >Copy invoice</q-btn
+            >
+            <q-btn
+              v-else
+              color="primary"
+              @click="requestMintButton"
+              :disable="!invoiceData.amount > 0"
+              >Create Invoice</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showSendTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div v-if="!sendData.tokens">
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1"
+                  >How much would you like to send?</span
+                >
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              type="number"
+              v-model.number="sendData.amount"
+              label="Amount ({{LNBITS_DENOMINATION}}) *"
+              mask="#"
+              fill-mask="0"
+              reverse-fill-mask
+              autofocus
+              class="q-mb-lg"
+              @keyup.enter="sendTokens"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model.trim="sendData.memo"
+              label="Memo"
+            ></q-input>
+          </div>
+          <div v-else class="text-center q-mb-lg">
+            <div class="text-center q-mb-lg">
+              <!-- <a :href="'cashu:' + sendData.tokensBase64"> -->
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                >
+                </qrcode>
+              </q-responsive>
+              <!-- </a> -->
+            </div>
+            <q-input
+              outlined
+              dense
+              readonly
+              v-model="sendData.tokensBase64"
+              label="Token"
+              type="textarea"
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-if="!sendData.tokens"
+              :disable="sendData.amount == null || sendData.amount <= 0"
+              @click="sendTokens"
+              color="primary"
+              type="submit"
+              >Send Tokens</q-btn
+            >
+            <!-- <q-btn v-else @click="burnTokens" outline color="grey"
+              >Burn Tokens</q-btn
+            > -->
+            <div v-else>
+              <q-btn color="primary" @click="copyText(sendData.tokensBase64)"
+                >Copy token</q-btn
+              >
+              <q-btn
+                color="primary"
+                @click="copyText(disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64)"
+                >Copy link</q-btn
+              >
+            </div>
+
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showReceiveTokens" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <div>
+            <div class="row items-center no-wrap q-mb-sm">
+              <div class="col-12">
+                <span class="text-subtitle1">Receive Cashu tokens</span>
+              </div>
+            </div>
+            <q-input
+              filled
+              dense
+              v-model="receiveData.tokensBase64"
+              label="Paste encoded tokens *"
+              type="textarea"
+              autofocus
+              class="q-mb-lg"
+            ></q-input>
+          </div>
+
+          <div class="row q-mt-lg">
+            <q-btn @click="redeem" color="primary">Receive</q-btn>
+            <q-btn
+              unelevated
+              icon="content_copy"
+              class="q-mx-0"
+              @click="copyText(receiveData.tokensBase64)"
+            ></q-btn>
+            <q-btn
+              unelevated
+              icon="photo_camera"
+              class="q-mx-0"
+              v-if="hasCamera"
+              @click="showCamera"
+            ></q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Close</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+    </div>
+  </q-page>
+</q-page-container>
+{% endblock %} {% block styles %}
+<style>
+  * {
+    touch-action: manipulation;
+  }
+
+  .keypad {
+    display: grid;
+    grid-gap: 8px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+  }
+
+  .keypad .btn {
+    height: 100%;
+  }
+
+  .keypad .btn-confirm {
+    grid-area: 1 / 4 / 5 / 4;
+  }
+</style>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('cashu_static', path='js/noble-secp256k1.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/dhke.js') }}"></script>
+<script src="{{ url_for('cashu_static', path='js/base64.js') }}"></script>
+<script>
+  var currentDateStr = function () {
+    return Quasar.utils.date.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
+  }
+  var mapMint = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm:ss'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.cashu = ['/cashu/', obj.id].join('')
+    return obj
+  }
+
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        tickershort: '',
+        name: '',
+
+        mintId: '',
+        mintName: '',
+        keys: '',
+        invoicesCashu: [],
+        historyTokens: [],
+        invoiceData: {
+          amount: 0,
+          memo: '',
+          bolt11: '',
+          hash: ''
+        },
+        camera: {
+          data: null,
+          show: false,
+          camera: 'auto'
+        },
+        invoiceCheckListener: () => {},
+        payInvoiceData: {
+          blocking: false,
+          // invoice: '',
+          bolt11: '',
+          // camera: {
+          //   show: false,
+          //   camera: 'auto'
+          // }
+          show: false,
+          invoice: null,
+          lnurlpay: null,
+          lnurlauth: null,
+          data: {
+            request: '',
+            amount: 0,
+            comment: ''
+          },
+          paymentChecker: null,
+          camera: {
+            show: false,
+            camera: 'auto'
+          }
+        },
+        sendData: {
+          amount: 0,
+          memo: '',
+          tokens: '',
+          tokensBase64: ''
+        },
+        receiveData: {
+          tokensBase64: ''
+        },
+        showInvoiceDetails: false,
+        showPayInvoice: false,
+        showSendTokens: false,
+        showReceiveTokens: false,
+        promises: [],
+        tokens: [],
+        tab: 'invoices',
+
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null,
+          paymentHash: null,
+          minMax: [0, 2100000000000000],
+          lnurl: null,
+          units: ['sat'],
+          unit: 'sat',
+          data: {
+            amount: null,
+            memo: ''
+          }
+        },
+        parse: {
+          show: false,
+          invoice: null,
+          lnurlpay: null,
+          lnurlauth: null,
+          data: {
+            request: '',
+            amount: 0,
+            comment: ''
+          },
+          paymentChecker: null,
+          camera: {
+            show: false,
+            camera: 'auto'
+          }
+        },
+        payments: [],
+
+        tokensTable: {
+          columns: [
+            {
+              name: 'value',
+              align: 'left',
+              label: 'Value ({{LNBITS_DENOMINATION}})',
+              field: 'value',
+              sortable: true
+            },
+            {
+              name: 'count',
+              align: 'left',
+              label: 'Count',
+              field: 'count',
+              sortable: true
+            },
+            {
+              name: 'sum',
+              align: 'left',
+              label: 'Sum ({{LNBITS_DENOMINATION}})',
+              field: 'sum',
+              sortable: true
+            }
+          ],
+          pagination: {
+            rowsPerPage: 5
+          },
+          filter: null
+        },
+        invoicesTable: {
+          columns: [
+            {
+              name: 'status',
+              align: 'left',
+              label: '',
+              field: 'status',
+              sortable: true
+            },
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount',
+              sortable: true
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
+            },
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // },
+            {
+              name: 'bolt11',
+              align: 'left',
+              label: 'Payment request',
+              field: 'bolt11',
+              sortable: false
+            },
+            {
+              name: 'hash',
+              align: 'left',
+              label: 'Hash',
+              field: 'hash',
+              sortable: false
+            }
+          ],
+          pagination: {
+            sortBy: 'date',
+            descending: true,
+            rowsPerPage: 5
+          },
+          filter: null
+        },
+
+        historyTable: {
+          columns: [
+            {
+              name: 'status',
+              align: 'left',
+              label: '',
+              field: 'status',
+              sortable: true
+            },
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount',
+              sortable: true
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
+            },
+            // {
+            //   name: 'memo',
+            //   align: 'left',
+            //   label: 'Memo',
+            //   field: 'memo',
+            //   sortable: true
+            // },
+            {
+              name: 'token',
+              align: 'left',
+              label: 'Token',
+              field: 'token',
+              sortable: false
+            }
+          ],
+          pagination: {
+            sortBy: 'date',
+            descending: true,
+            rowsPerPage: 5
+          },
+          filter: null
+        },
+
+        paymentsChart: {
+          show: false
+        },
+        disclaimerDialog: {
+          show: false,
+          location: window.location,
+          base_url: location.protocol + '//' + location.host + location.pathname
+        },
+
+        credit: 0,
+        newName: ''
+      }
+    },
+    computed: {
+      formattedBalance: function () {
+        return this.balance / 100
+      },
+
+      canPay: function () {
+        if (!this.payInvoiceData.invoice) return false
+        return this.payInvoiceData.invoice.sat <= this.balance
+      },
+      pendingPaymentsExist: function () {
+        return this.payments.findIndex(payment => payment.pending) !== -1
+      },
+
+      balance: function () {
+        return this.proofs
+          .map(t => t)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
+      }
+    },
+    filters: {
+      msatoshiFormat: function (value) {
+        return LNbits.utils.formatSat(value / 1000)
+      }
+    },
+    methods: {
+      getBalance: function () {
+        return this.proofs
+          .map(t => t)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
+      },
+      getTokenList: function () {
+        const amounts = this.proofs.map(t => t.amount)
+        const counts = {}
+
+        for (const num of amounts) {
+          counts[num] = counts[num] ? counts[num] + 1 : 1
+        }
+        return Object.keys(counts).map(k => ({
+          value: parseInt(k),
+          count: parseInt(counts[k]),
+          sum: k * counts[k]
+        }))
+      },
+
+      paymentTableRowKey: function (row) {
+        return row.payment_hash + row.amount
+      },
+      closeCamera: function () {
+        this.camera.show = false
+      },
+      showCamera: function () {
+        this.camera.show = true
+      },
+      hasCamera: function () {
+        navigator.permissions.query({name: 'camera'}).then(res => {
+          return res.state == 'granted'
+        })
+      },
+      showChart: function () {
+        this.paymentsChart.show = true
+        this.$nextTick(() => {
+          generateChart(this.$refs.canvas, this.payments)
+        })
+      },
+      focusInput(el) {
+        this.$nextTick(() => this.$refs[el].focus())
+      },
+      showReceiveDialog: function () {
+        this.receive.show = true
+        this.receive.status = 'pending'
+        this.receive.paymentReq = null
+        this.receive.paymentHash = null
+        this.receive.data.amount = null
+        this.receive.data.memo = null
+        this.receive.unit = 'sat'
+        this.receive.paymentChecker = null
+        this.receive.minMax = [0, 2100000000000000]
+        this.receive.lnurl = null
+        this.focusInput('setAmount')
+      },
+      showParseDialog: function () {
+        this.payInvoiceData.show = true
+        this.payInvoiceData.invoice = null
+        this.payInvoiceData.lnurlpay = null
+        this.payInvoiceData.lnurlauth = null
+        this.payInvoiceData.data.request = ''
+        this.payInvoiceData.data.comment = ''
+        this.payInvoiceData.data.paymentChecker = null
+        this.camera.show = false
+        this.focusInput('pasteInput')
+      },
+      showDisclaimerDialog: function () {
+        this.disclaimerDialog.show = true
+      },
+
+      closeReceiveDialog: function () {
+        setTimeout(() => {
+          clearInterval(this.receive.paymentChecker)
+        }, 10000)
+      },
+      closeParseDialog: function () {
+        setTimeout(() => {
+          clearInterval(this.payInvoiceData.paymentChecker)
+        }, 10000)
+      },
+      onPaymentReceived: function (paymentHash) {
+        this.fetchPayments()
+        this.fetchBalance()
+
+        if (this.receive.paymentHash === paymentHash) {
+          this.receive.show = false
+          this.receive.paymentHash = null
+          clearInterval(this.receive.paymentChecker)
+        }
+      },
+      createInvoice: function () {
+        this.receive.status = 'loading'
+        if (LNBITS_DENOMINATION != 'sats') {
+          this.receive.data.amount = this.receive.data.amount * 100
+        }
+        LNbits.api
+          .createInvoice(
+            this.receive.data.amount,
+            this.receive.data.memo,
+            this.receive.unit,
+            this.receive.lnurl && this.receive.lnurl.callback
+          )
+          .then(response => {
+            this.receive.status = 'success'
+            this.receive.paymentReq = response.data.payment_request
+            this.receive.paymentHash = response.data.payment_hash
+
+            if (response.data.lnurl_response !== null) {
+              if (response.data.lnurl_response === false) {
+                response.data.lnurl_response = `Unable to connect`
+              }
+
+              if (typeof response.data.lnurl_response === 'string') {
+                // failure
+                this.$q.notify({
+                  timeout: 5000,
+                  type: 'warning',
+                  message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
+                  caption: response.data.lnurl_response,
+                  position: 'top',
+                  actions: [
+                    {
+                      icon: 'close',
+                      color: 'white',
+                      handler: () => {}
+                    }
+                  ]
+                })
+                return
+              } else if (response.data.lnurl_response === true) {
+                // success
+                this.$q.notify({
+                  timeout: 5000,
+                  message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+                  spinner: true,
+                  position: 'top',
+                  actions: [
+                    {
+                      icon: 'close',
+                      color: 'white',
+                      handler: () => {}
+                    }
+                  ]
+                })
+              }
+            }
+
+            clearInterval(this.receive.paymentChecker)
+            setTimeout(() => {
+              clearInterval(this.receive.paymentChecker)
+            }, 40000)
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            this.receive.status = 'pending'
+          })
+      },
+      decodeQR: function (res) {
+        this.camera.data = res
+        // this.payInvoiceData.data.request = res
+        this.decodeRequest()
+        this.camera.show = false
+      },
+      decodeRequest: function () {
+        let reqtype = null
+        let req = null
+        // get request
+        if (this.camera.data) {
+          // get request from camera
+          req = this.camera.data
+        } else if (this.payInvoiceData.data.request) {
+          // get request from pay invoice dialog
+          req = this.payInvoiceData.data.request
+        }
+
+        if (req.toLowerCase().startsWith('lnbc')) {
+          this.payInvoiceData.data.request = req
+          reqtype = 'bolt11'
+        } else if (req.toLowerCase().startsWith('lightning:')) {
+          this.payInvoiceData.data.request = req.slice(10)
+          reqtype = 'bolt11'
+        } else if (req.toLowerCase().startsWith('lnurl:')) {
+          this.payInvoiceData.data.request = req.slice(6)
+          reqtype = 'lnurl'
+        } else if (req.indexOf('lightning=lnurl1') !== -1) {
+          this.payInvoiceData.data.request = req
+            .split('lightning=')[1]
+            .split('&')[0]
+          reqtype = 'lnurl'
+        } else if (
+          req.toLowerCase().startsWith('lnurl1') ||
+          req.match(/[\w.+-~_]+@[\w.+-~_]/)
+        ) {
+          this.payInvoiceData.data.request = req
+          reqtype = 'lnurl'
+          return
+          // } else if (req.indexOf('cashu:') !== 1) {
+          //   this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
+          //   reqtype = 'cashu'
+        } else if (req.indexOf('W3siaWQ') !== 1) {
+          // very dirty way of parsing cashu tokens
+          this.receiveData.tokensBase64 = req.slice(req.indexOf('W3siaWQ'))
+          reqtype = 'cashu'
+        }
+
+        if (reqtype == 'bolt11') {
+          console.log('#### QR CODE: BOLT11')
+          this.payInvoiceData.show = true
+          let invoice
+          try {
+            invoice = decode(this.payInvoiceData.data.request)
+          } catch (error) {
+            this.$q.notify({
+              timeout: 3000,
+              type: 'warning',
+              message: error + '.',
+              caption: 'Failed to decode invoice',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+            this.payInvoiceData.show = false
+            throw error
+            return
+          }
+
+          let cleanInvoice = {
+            msat: invoice.human_readable_part.amount,
+            sat: invoice.human_readable_part.amount / 1000,
+            fsat: LNbits.utils.formatSat(
+              invoice.human_readable_part.amount / 1000
+            )
+          }
+
+          _.each(invoice.data.tags, tag => {
+            if (_.isObject(tag) && _.has(tag, 'description')) {
+              if (tag.description === 'payment_hash') {
+                cleanInvoice.hash = tag.value
+              } else if (tag.description === 'description') {
+                cleanInvoice.description = tag.value
+              } else if (tag.description === 'expiry') {
+                var expireDate = new Date(
+                  (invoice.data.time_stamp + tag.value) * 1000
+                )
+                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                  expireDate,
+                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                )
+                cleanInvoice.expired = false // TODO
+              }
+            }
+          })
+
+          this.payInvoiceData.invoice = Object.freeze(cleanInvoice)
+        } else if (reqtype == 'lnurl') {
+          console.log('#### QR CODE: LNURL')
+          // not supported yet
+        } else if (reqtype == 'cashu') {
+          console.log('#### QR CODE: CASHU TOKEN')
+          this.showReceiveTokens = true
+        }
+      },
+      payInvoice: function () {
+        let dismissPaymentMsg = this.$q.notify({
+          timeout: 0,
+          message: 'Processing payment...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      payLnurl: function () {
+        let dismissPaymentMsg = this.$q.notify({
+          timeout: 0,
+          message: 'Processing payment...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      authLnurl: function () {
+        let dismissAuthMsg = this.$q.notify({
+          timeout: 10,
+          message: 'Performing authentication...',
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+
+      deleteWallet: function (walletId, user) {
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this wallet?')
+          .onOk(() => {
+            LNbits.href.deleteWallet(walletId, user)
+          })
+      },
+      fetchPayments: function () {
+        return
+      },
+      fetchBalance: function () {},
+      exportCSV: function () {
+        // status is important for export but it is not in paymentsTable
+        // because it is manually added with payment detail link and icons
+        // and would cause duplication in the list
+        let columns = this.paymentsTable.columns
+        columns.unshift({
+          name: 'pending',
+          align: 'left',
+          label: 'Pending',
+          field: 'pending'
+        })
+        LNbits.utils.exportCSV(columns, this.payments)
+      },
+
+      /////////////////////////////////// WALLET ///////////////////////////////////
+      showInvoiceCreateDialog: async function () {
+        console.log('##### showInvoiceCreateDialog')
+        this.invoiceData.amount = ''
+        this.invoiceData.bolt11 = ''
+        this.invoiceData.hash = ''
+        this.invoiceData.memo = ''
+        this.showInvoiceDetails = true
+      },
+
+      showInvoicInfoDialog: function (data) {
+        console.log('##### showInvoicInfoDialog')
+        this.invoiceData = _.clone(data)
+        this.showInvoiceDetails = true
+        // kick off invoice check worker
+        this.invoiceCheckWorker()
+      },
+
+      // showPayInvoiceDialog: function () {
+      //   console.log('### showPayInvoiceDialog')
+      //   this.payInvoiceData.invoice = ''
+      //   this.payInvoiceData.data.request = ''
+      //   this.showPayInvoice = true
+      //   this.camera.show = false
+      // },
+
+      showTokenDialog: function (token) {
+        console.log('##### showTokenDialog')
+        // TODO: this must be decoded and desiarlized!
+        this.sendData.tokens = _.clone(token)
+        this.sendData.tokensBase64 = _.clone(token)
+        this.showSendTokens = true
+        // kick off token check worker
+        this.checkTokenSpendableWorker()
+      },
+
+      showSendTokensDialog: function () {
+        console.log('##### showSendTokensDialog')
+        this.sendData.tokens = ''
+        this.sendData.tokensBase64 = ''
+        this.sendData.amount = ''
+        this.sendData.memo = ''
+        this.showSendTokens = true
+      },
+
+      showReceiveTokensDialog: function () {
+        this.receiveData.tokensBase64 = ''
+        this.showReceiveTokens = true
+      },
+
+      //////////////////////// MINT //////////////////////////////////////////
+
+      generateSecrets: async function (amounts) {
+        const secrets = []
+        for (let i = 0; i < amounts.length; i++) {
+          const secret = nobleSecp256k1.utils.randomBytes(32)
+          secrets.push(secret)
+        }
+        return secrets
+      },
+
+      constructOutputs: async function (amounts, secrets) {
+        const blindedMessages = []
+        const rs = []
+        for (let i = 0; i < amounts.length; i++) {
+          const {B_, r} = await step1Alice(secrets[i])
+          blindedMessages.push({amount: amounts[i], B_: B_})
+          rs.push(r)
+        }
+        return {
+          blindedMessages,
+          rs
+        }
+      },
+
+      constructProofs: function (promises, secrets, rs) {
+        const proofs = []
+        for (let i = 0; i < promises.length; i++) {
+          const encodedSecret = uint8ToBase64.encode(secrets[i])
+          let {id, amount, C, secret} = this.promiseToProof(
+            promises[i].id,
+            promises[i].amount,
+            promises[i]['C_'],
+            encodedSecret,
+            rs[i]
+          )
+          proofs.push({id, amount, C, secret})
+        }
+        return proofs
+      },
+
+      promiseToProof: function (id, amount, C_hex, secret, r) {
+        const C_ = nobleSecp256k1.Point.fromHex(C_hex)
+        const A = this.keys[amount]
+        const C = step3Alice(
+          C_,
+          nobleSecp256k1.utils.hexToBytes(r),
+          nobleSecp256k1.Point.fromHex(A)
+        )
+        return {
+          id,
+          amount,
+          C: C.toHex(true),
+          secret
+        }
+      },
+
+      sumProofs: function (proofs) {
+        return proofs.reduce((s, t) => (s += t.amount), 0)
+      },
+
+      //////////// API ///////////
+      clearAllWorkers: function () {
+        if (this.invoiceCheckListener) {
+          clearInterval(this.invoiceCheckListener)
+        }
+        if (this.tokensCheckSpendableListener) {
+          clearInterval(this.tokensCheckSpendableListener)
+        }
+      },
+      invoiceCheckWorker: async function () {
+        let nInterval = 0
+        this.clearAllWorkers()
+        this.invoiceCheckListener = setInterval(async () => {
+          try {
+            nInterval += 1
+
+            // exit loop after 2m
+            if (nInterval > 40) {
+              console.log('### stopping invoice check worker')
+              this.clearAllWorkers()
+            }
+            console.log('### invoiceCheckWorker setInterval', nInterval)
+            console.log(this.invoiceData)
+
+            // this will throw an error if the invoice is pending
+            await this.recheckInvoice(this.invoiceData.hash, false)
+
+            // only without error (invoice paid) will we reach here
+            console.log('### stopping invoice check worker')
+            this.clearAllWorkers()
+            this.invoiceData.bolt11 = ''
+            this.showInvoiceDetails = false
+            if (window.navigator.vibrate) navigator.vibrate(200)
+            this.$q.notify({
+              timeout: 5000,
+              type: 'positive',
+              message: 'Payment received',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+          } catch (error) {
+            console.log('not paid yet')
+          }
+        }, 3000)
+      },
+
+      requestMintButton: async function () {
+        await this.requestMint()
+        console.log('#### request mint', this.invoiceData)
+        await this.invoiceCheckWorker()
+      },
+
+      requestMint: async function () {
+        // gets an invoice from the mint to get new tokens
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/cashu/api/v1/${this.mintId}/mint?amount=${this.invoiceData.amount}`
+          )
+          console.log('### data', data)
+
+          this.invoiceData.bolt11 = data.pr
+          this.invoiceData.hash = data.hash
+          this.invoicesCashu.push({
+            ..._.clone(this.invoiceData),
+            date: currentDateStr(),
+            status: 'pending'
+          })
+          this.storeinvoicesCashu()
+          this.tab = 'invoices'
+          return data
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+      mintApi: async function (amounts, payment_hash, verbose = true) {
+        console.log('### promises', payment_hash)
+        try {
+          let secrets = await this.generateSecrets(amounts)
+          let {blindedMessages, rs} = await this.constructOutputs(
+            amounts,
+            secrets
+          )
+          const promises = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/mint?payment_hash=${payment_hash}`,
+            '',
+            {
+              blinded_messages: blindedMessages
+            }
+          )
+          console.log('### promises data', promises.data)
+          let proofs = await this.constructProofs(promises.data, secrets, rs)
+          return proofs
+        } catch (error) {
+          console.error(error)
+          if (verbose) {
+            LNbits.utils.notifyApiError(error)
+          }
+          throw error
+        }
+      },
+      mint: async function (amount, payment_hash, verbose = true) {
+        try {
+          const split = splitAmount(amount)
+          const proofs = await this.mintApi(split, payment_hash, verbose)
+          if (!proofs.length) {
+            throw 'could not mint'
+          }
+          this.proofs = this.proofs.concat(proofs)
+          this.storeProofs()
+          await this.setInvoicePaid(payment_hash)
+          return proofs
+        } catch (error) {
+          console.error(error)
+          if (verbose) {
+            LNbits.utils.notifyApiError(error)
+          }
+          throw error
+        }
+      },
+      splitToSend: async function (proofs, amount, invlalidate = false) {
+        // splits proofs so the user can keep firstProofs, send scndProofs
+        try {
+          const spendableProofs = proofs.filter(p => !p.reserved)
+          if (this.sumProofs(spendableProofs) < amount) {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: 'Balance too low',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+            throw Error('balance too low.')
+          }
+          let {fristProofs, scndProofs} = await this.split(
+            spendableProofs,
+            amount
+          )
+
+          // set scndProofs in this.proofs as reserved
+          const usedSecrets = proofs.map(p => p.secret)
+          for (let i = 0; i < this.proofs.length; i++) {
+            if (usedSecrets.includes(this.proofs[i].secret)) {
+              this.proofs[i].reserved = true
+            }
+          }
+          if (invlalidate) {
+            // delete tokens from db
+            this.proofs = fristProofs
+            // add new fristProofs, scndProofs to this.proofs
+            this.storeProofs()
+          }
+
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      split: async function (proofs, amount) {
+        try {
+          if (proofs.length == 0) {
+            throw new Error('no proofs provided.')
+          }
+          let {fristProofs, scndProofs} = await this.splitApi(proofs, amount)
+          // delete proofs from this.proofs
+          const usedSecrets = proofs.map(p => p.secret)
+          this.proofs = this.proofs.filter(p => !usedSecrets.includes(p.secret))
+          // add new fristProofs, scndProofs to this.proofs
+          this.proofs = this.proofs.concat(fristProofs).concat(scndProofs)
+          this.storeProofs()
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+      splitApi: async function (proofs, amount) {
+        try {
+          const total = this.sumProofs(proofs)
+          const frst_amount = total - amount
+          const scnd_amount = amount
+          const frst_amounts = splitAmount(frst_amount)
+          const scnd_amounts = splitAmount(scnd_amount)
+          const amounts = _.clone(frst_amounts)
+          amounts.push(...scnd_amounts)
+          let secrets = await this.generateSecrets(amounts)
+          if (secrets.length != amounts.length) {
+            throw new Error(
+              'number of secrets does not match number of outputs.'
+            )
+          }
+          let {blindedMessages, rs} = await this.constructOutputs(
+            amounts,
+            secrets
+          )
+          const payload = {
+            amount,
+            proofs,
+            outputs: {
+              blinded_messages: blindedMessages
+            }
+          }
+
+          console.log('payload', JSON.stringify(payload))
+
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/split`,
+            '',
+            payload
+          )
+          const frst_rs = rs.slice(0, frst_amounts.length)
+          const frst_secrets = secrets.slice(0, frst_amounts.length)
+          const scnd_rs = rs.slice(frst_amounts.length)
+          const scnd_secrets = secrets.slice(frst_amounts.length)
+          const fristProofs = this.constructProofs(
+            data.fst,
+            frst_secrets,
+            frst_rs
+          )
+          const scndProofs = this.constructProofs(
+            data.snd,
+            scnd_secrets,
+            scnd_rs
+          )
+
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          this.payInvoiceData.blocking = false
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      redeem: async function () {
+        this.showReceiveTokens = false
+        console.log('### receive tokens', this.receiveData.tokensBase64)
+        try {
+          if (this.receiveData.tokensBase64.length == 0) {
+            throw new Error('no tokens provided.')
+          }
+          const tokenJson = atob(this.receiveData.tokensBase64)
+          const proofs = JSON.parse(tokenJson)
+          const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+          let {fristProofs, scndProofs} = await this.split(proofs, amount)
+          // HACK: we need to do this so the balance updates
+          this.proofs = this.proofs.concat([])
+
+          this.historyTokens.push({
+            status: 'paid',
+            amount: amount,
+            date: currentDateStr(),
+            token: this.receiveData.tokensBase64
+          })
+          this.storehistoryTokens()
+
+          if (window.navigator.vibrate) navigator.vibrate(200)
+          this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: 'Tokens received',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
+          })
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+        // }
+      },
+
+      sendTokens: async function () {
+        try {
+          // keep firstProofs, send scndProofs
+          let {fristProofs, scndProofs} = await this.splitToSend(
+            this.proofs,
+            this.sendData.amount,
+            true
+          )
+          this.sendData.tokens = scndProofs
+          console.log('### this.sendData.tokens', this.sendData.tokens)
+          this.sendData.tokensBase64 = btoa(
+            JSON.stringify(this.sendData.tokens)
+          )
+
+          this.historyTokens.push({
+            status: 'pending',
+            amount: -this.sendData.amount,
+            date: currentDateStr(),
+            token: this.sendData.tokensBase64
+          })
+          this.storehistoryTokens()
+          this.checkTokenSpendableWorker()
+        } catch (error) {
+          console.error(error)
+          throw error
+        }
+      },
+      checkFees: async function (payment_request) {
+        const payload = {
+          pr: payment_request
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/checkfees`,
+            '',
+            payload
+          )
+          console.log('#### checkFees', payment_request, data.fee)
+          return data.fee
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+      melt: async function () {
+        // todo: get fees from server and add to inputs
+        this.payInvoiceData.blocking = true
+
+        console.log('#### pay lightning')
+        const amount_invoice = this.payInvoiceData.invoice.sat
+        const amount =
+          amount_invoice +
+          (await this.checkFees(this.payInvoiceData.data.request))
+        console.log(
+          '#### amount invoice',
+          amount_invoice,
+          'amount with fees',
+          amount
+        )
+        // if (amount > balance()) {
+        //   LNbits.utils.notifyApiError('Balance too low')
+        //   return
+        // }
+        let {fristProofs, scndProofs} = await this.splitToSend(
+          this.proofs,
+          amount
+        )
+        const payload = {
+          proofs: scndProofs.flat(),
+          amount,
+          invoice: this.payInvoiceData.data.request
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/melt`,
+            '',
+            payload
+          )
+          if (window.navigator.vibrate) navigator.vibrate(200)
+          this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: 'Invoice paid',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
+          })
+          // delete spent tokens from db
+          this.proofs = fristProofs
+          this.storeProofs()
+          console.log({
+            amount: -amount,
+            bolt11: this.payInvoiceData.data.request,
+            hash: this.payInvoiceData.data.hash,
+            memo: this.payInvoiceData.data.memo
+          })
+          this.invoicesCashu.push({
+            amount: -amount,
+            bolt11: this.payInvoiceData.data.request,
+            hash: this.payInvoiceData.data.hash,
+            memo: this.payInvoiceData.data.memo,
+            date: currentDateStr(),
+            status: 'paid'
+          })
+          this.storeinvoicesCashu()
+          this.tab = 'invoices'
+
+          this.payInvoiceData.invoice = false
+          this.payInvoiceData.show = false
+          this.payInvoiceData.blocking = false
+        } catch (error) {
+          this.payInvoiceData.blocking = false
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+      setInvoicePaid: async function (payment_hash) {
+        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
+        invoice.status = 'paid'
+        this.storeinvoicesCashu()
+      },
+      recheckInvoice: async function (payment_hash, verbose = true) {
+        console.log('### recheckInvoice.hash', payment_hash)
+        const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
+        try {
+          proofs = await this.mint(invoice.amount, invoice.hash, verbose)
+          return proofs
+        } catch (error) {
+          console.log('Invoice still pending')
+          throw error
+        }
+      },
+      recheckPendingInvoices: async function () {
+        for (const invoice of this.invoicesCashu) {
+          if (invoice.status === 'pending' && invoice.sat > 0) {
+            this.recheckInvoice(invoice.hash, false)
+          }
+        }
+      },
+
+      recheckPendingTokens: async function () {
+        for (const token of this.historyTokens) {
+          if (token.status === 'pending' && token.amount < 0) {
+            this.checkTokenSpendable(token.token, false)
+          }
+        }
+      },
+      setTokenPaid: async function (token) {
+        const invoice = this.historyTokens.find(i => i.token === token)
+        invoice.status = 'paid'
+        this.storehistoryTokens()
+      },
+
+      checkTokenSpendableWorker: async function () {
+        let nInterval = 0
+        this.clearAllWorkers()
+        this.tokensCheckSpendableListener = setInterval(async () => {
+          try {
+            nInterval += 1
+            // exit loop after 2m
+            if (nInterval > 24) {
+              console.log('### stopping token check worker')
+              this.clearAllWorkers()
+            }
+            console.log('### checkTokenSpendableWorker setInterval', nInterval)
+            console.log(this.sendData)
+
+            // this will throw an error if the invoice is pending
+            paid = await this.checkTokenSpendable(
+              this.sendData.tokensBase64,
+              false
+            )
+            if (paid) {
+              console.log('### stopping token check worker')
+              this.clearAllWorkers()
+              this.sendData.tokens = ''
+              this.showSendTokens = false
+            }
+          } catch (error) {
+            console.log('not paid yet')
+          }
+        }, 3000)
+      },
+
+      checkTokenSpendable: async function (token, verbose = true) {
+        const tokenJson = atob(token)
+        const proofs = JSON.parse(tokenJson)
+        const payload = {
+          proofs: proofs.flat()
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/check`,
+            '',
+            payload
+          )
+          // iterate through response of form {0: true, 1: false, ...}
+          let paid = false
+          for (const [key, spendable] of Object.entries(data)) {
+            if (!spendable) {
+              this.setTokenPaid(token)
+              paid = true
+            }
+          }
+          if (paid) {
+            console.log('### token paid')
+            if (window.navigator.vibrate) navigator.vibrate(200)
+            this.$q.notify({
+              timeout: 5000,
+              type: 'positive',
+              message: 'Token paid',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+          } else {
+            console.log('### token not paid yet')
+            if (verbose) {
+              this.$q.notify({
+                timeout: 5000,
+                color: 'grey',
+                message: 'Token still pending',
+                position: 'top',
+                actions: [
+                  {
+                    icon: 'close',
+                    color: 'white',
+                    handler: () => {}
+                  }
+                ]
+              })
+            }
+            this.sendData.tokens = token
+          }
+          return paid
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      fetchMintKeys: async function () {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/cashu/api/v1/${this.mintId}/keys`
+        )
+        this.keys = data
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'keys'),
+          JSON.stringify(data)
+        )
+      },
+
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+      findTokenForAmount: function (amount) {
+        for (const token of this.proofs) {
+          const index = token.promises?.findIndex(p => p.amount === amount)
+          if (index >= 0) {
+            return {
+              promise: token.promises[index],
+              secret: token.secrets[index],
+              r: token.rs[index]
+            }
+          }
+        }
+      },
+
+      checkInvoice: function () {
+        console.log('#### checkInvoice')
+        try {
+          const invoice = decode(this.payInvoiceData.data.request)
+
+          const cleanInvoice = {
+            msat: invoice.human_readable_part.amount,
+            sat: invoice.human_readable_part.amount / 1000,
+            fsat: LNbits.utils.formatSat(
+              invoice.human_readable_part.amount / 1000
+            )
+          }
+
+          _.each(invoice.data.tags, tag => {
+            if (_.isObject(tag) && _.has(tag, 'description')) {
+              if (tag.description === 'payment_hash') {
+                cleanInvoice.hash = tag.value
+              } else if (tag.description === 'description') {
+                cleanInvoice.description = tag.value
+              } else if (tag.description === 'expiry') {
+                var expireDate = new Date(
+                  (invoice.data.time_stamp + tag.value) * 1000
+                )
+                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                  expireDate,
+                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                )
+                cleanInvoice.expired = false // TODO
+              }
+            }
+
+            this.payInvoiceData.invoice = cleanInvoice
+          })
+
+          console.log(
+            '#### this.payInvoiceData.invoice',
+            this.payInvoiceData.invoice
+          )
+        } catch (error) {
+          this.$q.notify({
+            timeout: 5000,
+            type: 'warning',
+            message: 'Could not decode invoice',
+            caption: error + '',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
+          })
+          throw error
+        }
+      },
+
+      ////////////// STORAGE /////////////
+
+      getLocalstorageToFile: async function () {
+        // https://stackoverflow.com/questions/24263682/save-restore-local-storage-to-a-local-file
+        const fileName = `cashu_backup_${currentDateStr()}.json`
+        var a = {}
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i)
+          var v = localStorage.getItem(k)
+          a[k] = v
+        }
+        var textToSave = JSON.stringify(a)
+        var textToSaveAsBlob = new Blob([textToSave], {
+          type: 'text/plain'
+        })
+        var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob)
+
+        var downloadLink = document.createElement('a')
+        downloadLink.download = fileName
+        downloadLink.innerHTML = 'Download File'
+        downloadLink.href = textToSaveAsURL
+        downloadLink.onclick = function () {
+          document.body.removeChild(event.target)
+        }
+        downloadLink.style.display = 'none'
+        document.body.appendChild(downloadLink)
+        downloadLink.click()
+      },
+
+      storeinvoicesCashu: function () {
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'invoicesCashu'),
+          JSON.stringify(this.invoicesCashu)
+        )
+      },
+      storehistoryTokens: function () {
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'historyTokens'),
+          JSON.stringify(this.historyTokens)
+        )
+      },
+      storeProofs: function () {
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'proofs'),
+          JSON.stringify(this.proofs, bigIntStringify)
+        )
+      },
+
+      mintKey: function (mintId, key) {
+        // returns a key for the local storage
+        // depending on the current mint
+        return 'cashu.' + mintId + '.' + key
+      }
+    },
+    watch: {
+      payments: function () {
+        this.balance()
+      }
+    },
+
+    mounted: function () {},
+
+    created: function () {
+      let params = new URL(document.location).searchParams
+
+      // get mint
+      if (params.get('mint_id')) {
+        this.mintId = params.get('mint_id')
+        this.$q.localStorage.set('cashu.mint', params.get('mint_id'))
+      } else if (this.$q.localStorage.getItem('cashu.mint')) {
+        this.mintId = this.$q.localStorage.getItem('cashu.mint')
+      } else {
+        this.$q.notify({
+          color: 'red',
+          message: 'No mint set!',
+          position: 'center'
+        })
+      }
+
+      // get name
+      if (params.get('mint_name')) {
+        this.mintName = params.get('mint_name')
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'mintName'),
+          this.mintName
+        )
+      } else if (this.$q.localStorage.getItem('cashu.name')) {
+        this.mintName = this.$q.localStorage.getItem('cashu.name')
+      }
+
+      // get ticker
+      if (
+        !params.get('tsh') &&
+        !this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      ) {
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'tickershort'),
+          'sats'
+        )
+        this.tickershort = 'sats'
+      } else if (params.get('tsh')) {
+        this.$q.localStorage.set(
+          this.mintKey(this.mintId, 'tickershort'),
+          params.get('tsh')
+        )
+        this.tickershort = params.get('tsh')
+      } else if (
+        this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
+      ) {
+        this.tickershort = this.$q.localStorage.getItem(
+          this.mintKey(this.mintId, 'tickershort')
+        )
+      }
+
+      const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
+      if (!keysJson) {
+        this.fetchMintKeys()
+      } else {
+        this.keys = JSON.parse(keysJson)
+      }
+
+      this.invoicesCashu = JSON.parse(
+        localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
+      )
+
+      this.historyTokens = JSON.parse(
+        localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
+      )
+
+      this.proofs = JSON.parse(
+        localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
+      )
+
+      // get recv_token to receive tokens from a link
+      if (params.get('recv_token')) {
+        tokenBase64 = params.get('recv_token')
+        // make sure to react only to tokens not in the users history
+        let seen = false
+        for (var i = 0; i < this.historyTokens.length; i++) {
+          var thisToken = this.historyTokens[i].token
+          if (thisToken == tokenBase64 && this.historyTokens[i].amount > 0) {
+            seen = true
+          }
+        }
+        if (!seen) {
+          // show receive token dialog
+          this.receiveData.tokensBase64 = params.get('recv_token')
+          this.showReceiveTokens = true
+        }
+      }
+
+      // get lightning invoice from a link
+      if (params.get('lightning')) {
+        this.showParseDialog()
+        this.payInvoiceData.data.request = params.get('lightning')
+      }
+
+      console.log('### invoicesCashu', this.invoicesCashu)
+      console.table('### tokens', this.proofs)
+      console.log('#### this.mintId', this.mintId)
+      console.log('#### this.mintName', this.mintName)
+
+      this.recheckPendingInvoices()
+      this.recheckPendingTokens()
+    }
+  })
+</script>
+{% endblock %}

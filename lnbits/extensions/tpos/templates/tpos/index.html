@@ -139,8 +139,12 @@
           input-debounce="0"
           new-value-mode="add-unique"
           label="Tip % Options (hit enter to add values)"
-          ><q-tooltip>Hit enter to add values</q-tooltip></q-select
-        >
+          ><q-tooltip>Hit enter to add values</q-tooltip>
+          <template v-slot:hint>
+            You can leave this blank. A default rounding option is available
+            (round amount to a value)
+          </template>
+        </q-select>
         <div class="row q-mt-lg">
           <q-btn
             unelevated

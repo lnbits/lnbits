@@ -14,7 +14,7 @@ LNURL withdraw is a **very powerful tool** and should not have his use limited t
 
 #### Quick Vouchers
 
-LNBits Quick Vouchers allows you to easily create a batch of LNURLw's QR codes that you can print and distribute as rewards, onboarding people into Lightning Network, gifts, etc...
+LNbits Quick Vouchers allows you to easily create a batch of LNURLw's QR codes that you can print and distribute as rewards, onboarding people into Lightning Network, gifts, etc...
 
 1. Create Quick Vouchers\
    ![quick vouchers](https://i.imgur.com/IUfwdQz.jpg)
@@ -37,12 +37,12 @@ LNBits Quick Vouchers allows you to easily create a batch of LNURLw's QR codes t
    - set a title for the LNURLw (it will show up in users wallet)
    - define the minimum and maximum a user can withdraw, if you want a fixed amount set them both to an equal value
    - set how many times can the LNURLw be scanned, if it's a one time use or it can be scanned 100 times
-   - LNBits has the "_Time between withdraws_" setting, you can define how long the LNURLw will be unavailable between scans
+   - LNbits has the "_Time between withdraws_" setting, you can define how long the LNURLw will be unavailable between scans
    - you can set the time in _seconds, minutes or hours_
    - the "_Use unique withdraw QR..._" reduces the chance of your LNURL withdraw being exploited and depleted by one person, by generating a new QR code every time it's scanned
 2. Print, share or display your LNURLw link or it's QR code\
    ![lnurlw created](https://i.imgur.com/X00twiX.jpg)
 
-**LNBits bonus:** If a user doesn't have a Lightning Network wallet and scans the LNURLw QR code with their smartphone camera, or a QR scanner app, they can follow the link provided to claim their satoshis and get an instant LNBits wallet!
+**LNbits bonus:** If a user doesn't have a Lightning Network wallet and scans the LNURLw QR code with their smartphone camera, or a QR scanner app, they can follow the link provided to claim their satoshis and get an instant LNbits wallet!
 
 ![](https://i.imgur.com/2zZ7mi8.jpg)

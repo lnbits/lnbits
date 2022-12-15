@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import re
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -26,6 +27,13 @@ class Compat:
             return f"interval '{seconds} seconds'"
         elif self.type == SQLITE:
             return f"{seconds}"
+        return "<nothing>"
+
+    def datetime_to_timestamp(self, date: datetime.datetime):
+        if self.type in {POSTGRES, COCKROACH}:
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+        elif self.type == SQLITE:
+            return time.mktime(date.timetuple())
         return "<nothing>"
 
     @property
@@ -73,18 +81,40 @@ class Connection(Compat):
             query = query.replace("?", "%s")
         return query
 
+    def rewrite_values(self, values):
+        # strip html
+        CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
+
+        def cleanhtml(raw_html):
+            if isinstance(raw_html, str):
+                cleantext = re.sub(CLEANR, "", raw_html)
+                return cleantext
+            else:
+                return raw_html
+
+        # tuple to list and back to tuple
+        value_list = [values] if isinstance(values, str) else list(values)
+        values = tuple([cleanhtml(l) for l in value_list])
+        return values
+
     async def fetchall(self, query: str, values: tuple = ()) -> list:
-        result = await self.conn.execute(self.rewrite_query(query), values)
+        result = await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
         return await result.fetchall()
 
     async def fetchone(self, query: str, values: tuple = ()):
-        result = await self.conn.execute(self.rewrite_query(query), values)
+        result = await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
         row = await result.fetchone()
         await result.close()
         return row
 
     async def execute(self, query: str, values: tuple = ()):
-        return await self.conn.execute(self.rewrite_query(query), values)
+        return await self.conn.execute(
+            self.rewrite_query(query), self.rewrite_values(values)
+        )
 
 
 class Database(Compat):
@@ -102,6 +132,8 @@ class Database(Compat):
             import psycopg2  # type: ignore
 
             def _parse_timestamp(value, _):
+                if value is None:
+                    return None
                 f = "%Y-%m-%d %H:%M:%S.%f"
                 if not "." in value:
                     f = "%Y-%m-%d %H:%M:%S"
@@ -126,14 +158,7 @@ class Database(Compat):
 
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    (1184, 1114),
-                    "TIMESTAMP2INT",
-                    _parse_timestamp
-                    # lambda value, curs: time.mktime(
-                    #     datetime.datetime.strptime(
-                    #         value, "%Y-%m-%d %H:%M:%S.%f"
-                    #     ).timetuple()
-                    # ),
+                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
                 )
             )
         else:

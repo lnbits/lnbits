@@ -93,7 +93,7 @@ async def api_add_or_update_item(
 async def api_delete_item(item_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     await delete_item_from_shop(shop.id, item_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 class CreateMethodData(BaseModel):

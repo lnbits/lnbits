@@ -12,7 +12,15 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
-from fastapi import Depends, Header, Query, Request
+from fastapi import (
+    Depends,
+    Header,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
@@ -56,6 +64,8 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    websocketManager,
+    websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
 
@@ -155,30 +165,29 @@ class CreateInvoiceData(BaseModel):
 
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
-    if data.description_hash:
+    if data.description_hash or data.unhashed_description:
         try:
-            description_hash = binascii.unhexlify(data.description_hash)
+            description_hash = (
+                binascii.unhexlify(data.description_hash)
+                if data.description_hash
+                else b""
+            )
+            unhashed_description = (
+                binascii.unhexlify(data.unhashed_description)
+                if data.unhashed_description
+                else b""
+            )
         except binascii.Error:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="'description_hash' must be a valid hex string",
+                detail="'description_hash' and 'unhashed_description' must be a valid hex strings",
             )
-        unhashed_description = b""
-        memo = ""
-    elif data.unhashed_description:
-        try:
-            unhashed_description = binascii.unhexlify(data.unhashed_description)
-        except binascii.Error:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="'unhashed_description' must be a valid hex string",
-            )
-        description_hash = b""
         memo = ""
     else:
         description_hash = b""
         unhashed_description = b""
         memo = data.memo or LNBITS_SITE_TITLE
+
     if data.unit == "sat":
         amount = int(data.amount)
     else:
@@ -585,8 +594,8 @@ class DecodePayment(BaseModel):
     data: str
 
 
-@core_app.post("/api/v1/payments/decode")
-async def api_payments_decode(data: DecodePayment):
+@core_app.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
+async def api_payments_decode(data: DecodePayment, response: Response):
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
@@ -607,6 +616,7 @@ async def api_payments_decode(data: DecodePayment):
                 "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
             }
     except:
+        response.status_code = HTTPStatus.BAD_REQUEST
         return {"message": "Failed to decode"}
 
 
@@ -676,7 +686,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/")
+@core_app.get("/api/v1/audit")
 async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
@@ -692,8 +702,39 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
         node_balance, delta = None, None
 
     return {
-        "node_balance_msats": node_balance,
-        "lnbits_balance_msats": total_balance,
-        "delta_msats": delta,
+        "node_balance_msats": int(node_balance),
+        "lnbits_balance_msats": int(total_balance),
+        "delta_msats": int(delta),
         "timestamp": int(time.time()),
     }
+
+
+##################UNIVERSAL WEBSOCKET MANAGER########################
+
+
+@core_app.websocket("/api/v1/ws/{item_id}")
+async def websocket_connect(websocket: WebSocket, item_id: str):
+    await websocketManager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        websocketManager.disconnect(websocket)
+
+
+@core_app.post("/api/v1/ws/{item_id}")
+async def websocket_update_post(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}
+
+
+@core_app.get("/api/v1/ws/{item_id}/{data}")
+async def websocket_update_get(item_id: str, data: str):
+    try:
+        await websocketUpdater(item_id, data)
+        return {"sent": True, "data": data}
+    except:
+        return {"sent": False, "data": data}

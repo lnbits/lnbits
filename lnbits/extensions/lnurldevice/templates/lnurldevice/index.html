@@ -105,7 +105,7 @@
                   @click="openQrCodeDialog(props.row.id)"
                   ><q-tooltip v-if="protocol == 'http:'">
                     LNURLs only work over HTTPS </q-tooltip
-                  ><q-tooltip v-else> view LNURL </q-tooltip></q-btn
+                  ><q-tooltip v-else> view LNURLS </q-tooltip></q-btn
                 >
               </q-td>
               <q-td
@@ -157,9 +157,9 @@
           unelevated
           color="primary"
           size="md"
-          @click="copyText(wslocation + '/lnurldevice/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
-          >{% raw %}{{wslocation}}/lnurldevice/ws/{{settingsDialog.data.id}}{%
-          endraw %}<q-tooltip> Click to copy URL </q-tooltip>
+          @click="copyText(wslocation + '/api/v1/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+          >{% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{% endraw
+          %}<q-tooltip> Click to copy URL </q-tooltip>
         </q-btn>
         <q-btn
           v-else
@@ -230,29 +230,221 @@
           label="Profit margin (% added to invoices/deducted from faucets)"
         ></q-input>
         <div v-else>
-          <q-input
-            ref="setAmount"
-            filled
-            dense
-            v-model.trim="formDialoglnurldevice.data.profit"
-            class="q-pb-md"
-            :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-            :mask="'#.##'"
-            fill-mask="0"
-            reverse-fill-mask
-            :step="'0.01'"
-            value="0.00"
-          ></q-input>
-          <q-input
-            filled
-            dense
-            v-model.trim="formDialoglnurldevice.data.amount"
-            type="number"
-            value="1000"
-            label="milesecs to turn Switch on for (1sec = 1000ms)"
-          ></q-input>
-        </div>
+          <q-btn
+            unelevated
+            class="q-mb-lg"
+            round
+            size="sm"
+            icon="add"
+            @click="addSwitch"
+            v-model="switches"
+            color="primary"
+          ></q-btn>
+          <q-btn
+            unelevated
+            class="q-mb-lg"
+            round
+            size="sm"
+            icon="remove"
+            @click="removeSwitch"
+            v-model="switches"
+            color="primary"
+          ></q-btn>
 
+          <div v-if="switches >= 0">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.profit"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                  :mask="'#.##'"
+                  fill-mask="0"
+                  reverse-fill-mask
+                  :step="'0.01'"
+                  value="0.00"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.amount"
+                  type="number"
+                  value="1000"
+                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.pin"
+                  type="number"
+                  label="GPIO to turn on"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+          <div v-if="switches >= 1">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.profit1"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                  :mask="'#.##'"
+                  fill-mask="0"
+                  reverse-fill-mask
+                  :step="'0.01'"
+                  value="0.00"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.amount1"
+                  type="number"
+                  value="1000"
+                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.pin1"
+                  type="number"
+                  label="GPIO to turn on"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="switches >= 2">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.profit2"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                  :mask="'#.##'"
+                  fill-mask="0"
+                  reverse-fill-mask
+                  :step="'0.01'"
+                  value="0.00"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.amount2"
+                  type="number"
+                  value="1000"
+                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.pin2"
+                  type="number"
+                  label="GPIO to turn on"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="switches >= 3">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.profit3"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                  :mask="'#.##'"
+                  fill-mask="0"
+                  reverse-fill-mask
+                  :step="'0.01'"
+                  value="0.00"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.amount3"
+                  type="number"
+                  value="1000"
+                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.pin3"
+                  type="number"
+                  label="GPIO to turn on"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="switches >= 4">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.profit4"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                  :mask="'#.##'"
+                  fill-mask="0"
+                  reverse-fill-mask
+                  :step="'0.01'"
+                  value="0.00"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.amount4"
+                  type="number"
+                  value="1000"
+                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="formDialoglnurldevice.data.pin4"
+                  type="number"
+                  label="GPIO to turn on"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialoglnurldevice.data.id"
@@ -284,24 +476,37 @@
     <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
       <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
         <qrcode
-          :value="qrCodeDialog.data.url + '/?lightning=' + qrCodeDialog.data.lnurl"
+          :value="lnurlValue"
           :options="{width: 800}"
           class="rounded-borders"
         ></qrcode>
-        {% raw %}
       </q-responsive>
-      <p style="word-break: break-all">
-        <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
-      </p>
-      {% endraw %}
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText(lnurlValue, 'LNURL copied to clipboard!')"
+        >Copy LNURL</q-btn
+      >
+      <q-chip
+        v-if="websocketMessage == 'WebSocket NOT supported by your Browser!' || websocketMessage == 'Connection closed'"
+        clickable
+        color="red"
+        text-color="white"
+        icon="error"
+        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
+      >
+      <q-chip v-else clickable color="green" text-color="white" icon="check"
+        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
+      >
+      <br />
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
+          v-for="switch_ in qrCodeDialog.data.switches"
           outline
-          color="grey"
-          @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')"
-          class="q-ml-sm"
-          >Copy LNURL</q-btn
-        >
+          color="primary"
+          :label="'Switch PIN:' + switch_[0]"
+          @click="lnurlValueFetch(switch_[3])"
+        ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -333,11 +538,15 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        tab: 'mails',
         protocol: window.location.protocol,
         location: window.location.hostname,
         wslocation: window.location.hostname,
         filter: '',
         currency: 'USD',
+        lnurlValue: '',
+        websocketMessage: '',
+        switches: 0,
         lnurldeviceLinks: [],
         lnurldeviceLinksObj: [],
         devices: [
@@ -387,12 +596,6 @@
               field: 'device'
             },
             {
-              name: 'profit',
-              align: 'left',
-              label: 'profit',
-              field: 'profit'
-            },
-            {
               name: 'currency',
               align: 'left',
               label: 'currency',
@@ -431,6 +634,11 @@
         }
       }
     },
+    computed: {
+      wsMessage: function () {
+        return this.websocketMessage
+      }
+    },
     methods: {
       openQrCodeDialog: function (lnurldevice_id) {
         var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
@@ -440,7 +648,25 @@
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
+        this.lnurlValueFetch(
+          this.qrCodeDialog.data.switches[0][3],
+          this.qrCodeDialog.data.id
+        )
         this.qrCodeDialog.show = true
+      },
+      lnurlValueFetch: function (lnurl, switchId) {
+        this.lnurlValue = lnurl
+        this.websocketConnector(
+          'wss://' + window.location.host + '/api/v1/ws/' + switchId
+        )
+      },
+      addSwitch: function () {
+        var self = this
+        self.switches = self.switches + 1
+      },
+      removeSwitch: function () {
+        var self = this
+        self.switches = self.switches - 1
       },
       cancellnurldevice: function (data) {
         var self = this
@@ -498,7 +724,9 @@
           .then(function (response) {
             if (response.data) {
               self.lnurldeviceLinks = response.data.map(maplnurldevice)
+              console.log('response.data')
               console.log(response.data)
+              console.log('response.data')
             }
           })
           .catch(function (error) {
@@ -591,6 +819,25 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      websocketConnector: function (websocketUrl) {
+        if ('WebSocket' in window) {
+          self = this
+          var ws = new WebSocket(websocketUrl)
+          self.updateWsMessage('Websocket connected')
+          ws.onmessage = function (evt) {
+            var received_msg = evt.data
+            self.updateWsMessage('Message recieved: ' + received_msg)
+          }
+          ws.onclose = function () {
+            self.updateWsMessage('Connection closed')
+          }
+        } else {
+          self.updateWsMessage('WebSocket NOT supported by your Browser!')
+        }
+      },
+      updateWsMessage: function (message) {
+        this.websocketMessage = message
       },
       clearFormDialoglnurldevice() {
         this.formDialoglnurldevice.data = {

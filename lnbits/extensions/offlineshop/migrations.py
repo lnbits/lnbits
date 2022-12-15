@@ -22,7 +22,7 @@ async def m001_initial(db):
             description TEXT NOT NULL,
             image TEXT, -- image/png;base64,...
             enabled BOOLEAN NOT NULL DEFAULT true,
-            price INTEGER NOT NULL,
+            price {db.big_int} NOT NULL,
             unit TEXT NOT NULL DEFAULT 'sat'
         );
         """

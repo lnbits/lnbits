@@ -272,15 +272,35 @@ async function payment(path) {
           this.showChecking = false
         }
       },
+
+      fetchUtxoHexForPsbt: async function (psbtBase64) {
+        if (this.tx?.inputs && this.tx?.inputs.length) return this.tx.inputs
+
+        const {data: psbtUtxos} = await LNbits.api.request(
+          'PUT',
+          '/watchonly/api/v1/psbt/utxos',
+          this.adminkey,
+          {psbtBase64}
+        )
+
+        const inputs = []
+        for (const utxo of psbtUtxos) {
+          const txHex = await this.fetchTxHex(utxo.tx_id)
+          inputs.push({tx_hex: txHex})
+        }
+        return inputs
+      },
       extractTxFromPsbt: async function (psbtBase64) {
         try {
+          const inputs = await this.fetchUtxoHexForPsbt(psbtBase64)
+
           const {data} = await LNbits.api.request(
             'PUT',
             '/watchonly/api/v1/psbt/extract',
             this.adminkey,
             {
               psbtBase64,
-              inputs: this.tx.inputs,
+              inputs,
               network: this.network
             }
           )
