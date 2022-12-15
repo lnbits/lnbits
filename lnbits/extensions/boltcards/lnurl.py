@@ -114,7 +114,10 @@ async def lnurl_callback(
     hit = await get_hit(k1)
 
     if not hit:
-        return {"status": "ERROR", "reason": "Record not found for this charge (bad k1)"}
+        return {
+            "status": "ERROR",
+            "reason": "Record not found for this charge (bad k1)",
+        }
     if hit.spent:
         return {"status": "ERROR", "reason": "Payment already claimed"}
     if not pr:
