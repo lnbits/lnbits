@@ -437,8 +437,9 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         areas = await get_dashboard(gerty)
     if screen_slug == "lnbits_wallets_balance":
         wallets = await get_lnbits_wallet_balances(gerty)
-        text = []
+        
         for wallet in wallets:
+            text = []
             text.append(
                 get_text_item_dict(
                     text="{0}'s Wallet".format(wallet["name"]),
@@ -453,7 +454,7 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
                     gerty_type=gerty.type,
                 )
             )
-        areas.append(text)
+            areas.append(text)
     elif screen_slug == "fun_satoshi_quotes":
         areas.append(await get_satoshi_quotes(gerty))
     elif screen_slug == "fun_exchange_market_rate":

@@ -40,7 +40,7 @@ endblock %}{% block page %} {% raw %}
     data: function () {
       return {
         lnbits_wallets_balance: {},
-        dashboard: {},
+        onchain: {},
         fun_satoshi_quotes: {},
         fun_exchange_market_rate: {},
         gerty: [],
@@ -83,23 +83,22 @@ endblock %}{% block page %} {% raw %}
     },
     created: async function () {
       await this.getGertyInfo()
-      console.log(this.gerty.length)
+      console.log(this.gerty)
       for (let i = 0; i < this.gerty.length; i++) {
-        console.log(this.gerty[i].screen.group)
         if(this.gerty[i].screen.group == "lnbits_wallets_balance"){
-          for (let i = 0; i < this.gerty[i].screen.areas.length; i++) {
-            this.lnbits_wallets_balance[i] = {
-              "name": this.gerty[i].screen.areas[i][0].value,
-              "amount": this.gerty[i].screen.areas[i][1].value,
-              "color1": this.walletColors[i].first,
-              "color2": this.walletColors[i].second,
+          for (let q = 0; q < this.gerty[i].screen.areas.length; q++) {
+            this.lnbits_wallets_balance[q] = {
+              "name": this.gerty[i].screen.areas[q][0].value,
+              "amount": this.gerty[i].screen.areas[q][1].value,
+              "color1": this.walletColors[q].first,
+              "color2": this.walletColors[q].second,
             }
             this.gertyname = this.gerty[i].settings.name
           }
-          console.log(this.lnbits_wallets_balance)
         }
-        if(this.gerty[i].screen.group == "dashboard"){
-          this.dashboard = this.gerty[i].screen.areas
+        if(this.gerty[i].screen.group == "onchain"){
+          this.onchain = this.gerty[i].screen.areas
+          console.log(this.onchain)
         }
         if(this.gerty[i].screen.group == "fun_satoshi_quotes"){
           this.fun_satoshi_quotes["quote"] = this.gerty[i].screen.areas[0][0].value
@@ -111,12 +110,7 @@ endblock %}{% block page %} {% raw %}
           this.fun_exchange_market_rate["amount"] = this.gerty[i].screen.areas[0][1].value
           this.gertyname = this.gerty[i].settings.name
         }
-      } 
-
-      console.log(this.gerty)
-        
-      
-      console.log(this.gertywallets)
+      }
     }
   })
 </script>
