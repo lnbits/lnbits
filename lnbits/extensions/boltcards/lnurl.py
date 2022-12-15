@@ -108,15 +108,24 @@ async def lnurl_callback(
     pr: str = Query(None),
     k1: str = Query(None),
 ):
+    if not k1:
+        return {"status": "ERROR", "reason": "Missing K1 token"}
+
     hit = await get_hit(k1)
-    card = await get_card(hit.card_id)
+
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
-    if hit.id != k1:
-        return {"status": "ERROR", "reason": "Bad K1"}
+        return {"status": "ERROR", "reason": "Record not found for this charge (bad k1)"}
     if hit.spent:
-        return {"status": "ERROR", "reason": f"Payment already claimed"}
-    invoice = bolt11.decode(pr)
+        return {"status": "ERROR", "reason": "Payment already claimed"}
+    if not pr:
+        return {"status": "ERROR", "reason": "Missing payment request"}
+
+    try:
+        invoice = bolt11.decode(pr)
+    except:
+        return {"status": "ERROR", "reason": "Failed to decode payment request"}
+
+    card = await get_card(hit.card_id)
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
     try:
         await pay_invoice(
