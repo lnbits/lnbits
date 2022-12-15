@@ -23,6 +23,7 @@ const mapCharge = (obj, oldObj = {}) => {
   charge.displayUrl = ['/satspay/', obj.id].join('')
   charge.expanded = oldObj.expanded || false
   charge.pendingBalance = oldObj.pendingBalance || 0
+  charge.extra = charge.extra ? JSON.parse(charge.extra) : charge.extra
   return charge
 }
 

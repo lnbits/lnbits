@@ -702,9 +702,9 @@ async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
         node_balance, delta = None, None
 
     return {
-        "node_balance_msats": node_balance,
-        "lnbits_balance_msats": total_balance,
-        "delta_msats": delta,
+        "node_balance_msats": int(node_balance),
+        "lnbits_balance_msats": int(total_balance),
+        "delta_msats": int(delta),
         "timestamp": int(time.time()),
     }
 
