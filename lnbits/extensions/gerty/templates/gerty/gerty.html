@@ -1,7 +1,7 @@
 {% extends "public.html" %} {% block toolbar_title %} Gerty: {% raw %}{{ gertyname }}{% endraw %}{%
 endblock %}{% block page %} {% raw %}
 
-<div class="q-pa-md row items-start q-gutter-md">
+<div class="q-pa-md row items-start q-gutter-md" v-if="fun_exchange_market_rate || fun_satoshi_quotes">
 
   <q-card v-if="fun_exchange_market_rate" unelevated  class="q-pa-sm" style="background: none !important">
     <q-card-section class="text-h1 q-pa-none">
@@ -30,6 +30,36 @@ endblock %}{% block page %} {% raw %}
   </q-card>
 </div>
 
+<div class="q-pa-md row items-start q-gutter-md" v-if="dashboard_onchain || dashboard_mining || lightning_dashboard">
+  <q-card class="q-pa-sm" v-if="dashboard_onchain" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Onchain</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+     <p v-for="(item, t) in dashboard_onchain"><b>{{item[0].value}}: </b>{{item[1].value}}</p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="dashboard_mining" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Mining</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+     <p v-for="(item, t) in dashboard_mining"><b>{{item[0].value}}:</b> {{item[1].value}}</p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="lightning_dashboard" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Lightning (Last 7 days)</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+     <p v-for="(item, t) in lightning_dashboard"><b>{{item[0].value}}:</b> {{item[1].value}}</p>
+    </q-card-section>
+  </q-card>
+
+</div>
+
 {% endraw %} {% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -40,7 +70,7 @@ endblock %}{% block page %} {% raw %}
     data: function () {
       return {
         lnbits_wallets_balance: {},
-        onchain: {},
+        dashboard_onchain: {},
         fun_satoshi_quotes: {},
         fun_exchange_market_rate: {},
         gerty: [],
@@ -67,7 +97,7 @@ endblock %}{% block page %} {% raw %}
     },
     methods: {
       getGertyInfo: async function () {
-        for (let i = 0; i < 5; i++){
+        for (let i = 0; i < 8; i++){
           try {
             const {data} = await LNbits.api.request(
               'GET',
@@ -79,11 +109,7 @@ endblock %}{% block page %} {% raw %}
             LNbits.utils.notifyApiError(error)
           }
         }
-      },
-    },
-    created: async function () {
-      await this.getGertyInfo()
-      console.log(this.gerty)
+        console.log(this.gerty)
       for (let i = 0; i < this.gerty.length; i++) {
         if(this.gerty[i].screen.group == "lnbits_wallets_balance"){
           for (let q = 0; q < this.gerty[i].screen.areas.length; q++) {
@@ -96,9 +122,17 @@ endblock %}{% block page %} {% raw %}
             this.gertyname = this.gerty[i].settings.name
           }
         }
-        if(this.gerty[i].screen.group == "onchain"){
-          this.onchain = this.gerty[i].screen.areas
-          console.log(this.onchain)
+        if(this.gerty[i].screen.group == "dashboard_onchain"){
+          this.dashboard_onchain = this.gerty[i].screen.areas
+          this.gertyname = this.gerty[i].settings.name
+        }
+        if(this.gerty[i].screen.group == "dashboard_mining"){
+          this.dashboard_mining = this.gerty[i].screen.areas
+          this.gertyname = this.gerty[i].settings.name
+        }
+        if(this.gerty[i].screen.group == "lightning_dashboard"){
+          this.lightning_dashboard = this.gerty[i].screen.areas
+          this.gertyname = this.gerty[i].settings.name
         }
         if(this.gerty[i].screen.group == "fun_satoshi_quotes"){
           this.fun_satoshi_quotes["quote"] = this.gerty[i].screen.areas[0][0].value
@@ -110,7 +144,17 @@ endblock %}{% block page %} {% raw %}
           this.fun_exchange_market_rate["amount"] = this.gerty[i].screen.areas[0][1].value
           this.gertyname = this.gerty[i].settings.name
         }
+        
       }
+
+      setTimeout(this.getGertyInfo, 20000);
+      this.$forceUpdate();
+      return this.gerty
+      },
+    },
+    created: async function () {
+
+        await this.getGertyInfo()
     }
   })
 </script>
