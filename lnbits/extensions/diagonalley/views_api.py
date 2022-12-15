@@ -488,11 +488,6 @@ async def api_diagonalley_generate_keys():
     while not public_key.startswith("02"):
         private_key = PrivateKey()
         public_key = private_key.pubkey.serialize().hex()
-
-    # if the call is made from merchant's side skip adding pubkey to order
-    if(payment_hash != "merchant"):
-        # set pubkey in order
-        await set_diagonalley_order_pubkey(payment_hash, pubkey=public_key[2:])
     return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
 
 
