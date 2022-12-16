@@ -4,8 +4,6 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from loguru import logger
-
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import AdminSettings, EditableSetings, SuperSettings, settings
@@ -585,6 +583,14 @@ async def update_admin_settings(data: EditableSetings):
     await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
+async def update_super_user(super_user: str):
+    await db.execute(
+        "UPDATE settings SET super_user = ?",
+        (super_user),
+    )
+    return await get_super_settings()
+
+
 async def init_admin_settings(super_user: str = None):
     user = None
     if super_user:
@@ -597,3 +603,4 @@ async def init_admin_settings(super_user: str = None):
 
     sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(editable_settings.dict())))
+    return await get_super_settings()

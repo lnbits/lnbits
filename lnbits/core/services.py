@@ -41,6 +41,7 @@ from .crud import (
     init_admin_settings,
     update_payment_details,
     update_payment_status,
+    update_super_user,
 )
 from .models import Payment
 
@@ -415,18 +416,18 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 async def check_admin_settings():
     if settings.lnbits_admin_ui:
-        sets = await get_super_settings()
-        if not sets:
+        settings_db = await get_super_settings()
+        if not settings_db:
             # create new settings if table is empty
-            logger.warning(
-                "settings empty. inserting new settings and creating admin account"
-            )
-            await init_admin_settings(settings.super_user)
-            logger.warning("initialized settings from enviroment variables.")
-            sets = await get_super_settings()
+            logger.warning("Settings DB empty. Inserting default settings.")
+            settings_db = await init_admin_settings(settings.super_user)
+            logger.warning("Initialized settings from enviroment variables.")
 
-        if sets:
-            update_cached_settings(sets.dict())
+        if settings.super_user and settings.super_user != settings_db.super_user:
+            # .env super_user overwrites DB super_user
+            settings_db = await update_super_user(settings.super_user)
+
+        update_cached_settings(settings_db.dict())
 
         # printing settings for debugging
         logger.debug(f"Admin settings:")
