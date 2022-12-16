@@ -16,8 +16,6 @@ from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
 from .views_api import api_gerty_json
 
-from loguru import logger
-
 templates = Jinja2Templates(directory="templates")
 
 

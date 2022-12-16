@@ -1,17 +1,18 @@
+import json
+import os
+import random
 import textwrap
 from datetime import datetime, timedelta
-import json
 
 import httpx
 from loguru import logger
-import os
-import random
-from .crud import get_mempool_info, get_gerty
 
-from .number_prefixer import *
-from ...settings import LNBITS_PATH
-from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 from lnbits.core.crud import get_user, get_wallet_for_key
+from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
+
+from ...settings import LNBITS_PATH
+from .crud import get_gerty, get_mempool_info
+from .number_prefixer import *
 
 
 def get_percent_difference(current, previous, precision=3):
