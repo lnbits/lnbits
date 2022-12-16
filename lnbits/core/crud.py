@@ -591,16 +591,7 @@ async def update_super_user(super_user: str):
     return await get_super_settings()
 
 
-async def init_admin_settings(super_user: str = None):
-    user = None
-    if super_user:
-        user = await get_account(super_user)
-    if not user:
-        account = await create_account()
-        super_user = account.id
-
-    editable_settings = EditableSetings.from_dict(settings.dict())
-
+async def create_admin_settings(super_user: str, new_settings: dict):
     sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
-    await db.execute(sql, (super_user, json.dumps(editable_settings.dict())))
+    await db.execute(sql, (super_user, json.dumps(new_settings)))
     return await get_super_settings()

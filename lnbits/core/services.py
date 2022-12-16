@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends, WebSocket, WebSocketDisconnect
+from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -23,6 +23,7 @@ from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import (
     FAKE_WALLET,
+    EditableSetings,
     get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
@@ -33,12 +34,15 @@ from lnbits.wallets.base import PaymentResponse, PaymentStatus
 from . import db
 from .crud import (
     check_internal,
+    create_account,
+    create_admin_settings,
     create_payment,
+    create_wallet,
     delete_wallet_payment,
+    get_account,
     get_super_settings,
     get_wallet,
     get_wallet_payment,
-    init_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -458,6 +462,21 @@ def update_cached_settings(sets_dict: dict):
                 logger.error(f"error overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
+
+
+async def init_admin_settings(super_user: str = None):
+    account = None
+    if super_user:
+        account = await get_account(super_user)
+    if not account:
+        account = await create_account()
+        super_user = account.id
+    if not account.wallets or len(account.wallets) == 0:
+        await create_wallet(user_id=account.id)
+
+    editable_settings = EditableSetings.from_dict(settings.dict())
+
+    return await create_admin_settings(account.id, editable_settings.dict())
 
 
 class WebsocketConnectionManager:
