@@ -416,7 +416,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
             yield dict(data=jdata, event=typ)
     except asyncio.CancelledError as e:
-        logger.debug(f"CancelledError on listener {uid}: {e}")
+        logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
         task.cancel()
         return
