@@ -3,13 +3,11 @@ import secrets
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends, Query
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
-from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
@@ -118,7 +116,6 @@ async def lnurl_callback(
             max_sat=card.tx_limit,
             extra={"tag": "boltcard", "tag": hit.id},
         )
-
         return {"status": "OK"}
     except Exception as exc:
         return {"status": "ERROR", "reason": f"Payment failed - {exc}"}
