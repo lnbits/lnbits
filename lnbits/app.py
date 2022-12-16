@@ -281,28 +281,6 @@ def register_exception_handlers(app: FastAPI):
             content={"detail": exc.detail},
         )
 
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                "error.html",
-                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc.errors()},
-        )
-
 
 def configure_logger() -> None:
     logger.remove()
