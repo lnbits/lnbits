@@ -33,12 +33,12 @@ from lnbits.wallets.base import PaymentResponse, PaymentStatus
 from . import db
 from .crud import (
     check_internal,
-    create_admin_settings,
     create_payment,
     delete_wallet_payment,
     get_super_settings,
     get_wallet,
     get_wallet_payment,
+    init_admin_settings,
     update_payment_details,
     update_payment_status,
 )
@@ -421,7 +421,7 @@ async def check_admin_settings():
             logger.warning(
                 "settings empty. inserting new settings and creating admin account"
             )
-            await create_admin_settings()
+            await init_admin_settings(settings.super_user)
             logger.warning("initialized settings from enviroment variables.")
             sets = await get_super_settings()
 
