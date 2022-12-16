@@ -148,18 +148,26 @@ class LNbitsWallet(Wallet):
         while True:
             try:
                 async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
-                    async with client.stream("GET", url) as r:
+                    del client.headers[
+                        "accept-encoding"
+                    ]  # we have to disable compression for SSEs
+                    async with client.stream(
+                        "GET", url, content="text/event-stream"
+                    ) as r:
+                        sse_trigger = False
                         async for line in r.aiter_lines():
-                            if line.startswith("data:"):
-                                try:
-                                    data = json.loads(line[5:])
-                                except json.decoder.JSONDecodeError:
-                                    continue
-
-                                if type(data) is not dict:
-                                    continue
-
-                                yield data["payment_hash"]  # payment_hash
+                            # The data we want to listen to is of this shape:
+                            # event: payment-received
+                            # data: {.., "payment_hash" : "asd"}
+                            if line.startswith("event: payment-received"):
+                                sse_trigger = True
+                                continue
+                            elif sse_trigger and line.startswith("data:"):
+                                data = json.loads(line[len("data:") :])
+                                sse_trigger = False
+                                yield data["payment_hash"]
+                            else:
+                                sse_trigger = False
 
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
