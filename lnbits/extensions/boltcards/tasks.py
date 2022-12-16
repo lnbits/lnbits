@@ -2,7 +2,6 @@ import asyncio
 import json
 
 import httpx
-from loguru import logger
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
