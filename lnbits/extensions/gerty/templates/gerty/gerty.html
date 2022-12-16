@@ -13,12 +13,14 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
   >
     <q-card-section class="text-h1 q-pa-none">
       <small> <b>{{fun_exchange_market_rate["amount"]}}</b></small>
-      <small class="text-h4">{{fun_exchange_market_rate["unit"]}}</small>
+      <small class="text-h4"
+        >{{fun_exchange_market_rate["unit"].split(" ")[1]}}</small
+      >
     </q-card-section>
   </q-card>
 
   <q-card
-    v-if="fun_satoshi_quotes"
+    v-if="fun_satoshi_quotes['quote']"
     unelevated
     class="q-pa-none text-body1 blockquote"
     style="background: none !important"
@@ -49,7 +51,12 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
   class="q-pa-md row items-start q-gutter-md"
   v-if="dashboard_onchain || dashboard_mining || lightning_dashboard"
 >
-  <q-card class="q-pa-sm" v-if="dashboard_onchain" unelevated class="q-pa-sm">
+  <q-card
+    class="q-pa-sm"
+    v-if="dashboard_onchain[0]"
+    unelevated
+    class="q-pa-sm"
+  >
     <q-card-section>
       <div class="text-h6">Onchain</div>
     </q-card-section>
@@ -78,6 +85,44 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
     <q-card-section class="q-pa-none">
       <p v-for="(item, t) in lightning_dashboard">
         <b>{{item[0].value}}:</b> {{item[1].value}}
+      </p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="url_checker" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Servers to check</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <p v-for="(item, t) in url_checker">
+        <b>{{item[0].value.slice(0, 20)}}...:</b>
+        <q-chip
+          v-if="item[1].value < 300"
+          square
+          color="green"
+          text-color="white"
+          icon="sentiment_satisfied"
+        >
+          {{item[1].value}}
+        </q-chip>
+        <q-chip
+          v-else-if="item[1].value >= 300"
+          square
+          color="yellow"
+          text-color="white"
+          icon="sentiment_dissatisfied"
+        >
+          {{item[1].value}}
+        </q-chip>
+        <q-chip
+          v-else
+          square
+          color="red"
+          text-color="white"
+          icon="sentiment_dissatisfied"
+        >
+          {{item[1].value}}
+        </q-chip>
       </p>
     </q-card-section>
   </q-card>
@@ -136,6 +181,10 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
               }
               this.gertyname = this.gerty[i].settings.name
             }
+          }
+          if (this.gerty[i].screen.group == 'url_checker') {
+            this.url_checker = this.gerty[i].screen.areas
+            this.gertyname = this.gerty[i].settings.name
           }
           if (this.gerty[i].screen.group == 'dashboard_onchain') {
             this.dashboard_onchain = this.gerty[i].screen.areas

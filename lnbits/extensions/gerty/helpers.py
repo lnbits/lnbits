@@ -79,101 +79,98 @@ def format_number(number, precision=None):
 async def get_mining_dashboard(gerty):
     areas = []
     if isinstance(gerty.mempool_endpoint, str):
-        async with httpx.AsyncClient() as client:
-            # current hashrate
-            r = await get_mempool_info("hashrate_1w", gerty)
-            data = r
-            hashrateNow = data["currentHashrate"]
-            hashrateOneWeekAgo = data["hashrates"][6]["avgHashrate"]
+        # current hashrate
+        r = await get_mempool_info("hashrate_1w", gerty)
+        data = r
+        hashrateNow = data["currentHashrate"]
+        hashrateOneWeekAgo = data["hashrates"][6]["avgHashrate"]
 
-            text = []
-            text.append(
-                get_text_item_dict(
-                    text="Current mining hashrate", font_size=12, gerty_type=gerty.type
-                )
+        text = []
+        text.append(
+            get_text_item_dict(
+                text="Current mining hashrate", font_size=12, gerty_type=gerty.type
             )
-            text.append(
-                get_text_item_dict(
-                    text="{0}hash".format(si_format(hashrateNow, 6, True, " ")),
-                    font_size=20,
-                    gerty_type=gerty.type,
-                )
+        )
+        text.append(
+            get_text_item_dict(
+                text="{0}hash".format(si_format(hashrateNow, 6, True, " ")),
+                font_size=20,
+                gerty_type=gerty.type,
             )
-            text.append(
-                get_text_item_dict(
-                    text="{0} vs 7 days ago".format(
-                        get_percent_difference(hashrateNow, hashrateOneWeekAgo, 3)
-                    ),
-                    font_size=12,
-                    gerty_type=gerty.type,
-                )
+        )
+        text.append(
+            get_text_item_dict(
+                text="{0} vs 7 days ago".format(
+                    get_percent_difference(hashrateNow, hashrateOneWeekAgo, 3)
+                ),
+                font_size=12,
+                gerty_type=gerty.type,
             )
-            areas.append(text)
+        )
+        areas.append(text)
 
-            r = await get_mempool_info("difficulty_adjustment", gerty)
+        r = await get_mempool_info("difficulty_adjustment", gerty)
 
-            # timeAvg
-            text = []
-            progress = "{0}%".format(round(r["progressPercent"], 2))
-            text.append(
-                get_text_item_dict(
-                    text="Progress through current epoch",
-                    font_size=12,
-                    gerty_type=gerty.type,
-                )
+        # timeAvg
+        text = []
+        progress = "{0}%".format(round(r["progressPercent"], 2))
+        text.append(
+            get_text_item_dict(
+                text="Progress through current epoch",
+                font_size=12,
+                gerty_type=gerty.type,
             )
-            text.append(
-                get_text_item_dict(text=progress, font_size=60, gerty_type=gerty.type)
-            )
-            areas.append(text)
+        )
+        text.append(
+            get_text_item_dict(text=progress, font_size=60, gerty_type=gerty.type)
+        )
+        areas.append(text)
 
-            # difficulty adjustment
-            text = []
-            stat = r["remainingTime"]
-            text.append(
-                get_text_item_dict(
-                    text="Time to next difficulty adjustment",
-                    font_size=12,
-                    gerty_type=gerty.type,
-                )
+        # difficulty adjustment
+        text = []
+        stat = r["remainingTime"]
+        text.append(
+            get_text_item_dict(
+                text="Time to next difficulty adjustment",
+                font_size=12,
+                gerty_type=gerty.type,
             )
-            text.append(
-                get_text_item_dict(
-                    text=get_time_remaining(stat / 1000, 3),
-                    font_size=12,
-                    gerty_type=gerty.type,
-                )
+        )
+        text.append(
+            get_text_item_dict(
+                text=get_time_remaining(stat / 1000, 3),
+                font_size=12,
+                gerty_type=gerty.type,
             )
-            areas.append(text)
+        )
+        areas.append(text)
 
-            # difficultyChange
-            text = []
-            difficultyChange = round(r["difficultyChange"], 2)
-            text.append(
-                get_text_item_dict(
-                    text="Estimated difficulty change",
-                    font_size=12,
-                    gerty_type=gerty.type,
-                )
+        # difficultyChange
+        text = []
+        difficultyChange = round(r["difficultyChange"], 2)
+        text.append(
+            get_text_item_dict(
+                text="Estimated difficulty change",
+                font_size=12,
+                gerty_type=gerty.type,
             )
-            text.append(
-                get_text_item_dict(
-                    text="{0}{1}%".format(
-                        "+" if difficultyChange > 0 else "", round(difficultyChange, 2)
-                    ),
-                    font_size=60,
-                    gerty_type=gerty.type,
-                )
+        )
+        text.append(
+            get_text_item_dict(
+                text="{0}{1}%".format(
+                    "+" if difficultyChange > 0 else "", round(difficultyChange, 2)
+                ),
+                font_size=60,
+                gerty_type=gerty.type,
             )
-            areas.append(text)
+        )
+        areas.append(text)
 
-            r = await get_mempool_info("hashrate_1m", gerty)
-            data = r
-            stat = {}
-            stat["current"] = data["currentDifficulty"]
-            stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2][
-                "difficulty"
-            ]
+        r = await get_mempool_info("hashrate_1m", gerty)
+        data = r
+        stat = {}
+        stat["current"] = data["currentDifficulty"]
+        stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2]["difficulty"]
     return areas
 
 
@@ -456,6 +453,43 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
                 )
             )
             areas.append(text)
+    elif screen_slug == "url_checker":
+        for url in json.loads(gerty.urls):
+            async with httpx.AsyncClient() as client:
+                text = []
+                try:
+                    response = await client.get(url)
+                    text.append(
+                        get_text_item_dict(
+                            text=url,
+                            font_size=20,
+                            gerty_type=gerty.type,
+                        )
+                    )
+                    text.append(
+                        get_text_item_dict(
+                            text=str(response.status_code),
+                            font_size=40,
+                            gerty_type=gerty.type,
+                        )
+                    )
+                except:
+                    text = []
+                    text.append(
+                        get_text_item_dict(
+                            text=url,
+                            font_size=20,
+                            gerty_type=gerty.type,
+                        )
+                    )
+                    text.append(
+                        get_text_item_dict(
+                            text=str("DOWN"),
+                            font_size=40,
+                            gerty_type=gerty.type,
+                        )
+                    )
+                areas.append(text)
     elif screen_slug == "fun_satoshi_quotes":
         areas.append(await get_satoshi_quotes(gerty))
     elif screen_slug == "fun_exchange_market_rate":
@@ -940,8 +974,3 @@ def get_time_remaining(seconds, granularity=2):
                 name = name.rstrip("s")
             result.append("{} {}".format(round(value), name))
     return ", ".join(result[:granularity])
-
-
-async def get_urls_to_watch(gerty):
-    gerty = await get_gerty(gerty)
-    return json.loads(gerty.urls)
