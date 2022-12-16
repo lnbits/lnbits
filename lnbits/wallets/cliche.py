@@ -1,12 +1,13 @@
 import asyncio
 import hashlib
 import json
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
 from websocket import create_connection
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -21,7 +22,7 @@ class ClicheWallet(Wallet):
     """https://github.com/fiatjaf/cliche"""
 
     def __init__(self):
-        self.endpoint = getenv("CLICHE_ENDPOINT")
+        self.endpoint = settings.cliche_endpoint
 
     async def status(self) -> StatusResponse:
         try:

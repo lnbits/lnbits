@@ -1,11 +1,12 @@
 import asyncio
 import hashlib
 import json
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -20,12 +21,12 @@ class LNbitsWallet(Wallet):
     """https://github.com/lnbits/lnbits"""
 
     def __init__(self):
-        self.endpoint = getenv("LNBITS_ENDPOINT")
+        self.endpoint = settings.lnbits_endpoint
 
         key = (
-            getenv("LNBITS_KEY")
-            or getenv("LNBITS_ADMIN_KEY")
-            or getenv("LNBITS_INVOICE_KEY")
+            settings.lnbits_key
+            or settings.lnbits_admin_key
+            or settings.lnbits_invoice_key
         )
         self.key = {"X-Api-Key": key}
 
