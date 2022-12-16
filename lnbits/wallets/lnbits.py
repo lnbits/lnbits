@@ -153,20 +153,20 @@ class LNbitsWallet(Wallet):
                     async with client.stream(
                         "GET", url, content="text/event-stream"
                     ) as r:
-                        sse_event = False
+                        sse_trigger = False
                         async for line in r.aiter_lines():
                             # The data we want to listen to is of this shape:
                             # event: payment-received
                             # data: {.., "payment_hash" : "asd"}
                             if line.startswith("event: payment-received"):
-                                sse_event = True
+                                sse_trigger = True
                                 continue
-                            elif sse_event and line.startswith("data:"):
+                            elif sse_trigger and line.startswith("data:"):
                                 data = json.loads(line[len("data:") :])
-                                sse_event = False
+                                sse_trigger = False
                                 yield data["payment_hash"]
                             else:
-                                sse_event = False
+                                sse_trigger = False
 
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
