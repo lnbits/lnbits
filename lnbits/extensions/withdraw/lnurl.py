@@ -3,6 +3,7 @@ import traceback
 from datetime import datetime
 from http import HTTPStatus
 
+import httpx
 import shortuuid  # type: ignore
 from fastapi import HTTPException
 from fastapi.param_functions import Query
@@ -132,23 +133,28 @@ async def api_lnurl_callback(
 
         payment_request = pr
 
-        webhook = (
-            (
-                link.webhook_url,
-                {
-                    "lnurlw": link.id,
-                },
-            )
-            if link.webhook_url
-            else None
-        )
-        await pay_invoice(
+        payment_hash = await pay_invoice(
             wallet_id=link.wallet,
             payment_request=payment_request,
             max_sat=link.max_withdrawable,
             extra={"tag": "withdraw"},
-            webhook=webhook,
         )
+
+        if link.webhook_url:
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.post(
+                        link.webhook_url,
+                        json={
+                            "payment_hash": payment_hash,
+                            "payment_request": payment_request,
+                            "lnurlw": link.id,
+                        },
+                        timeout=40,
+                    )
+                except Exception as exc:
+                    # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
+                    logger.error("Caught exception when dispatching webhook url:", exc)
 
         return {"status": "OK"}
 

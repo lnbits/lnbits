@@ -23,7 +23,6 @@ new Vue({
       cardDialog: {
         show: false,
         data: {
-          webhook_url: '',
           counter: 1,
           k0: '',
           k1: '',
@@ -273,8 +272,7 @@ new Vue({
         k1: card.k1,
         k2: card.k2,
         k3: card.k1,
-        k4: card.k2,
-        webhook_url: card.webhook_url
+        k4: card.k2
       }
       this.qrCodeDialog.data_wipe = JSON.stringify({
         action: 'wipe',

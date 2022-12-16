@@ -58,11 +58,3 @@ async def m001_initial(db):
         );
     """
     )
-
-
-async def m002_add_webhook(db):
-    await db.execute(
-        """
-        ALTER TABLE boltcards.cards ADD COLUMN webhook_url TEXT NOT NULL DEFAULT '';
-    """
-    )

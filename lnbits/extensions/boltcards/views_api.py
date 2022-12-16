@@ -113,22 +113,6 @@ async def enable_card(
     return card.dict()
 
 
-@boltcards_ext.post("/api/v1/disablecard")
-async def disble_card_with_otp(a):
-    if len(a) < 16:
-        raise HTTPException(detail="Invalid OTP.", status_code=HTTPStatus.BAD_REQUEST)
-    card = await get_card_by_otp(a, half=True)
-    if not card:
-        raise HTTPException(detail="No card found.", status_code=HTTPStatus.NOT_FOUND)
-
-    new_otp = secrets.token_hex(16)
-    await update_card_otp(new_otp, card.id)
-
-    card = await enable_disable_card(enable=False, id=card.id)
-
-    return {"status": "OK"}
-
-
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
 async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
     card = await get_card(card_id)

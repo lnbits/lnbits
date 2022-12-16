@@ -112,27 +112,11 @@ async def lnurl_callback(
     invoice = bolt11.decode(pr)
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
     try:
-        webhook = (
-            (
-                card.webhook_url,
-                {
-                    "notification": "card_payment",
-                    "card_external_id": card.external_id,
-                    "card_name": card.card_name,
-                    "card_otp": card.otp[
-                        -16:
-                    ],  # actually only half of the OTP is sent (full otp reveals the keys)
-                },
-            )
-            if card.webhook_url
-            else None
-        )
         await pay_invoice(
             wallet_id=card.wallet,
             payment_request=pr,
             max_sat=card.tx_limit,
             extra={"tag": "boltcard", "tag": hit.id},
-            webhook=webhook,
         )
 
         return {"status": "OK"}

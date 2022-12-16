@@ -27,10 +27,9 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             k0,
             k1,
             k2,
-            otp,
-            webhook_url
+            otp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
@@ -46,7 +45,6 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             data.k1,
             data.k2,
             secrets.token_hex(16),
-            data.webhook_url,
         ),
     )
     card = await get_card(card_id)
@@ -179,9 +177,6 @@ async def get_hit(hit_id: str) -> Optional[Hit]:
 
 
 async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
-    if len(cards_ids) == 0:
-        return []
-
     q = ",".join(["?"] * len(cards_ids))
     rows = await db.fetchall(
         f"SELECT * FROM boltcards.hits WHERE card_id IN ({q})", (*cards_ids,)
@@ -276,9 +271,6 @@ async def get_refund(refund_id: str) -> Optional[Refund]:
 
 
 async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
-    if len(hits_ids) == 0:
-        return []
-
     q = ",".join(["?"] * len(hits_ids))
     rows = await db.fetchall(
         f"SELECT * FROM boltcards.refunds WHERE hit_id IN ({q})", (*hits_ids,)

@@ -324,14 +324,6 @@
               >Zero if you don't know.</q-tooltip
             >
           </q-input>
-          <q-input
-            filled
-            dense
-            v-model.number="cardDialog.data.webhook_url"
-            type="text"
-            label="Notification webhook"
-          >
-          </q-input>
           <q-btn
             unelevated
             color="primary"
@@ -431,8 +423,6 @@
         <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
         <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
         <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
-        <strong>Notification webhook:</strong> {{ qrCodeDialog.data.webhook_url
-        }}<br />
       </p>
       <p>
         Always backup all keys that you're trying to write on the card. Without
