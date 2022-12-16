@@ -18,19 +18,16 @@
               label="Choose an amount *"
               :hint="'Minimum ' + paywallAmount + ' sat'"
             >
-              <template v-slot:after>
-                <q-btn
-                  round
-                  dense
-                  flat
-                  icon="check"
-                  color="primary"
-                  type="submit"
-                  @click="createInvoice"
-                  :disabled="userAmount < paywallAmount || paymentReq"
-                ></q-btn>
-              </template>
             </q-input>
+            <div class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                :disabled="userAmount < paywallAmount || paymentReq"
+                @click="createInvoice"
+                >Send</q-btn
+              >
+            </div>
           </q-form>
           <div v-if="paymentReq" class="q-mt-lg">
             <a :href="'lightning:' + paymentReq">
