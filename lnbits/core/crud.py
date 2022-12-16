@@ -584,10 +584,7 @@ async def update_admin_settings(data: EditableSetings):
 
 
 async def update_super_user(super_user: str):
-    await db.execute(
-        "UPDATE settings SET super_user = ?",
-        (super_user),
-    )
+    await db.execute("UPDATE settings SET super_user = ?", (super_user,))
     return await get_super_settings()
 
 
