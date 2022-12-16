@@ -3,7 +3,6 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
@@ -17,6 +16,8 @@ from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
 )
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -37,12 +38,12 @@ class UnknownError(Exception):
 
 class EclairWallet(Wallet):
     def __init__(self):
-        url = getenv("ECLAIR_URL")
+        url = settings.eclair_url
         self.url = url[:-1] if url.endswith("/") else url
 
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
-        passw = getenv("ECLAIR_PASS")
+        passw = settings.eclair_pass
         encodedAuth = base64.b64encode(f":{passw}".encode("utf-8"))
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}

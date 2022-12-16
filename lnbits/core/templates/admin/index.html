@@ -1,0 +1,529 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-my-md">
+    <q-btn
+      label="Save"
+      color="primary"
+      @click="updateSettings"
+      :disabled="!checkChanges"
+    >
+      <q-tooltip v-if="checkChanges"> Save your changes </q-tooltip>
+      <q-badge
+        v-if="checkChanges"
+        color="red"
+        rounded
+        floating
+        style="padding: 6px; border-radius: 6px"
+      />
+    </q-btn>
+    <q-btn
+      v-if="isSuperUser"
+      label="Restart server"
+      color="primary"
+      @click="restartServer"
+    >
+      <q-tooltip v-if="needsRestart">
+        Restart the server for changes to take effect
+      </q-tooltip>
+      <q-badge
+        v-if="needsRestart"
+        color="red"
+        rounded
+        floating
+        style="padding: 6px; border-radius: 6px"
+      />
+    </q-btn>
+    <q-btn
+      v-if="isSuperUser"
+      label="Topup"
+      color="primary"
+      @click="topUpDialog.show = true"
+    >
+      <q-tooltip> Add funds to a wallet. </q-tooltip>
+    </q-btn>
+    <!-- <q-btn
+      label="Download Database Backup"
+      flat
+      @click="downloadBackup"
+      ></q-btn> -->
+    <q-btn
+      flat
+      v-if="isSuperUser"
+      label="Reset to defaults"
+      color="primary"
+      @click="deleteSettings"
+      class="float-right"
+    >
+      <q-tooltip> Delete all settings and reset to defaults. </q-tooltip>
+    </q-btn>
+  </div>
+</div>
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
+    <q-card>
+      <div class="q-pa-md">
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" active-color="primary" align="justify">
+            <q-tab
+              name="funding"
+              label="Funding"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="users"
+              label="Users"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="server"
+              label="Server"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="theme"
+              label="Theme"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
+      <q-form name="settings_form" id="settings_form">
+        <q-tab-panels v-model="tab" animated>
+          {% include "admin/_tab_funding.html" %} {% include
+          "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
+          include "admin/_tab_theme.html" %}
+        </q-tab-panels>
+      </q-form>
+    </q-card>
+  </div>
+</div>
+<q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form class="q-gutter-md">
+      <p>TopUp a wallet</p>
+      <div class="row">
+        <div class="col-12">
+          <q-input
+            dense
+            type="text"
+            filled
+            v-model="wallet.id"
+            label="Wallet ID"
+            hint="Use the wallet ID to topup any wallet"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12">
+          <q-input
+            dense
+            type="number"
+            filled
+            v-model="wallet.amount"
+            label="Topup amount"
+          ></q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn label="Topup" color="primary" @click="topupWallet"></q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        settings: {},
+        lnbits_theme_options: [
+            'classic',
+            'bitcoin',
+            'flamingo',
+            'freedom',
+            'mint',
+            'autumn',
+            'monochrome',
+            'salvador'
+          ],
+        formData: {},
+        formAddAdmin: '',
+        formAddUser: '',
+        isSuperUser: false,
+        wallet: {},
+        cancel: {},
+        topUpDialog: {
+          show: false
+        },
+        tab: 'funding',
+        needsRestart: false,
+        funding_sources: new Map([
+          ['VoidWallet', null],
+          [
+            'FakeWallet',
+            {
+              fake_wallet_secret: {
+                value: null,
+                label: 'Secret'
+              }
+            }
+          ],
+          [
+            'CLightningWallet',
+            {
+              corelightning_rpc: {
+                value: null,
+                label: 'Endpoint'
+              }
+            }
+          ],
+          [
+            'LndRestWallet',
+            {
+              lnd_rest_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lnd_rest_cert: {
+                value: null,
+                label: 'Certificate'
+              },
+              lnd_rest_macaroon: {
+                value: null,
+                label: 'Macaroon'
+              },
+              lnd_rest_macaroon_encrypted: {
+                value: null,
+                label: 'Encrypted Macaroon'
+              },
+              lnd_cert: {
+                value: null,
+                label: 'Certificate'
+              },
+              lnd_admin_macaroon: {
+                value: null,
+                label: 'Admin Macaroon'
+              },
+              lnd_invoice_macaroon: {
+                value: null,
+                label: 'Invoice Macaroon'
+              }
+            }
+          ],
+          [
+            'LndWallet',
+            {
+              lnd_grpc_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lnd_grpc_cert: {
+                value: null,
+                label: 'Certificate'
+              },
+              lnd_grpc_port: {
+                value: null,
+                label: 'Port'
+              },
+              lnd_grpc_admin_macaroon: {
+                value: null,
+                label: 'Admin Macaroon'
+              },
+              lnd_grpc_invoice_macaroon: {
+                value: null,
+                label: 'Invoice Macaroon'
+              },
+              lnd_grpc_macaroon_encrypted: {
+                value: null,
+                label: 'Encrypted Macaroon'
+              }
+            }
+          ],
+          [
+            'LntxbotWallet',
+            {
+              lntxbot_api_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lntxbot_key: {
+                value: null,
+                label: 'Key'
+              }
+            }
+          ],
+          [
+            'LNPayWallet',
+            {
+              lnpay_api_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lnpay_api_key: {
+                value: null,
+                label: 'API Key'
+              },
+              lnpay_wallet_key: {
+                value: null,
+                label: 'Wallet Key'
+              }
+            }
+          ],
+          [
+            'EclairWallet',
+            {
+              eclair_url: {
+                value: null,
+                label: 'Endpoint'
+              },
+              eclair_pass: {
+                value: null,
+                label: 'Password'
+              }
+            }
+          ],
+          [
+            'LNbitsWallet',
+            {
+              lnbits_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lnbits_key: {
+                value: null,
+                label: 'Admin Key'
+              }
+            }
+          ],
+          [
+            'OpenNodeWallet',
+            {
+              opennode_api_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              opennode_key: {
+                value: null,
+                label: 'Key'
+              }
+            }
+          ],
+          [
+            'ClicheWallet',
+            {
+              cliche_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              }
+            }
+          ],
+          [
+            'SparkWallet',
+            {
+              spark_url: {
+                value: null,
+                label: 'Endpoint'
+              },
+              spark_token: {
+                value: null,
+                label: 'Token'
+              }
+            }
+          ],
+          [
+            'LnTipsWallet',
+            {
+              lntips_api_endpoint: {
+                value: null,
+                label: 'Endpoint'
+              },
+              lntips_api_key: {
+                value: null,
+                label: 'API Key'
+              }
+            }
+          ]
+        ])
+      }
+    },
+    created: function () {
+      this.getSettings()
+      this.balance = +'{{ balance|safe }}'
+    },
+    computed: {
+      checkChanges() {
+        return !_.isEqual(this.settings, this.formData)
+      }
+    },
+    methods: {
+      addAdminUser() {
+        let addUser = this.formAddAdmin
+        let admin_users = this.formData.lnbits_admin_users
+        if (addUser && addUser.length && !admin_users.includes(addUser)) {
+          //admin_users = [...admin_users, addUser]
+          this.formData.lnbits_admin_users = [...admin_users, addUser]
+          this.formAddAdmin = ''
+          //console.log(this.checkChanges)
+        }
+      },
+      removeAdminUser(user) {
+        let admin_users = this.formData.lnbits_admin_users
+        this.formData.lnbits_admin_users = admin_users.filter(u => u !== user)
+      },
+      addAllowedUser() {
+        let addUser = this.formAddUser
+        let allowed_users = this.formData.lnbits_allowed_users
+        if (addUser && addUser.length && !allowed_users.includes(addUser)) {
+          this.formData.lnbits_allowed_users = [...allowed_users, addUser]
+          this.formAddUser = ''
+        }
+      },
+      removeAllowedUser(user) {
+        let allowed_users = this.formData.lnbits_allowed_users
+        this.formData.lnbits_allowed_users = allowed_users.filter(
+          u => u !== user
+        )
+      },
+      restartServer() {
+        LNbits.api
+          .request('GET', '/admin/api/v1/restart/?usr=' + this.g.user.id)
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Success! Restarted Server',
+              icon: null
+            })
+            this.needsRestart = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      topupWallet() {
+        LNbits.api
+          .request(
+            'PUT',
+            '/admin/api/v1/topup/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey,
+            this.wallet
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message:
+                'Success! Added ' +
+                this.wallet.amount +
+                ' to ' +
+                this.wallet.id,
+              icon: null
+            })
+            this.wallet = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateFundingData() {
+        this.settings.lnbits_allowed_funding_sources.map(f => {
+          let opts = this.funding_sources.get(f)
+          if (!opts) return
+
+          Object.keys(opts).forEach(e => {
+            opts[e].value = this.settings[e]
+          })
+        })
+      },
+      getSettings() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/settings/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.isSuperUser = response.data.super_user || false
+            this.settings = response.data
+            this.formData = _.clone(this.settings)
+            this.updateFundingData()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateSettings() {
+        let data = _.omit(this.formData, [
+          'super_user',
+          'lnbits_allowed_funding_sources'
+        ])
+        LNbits.api
+          .request(
+            'PUT',
+            '/admin/api/v1/settings/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(response => {
+            this.needsRestart =
+              this.settings.lnbits_backend_wallet_class !==
+              this.formData.lnbits_backend_wallet_class
+            this.settings = this.formData
+            this.formData = _.clone(this.settings)
+            this.updateFundingData()
+            this.$q.notify({
+              type: 'positive',
+              message: 'Success! Settings changed!',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteSettings() {
+        LNbits.utils
+          .confirmDialog(
+            'Are you sure you want to restore settings to default?'
+          )
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/admin/api/v1/settings/?usr=' + this.g.user.id
+              )
+              .then(response => {
+                this.$q.notify({
+                  type: 'positive',
+                  message:
+                    'Success! Restored settings to defaults, restart required!',
+                  icon: null
+                })
+                this.needsRestart = true
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      downloadBackup() {
+        LNbits.api
+          .request('GET', '/admin/api/v1/backup/?usr=' + this.g.user.id)
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message:
+                'Success! Database backup request, download starts soon!',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}
