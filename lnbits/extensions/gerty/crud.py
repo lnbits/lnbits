@@ -25,9 +25,10 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
         mempool_endpoint,
         exchange,
         display_preferences,
-        refresh_time
+        refresh_time,
+        urls
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             gerty_id,
@@ -40,6 +41,7 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
             data.exchange,
             data.display_preferences,
             data.refresh_time,
+            data.urls,
         ),
     )
 

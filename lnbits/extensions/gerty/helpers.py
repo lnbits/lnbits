@@ -6,7 +6,7 @@ import httpx
 from loguru import logger
 import os
 import random
-from .crud import get_mempool_info
+from .crud import get_mempool_info, get_gerty
 
 from .number_prefixer import *
 from ...settings import LNBITS_PATH
@@ -940,3 +940,8 @@ def get_time_remaining(seconds, granularity=2):
                 name = name.rstrip("s")
             result.append("{} {}".format(round(value), name))
     return ", ".join(result[:granularity])
+
+
+async def get_urls_to_watch(gerty):
+    gerty = await get_gerty(gerty)
+    return json.loads(gerty.urls)

@@ -50,3 +50,9 @@ async def m004_initial(db):
         );
     """
     )
+
+async def m005_add_gerty_model_col(db):
+    """
+    support for Gerty model col
+    """
+    await db.execute("ALTER TABLE gerty.gertys ADD COLUMN urls TEXT DEFAULT '';")

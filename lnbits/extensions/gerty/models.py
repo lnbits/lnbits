@@ -20,6 +20,7 @@ class Gerty(BaseModel):
         None
     )  # BTC <-> Fiat exchange rate to pull ie "USD", in 0.0001 and sats
     display_preferences: str = Query(None)
+    urls: str = Query(None)
 
     @classmethod
     def from_row(cls, row: Row) -> "Gerty":
