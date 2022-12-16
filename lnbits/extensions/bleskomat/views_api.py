@@ -95,4 +95,4 @@ async def api_bleskomat_delete(
         )
 
     await delete_bleskomat(bleskomat_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

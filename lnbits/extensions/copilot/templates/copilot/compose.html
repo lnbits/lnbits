@@ -238,7 +238,7 @@
           document.domain +
           ':' +
           location.port +
-          '/copilot/ws/' +
+          '/api/v1/ws/' +
           self.copilot.id
       } else {
         localUrl =
@@ -246,7 +246,7 @@
           document.domain +
           ':' +
           location.port +
-          '/copilot/ws/' +
+          '/api/v1/ws/' +
           self.copilot.id
       }
       this.connection = new WebSocket(localUrl)

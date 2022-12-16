@@ -2,12 +2,13 @@ import asyncio
 import hashlib
 import json
 from http import HTTPStatus
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from fastapi.exceptions import HTTPException
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -22,10 +23,10 @@ class LNPayWallet(Wallet):
     """https://docs.lnpay.co/"""
 
     def __init__(self):
-        endpoint = getenv("LNPAY_API_ENDPOINT", "https://lnpay.co/v1")
+        endpoint = settings.lnpay_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.wallet_key = getenv("LNPAY_WALLET_KEY") or getenv("LNPAY_ADMIN_KEY")
-        self.auth = {"X-Api-Key": getenv("LNPAY_API_KEY")}
+        self.wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
+        self.auth = {"X-Api-Key": settings.lnpay_api_key}
 
     async def status(self) -> StatusResponse:
         url = f"{self.endpoint}/wallet/{self.wallet_key}"

@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import random
 from datetime import datetime
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
-from environs import Env  # type: ignore
 from loguru import logger
+
+from lnbits.settings import settings
 
 from ..bolt11 import Invoice, decode, encode
 from .base import (
@@ -17,13 +17,10 @@ from .base import (
     Wallet,
 )
 
-env = Env()
-env.read_env()
-
 
 class FakeWallet(Wallet):
     queue: asyncio.Queue = asyncio.Queue(0)
-    secret: str = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
+    secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",
         secret.encode("utf-8"),
@@ -45,9 +42,6 @@ class FakeWallet(Wallet):
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        # we set a default secret since FakeWallet is used for internal=True invoices
-        # and the user might not have configured a secret yet
-
         data: Dict = {
             "out": False,
             "amount": amount,

@@ -52,15 +52,17 @@ async def api_usermanager_users_create(
 
 @usermanager_ext.delete("/api/v1/users/{user_id}")
 async def api_usermanager_users_delete(
-    user_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+    user_id,
+    delete_core: bool = Query(True),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     user = await get_usermanager_user(user_id)
     if not user:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    await delete_usermanager_user(user_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    await delete_usermanager_user(user_id, delete_core)
+    return "", HTTPStatus.NO_CONTENT
 
 
 # Activate Extension
@@ -124,4 +126,4 @@ async def api_usermanager_wallets_delete(
             status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
     await delete_usermanager_wallet(wallet_id, get_wallet.user)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

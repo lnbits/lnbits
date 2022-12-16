@@ -10,7 +10,7 @@ import asyncio
 import base64
 import binascii
 import hashlib
-from os import environ, error, getenv
+from os import environ, error
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
@@ -22,6 +22,8 @@ if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
     import lnbits.wallets.lnd_grpc_files.router_pb2 as router
     import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -104,20 +106,20 @@ class LndWallet(Wallet):
                 "The `grpcio` and `protobuf` library must be installed to use `GRPC LndWallet`. Alternatively try using the LndRESTWallet."
             )
 
-        endpoint = getenv("LND_GRPC_ENDPOINT")
+        endpoint = settings.lnd_grpc_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.port = int(getenv("LND_GRPC_PORT"))
-        self.cert_path = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
+        self.port = int(settings.lnd_grpc_port)
+        self.cert_path = settings.lnd_grpc_cert or settings.lnd_cert
 
         macaroon = (
-            getenv("LND_GRPC_MACAROON")
-            or getenv("LND_GRPC_ADMIN_MACAROON")
-            or getenv("LND_ADMIN_MACAROON")
-            or getenv("LND_GRPC_INVOICE_MACAROON")
-            or getenv("LND_INVOICE_MACAROON")
+            settings.lnd_grpc_macaroon
+            or settings.lnd_grpc_admin_macaroon
+            or settings.lnd_admin_macaroon
+            or settings.lnd_grpc_invoice_macaroon
+            or settings.lnd_invoice_macaroon
         )
 
-        encrypted_macaroon = getenv("LND_GRPC_MACAROON_ENCRYPTED")
+        encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
         if encrypted_macaroon:
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon

@@ -7,10 +7,12 @@ from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_latest_payments_by_extension, get_user
+from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.settings import settings
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
@@ -51,7 +53,7 @@ async def api_tpos_delete(
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your TPoS.")
 
     await delete_tpos(tpos_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
@@ -79,6 +81,30 @@ async def api_tpos_create_invoice(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
+
+
+@tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices")
+async def api_tpos_get_latest_invoices(tpos_id: str = None):
+    try:
+        payments = [
+            Payment.from_row(row)
+            for row in await get_latest_payments_by_extension(
+                ext_name="tpos", ext_id=tpos_id
+            )
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+    return [
+        {
+            "checking_id": payment.checking_id,
+            "amount": payment.amount,
+            "time": payment.time,
+            "pending": payment.pending,
+        }
+        for payment in payments
+    ]
 
 
 @tpos_ext.post(
@@ -109,7 +135,8 @@ async def api_tpos_pay_invoice(
 
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.get(lnurl, follow_redirects=True)
+            headers = {"user-agent": f"lnbits/tpos commit {settings.lnbits_commit[:7]}"}
+            r = await client.get(lnurl, follow_redirects=True, headers=headers)
             if r.is_error:
                 lnurl_response = {"success": False, "detail": "Error loading"}
             else:
@@ -120,6 +147,7 @@ async def api_tpos_pay_invoice(
                     r2 = await client.get(
                         resp["callback"],
                         follow_redirects=True,
+                        headers=headers,
                         params={
                             "k1": resp["k1"],
                             "pr": payment_request,

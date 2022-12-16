@@ -82,7 +82,7 @@
             >
           </div>
         </div>
-        <p v-else>{{SITE_DESCRIPTION}}</p>
+        <p v-else>{{SITE_DESCRIPTION | safe}}</p>
       </q-card-section>
     </q-card>
   </div>
@@ -183,6 +183,23 @@
           <div class="col q-pl-md">&nbsp;</div>
         </div>
       </div>
+
+      {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+      <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
+        <q-btn flat color="secondary" class="full-width q-mb-md"
+          >{{ AD_TITLE }}</q-btn
+        >
+
+        <a href="{{ AD[0] }}" class="q-ma-md">
+          <img
+            v-if="($q.dark.isActive)"
+            src="{{ AD[1] }}"
+            style="max-width: 90%"
+          />
+          <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
+        </a>
+      </div>
+      {% endfor %} {% endif %}
     </div>
   </div>
 </div>

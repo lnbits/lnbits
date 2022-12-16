@@ -50,16 +50,15 @@ async def api_targets_set(
             Target(
                 wallet=wallet.id,
                 source=wal.wallet.id,
+                tag=entry.tag,
                 percent=entry.percent,
                 alias=entry.alias,
             )
         )
-
-    percent_sum = sum([target.percent for target in targets])
-    if percent_sum > 100:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
-        )
-
+        percent_sum = sum([target.percent for target in targets])
+        if percent_sum > 100:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
+            )
     await set_targets(wal.wallet.id, targets)
     return ""

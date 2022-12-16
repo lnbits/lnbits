@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 
 from fastapi import Request
@@ -89,6 +90,24 @@ async def api_link_create_or_update(
         raise HTTPException(
             detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
+
+    if data.webhook_headers:
+        try:
+            json.loads(data.webhook_headers)
+        except ValueError:
+            raise HTTPException(
+                detail="Invalid JSON in webhook_headers.",
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+
+    if data.webhook_body:
+        try:
+            json.loads(data.webhook_body)
+        except ValueError:
+            raise HTTPException(
+                detail="Invalid JSON in webhook_body.",
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
 
     # database only allows int4 entries for min and max. For fiat currencies,
     # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.

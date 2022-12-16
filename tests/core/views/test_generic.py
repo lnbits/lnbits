@@ -46,11 +46,11 @@ async def test_get_wallet_no_redirect(client):
         i += 1
 
 
-# check GET /wallet: wrong user, expect 204
+# check GET /wallet: wrong user, expect 400
 @pytest.mark.asyncio
 async def test_get_wallet_with_nonexistent_user(client):
     response = await client.get("wallet", params={"usr": "1"})
-    assert response.status_code == 204, (
+    assert response.status_code == 400, (
         str(response.url) + " " + str(response.status_code)
     )
 
@@ -91,11 +91,11 @@ async def test_get_wallet_with_user_and_wallet(client, to_user, to_wallet):
     )
 
 
-# check GET /wallet: wrong wallet and user, expect 204
+# check GET /wallet: wrong wallet and user, expect 400
 @pytest.mark.asyncio
 async def test_get_wallet_with_user_and_wrong_wallet(client, to_user):
     response = await client.get("wallet", params={"usr": to_user.id, "wal": "1"})
-    assert response.status_code == 204, (
+    assert response.status_code == 400, (
         str(response.url) + " " + str(response.status_code)
     )
 
@@ -109,20 +109,20 @@ async def test_get_extensions(client, to_user):
     )
 
 
-# check GET /extensions: extensions list wrong user, expect 204
+# check GET /extensions: extensions list wrong user, expect 400
 @pytest.mark.asyncio
 async def test_get_extensions_wrong_user(client, to_user):
     response = await client.get("extensions", params={"usr": "1"})
-    assert response.status_code == 204, (
+    assert response.status_code == 400, (
         str(response.url) + " " + str(response.status_code)
     )
 
 
-# check GET /extensions: no user given, expect code 204 no content
+# check GET /extensions: no user given, expect code 400 bad request
 @pytest.mark.asyncio
 async def test_get_extensions_no_user(client):
     response = await client.get("extensions")
-    assert response.status_code == 204, (  # no content
+    assert response.status_code == 400, (  # bad request
         str(response.url) + " " + str(response.status_code)
     )
 

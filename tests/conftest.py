@@ -10,7 +10,7 @@ from lnbits.core.crud import create_account, create_wallet, get_wallet
 from lnbits.core.models import BalanceCheck, Payment, User, Wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
-from lnbits.settings import HOST, PORT
+from lnbits.settings import settings
 from tests.helpers import credit_wallet, get_random_invoice_data
 
 
@@ -38,7 +38,7 @@ def app(event_loop):
 
 @pytest_asyncio.fixture(scope="session")
 async def client(app):
-    client = AsyncClient(app=app, base_url=f"http://{HOST}:{PORT}")
+    client = AsyncClient(app=app, base_url=f"http://{settings.host}:{settings.port}")
     yield client
     await client.aclose()
 
@@ -60,7 +60,7 @@ async def from_wallet(from_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await credit_wallet(
         wallet_id=wallet.id,
-        amount=99999999,
+        amount=999999999,
     )
     yield wallet
 
@@ -77,7 +77,7 @@ async def to_wallet(to_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
     await credit_wallet(
         wallet_id=wallet.id,
-        amount=99999999,
+        amount=999999999,
     )
     yield wallet
 

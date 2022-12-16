@@ -12,7 +12,7 @@ from loguru import logger
 
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import BOLTZ_NETWORK, BOLTZ_URL
+from lnbits.settings import settings
 
 from .crud import update_swap_status
 from .mempool import (
@@ -33,9 +33,7 @@ from .models import (
 )
 from .utils import check_balance, get_timestamp, req_wrap
 
-net = NETWORKS[BOLTZ_NETWORK]
-logger.trace(f"BOLTZ_URL: {BOLTZ_URL}")
-logger.trace(f"Bitcoin Network: {net['name']}")
+net = NETWORKS[settings.boltz_network]
 
 
 async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
@@ -62,7 +60,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
 
     res = req_wrap(
         "post",
-        f"{BOLTZ_URL}/createswap",
+        f"{settings.boltz_url}/createswap",
         json={
             "type": "submarine",
             "pairId": "BTC/BTC",
@@ -129,7 +127,7 @@ async def create_reverse_swap(
 
     res = req_wrap(
         "post",
-        f"{BOLTZ_URL}/createswap",
+        f"{settings.boltz_url}/createswap",
         json={
             "type": "reversesubmarine",
             "pairId": "BTC/BTC",
@@ -409,7 +407,7 @@ def check_boltz_limits(amount):
 def get_boltz_pairs():
     res = req_wrap(
         "get",
-        f"{BOLTZ_URL}/getpairs",
+        f"{settings.boltz_url}/getpairs",
         headers={"Content-Type": "application/json"},
     )
     return res.json()
@@ -418,7 +416,7 @@ def get_boltz_pairs():
 def get_boltz_status(boltzid):
     res = req_wrap(
         "post",
-        f"{BOLTZ_URL}/swapstatus",
+        f"{settings.boltz_url}/swapstatus",
         json={"id": boltzid},
     )
     return res.json()

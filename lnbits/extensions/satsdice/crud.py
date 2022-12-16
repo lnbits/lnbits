@@ -8,7 +8,6 @@ from .models import (
     CreateSatsDiceLink,
     CreateSatsDicePayment,
     CreateSatsDiceWithdraw,
-    HashCheck,
     satsdiceLink,
     satsdicePayment,
     satsdiceWithdraw,
@@ -76,7 +75,7 @@ async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceL
     return [satsdiceLink(**row) for row in rows]
 
 
-async def update_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
+async def update_satsdice_pay(link_id: str, **kwargs) -> satsdiceLink:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE satsdice.satsdice_pay SET {q} WHERE id = ?",
@@ -85,10 +84,10 @@ async def update_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return satsdiceLink(**row) if row else None
+    return satsdiceLink(**row)
 
 
-async def increment_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
+async def increment_satsdice_pay(link_id: str, **kwargs) -> Optional[satsdiceLink]:
     q = ", ".join([f"{field[0]} = {field[0]} + ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE satsdice.satsdice_pay SET {q} WHERE id = ?",
@@ -100,7 +99,7 @@ async def increment_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLin
     return satsdiceLink(**row) if row else None
 
 
-async def delete_satsdice_pay(link_id: int) -> None:
+async def delete_satsdice_pay(link_id: str) -> None:
     await db.execute("DELETE FROM satsdice.satsdice_pay WHERE id = ?", (link_id,))
 
 
@@ -119,9 +118,15 @@ async def create_satsdice_payment(data: CreateSatsDicePayment) -> satsdicePaymen
         )
         VALUES (?, ?, ?, ?, ?)
         """,
-        (data["payment_hash"], data["satsdice_pay"], data["value"], False, False),
+        (
+            data.payment_hash,
+            data.satsdice_pay,
+            data.value,
+            False,
+            False,
+        ),
     )
-    payment = await get_satsdice_payment(data["payment_hash"])
+    payment = await get_satsdice_payment(data.payment_hash)
     assert payment, "Newly created withdraw couldn't be retrieved"
     return payment
 
@@ -134,9 +139,7 @@ async def get_satsdice_payment(payment_hash: str) -> Optional[satsdicePayment]:
     return satsdicePayment(**row) if row else None
 
 
-async def update_satsdice_payment(
-    payment_hash: int, **kwargs
-) -> Optional[satsdicePayment]:
+async def update_satsdice_payment(payment_hash: str, **kwargs) -> satsdicePayment:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
@@ -147,7 +150,7 @@ async def update_satsdice_payment(
         "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?",
         (payment_hash,),
     )
-    return satsdicePayment(**row) if row else None
+    return satsdicePayment(**row)
 
 
 ##################SATSDICE WITHDRAW LINKS
@@ -168,16 +171,16 @@ async def create_satsdice_withdraw(data: CreateSatsDiceWithdraw) -> satsdiceWith
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            data["payment_hash"],
-            data["satsdice_pay"],
-            data["value"],
+            data.payment_hash,
+            data.satsdice_pay,
+            data.value,
             urlsafe_short_hash(),
             urlsafe_short_hash(),
             int(datetime.now().timestamp()),
-            data["used"],
+            data.used,
         ),
     )
-    withdraw = await get_satsdice_withdraw(data["payment_hash"], 0)
+    withdraw = await get_satsdice_withdraw(data.payment_hash, 0)
     assert withdraw, "Newly created withdraw couldn't be retrieved"
     return withdraw
 
@@ -247,7 +250,7 @@ async def delete_satsdice_withdraw(withdraw_id: str) -> None:
     )
 
 
-async def create_withdraw_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
+async def create_withdraw_hash_check(the_hash: str, lnurl_id: str):
     await db.execute(
         """
         INSERT INTO satsdice.hash_checkw (
@@ -262,19 +265,15 @@ async def create_withdraw_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
     return hashCheck
 
 
-async def get_withdraw_hash_checkw(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
+async def get_withdraw_hash_checkw(the_hash: str, lnurl_id: str):
     rowid = await db.fetchone(
         "SELECT * FROM satsdice.hash_checkw WHERE id = ?", (the_hash,)
     )
     rowlnurl = await db.fetchone(
         "SELECT * FROM satsdice.hash_checkw WHERE lnurl_id = ?", (lnurl_id,)
     )
-    if not rowlnurl:
+    if not rowlnurl or not rowid:
         await create_withdraw_hash_check(the_hash, lnurl_id)
         return {"lnurl": True, "hash": False}
     else:
-        if not rowid:
-            await create_withdraw_hash_check(the_hash, lnurl_id)
-            return {"lnurl": True, "hash": False}
-        else:
-            return {"lnurl": True, "hash": True}
+        return {"lnurl": True, "hash": True}
