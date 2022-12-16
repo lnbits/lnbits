@@ -17,7 +17,7 @@ Up to five 16-byte keys can be stored on the card, numbered from 00 to 04. In th
 
 - One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
 
-The key #00, K0 (also know as auth key) is skipped to be used as authentification key. It is not needed by this extension, but should be filled in order to write the keys in cooperation with Boltcard NFC Card Creator. In this case also K3 is set to same value as K1 and K4 as K2, so all keys are changed from default values. Keep that in your mind in case you need to reset the keys manually.
+The key #00, K0 (also know as auth key) is used as authentification key. It is not directly needed by this extension, but should be filled in order to write the keys in cooperation with Boltcard NFC Card Creator. In this case also K3 is set to same value as K1 and K4 as K2, so all keys are changed from default values. Keep that in your mind in case you ever need to reset the keys manually.
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
