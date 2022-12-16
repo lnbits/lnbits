@@ -6,7 +6,8 @@ This extension allows you to link your Bolt Card (or other compatible NXP NTAG d
 
 **Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
-***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [Boltcard NFC Card Creator](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes. It's available from Google Play [here](https://play.google.com/store/apps/details?id=com.lightningnfcapp).
+
+***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNbits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [Boltcard NFC Card Creator](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes. It's available from Google Play [here](https://play.google.com/store/apps/details?id=com.lightningnfcapp).
 
 ## About the keys
 
@@ -20,13 +21,14 @@ The key #00, K0 (also know as auth key) is skipped to be used as authentificatio
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
+
 ## Setting the card - Boltcard NFC Card Creator (easy way)
-Updated for v0.1.2
+Updated for v0.1.3
 
 - Add new card in the extension. 
     - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
     - Set a max sats per day. After the card spends this amount of sats in a day, additional transactions will be rejected.
-    - Set a card name. This is just for your reference inside LNBits.
+    - Set a card name. This is just for your reference inside LNbits.
     - Set the card UID. This is the unique identifier on your NFC card and is 7 bytes.
         - If on an Android device with a newish version of Chrome, you can click the icon next to the input and tap your card to autofill this field.
         - Otherwise read it with the Android app (Advanced -> Read NFC) and paste it to the field.
@@ -41,7 +43,7 @@ Updated for v0.1.2
 - Click WRITE CARD NOW and approach the NFC card to set it up. DO NOT REMOVE THE CARD PREMATURELY! 
 
 ## Erasing the card - Boltcard NFC Card Creator
-Updated for v0.1.2
+Updated for v0.1.3
 
 Since v0.1.2 of Boltcard NFC Card Creator it is possible not only reset the keys but also disable the SUN function and do the complete erase so the card can be use again as a static tag (or set as a new Bolt Card, ofc).
 

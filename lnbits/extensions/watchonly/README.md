@@ -4,7 +4,7 @@
 
 Monitor an extended public key and generate deterministic fresh public keys with this simple watch only wallet. Invoice payments can also be generated, both through a publically shareable page and API.
 
-You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/satspay/README.md) extension
+You can now use this wallet on the LNbits [SatsPayServer](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/satspay/README.md) extension
 
 <a href="https://www.youtube.com/watch?v=rQMHzQEPwZY">Video demo</a>
 

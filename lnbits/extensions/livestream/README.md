@@ -2,7 +2,7 @@
 
 ## Help DJ's and music producers conduct music livestreams
 
-LNBits Livestream extension produces a static QR code that can be shown on screen while livestreaming a DJ set for example. If someone listening to the livestream likes a song and want to support the DJ and/or the producer he can scan the QR code with a LNURL-pay capable wallet.
+LNbits Livestream extension produces a static QR code that can be shown on screen while livestreaming a DJ set for example. If someone listening to the livestream likes a song and want to support the DJ and/or the producer he can scan the QR code with a LNURL-pay capable wallet.
 
 When scanned, the QR code sends up information about the song playing at the moment (name and the producer of that song). Also, if the user likes the song and would like to support the producer, he can send a tip and a message for that specific track. If the user sends an amount over a specific threshold they will be given a link to download it (optional).
 
@@ -25,7 +25,7 @@ The revenue will be sent to a wallet created specifically for that producer, wit
    ![adjust percentage](https://i.imgur.com/9weHKAB.jpg)
 3. For every different producer added, when adding tracks, a wallet is generated for them\
    ![producer wallet](https://i.imgur.com/YFIZ7Tm.jpg)
-4. On the bottom of the LNBits DJ Livestream extension you'll find the static QR code ([LNURL-pay](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/lnurlp/README.md)) you can add to the livestream or if you're a street performer you can print it and have it displayed
+4. On the bottom of the LNbits DJ Livestream extension you'll find the static QR code ([LNURL-pay](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/lnurlp/README.md)) you can add to the livestream or if you're a street performer you can print it and have it displayed
 5. After all tracks and producers are added, you can start "playing" songs\
    ![play tracks](https://i.imgur.com/7ytiBkq.jpg)
 6. You'll see the current track playing and a green icon indicating active track also\
