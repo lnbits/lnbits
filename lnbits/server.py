@@ -1,7 +1,14 @@
+import uvloop
+
+uvloop.install()
+
+import multiprocessing as mp
+import time
+
 import click
 import uvicorn
 
-from lnbits.settings import FORWARDED_ALLOW_IPS, HOST, PORT
+from lnbits.settings import set_cli_settings, settings
 
 
 @click.command(
@@ -10,10 +17,12 @@ from lnbits.settings import FORWARDED_ALLOW_IPS, HOST, PORT
         allow_extra_args=True,
     )
 )
-@click.option("--port", default=PORT, help="Port to listen on")
-@click.option("--host", default=HOST, help="Host to run LNbits on")
+@click.option("--port", default=settings.port, help="Port to listen on")
+@click.option("--host", default=settings.host, help="Host to run LNBits on")
 @click.option(
-    "--forwarded-allow-ips", default=FORWARDED_ALLOW_IPS, help="Allowed proxy servers"
+    "--forwarded-allow-ips",
+    default=settings.forwarded_allow_ips,
+    help="Allowed proxy servers",
 )
 @click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
 @click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
@@ -27,6 +36,9 @@ def main(
     ssl_certfile: str,
 ):
     """Launched with `poetry run lnbits` at root level"""
+
+    set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
+
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server
     d = dict()
     for a in ctx.args:
@@ -41,18 +53,32 @@ def main(
         else:
             d[a.strip("--")] = True  # argument like --key
 
-    config = uvicorn.Config(
-        "lnbits.__main__:app",
-        port=port,
-        host=host,
-        forwarded_allow_ips=forwarded_allow_ips,
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile,
-        **d
-    )
-    server = uvicorn.Server(config)
-    server.run()
+    while True:
+        config = uvicorn.Config(
+            "lnbits.__main__:app",
+            loop="uvloop",
+            port=port,
+            host=host,
+            forwarded_allow_ips=forwarded_allow_ips,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile,
+            **d
+        )
 
+        server = uvicorn.Server(config=config)
+        process = mp.Process(target=server.run)
+        process.start()
+        server_restart.wait()
+        server_restart.clear()
+        server.should_exit = True
+        server.force_exit = True
+        time.sleep(3)
+        process.terminate()
+        process.join()
+        time.sleep(1)
+
+
+server_restart = mp.Event()
 
 if __name__ == "__main__":
     main()

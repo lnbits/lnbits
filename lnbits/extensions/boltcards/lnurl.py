@@ -1,21 +1,13 @@
-import base64
-import hashlib
-import hmac
 import json
 import secrets
 from http import HTTPStatus
-from io import BytesIO
-from typing import Optional
 from urllib.parse import urlparse
 
-from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends, Query
-from lnurl import Lnurl, LnurlWithdrawResponse
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
-from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
@@ -33,7 +25,6 @@ from .crud import (
     get_hit,
     get_hits_today,
     spend_hit,
-    update_card,
     update_card_counter,
     update_card_otp,
 )
@@ -138,8 +129,8 @@ async def lnurl_callback(
             extra={"tag": "boltcard", "tag": hit.id},
         )
         return {"status": "OK"}
-    except:
-        return {"status": "ERROR", "reason": f"Payment failed"}
+    except Exception as exc:
+        return {"status": "ERROR", "reason": f"Payment failed - {exc}"}
 
 
 # /boltcards/api/v1/auth?a=00000000000000000000000000000000

@@ -138,6 +138,7 @@ window.LNbits = {
     user: function (data) {
       var obj = {
         id: data.id,
+        admin: data.admin,
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets

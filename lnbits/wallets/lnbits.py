@@ -1,11 +1,12 @@
 import asyncio
 import hashlib
 import json
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -20,12 +21,12 @@ class LNbitsWallet(Wallet):
     """https://github.com/lnbits/lnbits"""
 
     def __init__(self):
-        self.endpoint = getenv("LNBITS_ENDPOINT")
+        self.endpoint = settings.lnbits_endpoint
 
         key = (
-            getenv("LNBITS_KEY")
-            or getenv("LNBITS_ADMIN_KEY")
-            or getenv("LNBITS_INVOICE_KEY")
+            settings.lnbits_key
+            or settings.lnbits_admin_key
+            or settings.lnbits_invoice_key
         )
         self.key = {"X-Api-Key": key}
 
@@ -147,18 +148,26 @@ class LNbitsWallet(Wallet):
         while True:
             try:
                 async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
-                    async with client.stream("GET", url) as r:
+                    del client.headers[
+                        "accept-encoding"
+                    ]  # we have to disable compression for SSEs
+                    async with client.stream(
+                        "GET", url, content="text/event-stream"
+                    ) as r:
+                        sse_trigger = False
                         async for line in r.aiter_lines():
-                            if line.startswith("data:"):
-                                try:
-                                    data = json.loads(line[5:])
-                                except json.decoder.JSONDecodeError:
-                                    continue
-
-                                if type(data) is not dict:
-                                    continue
-
-                                yield data["payment_hash"]  # payment_hash
+                            # The data we want to listen to is of this shape:
+                            # event: payment-received
+                            # data: {.., "payment_hash" : "asd"}
+                            if line.startswith("event: payment-received"):
+                                sse_trigger = True
+                                continue
+                            elif sse_trigger and line.startswith("data:"):
+                                data = json.loads(line[len("data:") :])
+                                sse_trigger = False
+                                yield data["payment_hash"]
+                            else:
+                                sse_trigger = False
 
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass

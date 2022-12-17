@@ -7,6 +7,8 @@ import warnings
 import click
 from loguru import logger
 
+from lnbits.settings import settings
+
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -16,7 +18,6 @@ from .helpers import (
     get_valid_extensions,
     url_for_vendored,
 )
-from .settings import LNBITS_PATH
 
 
 @click.command("migrate")
@@ -35,15 +36,17 @@ def transpile_scss():
         warnings.simplefilter("ignore")
         from scss.compiler import compile_string  # type: ignore
 
-        with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
-            with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
+        with open(os.path.join(settings.lnbits_path, "static/scss/base.scss")) as scss:
+            with open(
+                os.path.join(settings.lnbits_path, "static/css/base.css"), "w"
+            ) as css:
                 css.write(compile_string(scss.read()))
 
 
 def bundle_vendored():
     for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
-        (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
+        (get_js_vendored, os.path.join(settings.lnbits_path, "static/bundle.js")),
+        (get_css_vendored, os.path.join(settings.lnbits_path, "static/bundle.css")),
     ]:
         output = ""
         for path in getfiles():
