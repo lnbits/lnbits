@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import AdminSettings, EditableSetings, SuperSettings, settings
+from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -579,7 +579,7 @@ async def delete_admin_settings():
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: EditableSetings):
+async def update_admin_settings(data: EditableSettings):
     await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
