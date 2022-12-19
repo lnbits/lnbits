@@ -8,7 +8,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
-from lnbits.decorators import check_admin
+from lnbits.decorators import check_user_exists
 from lnbits.extensions.satspay.helpers import public_charge
 
 from . import satspay_ext, satspay_renderer
@@ -18,7 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @satspay_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):
+async def index(request: Request, user: User = Depends(check_user_exists)):
     return satspay_renderer().TemplateResponse(
         "satspay/index.html",
         {"request": request, "user": user.dict(), "admin": user.admin},
