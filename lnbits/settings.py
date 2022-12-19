@@ -82,6 +82,7 @@ class ClicheFundingSource(LNbitsSettings):
 
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
+    clightning_rpc: Optional[str] = Field(default=None)
 
 
 class EclairFundingSource(LNbitsSettings):
