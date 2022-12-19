@@ -9,7 +9,7 @@ from lnbits.core.models import User
 from lnbits.core.services import update_cached_settings, update_wallet_balance
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, EditableSetings
+from lnbits.settings import AdminSettings, EditableSettings
 
 from .. import core_app
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -28,7 +28,7 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
-async def api_update_settings(data: EditableSetings):
+async def api_update_settings(data: EditableSettings):
     await update_admin_settings(data)
     update_cached_settings(dict(data))
     return {"status": "Success"}
