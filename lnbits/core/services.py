@@ -23,7 +23,7 @@ from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import (
     FAKE_WALLET,
-    EditableSetings,
+    EditableSettings,
     get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
@@ -474,7 +474,7 @@ async def init_admin_settings(super_user: str = None):
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
 
-    editable_settings = EditableSetings.from_dict(settings.dict())
+    editable_settings = EditableSettings.from_dict(settings.dict())
 
     return await create_admin_settings(account.id, editable_settings.dict())
 
