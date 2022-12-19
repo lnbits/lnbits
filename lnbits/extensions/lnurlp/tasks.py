@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import httpx
+from loguru import logger
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
@@ -50,7 +51,8 @@ async def on_invoice_paid(payment: Payment) -> None:
 
                 r = await client.post(pay_link.webhook_url, **kwargs)
                 await mark_webhook_sent(payment, r.status_code)
-            except (httpx.ConnectError, httpx.RequestError):
+            except Exception as ex:
+                logger.error(ex)
                 await mark_webhook_sent(payment, -1)
 
 
