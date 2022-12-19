@@ -1,6 +1,6 @@
 {
-  "name": "Diagon Alley",
-  "short_description": "Nostr shop system",
+  "name": "Shop",
+  "short_description": "Make a webshop on LNbits",
   "icon": "add_shopping_cart",
   "contributors": ["benarc", "talvasconcelos"]
 }
