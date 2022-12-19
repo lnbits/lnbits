@@ -51,7 +51,7 @@ class CoreLightningWallet(Wallet):
                 "The `pyln-client` library must be installed to use `CoreLightningWallet`."
             )
 
-        self.rpc = settings.corelightning_rpc or settings.clightning_rpc
+        self.rpc = settings.corelightning_rpc
         self.ln = LightningRpc(self.rpc)
 
         # check if description_hash is supported (from CLN>=v0.11.0)
