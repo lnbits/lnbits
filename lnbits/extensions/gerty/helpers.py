@@ -10,7 +10,7 @@ from loguru import logger
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
-from ...settings import LNBITS_PATH
+from lnbits.settings import settings
 from .crud import get_gerty, get_mempool_info
 from .number_prefixer import *
 
@@ -405,7 +405,7 @@ async def api_get_mining_stat(stat_slug: str, gerty):
 
 async def get_satoshi():
     maxQuoteLength = 186
-    with open(os.path.join(LNBITS_PATH, "extensions/gerty/static/satoshi.json")) as fd:
+    with open(os.path.join(settings.lnbits_path, "extensions/gerty/static/satoshi.json")) as fd:
         satoshiQuotes = json.load(fd)
     quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
     # logger.debug(quote.text)

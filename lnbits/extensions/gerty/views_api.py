@@ -21,7 +21,6 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from . import gerty_ext
-from ...settings import LNBITS_PATH
 from .crud import (
     create_gerty,
     delete_gerty,

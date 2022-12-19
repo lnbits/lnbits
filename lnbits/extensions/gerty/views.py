@@ -10,7 +10,6 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.settings import LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE
 
 from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
