@@ -396,6 +396,39 @@
           ></q-btn
         >
       </q-card-section>
+      <q-separator inset></q-separator>
+      <q-card-section>
+        <div class="text-h6">Diagon Alley</div>
+        <div class="text-subtitle2">
+          Step inside the Leaky Cauldron and enter the Diagon Alley. Make this
+          market available on Nostr!
+        </div>
+      </q-card-section>
+
+      <q-card-section>
+        <q-toggle
+          disable
+          v-model="diagonAlley"
+          checked-icon="check"
+          color="green"
+          unchecked-icon="clear"
+          label='"Diagon Alley" mode (Nostr)'
+          @input="toggleDA"
+        >
+          <q-tooltip>Coming soon...</q-tooltip></q-toggle
+        >
+        <q-btn
+          disable
+          class="float-right"
+          unelevated
+          color="primary"
+          @click="shopDataDownload"
+          >Download Data
+          <q-tooltip>
+            Download all data (shops, products, orders, etc...)</q-tooltip
+          ></q-btn
+        >
+      </q-card-section>
     </q-card>
 
     <q-card>
@@ -1156,6 +1189,7 @@
           }
         },
         keys: null,
+        diagonAlley: false,
         products: [],
         orders: [],
         stalls: [],
@@ -1438,6 +1472,32 @@
       resetDialog(dialog) {
         this[dialog].show = false
         this[dialog].data = {}
+      },
+      toggleDA(value, evt) {
+        this.$q.localStorage.set(`lnbits.DAmode`, value)
+      },
+      shopDataDownload() {
+        const removeClone = obj => {
+          delete obj._data
+          return obj
+        }
+        let data = {
+          orders: this.orders.map(removeClone),
+          stalls: this.stalls.map(removeClone),
+          products: this.products.map(removeClone),
+          keys: this.keys
+        }
+        const file = new File([JSON.stringify(data)], 'backup_data.json', {
+          type: 'text/json'
+        })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(file)
+
+        link.href = url
+        link.download = file.name
+        link.click()
+
+        window.URL.revokeObjectURL(url)
       },
       generateKeys() {
         LNbits.api
@@ -2224,6 +2284,8 @@
         let showOnboard = this.$q.localStorage.getItem('lnbits.DAOnboarding')
         this.onboarding.show = showOnboard === true || showOnboard == null
         this.onboarding.showAgain = showOnboard || false
+        this.diagonAlley =
+          this.$q.localStorage.getItem('lnbits.DAmode') || false
         this.getStalls()
         this.getProducts()
         this.getZones()
