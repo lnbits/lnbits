@@ -114,7 +114,7 @@ async def api_address_create(
             status_code=HTTPStatus.NOT_FOUND, detail="Local part already exists."
         )
 
-    if len(data.pubkey) != 64:
+    if len(bytes.fromhex(data.pubkey)) != 32:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Pubkey must be in hex format."
         )
