@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
+from bech32 import bech32_decode, convertbits
 from fastapi import Query, Request, Response
 from fastapi.params import Depends
 from loguru import logger
@@ -11,7 +12,6 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from bech32 import bech32_decode, convertbits
 
 from . import nostrnip5_ext
 from .crud import (
@@ -118,7 +118,6 @@ async def api_address_create(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Local part already exists."
         )
-
 
     if post_data.pubkey.startswith("npub"):
         hrp, data = bech32_decode(post_data.pubkey)
