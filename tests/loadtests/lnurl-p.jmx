@@ -45,22 +45,22 @@
           </elementProp>
           <elementProp name="lnurlpCount" elementType="Argument">
             <stringProp name="Argument.name">lnurlpCount</stringProp>
-            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="paymentCountPerLnurlp" elementType="Argument">
             <stringProp name="Argument.name">paymentCountPerLnurlp</stringProp>
-            <stringProp name="Argument.value">3</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="lnurlwCount" elementType="Argument">
             <stringProp name="Argument.name">lnurlwCount</stringProp>
-            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="withdrawCountPerLnurlw" elementType="Argument">
             <stringProp name="Argument.name">withdrawCountPerLnurlw</stringProp>
-            <stringProp name="Argument.value">2</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -2190,23 +2190,108 @@ if (!resp.id) {
                 <boolProp name="ISREGEX">true</boolProp>
               </JSONPathAssertion>
               <hashTree/>
-            </hashTree>
-            <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Delay between withdraws" enabled="true">
-              <intProp name="ActionProcessor.action">1</intProp>
-              <intProp name="ActionProcessor.target">0</intProp>
-              <stringProp name="ActionProcessor.duration">1100</stringProp>
-            </TestAction>
-            <hashTree>
-              <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Pause" enabled="true">
-                <stringProp name="ConstantTimer.delay">1100</stringProp>
-                <stringProp name="RandomTimer.range">100</stringProp>
-              </UniformRandomTimer>
+              <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract payment hash" enabled="true">
+                <stringProp name="JSONPostProcessor.referenceNames">paymenHash</stringProp>
+                <stringProp name="JSONPostProcessor.jsonPathExprs">payment_hash</stringProp>
+                <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
+                <stringProp name="JSONPostProcessor.defaultValues">no-payment-hash</stringProp>
+              </JSONPostProcessor>
               <hashTree/>
             </hashTree>
-            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer" enabled="true">
+            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a sec" enabled="true">
               <stringProp name="ConstantTimer.delay">1100</stringProp>
             </ConstantTimer>
             <hashTree/>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[wallet] Get Payment" enabled="true">
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+              <stringProp name="HTTPSampler.domain">${host}</stringProp>
+              <stringProp name="HTTPSampler.port">${port}</stringProp>
+              <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
+              <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+              <stringProp name="HTTPSampler.path">/api/v1/payments/${paymenHash}</stringProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+              <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+              <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+              <stringProp name="HTTPSampler.response_timeout"></stringProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                  <elementProp name="X-Api-Key" elementType="Header">
+                    <stringProp name="Header.name">X-Api-Key</stringProp>
+                    <stringProp name="Header.value">${inkey}</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </HeaderManager>
+              <hashTree/>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Check Status Code 200" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49586">200</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+              </ResponseAssertion>
+              <hashTree/>
+              <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Check webhook success" enabled="true">
+                <stringProp name="JSON_PATH">$.details.extra.wh_success</stringProp>
+                <stringProp name="EXPECTED_VALUE">true</stringProp>
+                <boolProp name="JSONVALIDATION">true</boolProp>
+                <boolProp name="EXPECT_NULL">false</boolProp>
+                <boolProp name="INVERT">false</boolProp>
+                <boolProp name="ISREGEX">false</boolProp>
+              </JSONPathAssertion>
+              <hashTree/>
+              <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Check webhook message" enabled="true">
+                <stringProp name="JSON_PATH">$.details.extra.wh_message</stringProp>
+                <stringProp name="EXPECTED_VALUE">OK</stringProp>
+                <boolProp name="JSONVALIDATION">true</boolProp>
+                <boolProp name="EXPECT_NULL">false</boolProp>
+                <boolProp name="INVERT">false</boolProp>
+                <boolProp name="ISREGEX">false</boolProp>
+              </JSONPathAssertion>
+              <hashTree/>
+              <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Check webhook response" enabled="true">
+                <stringProp name="scriptLanguage">javascript</stringProp>
+                <stringProp name="parameters"></stringProp>
+                <stringProp name="filename"></stringProp>
+                <stringProp name="cacheKey">true</stringProp>
+                <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
+var paymenHash = vars.get(&quot;paymenHash&quot;)
+
+
+var whResp = resp.details.extra.wh_response
+var separatorIndex = whResp.indexOf(&quot;\r\n\r\n&quot;)
+if (separatorIndex == -1) {
+	AssertionResult.setFailureMessage(&quot;Webhook response has wrong format: &quot; + whResp);
+	AssertionResult.setFailure(true)
+} else {
+	var headers = whResp.substring(0, separatorIndex)
+	var bodyStr = whResp.substring(separatorIndex)
+	var body = JSON.parse(bodyStr)
+	if (body.payment_hash !== paymenHash) {
+		AssertionResult.setFailureMessage(&quot;Incorrect webhook payment hash: &quot; + JSON.stringify(body));
+		AssertionResult.setFailure(true)
+	} else if (headers.indexOf(&quot;h1: 1&quot;) === -1) {
+		AssertionResult.setFailureMessage(&quot;Expected header missing: &apos;h1&apos;: &apos;1&apos;&quot;);
+		AssertionResult.setFailure(true)
+	} else if (!body.body || !body.body.b2 || body.body.b2 !== 2) {
+		AssertionResult.setFailureMessage(&quot;Expected body field missing: \&quot;body\&quot;: {\&quot;b2\&quot;: 2}, found: &quot; + JSON.stringify(body.body));
+		AssertionResult.setFailure(true)
+	}
+}
+
+</stringProp>
+              </JSR223Assertion>
+              <hashTree/>
+            </hashTree>
           </hashTree>
         </hashTree>
         <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report" enabled="true">
