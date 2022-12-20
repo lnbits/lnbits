@@ -112,6 +112,11 @@ async def api_address_create(
             status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
         )
 
+    if post_data.local_part == "_":
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="You're sneaky, nice try."
+        )
+
     exists = await get_address_by_local_part(domain_id, post_data.local_part)
 
     if exists:
