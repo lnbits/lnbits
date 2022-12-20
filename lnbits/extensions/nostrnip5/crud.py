@@ -82,7 +82,7 @@ async def get_all_addresses(wallet_ids: Union[str, List[str]]) -> List[Address]:
     return [Address.from_row(row) for row in rows]
 
 
-async def activate_domain(domain_id: str, address_id: str) -> Address:
+async def activate_address(domain_id: str, address_id: str) -> Address:
     await db.execute(
         """
         UPDATE nostrnip5.addresses
