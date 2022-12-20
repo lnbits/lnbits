@@ -347,6 +347,11 @@
             price: item.price
           })
         }
+        this.$q.notify({
+          type: 'positive',
+          message: `${item.product} added to cart`,
+          icon: 'thumb_up'
+        })
         this.cart.products = prod
         this.updateCart(item.price)
       },
