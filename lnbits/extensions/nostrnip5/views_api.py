@@ -25,6 +25,7 @@ from .crud import (
     get_domain,
     get_domain_by_name,
     get_domains,
+    activate_address,
 )
 from .models import CreateAddressData, CreateDomainData
 
@@ -97,6 +98,15 @@ async def api_address_delete(
 
     return True
 
+@nostrnip5_ext.post("/api/v1/domain/{domain_id}/address/{address_id}/activate", status_code=HTTPStatus.OK)
+async def api_address_activate(
+    domain_id: str,
+    address_id: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    await activate_address(domain_id, address_id)
+
+    return True
 
 @nostrnip5_ext.post(
     "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
@@ -151,7 +161,7 @@ async def api_address_create(
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    return {"payment_hash": payment_hash, "payment_request": payment_request}
+    return {"payment_hash": payment_hash, "payment_request": payment_request, "address_id": address.id}
 
 
 @nostrnip5_ext.get(

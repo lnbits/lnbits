@@ -7,6 +7,9 @@
         <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New Domain</q-btn
         >
+        <q-btn unelevated color="primary" @click="addressFormDialog.show = true"
+          >New Address</q-btn
+        >
       </q-card-section>
     </q-card>
 
@@ -189,8 +192,48 @@
             color="primary"
             :disable="formDialog.data.wallet == null || formDialog.data.currency == null"
             type="submit"
-            v-if="typeof formDialog.data.id == 'undefined'"
             >Create Domain</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="addressFormDialog.show" position="top" @hide="closeAddressFormDialog">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="saveAddress" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="addressFormDialog.data.domain_id"
+          :options="domainOptions"
+          label="Domain *"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="addressFormDialog.data.pubkey"
+          label="Public Key"
+          placeholder="npub..."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="addressFormDialog.data.local_part"
+          label="Local Part"
+          placeholder="benarc"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="addressFormDialog.data.domain_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
+            type="submit"
+            >Create Address</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -437,10 +480,17 @@
         formDialog: {
           show: false,
           data: {}
+        },
+        addressFormDialog: {
+          show: false,
+          data: {}
         }
       }
     },
     methods: {
+      closeAddressFormDialog: function () {
+        this.formDialog.data = {}
+      },
       closeFormDialog: function () {
         this.formDialog.data = {}
       },
@@ -519,6 +569,33 @@
               })
           })
       },
+      saveAddress: function () {
+        var self = this
+        var formDialog = this.addressFormDialog
+        var domain = _.findWhere(this.domains, {id: formDialog.data.domain_id})
+
+        axios
+          .post(
+            '/nostrnip5/api/v1/domain/' + formDialog.data.domain_id + '/address',
+            formDialog.data
+          )
+          .then(function (response) {
+            return LNbits.api
+              .request(
+                'POST',
+                '/nostrnip5/api/v1/domain/' + formDialog.data.domain_id + '/address/' + response.data.address_id + '/activate',
+                _.findWhere(self.g.user.wallets, {id: domain.wallet}).adminkey
+              )
+          })
+          .then(function (response) {
+            self.addressFormDialog.data = {}
+            self.addressFormDialog.show = false
+            self.getAddresses()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       deleteAddress: function (address_id) {
         var self = this
         var address = _.findWhere(this.addresses, {id: address_id})
@@ -554,6 +631,16 @@
       if (this.g.user.wallets.length) {
         this.getDomains()
         this.getAddresses()
+      }
+    },
+    computed: {
+      domainOptions: function () {
+        return this.domains.map(el => {
+          return {
+            label: el.domain, 
+            value: el.id
+          }
+        })
       }
     }
   })
