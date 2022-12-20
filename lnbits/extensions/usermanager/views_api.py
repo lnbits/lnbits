@@ -21,7 +21,7 @@ from .crud import (
     get_usermanager_wallet_transactions,
     get_usermanager_wallets,
 )
-from .models import CreateUserData, CreateUserWallet, Wallet
+from .models import CreateUserData, CreateUserWallet
 
 
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
@@ -32,14 +32,10 @@ async def api_usermanager_users(
     return [user.dict() for user in await get_usermanager_users(user_id)]
 
 
-@usermanager_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK)
-async def api_usermanager_user(
-    user_id, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
-):
+@usermanager_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK, dependencies=[Depends(get_key_type)])
+async def api_usermanager_user(user_id):
     user = await get_usermanager_user(user_id)
-    if not user:
-        return None
-    return user.dict()
+    return user.dict() if user else None
 
 
 @usermanager_ext.post(
