@@ -32,7 +32,11 @@ async def api_usermanager_users(
     return [user.dict() for user in await get_usermanager_users(user_id)]
 
 
-@usermanager_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK, dependencies=[Depends(get_key_type)])
+@usermanager_ext.get(
+    "/api/v1/users/{user_id}",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(get_key_type)],
+)
 async def api_usermanager_user(user_id):
     user = await get_usermanager_user(user_id)
     return user.dict() if user else None
