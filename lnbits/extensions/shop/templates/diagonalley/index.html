@@ -400,8 +400,7 @@
       <q-card-section>
         <div class="text-h6">Shop</div>
         <div class="text-subtitle2">
-          Step inside the Leaky Cauldron and enter the Shop. Make this
-          market available on Nostr!
+          Make a shop of multiple stalls.
         </div>
       </q-card-section>
 
@@ -412,7 +411,7 @@
           checked-icon="check"
           color="green"
           unchecked-icon="clear"
-          label='"Shop" mode (Nostr)'
+          label='"Diagon Alley" mode (Nostr)'
           @input="toggleDA"
         >
           <q-tooltip>Coming soon...</q-tooltip></q-toggle
@@ -423,9 +422,9 @@
           unelevated
           color="primary"
           @click="shopDataDownload"
-          >Download Data
+          >Export all Data
           <q-tooltip>
-            Download all data (shops, products, orders, etc...)</q-tooltip
+            Export all data (shops, products, orders, etc...)</q-tooltip
           ></q-btn
         >
       </q-card-section>
