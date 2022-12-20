@@ -39,7 +39,7 @@ context %} {% block page %}
         v-model.trim="formDialog.data.pubkey"
         label="Pub Key"
         placeholder="abc234"
-        :rules="[ val => val.length = 64 || 'Please enter a hex pubkey' ]"
+        :rules="[ val => val.length = 64 || val.indexOf('npub') === 0 ||'Please enter a hex pubkey' ]"
       >
       </q-input>
 

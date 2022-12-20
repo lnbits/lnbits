@@ -11,6 +11,7 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from bech32 import bech32_decode, convertbits
 
 from . import nostrnip5_ext
 from .crud import (
@@ -101,7 +102,7 @@ async def api_address_delete(
     "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
 )
 async def api_address_create(
-    data: CreateAddressData,
+    post_data: CreateAddressData,
     domain_id: str,
 ):
     domain = await get_domain(domain_id)
@@ -111,19 +112,25 @@ async def api_address_create(
             status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
         )
 
-    exists = await get_address_by_local_part(domain_id, data.local_part)
+    exists = await get_address_by_local_part(domain_id, post_data.local_part)
 
     if exists:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Local part already exists."
         )
 
-    if len(bytes.fromhex(data.pubkey)) != 32:
+
+    if post_data.pubkey.startswith("npub"):
+        hrp, data = bech32_decode(post_data.pubkey)
+        decoded_data = convertbits(data, 5, 8, False)
+        post_data.pubkey = bytes(decoded_data).hex()
+
+    if len(bytes.fromhex(post_data.pubkey)) != 32:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Pubkey must be in hex format."
         )
 
-    address = await create_address_internal(domain_id=domain_id, data=data)
+    address = await create_address_internal(domain_id=domain_id, data=post_data)
     price_in_sats = await fiat_amount_as_satoshis(domain.amount / 100, domain.currency)
 
     try:
