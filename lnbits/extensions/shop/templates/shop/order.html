@@ -243,6 +243,8 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
+<script src="https://github.com/paulmillr/noble-secp256k1/releases/download/1.7.0/noble-secp256k1.js"></script>
+
 <script>
   const mapChatMsg = msg => {
     let obj = {}
@@ -253,6 +255,7 @@
     return obj
   }
   Vue.component(VueQrcode.name, VueQrcode)
+  const secp = window.nobleSecp256k1
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
@@ -342,28 +345,15 @@
             this.user = null
           })
       },
-      async generateKeys() {
+      generateKeys() {
         //check if the keys are set
         if ('publickey' in this.user.keys && 'privatekey' in this.user.keys)
           return
 
-        return await LNbits.api
-          .request('GET', `/shop/api/v1/keys`, null)
-          .then(response => {
-            if (response.data) {
-              let data = {
-                keys: {
-                  privatekey: response.data.privkey,
-                  publickey: response.data.pubkey
-                }
-              }
-              this.user.keys = data.keys
-              return
-            }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        const privkey = secp.utils.bytesToHex(secp.utils.randomPrivateKey())
+        const pubkey = secp.utils.bytesToHex(secp.schnorr.getPublicKey(privKey))
+
+        this.user.keys = {privatekey: privkey, publickey: pubkey}
       },
       async getMessages(room_name, all = false) {
         await LNbits.api
