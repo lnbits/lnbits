@@ -78,9 +78,7 @@ async def display(request: Request, market_id):
 
     stalls = await get_shop_market_stalls(market_id)
     stalls_ids = [stall.id for stall in stalls]
-    products = [
-        product.dict() for product in await get_shop_products(stalls_ids)
-    ]
+    products = [product.dict() for product in await get_shop_products(stalls_ids)]
 
     return shop_renderer().TemplateResponse(
         "shop/market.html",

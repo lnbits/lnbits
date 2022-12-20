@@ -2,7 +2,7 @@
 <div class="row q-col-gutter-md flex">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card>
-      <div class="chat-container q-pa-md">
+      <div class="chat-container">
         <div class="chat-box">
           <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
           <div class="chat-messages">
@@ -102,7 +102,11 @@
       <q-card-section>
         <q-separator></q-separator>
         <q-list>
-          <q-expansion-item v-if="diagonalley"  group="extras" icon="vpn_key" label="Keys"
+          <q-expansion-item
+            v-if="diagonalley"
+            group="extras"
+            icon="vpn_key"
+            label="Keys"
             ><p>
               Bellow are the keys needed to contact the merchant. They are
               stored in the browser!
@@ -197,7 +201,7 @@
   </div>
   <!-- RESTORE KEYS DIALOG -->
   <q-dialog
-  v-if="diagonalley" 
+    v-if="diagonalley"
     v-model="keysDialog.show"
     position="top"
     @hide="clearRestoreKeyDialog"
@@ -398,9 +402,7 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(
-          ws_scheme + location.host + '/shop/ws/' + room_name
-        )
+        ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
 
         function checkWebSocket(event) {
           if (ws.readyState === WebSocket.CLOSED) {
@@ -448,8 +450,7 @@
         }
       })
 
-      let data =
-        this.$q.localStorage.getItem(`lnbits.shop.data`) || false
+      let data = this.$q.localStorage.getItem(`lnbits.shop.data`) || false
 
       if (data) {
         this.user = data
@@ -486,7 +487,8 @@
     position: relative;
     display: grid;
     grid-template-rows: 1fr auto;
-    height: calc(100vh - 133px);
+    /*height: calc(100vh - 200px);*/
+    height: 50vh;
   }
 
   .chat-box {
@@ -494,6 +496,7 @@
     flex-direction: column-reverse;
     padding: 1rem;
     overflow-y: auto;
+    margin-left: auto;
   }
 
   .chat-messages {

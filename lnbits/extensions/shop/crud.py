@@ -59,17 +59,13 @@ async def update_shop_product(product_id: str, **kwargs) -> Optional[Stalls]:
         f"UPDATE shop.products SET {q} WHERE id = ?",
         (*kwargs.values(), product_id),
     )
-    row = await db.fetchone(
-        "SELECT * FROM shop.products WHERE id = ?", (product_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.products WHERE id = ?", (product_id,))
 
     return Products(**row) if row else None
 
 
 async def get_shop_product(product_id: str) -> Optional[Products]:
-    row = await db.fetchone(
-        "SELECT * FROM shop.products WHERE id = ?", (product_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.products WHERE id = ?", (product_id,))
     return Products(**row) if row else None
 
 
@@ -132,9 +128,7 @@ async def get_shop_zone(zone_id: str) -> Optional[Zones]:
 
 
 async def get_shop_zones(user: str) -> List[Zones]:
-    rows = await db.fetchall(
-        'SELECT * FROM shop.zones WHERE "user" = ?', (user,)
-    )
+    rows = await db.fetchall('SELECT * FROM shop.zones WHERE "user" = ?', (user,))
     return [Zones(**row) for row in rows]
 
 
@@ -182,16 +176,12 @@ async def update_shop_stall(stall_id: str, **kwargs) -> Optional[Stalls]:
         f"UPDATE shop.stalls SET {q} WHERE id = ?",
         (*kwargs.values(), stall_id),
     )
-    row = await db.fetchone(
-        "SELECT * FROM shop.stalls WHERE id = ?", (stall_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.stalls WHERE id = ?", (stall_id,))
     return Stalls(**row) if row else None
 
 
 async def get_shop_stall(stall_id: str) -> Optional[Stalls]:
-    row = await db.fetchone(
-        "SELECT * FROM shop.stalls WHERE id = ?", (stall_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.stalls WHERE id = ?", (stall_id,))
     return Stalls(**row) if row else None
 
 
@@ -203,9 +193,7 @@ async def get_shop_stalls(wallet_ids: Union[str, List[str]]) -> List[Stalls]:
     return [Stalls(**row) for row in rows]
 
 
-async def get_shop_stalls_by_ids(
-    stall_ids: Union[str, List[str]]
-) -> List[Stalls]:
+async def get_shop_stalls_by_ids(stall_ids: Union[str, List[str]]) -> List[Stalls]:
     q = ",".join(["?"] * len(stall_ids))
     rows = await db.fetchall(
         f"SELECT * FROM shop.stalls WHERE id IN ({q})", (*stall_ids,)
@@ -250,9 +238,7 @@ async def create_shop_order(data: createOrder, invoiceid: str) -> Orders:
     # return link
 
 
-async def create_shop_order_details(
-    order_id: str, data: List[createOrderDetails]
-):
+async def create_shop_order_details(order_id: str, data: List[createOrderDetails]):
     for item in data:
         item_id = urlsafe_short_hash()
         await db.execute(
@@ -280,9 +266,7 @@ async def get_shop_order_details(order_id: str) -> List[OrderDetail]:
 
 
 async def get_shop_order(order_id: str) -> Optional[Orders]:
-    row = await db.fetchone(
-        "SELECT * FROM shop.orders WHERE id = ?", (order_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.orders WHERE id = ?", (order_id,))
     return Orders(**row) if row else None
 
 
@@ -362,9 +346,7 @@ async def get_shop_markets(user: str) -> List[Market]:
 
 
 async def get_shop_market(market_id: str) -> Optional[Market]:
-    row = await db.fetchone(
-        "SELECT * FROM shop.markets WHERE id = ?", (market_id,)
-    )
+    row = await db.fetchone("SELECT * FROM shop.markets WHERE id = ?", (market_id,))
     return Market(**row) if row else None
 
 
@@ -397,9 +379,7 @@ async def create_shop_market(data: CreateMarket):
     return market
 
 
-async def create_shop_market_stalls(
-    market_id: str, data: List[CreateMarketStalls]
-):
+async def create_shop_market_stalls(market_id: str, data: List[CreateMarketStalls]):
     for stallid in data:
         id = urlsafe_short_hash()
 

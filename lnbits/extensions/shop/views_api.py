@@ -346,9 +346,7 @@ async def api_shop_order_shipped(
             order_id,
         ),
     )
-    order = await db.fetchone(
-        "SELECT * FROM shop.orders WHERE id = ?", (order_id,)
-    )
+    order = await db.fetchone("SELECT * FROM shop.orders WHERE id = ?", (order_id,))
 
     return order
 
@@ -361,15 +359,11 @@ async def api_shop_stall_products(
     stall_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
 
-    rows = await db.fetchone(
-        "SELECT * FROM shop.stalls WHERE id = ?", (stall_id,)
-    )
+    rows = await db.fetchone("SELECT * FROM shop.stalls WHERE id = ?", (stall_id,))
     if not rows:
         return {"message": "Stall does not exist."}
 
-    products = db.fetchone(
-        "SELECT * FROM shop.products WHERE wallet = ?", (rows[1],)
-    )
+    products = db.fetchone("SELECT * FROM shop.products WHERE wallet = ?", (rows[1],))
     if not products:
         return {"message": "No products"}
 
@@ -441,10 +435,7 @@ async def api_shop_stall_checkshipped(
 async def api_shop_markets(wallet: WalletTypeInfo = Depends(get_key_type)):
     # await get_shop_market_stalls(market_id="FzpWnMyHQMcRppiGVua4eY")
     try:
-        return [
-            market.dict()
-            for market in await get_shop_markets(wallet.wallet.user)
-        ]
+        return [market.dict() for market in await get_shop_markets(wallet.wallet.user)]
     except:
         return {"message": "We could not retrieve the markets."}
 
@@ -498,10 +489,7 @@ async def api_shop_generate_keys():
 async def api_get_merchant_messages(
     orders: str = Query(...), wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-
-    return [
-        msg.dict() for msg in await get_shop_chat_by_merchant(orders.split(","))
-    ]
+    return [msg.dict() for msg in await get_shop_chat_by_merchant(orders.split(","))]
 
 
 @shop_ext.get("/api/v1/chat/messages/{room_name}")

@@ -253,7 +253,7 @@
         >
         </q-select>
         <q-input
-          v-if="diagonalley" 
+          v-if="diagonalley"
           v-if="keys"
           filled
           dense
@@ -261,8 +261,7 @@
           label="Public Key"
         ></q-input>
         <q-input
-
-          v-if="diagonalley" 
+          v-if="diagonalley"
           v-if="keys"
           filled
           dense
@@ -291,7 +290,7 @@
           label="Shipping Zones"
         ></q-select>
         <q-select
-          v-if="diagonalley" 
+          v-if="diagonalley"
           :options="relayOptions"
           filled
           dense
@@ -300,14 +299,14 @@
           label="Relays"
         ></q-select>
         <q-input
-        v-if="diagonalley" 
+          v-if="diagonalley"
           filled
           dense
           v-model.trim="stallDialog.data.crelays"
           label="Custom relays (seperate by comma)"
         ></q-input>
         <q-input
-          v-if="diagonalley" 
+          v-if="diagonalley"
           filled
           dense
           v-model.trim="stallDialog.data.nostrShops"
@@ -399,9 +398,7 @@
       <q-separator inset></q-separator>
       <q-card-section>
         <div class="text-h6">Shop</div>
-        <div class="text-subtitle2">
-          Make a shop of multiple stalls.
-        </div>
+        <div class="text-subtitle2">Make a shop of multiple stalls.</div>
       </q-card-section>
 
       <q-card-section>
@@ -929,7 +926,7 @@
       </q-card-section>
     </q-card>
     <!-- CHAT BOX -->
-    <q-card style="max-height: 600px">
+    <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">Messages</h6>
       </q-card-section>
@@ -946,45 +943,45 @@
         ></q-select>
       </q-card-section>
       <q-card-section>
-      <div class="chat-container q-pa-md" ref="chatCard">
-        <div class="chat-box">
-          <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
-          <div class="chat-messages">
-            <q-chat-message
-              :key="index"
-              v-for="(message, index) in orderMessages"
-              :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
-              :text="[message.msg]"
-              :sent="message.pubkey == keys.pubkey ? true : false"
-              :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
-            />
-          </div>
-        </div>
-      <q-card-section>
-        <q-form @submit="sendMessage" class="full-width chat-input">
-          <q-input
-            ref="newMessage"
-            v-model="newMessage"
-            placeholder="Message"
-            class="full-width"
-            dense
-            outlined
-          >
-            <template>
-              <q-btn
-                round
-                dense
-                flat
-                type="submit"
-                icon="send"
-                color="primary"
+        <div class="chat-container" ref="chatCard">
+          <div class="chat-box">
+            <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
+            <div class="chat-messages">
+              <q-chat-message
+                :key="index"
+                v-for="(message, index) in orderMessages"
+                :name="message.pubkey == keys.pubkey ? 'me' : 'customer'"
+                :text="[message.msg]"
+                :sent="message.pubkey == keys.pubkey ? true : false"
+                :bg-color="message.pubkey == keys.pubkey ? 'white' : 'light-green-2'"
               />
-            </template>
-          </q-input>
-        </q-form>
+            </div>
+          </div>
+          <q-card-section>
+            <q-form @submit="sendMessage" class="full-width chat-input">
+              <q-input
+                ref="newMessage"
+                v-model="newMessage"
+                placeholder="Message"
+                class="full-width"
+                dense
+                outlined
+              >
+                <template>
+                  <q-btn
+                    round
+                    dense
+                    flat
+                    type="submit"
+                    icon="send"
+                    color="primary"
+                  />
+                </template>
+              </q-input>
+            </q-form>
+          </q-card-section>
+        </div>
       </q-card-section>
-      </div>
-    </q-card-section>
     </q-card>
     <!-- <q-card>
       <q-card-section>
@@ -1112,12 +1109,15 @@
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
+
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
+<script src="https://github.com/paulmillr/noble-secp256k1/releases/download/1.7.0/noble-secp256k1.js"></script>
 
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   const pica = window.pica()
+  const secp = window.nobleSecp256k1
 
   function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
     let ratio = Math.min(
@@ -1504,31 +1504,17 @@
         window.URL.revokeObjectURL(url)
       },
       generateKeys() {
-        LNbits.api
-          .request(
-            'GET',
-            '/shop/api/v1/keys',
-            this.g.user.wallets[0].adminkey
-          )
-          .then(response => {
-            if (response.data) {
-              this.keys = response.data
-              this.stallDialog.data.publickey = this.keys.pubkey
-              this.stallDialog.data.privatekey = this.keys.privkey
-              this.$q.localStorage.set(
-                `lnbits.shop.${this.g.user.id}`,
-                this.keys
-              )
-            }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        const privkey = secp.utils.bytesToHex(secp.utils.randomPrivateKey())
+        const pubkey = secp.utils.bytesToHex(secp.schnorr.getPublicKey(privKey))
+
+        this.keys = {privKey, pubKey}
+        this.stallDialog.data.publickey = this.keys.pubkey
+        this.stallDialog.data.privatekey = this.keys.privkey
+        this.$q.localStorage.set(`lnbits.shop.${this.g.user.id}`, this.keys)
+        console.log({privKey, pubKey})
       },
       restoreKeys() {
-        let keys = this.$q.localStorage.getItem(
-          `lnbits.shop.${this.g.user.id}`
-        )
+        let keys = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
         if (keys) {
           this.keys = keys
           this.stallDialog.data.publickey = this.keys.pubkey
@@ -1858,11 +1844,7 @@
         var self = this
 
         LNbits.api
-          .request(
-            'GET',
-            '/shop/api/v1/zones',
-            this.g.user.wallets[0].inkey
-          )
+          .request('GET', '/shop/api/v1/zones', this.g.user.wallets[0].inkey)
           .then(function (response) {
             if (response.data) {
               self.zones = response.data.map(mapZone)
@@ -1967,11 +1949,7 @@
       ////////////////////////////////////////
       getMarkets() {
         LNbits.api
-          .request(
-            'GET',
-            '/shop/api/v1/markets',
-            this.g.user.wallets[0].inkey
-          )
+          .request('GET', '/shop/api/v1/markets', this.g.user.wallets[0].inkey)
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
@@ -2171,17 +2149,17 @@
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
+            if (!res.data?.length) return
             this.messages = _.groupBy(res.data, 'id_conversation')
             this.checkUnreadMessages()
           })
           .catch(error => {
+            console.error(error)
             LNbits.utils.notifyApiError(error)
           })
       },
       updateLastSeenMsg(id) {
-        let data = this.$q.localStorage.getItem(
-          `lnbits.shop.${this.g.user.id}`
-        )
+        let data = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
         let chat = {
           ...data.chat,
           [`${id}`]: {
@@ -2256,9 +2234,7 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(
-          ws_scheme + location.host + '/shop/ws/' + room_name
-        )
+        ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
 
         function checkWebSocket(event) {
           if (ws.readyState === WebSocket.CLOSED) {
@@ -2296,9 +2272,7 @@
         await this.getOrders()
         this.getMarkets()
         await this.getAllMessages()
-        let keys = this.$q.localStorage.getItem(
-          `lnbits.shop.${this.g.user.id}`
-        )
+        let keys = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
         if (keys) {
           this.keys = keys
         }
@@ -2319,7 +2293,8 @@
     position: relative;
     display: grid;
     grid-template-rows: 1fr auto;
-    height: calc(100vh - 140px);
+    /*height: calc(100vh - 200px);*/
+    height: 50vh;
   }
 
   .chat-box {
@@ -2327,6 +2302,7 @@
     flex-direction: column-reverse;
     padding: 1rem;
     overflow-y: auto;
+    margin-left: auto;
   }
 
   .chat-messages {
