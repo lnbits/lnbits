@@ -56,6 +56,16 @@
                   unelevated
                   dense
                   size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'api/v1/domain/' + props.row.id + '/nostr.json'"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
                   icon="delete"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteDomain(props.row.id)"
@@ -162,7 +172,7 @@
           filled
           dense
           v-model.trim="formDialog.data.amount"
-          label="amount"
+          label="Amount"
           placeholder="10.00"
         ></q-input>
         <q-input

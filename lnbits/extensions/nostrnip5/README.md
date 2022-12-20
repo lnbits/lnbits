@@ -1,19 +1,33 @@
-# Invoices
+# Nostr NIP-05
 
-## Create invoices that you can send to your client to pay online over Lightning.
+## Allow users to NIP-05 verify themselves at a domain you control
 
-This extension allows users to create "traditional" invoices (not in the lightning sense) that contain one or more line items. Line items are denominated in a user-configurable fiat currency. Each invoice contains one or more payments up to the total of the invoice. Each invoice creates a public link that can be shared with a customer that they can use to (partially or in full) pay the invoice.
+This extension allows users to sell NIP-05 verification to other nostr users on a domain they control.
 
 ## Usage
 
-1. Create an invoice by clicking "NEW INVOICE"\
-   ![create new invoice](https://imgur.com/a/Dce3wrr.png)
-2. Fill the options for your INVOICE
+1. Create a Domain by clicking "NEW DOMAIN"\
+2. Fill the options for your DOMAIN
    - select the wallet
    - select the fiat currency the invoice will be denominated in
-   - select a status for the invoice (default is draft)
-   - enter a company name, first name, last name, email, phone & address (optional)
-   - add one or more line items
-   - enter a name & price for each line item
-3. You can then use share your invoice link with your customer to receive payment\
-   ![invoice link](https://imgur.com/a/L0JOj4T.png)
+   - select an amount in fiat to charge users for verification
+   - enter the domain (or subdomain) you want to provide verification for
+      - Note, you must own this domain and have access to a web server
+3. You can then use share your signup link with your users to allow them to sign up
+
+
+## Installation
+
+In order for this to work, you need to have ownership of a domain name, and access to a web server that this domain is pointed to. 
+
+Then, you'll need to set up a proxy that points `https://{your_domain}/.well-known/nostr.json` to `https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json`
+
+Example nginx configuration
+
+```
+location /.well-known/nostr.json {
+   proxy_pass https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json;
+   proxy_set_header Host lnbits.fly.dev;
+   proxy_ssl_server_name on;
+}
+```
