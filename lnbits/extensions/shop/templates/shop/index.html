@@ -929,7 +929,7 @@
       </q-card-section>
     </q-card>
     <!-- CHAT BOX -->
-    <q-card style="max-height: 800px">
+    <q-card style="max-height: 600px">
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">Messages</h6>
       </q-card-section>
@@ -945,6 +945,7 @@
           emit-value
         ></q-select>
       </q-card-section>
+      <q-card-section>
       <div class="chat-container q-pa-md" ref="chatCard">
         <div class="chat-box">
           <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
@@ -959,6 +960,7 @@
             />
           </div>
         </div>
+      <q-card-section>
         <q-form @submit="sendMessage" class="full-width chat-input">
           <q-input
             ref="newMessage"
@@ -980,7 +982,9 @@
             </template>
           </q-input>
         </q-form>
+      </q-card-section>
       </div>
+    </q-card-section>
     </q-card>
     <!-- <q-card>
       <q-card-section>
