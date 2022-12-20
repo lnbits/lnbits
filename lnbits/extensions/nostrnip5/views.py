@@ -11,9 +11,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import nostrnip5_ext, nostrnip5_renderer
-from .crud import (
-    get_domain,
-)
+from .crud import get_domain
 
 templates = Jinja2Templates(directory="templates")
 

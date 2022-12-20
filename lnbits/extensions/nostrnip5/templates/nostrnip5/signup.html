@@ -1,13 +1,21 @@
-{% extends "public.html" %} {% block toolbar_title %} Verify NIP-5 For {{ domain.domain }}
-{% endblock %} {% from "macros.jinja" import window_vars with context %} {%
-block page %}
+{% extends "public.html" %} {% block toolbar_title %} Verify NIP-5 For {{
+domain.domain }} {% endblock %} {% from "macros.jinja" import window_vars with
+context %} {% block page %}
 <link rel="stylesheet" href="/nostrnip5/static/css/signup.css" />
 <div>
-
   <q-card class="q-pa-lg q-pt-lg">
     <q-form @submit="createAddress" class="q-gutter-md">
-      <p>You can use this page to get NIP-5 verified on the nostr protocol under the {{ domain.domain }} domain.</p>
-      <p>The current price is <b>{{ "{:0,.2f}".format(domain.amount / 100) }} {{ domain.currency }}</b> for a <b>lifetime</b> account.</p>
+      <p>
+        You can use this page to get NIP-5 verified on the nostr protocol under
+        the {{ domain.domain }} domain.
+      </p>
+      <p>
+        The current price is
+        <b
+          >{{ "{:0,.2f}".format(domain.amount / 100) }} {{ domain.currency }}</b
+        >
+        for a <b>lifetime</b> account.
+      </p>
 
       <p>After submitting payment, your address will be</p>
 
@@ -43,9 +51,7 @@ block page %}
           type="submit"
           >Create Address</q-btn
         >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-          >Cancel</q-btn
-        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </q-form>
   </q-card>
@@ -91,23 +97,23 @@ block page %}
         amount: '{{ domain.amount }}',
         qrCodeDialog: {
           data: {
-            payment_request: null,
+            payment_request: null
           },
-          show: false,
+          show: false
         },
         formDialog: {
           data: {
             local_part: null,
-            pubkey: null,
-          },
+            pubkey: null
+          }
         },
         urlDialog: {
-          show: false,
-        },
+          show: false
+        }
       }
     },
     methods: {
-      closeQrCodeDialog: function() {
+      closeQrCodeDialog: function () {
         this.qrCodeDialog.show = false
       },
       createAddress: function () {
@@ -118,7 +124,10 @@ block page %}
         var localPart = formDialog.data.local_part
 
         axios
-          .post('/nostrnip5/api/v1/domain/' + this.domain_id + '/address', formDialog.data)
+          .post(
+            '/nostrnip5/api/v1/domain/' + this.domain_id + '/address',
+            formDialog.data
+          )
           .then(function (response) {
             formDialog.data = {}
 
@@ -147,7 +156,9 @@ block page %}
                     qrCodeDialog.show = false
 
                     setTimeout(function () {
-                      alert(`Success! Your username is now active at ${localPart}@${self.domain}. Please add this to your nostr profile accordingly.`)
+                      alert(
+                        `Success! Your username is now active at ${localPart}@${self.domain}. Please add this to your nostr profile accordingly.`
+                      )
                     }, 500)
                   }
                 })
@@ -156,14 +167,10 @@ block page %}
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-      },
+      }
     },
-    computed: {
-      
-    },
-    created: function () {
-
-    }
+    computed: {},
+    created: function () {}
   })
 </script>
 {% endblock %}

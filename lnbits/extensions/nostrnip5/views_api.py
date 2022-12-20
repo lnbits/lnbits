@@ -1,10 +1,10 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import Query, Request, Response
 from fastapi.params import Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
-from typing import Optional
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -14,18 +14,18 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import nostrnip5_ext
 from .crud import (
-    get_domains,
-    get_domain,
-    create_domain_internal,
     create_address_internal,
+    create_domain_internal,
+    delete_address,
     delete_domain,
-    get_domain_by_name,
     get_address_by_local_part,
     get_addresses,
     get_all_addresses,
-    delete_address,
+    get_domain,
+    get_domain_by_name,
+    get_domains,
 )
-from .models import CreateDomainData, CreateAddressData
+from .models import CreateAddressData, CreateDomainData
 
 
 @nostrnip5_ext.get("/api/v1/domains", status_code=HTTPStatus.OK)
@@ -37,6 +37,7 @@ async def api_domains(
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     return [domain.dict() for domain in await get_domains(wallet_ids)]
+
 
 @nostrnip5_ext.get("/api/v1/addresses", status_code=HTTPStatus.OK)
 async def api_addresses(
@@ -56,7 +57,7 @@ async def api_invoice(domain_id: str, wallet: WalletTypeInfo = Depends(get_key_t
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
         )
-  
+
     return domain
 
 
@@ -72,7 +73,7 @@ async def api_domain_create(
         )
 
     domain = await create_domain_internal(wallet_id=wallet.wallet.id, data=data)
-    
+
     return domain
 
 
@@ -82,8 +83,9 @@ async def api_domain_delete(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     await delete_domain(domain_id)
-    
+
     return True
+
 
 @nostrnip5_ext.delete("/api/v1/address/{address_id}", status_code=HTTPStatus.CREATED)
 async def api_address_delete(
@@ -91,11 +93,13 @@ async def api_address_delete(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     await delete_address(address_id)
-    
+
     return True
 
 
-@nostrnip5_ext.post("/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED)
+@nostrnip5_ext.post(
+    "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
+)
 async def api_address_create(
     data: CreateAddressData,
     domain_id: str,
@@ -127,7 +131,11 @@ async def api_address_create(
             wallet_id=domain.wallet,
             amount=price_in_sats,
             memo=f"Payment for domain {domain_id}",
-            extra={"tag": "nostrnip5", "domain_id": domain_id, "address_id": address.id,},
+            extra={
+                "tag": "nostrnip5",
+                "domain_id": domain_id,
+                "address_id": address.id,
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
@@ -154,7 +162,9 @@ async def api_nostrnip5_check_payment(domain_id: str, payment_hash: str):
 
 
 @nostrnip5_ext.get("/api/v1/domain/{domain_id}/nostr.json", status_code=HTTPStatus.OK)
-async def api_get_nostr_json(response: Response, domain_id: str, name: str = Query(None)):
+async def api_get_nostr_json(
+    response: Response, domain_id: str, name: str = Query(None)
+):
     addresses = [address.dict() for address in await get_addresses(domain_id)]
     output = {}
 
@@ -170,6 +180,4 @@ async def api_get_nostr_json(response: Response, domain_id: str, name: str = Que
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
 
-    return {
-        "names": output
-    }
+    return {"names": output}
