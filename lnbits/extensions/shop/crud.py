@@ -29,11 +29,11 @@ from .models import (
 ###Products
 
 
-async def create_diagonalley_product(data: createProduct) -> Products:
+async def create_shop_product(data: createProduct) -> Products:
     product_id = urlsafe_short_hash()
     await db.execute(
         f"""
-        INSERT INTO diagonalley.products (id, stall, product, categories, description, image, price, quantity)
+        INSERT INTO shop.products (id, stall, product, categories, description, image, price, quantity)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -47,59 +47,59 @@ async def create_diagonalley_product(data: createProduct) -> Products:
             data.quantity,
         ),
     )
-    product = await get_diagonalley_product(product_id)
+    product = await get_shop_product(product_id)
     assert product, "Newly created product couldn't be retrieved"
     return product
 
 
-async def update_diagonalley_product(product_id: str, **kwargs) -> Optional[Stalls]:
+async def update_shop_product(product_id: str, **kwargs) -> Optional[Stalls]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
-        f"UPDATE diagonalley.products SET {q} WHERE id = ?",
+        f"UPDATE shop.products SET {q} WHERE id = ?",
         (*kwargs.values(), product_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        "SELECT * FROM shop.products WHERE id = ?", (product_id,)
     )
 
     return Products(**row) if row else None
 
 
-async def get_diagonalley_product(product_id: str) -> Optional[Products]:
+async def get_shop_product(product_id: str) -> Optional[Products]:
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        "SELECT * FROM shop.products WHERE id = ?", (product_id,)
     )
     return Products(**row) if row else None
 
 
-async def get_diagonalley_products(stall_ids: Union[str, List[str]]) -> List[Products]:
+async def get_shop_products(stall_ids: Union[str, List[str]]) -> List[Products]:
     if isinstance(stall_ids, str):
         stall_ids = [stall_ids]
 
-    # with open_ext_db("diagonalley") as db:
+    # with open_ext_db("shop") as db:
     q = ",".join(["?"] * len(stall_ids))
     rows = await db.fetchall(
         f"""
-        SELECT * FROM diagonalley.products WHERE stall IN ({q})
+        SELECT * FROM shop.products WHERE stall IN ({q})
         """,
         (*stall_ids,),
     )
     return [Products(**row) for row in rows]
 
 
-async def delete_diagonalley_product(product_id: str) -> None:
-    await db.execute("DELETE FROM diagonalley.products WHERE id = ?", (product_id,))
+async def delete_shop_product(product_id: str) -> None:
+    await db.execute("DELETE FROM shop.products WHERE id = ?", (product_id,))
 
 
 ###zones
 
 
-async def create_diagonalley_zone(user, data: createZones) -> Zones:
+async def create_shop_zone(user, data: createZones) -> Zones:
     zone_id = urlsafe_short_hash()
     await db.execute(
         f"""
-        INSERT INTO diagonalley.zones (
+        INSERT INTO shop.zones (
             id,
             "user",
             cost,
@@ -111,45 +111,45 @@ async def create_diagonalley_zone(user, data: createZones) -> Zones:
         (zone_id, user, data.cost, data.countries.lower()),
     )
 
-    zone = await get_diagonalley_zone(zone_id)
+    zone = await get_shop_zone(zone_id)
     assert zone, "Newly created zone couldn't be retrieved"
     return zone
 
 
-async def update_diagonalley_zone(zone_id: str, **kwargs) -> Optional[Zones]:
+async def update_shop_zone(zone_id: str, **kwargs) -> Optional[Zones]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE diagonalley.zones SET {q} WHERE id = ?",
+        f"UPDATE shop.zones SET {q} WHERE id = ?",
         (*kwargs.values(), zone_id),
     )
-    row = await db.fetchone("SELECT * FROM diagonalley.zones WHERE id = ?", (zone_id,))
+    row = await db.fetchone("SELECT * FROM shop.zones WHERE id = ?", (zone_id,))
     return Zones(**row) if row else None
 
 
-async def get_diagonalley_zone(zone_id: str) -> Optional[Zones]:
-    row = await db.fetchone("SELECT * FROM diagonalley.zones WHERE id = ?", (zone_id,))
+async def get_shop_zone(zone_id: str) -> Optional[Zones]:
+    row = await db.fetchone("SELECT * FROM shop.zones WHERE id = ?", (zone_id,))
     return Zones(**row) if row else None
 
 
-async def get_diagonalley_zones(user: str) -> List[Zones]:
+async def get_shop_zones(user: str) -> List[Zones]:
     rows = await db.fetchall(
-        'SELECT * FROM diagonalley.zones WHERE "user" = ?', (user,)
+        'SELECT * FROM shop.zones WHERE "user" = ?', (user,)
     )
     return [Zones(**row) for row in rows]
 
 
-async def delete_diagonalley_zone(zone_id: str) -> None:
-    await db.execute("DELETE FROM diagonalley.zones WHERE id = ?", (zone_id,))
+async def delete_shop_zone(zone_id: str) -> None:
+    await db.execute("DELETE FROM shop.zones WHERE id = ?", (zone_id,))
 
 
 ###Stalls
 
 
-async def create_diagonalley_stall(data: createStalls) -> Stalls:
+async def create_shop_stall(data: createStalls) -> Stalls:
     stall_id = urlsafe_short_hash()
     await db.execute(
         f"""
-        INSERT INTO diagonalley.stalls (
+        INSERT INTO shop.stalls (
             id,
             wallet,
             name,
@@ -171,62 +171,62 @@ async def create_diagonalley_stall(data: createStalls) -> Stalls:
         ),
     )
 
-    stall = await get_diagonalley_stall(stall_id)
+    stall = await get_shop_stall(stall_id)
     assert stall, "Newly created stall couldn't be retrieved"
     return stall
 
 
-async def update_diagonalley_stall(stall_id: str, **kwargs) -> Optional[Stalls]:
+async def update_shop_stall(stall_id: str, **kwargs) -> Optional[Stalls]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE diagonalley.stalls SET {q} WHERE id = ?",
+        f"UPDATE shop.stalls SET {q} WHERE id = ?",
         (*kwargs.values(), stall_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
+        "SELECT * FROM shop.stalls WHERE id = ?", (stall_id,)
     )
     return Stalls(**row) if row else None
 
 
-async def get_diagonalley_stall(stall_id: str) -> Optional[Stalls]:
+async def get_shop_stall(stall_id: str) -> Optional[Stalls]:
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
+        "SELECT * FROM shop.stalls WHERE id = ?", (stall_id,)
     )
     return Stalls(**row) if row else None
 
 
-async def get_diagonalley_stalls(wallet_ids: Union[str, List[str]]) -> List[Stalls]:
+async def get_shop_stalls(wallet_ids: Union[str, List[str]]) -> List[Stalls]:
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM diagonalley.stalls WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM shop.stalls WHERE wallet IN ({q})", (*wallet_ids,)
     )
     return [Stalls(**row) for row in rows]
 
 
-async def get_diagonalley_stalls_by_ids(
+async def get_shop_stalls_by_ids(
     stall_ids: Union[str, List[str]]
 ) -> List[Stalls]:
     q = ",".join(["?"] * len(stall_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM diagonalley.stalls WHERE id IN ({q})", (*stall_ids,)
+        f"SELECT * FROM shop.stalls WHERE id IN ({q})", (*stall_ids,)
     )
     return [Stalls(**row) for row in rows]
 
 
-async def delete_diagonalley_stall(stall_id: str) -> None:
-    await db.execute("DELETE FROM diagonalley.stalls WHERE id = ?", (stall_id,))
+async def delete_shop_stall(stall_id: str) -> None:
+    await db.execute("DELETE FROM shop.stalls WHERE id = ?", (stall_id,))
 
 
 ###Orders
 
 
-async def create_diagonalley_order(data: createOrder, invoiceid: str) -> Orders:
+async def create_shop_order(data: createOrder, invoiceid: str) -> Orders:
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
 
     result = await (method)(
         f"""
-            INSERT INTO diagonalley.orders (wallet, shippingzone, address, email, total, invoiceid, paid, shipped)
+            INSERT INTO shop.orders (wallet, shippingzone, address, email, total, invoiceid, paid, shipped)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             {returning}
             """,
@@ -245,19 +245,19 @@ async def create_diagonalley_order(data: createOrder, invoiceid: str) -> Orders:
         return result._result_proxy.lastrowid
     else:
         return result[0]
-    # link = await get_diagonalley_order(link.id)
+    # link = await get_shop_order(link.id)
     # assert link, "Newly created link couldn't be retrieved"
     # return link
 
 
-async def create_diagonalley_order_details(
+async def create_shop_order_details(
     order_id: str, data: List[createOrderDetails]
 ):
     for item in data:
         item_id = urlsafe_short_hash()
         await db.execute(
             """
-            INSERT INTO diagonalley.order_details (id, order_id, product_id, quantity)
+            INSERT INTO shop.order_details (id, order_id, product_id, quantity)
             VALUES (?, ?, ?, ?)
             """,
             (
@@ -267,36 +267,36 @@ async def create_diagonalley_order_details(
                 item.quantity,
             ),
         )
-    order_details = await get_diagonalley_order_details(order_id)
+    order_details = await get_shop_order_details(order_id)
     return order_details
 
 
-async def get_diagonalley_order_details(order_id: str) -> List[OrderDetail]:
+async def get_shop_order_details(order_id: str) -> List[OrderDetail]:
     rows = await db.fetchall(
-        f"SELECT * FROM diagonalley.order_details WHERE order_id = ?", (order_id,)
+        f"SELECT * FROM shop.order_details WHERE order_id = ?", (order_id,)
     )
 
     return [OrderDetail(**row) for row in rows]
 
 
-async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
+async def get_shop_order(order_id: str) -> Optional[Orders]:
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
+        "SELECT * FROM shop.orders WHERE id = ?", (order_id,)
     )
     return Orders(**row) if row else None
 
 
-async def get_diagonalley_order_invoiceid(invoice_id: str) -> Optional[Orders]:
+async def get_shop_order_invoiceid(invoice_id: str) -> Optional[Orders]:
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (invoice_id,)
+        "SELECT * FROM shop.orders WHERE invoiceid = ?", (invoice_id,)
     )
     return Orders(**row) if row else None
 
 
-async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
+async def set_shop_order_paid(payment_hash: str) -> Orders:
     await db.execute(
         """
-            UPDATE diagonalley.orders
+            UPDATE shop.orders
             SET paid = true
             WHERE invoiceid = ?
             """,
@@ -304,10 +304,10 @@ async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
     )
 
 
-async def set_diagonalley_order_pubkey(payment_hash: str, pubkey: str):
+async def set_shop_order_pubkey(payment_hash: str, pubkey: str):
     await db.execute(
         """
-            UPDATE diagonalley.orders
+            UPDATE shop.orders
             SET pubkey = ?
             WHERE invoiceid = ?
             """,
@@ -318,7 +318,7 @@ async def set_diagonalley_order_pubkey(payment_hash: str, pubkey: str):
     )
 
 
-async def update_diagonalley_product_stock(products):
+async def update_shop_product_stock(products):
 
     q = "\n".join(
         [f"""WHEN id='{p.product_id}' THEN quantity - {p.quantity}""" for p in products]
@@ -327,7 +327,7 @@ async def update_diagonalley_product_stock(products):
 
     await db.execute(
         f"""
-            UPDATE diagonalley.products
+            UPDATE shop.products
             SET quantity=(CASE
                         {q}
                         END)
@@ -337,53 +337,53 @@ async def update_diagonalley_product_stock(products):
     )
 
 
-async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
+async def get_shop_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM shop.orders WHERE wallet IN ({q})", (*wallet_ids,)
     )
     #
     return [Orders(**row) for row in rows]
 
 
-async def delete_diagonalley_order(order_id: str) -> None:
-    await db.execute("DELETE FROM diagonalley.orders WHERE id = ?", (order_id,))
+async def delete_shop_order(order_id: str) -> None:
+    await db.execute("DELETE FROM shop.orders WHERE id = ?", (order_id,))
 
 
 ### Market/Marketplace
 
 
-async def get_diagonalley_markets(user: str) -> List[Market]:
-    rows = await db.fetchall("SELECT * FROM diagonalley.markets WHERE usr = ?", (user,))
+async def get_shop_markets(user: str) -> List[Market]:
+    rows = await db.fetchall("SELECT * FROM shop.markets WHERE usr = ?", (user,))
     return [Market(**row) for row in rows]
 
 
-async def get_diagonalley_market(market_id: str) -> Optional[Market]:
+async def get_shop_market(market_id: str) -> Optional[Market]:
     row = await db.fetchone(
-        "SELECT * FROM diagonalley.markets WHERE id = ?", (market_id,)
+        "SELECT * FROM shop.markets WHERE id = ?", (market_id,)
     )
     return Market(**row) if row else None
 
 
-async def get_diagonalley_market_stalls(market_id: str):
+async def get_shop_market_stalls(market_id: str):
     rows = await db.fetchall(
-        "SELECT * FROM diagonalley.market_stalls WHERE marketid = ?", (market_id,)
+        "SELECT * FROM shop.market_stalls WHERE marketid = ?", (market_id,)
     )
 
     ids = [row["stallid"] for row in rows]
 
-    return await get_diagonalley_stalls_by_ids(ids)
+    return await get_shop_stalls_by_ids(ids)
 
 
-async def create_diagonalley_market(data: CreateMarket):
+async def create_shop_market(data: CreateMarket):
     market_id = urlsafe_short_hash()
 
     await db.execute(
         """
-            INSERT INTO diagonalley.markets (id, usr, name)
+            INSERT INTO shop.markets (id, usr, name)
             VALUES (?, ?, ?)
             """,
         (
@@ -392,12 +392,12 @@ async def create_diagonalley_market(data: CreateMarket):
             data.name,
         ),
     )
-    market = await get_diagonalley_market(market_id)
+    market = await get_shop_market(market_id)
     assert market, "Newly created market couldn't be retrieved"
     return market
 
 
-async def create_diagonalley_market_stalls(
+async def create_shop_market_stalls(
     market_id: str, data: List[CreateMarketStalls]
 ):
     for stallid in data:
@@ -405,7 +405,7 @@ async def create_diagonalley_market_stalls(
 
         await db.execute(
             """
-            INSERT INTO diagonalley.market_stalls (id, marketid, stallid)
+            INSERT INTO shop.market_stalls (id, marketid, stallid)
             VALUES (?, ?, ?)
             """,
             (
@@ -414,11 +414,11 @@ async def create_diagonalley_market_stalls(
                 stallid,
             ),
         )
-    market_stalls = await get_diagonalley_market_stalls(market_id)
+    market_stalls = await get_shop_market_stalls(market_id)
     return market_stalls
 
 
-async def update_diagonalley_market(market_id):
+async def update_shop_market(market_id):
     pass
 
 
@@ -428,7 +428,7 @@ async def update_diagonalley_market(market_id):
 async def create_chat_message(data: CreateChatMessage):
     await db.execute(
         """
-            INSERT INTO diagonalley.messages (msg, pubkey, id_conversation)
+            INSERT INTO shop.messages (msg, pubkey, id_conversation)
             VALUES (?, ?, ?)
             """,
         (
@@ -439,29 +439,29 @@ async def create_chat_message(data: CreateChatMessage):
     )
 
 
-async def get_diagonalley_latest_chat_messages(room_name: str):
+async def get_shop_latest_chat_messages(room_name: str):
     rows = await db.fetchall(
-        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC LIMIT 20",
+        "SELECT * FROM shop.messages WHERE id_conversation = ? ORDER BY timestamp DESC LIMIT 20",
         (room_name,),
     )
 
     return [ChatMessage(**row) for row in rows]
 
 
-async def get_diagonalley_chat_messages(room_name: str):
+async def get_shop_chat_messages(room_name: str):
     rows = await db.fetchall(
-        "SELECT * FROM diagonalley.messages WHERE id_conversation = ? ORDER BY timestamp DESC",
+        "SELECT * FROM shop.messages WHERE id_conversation = ? ORDER BY timestamp DESC",
         (room_name,),
     )
 
     return [ChatMessage(**row) for row in rows]
 
 
-async def get_diagonalley_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
+async def get_shop_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
 
     q = ",".join(["?"] * len(ids))
     rows = await db.fetchall(
-        f"SELECT * FROM diagonalley.messages WHERE id_conversation IN ({q})",
+        f"SELECT * FROM shop.messages WHERE id_conversation IN ({q})",
         (*ids,),
     )
     return [ChatMessage(**row) for row in rows]

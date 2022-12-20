@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE diagonalley.stalls (
+        CREATE TABLE shop.stalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -22,7 +22,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE diagonalley.products (
+        CREATE TABLE shop.products (
             id TEXT PRIMARY KEY,
             stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id),
             product TEXT NOT NULL,
@@ -41,7 +41,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE diagonalley.zones (
+        CREATE TABLE shop.zones (
             id TEXT PRIMARY KEY,
             "user" TEXT NOT NULL,
             cost TEXT NOT NULL,
@@ -55,7 +55,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE diagonalley.orders (
+        CREATE TABLE shop.orders (
             id {db.serial_primary_key},
             wallet TEXT NOT NULL,
             username TEXT,
@@ -79,7 +79,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE diagonalley.order_details (
+        CREATE TABLE shop.order_details (
             id TEXT PRIMARY KEY,
             order_id INTEGER NOT NULL REFERENCES {db.references_schema}orders (id),
             product_id TEXT NOT NULL REFERENCES {db.references_schema}products (id),
@@ -93,7 +93,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE diagonalley.markets (
+        CREATE TABLE shop.markets (
             id TEXT PRIMARY KEY,
             usr TEXT NOT NULL,
             name TEXT
@@ -106,7 +106,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE diagonalley.market_stalls (
+        CREATE TABLE shop.market_stalls (
             id TEXT PRIMARY KEY,
             marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id),
             stallid TEXT NOT NULL REFERENCES {db.references_schema}stalls (id)
@@ -121,7 +121,7 @@ async def m002_add_chat_messages(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE diagonalley.messages (
+        CREATE TABLE shop.messages (
             id {db.serial_primary_key},
             msg TEXT NOT NULL,
             pubkey TEXT NOT NULL,
@@ -138,8 +138,8 @@ async def m002_add_chat_messages(db):
         Create indexes for message fetching
         """
         await db.execute(
-            "CREATE INDEX idx_messages_timestamp ON diagonalley.messages (timestamp DESC)"
+            "CREATE INDEX idx_messages_timestamp ON shop.messages (timestamp DESC)"
         )
         await db.execute(
-            "CREATE INDEX idx_messages_conversations ON diagonalley.messages (id_conversation)"
+            "CREATE INDEX idx_messages_conversations ON shop.messages (id_conversation)"
         )

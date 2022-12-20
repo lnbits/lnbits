@@ -398,9 +398,9 @@
       </q-card-section>
       <q-separator inset></q-separator>
       <q-card-section>
-        <div class="text-h6">Diagon Alley</div>
+        <div class="text-h6">Shop</div>
         <div class="text-subtitle2">
-          Step inside the Leaky Cauldron and enter the Diagon Alley. Make this
+          Step inside the Leaky Cauldron and enter the Shop. Make this
           market available on Nostr!
         </div>
       </q-card-section>
@@ -412,7 +412,7 @@
           checked-icon="check"
           color="green"
           unchecked-icon="clear"
-          label='"Diagon Alley" mode (Nostr)'
+          label='"Shop" mode (Nostr)'
           @input="toggleDA"
         >
           <q-tooltip>Coming soon...</q-tooltip></q-toggle
@@ -703,7 +703,7 @@
                   icon="storefront"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'/diagonalley/stalls/' + props.row.id"
+                  :href="'/shop/stalls/' + props.row.id"
                   target="_blank"
                 ></q-btn>
                 <q-tooltip> Stall simple UI shopping cart </q-tooltip>
@@ -777,7 +777,7 @@
                   icon="storefront"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'/diagonalley/market/' + props.row.id"
+                  :href="'/shop/market/' + props.row.id"
                   target="_blank"
                 ></q-btn>
                 <q-tooltip> Link to pass to stall relay </q-tooltip>
@@ -921,12 +921,12 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          LNbits Diagon Alley Extension, powered by Nostr
+          LNbits Shop Extension, powered by Nostr
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "diagonalley/_api_docs.html" %} </q-list>
+        <q-list> {% include "shop/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
     <!-- CHAT BOX -->
@@ -1062,7 +1062,7 @@
   </div>
   <q-dialog v-model="onboarding.show">
     <q-card class="q-pa-lg">
-      <h6 class="q-my-md text-primary">How to use Diagon Alley</h6>
+      <h6 class="q-my-md text-primary">How to use Shop</h6>
       <q-stepper v-model="step" color="primary" vertical animated>
         <q-step
           :name="1"
@@ -1155,7 +1155,7 @@
     obj._data = _.clone(obj)
     obj.stores = []
     LNbits.api
-      .request('GET', `/diagonalley/api/v1/markets/${obj.id}/stalls`, null)
+      .request('GET', `/shop/api/v1/markets/${obj.id}/stalls`, null)
       .then(response => {
         if (response.data) {
           obj.stores = response.data.map(s => s.name).toString()
@@ -1503,7 +1503,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/keys',
+            '/shop/api/v1/keys',
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
@@ -1512,7 +1512,7 @@
               this.stallDialog.data.publickey = this.keys.pubkey
               this.stallDialog.data.privatekey = this.keys.privkey
               this.$q.localStorage.set(
-                `lnbits.diagonalley.${this.g.user.id}`,
+                `lnbits.shop.${this.g.user.id}`,
                 this.keys
               )
             }
@@ -1523,7 +1523,7 @@
       },
       restoreKeys() {
         let keys = this.$q.localStorage.getItem(
-          `lnbits.diagonalley.${this.g.user.id}`
+          `lnbits.shop.${this.g.user.id}`
         )
         if (keys) {
           this.keys = keys
@@ -1580,7 +1580,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/stalls?all_wallets=true',
+            '/shop/api/v1/stalls?all_wallets=true',
             self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
@@ -1636,7 +1636,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/diagonalley/api/v1/stalls/' + data.id,
+            '/shop/api/v1/stalls/' + data.id,
             _.findWhere(self.g.user.wallets, {
               id: self.stallDialog.data.wallet
             }).inkey,
@@ -1658,7 +1658,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/stalls',
+            '/shop/api/v1/stalls',
             _.findWhere(self.g.user.wallets, {
               id: self.stallDialog.data.wallet
             }).inkey,
@@ -1685,7 +1685,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/diagonalley/api/v1/stalls/' + stallId,
+                '/shop/api/v1/stalls/' + stallId,
                 _.findWhere(self.g.user.wallets, {id: stall.wallet}).adminkey
               )
               .then(function (response) {
@@ -1710,7 +1710,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/products?all_stalls=true',
+            '/shop/api/v1/products?all_stalls=true',
             self.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -1783,7 +1783,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/diagonalley/api/v1/products/' + data.id,
+            '/shop/api/v1/products/' + data.id,
             _.findWhere(self.g.user.wallets, {
               id: wallet
             }).inkey,
@@ -1809,7 +1809,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/products',
+            '/shop/api/v1/products',
             _.findWhere(self.g.user.wallets, {id: walletId}).inkey,
             data
           )
@@ -1831,7 +1831,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/diagonalley/api/v1/products/' + productId,
+                '/shop/api/v1/products/' + productId,
                 _.findWhere(this.g.user.wallets, {id: walletId}).adminkey
               )
               .then(() => {
@@ -1856,7 +1856,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/zones',
+            '/shop/api/v1/zones',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -1896,7 +1896,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/zones/' + data.id,
+            '/shop/api/v1/zones/' + data.id,
             self.g.user.wallets[0].adminkey,
             data
           )
@@ -1918,7 +1918,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/zones',
+            '/shop/api/v1/zones',
             self.g.user.wallets[0].inkey,
             data
           )
@@ -1942,7 +1942,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/diagonalley/api/v1/zones/' + zoneId,
+                '/shop/api/v1/zones/' + zoneId,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
@@ -1965,7 +1965,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/markets',
+            '/shop/api/v1/markets',
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -2003,7 +2003,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/diagonalley/api/v1/shops' + data.id,
+            '/shop/api/v1/shops' + data.id,
             _.findWhere(self.g.user.wallets, {
               id: self.marketDialog.data.wallet
             }).inkey,
@@ -2026,7 +2026,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/markets',
+            '/shop/api/v1/markets',
             this.g.user.wallets[0].inkey,
             data
           )
@@ -2050,7 +2050,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/diagonalley/api/v1/shops/' + shopId,
+                '/shop/api/v1/shops/' + shopId,
                 _.findWhere(self.g.user.wallets, {id: shop.wallet}).inkey
               )
               .then(function (response) {
@@ -2075,7 +2075,7 @@
         await LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/orders?all_wallets=true',
+            '/shop/api/v1/orders?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -2099,7 +2099,7 @@
         LNbits.api
           .request(
             'POST',
-            '/diagonalley/api/v1/orders',
+            '/shop/api/v1/orders',
             _.findWhere(self.g.user.wallets, {id: self.orderDialog.data.wallet})
               .inkey,
             data
@@ -2123,7 +2123,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/diagonalley/api/v1/orders/' + orderId,
+                '/shop/api/v1/orders/' + orderId,
                 _.findWhere(self.g.user.wallets, {id: order.wallet}).adminkey
               )
               .then(function (response) {
@@ -2140,7 +2140,7 @@
         LNbits.api
           .request(
             'GET',
-            '/diagonalley/api/v1/orders/shipped/' + order_id,
+            '/shop/api/v1/orders/shipped/' + order_id,
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -2161,7 +2161,7 @@
         await LNbits.api
           .request(
             'GET',
-            `/diagonalley/api/v1/chat/messages/merchant?orders=${this.orders
+            `/shop/api/v1/chat/messages/merchant?orders=${this.orders
               .map(o => o.invoiceid)
               .toString()}`,
             this.g.user.wallets[0].adminkey
@@ -2176,7 +2176,7 @@
       },
       updateLastSeenMsg(id) {
         let data = this.$q.localStorage.getItem(
-          `lnbits.diagonalley.${this.g.user.id}`
+          `lnbits.shop.${this.g.user.id}`
         )
         let chat = {
           ...data.chat,
@@ -2186,7 +2186,7 @@
             ]
           }
         }
-        this.$q.localStorage.set(`lnbits.diagonalley.${this.g.user.id}`, {
+        this.$q.localStorage.set(`lnbits.shop.${this.g.user.id}`, {
           ...data,
           chat
         })
@@ -2194,7 +2194,7 @@
       },
       checkUnreadMessages() {
         let lastMsgs = this.$q.localStorage.getItem(
-          `lnbits.diagonalley.${this.g.user.id}`
+          `lnbits.shop.${this.g.user.id}`
         ).chat
         for (let key in this.messages) {
           let idx = this.orders.findIndex(f => f.invoiceid == key)
@@ -2253,14 +2253,14 @@
           ws_scheme = 'ws://'
         }
         ws = new WebSocket(
-          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+          ws_scheme + location.host + '/shop/ws/' + room_name
         )
 
         function checkWebSocket(event) {
           if (ws.readyState === WebSocket.CLOSED) {
             console.log('WebSocket CLOSED: Reopening')
             ws = new WebSocket(
-              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+              ws_scheme + location.host + '/shop/ws/' + room_name
             )
           }
         }
@@ -2293,7 +2293,7 @@
         this.getMarkets()
         await this.getAllMessages()
         let keys = this.$q.localStorage.getItem(
-          `lnbits.diagonalley.${this.g.user.id}`
+          `lnbits.shop.${this.g.user.id}`
         )
         if (keys) {
           this.keys = keys

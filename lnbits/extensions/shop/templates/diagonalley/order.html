@@ -320,8 +320,8 @@
       },
       restoreKeys() {
         this.user.keys = this.keysDialog.data
-        let data = this.$q.localStorage.getItem(`lnbits.diagonalley.data`)
-        this.$q.localStorage.set(`lnbits.diagonalley.data`, {
+        let data = this.$q.localStorage.getItem(`lnbits.shop.data`)
+        this.$q.localStorage.set(`lnbits.shop.data`, {
           ...data,
           keys: this.user.keys
         })
@@ -332,7 +332,7 @@
         LNbits.utils
           .confirmDialog('Are you sure you want to delete your stored data?')
           .onOk(() => {
-            this.$q.localStorage.remove('lnbits.diagonalley.data')
+            this.$q.localStorage.remove('lnbits.shop.data')
             this.user = null
           })
       },
@@ -342,7 +342,7 @@
           return
 
         return await LNbits.api
-          .request('GET', `/diagonalley/api/v1/keys`, null)
+          .request('GET', `/shop/api/v1/keys`, null)
           .then(response => {
             if (response.data) {
               let data = {
@@ -363,7 +363,7 @@
         await LNbits.api
           .request(
             'GET',
-            `/diagonalley/api/v1/chat/messages/${room_name}${
+            `/shop/api/v1/chat/messages/${room_name}${
               all ? '?all_messages=true' : ''
             }`
           )
@@ -397,14 +397,14 @@
           ws_scheme = 'ws://'
         }
         ws = new WebSocket(
-          ws_scheme + location.host + '/diagonalley/ws/' + room_name
+          ws_scheme + location.host + '/shop/ws/' + room_name
         )
 
         function checkWebSocket(event) {
           if (ws.readyState === WebSocket.CLOSED) {
             console.log('WebSocket CLOSED: Reopening')
             ws = new WebSocket(
-              ws_scheme + location.host + '/diagonalley/ws/' + room_name
+              ws_scheme + location.host + '/shop/ws/' + room_name
             )
           }
         }
@@ -447,7 +447,7 @@
       })
 
       let data =
-        this.$q.localStorage.getItem(`lnbits.diagonalley.data`) || false
+        this.$q.localStorage.getItem(`lnbits.shop.data`) || false
 
       if (data) {
         this.user = data
@@ -468,7 +468,7 @@
 
       await this.getMessages(order_id)
 
-      this.$q.localStorage.set(`lnbits.diagonalley.data`, this.user)
+      this.$q.localStorage.set(`lnbits.shop.data`, this.user)
       this.startChat(order_id)
     }
   })
