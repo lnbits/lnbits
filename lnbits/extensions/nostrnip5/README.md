@@ -27,7 +27,7 @@ Example nginx configuration
 ```
 location /.well-known/nostr.json {
    proxy_pass https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json;
-   proxy_set_header Host lnbits.fly.dev;
+   proxy_set_header Host {your_lnbits};
    proxy_ssl_server_name on;
 }
 ```
