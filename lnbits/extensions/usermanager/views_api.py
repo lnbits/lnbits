@@ -21,40 +21,44 @@ from .crud import (
     get_usermanager_wallet_transactions,
     get_usermanager_wallets,
 )
-from .models import CreateUserData, CreateUserWallet
-
-# Users
+from .models import CreateUserData, CreateUserWallet, Wallet
 
 
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
-async def api_usermanager_users(wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_usermanager_users(
+    wallet: WalletTypeInfo = Depends(require_admin_key) #type: ignore
+):
     user_id = wallet.wallet.user
     return [user.dict() for user in await get_usermanager_users(user_id)]
 
 
 @usermanager_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK)
-async def api_usermanager_user(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_user(
+    user_id,
+    wallet: WalletTypeInfo = Depends(get_key_type) #type: ignore
+):
     user = await get_usermanager_user(user_id)
+    if not user:
+        return None
     return user.dict()
 
 
-@usermanager_ext.post("/api/v1/users", status_code=HTTPStatus.CREATED)
-async def api_usermanager_users_create(
-    data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@usermanager_ext.post("/api/v1/users", status_code=HTTPStatus.CREATED, dependencies=[Depends(get_key_type)])
+async def api_usermanager_users_create(data: CreateUserData):
     user = await create_usermanager_user(data)
     full = user.dict()
-    full["wallets"] = [
-        wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)
-    ]
+    wallets: list[Wallet] = await get_usermanager_users_wallets(user.id)
+    if wallets:
+        full["wallets"] = [
+            wallet.dict() for wallet in wallets
+        ]
     return full
 
 
-@usermanager_ext.delete("/api/v1/users/{user_id}")
+@usermanager_ext.delete("/api/v1/users/{user_id}", dependencies=[Depends(require_admin_key)])
 async def api_usermanager_users_delete(
     user_id,
     delete_core: bool = Query(True),
-    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     user = await get_usermanager_user(user_id)
     if not user:
@@ -84,10 +88,8 @@ async def api_usermanager_activate_extension(
 # Wallets
 
 
-@usermanager_ext.post("/api/v1/wallets")
-async def api_usermanager_wallets_create(
-    data: CreateUserWallet, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@usermanager_ext.post("/api/v1/wallets", dependencies=[Depends(get_key_type)])
+async def api_usermanager_wallets_create(data: CreateUserWallet):
     user = await create_usermanager_wallet(
         user_id=data.user_id, wallet_name=data.wallet_name, admin_id=data.admin_id
     )
@@ -95,31 +97,27 @@ async def api_usermanager_wallets_create(
 
 
 @usermanager_ext.get("/api/v1/wallets")
-async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_usermanager_wallets(
+    wallet: WalletTypeInfo = Depends(require_admin_key) #type: ignore
+):
     admin_id = wallet.wallet.user
     return [wallet.dict() for wallet in await get_usermanager_wallets(admin_id)]
 
 
-@usermanager_ext.get("/api/v1/transactions/{wallet_id}")
-async def api_usermanager_wallet_transactions(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@usermanager_ext.get("/api/v1/transactions/{wallet_id}", dependencies=[Depends(get_key_type)])
+async def api_usermanager_wallet_transactions(wallet_id):
     return await get_usermanager_wallet_transactions(wallet_id)
 
 
-@usermanager_ext.get("/api/v1/wallets/{user_id}")
-async def api_usermanager_users_wallets(
-    user_id, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
+@usermanager_ext.get("/api/v1/wallets/{user_id}", dependencies=[Depends(require_admin_key)])
+async def api_usermanager_users_wallets(user_id):
     return [
         s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)
     ]
 
 
-@usermanager_ext.delete("/api/v1/wallets/{wallet_id}")
-async def api_usermanager_wallets_delete(
-    wallet_id, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
+@usermanager_ext.delete("/api/v1/wallets/{wallet_id}", dependencies=[Depends(require_admin_key)])
+async def api_usermanager_wallets_delete(wallet_id):
     get_wallet = await get_usermanager_wallet(wallet_id)
     if not get_wallet:
         raise HTTPException(

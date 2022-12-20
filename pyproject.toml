@@ -110,7 +110,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/streamalerts.
     | ^lnbits/extensions/tipjar.
     | ^lnbits/extensions/tpos.
-    | ^lnbits/extensions/usermanager.
     | ^lnbits/extensions/watchonly.
     | ^lnbits/extensions/withdraw.
     | ^lnbits/wallets/lnd_grpc_files.
