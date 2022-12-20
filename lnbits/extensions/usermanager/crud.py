@@ -10,12 +10,10 @@ from lnbits.core.crud import (
 from lnbits.core.models import Payment
 
 from . import db
-from .models import CreateUserData, Users, Wallets
-
-### Users
+from .models import CreateUserData, User, Wallet
 
 
-async def create_usermanager_user(data: CreateUserData) -> Users:
+async def create_usermanager_user(data: CreateUserData) -> User:
     account = await create_account()
     user = await get_user(account.id)
     assert user, "Newly created user couldn't be retrieved"
@@ -50,17 +48,17 @@ async def create_usermanager_user(data: CreateUserData) -> Users:
     return user_created
 
 
-async def get_usermanager_user(user_id: str) -> Optional[Users]:
+async def get_usermanager_user(user_id: str) -> Optional[User]:
     row = await db.fetchone("SELECT * FROM usermanager.users WHERE id = ?", (user_id,))
-    return Users(**row) if row else None
+    return User(**row) if row else None
 
 
-async def get_usermanager_users(user_id: str) -> List[Users]:
+async def get_usermanager_users(user_id: str) -> List[User]:
     rows = await db.fetchall(
         "SELECT * FROM usermanager.users WHERE admin = ?", (user_id,)
     )
 
-    return [Users(**row) for row in rows]
+    return [User(**row) for row in rows]
 
 
 async def delete_usermanager_user(user_id: str, delete_core: bool = True) -> None:
@@ -73,12 +71,9 @@ async def delete_usermanager_user(user_id: str, delete_core: bool = True) -> Non
     await db.execute("""DELETE FROM usermanager.wallets WHERE "user" = ?""", (user_id,))
 
 
-### Wallets
-
-
 async def create_usermanager_wallet(
     user_id: str, wallet_name: str, admin_id: str
-) -> Wallets:
+) -> Wallet:
     wallet = await create_wallet(user_id=user_id, wallet_name=wallet_name)
     await db.execute(
         """
@@ -92,28 +87,28 @@ async def create_usermanager_wallet(
     return wallet_created
 
 
-async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
+async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallet]:
     row = await db.fetchone(
         "SELECT * FROM usermanager.wallets WHERE id = ?", (wallet_id,)
     )
-    return Wallets(**row) if row else None
+    return Wallet(**row) if row else None
 
 
-async def get_usermanager_wallets(admin_id: str) -> Optional[Wallets]:
+async def get_usermanager_wallets(admin_id: str) -> List[Wallet]:
     rows = await db.fetchall(
         "SELECT * FROM usermanager.wallets WHERE admin = ?", (admin_id,)
     )
-    return [Wallets(**row) for row in rows]
+    return [Wallet(**row) for row in rows]
 
 
-async def get_usermanager_users_wallets(user_id: str) -> Optional[Wallets]:
+async def get_usermanager_users_wallets(user_id: str) -> List[Wallet]:
     rows = await db.fetchall(
         """SELECT * FROM usermanager.wallets WHERE "user" = ?""", (user_id,)
     )
-    return [Wallets(**row) for row in rows]
+    return [Wallet(**row) for row in rows]
 
 
-async def get_usermanager_wallet_transactions(wallet_id: str) -> Optional[Payment]:
+async def get_usermanager_wallet_transactions(wallet_id: str) -> List[Payment]:
     return await get_payments(
         wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True
     )
