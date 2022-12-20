@@ -47,11 +47,9 @@ async def api_usermanager_user(
 async def api_usermanager_users_create(data: CreateUserData):
     user = await create_usermanager_user(data)
     full = user.dict()
-    wallets: list[Wallet] = await get_usermanager_users_wallets(user.id)
-    if wallets:
-        full["wallets"] = [
-            wallet.dict() for wallet in wallets
-        ]
+    full["wallets"] = [
+        wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)
+    ]
     return full
 
 
