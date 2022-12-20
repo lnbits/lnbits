@@ -46,7 +46,7 @@ class Card(BaseModel):
 
 class CreateCardData(BaseModel):
     card_name: str = Query(...)
-    message: str = Query("Boltcard (refund address {refund_url})")
+    message: str = Query(...)
     uid: str = Query(...)
     counter: int = Query(0)
     tx_limit: int = Query(0)

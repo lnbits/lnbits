@@ -88,22 +88,13 @@ async def api_scan(p, c, request: Request, external_id: str = None):
         return {"status": "ERROR", "reason": "Max daily limit spent."}
     hit = await create_hit(card.id, ip, agent, card.counter, ctr_int)
     lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
-
-    replacements = {
-        "refund_url": f"lnurl://{lnurlpay}",
-        "card_name": card.card_name,
-    }
-    message = card.message
-    for key, value in replacements.items():
-        message = message.replace("{" + key + "}", value)
-
     return {
         "tag": "withdrawRequest",
         "callback": request.url_for("boltcards.lnurl_callback", hitid=hit.id),
         "k1": hit.id,
         "minWithdrawable": 1 * 1000,
         "maxWithdrawable": card.tx_limit * 1000,
-        "defaultDescription": message,
+        "defaultDescription": card.message or f"Boltcard (refund address lnurl://{lnurlpay})",
     }
 
 
