@@ -201,7 +201,11 @@
       </q-form>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="addressFormDialog.show" position="top" @hide="closeAddressFormDialog">
+  <q-dialog
+    v-model="addressFormDialog.show"
+    position="top"
+    @hide="closeAddressFormDialog"
+  >
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="saveAddress" class="q-gutter-md">
         <q-select
@@ -576,16 +580,21 @@
 
         axios
           .post(
-            '/nostrnip5/api/v1/domain/' + formDialog.data.domain_id + '/address',
+            '/nostrnip5/api/v1/domain/' +
+              formDialog.data.domain_id +
+              '/address',
             formDialog.data
           )
           .then(function (response) {
-            return LNbits.api
-              .request(
-                'POST',
-                '/nostrnip5/api/v1/domain/' + formDialog.data.domain_id + '/address/' + response.data.address_id + '/activate',
-                _.findWhere(self.g.user.wallets, {id: domain.wallet}).adminkey
-              )
+            return LNbits.api.request(
+              'POST',
+              '/nostrnip5/api/v1/domain/' +
+                formDialog.data.domain_id +
+                '/address/' +
+                response.data.address_id +
+                '/activate',
+              _.findWhere(self.g.user.wallets, {id: domain.wallet}).adminkey
+            )
           })
           .then(function (response) {
             self.addressFormDialog.data = {}
@@ -637,7 +646,7 @@
       domainOptions: function () {
         return this.domains.map(el => {
           return {
-            label: el.domain, 
+            label: el.domain,
             value: el.id
           }
         })

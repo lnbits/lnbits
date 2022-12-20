@@ -15,6 +15,7 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import nostrnip5_ext
 from .crud import (
+    activate_address,
     create_address_internal,
     create_domain_internal,
     delete_address,
@@ -25,7 +26,6 @@ from .crud import (
     get_domain,
     get_domain_by_name,
     get_domains,
-    activate_address,
 )
 from .models import CreateAddressData, CreateDomainData
 
@@ -98,7 +98,11 @@ async def api_address_delete(
 
     return True
 
-@nostrnip5_ext.post("/api/v1/domain/{domain_id}/address/{address_id}/activate", status_code=HTTPStatus.OK)
+
+@nostrnip5_ext.post(
+    "/api/v1/domain/{domain_id}/address/{address_id}/activate",
+    status_code=HTTPStatus.OK,
+)
 async def api_address_activate(
     domain_id: str,
     address_id: str,
@@ -107,6 +111,7 @@ async def api_address_activate(
     await activate_address(domain_id, address_id)
 
     return True
+
 
 @nostrnip5_ext.post(
     "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
@@ -161,7 +166,11 @@ async def api_address_create(
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    return {"payment_hash": payment_hash, "payment_request": payment_request, "address_id": address.id}
+    return {
+        "payment_hash": payment_hash,
+        "payment_request": payment_request,
+        "address_id": address.id,
+    }
 
 
 @nostrnip5_ext.get(
