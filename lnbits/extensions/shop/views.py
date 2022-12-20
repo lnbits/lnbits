@@ -11,40 +11,40 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
-from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
-from lnbits.extensions.diagonalley.models import CreateChatMessage
-from lnbits.extensions.diagonalley.notifier import Notifier
+from lnbits.extensions.shop import shop_ext, shop_renderer
+from lnbits.extensions.shop.models import CreateChatMessage
+from lnbits.extensions.shop.notifier import Notifier
 
 from .crud import (
     create_chat_message,
-    get_diagonalley_market,
-    get_diagonalley_market_stalls,
-    get_diagonalley_order_details,
-    get_diagonalley_order_invoiceid,
-    get_diagonalley_products,
-    get_diagonalley_stall,
-    get_diagonalley_zone,
-    get_diagonalley_zones,
-    update_diagonalley_product_stock,
+    get_shop_market,
+    get_shop_market_stalls,
+    get_shop_order_details,
+    get_shop_order_invoiceid,
+    get_shop_products,
+    get_shop_stall,
+    get_shop_zone,
+    get_shop_zones,
+    update_shop_product_stock,
 )
 
 templates = Jinja2Templates(directory="templates")
 
 
-@diagonalley_ext.get("/", response_class=HTMLResponse)
+@shop_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/index.html", {"request": request, "user": user.dict()}
+    return shop_renderer().TemplateResponse(
+        "shop/index.html", {"request": request, "user": user.dict()}
     )
 
 
-@diagonalley_ext.get("/stalls/{stall_id}", response_class=HTMLResponse)
+@shop_ext.get("/stalls/{stall_id}", response_class=HTMLResponse)
 async def display(request: Request, stall_id):
-    stall = await get_diagonalley_stall(stall_id)
-    products = await get_diagonalley_products(stall_id)
+    stall = await get_shop_stall(stall_id)
+    products = await get_shop_products(stall_id)
     zones = []
     for id in stall.shippingzones.split(","):
-        z = await get_diagonalley_zone(id)
+        z = await get_shop_zone(id)
         z = z.dict()
         zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
 
@@ -57,8 +57,8 @@ async def display(request: Request, stall_id):
     del stall["privatekey"]
     stall["zones"] = zones
 
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/stall.html",
+    return shop_renderer().TemplateResponse(
+        "shop/stall.html",
         {
             "request": request,
             "stall": stall,
@@ -67,23 +67,23 @@ async def display(request: Request, stall_id):
     )
 
 
-@diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
+@shop_ext.get("/market/{market_id}", response_class=HTMLResponse)
 async def display(request: Request, market_id):
-    market = await get_diagonalley_market(market_id)
+    market = await get_shop_market(market_id)
 
     if not market:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Marketplace doesn't exist."
         )
 
-    stalls = await get_diagonalley_market_stalls(market_id)
+    stalls = await get_shop_market_stalls(market_id)
     stalls_ids = [stall.id for stall in stalls]
     products = [
-        product.dict() for product in await get_diagonalley_products(stalls_ids)
+        product.dict() for product in await get_shop_products(stalls_ids)
     ]
 
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/market.html",
+    return shop_renderer().TemplateResponse(
+        "shop/market.html",
         {
             "request": request,
             "market": market,
@@ -93,20 +93,20 @@ async def display(request: Request, market_id):
     )
 
 
-@diagonalley_ext.get("/order", response_class=HTMLResponse)
+@shop_ext.get("/order", response_class=HTMLResponse)
 async def chat_page(
     request: Request,
     merch: str = Query(...),
     invoice_id: str = Query(...),
     keys: str = Query(None),
 ):
-    stall = await get_diagonalley_stall(merch)
-    order = await get_diagonalley_order_invoiceid(invoice_id)
-    _order = await get_diagonalley_order_details(order.id)
-    products = await get_diagonalley_products(stall.id)
+    stall = await get_shop_stall(merch)
+    order = await get_shop_order_invoiceid(invoice_id)
+    _order = await get_shop_order_details(order.id)
+    products = await get_shop_products(stall.id)
 
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/order.html",
+    return shop_renderer().TemplateResponse(
+        "shop/order.html",
         {
             "request": request,
             "stall": {
@@ -155,7 +155,7 @@ notifier = Notifier()
 # manager = ConnectionManager()
 
 
-# @diagonalley_ext.websocket("/ws/{room_name}")
+# @shop_ext.websocket("/ws/{room_name}")
 # async def websocket_endpoint(websocket: WebSocket, room_name: str):
 #     await manager.connect(websocket, room_name)
 #     try:
@@ -165,7 +165,7 @@ notifier = Notifier()
 #         manager.disconnect(websocket)
 
 
-@diagonalley_ext.websocket("/ws/{room_name}")
+@shop_ext.websocket("/ws/{room_name}")
 async def websocket_endpoint(
     websocket: WebSocket, room_name: str, background_tasks: BackgroundTasks
 ):
