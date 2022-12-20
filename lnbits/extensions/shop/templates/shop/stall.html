@@ -163,6 +163,7 @@
           label="Name *optional"
         ></q-input>
         <q-input
+          v-if="diagonalley" 
           filled
           dense
           v-model.trim="checkoutDialog.data.pubkey"
@@ -279,6 +280,7 @@
         stall: null,
         products: [],
         searchText: null,
+        diagonalley:false,
         cart: {
           total: 0,
           size: 0,

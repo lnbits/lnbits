@@ -102,7 +102,7 @@
       <q-card-section>
         <q-separator></q-separator>
         <q-list>
-          <q-expansion-item group="extras" icon="vpn_key" label="Keys"
+          <q-expansion-item v-if="diagonalley"  group="extras" icon="vpn_key" label="Keys"
             ><p>
               Bellow are the keys needed to contact the merchant. They are
               stored in the browser!
@@ -197,6 +197,7 @@
   </div>
   <!-- RESTORE KEYS DIALOG -->
   <q-dialog
+  v-if="diagonalley" 
     v-model="keysDialog.show"
     position="top"
     @hide="clearRestoreKeyDialog"
@@ -258,6 +259,7 @@
         messages: {},
         stall: null,
         selectedOrder: null,
+        diagonalley: false,
         products: [],
         orders: [],
         user: {
