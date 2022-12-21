@@ -214,7 +214,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         lnurl_response = resp["reason"]
                     else:
                         lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError):
+            except (httpx.ConnectError, httpx.RequestError) as ex:
+                logger.error(ex)
                 lnurl_response = False
 
     return {
