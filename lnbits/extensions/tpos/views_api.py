@@ -12,6 +12,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.settings import settings
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
@@ -134,7 +135,8 @@ async def api_tpos_pay_invoice(
 
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.get(lnurl, follow_redirects=True)
+            headers = {"user-agent": f"lnbits/tpos commit {settings.lnbits_commit[:7]}"}
+            r = await client.get(lnurl, follow_redirects=True, headers=headers)
             if r.is_error:
                 lnurl_response = {"success": False, "detail": "Error loading"}
             else:
@@ -145,6 +147,7 @@ async def api_tpos_pay_invoice(
                     r2 = await client.get(
                         resp["callback"],
                         follow_redirects=True,
+                        headers=headers,
                         params={
                             "k1": resp["k1"],
                             "pr": payment_request,

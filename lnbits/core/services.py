@@ -2,11 +2,11 @@ import asyncio
 import json
 from binascii import unhexlify
 from io import BytesIO
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 from loguru import logger
@@ -21,18 +21,31 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
+from lnbits.settings import (
+    FAKE_WALLET,
+    EditableSettings,
+    get_wallet_class,
+    readonly_variables,
+    send_admin_user_to_saas,
+    settings,
+)
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
 from .crud import (
     check_internal,
+    create_account,
+    create_admin_settings,
     create_payment,
+    create_wallet,
     delete_wallet_payment,
+    get_account,
+    get_super_settings,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
     update_payment_status,
+    update_super_user,
 )
 from .models import Payment
 
@@ -65,7 +78,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet = FAKE_WALLET if internal else WALLET
+    wallet = FAKE_WALLET if internal else get_wallet_class()
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount,
@@ -193,6 +206,7 @@ async def pay_invoice(
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
+        WALLET = get_wallet_class()
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
@@ -381,4 +395,110 @@ async def check_transaction_status(
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
+    reserve_min = settings.lnbits_reserve_fee_min
+    reserve_percent = settings.lnbits_reserve_fee_percent
+    return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+async def update_wallet_balance(wallet_id: str, amount: int):
+    internal_id = f"internal_{urlsafe_short_hash()}"
+    payment = await create_payment(
+        wallet_id=wallet_id,
+        checking_id=internal_id,
+        payment_request="admin_internal",
+        payment_hash="admin_internal",
+        amount=amount * 1000,
+        memo="Admin top up",
+        pending=False,
+    )
+    # manually send this for now
+    from lnbits.tasks import internal_invoice_queue
+
+    await internal_invoice_queue.put(internal_id)
+    return payment
+
+
+async def check_admin_settings():
+    if settings.lnbits_admin_ui:
+        settings_db = await get_super_settings()
+        if not settings_db:
+            # create new settings if table is empty
+            logger.warning("Settings DB empty. Inserting default settings.")
+            settings_db = await init_admin_settings(settings.super_user)
+            logger.warning("Initialized settings from enviroment variables.")
+
+        if settings.super_user and settings.super_user != settings_db.super_user:
+            # .env super_user overwrites DB super_user
+            settings_db = await update_super_user(settings.super_user)
+
+        update_cached_settings(settings_db.dict())
+
+        # printing settings for debugging
+        logger.debug(f"Admin settings:")
+        for key, value in settings.dict(exclude_none=True).items():
+            logger.debug(f"{key}: {value}")
+
+        http = "https" if settings.lnbits_force_https else "http"
+        admin_url = (
+            f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
+        )
+        logger.success(f"✔️ Access super user account at: {admin_url}")
+
+        # callback for saas
+        if (
+            settings.lnbits_saas_callback
+            and settings.lnbits_saas_secret
+            and settings.lnbits_saas_instance_id
+        ):
+            send_admin_user_to_saas()
+
+
+def update_cached_settings(sets_dict: dict):
+    for key, value in sets_dict.items():
+        if not key in readonly_variables:
+            try:
+                setattr(settings, key, value)
+            except:
+                logger.error(f"error overriding setting: {key}, value: {value}")
+    if "super_user" in sets_dict:
+        setattr(settings, "super_user", sets_dict["super_user"])
+
+
+async def init_admin_settings(super_user: str = None):
+    account = None
+    if super_user:
+        account = await get_account(super_user)
+    if not account:
+        account = await create_account()
+        super_user = account.id
+    if not account.wallets or len(account.wallets) == 0:
+        await create_wallet(user_id=account.id)
+
+    editable_settings = EditableSettings.from_dict(settings.dict())
+
+    return await create_admin_settings(account.id, editable_settings.dict())
+
+
+class WebsocketConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        logger.debug(websocket)
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_data(self, message: str, item_id: str):
+        for connection in self.active_connections:
+            if connection.path_params["item_id"] == item_id:
+                await connection.send_text(message)
+
+
+websocketManager = WebsocketConnectionManager()
+
+
+async def websocketUpdater(item_id, data):
+    return await websocketManager.send_data(f"{data}", item_id)

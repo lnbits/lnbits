@@ -14,11 +14,7 @@ from starlette.requests import Request
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
 from lnbits.requestvars import g
-from lnbits.settings import (
-    LNBITS_ADMIN_EXTENSIONS,
-    LNBITS_ADMIN_USERS,
-    LNBITS_ALLOWED_USERS,
-)
+from lnbits.settings import settings
 
 
 class KeyChecker(SecurityBase):
@@ -150,8 +146,12 @@ async def get_key_type(
                     status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
                 )
             if (
-                LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS
-            ) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
+                wallet.wallet.user != settings.super_user
+                and wallet.wallet.user not in settings.lnbits_admin_users
+            ) and (
+                settings.lnbits_admin_extensions
+                and pathname in settings.lnbits_admin_extensions
+            ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN,
                     detail="User not authorized for this extension.",
@@ -227,17 +227,45 @@ async def require_invoice_key(
 
 async def check_user_exists(usr: UUID4) -> User:
     g().user = await get_user(usr.hex)
+
     if not g().user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="User  does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
 
-    if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
+    if (
+        len(settings.lnbits_allowed_users) > 0
+        and g().user.id not in settings.lnbits_allowed_users
+        and g().user.id != settings.super_user
+        and g().user.id not in settings.lnbits_admin_users
+    ):
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
 
-    if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
-        g().user.admin = True
-
     return g().user
+
+
+async def check_admin(usr: UUID4) -> User:
+    user = await check_user_exists(usr)
+    if user.id != settings.super_user and not user.id in settings.lnbits_admin_users:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="User not authorized. No admin privileges.",
+        )
+    user.admin = True
+    user.super_user = False
+    if user.id == settings.super_user:
+        user.super_user = True
+
+    return user
+
+
+async def check_super_user(usr: UUID4) -> User:
+    user = await check_admin(usr)
+    if user.id != settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="User not authorized. No super user privileges.",
+        )
+    return user

@@ -1,0 +1,88 @@
+<q-tab-panel name="users">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none">User Management</h6>
+    <br />
+    <div>
+      <p>Admin Users</p>
+      <q-input
+        filled
+        v-model="formAddAdmin"
+        @keydown.enter="addAdminUser"
+        type="text"
+        label="User ID"
+        hint="Users with admin privileges"
+      >
+        <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+      </q-input>
+      <div>
+        {%raw%}
+        <q-chip
+          v-for="user in formData.lnbits_admin_users"
+          :key="user"
+          removable
+          @remove="removeAdminUser(user)"
+          color="primary"
+          text-color="white"
+        >
+          {{ user }}
+        </q-chip>
+        {%endraw%}
+      </div>
+      <br />
+    </div>
+    <div>
+      <p>Allowed Users</p>
+      <q-input
+        filled
+        v-model="formAddUser"
+        @keydown.enter="addAllowedUser"
+        type="text"
+        label="User ID"
+        hint="Only these users can use LNbits"
+      >
+        <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+      </q-input>
+      <div>
+        {% raw %}
+        <q-chip
+          v-for="user in formData.lnbits_allowed_users"
+          :key="user"
+          removable
+          @remove="removeAllowedUser(user)"
+          color="primary"
+          text-color="white"
+        >
+          {{ user }}
+        </q-chip>
+        {% endraw %}
+      </div>
+      <br />
+    </div>
+    <div class="row q-col-gutter-md">
+      <div class="col-12 col-md-6">
+        <p>Admin Extensions</p>
+        <q-select
+          filled
+          v-model="formData.lnbits_admin_extensions"
+          multiple
+          hint="Extensions only user with admin privileges can use"
+          label="Admin extensions"
+          :options="g.extensions.map(e => e.name)"
+        ></q-select>
+        <br />
+      </div>
+      <div class="col-12 col-md-6">
+        <p>Disabled Extensions</p>
+        <q-select
+          filled
+          v-model="formData.lnbits_disabled_extensions"
+          :options="g.extensions.map(e => e.name)"
+          multiple
+          hint="Disable extensions *amilk disabled by default as resource heavy"
+          label="Disable extensions"
+        ></q-select>
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

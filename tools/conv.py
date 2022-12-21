@@ -5,34 +5,29 @@ import sys
 from typing import List
 
 import psycopg2
-from environs import Env  # type: ignore
 
-env = Env()
-env.read_env()
+from lnbits.settings import settings
 
 # Python script to migrate an LNbits SQLite DB to Postgres
 # All credits to @Fritz446 for the awesome work
 
-
 # pip install psycopg2 OR psycopg2-binary
-
 
 # Change these values as needed
 
+sqfolder = settings.lnbits_data_folder
+db_url = settings.lnbits_database_url
 
-sqfolder = env.str("LNBITS_DATA_FOLDER", default=None)
-
-LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
-if LNBITS_DATABASE_URL is None:
+if db_url is None:
     print("missing LNBITS_DATABASE_URL")
     sys.exit(1)
 else:
     # parse postgres://lnbits:postgres@localhost:5432/lnbits
-    pgdb = LNBITS_DATABASE_URL.split("/")[-1]
-    pguser = LNBITS_DATABASE_URL.split("@")[0].split(":")[-2][2:]
-    pgpswd = LNBITS_DATABASE_URL.split("@")[0].split(":")[-1]
-    pghost = LNBITS_DATABASE_URL.split("@")[1].split(":")[0]
-    pgport = LNBITS_DATABASE_URL.split("@")[1].split(":")[1].split("/")[0]
+    pgdb = db_url.split("/")[-1]
+    pguser = db_url.split("@")[0].split(":")[-2][2:]
+    pgpswd = db_url.split("@")[0].split(":")[-1]
+    pghost = db_url.split("@")[1].split(":")[0]
+    pgport = db_url.split("@")[1].split(":")[1].split("/")[0]
     pgschema = ""
 
 
@@ -149,7 +144,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
 
 
 def build_insert_query(schema, tableName, columns):
-    to_columns = ", ".join(map(lambda column: f'"{column[1]}"', columns))
+    to_columns = ", ".join(map(lambda column: f'"{column[1].lower()}"', columns))
     values = ", ".join(map(lambda column: to_column_type(column[2]), columns))
     return f"""
             INSERT INTO {schema}.{tableName}({to_columns})

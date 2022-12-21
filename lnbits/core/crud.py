@@ -4,11 +4,9 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from loguru import logger
-
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
+from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -63,9 +61,8 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
-        if LNBITS_ADMIN_USERS
-        else False,
+        admin=user["id"] == settings.super_user
+        or user["id"] in settings.lnbits_admin_users,
     )
 
 
@@ -99,7 +96,7 @@ async def create_wallet(
         """,
         (
             wallet_id,
-            wallet_name or DEFAULT_WALLET_NAME,
+            wallet_name or settings.lnbits_default_wallet_name,
             user_id,
             uuid4().hex,
             uuid4().hex,
@@ -232,8 +229,8 @@ async def get_wallet_payment(
 async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
     rows = await db.fetchall(
         f"""
-        SELECT * FROM apipayments 
-        WHERE pending = 'false' 
+        SELECT * FROM apipayments
+        WHERE pending = 'false'
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -339,37 +336,14 @@ async def delete_expired_invoices(
           AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
         """
     )
-
-    # then we delete all expired invoices, checking one by one
-    rows = await (conn or db).fetchall(
+    # then we delete all invoices whose expiry date is in the past
+    await (conn or db).execute(
         f"""
-        SELECT bolt11
-        FROM apipayments
-        WHERE pending = true
-          AND bolt11 IS NOT NULL
-          AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
+        DELETE FROM apipayments
+        WHERE pending = true AND amount > 0
+          AND expiry < {db.timestamp_now}
         """
     )
-    logger.debug(f"Checking expiry of {len(rows)} invoices")
-    for i, (payment_request,) in enumerate(rows):
-        try:
-            invoice = bolt11.decode(payment_request)
-        except:
-            continue
-
-        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-        if expiration_date > datetime.datetime.utcnow():
-            continue
-        logger.debug(
-            f"Deleting expired invoice {i}/{len(rows)}: {invoice.payment_hash} (expired: {expiration_date})"
-        )
-        await (conn or db).execute(
-            """
-            DELETE FROM apipayments
-            WHERE pending = true AND hash = ?
-            """,
-            (invoice.payment_hash,),
-        )
 
 
 # payments
@@ -396,12 +370,19 @@ async def create_payment(
     # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     # assert previous_payment is None, "Payment already exists"
 
+    try:
+        invoice = bolt11.decode(payment_request)
+        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
+    except:
+        # assume maximum bolt11 expiry of 31 days to be on the safe side
+        expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
+
     await (conn or db).execute(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra, webhook)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, pending, memo, fee, extra, webhook, expiry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -417,6 +398,7 @@ async def create_payment(
             if extra and extra != {} and type(extra) is dict
             else None,
             webhook,
+            db.datetime_to_timestamp(expiration_date),
         ),
     )
 
@@ -565,3 +547,48 @@ async def get_balance_notify(
         (wallet_id,),
     )
     return row[0] if row else None
+
+
+# admin
+# --------
+
+
+async def get_super_settings() -> Optional[SuperSettings]:
+    row = await db.fetchone("SELECT * FROM settings")
+    if not row:
+        return None
+    editable_settings = json.loads(row["editable_settings"])
+    return SuperSettings(**{"super_user": row["super_user"], **editable_settings})
+
+
+async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
+    sets = await get_super_settings()
+    if not sets:
+        return None
+    row_dict = dict(sets)
+    row_dict.pop("super_user")
+    admin_settings = AdminSettings(
+        super_user=is_super_user,
+        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+        **row_dict,
+    )
+    return admin_settings
+
+
+async def delete_admin_settings():
+    await db.execute("DELETE FROM settings")
+
+
+async def update_admin_settings(data: EditableSettings):
+    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+
+
+async def update_super_user(super_user: str):
+    await db.execute("UPDATE settings SET super_user = ?", (super_user,))
+    return await get_super_settings()
+
+
+async def create_admin_settings(super_user: str, new_settings: dict):
+    sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
+    await db.execute(sql, (super_user, json.dumps(new_settings)))
+    return await get_super_settings()
