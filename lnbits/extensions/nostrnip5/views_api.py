@@ -26,8 +26,9 @@ from .crud import (
     get_domain,
     get_domain_by_name,
     get_domains,
+    rotate_address,
 )
-from .models import CreateAddressData, CreateDomainData
+from .models import CreateAddressData, CreateDomainData, RotateAddressData
 
 
 @nostrnip5_ext.get("/api/v1/domains", status_code=HTTPStatus.OK)
@@ -114,6 +115,31 @@ async def api_address_activate(
 
 
 @nostrnip5_ext.post(
+    "/api/v1/domain/{domain_id}/address/{address_id}/rotate",
+    status_code=HTTPStatus.OK,
+)
+async def api_address_rotate(
+    domain_id: str,
+    address_id: str,
+    post_data: RotateAddressData,
+):
+
+    if post_data.pubkey.startswith("npub"):
+        hrp, data = bech32_decode(post_data.pubkey)
+        decoded_data = convertbits(data, 5, 8, False)
+        post_data.pubkey = bytes(decoded_data).hex()
+
+    if len(bytes.fromhex(post_data.pubkey)) != 32:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Pubkey must be in hex format."
+        )
+
+    await rotate_address(domain_id, address_id, post_data.pubkey)
+
+    return True
+
+
+@nostrnip5_ext.post(
     "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
 )
 async def api_address_create(
@@ -156,7 +182,7 @@ async def api_address_create(
         payment_hash, payment_request = await create_invoice(
             wallet_id=domain.wallet,
             amount=price_in_sats,
-            memo=f"Payment for domain {domain_id}",
+            memo=f"Payment for NIP-05 for {address.local_part}@{domain.domain}",
             extra={
                 "tag": "nostrnip5",
                 "domain_id": domain_id,

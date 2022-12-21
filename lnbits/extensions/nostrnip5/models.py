@@ -6,6 +6,10 @@ from fastapi.param_functions import Query
 from pydantic import BaseModel
 
 
+class RotateAddressData(BaseModel):
+    pubkey: str
+
+
 class CreateAddressData(BaseModel):
     domain_id: str
     local_part: str

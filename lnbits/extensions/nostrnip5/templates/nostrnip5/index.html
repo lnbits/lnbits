@@ -122,6 +122,16 @@
                   unelevated
                   dense
                   size="xs"
+                  icon="edit"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  target="_blank"
+                  :href="'rotate/' + props.row.domain_id + '/' + props.row.id"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
                   icon="delete"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteAddress(props.row.id)"

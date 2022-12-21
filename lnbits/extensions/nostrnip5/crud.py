@@ -101,6 +101,26 @@ async def activate_address(domain_id: str, address_id: str) -> Address:
     return address
 
 
+async def rotate_address(domain_id: str, address_id: str, pubkey: str) -> Address:
+    await db.execute(
+        """
+        UPDATE nostrnip5.addresses
+        SET pubkey = ?
+        WHERE domain_id = ?
+        AND id = ?
+        """,
+        (
+            pubkey,
+            domain_id,
+            address_id,
+        ),
+    )
+
+    address = await get_address(domain_id, address_id)
+    assert address, "Newly updated address couldn't be retrieved"
+    return address
+
+
 async def delete_domain(domain_id) -> bool:
     await db.execute(
         """

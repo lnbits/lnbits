@@ -3,7 +3,32 @@ domain.domain }} {% endblock %} {% from "macros.jinja" import window_vars with
 context %} {% block page %}
 <link rel="stylesheet" href="/nostrnip5/static/css/signup.css" />
 <div>
-  <q-card class="q-pa-lg q-pt-lg">
+  <q-card class="q-pa-lg q-pt-lg" v-if="success == true">
+    {% raw %}
+    <p>
+      Success! Your username is now active at {{ successData.local_part }}@{{
+      domain }}. Please add this to your nostr profile accordingly. If you ever
+      need to rotate your keys, you can still keep your identity!
+    </p>
+
+    <h3>Important!</h3>
+    <p>
+      Bookmark this link:
+      <a
+        v-bind:href="'/nostrnip5/rotate/' + domain_id + '/' + successData.address_id"
+        target="_blank"
+        >{{ base_url }}nostrnip5/rotate/{{ domain_id }}/{{
+        successData.address_id }}</a
+      >
+    </p>
+    <p>
+      In case you ever need to change your pubkey, you can still keep this NIP-5
+      identity. Just come back to the above linked page to change the pubkey
+      associated to your identity.
+    </p>
+    {% endraw %}
+  </q-card>
+  <q-card class="q-pa-lg q-pt-lg" v-if="success == false">
     <q-form @submit="createAddress" class="q-gutter-md">
       <p>
         You can use this page to get NIP-5 verified on the nostr protocol under
@@ -51,7 +76,6 @@ context %} {% block page %}
           type="submit"
           >Create Address</q-btn
         >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </q-form>
   </q-card>
@@ -90,11 +114,17 @@ context %} {% block page %}
     mixins: [windowMixin],
     data: function () {
       return {
+        base_url: '{{ request.base_url }}',
         domain: '{{ domain.domain }}',
         domain_id: '{{ domain_id }}',
         wallet: '{{ domain.wallet }}',
         currency: '{{ domain.currency }}',
         amount: '{{ domain.amount }}',
+        success: false,
+        successData: {
+          local_part: null,
+          address_id: null
+        },
         qrCodeDialog: {
           data: {
             payment_request: null
@@ -155,11 +185,9 @@ context %} {% block page %}
                     qrCodeDialog.dismissMsg()
                     qrCodeDialog.show = false
 
-                    setTimeout(function () {
-                      alert(
-                        `Success! Your username is now active at ${localPart}@${self.domain}. Please add this to your nostr profile accordingly.`
-                      )
-                    }, 500)
+                    self.successData.local_part = localPart
+                    self.successData.address_id = qrCodeDialog.data.address_id
+                    self.success = true
                   }
                 })
             }, 3000)
@@ -168,9 +196,7 @@ context %} {% block page %}
             LNbits.utils.notifyApiError(error)
           })
       }
-    },
-    computed: {},
-    created: function () {}
+    }
   })
 </script>
 {% endblock %}
