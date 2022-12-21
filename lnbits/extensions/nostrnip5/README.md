@@ -25,9 +25,20 @@ Then, you'll need to set up a proxy that points `https://{your_domain}/.well-kno
 Example nginx configuration
 
 ```
+## Proxy Server Caching
+proxy_cache_path /tmp/nginx_cache keys_zone=nip5_cache:5m levels=1:2 inactive=300s max_size=100m use_temp_path=off;
+
 location /.well-known/nostr.json {
    proxy_pass https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json;
    proxy_set_header Host {your_lnbits};
    proxy_ssl_server_name on;
+
+   expires 5m;
+   add_header Cache-Control "public, no-transform";
+
+   proxy_cache nip5_cache;
+   proxy_cache_lock on;
+   proxy_cache_valid 200 300s;
+   proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
 }
 ```
