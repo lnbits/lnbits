@@ -5,6 +5,7 @@ import httpx
 from loguru import logger
 
 from lnbits.core import db as core_db
+from lnbits.core.crud import update_payment_extra
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
@@ -66,10 +67,4 @@ async def mark_webhook_sent(
     payment.extra["wh_message"] = reason_phrase
     payment.extra["wh_response"] = text
 
-    await core_db.execute(
-        """
-        UPDATE apipayments SET extra = ?
-        WHERE hash = ?
-        """,
-        (json.dumps(payment.extra), payment.payment_hash),
-    )
+    await update_payment_extra(payment.payment_hash, payment.extra)
