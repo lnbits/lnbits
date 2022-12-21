@@ -1242,19 +1242,22 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      async sendMessage() {
-        let orderPublicKey = this.orders.find(
+      sendMessage() {
+        // we need Buffer to make this play nice
+
+        /*let orderPublicKey = this.orders.find(
           o => o.invoiceid == this.customerKey
-        ).pubkey
-        let ciphertext = nostr.nip04.encrypt(
+        ).pubkey*/
+
+        /*let ciphertext = nostr.nip04.encrypt(
           this.keys.privkey,
           orderPublicKey,
           this.newMessage
-        )
+        )*/
 
         let message = {
-          msg: ciphertext,
-          pubkey: this.keys.publickey
+          msg: this.newMessage,
+          pubkey: this.keys.pubkey
         }
 
         // if diagon alley mode is active create a propper event
@@ -1373,6 +1376,7 @@
     padding: 1rem;
     overflow-y: auto;
     margin-left: auto;
+    width: 50%;
   }
 
   .chat-messages {

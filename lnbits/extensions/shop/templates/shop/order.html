@@ -2,7 +2,7 @@
 <div class="row q-col-gutter-md flex">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card>
-      <div class="chat-container">
+      <div class="chat-container q-pa-md">
         <div class="chat-box">
           <!-- <p v-if="Object.keys(messages).length === 0">No messages yet</p> -->
           <div class="chat-messages">
@@ -489,7 +489,7 @@
     display: grid;
     grid-template-rows: 1fr auto;
     /*height: calc(100vh - 200px);*/
-    height: 50vh;
+    height: 70vh;
   }
 
   .chat-box {
@@ -498,6 +498,7 @@
     padding: 1rem;
     overflow-y: auto;
     margin-left: auto;
+    width: 50%;
   }
 
   .chat-messages {
