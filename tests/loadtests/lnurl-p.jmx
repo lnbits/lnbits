@@ -1337,6 +1337,10 @@ vars.put(&quot;payLinkLnurl&quot;, resp.lnurl || &apos;no-pay-link-lnurl&apos;);
               </JSONPostProcessor>
               <hashTree/>
             </hashTree>
+            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a sec" enabled="true">
+              <stringProp name="ConstantTimer.delay">1100</stringProp>
+            </ConstantTimer>
+            <hashTree/>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[wallet] Get Payment" enabled="true">
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
@@ -1711,7 +1715,19 @@ if (separatorIndex == -1) {
               <collectionProp name="Arguments.arguments">
                 <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&quot;is_unique&quot;:false,&quot;use_custom&quot;:false,&quot;title&quot;:&quot;withdraw ${lnurlwCounter}&quot;,&quot;min_withdrawable&quot;:10,&quot;max_withdrawable&quot;:${lnurlwCounter}0,&quot;uses&quot;:5,&quot;wait_time&quot;: 1,&quot;webhook_url&quot;:&quot;http://localhost:8081&quot;,&quot;custom_url&quot;:null}</stringProp>
+                  <stringProp name="Argument.value">{&#xd;
+    &quot;is_unique&quot;: false,&#xd;
+    &quot;use_custom&quot;: false,&#xd;
+    &quot;title&quot;: &quot;withdraw ${lnurlwCounter}&quot;,&#xd;
+    &quot;min_withdrawable&quot;: 10,&#xd;
+    &quot;max_withdrawable&quot;:${lnurlwCounter}0,&#xd;
+    &quot;uses&quot;: 5,&#xd;
+    &quot;wait_time&quot;: 1,&#xd;
+    &quot;webhook_url&quot;: &quot;http://localhost:8081&quot;,&#xd;
+    &quot;webhook_headers&quot;: &quot;{\&quot;h1\&quot;: \&quot;1\&quot;}&quot;,&#xd;
+    &quot;webhook_body&quot;: &quot;{\&quot;b2\&quot;: 2}&quot;,&#xd;
+    &quot;custom_url&quot;: null&#xd;
+}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                 </elementProp>
               </collectionProp>
