@@ -463,7 +463,7 @@ async def update_payment_extra(
 
     row = await (conn or db).fetchone(
         "SELECT hash, extra from apipayments WHERE hash = ?",
-        (payment_hash),
+        (payment_hash,),
     )
     if not row:
         return
