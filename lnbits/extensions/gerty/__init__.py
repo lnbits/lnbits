@@ -9,6 +9,16 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_gerty")
 
+
+gerty_static_files = [
+    {
+        "path": "/gerty/static",
+        "app": StaticFiles(packages=[("lnbits", "extensions/gerty/static")]),
+        "name": "gerty_static",
+    }
+]
+
+
 gerty_ext: APIRouter = APIRouter(prefix="/gerty", tags=["Gerty"])
 
 

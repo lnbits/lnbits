@@ -149,6 +149,7 @@ new Vue({
       },
       qrCodeDialog: {
         show: false,
+        wipe: false,
         data: null
       }
     }
@@ -259,9 +260,10 @@ new Vue({
           })
         })
     },
-    openQrCodeDialog(cardId) {
+    openQrCodeDialog(cardId, wipe) {
       var card = _.findWhere(this.cards, {id: cardId})
       this.qrCodeDialog.data = {
+        id: card.id,
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
         name: card.card_name,
         uid: card.uid,
@@ -272,6 +274,17 @@ new Vue({
         k3: card.k1,
         k4: card.k2
       }
+      this.qrCodeDialog.data_wipe = JSON.stringify({
+        action: 'wipe',
+        k0: card.k0,
+        k1: card.k1,
+        k2: card.k2,
+        k3: card.k1,
+        k4: card.k2,
+        uid: card.uid,
+        version: 1
+      })
+      this.qrCodeDialog.wipe = wipe
       this.qrCodeDialog.show = true
     },
     addCardOpen: function () {
@@ -397,8 +410,16 @@ new Vue({
       let self = this
       let cards = _.findWhere(this.cards, {id: cardId})
 
+      Quasar.utils.exportFile(
+        cards.card_name + '.json',
+        this.qrCodeDialog.data_wipe,
+        'application/json'
+      )
+
       LNbits.utils
-        .confirmDialog('Are you sure you want to delete this card')
+        .confirmDialog(
+          "Are you sure you want to delete this card? Without access to the card keys you won't be able to reset them in the future!"
+        )
         .onOk(function () {
           LNbits.api
             .request(

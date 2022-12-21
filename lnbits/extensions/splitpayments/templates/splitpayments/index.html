@@ -34,30 +34,77 @@
             <q-input
               dense
               outlined
-              v-model="target.wallet"
-              label="Wallet"
-              :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
-              @input="targetChanged(false)"
-            ></q-input>
-            <q-input
-              dense
-              outlined
               v-model="target.alias"
               label="Alias"
               :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
-              @input="targetChanged(false)"
+              style="width: 150px"
             ></q-input>
+
             <q-input
+              dense
+              v-model="target.wallet"
+              label="Wallet"
+              :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
+              option-label="name"
+              style="width: 300px"
+              new-value-mode="add-unique"
+              use-input
+              input-debounce="0"
+              emit-value
+            ></q-input>
+
+            <q-toggle
+              :false-value="'split'"
+              :true-value="'tag'"
+              color="primary"
+              label=""
+              value="True"
+              style="width: 180px"
+              v-model="target.method"
+              :label="`${target.method}` === 'tag' ? 'Send funds by tag' : `${target.method}` === 'split' ? 'Split funds by %' : 'Split/tag?'"
+              @input="clearChanged(t)"
+            ></q-toggle>
+
+            <q-input
+              v-if="target.method == 'tag'"
+              style="width: 150px"
+              dense
+              outlined
+              v-model="target.tag"
+              label="Tag name"
+              suffix="#"
+            ></q-input>
+
+            <q-input
+              v-else-if="target.method == 'split' || target.percent >= 0"
+              style="width: 150px"
               dense
               outlined
               v-model.number="target.percent"
-              label="Split Share"
-              :hint="t === targets.length - 1 ? 'How much of the incoming payments will go to the target wallet.' : undefined"
+              label="split"
               suffix="%"
-              @input="targetChanged(true, t)"
             ></q-input>
-          </div>
 
+            <q-btn
+              v-if="t == targets.length - 1 && (target.method == 'tag' || target.method == 'split')"
+              round
+              size="sm"
+              icon="add"
+              unelevated
+              color="primary"
+              @click="targetChanged(t)"
+            >
+              <q-tooltip>Add more</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-if="t < targets.length - 1"
+              @click="clearTarget(t)"
+              round
+              color="red"
+              size="5px"
+              icon="close"
+            ></q-btn>
+          </div>
           <div class="row justify-evenly q-pa-lg">
             <div>
               <q-btn unelevated outline color="secondary" @click="clearTargets">
@@ -70,7 +117,7 @@
                 unelevated
                 color="primary"
                 type="submit"
-                :disabled="!isDirty"
+                :disabled="targets.length <  2"
               >
                 Save Targets
               </q-btn>

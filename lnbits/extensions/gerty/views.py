@@ -10,7 +10,6 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.settings import LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE
 
 from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
@@ -33,7 +32,6 @@ async def display(request: Request, gerty_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist."
         )
-    gertyData = await api_gerty_json(gerty_id)
     return gerty_renderer().TemplateResponse(
-        "gerty/gerty.html", {"request": request, "gerty": gertyData}
+        "gerty/gerty.html", {"request": request, "gerty": gerty_id}
     )

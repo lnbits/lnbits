@@ -4,7 +4,7 @@ import secrets
 import string
 
 from lnbits.core.crud import create_payment
-from lnbits.settings import wallet_class
+from lnbits.settings import get_wallet_class
 
 
 async def credit_wallet(wallet_id: str, amount: int):
@@ -35,5 +35,6 @@ async def get_random_invoice_data():
     return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
 
 
-is_fake: bool = wallet_class.__name__ == "FakeWallet"
+WALLET = get_wallet_class()
+is_fake: bool = WALLET.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake

@@ -15,7 +15,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-from lnbits.settings import WALLET
+from lnbits.settings import get_wallet_class
 
 from .core import db
 
@@ -79,6 +79,7 @@ async def webhook_handler():
     """
     Returns the webhook_handler for the selected wallet if present. Used by API.
     """
+    WALLET = get_wallet_class()
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
@@ -108,6 +109,7 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
+    WALLET = get_wallet_class()
     async for checking_id in WALLET.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
@@ -124,7 +126,7 @@ async def check_pending_payments():
 
     while True:
         async with db.connect() as conn:
-            logger.debug(
+            logger.info(
                 f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
             )
             start_time: float = time.time()
@@ -140,7 +142,7 @@ async def check_pending_payments():
             for payment in pending_payments:
                 await payment.check_status(conn=conn)
 
-            logger.debug(
+            logger.info(
                 f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
             )
             # we delete expired invoices once upon the first pending check
@@ -148,7 +150,7 @@ async def check_pending_payments():
                 logger.debug("Task: deleting all expired invoices")
                 start_time: float = time.time()
                 await delete_expired_invoices(conn=conn)
-                logger.debug(
+                logger.info(
                     f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
                 )
 

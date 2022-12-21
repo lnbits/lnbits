@@ -48,6 +48,7 @@
               </q-th>
               <q-th auto-width></q-th>
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
@@ -58,7 +59,7 @@
                   dense
                   icon="qr_code"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.id)"
+                  @click="openQrCodeDialog(props.row.id, false)"
                 >
                   <q-tooltip>Card key credentials</q-tooltip>
                 </q-btn>
@@ -99,7 +100,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deleteCard(props.row.id)"
+                  @click="openQrCodeDialog(props.row.id, true)"
                   icon="cancel"
                   color="pink"
                 >
@@ -215,6 +216,7 @@
           emit-value
           v-model="cardDialog.data.wallet"
           :options="g.user.walletOptions"
+          :disable="cardDialog.data.id != null"
           label="Wallet *"
         >
         </q-select>
@@ -283,7 +285,7 @@
           v-model="toggleAdvanced"
           label="Show advanced options"
         ></q-toggle>
-        <div v-show="toggleAdvanced">
+        <div v-show="toggleAdvanced" class="q-gutter-y-md">
           <q-input
             filled
             dense
@@ -358,40 +360,105 @@
   <q-dialog v-model="qrCodeDialog.show" position="top">
     <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
       {% raw %}
-      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-        <qrcode
-          :value="qrCodeDialog.data.link"
-          :options="{width: 800}"
-          class="rounded-borders"
-        ></qrcode>
-      </q-responsive>
-      <p style="word-break: break-all" class="text-center">
-        (Keys for
-        <a
-          href="https://play.google.com/store/apps/details?id=com.lightningnfcapp"
-          target="_blank"
-          >bolt-nfc-android-app</a
-        >)
-      </p>
+      <div class="col q-mt-lg text-center">
+        <q-responsive
+          :ratio="1"
+          class="q-mx-xl q-mb-md"
+          v-show="!qrCodeDialog.wipe"
+        >
+          <qrcode
+            :value="qrCodeDialog.data.link"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+        <p class="text-center" v-show="!qrCodeDialog.wipe">
+          (QR for <strong>create</strong> the card in
+          <a
+            href="https://play.google.com/store/apps/details?id=com.lightningnfcapp"
+            target="_blank"
+            style="color: inherit"
+            >Boltcard NFC Card Creator</a
+          >)
+        </p>
+        <q-responsive
+          :ratio="1"
+          class="q-mx-xl q-mb-md"
+          v-show="qrCodeDialog.wipe"
+        >
+          <qrcode
+            :value="qrCodeDialog.data_wipe"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+        <p class="text-center" v-show="qrCodeDialog.wipe">
+          (QR for <strong>wipe</strong> the card in
+          <a
+            href="https://play.google.com/store/apps/details?id=com.lightningnfcapp"
+            target="_blank"
+            style="color: inherit"
+            >Boltcard NFC Card Creator</a
+          >)
+        </p>
+      </div>
+      <div class="col q-mt-md q-mb-md text-center">
+        <q-btn-toggle
+          v-model="qrCodeDialog.wipe"
+          rounded
+          unelevated
+          toggle-color="primary"
+          color="white"
+          text-color="primary"
+          :options="[
+            {label: 'Create', value: false},
+            {label: 'Wipe', value: true}
+          ]"
+        />
+      </div>
       <p style="word-break: break-all">
         <strong>Name:</strong> {{ qrCodeDialog.data.name }}<br />
         <strong>UID:</strong> {{ qrCodeDialog.data.uid }}<br />
         <strong>External ID:</strong> {{ qrCodeDialog.data.external_id }}<br />
-        <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
-        <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
-        <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
+        <strong>Lock key (K0):</strong> {{ qrCodeDialog.data.k0 }}<br />
+        <strong>Meta key (K1 & K3):</strong> {{ qrCodeDialog.data.k1 }}<br />
+        <strong>File key (K2 & K4):</strong> {{ qrCodeDialog.data.k2 }}<br />
       </p>
-      <br />
+      <p>
+        Always backup all keys that you're trying to write on the card. Without
+        them you may not be able to change them in the future!
+      </p>
       <q-btn
         unelevated
         outline
         color="grey"
         @click="copyText(qrCodeDialog.data.link)"
-        label="Keys/Auth link"
+        label="Create link"
+        v-show="!qrCodeDialog.wipe"
       >
+        <q-tooltip>Click to copy, then paste to NFC Card Creator</q-tooltip>
       </q-btn>
-      <q-tooltip>Click to copy, then add to NFC card</q-tooltip>
-
+      <q-btn
+        unelevated
+        outline
+        color="grey"
+        @click="copyText(qrCodeDialog.data_wipe)"
+        label="Wipe data"
+        v-show="qrCodeDialog.wipe"
+      >
+        <q-tooltip>Click to copy, then paste to NFC Card Creator</q-tooltip>
+      </q-btn>
+      <q-btn
+        unelevated
+        outline
+        color="red"
+        @click="deleteCard(qrCodeDialog.data.id)"
+        label="Delete card"
+        v-show="qrCodeDialog.wipe"
+        v-close-popup
+      >
+        <q-tooltip>Backup the keys, or wipe the card first!</q-tooltip>
+      </q-btn>
       {% endraw %}
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>

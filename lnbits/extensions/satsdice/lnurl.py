@@ -1,4 +1,3 @@
-import hashlib
 import json
 import math
 from http import HTTPStatus
@@ -83,15 +82,18 @@ async def api_lnurlp_callback(
 
     success_action = link.success_action(payment_hash=payment_hash, req=req)
 
-    data: CreateSatsDicePayment = {
-        "satsdice_pay": link.id,
-        "value": amount_received / 1000,
-        "payment_hash": payment_hash,
-    }
+    data = CreateSatsDicePayment(
+        satsdice_pay=link.id,
+        value=amount_received / 1000,
+        payment_hash=payment_hash,
+    )
 
     await create_satsdice_payment(data)
-    payResponse = {"pr": payment_request, "successAction": success_action, "routes": []}
-
+    payResponse: dict = {
+        "pr": payment_request,
+        "successAction": success_action,
+        "routes": [],
+    }
     return json.dumps(payResponse)
 
 
@@ -133,9 +135,7 @@ async def api_lnurlw_response(req: Request, unique_hash: str = Query(None)):
     name="satsdice.api_lnurlw_callback",
 )
 async def api_lnurlw_callback(
-    req: Request,
     unique_hash: str = Query(None),
-    k1: str = Query(None),
     pr: str = Query(None),
 ):
 
@@ -146,12 +146,13 @@ async def api_lnurlw_callback(
         return {"status": "ERROR", "reason": "spent"}
     paylink = await get_satsdice_pay(link.satsdice_pay)
 
-    await update_satsdice_withdraw(link.id, used=1)
-    await pay_invoice(
-        wallet_id=paylink.wallet,
-        payment_request=pr,
-        max_sat=link.value,
-        extra={"tag": "withdraw"},
-    )
+    if paylink:
+        await update_satsdice_withdraw(link.id, used=1)
+        await pay_invoice(
+            wallet_id=paylink.wallet,
+            payment_request=pr,
+            max_sat=link.value,
+            extra={"tag": "withdraw"},
+        )
 
-    return {"status": "OK"}
+        return {"status": "OK"}

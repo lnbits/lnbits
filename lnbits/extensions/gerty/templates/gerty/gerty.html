@@ -1,92 +1,133 @@
-{% extends "public.html" %} {% block toolbar_title %} {{ gerty.name }}{%
-endblock %}{% block page %} {% raw %}
-<div class="q-pa-md row items-start q-gutter-md">
+{% extends "public.html" %} {% block toolbar_title %} Gerty: {% raw %}{{
+gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
+
+<div
+  class="q-pa-md row items-start q-gutter-md"
+  v-if="fun_exchange_market_rate || fun_satoshi_quotes"
+>
   <q-card
+    v-if="fun_exchange_market_rate"
     unelevated
-    flat
+    class="q-pa-sm"
+    style="background: none !important"
+  >
+    <q-card-section class="text-h1 q-pa-none">
+      <small> <b>{{fun_exchange_market_rate["amount"]}}</b></small>
+      <small class="text-h4"
+        >{{fun_exchange_market_rate["unit"].split(" ")[1]}}</small
+      >
+    </q-card-section>
+  </q-card>
+
+  <q-card
+    v-if="fun_satoshi_quotes['quote']"
+    unelevated
     class="q-pa-none text-body1 blockquote"
     style="background: none !important"
   >
-    "{{gerty.sats_quote[0].text}}" <br />~ Satoshi {{gerty.sats_quote[0].date}}
+    <blockquote class="text-right" style="max-width: 900px">
+      <p>"{{fun_satoshi_quotes["quote"]}}"</p>
+      <small>~ Satoshi {{fun_satoshi_quotes["date"]}}</small>
+    </blockquote>
   </q-card>
 </div>
-<div class="q-pa-md row items-start q-gutter-md">
-  <q-card unelevated flat class="q-pa-none" style="background: none !important">
+
+<div class="q-pa-md row items-start q-gutter-md" v-if="lnbits_wallets_balance">
+  <q-card
+    class="q-pa-sm"
+    v-for="(wallet, t) in lnbits_wallets_balance"
+    :style="`background-color: ${wallet.color1} !important`"
+    unelevated
+    class="q-pa-none q-pa-sm"
+  >
     <q-card-section class="text-h1 q-pa-none">
-      {{gerty.exchange[0].amount.toFixed(2)}} {{gerty.exchange[0].fiat}}
+      <small> <b>{{wallet["amount"]}}</b></small>
+      <small class="text-h4">({{wallet["name"]}})</small>
     </q-card-section>
   </q-card>
-  <q-card v-for="gertywallet in gertywallets" style="width: 380px" flat>
-    <q-card-section
-      horizontal
-      class="q-pa-none"
-      :style="`background-color: ${gertywallet.color1}`"
-    >
-      <q-card-section class="q-pa-none">
-        <div
-          class="q-item__section column q-pa-lg q-mr-none text-white q-item__section--side justify-center"
-          :style="`background-color: ${gertywallet.color2}`"
+</div>
+
+<div
+  class="q-pa-md row items-start q-gutter-md"
+  v-if="dashboard_onchain || dashboard_mining || lightning_dashboard"
+>
+  <q-card
+    class="q-pa-sm"
+    v-if="dashboard_onchain[0]"
+    unelevated
+    class="q-pa-sm"
+  >
+    <q-card-section>
+      <div class="text-h6">Onchain</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <p v-for="(item, t) in dashboard_onchain">
+        <b>{{item[0].value}}: </b>{{item[1].value}}
+      </p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="dashboard_mining" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Mining</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <p v-for="(item, t) in dashboard_mining">
+        <b>{{item[0].value}}:</b> {{item[1].value}}
+      </p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="lightning_dashboard" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Lightning (Last 7 days)</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <p v-for="(item, t) in lightning_dashboard">
+        <b>{{item[0].value}}:</b> {{item[1].value}}
+      </p>
+    </q-card-section>
+  </q-card>
+
+  <q-card class="q-pa-sm" v-if="url_checker" unelevated class="q-pa-sm">
+    <q-card-section>
+      <div class="text-h6">Servers to check</div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <p v-for="(item, t) in url_checker">
+        <b>{{item[0].value.slice(0, 20)}}...:</b>
+        <q-chip
+          v-if="item[1].value < 300"
+          square
+          color="green"
+          text-color="white"
+          icon="sentiment_satisfied"
         >
-          <i
-            aria-hidden="true"
-            role="presentation"
-            class="material-icons q-icon notranslate text-white"
-            style="font-size: 50px"
-            >sentiment_satisfied</i
-          >
-        </div>
-      </q-card-section>
-
-      <div
-        class="q-item__section column q-pa-md q-ml-none text-white q-item__section--main justify-center"
-        style="min-width: 200px"
-      >
-        <div class="q-item__label text-white text-h6 text-weight-bolder">
-          {{gertywallet.amount}}
-        </div>
-        <div class="q-item__label"><b>{{gertywallet.name}}</b></div>
-      </div>
+          {{item[1].value}}
+        </q-chip>
+        <q-chip
+          v-else-if="item[1].value >= 300"
+          square
+          color="yellow"
+          text-color="white"
+          icon="sentiment_dissatisfied"
+        >
+          {{item[1].value}}
+        </q-chip>
+        <q-chip
+          v-else
+          square
+          color="red"
+          text-color="white"
+          icon="sentiment_dissatisfied"
+        >
+          {{item[1].value}}
+        </q-chip>
+      </p>
     </q-card-section>
   </q-card>
 </div>
 
-<div class="row q-col-gutter-md">
-  <div v-if="gerty.onchain[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
-    <q-card class="q-pa-lg">
-      <p class="text-h4">Onchain Stats</p>
-      Difficulty Progress Percent
-      <q-linear-progress
-        size="20px"
-        :value="gerty.onchain[0].difficulty[0].progressPercent/100"
-        color="primary"
-        class="q-mt-sm"
-      >
-        <div class="absolute-full flex flex-center">
-          <q-badge
-            color="white"
-            text-color="accent"
-            :label="gerty.onchain[0].difficulty[0].progressPercent.toFixed() + '%'"
-          />
-        </div>
-      </q-linear-progress>
-
-      <q-card-section class="q-pa-none">
-        <div class="row q-mt-lg q-gutter-sm text-h6">
-          Current difficulty: {{gerty.onchain[2].threed[0].currentDifficulty}}
-          Current hashrate: {{gerty.onchain[2].threed[0].currentHashrate}}
-        </div>
-      </q-card-section>
-    </q-card>
-  </div>
-  <div v-if="gerty.ln[0]" class="col-12 col-sm-6 col-md-5 col-lg-6">
-    <q-card class="q-pa-lg">
-      <p class="text-h4">LN Stats</p>
-      <q-card-section class="q-pa-none">
-        <div class="row q-mt-lg q-gutter-sm">{{gerty.ln}}</div>
-      </q-card-section>
-    </q-card>
-  </div>
-</div>
 {% endraw %} {% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -96,41 +137,94 @@ endblock %}{% block page %} {% raw %}
     mixins: [windowMixin],
     data: function () {
       return {
-        gerty: {{ gerty | tojson }},
+        lnbits_wallets_balance: {},
+        dashboard_onchain: {},
+        fun_satoshi_quotes: {},
+        fun_exchange_market_rate: {},
+        gerty: [],
+        gerty_id: `{{gerty}}`,
+        gertyname: '',
         walletColors: [
-          {first: "#3f51b5",
-          second: "#1a237e"},
-          {first: "#9c27b0",
-          second: "#4a148c"},
-          {first: "#e91e63",
-          second: "#880e4f"},
-          {first: "#009688",
-          second: "#004d40"},
-          {first: "#ff9800",
-          second: "#e65100"},
-          {first: "#2196f3",
-          second: "#0d47a1"},
-          {first: "#4caf50",
-          second: "#1b5e20"}
+          {first: '#3f51b5', second: '#1a237e'},
+          {first: '#9c27b0', second: '#4a148c'},
+          {first: '#e91e63', second: '#880e4f'},
+          {first: '#009688', second: '#004d40'},
+          {first: '#ff9800', second: '#e65100'},
+          {first: '#2196f3', second: '#0d47a1'},
+          {first: '#4caf50', second: '#1b5e20'}
         ],
         gertywallets: []
       }
     },
     methods: {
-
-    },
-    created: function () {
-      console.log(this.gerty)
-
-      for (let i = 0; i < this.gerty.wallets.length; i++) {
-          this.gertywallets[i] = {
-            "name":this.gerty.wallets[i].name,
-            "amount":this.gerty.wallets[i].balance/1000 + " Sats",
-            "color1":this.walletColors[i].first,
-            "color2":this.walletColors[i].second
+      getGertyInfo: async function () {
+        for (let i = 0; i < 8; i++) {
+          try {
+            const {data} = await LNbits.api.request(
+              'GET',
+              `/gerty/api/v1/gerty/pages/${this.gerty_id}/${i}`
+            )
+            this.gerty[i] = data
+          } catch (error) {
+            LNbits.utils.notifyApiError(error)
           }
+        }
+        console.log(this.gerty)
+        for (let i = 0; i < this.gerty.length; i++) {
+          if (this.gerty[i].screen.group == 'lnbits_wallets_balance') {
+            for (let q = 0; q < this.gerty[i].screen.areas.length; q++) {
+              this.lnbits_wallets_balance[q] = {
+                name: this.gerty[i].screen.areas[q][0].value,
+                amount: this.gerty[i].screen.areas[q][1].value,
+                color1: this.walletColors[q].first,
+                color2: this.walletColors[q].second
+              }
+              this.gertyname = this.gerty[i].settings.name
+            }
+          }
+          if (this.gerty[i].screen.group == 'url_checker') {
+            this.url_checker = this.gerty[i].screen.areas
+            this.gertyname = this.gerty[i].settings.name
+          }
+          if (this.gerty[i].screen.group == 'dashboard_onchain') {
+            this.dashboard_onchain = this.gerty[i].screen.areas
+            this.gertyname = this.gerty[i].settings.name
+          }
+          if (this.gerty[i].screen.group == 'dashboard_mining') {
+            this.dashboard_mining = this.gerty[i].screen.areas
+            this.gertyname = this.gerty[i].settings.name
+          }
+          if (this.gerty[i].screen.group == 'lightning_dashboard') {
+            this.lightning_dashboard = this.gerty[i].screen.areas
+            this.gertyname = this.gerty[i].settings.name
+          }
+          if (this.gerty[i].screen.group == 'fun_satoshi_quotes') {
+            this.fun_satoshi_quotes['quote'] = this.gerty[
+              i
+            ].screen.areas[0][0].value
+            this.fun_satoshi_quotes['date'] = this.gerty[
+              i
+            ].screen.areas[0][1].value
+            this.gertyname = this.gerty[i].settings.name
+          }
+          if (this.gerty[i].screen.group == 'fun_exchange_market_rate') {
+            this.fun_exchange_market_rate['unit'] = this.gerty[
+              i
+            ].screen.areas[0][0].value
+            this.fun_exchange_market_rate['amount'] = this.gerty[
+              i
+            ].screen.areas[0][1].value
+            this.gertyname = this.gerty[i].settings.name
+          }
+        }
+
+        setTimeout(this.getGertyInfo, 20000)
+        this.$forceUpdate()
+        return this.gerty
       }
-      console.log(this.gertywallets)
+    },
+    created: async function () {
+      await this.getGertyInfo()
     }
   })
 </script>

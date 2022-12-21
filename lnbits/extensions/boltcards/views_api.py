@@ -12,7 +12,6 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from . import boltcards_ext
 from .crud import (
     create_card,
-    create_hit,
     delete_card,
     enable_disable_card,
     get_card,
@@ -22,11 +21,9 @@ from .crud import (
     get_hits,
     get_refunds,
     update_card,
-    update_card_counter,
     update_card_otp,
 )
 from .models import CreateCardData
-from .nxp424 import decryptSUN, getSunMAC
 
 
 @boltcards_ext.get("/api/v1/cards")
@@ -129,7 +126,7 @@ async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admi
         raise HTTPException(detail="Not your card.", status_code=HTTPStatus.FORBIDDEN)
 
     await delete_card(card_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 @boltcards_ext.get("/api/v1/hits")

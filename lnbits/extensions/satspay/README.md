@@ -18,10 +18,10 @@ Easilly create invoices that support Lightning Network and on-chain BTC payment.
      ![charge form](https://i.imgur.com/F10yRiW.png)
 3. The charge will appear on the _Charges_ section\
    ![charges](https://i.imgur.com/zqHpVxc.png)
-4. Your costumer/payee will get the payment page
+4. Your customer/payee will get the payment page
    - they can choose to pay on LN\
      ![offchain payment](https://i.imgur.com/4191SMV.png)
    - or pay on chain\
      ![onchain payment](https://i.imgur.com/wzLRR5N.png)
-5. You can check the state of your charges in LNBits\
+5. You can check the state of your charges in LNbits\
    ![invoice state](https://i.imgur.com/JnBd22p.png)

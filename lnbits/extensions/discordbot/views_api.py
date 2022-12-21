@@ -65,7 +65,7 @@ async def api_discordbot_users_delete(
             status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
     await delete_discordbot_user(user_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 # Activate Extension
@@ -129,4 +129,4 @@ async def api_discordbot_wallets_delete(
             status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
     await delete_discordbot_wallet(wallet_id, get_wallet.user)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT

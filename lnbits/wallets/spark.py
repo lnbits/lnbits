@@ -2,11 +2,12 @@ import asyncio
 import hashlib
 import json
 import random
-from os import getenv
 from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -27,8 +28,8 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        self.url = getenv("SPARK_URL").replace("/rpc", "")
-        self.token = getenv("SPARK_TOKEN")
+        self.url = settings.spark_url.replace("/rpc", "")
+        self.token = settings.spark_token
 
     def __getattr__(self, key):
         async def call(*args, **kwargs):
