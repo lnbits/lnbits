@@ -1523,7 +1523,7 @@ vars.put(&quot;userBalance&quot;, userBalance)</stringProp>
             </hashTree>
           </hashTree>
         </hashTree>
-        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Withdraw Link Extension" enabled="false">
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Withdraw Link Extension" enabled="true">
           <boolProp name="TransactionController.includeTimers">false</boolProp>
           <boolProp name="TransactionController.parent">false</boolProp>
         </TransactionController>
@@ -1785,7 +1785,7 @@ vars.put(&quot;userBalance&quot;, userBalance)</stringProp>
             <hashTree/>
           </hashTree>
         </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Withdraw Link Payment" enabled="false">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Withdraw Link Payment" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <stringProp name="LoopController.loops">${lnurlwCount}</stringProp>
         </LoopController>
