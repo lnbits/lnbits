@@ -335,6 +335,12 @@ async def api_shop_order_paid(
     return "", HTTPStatus.OK
 
 
+@shop_ext.get("/api/v1/order/pubkey/{payment_hash}/{pubkey}")
+async def api_shop_order_pubkey(payment_hash: str, pubkey: str):
+    await set_shop_order_pubkey(payment_hash, pubkey)
+    return "", HTTPStatus.OK
+
+
 @shop_ext.get("/api/v1/orders/shipped/{order_id}")
 async def api_shop_order_shipped(
     order_id, wallet: WalletTypeInfo = Depends(get_key_type)
