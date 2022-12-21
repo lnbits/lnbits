@@ -27,11 +27,17 @@ async def index(
 
 @cashu_ext.get("/wallet")
 async def wallet(request: Request, mint_id: str):
+    cashu = await get_cashu(mint_id)
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     return cashu_renderer().TemplateResponse(
         "cashu/wallet.html",
         {
             "request": request,
             "web_manifest": f"/cashu/manifest/{mint_id}.webmanifest",
+            "mint_name": cashu.name,
         },
     )
 
@@ -41,7 +47,7 @@ async def cashu(request: Request, mintID):
     cashu = await get_cashu(mintID)
     if not cashu:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     return cashu_renderer().TemplateResponse(
         "cashu/mint.html",
@@ -54,7 +60,7 @@ async def manifest(cashu_id: str):
     cashu = await get_cashu(cashu_id)
     if not cashu:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
 
     return {

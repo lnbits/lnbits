@@ -5,6 +5,7 @@ from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
+from lnbits.core.services import websocketUpdater
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import copilot_ext
@@ -16,7 +17,6 @@ from .crud import (
     update_copilot,
 )
 from .models import CreateCopilotData
-from .views import updater
 
 #######################COPILOT##########################
 
@@ -92,7 +92,7 @@ async def api_copilot_ws_relay(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     try:
-        await updater(copilot_id, data, comment)
+        await websocketUpdater(copilot_id, str(data) + "-" + str(comment))
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your copilot")
     return ""

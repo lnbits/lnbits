@@ -61,21 +61,21 @@ async def test_endpoints_inkey(client, inkey_headers_to):
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this test is only passes with regtest")
-async def test_endpoints_adminkey_nocontent(client, adminkey_headers_to):
+async def test_endpoints_adminkey_badrequest(client, adminkey_headers_to):
     response = await client.post("/boltz/api/v1/swap", headers=adminkey_headers_to)
-    assert response.status_code == 204
+    assert response.status_code == 400
     response = await client.post(
         "/boltz/api/v1/swap/reverse", headers=adminkey_headers_to
     )
-    assert response.status_code == 204
+    assert response.status_code == 400
     response = await client.post(
         "/boltz/api/v1/swap/refund", headers=adminkey_headers_to
     )
-    assert response.status_code == 204
+    assert response.status_code == 400
     response = await client.post(
         "/boltz/api/v1/swap/status", headers=adminkey_headers_to
     )
-    assert response.status_code == 204
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio

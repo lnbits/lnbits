@@ -20,7 +20,7 @@ async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
     query = {
         "status": "open",
         "currency": "EUR",
-        "company_name": "LNBits, Inc.",
+        "company_name": "LNbits, Inc.",
         "first_name": "Ben",
         "last_name": "Arc",
         "email": "ben@legend.arc",

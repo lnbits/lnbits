@@ -8,12 +8,12 @@ import hashlib
 import random
 import time
 from functools import partial, wraps
-from os import getenv
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -51,7 +51,7 @@ class CoreLightningWallet(Wallet):
                 "The `pyln-client` library must be installed to use `CoreLightningWallet`."
             )
 
-        self.rpc = getenv("CORELIGHTNING_RPC") or getenv("CLIGHTNING_RPC")
+        self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
         # check if description_hash is supported (from CLN>=v0.11.0)

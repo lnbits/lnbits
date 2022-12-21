@@ -2,7 +2,7 @@
 
 ## Have payments split between multiple wallets
 
-LNBits Split Payments extension allows for distributing payments across multiple wallets. Set it and forget it. It will keep splitting your payments across wallets forever.
+LNbits Split Payments extension allows for distributing payments across multiple wallets. Set it and forget it. It will keep splitting your payments across wallets forever.
 
 ## Usage
 
