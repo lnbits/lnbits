@@ -467,17 +467,15 @@ async def update_payment_extra(
     )
     if not row:
         return
-    existing_extra = json.loads(row["extra"] if row["extra"] else "{}")
-    new_extra = {
-        **existing_extra,
-        **extra,
-    }
+    db_extra = json.loads(row["extra"] if row["extra"] else "{}")
+    db_extra.update(extra)
+
     await (conn or db).execute(
         """
         UPDATE apipayments SET extra = ?
         WHERE hash = ?
         """,
-        (json.dumps(new_extra), payment_hash),
+        (json.dumps(db_extra), payment_hash),
     )
 
 
