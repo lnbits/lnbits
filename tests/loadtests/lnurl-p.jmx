@@ -45,7 +45,7 @@
           </elementProp>
           <elementProp name="lnurlpCount" elementType="Argument">
             <stringProp name="Argument.name">lnurlpCount</stringProp>
-            <stringProp name="Argument.value">3</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="paymentCountPerLnurlp" elementType="Argument">
