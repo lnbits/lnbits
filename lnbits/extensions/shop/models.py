@@ -9,7 +9,6 @@ class Stalls(BaseModel):
     wallet: str
     name: str
     publickey: Optional[str]
-    privatekey: Optional[str]
     relays: Optional[str]
     shippingzones: str
 
@@ -18,7 +17,6 @@ class createStalls(BaseModel):
     wallet: str = Query(...)
     name: str = Query(...)
     publickey: str = Query(None)
-    privatekey: str = Query(None)
     relays: str = Query(None)
     shippingzones: str = Query(...)
 

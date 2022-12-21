@@ -54,7 +54,7 @@ async def display(request: Request, stall_id):
         )
 
     stall = stall.dict()
-    del stall["privatekey"]
+
     stall["zones"] = zones
 
     return shop_renderer().TemplateResponse(

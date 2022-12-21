@@ -9,7 +9,6 @@ async def m001_initial(db):
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
             publickey TEXT,
-            privatekey TEXT,
             relays TEXT,
             shippingzones TEXT NOT NULL,
             rating INTEGER DEFAULT 0

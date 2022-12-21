@@ -148,18 +148,16 @@ async def create_shop_stall(data: createStalls) -> Stalls:
             wallet,
             name,
             publickey,
-            privatekey,
             relays,
             shippingzones
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             stall_id,
             data.wallet,
             data.name,
             data.publickey,
-            data.privatekey,
             data.relays,
             data.shippingzones,
         ),
