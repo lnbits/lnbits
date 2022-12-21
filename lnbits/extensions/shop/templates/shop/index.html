@@ -88,7 +88,7 @@
 
     {% include "shop/_tables.html" %}
     <!-- KEYS -->
-    <q-card>
+    <q-card v-if="keys">
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
@@ -102,7 +102,7 @@
         </div>
       </q-card-section>
       <q-card-section>
-        <div v-if="keys" class="row">
+        <div class="row">
           <div
             class="col-6"
             v-for="type in ['pubkey', 'privkey']"
@@ -155,13 +155,13 @@
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
-<script src="https://github.com/paulmillr/noble-secp256k1/releases/download/1.7.0/noble-secp256k1.js"></script>
+<script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
 
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   const pica = window.pica()
-  const secp = window.nobleSecp256k1
+  const nostr = window.NostrTools
 
   function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
     let ratio = Math.min(
@@ -237,7 +237,6 @@
         },
         keys: null,
         diagonAlley: false,
-        diagonalley: false,
         products: [],
         orders: [],
         stalls: [],
@@ -548,14 +547,13 @@
         window.URL.revokeObjectURL(url)
       },
       generateKeys() {
-        const privkey = secp.utils.bytesToHex(secp.utils.randomPrivateKey())
-        const pubkey = secp.utils.bytesToHex(secp.schnorr.getPublicKey(privKey))
+        const privkey = nostr.generatePrivateKey()
+        const pubkey = nostr.getPublicKey(privkey)
 
-        this.keys = {privKey, pubKey}
+        this.keys = {privkey, pubkey}
         this.stallDialog.data.publickey = this.keys.pubkey
         this.stallDialog.data.privatekey = this.keys.privkey
         this.$q.localStorage.set(`lnbits.shop.${this.g.user.id}`, this.keys)
-        console.log({privKey, pubKey})
       },
       restoreKeys() {
         let keys = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
@@ -629,6 +627,10 @@
       openStallDialog: function () {
         this.zoneOptions = humanReadableZones(this.zones)
         this.stallDialog.show = true
+        if (!this.keys && !this.diagonAlley) {
+          this.generateKeys()
+        }
+        console.log(this.stallDialog.data)
       },
       openStallUpdateDialog: function (linkId) {
         var self = this
@@ -652,7 +654,6 @@
           name: this.stallDialog.data.name,
           wallet: this.stallDialog.data.wallet,
           publickey: this.stallDialog.data.publickey,
-          privatekey: this.stallDialog.data.privatekey,
           relays: this.stallDialog.data.relays,
           shippingzones: this.stallDialog.data.shippingzones
             .map(z => z.split('-')[0].trim())
@@ -1104,10 +1105,11 @@
             '/shop/api/v1/orders?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
+          .then(response => {
             if (response.data) {
-              self.orders = response.data.map(mapOrders)
+              this.orders = response.data.map(mapOrders)
             }
+            console.log(this.orders)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -1193,7 +1195,8 @@
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
-            if (!res.data?.length) return
+            console.log(res)
+            if (!res.data.length) return
             this.messages = _.groupBy(res.data, 'id_conversation')
             this.checkUnreadMessages()
           })
@@ -1203,25 +1206,21 @@
           })
       },
       updateLastSeenMsg(id) {
-        let data = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
+        let data = this.$q.localStorage.getItem(`lnbits.shop.chat`)
         let chat = {
-          ...data.chat,
+          ...data,
           [`${id}`]: {
             timestamp: Object.keys(this.orderMessages)[
               Object.keys(this.orderMessages).length - 1
             ]
           }
         }
-        this.$q.localStorage.set(`lnbits.shop.${this.g.user.id}`, {
-          ...data,
-          chat
-        })
+        this.$q.localStorage.set(`lnbits.shop.chat`, chat)
         this.checkUnreadMessages()
       },
       checkUnreadMessages() {
-        let lastMsgs = this.$q.localStorage.getItem(
-          `lnbits.shop.${this.g.user.id}`
-        ).chat
+        let lastMsgs = this.$q.localStorage.getItem(`lnbits.shop.chat`)
+        if (!lastMsgs) return
         for (let key in this.messages) {
           let idx = this.orders.findIndex(f => f.invoiceid == key)
           if (!lastMsgs[key]) {
@@ -1243,11 +1242,37 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      sendMessage() {
+      async sendMessage() {
+        let orderPublicKey = this.orders.find(
+          o => o.invoiceid == this.customerKey
+        ).pubkey
+        let ciphertext = nostr.nip04.encrypt(
+          this.keys.privkey,
+          orderPublicKey,
+          this.newMessage
+        )
+
         let message = {
-          msg: this.newMessage,
-          pubkey: this.keys.pubkey
+          msg: ciphertext,
+          pubkey: this.keys.publickey
         }
+
+        // if diagon alley mode is active create a propper event
+        /*
+        if (this.diagonAlley) {
+          let event = {
+            kind: 4,
+            pubkey: this.keys.publickey,
+            tags: [['p', orderPublicKey]],
+            content: ciphertext,
+            created_at: Math.floor(Date.now() / 1000)
+          }
+
+          event.id = nostr.getEventHash(event)
+          event.sig = await nostr.signEvent(event, this.keys.privatekey)
+        }
+        */
+
         this.ws.send(JSON.stringify(message))
 
         this.clearMessage()
@@ -1322,6 +1347,7 @@
         }
         setInterval(() => {
           this.getAllMessages()
+          this.getOrders()
         }, 300000)
       }
     }

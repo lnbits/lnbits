@@ -243,7 +243,7 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
-<script src="https://github.com/paulmillr/noble-secp256k1/releases/download/1.7.0/noble-secp256k1.js"></script>
+<script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
 
 <script>
   const mapChatMsg = msg => {
@@ -255,7 +255,7 @@
     return obj
   }
   Vue.component(VueQrcode.name, VueQrcode)
-  const secp = window.nobleSecp256k1
+  const nostr = window.NostrTools
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
@@ -350,10 +350,15 @@
         if ('publickey' in this.user.keys && 'privatekey' in this.user.keys)
           return
 
-        const privkey = secp.utils.bytesToHex(secp.utils.randomPrivateKey())
-        const pubkey = secp.utils.bytesToHex(secp.schnorr.getPublicKey(privKey))
+        const privkey = nostr.generatePrivateKey()
+        const pubkey = nostr.getPublicKey(privkey)
 
-        this.user.keys = {privatekey: privkey, publickey: pubkey}
+        this.user = {
+          keys: {
+            privatekey: privkey,
+            publickey: pubkey
+          }
+        }
       },
       async getMessages(room_name, all = false) {
         await LNbits.api
@@ -413,7 +418,6 @@
       }
     },
     async created() {
-      console.log('{{request.url}}')
       let order_details = JSON.parse('{{ order | tojson }}')
       let products = JSON.parse('{{ products | tojson }}')
       let order_id = '{{ order_id }}'
@@ -444,13 +448,20 @@
 
       if (data) {
         this.user = data
-        //add chat key (merchant pubkey) if not set
         if (!this.user.orders[`${order_id}`]) {
           this.$set(this.user.orders, order_id, this.products)
         }
       } else {
         // generate keys
         this.generateKeys()
+        try {
+          await LNbits.api.request(
+            'GET',
+            `/shop/api/v1/order/pubkey/${order_id}/${this.user.keys.publickey}`
+          )
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
         // populate user data
         this.user.orders = {
           [`${order_id}`]: this.products
