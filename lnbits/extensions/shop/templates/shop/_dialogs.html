@@ -250,7 +250,7 @@
       >
       </q-select>
       <q-input
-        v-if="diagonalley"
+        v-if="diagonAlley"
         v-if="keys"
         filled
         dense
@@ -258,7 +258,7 @@
         label="Public Key"
       ></q-input>
       <q-input
-        v-if="diagonalley"
+        v-if="diagonAlley"
         v-if="keys"
         filled
         dense
@@ -266,7 +266,7 @@
         label="Private Key"
       ></q-input>
       <!-- NOSTR -->
-      <div v-if="diagonalley" class="row">
+      <div v-if="diagonAlley" class="row">
         <div class="col-5">
           <q-btn unelevated @click="generateKeys" color="primary"
             >Generate keys</q-btn
@@ -287,7 +287,7 @@
         label="Shipping Zones"
       ></q-select>
       <q-select
-        v-if="diagonalley"
+        v-if="diagonAlley"
         :options="relayOptions"
         filled
         dense
@@ -296,14 +296,14 @@
         label="Relays"
       ></q-select>
       <q-input
-        v-if="diagonalley"
+        v-if="diagonAlley"
         filled
         dense
         v-model.trim="stallDialog.data.crelays"
         label="Custom relays (seperate by comma)"
       ></q-input>
       <q-input
-        v-if="diagonalley"
+        v-if="diagonAlley"
         filled
         dense
         v-model.trim="stallDialog.data.nostrShops"
