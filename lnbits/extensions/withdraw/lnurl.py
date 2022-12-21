@@ -11,6 +11,7 @@ from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
+from lnbits.core.crud import update_payment_extra
 from lnbits.core.services import pay_invoice
 
 from . import withdraw_ext
@@ -44,7 +45,11 @@ async def api_lnurl_response(request: Request, unique_hash):
         "minWithdrawable": link.min_withdrawable * 1000,
         "maxWithdrawable": link.max_withdrawable * 1000,
         "defaultDescription": link.title,
+        "webhook_url": link.webhook_url,
+        "webhook_headers": link.webhook_headers,
+        "webhook_body": link.webhook_body,
     }
+
     return json.dumps(withdrawResponse)
 
 
@@ -56,7 +61,7 @@ async def api_lnurl_response(request: Request, unique_hash):
     name="withdraw.api_lnurl_callback",
     summary="lnurl withdraw callback",
     description="""
-        This enpoints allows you to put unique_hash, k1
+        This endpoints allows you to put unique_hash, k1
         and a payment_request to get your payment_request paid.
     """,
     response_description="JSON with status",
@@ -143,18 +148,39 @@ async def api_lnurl_callback(
         if link.webhook_url:
             async with httpx.AsyncClient() as client:
                 try:
-                    r = await client.post(
-                        link.webhook_url,
-                        json={
+                    kwargs = {
+                        "json": {
                             "payment_hash": payment_hash,
                             "payment_request": payment_request,
                             "lnurlw": link.id,
                         },
-                        timeout=40,
+                        "timeout": 40,
+                    }
+                    if link.webhook_body:
+                        kwargs["json"]["body"] = json.loads(link.webhook_body)
+                    if link.webhook_headers:
+                        kwargs["headers"] = json.loads(link.webhook_headers)
+
+                    r: httpx.Response = await client.post(link.webhook_url, **kwargs)
+                    await update_payment_extra(
+                        payment_hash,
+                        dict(
+                            {
+                                "wh_success": r.is_success,
+                                "wh_message": r.reason_phrase,
+                                "wh_response": r.text,
+                            }
+                        ),
                     )
                 except Exception as exc:
                     # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
-                    logger.error("Caught exception when dispatching webhook url:", exc)
+                    logger.error(
+                        "Caught exception when dispatching webhook url: " + str(exc)
+                    )
+                    await update_payment_extra(
+                        payment_hash,
+                        dict({"wh_success": False, "wh_message": str(exc)}),
+                    )
 
         return {"status": "OK"}
 
