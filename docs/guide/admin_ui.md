@@ -42,7 +42,7 @@ enviroment variable: LNBITS_ALLOWED_USERS, comma-seperated list of user ids
 By defining this users, LNbits will no longer be useable by the public, only defined users and admins can then access the LNbits frontend.
 
 
-How to activat
+How to activate
 =============
 ```
 $ sudo systemctl stop lnbits.service
