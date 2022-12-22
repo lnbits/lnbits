@@ -52,7 +52,7 @@ async def create_shop_product(data: createProduct) -> Products:
     return product
 
 
-async def update_shop_product(product_id: str, **kwargs) -> Optional[Stalls]:
+async def update_shop_product(product_id: str, **kwargs) -> Optional[Products]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(

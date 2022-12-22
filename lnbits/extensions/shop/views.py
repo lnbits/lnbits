@@ -39,7 +39,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @shop_ext.get("/stalls/{stall_id}", response_class=HTMLResponse)
-async def display(request: Request, stall_id):
+async def stall(request: Request, stall_id):
     stall = await get_shop_stall(stall_id)
     products = await get_shop_products(stall_id)
     zones = []
@@ -68,7 +68,7 @@ async def display(request: Request, stall_id):
 
 
 @shop_ext.get("/market/{market_id}", response_class=HTMLResponse)
-async def display(request: Request, market_id):
+async def market(request: Request, market_id):
     market = await get_shop_market(market_id)
 
     if not market:
@@ -92,7 +92,7 @@ async def display(request: Request, market_id):
 
 
 @shop_ext.get("/order", response_class=HTMLResponse)
-async def chat_page(
+async def order_chat(
     request: Request,
     merch: str = Query(...),
     invoice_id: str = Query(...),
