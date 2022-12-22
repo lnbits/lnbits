@@ -163,12 +163,13 @@ async def api_lnurl_callback(
 
                     r: httpx.Response = await client.post(link.webhook_url, **kwargs)
                     await update_payment_extra(
-                        payment_hash,
-                        {
+                        hash=payment_hash,
+                        extra={
                             "wh_success": r.is_success,
                             "wh_message": r.reason_phrase,
                             "wh_response": r.text,
                         },
+                        outgoing=True,
                     )
                 except Exception as exc:
                     # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
