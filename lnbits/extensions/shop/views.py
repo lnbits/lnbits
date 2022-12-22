@@ -183,7 +183,6 @@ async def websocket_endpoint(
             if websocket not in room_members:
                 print("Sender not in room member: Reconnecting...")
                 await notifier.connect(websocket, room_name)
-            print("ENDPOINT", data)
             await notifier._notify(data, room_name)
 
     except WebSocketDisconnect:
