@@ -270,7 +270,8 @@
         products: [],
         orders: [],
         user: {
-          keys: {}
+          keys: {},
+          orders: {}
         },
         keysDialog: {
           show: false,
@@ -353,11 +354,9 @@
         const privkey = nostr.generatePrivateKey()
         const pubkey = nostr.getPublicKey(privkey)
 
-        this.user = {
-          keys: {
-            privatekey: privkey,
-            publickey: pubkey
-          }
+        this.user.keys = {
+          privatekey: privkey,
+          publickey: pubkey
         }
       },
       async getMessages(room_name, all = false) {
