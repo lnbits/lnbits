@@ -23,7 +23,7 @@ async def m001_initial(db):
         f"""
         CREATE TABLE shop.products (
             id TEXT PRIMARY KEY,
-            stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id),
+            stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id) ON DELETE CASCADE,
             product TEXT NOT NULL,
             categories TEXT,
             description TEXT,
@@ -80,8 +80,8 @@ async def m001_initial(db):
         f"""
         CREATE TABLE shop.order_details (
             id TEXT PRIMARY KEY,
-            order_id INTEGER NOT NULL REFERENCES {db.references_schema}orders (id),
-            product_id TEXT NOT NULL REFERENCES {db.references_schema}products (id),
+            order_id INTEGER NOT NULL REFERENCES {db.references_schema}orders (id) ON DELETE CASCADE,
+            product_id TEXT NOT NULL REFERENCES {db.references_schema}products (id) ON DELETE CASCADE,
             quantity INTEGER NOT NULL
         );
     """
@@ -107,14 +107,12 @@ async def m001_initial(db):
         f"""
         CREATE TABLE shop.market_stalls (
             id TEXT PRIMARY KEY,
-            marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id),
-            stallid TEXT NOT NULL REFERENCES {db.references_schema}stalls (id)
+            marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id) ON DELETE CASCADE,
+            stallid TEXT NOT NULL REFERENCES {db.references_schema}stalls (id) ON DELETE CASCADE
         );
     """
     )
 
-
-async def m002_add_chat_messages(db):
     """
     Initial chat messages table.
     """
