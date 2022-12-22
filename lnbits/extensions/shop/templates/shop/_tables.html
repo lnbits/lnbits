@@ -148,7 +148,19 @@
   <q-card-section>
     <div class="row items-center no-wrap q-mb-md">
       <div class="col">
-        <h5 class="text-subtitle1 q-my-none">Products</h5>
+        <h5 class="text-subtitle1 q-my-none">
+          Products
+          <span v-if="stalls.length > 0" class="q-px-sm">
+            <q-btn
+              round
+              color="primary"
+              icon="add"
+              size="sm"
+              @click="productDialog.show = true"
+            />
+            <q-tooltip> Add a product </q-tooltip>
+          </span>
+        </h5>
       </div>
       <div class="col-auto">
         <q-btn flat color="grey" @click="exportProductsCSV"
