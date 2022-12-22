@@ -43,6 +43,7 @@ class UsersSettings(LNbitsSettings):
     lnbits_extensions_manifests: List[str] = Field(default=[])
     lnbits_upgraded_extensions: List[str] = Field(default=[])
 
+
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
