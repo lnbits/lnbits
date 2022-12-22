@@ -1280,6 +1280,15 @@
 
         this.clearMessage()
       },
+      checkWebSocket() {
+        if (!this.ws) return
+        if (this.ws.readyState === WebSocket.CLOSED) {
+          console.log('WebSocket CLOSED: Reopening')
+          this.ws = new WebSocket(
+            ws_scheme + location.host + '/shop/ws/' + this.customerKey
+          )
+        }
+      },
       chatRoom(id) {
         this.startChat(id)
         this.orderMessages = {}
@@ -1308,15 +1317,6 @@
           ws_scheme = 'ws://'
         }
         ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
-
-        function checkWebSocket(event) {
-          if (ws.readyState === WebSocket.CLOSED) {
-            console.log('WebSocket CLOSED: Reopening')
-            ws = new WebSocket(
-              ws_scheme + location.host + '/shop/ws/' + room_name
-            )
-          }
-        }
 
         ws.onmessage = async event => {
           let event_data = JSON.parse(event.data)

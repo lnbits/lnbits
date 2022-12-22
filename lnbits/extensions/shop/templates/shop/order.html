@@ -24,6 +24,7 @@
             class="full-width"
             dense
             outlined
+            @click="checkWebSocket"
           >
             <template>
               <q-btn
@@ -387,6 +388,15 @@
         await this.getMessages(this.selectedOrder)
         this.startChat(this.selectedOrder)
       },
+      checkWebSocket() {
+        if (!this.ws) return
+        if (this.ws.readyState === WebSocket.CLOSED) {
+          console.log('WebSocket CLOSED: Reopening')
+          this.ws = new WebSocket(
+            ws_scheme + location.host + '/shop/ws/' + this.selectedOrder
+          )
+        }
+      },
       startChat(room_name) {
         if (this.ws) {
           this.ws.close()
@@ -397,15 +407,6 @@
           ws_scheme = 'ws://'
         }
         ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
-
-        function checkWebSocket(event) {
-          if (ws.readyState === WebSocket.CLOSED) {
-            console.log('WebSocket CLOSED: Reopening')
-            ws = new WebSocket(
-              ws_scheme + location.host + '/shop/ws/' + room_name
-            )
-          }
-        }
 
         ws.onmessage = event => {
           let event_data = JSON.parse(event.data)
