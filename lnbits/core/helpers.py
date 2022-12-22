@@ -19,7 +19,8 @@ async def migrate_extension_database(ext, current_version):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db
-    except ImportError:
+    except ImportError as e:
+        logger.error(e)
         raise ImportError(
             f"Please make sure that the extension `{ext.code}` has a migrations file."
         )
