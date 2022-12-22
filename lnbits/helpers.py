@@ -96,14 +96,12 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        pathname = scope["path"].split("/")[1]
-        if pathname in settings.lnbits_disabled_extensions:
-            path_elements = scope["path"].split("/")
-            if len(path_elements) > 2:
-                _, path_name, path_type, *rest = path_elements
-            else:
-                _, path_name = path_elements
-                path_type = None
+        path_elements = scope["path"].split("/")
+        if len(path_elements) > 2:
+            _, path_name, path_type, *rest = path_elements
+        else:
+            _, path_name = path_elements
+            path_type = None
 
         # block path for all users if the extension is disabled
         if path_name in settings.LNBITS_DISABLED_EXTENSIONS:
