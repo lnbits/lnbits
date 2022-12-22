@@ -1,0 +1,286 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-sm-1 col-xs-4 mt-lg">
+    <q-btn
+      type="a"
+      :href="['/extensions?usr=', g.user.id].join('')"
+      color="primary unelevated mt-lg pt-lg"
+      >Back</q-btn
+    >
+  </div>
+  <div class="col-sm-6 col-xs-4 mt-lg">
+    <q-toggle
+      label="Installed Only"
+      color="secodary"
+      class="float-left"
+      v-model="showOnlyInstalledExtensions"
+    ></q-toggle>
+  </div>
+
+  <div class="col-sm-3 col-xs-4 q-ml-auto">
+    <q-input v-model="searchTerm" label="Search extensions">
+      <q-icon
+        v-if="searchTerm !== ''"
+        name="close"
+        @click="searchTerm = ''"
+        class="cursor-pointer q-mt-lg"
+      />
+    </q-input>
+  </div>
+</div>
+
+<div class="row q-col-gutter-md">
+  <div
+    class="col-xs-12 col-md-6 col-lg-4"
+    v-for="extension in filteredExtensions"
+    :key="extension.id"
+  >
+    <q-card>
+      <q-card-section>
+        <div class="row">
+          <div class="col-3">
+            <!-- hack must find better solution -->
+            <q-icon
+              :name="extension.icon"
+              color="grey-5"
+              style="font-size: 4rem"
+            ></q-icon>
+          </div>
+          <div class="col-9">
+            <q-badge
+              v-if="extension.details"
+              @click="showExtensionDetails(extension)"
+              color="secondary"
+              class="cursor-pointer float-right"
+            >
+              <small>More</small>
+            </q-badge>
+          </div>
+        </div>
+
+        {% raw %}
+        <h5 class="q-mt-lg q-mb-xs">{{ extension.name}}</h5>
+        <small>{{ extension.shortDescription }} </small>
+        <div>
+          <small v-if="extension.dependencies?.length">Depends on:</small>
+          <small v-else>&nbsp;</small>
+          <q-badge
+            v-for="dep in extension.dependencies"
+            :key="dep"
+            color="orange"
+          >
+            <small v-text="dep"></small>
+          </q-badge>
+        </div>
+        {% endraw %}
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-actions>
+        <div class="col-6">
+          <div v-if="extension.isInstalled">
+            <q-btn @click="showUninstall(extension)" flat color="grey-5">
+              Uninstall</q-btn
+            >
+            <q-toggle
+              :label="extension.isActive ? 'Activated':  'Deactivated' "
+              color="secodary"
+              v-model="extension.isActive"
+              @input="toggleExtension(extension)"
+            ></q-toggle>
+          </div>
+          <div v-else>
+            <q-spinner
+              v-if="extension.inProgress "
+              color="primary"
+              size="2.55em"
+            ></q-spinner>
+            <q-btn
+              v-else
+              @click="installExtension(extension)"
+              flat
+              color="primary"
+            >
+              Install</q-btn
+            >
+          </div>
+        </div>
+
+        <div class="col-6">
+          <q-rating
+            max="5"
+            v-model="maxStars"
+            size="3.5em"
+            color="yellow"
+            icon="star_border"
+            icon-selected="star"
+            icon-half="star_half"
+            readonly
+            no-dimming
+            class="float-right"
+          >
+            <template v-slot:tip-1>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-2>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-3>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-4>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+            <template v-slot:tip-5>
+              <q-tooltip>User Review Comming Soon</q-tooltip>
+            </template>
+          </q-rating>
+        </div>
+      </q-card-actions>
+    </q-card>
+  </div>
+  <q-dialog v-model="showUninstallDialog">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">Warning</h6>
+      <p>
+        You are about to remove the extension for all users. <br />
+        Are you sure you want to continue?
+      </p>
+
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="uninstallExtension()"
+          >Yes, Uninstall</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  {%raw%}
+  <q-dialog v-model="showDetailsDialog">
+    <q-card v-if="selectedExtension" class="q-pa-lg">
+      <h6 class="q-my-md text-primary">{{selectedExtension.name}}</h6>
+      <div
+        v-if="selectedExtension.details"
+        v-html="selectedExtension.details"
+      ></div>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Done</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+  {%endraw%}
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    data: function () {
+      return {
+        searchTerm: '',
+        showOnlyInstalledExtensions: false,
+        filteredExtensions: null,
+        showUninstallDialog: false,
+        showDetailsDialog: false,
+        selectedExtension: null,
+        maxStars: 0
+      }
+    },
+    watch: {
+      searchTerm(term) {
+        this.filterExtensions(term, this.onlyInstalled)
+      },
+      showOnlyInstalledExtensions(onlyInstalled) {
+        this.filterExtensions(this.searchTerm, onlyInstalled)
+      }
+    },
+    methods: {
+      filterExtensions: function (term, onlyInstalled) {
+        // Filter the extensions list
+        function extensionNameContains(searchTerm) {
+          return function (extension) {
+            return (
+              extension.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              extension.shortDescription
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase())
+            )
+          }
+        }
+
+        this.filteredExtensions = this.extensions
+          .filter(e =>
+            this.showOnlyInstalledExtensions ? e.isInstalled : true
+          )
+          .filter(extensionNameContains(term))
+      },
+      installExtension: async function (extension) {
+        try {
+          extension.inProgress = true
+          await LNbits.api.request(
+            'POST',
+            `/api/v1/extension/${extension.id}/${extension.hash}?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          window.location.href = [
+            "{{ url_for('install.extensions') }}",
+            '?usr=',
+            this.g.user.id
+          ].join('')
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+          extension.inProgress = false
+        }
+      },
+      uninstallExtension: async function () {
+        extension = this.selectedExtension
+        try {
+          extension.inProgress = true
+          await LNbits.api.request(
+            'DELETE',
+            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          window.location.href = [
+            "{{ url_for('install.extensions') }}",
+            '?usr=',
+            this.g.user.id
+          ].join('')
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+          extension.inProgress = false
+        }
+      },
+      toggleExtension: function (extension) {
+        const action = extension.isActive ? 'activate' : 'deactivate'
+        window.location.href = [
+          "{{ url_for('install.extensions') }}",
+          '?usr=',
+          this.g.user.id,
+          `&${action}=`,
+          extension.id
+        ].join('')
+      },
+
+      showUninstall: function (extension) {
+        this.selectedExtension = extension
+        this.showUninstallDialog = true
+      },
+
+      showExtensionDetails: function (extension) {
+        this.selectedExtension = extension
+        this.showDetailsDialog = true
+      }
+    },
+    created: function () {
+      this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
+        ...e,
+        inProgress: false
+      }))
+      this.filteredExtensions = this.extensions.concat([])
+    },
+    mixins: [windowMixin]
+  })
+</script>
+{% endblock %}

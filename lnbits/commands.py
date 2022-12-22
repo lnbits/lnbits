@@ -11,6 +11,8 @@ from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
+from .core.crud import USER_ID_ALL, get_dbversions, get_inactive_extensions
+from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .helpers import (
     get_css_vendored,
@@ -59,30 +61,6 @@ def bundle_vendored():
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
-    async def set_migration_version(conn, db_name, version):
-        await conn.execute(
-            """
-            INSERT INTO dbversions (db, version) VALUES (?, ?)
-            ON CONFLICT (db) DO UPDATE SET version = ?
-            """,
-            (db_name, version, version),
-        )
-
-    async def run_migration(db, migrations_module, db_name):
-        for key, migrate in migrations_module.__dict__.items():
-            match = match = matcher.match(key)
-            if match:
-                version = int(match.group(1))
-                if version > current_versions.get(db_name, 0):
-                    logger.debug(f"running migration {db_name}.{version}")
-                    await migrate(db)
-
-                    if db.schema == None:
-                        await set_migration_version(db, db_name, version)
-                    else:
-                        async with core_db.connect() as conn:
-                            await set_migration_version(conn, db_name, version)
-
     async with core_db.connect() as conn:
         if conn.type == SQLITE:
             exists = await conn.fetchone(
@@ -96,27 +74,18 @@ async def migrate_databases():
         if not exists:
             await core_migrations.m000_create_migrations_table(conn)
 
-        rows = await (await conn.execute("SELECT * FROM dbversions")).fetchall()
-        current_versions = {row["db"]: row["version"] for row in rows}
-        matcher = re.compile(r"^m(\d\d\d)_")
-        db_name = core_migrations.__name__.split(".")[-2]
-        await run_migration(conn, core_migrations, db_name)
+        current_versions = await get_dbversions(conn)
+        core_version = current_versions.get("core", 0)
+        await run_migration(conn, core_migrations, core_version)
 
     for ext in get_valid_extensions():
-        try:
-
-            module_str = (
-                ext.migration_module or f"lnbits.extensions.{ext.code}.migrations"
-            )
-            ext_migrations = importlib.import_module(module_str)
-            ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
-            db_name = ext.db_name or module_str.split(".")[-2]
-        except ImportError:
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` has a migrations file."
-            )
-
-        async with ext_db.connect() as ext_conn:
-            await run_migration(ext_conn, ext_migrations, db_name)
+        current_version = current_versions.get(ext.code, 0)
+        await migrate_extension_database(ext, current_version)
 
     logger.info("✔️ All migrations done.")
+
+
+async def load_disabled_extension_list() -> None:
+    """Update list of extensions that have been explicitly disabled"""
+    inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
+    settings.lnbits_disabled_extensions += inactive_extensions

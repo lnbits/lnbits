@@ -4,6 +4,15 @@
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-3 col-xs-8 q-ml-auto">
+    <div class="col-sm-7 col-xs-6 mt-lg">
+      <q-btn
+        v-if="g.user.admin"
+        type="a"
+        :href="['/install?usr=', g.user.id].join('')"
+        color="primary unelevated mt-lg pt-lg"
+        >Add or Remove Extensions</q-btn
+      >
+    </div>
     <q-input v-model="searchTerm" label="Search extensions">
       <q-icon
         v-if="searchTerm !== ''"

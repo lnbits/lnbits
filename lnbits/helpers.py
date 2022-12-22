@@ -1,10 +1,13 @@
 import glob
 import json
 import os
+from http import HTTPStatus
 from typing import Any, List, NamedTuple, Optional
 
 import jinja2
-import shortuuid
+import shortuuid  # type: ignore
+from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
@@ -25,8 +28,10 @@ class Extension(NamedTuple):
 
 
 class ExtensionManager:
-    def __init__(self):
-        self._disabled: List[str] = settings.lnbits_disabled_extensions
+    def __init__(self, include_disabled_exts=False):
+        self._disabled: List[str] = (
+            [] if include_disabled_exts else settings.lnbits_disabled_extensions
+        )
         self._admin_only: List[str] = settings.lnbits_admin_extensions
         self._extension_folders: List[str] = [
             x[1] for x in os.walk(os.path.join(settings.lnbits_path, "extensions"))
@@ -74,9 +79,40 @@ class ExtensionManager:
         return output
 
 
-def get_valid_extensions() -> List[Extension]:
+class EnabledExtensionMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        pathname = scope["path"].split("/")[1]
+        if pathname in settings.lnbits_disabled_extensions:
+            response = JSONResponse(
+                status_code=HTTPStatus.NOT_FOUND,
+                content={"detail": f"Extension '{pathname}' disabled"},
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+
+class InstallableExtension(NamedTuple):
+    id: str
+    name: str
+    archive: str
+    hash: str
+    short_description: Optional[str] = None
+    details: Optional[str] = None
+    icon: Optional[str] = None
+    dependencies: List[str] = []
+    is_admin_only: bool = False
+
+
+def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
     return [
-        extension for extension in ExtensionManager().extensions if extension.is_valid
+        extension
+        for extension in ExtensionManager(include_disabled_exts).extensions
+        if extension.is_valid
     ]
 
 

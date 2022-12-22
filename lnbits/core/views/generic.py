@@ -1,6 +1,6 @@
 import asyncio
 from http import HTTPStatus
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
@@ -11,17 +11,20 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
+from lnbits.core.helpers import get_installable_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import get_wallet_class, settings
 
-from ...helpers import get_valid_extensions
+from ...helpers import InstallableExtension, get_valid_extensions
 from ..crud import (
+    USER_ID_ALL,
     create_account,
     create_wallet,
     delete_wallet,
     get_balance_check,
+    get_inactive_extensions,
     get_user,
     save_balance_notify,
     update_user_extension,
@@ -52,40 +55,79 @@ async def extensions(
     enable: str = Query(None),
     disable: str = Query(None),
 ):
-    extension_to_enable = enable
-    extension_to_disable = disable
-
-    if extension_to_enable and extension_to_disable:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
-
-    # check if extension exists
-    if extension_to_enable or extension_to_disable:
-        ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
-            )
-
-    if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
-        await update_user_extension(
-            user_id=user.id, extension=extension_to_enable, active=True
-        )
-    elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user.id}")
-        await update_user_extension(
-            user_id=user.id, extension=extension_to_disable, active=False
-        )
+    await toggle_extension(enable, disable, user.id)
 
     # Update user as his extensions have been updated
-    if extension_to_enable or extension_to_disable:
+    if enable or disable:
         user = await get_user(user.id)  # type: ignore
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
     )
+
+
+@core_html_routes.get(
+    "/install", name="install.extensions", response_class=HTMLResponse
+)
+async def extensions_install(
+    request: Request,
+    user: User = Depends(check_user_exists),  # type: ignore
+    activate: str = Query(None),  # type: ignore
+    deactivate: str = Query(None),  # type: ignore
+):
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+
+    try:
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
+    except Exception as ex:
+        logger.warning(ex)
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
+        )
+
+    try:
+        if deactivate:
+            settings.lnbits_disabled_extensions += [deactivate]
+        elif activate:
+            settings.lnbits_disabled_extensions = list(
+                filter(lambda e: e != activate, settings.lnbits_disabled_extensions)
+            )
+        await toggle_extension(activate, deactivate, USER_ID_ALL)
+
+        installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+        inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
+        extensions = list(
+            map(
+                lambda ext: {
+                    "id": ext.id,
+                    "name": ext.name,
+                    "hash": ext.hash,
+                    "icon": ext.icon,
+                    "shortDescription": ext.short_description,
+                    "details": ext.details,
+                    "dependencies": ext.dependencies,
+                    "isInstalled": ext.id in installed_extensions,
+                    "isActive": not ext.id in inactive_extensions,
+                },
+                extension_list,
+            )
+        )
+
+        return template_renderer().TemplateResponse(
+            "core/install.html",
+            {
+                "request": request,
+                "user": user.dict(),
+                "extensions": extensions,
+            },
+        )
+    except Exception as e:
+        logger.warning(e)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @core_html_routes.get(
@@ -327,3 +369,29 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "balance": balance,
         },
     )
+
+
+async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
+    if extension_to_enable and extension_to_disable:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
+        )
+
+    # check if extension exists
+    if extension_to_enable or extension_to_disable:
+        ext = extension_to_enable or extension_to_disable
+        if ext not in [e.code for e in get_valid_extensions(True)]:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
+            )
+
+    if extension_to_enable:
+        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
+        await update_user_extension(
+            user_id=user_id, extension=extension_to_enable, active=True
+        )
+    elif extension_to_disable:
+        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
+        await update_user_extension(
+            user_id=user_id, extension=extension_to_disable, active=False
+        )

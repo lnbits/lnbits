@@ -4,7 +4,7 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -213,3 +213,7 @@ class BalanceCheck(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
+
+
+class CoreAppExtra:
+    register_new_ext_routes: Callable

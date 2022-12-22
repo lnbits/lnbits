@@ -1,10 +1,15 @@
 import asyncio
+import glob
 import importlib
 import logging
+import os
 import signal
 import sys
 import traceback
+import zipfile
 from http import HTTPStatus
+from pathlib import Path
+from typing import Callable
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
@@ -18,10 +23,12 @@ from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
 from .commands import migrate_databases
-from .core import core_app
+from .core import core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .helpers import (
+    EnabledExtensionMiddleware,
+    Extension,
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
@@ -65,12 +72,15 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(EnabledExtensionMiddleware)
 
     register_startup(app)
     register_assets(app)
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
+
+    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
 
     return app
 
@@ -105,6 +115,22 @@ async def check_funding_source() -> None:
     )
 
 
+def check_installed_extensions():
+    """
+    Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
+    One reason might be a docker-container that was re-created.
+    The 'data' directory (where the '.zip' files live) is expected to persist state.
+    """
+    extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+
+    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
+    for zip_file in zip_files:
+        ext_name = Path(zip_file).stem
+        if not Path(f"lnbits/extensions/{ext_name}").is_dir():
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall("lnbits/extensions/")
+
+
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
     app.include_router(core_app)
@@ -112,25 +138,37 @@ def register_routes(app: FastAPI) -> None:
 
     for ext in get_valid_extensions():
         try:
-            ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
-            ext_route = getattr(ext_module, f"{ext.code}_ext")
-
-            if hasattr(ext_module, f"{ext.code}_start"):
-                ext_start_func = getattr(ext_module, f"{ext.code}_start")
-                ext_start_func()
-
-            if hasattr(ext_module, f"{ext.code}_static_files"):
-                ext_statics = getattr(ext_module, f"{ext.code}_static_files")
-                for s in ext_statics:
-                    app.mount(s["path"], s["app"], s["name"])
-
-            logger.trace(f"adding route for extension {ext_module}")
-            app.include_router(ext_route)
+            register_ext_routes(app, ext)
         except Exception as e:
             logger.error(str(e))
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
+
+
+def register_new_ext_routes(app: FastAPI) -> Callable:
+    def register_new_ext_routes_fn(ext: Extension):
+        register_ext_routes(app, ext)
+
+    return register_new_ext_routes_fn
+
+
+def register_ext_routes(app: FastAPI, ext: Extension) -> None:
+    """Register FastAPI routes for extension."""
+    ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
+    ext_route = getattr(ext_module, f"{ext.code}_ext")
+
+    if hasattr(ext_module, f"{ext.code}_start"):
+        ext_start_func = getattr(ext_module, f"{ext.code}_start")
+        ext_start_func()
+
+    if hasattr(ext_module, f"{ext.code}_static_files"):
+        ext_statics = getattr(ext_module, f"{ext.code}_static_files")
+        for s in ext_statics:
+            app.mount(s["path"], s["app"], s["name"])
+
+    logger.trace(f"adding route for extension {ext_module}")
+    app.include_router(ext_route)
 
 
 def register_startup(app: FastAPI):
@@ -151,6 +189,9 @@ def register_startup(app: FastAPI):
 
             # 4. initialize funding source
             await check_funding_source()
+
+            # 5. check extensions in `data` directory
+            await check_installed_extensions()
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")

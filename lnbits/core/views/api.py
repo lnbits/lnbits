@@ -1,11 +1,18 @@
 import asyncio
 import hashlib
+import importlib
+import inspect
 import json
+import os
+import shutil
+import sys
 import time
 import uuid
+import zipfile
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, Optional, Tuple, Union
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -22,6 +29,8 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
+from fastapi.params import Body
+from genericpath import isfile
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
@@ -29,15 +38,27 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.models import Payment, Wallet
+from lnbits.core.helpers import (
+    download_url,
+    file_hash,
+    get_installable_extensions,
+    migrate_extension_database,
+)
+from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
+    check_user_exists,
     get_key_type,
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import (
+    Extension,
+    InstallableExtension,
+    get_valid_extensions,
+    url_for,
+)
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -45,13 +66,16 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, db
+from .. import core_app, core_app_extra, db
 from ..crud import (
+    USER_ID_ALL,
+    get_dbversions,
     get_payments,
     get_standalone_payment,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
+    update_user_extension,
     update_wallet,
 )
 from ..services import (
@@ -706,3 +730,185 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
+
+@core_app.post("/api/v1/extension/{ext_id}/{hash}")
+async def api_install_extension(
+    ext_id: str, hash: str, user: User = Depends(check_user_exists)
+):
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+
+    try:
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
+        )
+
+    extensions = [e for e in extension_list if e.id == ext_id and e.hash == hash]
+    if len(extensions) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+    extension = extensions[0]
+
+    # check that all dependecies are installed
+    installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+    if not set(extension.dependencies).issubset(installed_extensions):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Not all dependencies are installed: {extension.dependencies}",
+        )
+
+    # move files to the right location
+    extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+    os.makedirs(extensions_data_dir, exist_ok=True)
+    ext_data_dir = os.path.join(extensions_data_dir, ext_id)
+    shutil.rmtree(ext_data_dir, True)
+    ext_zip_file = os.path.join(extensions_data_dir, f"{ext_id}.zip")
+    if os.path.isfile(ext_zip_file):
+        os.remove(ext_zip_file)
+
+    try:
+        download_url(extension.archive, ext_zip_file)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch extension archive file",
+        )
+
+    archive_hash = file_hash(ext_zip_file)
+    if extension.hash != archive_hash:
+        # remove downloaded archive
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="File hash missmatch. Will not install.",
+        )
+
+    try:
+        ext_dir = os.path.join("lnbits/extensions", ext_id)
+        shutil.rmtree(ext_dir, True)
+        with zipfile.ZipFile(ext_zip_file, "r") as zip_ref:
+            zip_ref.extractall("lnbits/extensions")
+
+        # todo: is admin only
+        ext = Extension(extension.id, True, extension.is_admin_only, extension.name)
+
+        current_versions = await get_dbversions()
+        current_version = current_versions.get(ext.code, 0)
+
+        module_name = f"lnbits.extensions.{ext.code}"
+        # if module_name in sys.modules:
+        #     importlib.reload(sys.modules[module_name])
+        ext_module = importlib.import_module(module_name)
+        # sys.modules[module_name] = importlib.reload(ext_module)
+
+        modules_to_reload = list_modules_for_extension(ext_id)
+        print("### modules_to_reload", modules_to_reload)
+        for m in modules_to_reload:
+            importlib.reload(sys.modules[m])
+
+        await migrate_extension_database(ext, current_version)
+
+        # disable by default
+        await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
+        settings.lnbits_disabled_extensions += [ext_id]
+
+        # mount routes at the very end
+        core_app_extra.register_new_ext_routes(ext)
+    except Exception as ex:
+        logger.warning(ex)
+        # remove downloaded archive
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+
+        # remove module from extensions
+        shutil.rmtree(ext_dir, True)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.delete("/api/v1/extension/{ext_id}")
+async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_exists)):
+    if not user.admin:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
+        )
+
+    try:
+        extension_list: List[InstallableExtension] = await get_installable_extensions()
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch installable extension list",
+        )
+
+    extensions = [e for e in extension_list if e.id == ext_id]
+    if len(extensions) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+
+    # check that other extensions do not depend on this one
+    for active_ext_id in list(map(lambda e: e.code, get_valid_extensions(True))):
+        active_ext = next(
+            (ext for ext in extension_list if ext.id == active_ext_id), None
+        )
+        if active_ext and ext_id in active_ext.dependencies:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot uninstall. Extension '{active_ext.name}' depends on this one.",
+            )
+
+    try:
+        settings.lnbits_disabled_extensions += [ext_id]
+
+        # remove downloaded archive
+        ext_zip_file = os.path.join(
+            settings.lnbits_data_folder, "extensions", f"{ext_id}.zip"
+        )
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+
+        # module_name = f"lnbits.extensions.{ext_id}"
+
+        # modules_to_delete = list_modules_for_extension(ext_id)
+        # print('### modules_to_delete', modules_to_delete)
+        # for m in modules_to_delete:
+        #     module = sys.modules[m]
+        #     del sys.modules[m]
+        #     del module
+
+        # remove module from extensions
+        ext_dir = os.path.join("lnbits/extensions", ext_id)
+        shutil.rmtree(ext_dir, True)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+def list_modules_for_extension(ext_id: str) -> List[str]:
+    modules_for_extension = []
+    for key in sys.modules.keys():
+        try:
+            module = sys.modules[key]
+            moduleFilePath = inspect.getfile(module).lower()
+
+            dir_name = str(Path(moduleFilePath).parent.absolute())
+            if dir_name.endswith(f"lnbits/extensions/{ext_id}"):
+                print("## moduleFilePath", moduleFilePath)
+                modules_for_extension += [key]
+
+        except:
+            pass  # built in modules throw if queried
+    return modules_for_extension

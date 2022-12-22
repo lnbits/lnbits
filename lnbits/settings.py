@@ -40,6 +40,7 @@ class UsersSettings(LNbitsSettings):
     lnbits_allowed_users: List[str] = Field(default=[])
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
+    lnbits_extensions_manifests: List[str] = Field(default=[])
 
 
 class ThemesSettings(LNbitsSettings):

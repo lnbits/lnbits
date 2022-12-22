@@ -11,6 +11,8 @@ from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, sett
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
 
+USER_ID_ALL = "all"
+
 # accounts
 # --------
 
@@ -75,6 +77,18 @@ async def update_user_extension(
         ON CONFLICT ("user", extension) DO UPDATE SET active = ?
         """,
         (user_id, extension, active, active),
+    )
+
+
+async def get_inactive_extensions(
+    *, user_id: str, conn: Optional[Connection] = None
+) -> List[str]:
+    inactive_extensions = await (conn or db).fetchall(
+        """SELECT extension FROM extensions WHERE "user" = ? AND NOT active""",
+        (user_id,),
+    )
+    return (
+        [ext[0] for ext in inactive_extensions] if len(inactive_extensions) != 0 else []
     )
 
 
@@ -620,3 +634,20 @@ async def create_admin_settings(super_user: str, new_settings: dict):
     sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
     return await get_super_settings()
+
+
+# db versions
+# --------------
+async def get_dbversions(conn: Optional[Connection] = None):
+    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
+    return {row["db"]: row["version"] for row in rows}
+
+
+async def update_migration_version(conn, db_name, version):
+    await (conn or db).execute(
+        """
+        INSERT INTO dbversions (db, version) VALUES (?, ?)
+        ON CONFLICT (db) DO UPDATE SET version = ?
+        """,
+        (db_name, version, version),
+    )
