@@ -75,7 +75,7 @@ from .models import (
 ### Products
 @shop_ext.get("/api/v1/products")
 async def api_shop_products(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
     all_stalls: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -94,7 +94,9 @@ async def api_shop_products(
 @shop_ext.post("/api/v1/products")
 @shop_ext.put("/api/v1/products/{product_id}")
 async def api_shop_product_create(
-    data: createProduct, product_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: createProduct,
+    product_id=None,
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
 
     if product_id:
@@ -389,49 +391,6 @@ async def api_shop_stall_checkshipped(
     return {"shipped": rows["shipped"]}
 
 
-###Place order
-
-
-# @shop_ext.post("/api/v1/stall/order/{stall_id}")
-# async def api_shop_stall_order(
-#     stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
-# ):
-#     product = await get_shop_product(data.productid)
-#     shipping = await get_shop_stall(stall_id)
-
-#     if data.shippingzone == 1:
-#         shippingcost = shipping.zone1cost  # missing in model
-#     else:
-#         shippingcost = shipping.zone2cost  # missing in model
-
-#     checking_id, payment_request = await create_invoice(
-#         wallet_id=product.wallet,
-#         amount=shippingcost + (data.quantity * product.price),
-#         memo=shipping.wallet,
-#     )
-#     selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
-#     await db.execute(
-#         """
-#             INSERT INTO shop.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
-#             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-#             """,
-#         (
-#             selling_id,
-#             data.productid,
-#             product.wallet,  # doesn't exist in model
-#             product.product,
-#             data.quantity,
-#             data.shippingzone,
-#             data.address,
-#             data.email,
-#             checking_id,
-#             False,
-#             False,
-#         ),
-#     )
-#     return {"checking_id": checking_id, "payment_request": payment_request}
-
-
 ##
 # MARKETS
 ##
@@ -473,19 +432,6 @@ async def api_shop_stall_create(
         await create_shop_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()
-
-
-## KEYS
-
-
-@shop_ext.get("/api/v1/keys")
-async def api_shop_generate_keys():
-    private_key = PrivateKey()
-    public_key = private_key.pubkey.serialize().hex()
-    while not public_key.startswith("02"):
-        private_key = PrivateKey()
-        public_key = private_key.pubkey.serialize().hex()
-    return {"privkey": private_key.serialize(), "pubkey": public_key[2:]}
 
 
 ## MESSAGES/CHAT
