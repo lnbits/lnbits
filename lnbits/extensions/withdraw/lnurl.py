@@ -163,7 +163,7 @@ async def api_lnurl_callback(
 
                     r: httpx.Response = await client.post(link.webhook_url, **kwargs)
                     await update_payment_extra(
-                        hash=payment_hash,
+                        payment_hash=payment_hash,
                         extra={
                             "wh_success": r.is_success,
                             "wh_message": r.reason_phrase,
@@ -177,8 +177,9 @@ async def api_lnurl_callback(
                         "Caught exception when dispatching webhook url: " + str(exc)
                     )
                     await update_payment_extra(
-                        payment_hash,
-                        {"wh_success": False, "wh_message": str(exc)},
+                        payment_hash=payment_hash,
+                        extra={"wh_success": False, "wh_message": str(exc)},
+                        outgoing=True,
                     )
 
         return {"status": "OK"}

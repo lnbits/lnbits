@@ -67,4 +67,6 @@ async def mark_webhook_sent(
     payment.extra["wh_message"] = reason_phrase
     payment.extra["wh_response"] = text
 
-    await update_payment_extra(payment.payment_hash, payment.extra)
+    await update_payment_extra(
+        payment_hash=payment.payment_hash, extra=payment.extra, incoming=True
+    )

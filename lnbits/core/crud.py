@@ -452,7 +452,7 @@ async def update_payment_details(
 
 
 async def update_payment_extra(
-    hash: str,
+    payment_hash: str,
     extra: dict,
     outgoing: bool = False,
     incoming: bool = False,
@@ -472,7 +472,7 @@ async def update_payment_extra(
 
     row = await (conn or db).fetchone(
         f"SELECT hash, extra from apipayments WHERE hash = ? {amount_clause}",
-        (hash,),
+        (payment_hash,),
     )
     if not row:
         return
@@ -481,7 +481,7 @@ async def update_payment_extra(
 
     await (conn or db).execute(
         f"UPDATE apipayments SET extra = ? WHERE hash = ? {amount_clause} ",
-        (json.dumps(db_extra), hash),
+        (json.dumps(db_extra), payment_hash),
     )
 
 
