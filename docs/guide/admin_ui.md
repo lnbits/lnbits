@@ -40,3 +40,33 @@ Allowed Users
 =============
 enviroment variable: LNBITS_ALLOWED_USERS, comma-seperated list of user ids
 By defining this users, LNbits will no longer be useable by the public, only defined users and admins can then access the LNbits frontend.
+
+
+How to activate
+=============
+```
+$ sudo systemctl stop lnbits.service
+$ cd ~/lnbits-legend
+$ sudo nano .env
+```
+-> set: `LNBITS_ADMIN_UI=true`
+
+Now start LNbits once in the terminal window
+``` 
+$ poetry run lnbits 
+```
+It will now show you the Super User Account:
+
+`SUCCESS | ✔️ Access super user account at: https://127.0.0.1:5000/wallet?usr=5711d7..`
+
+The `/wallet?usr=..` is your super user account. You just have to append it to your normal LNbits web domain.
+
+After that you will find the __`Admin` / `Manage Server`__ between `Wallets` and `Extensions`
+
+Here you can design the interface, it has TOPUP to fill wallets and you can restrict access rights to extensions only for admins or generally deactivated for everyone. You can make users admins or set up Allowed Users if you want to restrict access. And of course the classic settings of the .env file, e.g. to change the funding source wallet or set a charge fee.
+
+Do not forget
+```
+sudo systemctl start lnbits.service
+```
+A little hint, if you set `RESET TO DEFAULTS`, then a new Super User Account will also be created. The old one is then no longer valid.
