@@ -299,14 +299,20 @@ async def melt_coins(
             cashu.wallet, invoice_obj.payment_hash
         )
         if status.paid == True:
-            logger.debug("Cashu: Payment successful, invalidating proofs")
+            logger.debug(
+                f"Cashu: Payment successful, invalidating proofs for {invoice_obj.payment_hash}"
+            )
             await ledger._invalidate_proofs(proofs)
+        else:
+            logger.debug(f"Cashu: Payment failed for {invoice_obj.payment_hash}")
     except Exception as e:
+        logger.debug(f"Cashu: Exception for {invoice_obj.payment_hash}: {e}")
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Cashu: {str(e)}",
         )
     finally:
+        logger.debug(f"Cashu: Unset pending for {invoice_obj.payment_hash}: {e}")
         # delete proofs from pending list
         await ledger._unset_proofs_pending(proofs)
 
