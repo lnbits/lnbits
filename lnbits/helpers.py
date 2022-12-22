@@ -25,8 +25,16 @@ class Extension(NamedTuple):
     hidden: bool = False
     migration_module: Optional[str] = None
     db_name: Optional[str] = None
-    version: Optional[str] = ""
     hash: Optional[str] = ""
+
+    @property
+    def module_name(self):
+        return (
+            f"lnbits.extensions.{self.code}"
+            if self.hash == ""
+            else f"lnbits.upgrades.{self.code}-{self.hash}.{self.code}"
+        )
+
 
 class InstallableExtension(NamedTuple):
     id: str
@@ -39,6 +47,7 @@ class InstallableExtension(NamedTuple):
     dependencies: List[str] = []
     is_admin_only: bool = False
     version: Optional[int] = 0
+
 
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
