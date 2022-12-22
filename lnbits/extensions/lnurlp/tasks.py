@@ -2,8 +2,10 @@ import asyncio
 import json
 
 import httpx
+from loguru import logger
 
 from lnbits.core import db as core_db
+from lnbits.core.crud import update_payment_extra
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
@@ -48,19 +50,21 @@ async def on_invoice_paid(payment: Payment) -> None:
                 if pay_link.webhook_headers:
                     kwargs["headers"] = json.loads(pay_link.webhook_headers)
 
-                r = await client.post(pay_link.webhook_url, **kwargs)
-                await mark_webhook_sent(payment, r.status_code)
-            except (httpx.ConnectError, httpx.RequestError):
-                await mark_webhook_sent(payment, -1)
+                r: httpx.Response = await client.post(pay_link.webhook_url, **kwargs)
+                await mark_webhook_sent(
+                    payment, r.status_code, r.is_success, r.reason_phrase, r.text
+                )
+            except Exception as ex:
+                logger.error(ex)
+                await mark_webhook_sent(payment, -1, False, "Unexpected Error", str(ex))
 
 
-async def mark_webhook_sent(payment: Payment, status: int) -> None:
-    payment.extra["wh_status"] = status
+async def mark_webhook_sent(
+    payment: Payment, status: int, is_success: bool, reason_phrase="", text=""
+) -> None:
+    payment.extra["wh_status"] = status  # keep for backwards compability
+    payment.extra["wh_success"] = is_success
+    payment.extra["wh_message"] = reason_phrase
+    payment.extra["wh_response"] = text
 
-    await core_db.execute(
-        """
-        UPDATE apipayments SET extra = ?
-        WHERE hash = ?
-        """,
-        (json.dumps(payment.extra), payment.payment_hash),
-    )
+    await update_payment_extra(payment.payment_hash, payment.extra)
