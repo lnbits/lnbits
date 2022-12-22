@@ -26,6 +26,7 @@ class Extension(NamedTuple):
     migration_module: Optional[str] = None
     db_name: Optional[str] = None
     version: Optional[str] = ""
+    hash: Optional[str] = ""
 
 class InstallableExtension(NamedTuple):
     id: str
@@ -104,7 +105,7 @@ class InstalledExtensionMiddleware:
             path_type = None
 
         # block path for all users if the extension is disabled
-        if path_name in settings.LNBITS_DISABLED_EXTENSIONS:
+        if path_name in settings.lnbits_disabled_extensions:
             response = JSONResponse(
                 status_code=HTTPStatus.NOT_FOUND,
                 content={"detail": f"Extension '{path_name}' disabled"},
@@ -117,7 +118,7 @@ class InstalledExtensionMiddleware:
             upgraded_extensions = list(
                 filter(
                     lambda ext: ext.endswith(f"/{path_name}"),
-                    g().config.LNBITS_UPGRADED_EXTENSIONS,
+                    settings.lnbits_upgraded_extensions,
                 )
             )
             if len(upgraded_extensions) != 0:

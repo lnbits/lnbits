@@ -832,10 +832,10 @@ async def api_install_extension(
             clean_upgraded_exts = list(
                 filter(
                     lambda old_ext: old_ext.endswith(ext_temp_path),
-                    settings.LNBITS_UPGRADED_EXTENSIONS,
+                    settings.lnbits_upgraded_extensions,
                 )
             )
-            settings.LNBITS_UPGRADED_EXTENSIONS = clean_upgraded_exts + [ext_temp_path]
+            settings.lnbits_upgraded_extensions = clean_upgraded_exts + [ext_temp_path]
 
         # mount routes at the very end
         core_app_extra.register_new_ext_routes(ext)

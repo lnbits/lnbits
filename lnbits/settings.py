@@ -41,7 +41,7 @@ class UsersSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(default=[])
-    # LNBITS_UPGRADED_EXTENSIONS: List[str] = [] # todo: 
+    lnbits_upgraded_extensions: List[str] = Field(default=[])
 
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
