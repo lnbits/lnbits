@@ -824,7 +824,18 @@ async def api_install_extension(
         # disable by default
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
         settings.lnbits_disabled_extensions += [ext_id]
-        settings.LNBITS_UPGRADED_EXTENSIONS += [f"{ext.version}/{ext.code}"] #todo: re-visit
+
+        
+        if module_installed:
+            # update upgraded extensions list if module already installed
+            ext_temp_path = f"{ext.hash}/{ext.code}"
+            clean_upgraded_exts = list(
+                filter(
+                    lambda old_ext: old_ext.endswith(ext_temp_path),
+                    settings.LNBITS_UPGRADED_EXTENSIONS,
+                )
+            )
+            settings.LNBITS_UPGRADED_EXTENSIONS = clean_upgraded_exts + [ext_temp_path]
 
         # mount routes at the very end
         core_app_extra.register_new_ext_routes(ext)
@@ -878,9 +889,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_e
         settings.lnbits_disabled_extensions += [ext_id]
 
         # remove downloaded archive
-        ext_zip_file = os.path.join(
-            settings.lnbits_data_folder, "extensions", f"{ext_id}.zip"
-        )
+        ext_zip_file = os.path.join(settings.lnbits_data_folder, "extensions", f"{ext_id}.zip")
         if os.path.isfile(ext_zip_file):
             os.remove(ext_zip_file)
 
