@@ -103,11 +103,7 @@
       <q-card-section>
         <q-separator></q-separator>
         <q-list>
-          <q-expansion-item
-            v-if="diagonalley"
-            group="extras"
-            icon="vpn_key"
-            label="Keys"
+          <q-expansion-item group="extras" icon="vpn_key" label="Keys"
             ><p>
               Bellow are the keys needed to contact the merchant. They are
               stored in the browser!
@@ -242,6 +238,28 @@
       </q-form>
     </q-card>
   </q-dialog>
+  <!-- ONBOARDING DIALOG -->
+  <q-dialog v-model="lnbitsBookmark.show">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">Bookmark this page</h6>
+      <p>
+        Don't forget to bookmark this page to be able to check on your order!
+      </p>
+      <p>
+        You can backup your keys, and export the page to another device also.
+      </p>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-close-popup
+          flat
+          @click="lnbitsBookmark.finish"
+          color="grey"
+          class="q-ml-auto"
+          >Close</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
 <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
@@ -262,6 +280,13 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        lnbitsBookmark: {
+          show: true,
+          finish: () => {
+            this.$q.localStorage.set('lnbits.shopbookmark', false)
+            this.lnbitsBookmark.show = false
+          }
+        },
         newMessage: '',
         showMessages: false,
         messages: {},
@@ -418,6 +443,9 @@
       }
     },
     async created() {
+      let showBookmark = this.$q.localStorage.getItem('lnbits.shopbookmark')
+      this.lnbitsBookmark.show = showBookmark === true || showBookmark == null
+
       let order_details = JSON.parse('{{ order | tojson }}')
       let products = JSON.parse('{{ products | tojson }}')
       let order_id = '{{ order_id }}'
