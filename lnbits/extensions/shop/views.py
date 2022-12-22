@@ -128,41 +128,6 @@ async def order_chat(
 notifier = Notifier()
 
 
-# class ConnectionManager:
-#     def __init__(self):
-#         self.active_connections: List[WebSocket] = []
-
-#     async def connect(self, websocket: WebSocket, room_name: str):
-#         await websocket.accept()
-#         websocket.id = room_name
-#         self.active_connections.append(websocket)
-
-#     def disconnect(self, websocket: WebSocket):
-#         self.active_connections.remove(websocket)
-
-#     async def send_personal_message(self, message: str, room_name: str):
-#         for connection in self.active_connections:
-#             if connection.id == room_name:
-#                 await connection.send_text(message)
-
-#     async def broadcast(self, message: str):
-#         for connection in self.active_connections:
-#             await connection.send_text(message)
-
-
-# manager = ConnectionManager()
-
-
-# @shop_ext.websocket("/ws/{room_name}")
-# async def websocket_endpoint(websocket: WebSocket, room_name: str):
-#     await manager.connect(websocket, room_name)
-#     try:
-#         while True:
-#             data = await websocket.receive_text()
-#     except WebSocketDisconnect:
-#         manager.disconnect(websocket)
-
-
 @shop_ext.websocket("/ws/{room_name}")
 async def websocket_endpoint(
     websocket: WebSocket, room_name: str, background_tasks: BackgroundTasks
