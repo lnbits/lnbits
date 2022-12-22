@@ -630,7 +630,6 @@
         if (!this.keys && !this.diagonAlley) {
           this.generateKeys()
         }
-        console.log(this.stallDialog.data)
       },
       openStallUpdateDialog: function (linkId) {
         var self = this
@@ -653,7 +652,7 @@
         let data = {
           name: this.stallDialog.data.name,
           wallet: this.stallDialog.data.wallet,
-          publickey: this.stallDialog.data.publickey,
+          publickey: this.stallDialog.data.publickey || this.keys.pubkey,
           relays: this.stallDialog.data.relays,
           shippingzones: this.stallDialog.data.shippingzones
             .map(z => z.split('-')[0].trim())
@@ -1109,7 +1108,6 @@
             if (response.data) {
               this.orders = response.data.map(mapOrders)
             }
-            console.log(this.orders)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -1195,7 +1193,6 @@
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
-            console.log(res)
             if (!res.data.length) return
             this.messages = _.groupBy(res.data, 'id_conversation')
             this.checkUnreadMessages()
@@ -1219,15 +1216,15 @@
         this.checkUnreadMessages()
       },
       checkUnreadMessages() {
-        let lastMsgs = this.$q.localStorage.getItem(`lnbits.shop.chat`)
-        if (!lastMsgs) return
+        let lastMsgs = this.$q.localStorage.getItem(`lnbits.shop.chat`) || {}
+
         for (let key in this.messages) {
           let idx = this.orders.findIndex(f => f.invoiceid == key)
           if (!lastMsgs[key]) {
             this.updateLastSeenMsg(key)
+            this.$set(this.orders[idx], 'unread', true)
             return
           }
-
           if (
             lastMsgs[key].timestamp <
             Math.max(...this.messages[key].map(c => c.timestamp))
@@ -1242,24 +1239,22 @@
         this.newMessage = ''
         this.$refs.newMessage.focus()
       },
-      sendMessage() {
-        // we need Buffer to make this play nice
-
-        /*let orderPublicKey = this.orders.find(
+      async sendMessage() {
+        // this is way more tricky...
+        // need to figure out how to better display our messages in plain text, and incoming with encryption
+        // also, as we're saving messages to the DB, the full Nostr event format will be much more heavy in size
+        /*
+        let orderPublicKey = this.orders.find(
           o => o.invoiceid == this.customerKey
-        ).pubkey*/
+        ).pubkey
 
-        /*let ciphertext = nostr.nip04.encrypt(
+        let ciphertext = await nostr.nip04.encrypt(
           this.keys.privkey,
           orderPublicKey,
           this.newMessage
-        )*/
+        )
 
-        let message = {
-          msg: this.newMessage,
-          pubkey: this.keys.pubkey
-        }
-
+        */
         // if diagon alley mode is active create a propper event
         /*
         if (this.diagonAlley) {
@@ -1276,6 +1271,11 @@
         }
         */
 
+        let message = {
+          msg: this.newMessage,
+          pubkey: this.keys.pubkey
+        }
+
         this.ws.send(JSON.stringify(message))
 
         this.clearMessage()
@@ -1289,6 +1289,7 @@
             pubkey: m.pubkey
           })
         })
+        this.customerKey = id
         this.$refs.chatCard.scrollIntoView({
           behavior: 'smooth',
           inline: 'nearest'
@@ -1317,7 +1318,7 @@
           }
         }
 
-        ws.onmessage = event => {
+        ws.onmessage = async event => {
           let event_data = JSON.parse(event.data)
 
           this.$set(this.orderMessages, Date.now(), event_data)
