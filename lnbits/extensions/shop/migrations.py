@@ -1,5 +1,18 @@
 async def m001_initial(db):
     """
+    Initial Shop settings table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE shop.settings (
+            "user" TEXT PRIMARY KEY,
+            currency TEXT DEFAULT 'sat',
+            fiat_base_multiplier INTEGER DEFAULT 1
+        );
+    """
+    )
+
+    """
     Initial stalls table.
     """
     await db.execute(

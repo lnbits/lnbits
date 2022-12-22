@@ -9,6 +9,7 @@ from fastapi.params import Depends
 from loguru import logger
 from secp256k1 import PrivateKey, PublicKey
 from starlette.exceptions import HTTPException
+from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -23,6 +24,8 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db, shop_ext
 from .crud import (
+    set_shop_settings,
+    get_shop_settings,
     create_shop_market,
     create_shop_market_stalls,
     create_shop_order,
@@ -58,6 +61,7 @@ from .crud import (
     update_shop_zone,
 )
 from .models import (
+    SetSettings,
     CreateMarket,
     Orders,
     Products,
@@ -452,3 +456,25 @@ async def api_get_latest_chat_msg(room_name: str, all_messages: bool = Query(Fal
         messages = await get_shop_latest_chat_messages(room_name)
 
     return messages
+
+
+@shop_ext.get("/api/v1/currencies")
+async def api_list_currencies_available():
+    return list(currencies.keys())
+
+
+@shop_ext.get("/api/v1/settings")
+async def api_get_settings(wallet: WalletTypeInfo = Depends(require_admin_key)):
+    user = wallet.wallet.user
+
+    settings = await get_shop_settings(user)
+
+    return settings
+
+
+@shop_ext.put("/api/v1/settings")
+async def api_set_settings(
+    data: SetSettings, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+    user = wallet.wallet.user
+    return await set_shop_settings(user, data)

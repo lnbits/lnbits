@@ -9,6 +9,7 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    ShopSettings,
     ChatMessage,
     CreateChatMessage,
     CreateMarket,
@@ -443,3 +444,24 @@ async def get_shop_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
         (*ids,),
     )
     return [ChatMessage(**row) for row in rows]
+
+
+async def get_shop_settings(user) -> Optional[ShopSettings]:
+    row = await db.fetchone("SELECT * FROM shop.settings WHERE 'user = ?", (user,))
+
+    return ShopSettings(**row) if row else None
+
+
+async def set_shop_settings(user: str, data) -> Optional[ShopSettings]:
+    await db.execute(
+        f"""
+            UPDATE shop.settings
+            SET currency = ?, fiat_base_multiplier = ?
+            WHERE 'user' = ?;
+        """,
+        (
+            data.currency,
+            data.fiat_base_multiplier,
+            user,
+        ),
+    )

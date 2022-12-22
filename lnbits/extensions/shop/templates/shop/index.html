@@ -4,7 +4,7 @@
   {% include "shop/_dialogs.html" %}
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
-      <q-card-section>
+      <q-card-section class="q-gutter-sm row">
         <q-btn unelevated color="primary" @click="zoneDialog.show = true"
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
@@ -42,8 +42,18 @@
           @click="errorMessage('First set shipping zone(s), then create a stall.')"
           >+ Product <q-tooltip> List a product </q-tooltip></q-btn
         >
+        <q-select
+          style="width: 100px"
+          filled
+          dense
+          v-model="currencies.unit"
+          type="text"
+          label="Unit"
+          :options="currencies.units"
+          @input="(value) => setCurrency(value)"
+        ></q-select>
         <q-btn
-          class="float-right"
+          class="q-ml-auto"
           unelevated
           flat
           color="primary"
@@ -237,6 +247,10 @@
         },
         keys: null,
         diagonAlley: false,
+        currencies: {
+          units: ['sat'],
+          unit: 'sat'
+        },
         products: [],
         orders: [],
         stalls: [],
@@ -522,6 +536,29 @@
       },
       toggleDA(value, evt) {
         this.$q.localStorage.set(`lnbits.DAmode`, value)
+      },
+      setCurrency(v) {
+        let data = {
+          currency: v,
+          fiat_base_multiplier: this.currencies.unit != 'sat' ? 100 : 1
+        }
+        LNbits.api
+          .request(
+            'PUT',
+            '/shop/api/v1/settings',
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Currency changed`,
+              icon: 'check'
+            })
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       shopDataDownload() {
         const removeClone = obj => {
@@ -1320,6 +1357,16 @@
         }
 
         this.ws = ws
+      },
+      async getCurrencies() {
+        await LNbits.api
+          .request('GET', '/shop/api/v1/currencies')
+          .then(response => {
+            this.currencies.units = ['sat', ...response.data]
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
       }
     },
     async created() {
@@ -1329,6 +1376,7 @@
         this.onboarding.showAgain = showOnboard || false
         this.diagonAlley =
           this.$q.localStorage.getItem('lnbits.DAmode') || false
+        await this.getCurrencies()
         this.getStalls()
         this.getProducts()
         this.getZones()

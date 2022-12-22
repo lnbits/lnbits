@@ -4,6 +4,17 @@ from fastapi.param_functions import Query
 from pydantic import BaseModel
 
 
+class ShopSettings(BaseModel):
+    user: str
+    currency: str
+    fiat_base_multiplier: int
+
+
+class SetSettings(BaseModel):
+    currency: str
+    fiat_base_multiplier: int = Query(100, ge=1)
+
+
 class Stalls(BaseModel):
     id: str
     wallet: str
