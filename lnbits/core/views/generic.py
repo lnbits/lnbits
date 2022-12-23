@@ -38,7 +38,7 @@ async def favicon():
 
 
 @core_html_routes.get("/", response_class=HTMLResponse)
-async def home(request: Request, lightning: str = None):
+async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
         "core/index.html", {"request": request, "lnurl": lightning}
     )
@@ -124,12 +124,15 @@ async def wallet(
         if (
             len(settings.lnbits_allowed_users) > 0
             and user_id not in settings.lnbits_allowed_users
+            and user_id not in settings.lnbits_admin_users
+            and user_id != settings.super_user
         ):
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
         if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
             user.admin = True
+
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore
             wallet = user.wallets[0]  # type: ignore
