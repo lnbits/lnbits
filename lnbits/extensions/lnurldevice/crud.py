@@ -82,7 +82,7 @@ async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> Optional[lnurldev
 
 async def get_lnurldeviceposcount() -> int:
     row = await db.fetchall(
-        "SELECT * FROM lnurldevice.lnurldevices WHERE device = pos"
+        "SELECT * FROM lnurldevice.lnurldevices WHERE device"
     )
     return len(row) + 1
 
