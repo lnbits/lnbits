@@ -84,15 +84,21 @@ async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> Optional[lnurldev
 
 async def get_lnurldeviceposcount() -> int:
     row = await db.fetchall(
-        "SELECT * FROM lnurldevice.lnurldevices WHERE device = ? OR device = ?", ("pos", "atm",)
+        "SELECT * FROM lnurldevice.lnurldevices WHERE device = ? OR device = ?",
+        (
+            "pos",
+            "atm",
+        ),
     )
     return len(row) + 1
+
 
 async def get_lnurldevice(lnurldevice_id: str) -> lnurldevices:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
     )
     return lnurldevices(**row) if row else None
+
 
 async def get_lnurldevices(wallet_ids: Union[str, List[str]]) -> List[lnurldevices]:
     wallet_ids = [wallet_ids]
