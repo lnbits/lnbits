@@ -37,13 +37,18 @@ from .models import CreateCharge, SatsPayThemes
 async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    charge = await create_charge(user=wallet.wallet.user, data=data)
-    return {
-        **charge.dict(),
-        **{"time_elapsed": charge.time_elapsed},
-        **{"time_left": charge.time_left},
-        **{"paid": charge.paid},
-    }
+    try:
+        charge = await create_charge(user=wallet.wallet.user, data=data)
+        return {
+            **charge.dict(),
+            **{"time_elapsed": charge.time_elapsed},
+            **{"time_left": charge.time_left},
+            **{"paid": charge.paid},
+        }
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
