@@ -11,7 +11,8 @@ from .models import createLnurldevice, lnurldevicepayment, lnurldevices
 async def create_lnurldevice(
     data: createLnurldevice,
 ) -> lnurldevices:
-    lnurldevice_id = urlsafe_short_hash()
+    if data.device == "pos":
+        lnurldevice_id = get_lnurldeviceposcount()
     lnurldevice_key = urlsafe_short_hash()
     await db.execute(
         """
@@ -79,12 +80,17 @@ async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> Optional[lnurldev
     return lnurldevices(**row) if row else None
 
 
+async def get_lnurldeviceposcount() -> int:
+    row = await db.fetchall(
+        "SELECT * FROM lnurldevice.lnurldevices WHERE device = pos"
+    )
+    return len(row) + 1
+
 async def get_lnurldevice(lnurldevice_id: str) -> lnurldevices:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
     )
     return lnurldevices(**row) if row else None
-
 
 async def get_lnurldevices(wallet_ids: Union[str, List[str]]) -> List[lnurldevices]:
     wallet_ids = [wallet_ids]
