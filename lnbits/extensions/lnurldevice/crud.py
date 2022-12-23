@@ -12,7 +12,7 @@ async def create_lnurldevice(
     data: createLnurldevice,
 ) -> lnurldevices:
     if data.device == "pos":
-        lnurldevice_id = str(get_lnurldeviceposcount())
+        lnurldevice_id = str(await get_lnurldeviceposcount())
     lnurldevice_key = urlsafe_short_hash()
     await db.execute(
         """
