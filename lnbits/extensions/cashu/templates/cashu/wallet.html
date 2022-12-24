@@ -159,7 +159,7 @@ page_container %}
                             size="lg"
                             color="secondary"
                             class="q-mr-md cursor-pointer"
-                            @click="recheckInvoice(props.row.hash)"
+                            @click="checkInvoice(props.row.hash)"
                           >
                             Check
                           </q-badge>
@@ -1528,57 +1528,17 @@ page_container %}
         return proofs.reduce((s, t) => (s += t.amount), 0)
       },
 
+      deleteProofs: function (proofs) {
+        // delete proofs from this.proofs
+        const usedSecrets = proofs.map(p => p.secret)
+        this.proofs = this.proofs.filter(p => !usedSecrets.includes(p.secret))
+        this.storeProofs()
+        return this.proofs
+      },
+
       //////////// API ///////////
-      clearAllWorkers: function () {
-        if (this.invoiceCheckListener) {
-          clearInterval(this.invoiceCheckListener)
-        }
-        if (this.tokensCheckSpendableListener) {
-          clearInterval(this.tokensCheckSpendableListener)
-        }
-      },
-      invoiceCheckWorker: async function () {
-        let nInterval = 0
-        this.clearAllWorkers()
-        this.invoiceCheckListener = setInterval(async () => {
-          try {
-            nInterval += 1
 
-            // exit loop after 2m
-            if (nInterval > 40) {
-              console.log('### stopping invoice check worker')
-              this.clearAllWorkers()
-            }
-            console.log('### invoiceCheckWorker setInterval', nInterval)
-            console.log(this.invoiceData)
-
-            // this will throw an error if the invoice is pending
-            await this.recheckInvoice(this.invoiceData.hash, false)
-
-            // only without error (invoice paid) will we reach here
-            console.log('### stopping invoice check worker')
-            this.clearAllWorkers()
-            this.invoiceData.bolt11 = ''
-            this.showInvoiceDetails = false
-            if (window.navigator.vibrate) navigator.vibrate(200)
-            this.$q.notify({
-              timeout: 5000,
-              type: 'positive',
-              message: 'Payment received',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
-          } catch (error) {
-            console.log('not paid yet')
-          }
-        }, 3000)
-      },
+      // MINT
 
       requestMintButton: async function () {
         await this.requestMint()
@@ -1586,8 +1546,12 @@ page_container %}
         await this.invoiceCheckWorker()
       },
 
+      // /mint
+
       requestMint: async function () {
-        // gets an invoice from the mint to get new tokens
+        /*
+        gets an invoice from the mint to get new tokens
+        */
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -1611,7 +1575,14 @@ page_container %}
           throw error
         }
       },
+
+      // /mint
+
       mintApi: async function (amounts, payment_hash, verbose = true) {
+        /*
+        asks the mint to check whether the invoice with payment_hash has been paid
+        and requests signing of the attached outputs (blindedMessages)
+        */
         console.log('### promises', payment_hash)
         try {
           let secrets = await this.generateSecrets(amounts)
@@ -1647,7 +1618,19 @@ page_container %}
           }
           this.proofs = this.proofs.concat(proofs)
           this.storeProofs()
+
+          // update UI
           await this.setInvoicePaid(payment_hash)
+          tokensBase64 = btoa(JSON.stringify(proofs))
+
+          this.historyTokens.push({
+            status: 'paid',
+            amount: amount,
+            date: currentDateStr(),
+            token: tokensBase64
+          })
+          this.storehistoryTokens()
+
           return proofs
         } catch (error) {
           console.error(error)
@@ -1657,62 +1640,20 @@ page_container %}
           throw error
         }
       },
-      splitToSend: async function (proofs, amount, invlalidate = false) {
-        // splits proofs so the user can keep firstProofs, send scndProofs
-        try {
-          const spendableProofs = proofs.filter(p => !p.reserved)
-          if (this.sumProofs(spendableProofs) < amount) {
-            this.$q.notify({
-              timeout: 5000,
-              type: 'warning',
-              message: 'Balance too low',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
-            throw Error('balance too low.')
-          }
-          let {fristProofs, scndProofs} = await this.split(
-            spendableProofs,
-            amount
-          )
 
-          // set scndProofs in this.proofs as reserved
-          const usedSecrets = proofs.map(p => p.secret)
-          for (let i = 0; i < this.proofs.length; i++) {
-            if (usedSecrets.includes(this.proofs[i].secret)) {
-              this.proofs[i].reserved = true
-            }
-          }
-          if (invlalidate) {
-            // delete tokens from db
-            this.proofs = fristProofs
-            // add new fristProofs, scndProofs to this.proofs
-            this.storeProofs()
-          }
-
-          return {fristProofs, scndProofs}
-        } catch (error) {
-          console.error(error)
-          LNbits.utils.notifyApiError(error)
-          throw error
-        }
-      },
+      // SPLIT
 
       split: async function (proofs, amount) {
+        /*
+        supplies proofs and requests a split from the mint of these
+        proofs at a specific amount
+        */
         try {
           if (proofs.length == 0) {
             throw new Error('no proofs provided.')
           }
           let {fristProofs, scndProofs} = await this.splitApi(proofs, amount)
-          // delete proofs from this.proofs
-          const usedSecrets = proofs.map(p => p.secret)
-          this.proofs = this.proofs.filter(p => !usedSecrets.includes(p.secret))
+          this.deleteProofs(proofs)
           // add new fristProofs, scndProofs to this.proofs
           this.proofs = this.proofs.concat(fristProofs).concat(scndProofs)
           this.storeProofs()
@@ -1723,6 +1664,9 @@ page_container %}
           throw error
         }
       },
+
+      // /split
+
       splitApi: async function (proofs, amount) {
         try {
           const total = this.sumProofs(proofs)
@@ -1782,7 +1726,62 @@ page_container %}
         }
       },
 
+      splitToSend: async function (proofs, amount, invlalidate = false) {
+        /*
+        splits proofs so the user can keep firstProofs, send scndProofs.
+        then sets scndProofs as reserved.
+
+        if invalidate, scndProofs (the one to send) are invalidated 
+        */
+        try {
+          const spendableProofs = proofs.filter(p => !p.reserved)
+          if (this.sumProofs(spendableProofs) < amount) {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: 'Balance too low',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+            throw Error('balance too low.')
+          }
+
+          // call /split
+
+          let {fristProofs, scndProofs} = await this.split(
+            spendableProofs,
+            amount
+          )
+          // set scndProofs in this.proofs as reserved
+          const usedSecrets = proofs.map(p => p.secret)
+          for (let i = 0; i < this.proofs.length; i++) {
+            if (usedSecrets.includes(this.proofs[i].secret)) {
+              this.proofs[i].reserved = true
+            }
+          }
+          if (invlalidate) {
+            // delete scndProofs from db
+            this.deleteProofs(scndProofs)
+          }
+
+          return {fristProofs, scndProofs}
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
       redeem: async function () {
+        /*
+        uses split to receive new tokens.
+        */
         this.showReceiveTokens = false
         console.log('### receive tokens', this.receiveData.tokensBase64)
         try {
@@ -1793,6 +1792,9 @@ page_container %}
           const proofs = JSON.parse(tokenJson)
           const amount = proofs.reduce((s, t) => (s += t.amount), 0)
           let {fristProofs, scndProofs} = await this.split(proofs, amount)
+
+          // update UI
+
           // HACK: we need to do this so the balance updates
           this.proofs = this.proofs.concat([])
 
@@ -1827,13 +1829,18 @@ page_container %}
       },
 
       sendTokens: async function () {
+        /*
+        calls splitToSend, displays token and kicks off the spendableWorker
+        */
         try {
-          // keep firstProofs, send scndProofs
+          // keep firstProofs, send scndProofs and delete them (invalidate=true)
           let {fristProofs, scndProofs} = await this.splitToSend(
             this.proofs,
             this.sendData.amount,
             true
           )
+
+          // update UI
           this.sendData.tokens = scndProofs
           console.log('### this.sendData.tokens', this.sendData.tokens)
           this.sendData.tokensBase64 = btoa(
@@ -1846,33 +1853,19 @@ page_container %}
             date: currentDateStr(),
             token: this.sendData.tokensBase64
           })
+
+          // store "pending" outgoing tokens in history table
           this.storehistoryTokens()
+
           this.checkTokenSpendableWorker()
         } catch (error) {
           console.error(error)
           throw error
         }
       },
-      checkFees: async function (payment_request) {
-        const payload = {
-          pr: payment_request
-        }
-        console.log('#### payload', JSON.stringify(payload))
-        try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/checkfees`,
-            '',
-            payload
-          )
-          console.log('#### checkFees', payment_request, data.fee)
-          return data.fee
-        } catch (error) {
-          console.error(error)
-          LNbits.utils.notifyApiError(error)
-          throw error
-        }
-      },
+
+      // /melt
+
       melt: async function () {
         // todo: get fees from server and add to inputs
         this.payInvoiceData.blocking = true
@@ -1924,8 +1917,20 @@ page_container %}
             ]
           })
           // delete spent tokens from db
-          this.proofs = fristProofs
-          this.storeProofs()
+          this.deleteProofs(scndProofs)
+
+          // update UI
+
+          tokensBase64 = btoa(JSON.stringify(scndProofs))
+
+          this.historyTokens.push({
+            status: 'paid',
+            amount: -amount,
+            date: currentDateStr(),
+            token: tokensBase64
+          })
+          this.storehistoryTokens()
+
           console.log({
             amount: -amount,
             bolt11: this.payInvoiceData.data.request,
@@ -1953,13 +1958,93 @@ page_container %}
           throw error
         }
       },
+
+      // /check
+
+      checkProofsSpendable: async function (proofs) {
+        /*
+        checks with the mint whether an array of proofs is still
+        spendable or already invalidated
+        */
+        const payload = {
+          proofs: proofs.flat()
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/check`,
+            '',
+            payload
+          )
+
+          // delete proofs from database if it is spent
+          let spentProofs = proofs.filter((p, pidx) => !data[pidx])
+          if (spentProofs.length) {
+            this.deleteProofs(spentProofs)
+
+            // update UI
+            tokensBase64 = btoa(JSON.stringify(spentProofs))
+
+            this.historyTokens.push({
+              status: 'paid',
+              amount: -this.sumProofs(spentProofs),
+              date: currentDateStr(),
+              token: tokensBase64
+            })
+            this.storehistoryTokens()
+          }
+
+          return data
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      // /checkfees
+      checkFees: async function (payment_request) {
+        const payload = {
+          pr: payment_request
+        }
+        console.log('#### payload', JSON.stringify(payload))
+        try {
+          const {data} = await LNbits.api.request(
+            'POST',
+            `/cashu/api/v1/${this.mintId}/checkfees`,
+            '',
+            payload
+          )
+          console.log('#### checkFees', payment_request, data.fee)
+          return data.fee
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      // /keys
+
+      fetchMintKeys: async function () {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/cashu/api/v1/${this.mintId}/keys`
+        )
+        this.keys = data
+        localStorage.setItem(
+          this.mintKey(this.mintId, 'keys'),
+          JSON.stringify(data)
+        )
+      },
       setInvoicePaid: async function (payment_hash) {
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
         invoice.status = 'paid'
         this.storeinvoicesCashu()
       },
-      recheckInvoice: async function (payment_hash, verbose = true) {
-        console.log('### recheckInvoice.hash', payment_hash)
+      checkInvoice: async function (payment_hash, verbose = true) {
+        console.log('### checkInvoice.hash', payment_hash)
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
         try {
           proofs = await this.mint(invoice.amount, invoice.hash, verbose)
@@ -1969,15 +2054,15 @@ page_container %}
           throw error
         }
       },
-      recheckPendingInvoices: async function () {
+      checkPendingInvoices: async function () {
         for (const invoice of this.invoicesCashu) {
-          if (invoice.status === 'pending' && invoice.sat > 0) {
-            this.recheckInvoice(invoice.hash, false)
+          if (invoice.status === 'pending' && invoice.amount > 0) {
+            this.checkInvoice(invoice.hash, false)
           }
         }
       },
 
-      recheckPendingTokens: async function () {
+      checkPendingTokens: async function () {
         for (const token of this.historyTokens) {
           if (token.status === 'pending' && token.amount < 0) {
             this.checkTokenSpendable(token.token, false)
@@ -1990,6 +2075,113 @@ page_container %}
         this.storehistoryTokens()
       },
 
+      checkTokenSpendable: async function (token, verbose = true) {
+        /*
+        checks whether a base64-encoded token (from the history table) has been spent already.
+        if it is spent, the appropraite entry in the history table is set to paid.
+        */
+        const tokenJson = atob(token)
+        const proofs = JSON.parse(tokenJson)
+        let data = await this.checkProofsSpendable(proofs)
+
+        // iterate through response of form {0: true, 1: false, ...}
+        let paid = false
+        for (const [key, spendable] of Object.entries(data)) {
+          if (!spendable) {
+            this.setTokenPaid(token)
+            paid = true
+          }
+        }
+        if (paid) {
+          console.log('### token paid')
+          if (window.navigator.vibrate) navigator.vibrate(200)
+          this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: 'Token paid',
+            position: 'top',
+            actions: [
+              {
+                icon: 'close',
+                color: 'white',
+                handler: () => {}
+              }
+            ]
+          })
+        } else {
+          console.log('### token not paid yet')
+          if (verbose) {
+            this.$q.notify({
+              timeout: 5000,
+              color: 'grey',
+              message: 'Token still pending',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+          }
+          this.sendData.tokens = token
+        }
+        return paid
+      },
+
+      ////////////// WORKERS //////////////
+
+      clearAllWorkers: function () {
+        if (this.invoiceCheckListener) {
+          clearInterval(this.invoiceCheckListener)
+        }
+        if (this.tokensCheckSpendableListener) {
+          clearInterval(this.tokensCheckSpendableListener)
+        }
+      },
+      invoiceCheckWorker: async function () {
+        let nInterval = 0
+        this.clearAllWorkers()
+        this.invoiceCheckListener = setInterval(async () => {
+          try {
+            nInterval += 1
+
+            // exit loop after 2m
+            if (nInterval > 40) {
+              console.log('### stopping invoice check worker')
+              this.clearAllWorkers()
+            }
+            console.log('### invoiceCheckWorker setInterval', nInterval)
+            console.log(this.invoiceData)
+
+            // this will throw an error if the invoice is pending
+            await this.checkInvoice(this.invoiceData.hash, false)
+
+            // only without error (invoice paid) will we reach here
+            console.log('### stopping invoice check worker')
+            this.clearAllWorkers()
+            this.invoiceData.bolt11 = ''
+            this.showInvoiceDetails = false
+            if (window.navigator.vibrate) navigator.vibrate(200)
+            this.$q.notify({
+              timeout: 5000,
+              type: 'positive',
+              message: 'Payment received',
+              position: 'top',
+              actions: [
+                {
+                  icon: 'close',
+                  color: 'white',
+                  handler: () => {}
+                }
+              ]
+            })
+          } catch (error) {
+            console.log('not paid yet')
+          }
+        }, 3000)
+      },
       checkTokenSpendableWorker: async function () {
         let nInterval = 0
         this.clearAllWorkers()
@@ -2021,83 +2213,6 @@ page_container %}
         }, 3000)
       },
 
-      checkTokenSpendable: async function (token, verbose = true) {
-        const tokenJson = atob(token)
-        const proofs = JSON.parse(tokenJson)
-        const payload = {
-          proofs: proofs.flat()
-        }
-        console.log('#### payload', JSON.stringify(payload))
-        try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/check`,
-            '',
-            payload
-          )
-          // iterate through response of form {0: true, 1: false, ...}
-          let paid = false
-          for (const [key, spendable] of Object.entries(data)) {
-            if (!spendable) {
-              this.setTokenPaid(token)
-              paid = true
-            }
-          }
-          if (paid) {
-            console.log('### token paid')
-            if (window.navigator.vibrate) navigator.vibrate(200)
-            this.$q.notify({
-              timeout: 5000,
-              type: 'positive',
-              message: 'Token paid',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
-          } else {
-            console.log('### token not paid yet')
-            if (verbose) {
-              this.$q.notify({
-                timeout: 5000,
-                color: 'grey',
-                message: 'Token still pending',
-                position: 'top',
-                actions: [
-                  {
-                    icon: 'close',
-                    color: 'white',
-                    handler: () => {}
-                  }
-                ]
-              })
-            }
-            this.sendData.tokens = token
-          }
-          return paid
-        } catch (error) {
-          console.error(error)
-          LNbits.utils.notifyApiError(error)
-          throw error
-        }
-      },
-
-      fetchMintKeys: async function () {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/cashu/api/v1/${this.mintId}/keys`
-        )
-        this.keys = data
-        localStorage.setItem(
-          this.mintKey(this.mintId, 'keys'),
-          JSON.stringify(data)
-        )
-      },
-
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2116,62 +2231,62 @@ page_container %}
         }
       },
 
-      checkInvoice: function () {
-        console.log('#### checkInvoice')
-        try {
-          const invoice = decode(this.payInvoiceData.data.request)
+      // checkInvoice: function () {
+      //   console.log('#### checkInvoice')
+      //   try {
+      //     const invoice = decode(this.payInvoiceData.data.request)
 
-          const cleanInvoice = {
-            msat: invoice.human_readable_part.amount,
-            sat: invoice.human_readable_part.amount / 1000,
-            fsat: LNbits.utils.formatSat(
-              invoice.human_readable_part.amount / 1000
-            )
-          }
+      //     const cleanInvoice = {
+      //       msat: invoice.human_readable_part.amount,
+      //       sat: invoice.human_readable_part.amount / 1000,
+      //       fsat: LNbits.utils.formatSat(
+      //         invoice.human_readable_part.amount / 1000
+      //       )
+      //     }
 
-          _.each(invoice.data.tags, tag => {
-            if (_.isObject(tag) && _.has(tag, 'description')) {
-              if (tag.description === 'payment_hash') {
-                cleanInvoice.hash = tag.value
-              } else if (tag.description === 'description') {
-                cleanInvoice.description = tag.value
-              } else if (tag.description === 'expiry') {
-                var expireDate = new Date(
-                  (invoice.data.time_stamp + tag.value) * 1000
-                )
-                cleanInvoice.expireDate = Quasar.utils.date.formatDate(
-                  expireDate,
-                  'YYYY-MM-DDTHH:mm:ss.SSSZ'
-                )
-                cleanInvoice.expired = false // TODO
-              }
-            }
+      //     _.each(invoice.data.tags, tag => {
+      //       if (_.isObject(tag) && _.has(tag, 'description')) {
+      //         if (tag.description === 'payment_hash') {
+      //           cleanInvoice.hash = tag.value
+      //         } else if (tag.description === 'description') {
+      //           cleanInvoice.description = tag.value
+      //         } else if (tag.description === 'expiry') {
+      //           var expireDate = new Date(
+      //             (invoice.data.time_stamp + tag.value) * 1000
+      //           )
+      //           cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+      //             expireDate,
+      //             'YYYY-MM-DDTHH:mm:ss.SSSZ'
+      //           )
+      //           cleanInvoice.expired = false // TODO
+      //         }
+      //       }
 
-            this.payInvoiceData.invoice = cleanInvoice
-          })
+      //       this.payInvoiceData.invoice = cleanInvoice
+      //     })
 
-          console.log(
-            '#### this.payInvoiceData.invoice',
-            this.payInvoiceData.invoice
-          )
-        } catch (error) {
-          this.$q.notify({
-            timeout: 5000,
-            type: 'warning',
-            message: 'Could not decode invoice',
-            caption: error + '',
-            position: 'top',
-            actions: [
-              {
-                icon: 'close',
-                color: 'white',
-                handler: () => {}
-              }
-            ]
-          })
-          throw error
-        }
-      },
+      //     console.log(
+      //       '#### this.payInvoiceData.invoice',
+      //       this.payInvoiceData.invoice
+      //     )
+      //   } catch (error) {
+      //     this.$q.notify({
+      //       timeout: 5000,
+      //       type: 'warning',
+      //       message: 'Could not decode invoice',
+      //       caption: error + '',
+      //       position: 'top',
+      //       actions: [
+      //         {
+      //           icon: 'close',
+      //           color: 'white',
+      //           handler: () => {}
+      //         }
+      //       ]
+      //     })
+      //     throw error
+      //   }
+      // },
 
       ////////////// STORAGE /////////////
 
@@ -2335,8 +2450,9 @@ page_container %}
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
-      this.recheckPendingInvoices()
-      this.recheckPendingTokens()
+      this.checkProofsSpendable(this.proofs)
+      this.checkPendingInvoices()
+      this.checkPendingTokens()
     }
   })
 </script>
