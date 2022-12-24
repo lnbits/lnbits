@@ -130,6 +130,28 @@ async def keys(cashu_id: str = Query(None)) -> dict[int, str]:
     return ledger.get_keyset(keyset_id=cashu.keyset_id)
 
 
+@cashu_ext.get("/api/v1/{cashu_id}/keys/{idBase64Urlsafe}")
+async def keyset_keys(
+    cashu_id: str = Query(None), idBase64Urlsafe: str = Query(None)
+) -> dict[int, str]:
+    """
+    Get the public keys of the mint of a specificy keyset id.
+    The id is encoded in base64_urlsafe and needs to be converted back to
+    normal base64 before it can be processed.
+    """
+
+    cashu: Union[Cashu, None] = await get_cashu(cashu_id)
+
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
+
+    id = idBase64Urlsafe.replace("-", "+").replace("_", "/")
+    keyset = ledger.get_keyset(keyset_id=id)
+    return keyset
+
+
 @cashu_ext.get("/api/v1/{cashu_id}/keysets", status_code=HTTPStatus.OK)
 async def keysets(cashu_id: str = Query(None)) -> dict[str, list[str]]:
     """Get the public keys of the mint"""
