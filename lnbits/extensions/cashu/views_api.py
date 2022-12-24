@@ -182,7 +182,7 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/mint")
-async def mint_coins(
+async def mint(
     data: MintRequest,
     cashu_id: str = Query(None),
     payment_hash: str = Query(None),
@@ -206,42 +206,57 @@ async def mint_coins(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="Mint does not know this invoice.",
             )
-        if invoice.issued == True:
+        if invoice.issued:
             raise HTTPException(
                 status_code=HTTPStatus.PAYMENT_REQUIRED,
                 detail="Tokens already issued for this invoice.",
             )
 
-        total_requested = sum([bm.amount for bm in data.blinded_messages])
-        if total_requested > invoice.amount:
-            raise HTTPException(
-                status_code=HTTPStatus.PAYMENT_REQUIRED,
-                detail=f"Requested amount too high: {total_requested}. Invoice amount: {invoice.amount}",
-            )
-
-    status: PaymentStatus = await check_transaction_status(cashu.wallet, payment_hash)
-
-    if LIGHTNING and status.paid != True:
-        raise HTTPException(
-            status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
-        )
-    try:
-        keyset = ledger.keysets.keysets[cashu.keyset_id]
-
-        promises = await ledger._generate_promises(
-            B_s=data.blinded_messages, keyset=keyset
-        )
-        assert len(promises), HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="No promises returned."
-        )
+        # set this invoice as issued
         await ledger.crud.update_lightning_invoice(
             db=ledger.db, hash=payment_hash, issued=True
         )
 
+        status: PaymentStatus = await check_transaction_status(
+            cashu.wallet, payment_hash
+        )
+
+        try:
+            total_requested = sum([bm.amount for bm in data.blinded_messages])
+            if total_requested > invoice.amount:
+                raise HTTPException(
+                    status_code=HTTPStatus.PAYMENT_REQUIRED,
+                    detail=f"Requested amount too high: {total_requested}. Invoice amount: {invoice.amount}",
+                )
+
+            if not status.paid:
+                raise HTTPException(
+                    status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
+                )
+
+            keyset = ledger.keysets.keysets[cashu.keyset_id]
+
+            promises = await ledger._generate_promises(
+                B_s=data.blinded_messages, keyset=keyset
+            )
+            return promises
+        except (Exception, HTTPException) as e:
+            logger.debug(f"Cashu: /melt {str(e) or getattr(e, 'detail')}")
+            # unset issued flag because something went wrong
+            await ledger.crud.update_lightning_invoice(
+                db=ledger.db, hash=payment_hash, issued=False
+            )
+            raise HTTPException(
+                status_code=getattr(e, "status_code")
+                or HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=str(e) or getattr(e, "detail"),
+            )
+    else:
+        # only used for testing when LIGHTNING=false
+        promises = await ledger._generate_promises(
+            B_s=data.blinded_messages, keyset=keyset
+        )
         return promises
-    except Exception as e:
-        logger.error(e)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/melt")
@@ -285,26 +300,30 @@ async def melt_coins(
             f"Provided proofs ({total_provided} sats) not enough for Lightning payment ({amount + fees_msat} sats)."
         )
         logger.debug(f"Cashu: Initiating payment of {total_provided} sats")
-        await pay_invoice(
-            wallet_id=cashu.wallet,
-            payment_request=invoice,
-            description=f"Pay cashu invoice",
-            extra={"tag": "cashu", "cashu_name": cashu.name},
-        )
-
-        logger.debug(
-            f"Cashu: Wallet {cashu.wallet} checking PaymentStatus of {invoice_obj.payment_hash}"
-        )
-        status: PaymentStatus = await check_transaction_status(
-            cashu.wallet, invoice_obj.payment_hash
-        )
-        if status.paid == True:
-            logger.debug(
-                f"Cashu: Payment successful, invalidating proofs for {invoice_obj.payment_hash}"
+        try:
+            await pay_invoice(
+                wallet_id=cashu.wallet,
+                payment_request=invoice,
+                description=f"Pay cashu invoice",
+                extra={"tag": "cashu", "cashu_name": cashu.name},
             )
-            await ledger._invalidate_proofs(proofs)
-        else:
-            logger.debug(f"Cashu: Payment failed for {invoice_obj.payment_hash}")
+        except Exception as e:
+            logger.debug(f"Cashu error paying invoice {invoice_obj.payment_hash}: {e}")
+            raise e
+        finally:
+            logger.debug(
+                f"Cashu: Wallet {cashu.wallet} checking PaymentStatus of {invoice_obj.payment_hash}"
+            )
+            status: PaymentStatus = await check_transaction_status(
+                cashu.wallet, invoice_obj.payment_hash
+            )
+            if status.paid == True:
+                logger.debug(
+                    f"Cashu: Payment successful, invalidating proofs for {invoice_obj.payment_hash}"
+                )
+                await ledger._invalidate_proofs(proofs)
+            else:
+                logger.debug(f"Cashu: Payment failed for {invoice_obj.payment_hash}")
     except Exception as e:
         logger.debug(f"Cashu: Exception for {invoice_obj.payment_hash}: {str(e)}")
         raise HTTPException(
