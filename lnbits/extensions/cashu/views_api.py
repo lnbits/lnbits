@@ -46,8 +46,15 @@ from .models import Cashu
 
 # --------- extension imports
 
+# WARNING: Do not set this to False in production! This will create
+# tokens for free otherwise. This is for testing purposes only!
 
 LIGHTNING = True
+
+if not LIGHTNING:
+    logger.warning(
+        "Cashu: LIGHTNING is set False! That means that I will create ecash for free!"
+    )
 
 ########################################
 ############### LNBITS MINTS ###########
@@ -219,6 +226,8 @@ async def mint(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
 
+    keyset = ledger.keysets.keysets[cashu.keyset_id]
+
     if LIGHTNING:
         invoice: Invoice = await ledger.crud.get_lightning_invoice(
             db=ledger.db, hash=payment_hash
@@ -255,8 +264,6 @@ async def mint(
                 raise HTTPException(
                     status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
                 )
-
-            keyset = ledger.keysets.keysets[cashu.keyset_id]
 
             promises = await ledger._generate_promises(
                 B_s=data.blinded_messages, keyset=keyset
