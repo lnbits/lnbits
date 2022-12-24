@@ -1731,7 +1731,7 @@ page_container %}
         splits proofs so the user can keep firstProofs, send scndProofs.
         then sets scndProofs as reserved.
 
-        if invalidate, scndProofs (the one to send) are invalidated 
+        if invalidate, scndProofs (the one to send) are invalidated
         */
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
@@ -1961,7 +1961,7 @@ page_container %}
 
       // /check
 
-      checkProofsSpendable: async function (proofs) {
+      checkProofsSpendable: async function (proofs, update_history = false) {
         /*
         checks with the mint whether an array of proofs is still
         spendable or already invalidated
@@ -1984,15 +1984,17 @@ page_container %}
             this.deleteProofs(spentProofs)
 
             // update UI
-            tokensBase64 = btoa(JSON.stringify(spentProofs))
+            if (update_history) {
+              tokensBase64 = btoa(JSON.stringify(spentProofs))
 
-            this.historyTokens.push({
-              status: 'paid',
-              amount: -this.sumProofs(spentProofs),
-              date: currentDateStr(),
-              token: tokensBase64
-            })
-            this.storehistoryTokens()
+              this.historyTokens.push({
+                status: 'paid',
+                amount: -this.sumProofs(spentProofs),
+                date: currentDateStr(),
+                token: tokensBase64
+              })
+              this.storehistoryTokens()
+            }
           }
 
           return data
@@ -2450,7 +2452,7 @@ page_container %}
       console.log('#### this.mintId', this.mintId)
       console.log('#### this.mintName', this.mintName)
 
-      this.checkProofsSpendable(this.proofs)
+      this.checkProofsSpendable(this.proofs, true)
       this.checkPendingInvoices()
       this.checkPendingTokens()
     }
