@@ -132,6 +132,15 @@
                   unelevated
                   dense
                   size="xs"
+                  icon="check"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  :disable="props.row.active == true"
+                  @click="activateAddress(props.row.domain_id, props.row.id)"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
                   icon="delete"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteAddress(props.row.id)"
@@ -633,6 +642,33 @@
                 self.addresses = _.reject(self.addresses, function (obj) {
                   return obj.id == address_id
                 })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      activateAddress: function (domain_id, address_id) {
+        var self = this
+        var address = _.findWhere(this.addresses, {id: address_id})
+        var domain = _.findWhere(this.domains, {id: address.domain_id})
+        LNbits.utils
+          .confirmDialog(
+            'Are you sure you want to manually activate this address?'
+          )
+          .onOk(function () {
+            return LNbits.api
+              .request(
+                'POST',
+                '/nostrnip5/api/v1/domain/' +
+                  domain_id +
+                  '/address/' +
+                  address_id +
+                  '/activate',
+                _.findWhere(self.g.user.wallets, {id: domain.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.getAddresses()
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
