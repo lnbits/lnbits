@@ -172,6 +172,23 @@ async def get_key_type(
     )
 
 
+async def require_admin_user(
+    r: Request,
+    api_key_header: str = Security(api_key_header),  # type: ignore
+    api_key_query: str = Security(api_key_query),  # type: ignore
+):
+
+    token = api_key_header or api_key_query
+    wallet = await get_key_type(r, token)
+
+    if wallet.wallet.user not in settings.lnbits_admin_users:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
+        )
+    else:
+        return wallet
+
+
 async def require_admin_key(
     r: Request,
     api_key_header: str = Security(api_key_header),  # type: ignore

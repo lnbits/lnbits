@@ -11,6 +11,7 @@ from lnbits.decorators import (
     check_admin,
     get_key_type,
     require_admin_key,
+    require_admin_user,
     require_invoice_key,
 )
 from lnbits.extensions.satspay import satspay_ext
@@ -148,7 +149,7 @@ async def api_charge_balance(charge_id):
 @satspay_ext.post("/api/v1/themes/{css_id}", dependencies=[Depends(check_admin)])
 async def api_themes_save(
     data: SatsPayThemes,
-    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     css_id: str = Query(...),
 ):
 

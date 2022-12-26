@@ -36,6 +36,7 @@ from lnbits.decorators import (
     check_admin,
     get_key_type,
     require_admin_key,
+    require_admin_user,
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
@@ -664,7 +665,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/", dependencies=[Depends(check_admin)])
+@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
 async def api_auditor():
     WALLET = get_wallet_class()
     total_balance = await get_total_balance()
