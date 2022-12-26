@@ -24,6 +24,8 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
             {"mempool_endpoint": config.mempool_endpoint, "network": config.network}
         )
         onchain = await get_fresh_address(data.onchainwallet)
+        if not onchain:
+            raise Exception(f"Wallet '{data.onchainwallet}' can no longer be accessed.")
         onchainaddress = onchain.address
     else:
         onchainaddress = None
