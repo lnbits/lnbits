@@ -181,7 +181,7 @@ async def require_admin_user(
     token = api_key_header or api_key_query
     wallet = await get_key_type(r, token)
 
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
+    if wallet.wallet.user not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
         )

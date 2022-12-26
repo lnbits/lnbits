@@ -665,9 +665,9 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit")
-async def api_auditor(wallet: WalletTypeInfo = Depends(require_admin_user)):
-
+@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
+async def api_auditor():
+    WALLET = get_wallet_class()
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
 
