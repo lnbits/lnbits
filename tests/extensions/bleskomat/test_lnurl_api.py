@@ -9,11 +9,12 @@ from lnbits.extensions.bleskomat.helpers import (
     generate_bleskomat_lnurl_signature,
     query_to_signing_payload,
 )
-from lnbits.settings import HOST, PORT
+from lnbits.settings import get_wallet_class, settings
 from tests.conftest import client
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
 from tests.helpers import credit_wallet, is_regtest
-from tests.mocks import WALLET
+
+WALLET = get_wallet_class()
 
 
 @pytest.mark.asyncio
@@ -90,7 +91,7 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
     assert data["minWithdrawable"] == 1000
     assert data["maxWithdrawable"] == 1000
     assert data["defaultDescription"] == "test valid sig"
-    assert data["callback"] == f"http://{HOST}:{PORT}/bleskomat/u"
+    assert data["callback"] == f"http://{settings.host}:{settings.port}/bleskomat/u"
     k1 = data["k1"]
     lnurl = await get_bleskomat_lnurl(secret=k1)
     assert lnurl
@@ -110,8 +111,10 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
         "fee" in response.json()["reason"]
     )
     wallet = await get_wallet(bleskomat.wallet)
+    assert wallet, not None
     assert wallet.balance_msat == 0
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
+    assert bleskomat_lnurl, not None
     assert bleskomat_lnurl.has_uses_remaining() == True
     WALLET.pay_invoice.assert_not_called()
 
@@ -127,12 +130,15 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
         amount=100000,
     )
     wallet = await get_wallet(bleskomat.wallet)
+    assert wallet, not None
     assert wallet.balance_msat == 100000
     WALLET.pay_invoice.reset_mock()
     response = await client.get(f"/bleskomat/u?k1={secret}&pr={pr}")
     assert response.json() == {"status": "OK"}
     wallet = await get_wallet(bleskomat.wallet)
+    assert wallet, not None
     assert wallet.balance_msat == 50000
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
+    assert bleskomat_lnurl, not None
     assert bleskomat_lnurl.has_uses_remaining() == False
     WALLET.pay_invoice.assert_called_once_with(pr, 2000)

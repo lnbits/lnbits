@@ -63,7 +63,8 @@ new Vue({
         secondMultiplierOptions: ['seconds', 'minutes', 'hours'],
         data: {
           is_unique: false,
-          use_custom: false
+          use_custom: false,
+          has_webhook: false
         }
       },
       simpleformDialog: {
@@ -188,23 +189,35 @@ new Vue({
     },
     updateWithdrawLink: function (wallet, data) {
       var self = this
+      const body = _.pick(
+        data,
+        'title',
+        'min_withdrawable',
+        'max_withdrawable',
+        'uses',
+        'wait_time',
+        'is_unique',
+        'webhook_url',
+        'webhook_headers',
+        'webhook_body',
+        'custom_url'
+      )
+
+      if (data.has_webhook) {
+        body = {
+          ...body,
+          webhook_url: data.webhook_url,
+          webhook_headers: data.webhook_headers,
+          webhook_body: data.webhook_body
+        }
+      }
 
       LNbits.api
         .request(
           'PUT',
           '/withdraw/api/v1/links/' + data.id,
           wallet.adminkey,
-          _.pick(
-            data,
-            'title',
-            'min_withdrawable',
-            'max_withdrawable',
-            'uses',
-            'wait_time',
-            'is_unique',
-            'webhook_url',
-            'custom_url'
-          )
+          body
         )
         .then(function (response) {
           self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) {

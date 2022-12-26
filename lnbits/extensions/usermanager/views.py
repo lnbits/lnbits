@@ -9,7 +9,9 @@ from . import usermanager_ext, usermanager_renderer
 
 
 @usermanager_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request, user: User = Depends(check_user_exists)  # type: ignore
+):
     return usermanager_renderer().TemplateResponse(
         "usermanager/index.html", {"request": request, "user": user.dict()}
     )

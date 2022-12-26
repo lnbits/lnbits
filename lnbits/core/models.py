@@ -1,17 +1,20 @@
+import datetime
 import hashlib
 import hmac
 import json
+import time
 from sqlite3 import Row
 from typing import Dict, List, NamedTuple, Optional
 
 from ecdsa import SECP256k1, SigningKey  # type: ignore
+from fastapi import Query
 from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra, validator
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for
-from lnbits.settings import WALLET
+from lnbits.settings import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
 
 
@@ -63,6 +66,7 @@ class User(BaseModel):
     wallets: List[Wallet] = []
     password: Optional[str] = None
     admin: bool = False
+    super_user: bool = False
 
     @property
     def wallet_ids(self) -> List[str]:
@@ -83,6 +87,7 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
+    expiry: Optional[float]
     extra: Optional[Dict] = {}
     wallet_id: str
     webhook: Optional[str]
@@ -101,6 +106,7 @@ class Payment(BaseModel):
             fee=row["fee"],
             memo=row["memo"],
             time=row["time"],
+            expiry=row["expiry"],
             wallet_id=row["wallet"],
             webhook=row["webhook"],
             webhook_status=row["webhook_status"],
@@ -127,6 +133,10 @@ class Payment(BaseModel):
     @property
     def is_out(self) -> bool:
         return self.amount < 0
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expiry < time.time() if self.expiry else False
 
     @property
     def is_uncheckable(self) -> bool:
@@ -163,6 +173,7 @@ class Payment(BaseModel):
             f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
         )
 
+        WALLET = get_wallet_class()
         if self.is_out:
             status = await WALLET.get_payment_status(self.checking_id)
         else:
@@ -170,7 +181,13 @@ class Payment(BaseModel):
 
         logger.debug(f"Status: {status}")
 
-        if self.is_out and status.failed:
+        if self.is_in and status.pending and self.is_expired and self.expiry:
+            expiration_date = datetime.datetime.fromtimestamp(self.expiry)
+            logger.debug(
+                f"Deleting expired incoming pending payment {self.checking_id}: expired {expiration_date}"
+            )
+            await self.delete(conn)
+        elif self.is_out and status.failed:
             logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )

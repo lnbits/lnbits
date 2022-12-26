@@ -12,7 +12,7 @@ from lnbits import bolt11
 from lnbits.core.crud import delete_expired_invoices, get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
-from lnbits.settings import LNBITS_SITE_TITLE, WALLET
+from lnbits.settings import get_wallet_class, settings
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
@@ -21,7 +21,7 @@ from .utils import decoded_as_lndhub, to_buffer
 
 @lndhub_ext.get("/ext/getinfo")
 async def lndhub_getinfo():
-    raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="bad auth")
+    return {"alias": settings.lnbits_site_title}
 
 
 class AuthData(BaseModel):
@@ -56,7 +56,7 @@ async def lndhub_addinvoice(
         _, pr = await create_invoice(
             wallet_id=wallet.wallet.id,
             amount=int(data.amt),
-            memo=data.memo or LNBITS_SITE_TITLE,
+            memo=data.memo or settings.lnbits_site_title,
             extra={"tag": "lndhub"},
         )
     except:
@@ -165,6 +165,7 @@ async def lndhub_getuserinvoices(
     limit: int = Query(20, ge=1, le=20),
     offset: int = Query(0, ge=0),
 ):
+    WALLET = get_wallet_class()
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,

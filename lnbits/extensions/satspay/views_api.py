@@ -1,12 +1,14 @@
 import json
 from http import HTTPStatus
 
+from fastapi import Query
 from fastapi.params import Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_admin,
     get_key_type,
     require_admin_key,
     require_admin_user,
@@ -36,13 +38,19 @@ from .models import CreateCharge, SatsPayThemes
 async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    charge = await create_charge(user=wallet.wallet.user, data=data)
-    return {
-        **charge.dict(),
-        **{"time_elapsed": charge.time_elapsed},
-        **{"time_left": charge.time_left},
-        **{"paid": charge.paid},
-    }
+    try:
+        charge = await create_charge(user=wallet.wallet.user, data=data)
+        return {
+            **charge.dict(),
+            **{"time_elapsed": charge.time_elapsed},
+            **{"time_left": charge.time_left},
+            **{"paid": charge.paid},
+        }
+    except Exception as ex:
+        logger.debug(f"Satspay error: {str}")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
@@ -137,13 +145,14 @@ async def api_charge_balance(charge_id):
 #############################THEMES##########################
 
 
-@satspay_ext.post("/api/v1/themes")
-@satspay_ext.post("/api/v1/themes/{css_id}")
+@satspay_ext.post("/api/v1/themes", dependencies=[Depends(check_admin)])
+@satspay_ext.post("/api/v1/themes/{css_id}", dependencies=[Depends(check_admin)])
 async def api_themes_save(
     data: SatsPayThemes,
-    wallet: WalletTypeInfo = Depends(require_admin_user),
-    css_id: str = None,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    css_id: str = Query(...),
 ):
+
     if css_id:
         theme = await save_theme(css_id=css_id, data=data)
     else:

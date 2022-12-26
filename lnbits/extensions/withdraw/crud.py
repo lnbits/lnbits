@@ -27,9 +27,11 @@ async def create_withdraw_link(
             open_time,
             usescsv,
             webhook_url,
+            webhook_headers,
+            webhook_body,
             custom_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             link_id,
@@ -45,6 +47,8 @@ async def create_withdraw_link(
             int(datetime.now().timestamp()) + data.wait_time,
             usescsv,
             data.webhook_url,
+            data.webhook_headers,
+            data.webhook_body,
             data.custom_url,
         ),
     )
