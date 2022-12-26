@@ -46,7 +46,7 @@ async def api_charge_create(
             **{"paid": charge.paid},
         }
     except Exception as ex:
-        logger.debug(ex)
+        logger.debug(f"Satspay error: {str}")
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
