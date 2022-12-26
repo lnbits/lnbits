@@ -52,19 +52,29 @@ async def on_invoice_paid(payment: Payment) -> None:
 
                 r: httpx.Response = await client.post(pay_link.webhook_url, **kwargs)
                 await mark_webhook_sent(
-                    payment, r.status_code, r.is_success, r.reason_phrase, r.text
+                    payment.payment_hash,
+                    r.status_code,
+                    r.is_success,
+                    r.reason_phrase,
+                    r.text,
                 )
             except Exception as ex:
                 logger.error(ex)
-                await mark_webhook_sent(payment, -1, False, "Unexpected Error", str(ex))
+                await mark_webhook_sent(
+                    payment.payment_hash, -1, False, "Unexpected Error", str(ex)
+                )
 
 
 async def mark_webhook_sent(
-    payment: Payment, status: int, is_success: bool, reason_phrase="", text=""
+    payment_hash: str, status: int, is_success: bool, reason_phrase="", text=""
 ) -> None:
-    payment.extra["wh_status"] = status  # keep for backwards compability
-    payment.extra["wh_success"] = is_success
-    payment.extra["wh_message"] = reason_phrase
-    payment.extra["wh_response"] = text
 
-    await update_payment_extra(payment.payment_hash, payment.extra)
+    await update_payment_extra(
+        payment_hash,
+        {
+            "wh_status": status,  # keep for backwards compability
+            "wh_success": is_success,
+            "wh_message": reason_phrase,
+            "wh_response": text,
+        },
+    )
