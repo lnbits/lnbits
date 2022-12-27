@@ -2,11 +2,10 @@ import calendar
 import datetime
 
 import httpx
+from boltz_client.boltz import BoltzClient, BoltzConfig
 from loguru import logger
 
 from lnbits.core.services import fee_reserve, get_wallet
-from boltz_client.boltz import BoltzClient, BoltzConfig
-
 from lnbits.settings import settings
 
 
@@ -14,8 +13,8 @@ def create_boltz_client() -> BoltzClient:
     config = BoltzConfig(
         network=settings.boltz_network,
         api_url=settings.boltz_url,
-        mempool_url=settings.boltz_mempool_space_url,
-        mempool_ws_url=settings.boltz_mempool_space_url_ws,
+        mempool_url=f"{settings.boltz_mempool_space_url}/api",
+        mempool_ws_url=f"{settings.boltz_mempool_space_url_ws}/api/v1/ws",
         referral_id="lnbits",
     )
     return BoltzClient(config)

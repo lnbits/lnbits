@@ -1,8 +1,6 @@
 import pytest_asyncio
 
-from lnbits.extensions.boltz.models import (
-    CreateReverseSubmarineSwap,
-)
+from lnbits.extensions.boltz.models import CreateReverseSubmarineSwap
 
 
 @pytest_asyncio.fixture(scope="session")

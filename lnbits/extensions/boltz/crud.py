@@ -1,22 +1,19 @@
 from typing import List, Optional, Union
+
+from boltz_client.boltz import BoltzReverseSwapResponse, BoltzSwapResponse
 from loguru import logger
+
+from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import (
     AutoReverseSubmarineSwap,
     CreateAutoReverseSubmarineSwap,
-    ReverseSubmarineSwap,
     CreateReverseSubmarineSwap,
-    SubmarineSwap,
     CreateSubmarineSwap,
+    ReverseSubmarineSwap,
+    SubmarineSwap,
 )
-
-from boltz_client.boltz import (
-    BoltzSwapResponse,
-    BoltzReverseSwapResponse,
-)
-
-from lnbits.helpers import urlsafe_short_hash
 
 
 async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[SubmarineSwap]:

@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 

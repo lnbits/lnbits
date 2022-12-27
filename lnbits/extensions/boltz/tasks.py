@@ -1,5 +1,7 @@
 import asyncio
 
+from boltz_client.boltz import BoltzNotFoundException, BoltzSwapStatusException
+from boltz_client.mempool import MempoolBlockHeightException
 from loguru import logger
 
 from lnbits.core.models import Payment
@@ -13,10 +15,6 @@ from .crud import (
     get_submarine_swap,
     update_swap_status,
 )
-
-from boltz_client.boltz import BoltzNotFoundException, BoltzSwapStatusException
-from boltz_client.mempool import MempoolBlockHeightException
-
 from .utils import create_boltz_client
 
 """

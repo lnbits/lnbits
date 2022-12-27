@@ -1,18 +1,16 @@
 from http import HTTPStatus
 from typing import List
 
-from fastapi import status, Query, Depends, BackgroundTasks
+from fastapi import BackgroundTasks, Depends, Query, status
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.settings import settings
 from lnbits.helpers import urlsafe_short_hash
+from lnbits.settings import settings
 
 from . import boltz_ext
-from .utils import check_balance, create_boltz_client
-
 from .crud import (
     create_auto_reverse_submarine_swap,
     create_reverse_submarine_swap,
@@ -26,7 +24,6 @@ from .crud import (
     get_submarine_swaps,
     update_swap_status,
 )
-
 from .models import (
     AutoReverseSubmarineSwap,
     CreateAutoReverseSubmarineSwap,
@@ -35,6 +32,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
+from .utils import check_balance, create_boltz_client
 
 
 @boltz_ext.get(
@@ -159,7 +157,9 @@ async def api_submarineswap_create(data: CreateSubmarineSwap):
         extra={"tag": "boltz", "swap_id": swap_id},
     )
     refund_privkey_wif, swap = client.create_swap(payment_request)
-    new_swap = await create_submarine_swap(data, swap, swap_id, refund_privkey_wif, payment_hash)
+    new_swap = await create_submarine_swap(
+        data, swap, swap_id, refund_privkey_wif, payment_hash
+    )
     return new_swap.dict() if new_swap else None
 
 
