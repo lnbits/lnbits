@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Optional
+import re
 
 from bech32 import bech32_decode, convertbits
 from fastapi import Query, Request, Response
@@ -156,6 +157,12 @@ async def api_address_create(
     if post_data.local_part == "_":
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="You're sneaky, nice try."
+        )
+
+    regex = re.compile(r'^[a-z0-9_.]+$')
+    if not re.fullmatch(regex, post_data.local_part.lower()):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Only a-z, 0-9 and .-_ are allowed characters, case insensitive."
         )
 
     exists = await get_address_by_local_part(domain_id, post_data.local_part)
