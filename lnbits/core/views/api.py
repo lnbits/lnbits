@@ -36,7 +36,6 @@ from lnbits.decorators import (
     check_admin,
     get_key_type,
     require_admin_key,
-    require_admin_user,
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
