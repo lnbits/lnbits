@@ -50,7 +50,7 @@ async def get_address_by_local_part(
         "SELECT * FROM nostrnip5.addresses WHERE domain_id = ? AND local_part = ?",
         (
             domain_id,
-            local_part,
+            local_part.lower(),
         ),
     )
     return Address.from_row(row) if row else None
@@ -159,7 +159,7 @@ async def create_address_internal(domain_id: str, data: CreateAddressData) -> Ad
         (
             address_id,
             domain_id,
-            data.local_part,
+            data.local_part.lower(),
             data.pubkey,
             False,
         ),

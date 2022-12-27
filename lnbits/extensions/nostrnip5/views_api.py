@@ -225,13 +225,15 @@ async def api_get_nostr_json(
     output = {}
 
     for address in addresses:
+        local_part = address.get("local_part").lower()
+
         if address.get("active") == False:
             continue
 
-        if name and name != address.get("local_part"):
+        if name and name.lower() != local_part:
             continue
 
-        output[address.get("local_part")] = address.get("pubkey")
+        output[local_part] = address.get("pubkey")
 
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
