@@ -38,7 +38,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -48,14 +48,11 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
-    create_payment,
     get_payments,
     get_standalone_payment,
     get_total_balance,
-    get_wallet,
     get_wallet_for_key,
     save_balance_check,
-    update_payment_status,
     update_wallet,
 )
 from ..services import (
