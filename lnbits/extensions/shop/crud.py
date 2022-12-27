@@ -148,16 +148,18 @@ async def create_shop_stall(data: createStalls) -> Stalls:
             id,
             wallet,
             name,
+            currency,
             publickey,
             relays,
             shippingzones
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             stall_id,
             data.wallet,
             data.name,
+            data.currency,
             data.publickey,
             data.relays,
             data.shippingzones,
@@ -447,17 +449,31 @@ async def get_shop_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
 
 
 async def get_shop_settings(user) -> Optional[ShopSettings]:
-    row = await db.fetchone("SELECT * FROM shop.settings WHERE 'user = ?", (user,))
+    row = await db.fetchone("""SELECT * FROM shop.settings WHERE "user" = ?""", (user,))
 
     return ShopSettings(**row) if row else None
 
 
-async def set_shop_settings(user: str, data) -> Optional[ShopSettings]:
+async def create_shop_settings(user: str, data):
     await db.execute(
-        f"""
+        """
+            INSERT INTO shop.settings ("user", currency, fiat_base_multiplier)
+            VALUES (?, ?, ?)
+        """,
+        (
+            user,
+            data.currency,
+            data.fiat_base_multiplier,
+        ),
+    )
+
+
+async def set_shop_settings(user: str, data):
+    await db.execute(
+        """
             UPDATE shop.settings
             SET currency = ?, fiat_base_multiplier = ?
-            WHERE 'user' = ?;
+            WHERE "user" = ?;
         """,
         (
             data.currency,

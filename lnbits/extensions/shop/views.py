@@ -12,7 +12,7 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.shop import shop_ext, shop_renderer
-from lnbits.extensions.shop.models import CreateChatMessage
+from lnbits.extensions.shop.models import CreateChatMessage, SetSettings
 from lnbits.extensions.shop.notifier import Notifier
 
 from .crud import (
@@ -26,6 +26,8 @@ from .crud import (
     get_shop_zone,
     get_shop_zones,
     update_shop_product_stock,
+    get_shop_settings,
+    create_shop_settings,
 )
 
 templates = Jinja2Templates(directory="templates")
@@ -33,8 +35,16 @@ templates = Jinja2Templates(directory="templates")
 
 @shop_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
+    settings = await get_shop_settings(user=user.id)
+
+    if not settings:
+        await create_shop_settings(
+            user=user.id, data=SetSettings(currency="sat", fiat_base_multiplier=1)
+        )
+        settings = await get_shop_settings(user.id)
     return shop_renderer().TemplateResponse(
-        "shop/index.html", {"request": request, "user": user.dict()}
+        "shop/index.html",
+        {"request": request, "user": user.dict(), "currency": settings.currency},
     )
 
 

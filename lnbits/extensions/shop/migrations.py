@@ -21,6 +21,7 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
+            currency TEXT,
             publickey TEXT,
             relays TEXT,
             shippingzones TEXT NOT NULL,

@@ -48,7 +48,10 @@
               </q-item-section>
 
               <q-item-section side>
-                <span> {{p.price}} sats</span>
+                <span>
+                  {{unit != 'sat' ? getAmountFormated(p.price) : p.price +
+                  'sats'}}</span
+                >
               </q-item-section>
             </q-item>
             {% endraw %}
@@ -112,13 +115,18 @@
 
       <q-card-section class="q-py-sm">
         <div>
-          <!-- <div class="text-caption text-green-8 text-weight-bolder">
-            {{ stall.name }}
-          </div> -->
-          <span class="text-h6">{{ item.price }} sats</span
-          ><span class="q-ml-sm text-grey-6"
-            >BTC {{ (item.price / 1e8).toFixed(8) }}</span
-          >
+          <span v-if="unit == 'sat'">
+            <span class="text-h6">{{ item.price }} sats</span
+            ><span class="q-ml-sm text-grey-6"
+              >BTC {{ (item.price / 1e8).toFixed(8) }}</span
+            >
+          </span>
+          <span v-else>
+            <span class="text-h6">{{ getAmountFormated(item.price) }}</span>
+            <span v-if="exchangeRate" class="q-ml-sm text-grey-6"
+              >({{ getValueInSats(item.price) }} sats)</span
+            >
+          </span>
           <span
             class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
             >{{item.quantity}} left</span
@@ -203,7 +211,12 @@
           />
         </div>
         <div class="row q-mt-lg">
-          {% raw %} Total: {{ finalCost }} {% endraw %}
+          {% raw %} Total: {{ unit != 'sat' ? getAmountFormated(finalCost) :
+          finalCost + 'sats' }}
+          <span v-if="unit != 'sat'" class="q-ml-sm text-grey-6"
+            >({{ getValueInSats(finalCost) }} sats)</span
+          >
+          {% endraw %}
         </div>
         <div class="row q-mt-lg">
           <q-btn
@@ -281,6 +294,8 @@
         products: [],
         searchText: null,
         diagonalley: false,
+        unit: 'sat',
+        exchangeRate: 0,
         cart: {
           total: 0,
           size: 0,
@@ -334,6 +349,28 @@
           products: new Map()
         }
       },
+      getAmountFormated(amount) {
+        return LNbits.utils.formatCurrency(amount.toFixed(2), this.unit)
+      },
+      async getRates() {
+        if (this.unit == 'sat') return
+        try {
+          let rate = (
+            await LNbits.api.request('POST', '/api/v1/conversion', null, {
+              amount: 1e8,
+              to: this.unit
+            })
+          ).data
+          this.exchangeRate = rate[this.unit]
+          console.log(this.exchangeRate)
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      getValueInSats(amount) {
+        if (!this.exchangeRate) return 0
+        return Math.ceil((amount / this.exchangeRate) * 1e8)
+      },
       addToCart(item) {
         let prod = this.cart.products
         if (prod.has(item.id)) {
@@ -382,7 +419,10 @@
         let data = {
           ...this.checkoutDialog.data,
           wallet: this.stall.wallet,
-          total: this.finalCost,
+          total:
+            this.unit != 'sat'
+              ? this.getValueInSats(this.finalCost)
+              : this.finalCost, // maybe this is better made in Python to allow API ordering?!
           products: Array.from(this.cart.products, p => {
             return {product_id: p[0], quantity: p[1].quantity}
           })
@@ -448,9 +488,12 @@
           })
       }
     },
-    created() {
+    async created() {
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
+      this.unit = this.stall.currency
+      await this.getRates()
+      setInterval(this.getRates, 300000)
     }
   })
 </script>

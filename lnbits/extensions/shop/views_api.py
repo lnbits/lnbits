@@ -33,6 +33,7 @@ from .crud import (
     create_shop_product,
     create_shop_stall,
     create_shop_zone,
+    create_shop_settings,
     delete_shop_order,
     delete_shop_product,
     delete_shop_stall,
@@ -102,15 +103,21 @@ async def api_shop_product_create(
     product_id=None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
+    # For fiat currencies,
+    # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.
+    settings = await get_shop_settings(user=wallet.wallet.user)
+    stall = await get_shop_stall(stall_id=data.stall)
+    if stall.currency != "sat":
+        data.price *= settings.fiat_base_multiplier
 
     if product_id:
         product = await get_shop_product(product_id)
         if not product:
-            return {"message": "Withdraw product does not exist."}
+            return {"message": "Product does not exist."}
 
-        stall = await get_shop_stall(stall_id=product.stall)
+        # stall = await get_shop_stall(stall_id=product.stall)
         if stall.wallet != wallet.wallet.id:
-            return {"message": "Not your withdraw product."}
+            return {"message": "Not your product."}
 
         product = await update_shop_product(product_id, **data.dict())
     else:
@@ -250,6 +257,8 @@ async def api_shop_orders(
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     orders = await get_shop_orders(wallet_ids)
+    if not orders:
+        return
     orders_with_details = []
     for order in orders:
         order = order.dict()
@@ -472,9 +481,24 @@ async def api_get_settings(wallet: WalletTypeInfo = Depends(require_admin_key)):
     return settings
 
 
-@shop_ext.put("/api/v1/settings")
+@shop_ext.post("/api/v1/settings")
+@shop_ext.put("/api/v1/settings/{usr}")
 async def api_set_settings(
-    data: SetSettings, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: SetSettings,
+    usr: str = None,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
+    if usr:
+        if usr != wallet.wallet.user:
+            return {"message": "Not your Shop."}
+
+        settings = await get_shop_settings(user=usr)
+
+        if settings.user != wallet.wallet.user:
+            return {"message": "Not your Shop."}
+
+        return await set_shop_settings(usr, data)
+
     user = wallet.wallet.user
-    return await set_shop_settings(user, data)
+
+    return await create_shop_settings(user, data)

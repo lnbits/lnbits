@@ -84,7 +84,11 @@
         dense
         v-model.number="productDialog.data.price"
         type="number"
-        label="Price"
+        :label="'Price (' + currencies.unit + ') *'"
+        :mask="currencies.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="currencies.unit != 'sat' ? '0.01' : '1'"
       ></q-input>
       <q-input
         filled
@@ -142,9 +146,13 @@
       <q-input
         filled
         dense
+        :label="'Amount (' + currencies.unit + ') *'"
+        :mask="currencies.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="currencies.unit != 'sat' ? '0.01' : '1'"
         type="number"
         v-model.trim="zoneDialog.data.cost"
-        label="Cost (sats)"
       ></q-input>
       <div class="row q-mt-lg">
         <q-btn

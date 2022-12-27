@@ -19,6 +19,7 @@ class Stalls(BaseModel):
     id: str
     wallet: str
     name: str
+    currency: str
     publickey: Optional[str]
     relays: Optional[str]
     shippingzones: str
@@ -27,6 +28,7 @@ class Stalls(BaseModel):
 class createStalls(BaseModel):
     wallet: str = Query(...)
     name: str = Query(...)
+    currency: str = Query("sat")
     publickey: str = Query(None)
     relays: str = Query(None)
     shippingzones: str = Query(...)
@@ -38,7 +40,7 @@ class createProduct(BaseModel):
     categories: str = Query(None)
     description: str = Query(None)
     image: str = Query(None)
-    price: int = Query(0, ge=0)
+    price: float = Query(0, ge=0)
     quantity: int = Query(0, ge=0)
 
 
@@ -49,19 +51,19 @@ class Products(BaseModel):
     categories: Optional[str]
     description: Optional[str]
     image: Optional[str]
-    price: int
+    price: float
     quantity: int
 
 
 class createZones(BaseModel):
-    cost: int = Query(0, ge=0)
+    cost: float = Query(0, ge=0)
     countries: str = Query(...)
 
 
 class Zones(BaseModel):
     id: str
     user: str
-    cost: int
+    cost: float
     countries: str
 
 

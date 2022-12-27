@@ -188,6 +188,9 @@
   }
   const mapProducts = obj => {
     obj._data = _.clone(obj)
+    if ('{{  currency }}' != 'sat') {
+      obj.price /= 100
+    }
     return obj
   }
   const mapZone = obj => {
@@ -545,7 +548,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/settings',
+            '/shop/api/v1/settings/' + this.g.user.id,
             this.g.user.wallets[0].adminkey,
             data
           )
@@ -680,6 +683,7 @@
           name: this.stallDialog.data.name,
           wallet: this.stallDialog.data.wallet,
           publickey: this.stallDialog.data.publickey || this.keys.pubkey,
+          currency: this.currencies.unit,
           relays: this.stallDialog.data.relays,
           shippingzones: this.stallDialog.data.shippingzones
             .map(z => z.split('-')[0].trim())
@@ -1376,6 +1380,8 @@
         this.onboarding.showAgain = showOnboard || false
         this.diagonAlley =
           this.$q.localStorage.getItem('lnbits.DAmode') || false
+        this.currencies.unit = '{{ currency }}'
+        console.log(this.currencies.unit, '{{currency}}')
         await this.getCurrencies()
         this.getStalls()
         this.getProducts()
