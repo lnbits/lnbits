@@ -1,0 +1,46 @@
+<q-card>
+  <q-card-section>
+    <q-btn
+      label="Swap (In)"
+      unelevated
+      color="primary"
+      @click="submarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Send onchain funds offchain (BTC -> LN)
+      </q-tooltip>
+    </q-btn>
+    <q-btn
+      label="Reverse Swap (Out)"
+      unelevated
+      color="primary"
+      @click="reverseSubmarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Send offchain funds to onchain address (LN -> BTC)
+      </q-tooltip>
+    </q-btn>
+    <q-btn
+      label="Auto Reverse Swap (Out)"
+      unelevated
+      color="primary"
+      @click="autoReverseSubmarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Automatically send offchain funds to onchain address (LN -> BTC)
+        with a predefined threshold
+      </q-tooltip>
+    </q-btn>
+    <q-btn
+      label="Check Swaps"
+      icon="cached"
+      unelevated
+      color="primary"
+      @click="checkSwaps"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Check all pending swaps if they can be refunded.
+      </q-tooltip>
+    </q-btn>
+  </q-card-section>
+</q-card>

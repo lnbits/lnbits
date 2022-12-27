@@ -2,66 +2,13 @@
 %} {% block page %}
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <q-btn
-          label="Swap (In)"
-          unelevated
-          color="primary"
-          @click="submarineSwapDialog.show = true"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Send onchain funds offchain (BTC -> LN)
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          label="Reverse Swap (Out)"
-          unelevated
-          color="primary"
-          @click="reverseSubmarineSwapDialog.show = true"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Send offchain funds to onchain address (LN -> BTC)
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          label="Auto Reverse Swap (Out)"
-          unelevated
-          color="primary"
-          @click="autoReverseSubmarineSwapDialog.show = true"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Automatically send offchain funds to onchain address (LN -> BTC)
-            with a predefined threshold
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          label="Check Swaps"
-          icon="cached"
-          unelevated
-          color="primary"
-          @click="checkSwaps"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Check all pending swaps if they can be refunded.
-          </q-tooltip>
-        </q-btn>
-      </q-card-section>
-    </q-card>
     {% include "boltz/_submarineSwapList.html" %} {% include
     "boltz/_reverseSubmarineSwapList.html" %} {% include
     "boltz/_autoReverseSwapList.html" %}
   </div>
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Boltz extension</h6>
-      </q-card-section>
-      <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
-        <q-list> {% include "boltz/_api_docs.html" %} </q-list>
-      </q-card-section>
-    </q-card>
+    {% include "boltz/_api_docs.html" %}
+    {% include "boltz/_buttons.html" %}
   </div>
   {% include "boltz/_submarineSwapDialog.html" %} {% include
   "boltz/_reverseSubmarineSwapDialog.html" %} {% include
