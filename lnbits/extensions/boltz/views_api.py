@@ -1,29 +1,18 @@
-from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
-import httpx
-from fastapi import status
-from fastapi.encoders import jsonable_encoder
-from fastapi.param_functions import Body
-from fastapi.params import Depends, Query
-from loguru import logger
-from pydantic import BaseModel
+from fastapi import status, Query, Depends, BackgroundTasks
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.settings import settings
+from lnbits.helpers import urlsafe_short_hash
 
 from . import boltz_ext
-from .boltz import (
-    create_refund_tx,
-    create_reverse_swap,
-    create_swap,
-    get_boltz_pairs,
-    get_swap_status,
-)
+from .utils import check_balance, create_boltz_client
+
 from .crud import (
     create_auto_reverse_submarine_swap,
     create_reverse_submarine_swap,
@@ -37,6 +26,7 @@ from .crud import (
     get_submarine_swaps,
     update_swap_status,
 )
+
 from .models import (
     AutoReverseSubmarineSwap,
     CreateAutoReverseSubmarineSwap,
@@ -45,7 +35,6 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-from .utils import check_balance
 
 
 @boltz_ext.get(
@@ -80,16 +69,19 @@ async def api_submarineswap(
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
-    for swap in await get_pending_submarine_swaps(wallet_ids):
-        swap_status = get_swap_status(swap)
-        if swap_status.hit_timeout:
-            if not swap_status.has_lockup:
-                logger.warning(
-                    f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
-                )
-                await update_swap_status(swap.id, "timeout")
+    # client = create_boltz_client()
+    # for swap in await get_pending_submarine_swaps(wallet_ids):
+    #     try:
+    #         swap_status = client.swap_status(swap.boltz_id)
+    #     # if swap_status.hit_timeout:
+    #     #     if not swap_status.has_lockup:
+    #     #         logger.warning(
+    #     #             f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
+    #     #         )
+    #     #         await update_swap_status(swap.id, "timeout")
 
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
@@ -113,35 +105,29 @@ async def api_submarineswap(
         },
     },
 )
-async def api_submarineswap_refund(
-    swap_id: str,
-    g: WalletTypeInfo = Depends(require_admin_key),
-):
-    if swap_id == None:
+async def api_submarineswap_refund(swap_id: str):
+    if not swap_id:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="swap_id missing"
         )
-
     swap = await get_submarine_swap(swap_id)
-    if swap == None:
+    if not swap:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
         )
-
     if swap.status != "pending":
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="swap is not pending."
         )
 
-    try:
-        await create_refund_tx(swap)
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
+    client = create_boltz_client()
+    await client.refund_swap(
+        privkey_wif=swap.refund_privkey,
+        lockup_address=swap.address,
+        receive_address=swap.refund_address,
+        redeem_script_hex=swap.redeem_script,
+        timeout_block_height=swap.timeout_block_height,
+    )
 
     await update_swap_status(swap.id, "refunded")
     return swap
@@ -157,30 +143,24 @@ async def api_submarineswap_refund(
     """,
     response_description="create swap",
     response_model=SubmarineSwap,
+    dependencies=[Depends(require_admin_key)],
     responses={
         405: {"description": "not allowed method, insufficient balance"},
         500: {"description": "boltz error"},
     },
 )
-async def api_submarineswap_create(
-    data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
-    try:
-        swap_data = await create_swap(data)
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=exc.response.status_code, detail=exc.response.json()["error"]
-        )
-    swap = await create_submarine_swap(swap_data)
-    return swap.dict()
+async def api_submarineswap_create(data: CreateSubmarineSwap):
+    client = create_boltz_client()
+    swap_id = urlsafe_short_hash()
+    payment_hash, payment_request = await create_invoice(
+        wallet_id=data.wallet,
+        amount=data.amount,
+        memo=f"swap of {data.amount} sats on boltz.exchange",
+        extra={"tag": "boltz", "swap_id": swap_id},
+    )
+    refund_privkey_wif, swap = client.create_swap(payment_request)
+    new_swap = await create_submarine_swap(data, swap, swap_id, refund_privkey_wif, payment_hash)
+    return new_swap.dict() if new_swap else None
 
 
 # REVERSE SWAP
@@ -196,12 +176,13 @@ async def api_submarineswap_create(
     response_model=List[ReverseSubmarineSwap],
 )
 async def api_reverse_submarineswap(
-    g: WalletTypeInfo = Depends(get_key_type),  # type:ignore
+    g: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
     return [swap.dict() for swap in await get_reverse_submarine_swaps(wallet_ids)]
 
 
@@ -215,14 +196,14 @@ async def api_reverse_submarineswap(
     """,
     response_description="create reverse swap",
     response_model=ReverseSubmarineSwap,
+    dependencies=[Depends(require_admin_key)],
     responses={
         405: {"description": "not allowed method, insufficient balance"},
         500: {"description": "boltz error"},
     },
 )
 async def api_reverse_submarineswap_create(
-    data: CreateReverseSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    data: CreateReverseSubmarineSwap, bg: BackgroundTasks
 ):
 
     if not await check_balance(data):
@@ -230,22 +211,33 @@ async def api_reverse_submarineswap_create(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
 
-    try:
-        swap_data, task = await create_reverse_swap(data)
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=exc.response.status_code, detail=exc.response.json()["error"]
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
+    client = create_boltz_client()
+    claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
+        amount=data.amount
+    )
 
-    swap = await create_reverse_submarine_swap(swap_data)
-    return swap.dict()
+    bg.add_task(
+        client.claim_reverse_swap,
+        privkey_wif=claim_privkey_wif,
+        preimage_hex=preimage_hex,
+        lockup_address=swap.lockupAddress,
+        receive_address=data.onchain_address,
+        redeem_script_hex=swap.redeemScript,
+    )
+
+    swap_id = urlsafe_short_hash()
+    bg.add_task(
+        pay_invoice,
+        wallet_id=data.wallet,
+        payment_request=swap.invoice,
+        description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
+        extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
+    )
+
+    new_swap = await create_reverse_submarine_swap(
+        swap, data, swap_id, claim_privkey_wif, preimage_hex
+    )
+    return new_swap.dict() if new_swap else None
 
 
 @boltz_ext.get(
@@ -260,12 +252,13 @@ async def api_reverse_submarineswap_create(
     response_model=List[AutoReverseSubmarineSwap],
 )
 async def api_auto_reverse_submarineswap(
-    g: WalletTypeInfo = Depends(get_key_type),  # type:ignore
+    g: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
     return [swap.dict() for swap in await get_auto_reverse_submarine_swaps(wallet_ids)]
 
 
@@ -279,13 +272,11 @@ async def api_auto_reverse_submarineswap(
     """,
     response_description="create auto reverse swap",
     response_model=AutoReverseSubmarineSwap,
+    dependencies=[Depends(require_admin_key)],
 )
-async def api_auto_reverse_submarineswap_create(
-    data: CreateAutoReverseSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
+async def api_auto_reverse_submarineswap_create(data: CreateAutoReverseSubmarineSwap):
     swap = await create_auto_reverse_submarine_swap(data)
-    return swap.dict()
+    return swap.dict() if swap else None
 
 
 @boltz_ext.post(
@@ -296,31 +287,22 @@ async def api_auto_reverse_submarineswap_create(
         This endpoint attempts to get the status of the swap.
     """,
     response_description="status of swap json",
+    dependencies=[Depends(require_admin_key)],
     responses={
         404: {"description": "when swap_id is not found"},
     },
 )
-async def api_swap_status(
-    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
+async def api_swap_status(swap_id: str):
     swap = await get_submarine_swap(swap_id) or await get_reverse_submarine_swap(
         swap_id
     )
-    if swap == None:
+    if not swap:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
         )
-    try:
-        status = get_swap_status(swap)
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
-        )
+
+    client = create_boltz_client()
+    status = client.swap_status(swap.boltz_id)
     return status
 
 
@@ -336,25 +318,17 @@ async def api_swap_status(
 async def api_check_swaps(
     g: WalletTypeInfo = Depends(require_admin_key),
     all_wallets: bool = Query(False),
-):
+) -> List:
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
     status = []
-    try:
-        for swap in await get_pending_submarine_swaps(wallet_ids):
-            status.append(get_swap_status(swap))
-        for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
-            status.append(get_swap_status(reverseswap))
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
-        )
+    client = create_boltz_client()
+    for swap in await get_pending_submarine_swaps(wallet_ids):
+        status.append(client.swap_status(swap.boltz_id))
+    for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
+        status.append(client.swap_status(reverseswap.boltz_id))
     return status
 
 
@@ -369,14 +343,5 @@ async def api_check_swaps(
     response_model=dict,
 )
 async def api_boltz_config():
-    try:
-        res = get_boltz_pairs()
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Unreachable: {exc.request.url!r}.",
-        )
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
-
-    return res["pairs"]["BTC/BTC"]
+    client = create_boltz_client()
+    return {"minimal": client.limit_minimal, "maximal": client.limit_maximal}

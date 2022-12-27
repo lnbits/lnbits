@@ -5,6 +5,20 @@ import httpx
 from loguru import logger
 
 from lnbits.core.services import fee_reserve, get_wallet
+from boltz_client.boltz import BoltzClient, BoltzConfig
+
+from lnbits.settings import settings
+
+
+def create_boltz_client() -> BoltzClient:
+    config = BoltzConfig(
+        network=settings.boltz_network,
+        api_url=settings.boltz_url,
+        mempool_url=settings.boltz_mempool_space_url,
+        mempool_ws_url=settings.boltz_mempool_space_url_ws,
+        referral_id="lnbits",
+    )
+    return BoltzClient(config)
 
 
 async def check_balance(data) -> bool:
