@@ -42,18 +42,23 @@ Updated for v0.1.3
     - Or you can Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. Then paste it into the Android app (Create Bolt Card -> PASTE AUTH URL).
 - Click WRITE CARD NOW and approach the NFC card to set it up. DO NOT REMOVE THE CARD PREMATURELY! 
 
-## Erasing the card - Boltcard NFC Card Creator
-Updated for v0.1.3
+## Rewriting / Erasing the card - Boltcard NFC Card Creator
 
-Since v0.1.2 of Boltcard NFC Card Creator it is possible not only reset the keys but also disable the SUN function and do the complete erase so the card can be use again as a static tag (or set as a new Bolt Card, ofc).
+It is possible not only to reset the keys but also to disable the SUN function and completely erasing the card so it can be used again as a static tag or set up as a new Bolt Card. 
 
-- Click the QR code button next to a card to view its details and select WIPE 
-- OR click the red cross icon on the right side to reach the same 
-- In the android app (Advanced -> Reset Keys)
-    - Click SCAN QR CODE to scan the QR
-    - Or click WIPE DATA in LNbits to copy and paste in to the app (PASTE KEY JSON)
-- Click RESET CARD NOW and approach the NFC card to erase it. DO NOT REMOVE THE CARD PREMATURELY! 
-- Now if there is all success the card can be safely delete from LNbits (but keep the keys backuped anyway; batter safe than brick).
+IMPORTANT: 
+* It is immanent that you have access to your old keys so do not erase this card in LNbits before you copied those strings!
+* If you tried to write to them and failed you will need the same amount of positive writing sessions to unlock the card.
+
+- in the BoltCard-Extension click the QR code button next to your old card and copy Key0
+- in the BoltApp click Advanced - Reset keys and paste the Key0 into the first field named Key0
+- repeat with Key1/Key2/Key3/Key0
+- when done pasting all 4 keys scan your card with the BoltApp
+- Thats it 🥳
+- Now if there is all success the card can be safely deleted from LNbits (but keep the keys backuped anyway; batter safe than brick).
+
+You can watch a video of this process here https://www.youtube.com/watch?time_continue=230&v=Pe0YXHawHvQ&feature=emb_logo
+
 
 ## Setting the card - computer (hard way)
 
