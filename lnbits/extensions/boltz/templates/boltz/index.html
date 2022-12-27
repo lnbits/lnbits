@@ -314,11 +314,10 @@
     },
     methods: {
       getLimits() {
-        const cfg = this.boltzConfig.data
-        if (cfg) {
+        if (this.boltzConfig) {
           return {
-            min: cfg.limits.minimal,
-            max: cfg.limits.maximal
+            min: this.boltzConfig.minimal,
+            max: this.boltzConfig.maximal
           }
         }
         return {
@@ -627,7 +626,7 @@
         LNbits.api
           .request('GET', '/boltz/api/v1/swap/boltz')
           .then(res => {
-            this.boltzConfig = res
+            this.boltzConfig = res.data
           })
           .catch(error => {
             console.log('error', error)
