@@ -254,7 +254,7 @@ block page %}
       <a :href="'lightning:' + qrCodeDialog.data.payment_request">
         <q-responsive :ratio="1" class="q-mx-xs">
           <qrcode
-            :value="qrCodeDialog.data.payment_request"
+            :value="'lightning:' + qrCodeDialog.data.payment_request.toUpperCase()"
             :options="{width: 400}"
             class="rounded-borders"
           ></qrcode>

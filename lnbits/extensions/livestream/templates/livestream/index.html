@@ -238,7 +238,7 @@
         <a :href="'lightning:' + trackDialog.data.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
-              :value="trackDialog.data.lnurl"
+              :value="'lightning:' + trackDialog.data.lnurl.toUpperCase()"
               :options="{width: 800}"
               class="rounded-borders"
             ></qrcode>

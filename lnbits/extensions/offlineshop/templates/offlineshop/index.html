@@ -236,7 +236,7 @@
 
         <q-responsive v-if="itemDialog.data.id" :ratio="1">
           <qrcode
-            :value="itemDialog.data.lnurl"
+            :value="'lightning:' + itemDialog.data.lnurl"
             :options="{width: 800}"
             class="rounded-borders"
           ></qrcode>
