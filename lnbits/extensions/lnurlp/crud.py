@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 
-from lnbits.db import SQLITE
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -9,10 +8,8 @@ from .models import CreatePayLinkData, PayLink
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     link_id = urlsafe_short_hash()
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
 
-    result = await (method)(
+    result = await db.execute(
         f"""
         INSERT INTO lnurlp.pay_links (
             id,
@@ -50,10 +47,6 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.fiat_base_multiplier,
         ),
     )
-    if db.type == SQLITE:
-        link_id = result._result_proxy.lastrowid
-    else:
-        link_id = result[0]
 
     link = await get_pay_link(link_id)
     assert link, "Newly created link couldn't be retrieved"
