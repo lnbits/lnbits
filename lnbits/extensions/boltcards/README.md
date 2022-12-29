@@ -55,7 +55,7 @@ IMPORTANT:
 - repeat with Key1/Key2/Key3/Key0
 - when done pasting all 4 keys scan your card with the BoltApp
 - Thats it 🥳
-- Now if there is all success the card can be safely deleted from LNbits (but keep the keys backuped anyway; batter safe than brick).
+- If everything was successful the card can be safely deleted from LNbits (but keep the keys backed up anyway; batter safe than brick).
 
 You can watch a video of this process here https://www.youtube.com/watch?time_continue=230&v=Pe0YXHawHvQ&feature=emb_logo
 
