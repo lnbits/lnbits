@@ -44,7 +44,7 @@ Updated for v0.1.3
 
 ## Rewriting / Erasing the card - Boltcard NFC Card Creator
 
-It is possible not only to reset the keys but also to disable the SUN function and completely erasing the card so it can be used again as a static tag or set up as a new Bolt Card. 
+It is possible not only to reset the keys but also to disable the SUN function and completely erase the card so it can be used again as a static tag or set up as a new Bolt Card. 
 
 IMPORTANT: 
 * It is immanent that you have access to your old keys so do not erase this card in LNbits before you copied those strings!
