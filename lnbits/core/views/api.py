@@ -38,7 +38,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -48,14 +48,11 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
-    create_payment,
     get_payments,
     get_standalone_payment,
     get_total_balance,
-    get_wallet,
     get_wallet_for_key,
     save_balance_check,
-    update_payment_status,
     update_wallet,
 )
 from ..services import (
@@ -69,6 +66,11 @@ from ..services import (
     websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
+
+
+@core_app.get("/api/v1/health", status_code=HTTPStatus.OK)
+async def health():
+    return
 
 
 @core_app.get("/api/v1/wallet")
@@ -214,7 +216,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         lnurl_response = resp["reason"]
                     else:
                         lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError):
+            except (httpx.ConnectError, httpx.RequestError) as ex:
+                logger.error(ex)
                 lnurl_response = False
 
     return {
@@ -658,7 +661,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/", dependencies=[Depends(check_admin)])
+@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
 async def api_auditor():
     WALLET = get_wallet_class()
     total_balance = await get_total_balance()

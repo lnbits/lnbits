@@ -16,6 +16,8 @@ class CreateWithdrawData(BaseModel):
     wait_time: int = Query(..., ge=1)
     is_unique: bool
     webhook_url: str = Query(None)
+    webhook_headers: str = Query(None)
+    webhook_body: str = Query(None)
     custom_url: str = Query(None)
 
 
@@ -35,6 +37,8 @@ class WithdrawLink(BaseModel):
     usescsv: str = Query(None)
     number: int = Query(0)
     webhook_url: str = Query(None)
+    webhook_headers: str = Query(None)
+    webhook_body: str = Query(None)
     custom_url: str = Query(None)
 
     @property

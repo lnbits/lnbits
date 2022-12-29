@@ -17,8 +17,8 @@ class createLnurldevice(BaseModel):
     wallet: str
     currency: str
     device: str
-    profit: float
-    amount: int
+    profit: float = 0
+    amount: Optional[int] = 0
     pin: int = 0
     profit1: float = 0
     amount1: int = 0

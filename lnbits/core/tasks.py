@@ -4,7 +4,6 @@ from typing import Dict
 import httpx
 from loguru import logger
 
-from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import SseListenersDict, register_invoice_listener
 
 from . import db
