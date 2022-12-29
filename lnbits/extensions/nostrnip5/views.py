@@ -24,7 +24,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @nostrnip5_ext.get("/signup/{domain_id}", response_class=HTMLResponse)
-async def index(request: Request, domain_id: str):
+async def signup(request: Request, domain_id: str):
     domain = await get_domain(domain_id)
 
     if not domain:
@@ -43,7 +43,7 @@ async def index(request: Request, domain_id: str):
 
 
 @nostrnip5_ext.get("/rotate/{domain_id}/{address_id}", response_class=HTMLResponse)
-async def index(request: Request, domain_id: str, address_id: str):
+async def rotate(request: Request, domain_id: str, address_id: str):
     domain = await get_domain(domain_id)
     address = await get_address(domain_id, address_id)
 
