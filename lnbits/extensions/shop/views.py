@@ -122,6 +122,7 @@ async def order_chat(
                 "name": stall.name,
                 "publickey": stall.publickey,
                 "wallet": stall.wallet,
+                "currency": stall.currency,
             },
             "publickey": keys.split(",")[0] if keys else None,
             "privatekey": keys.split(",")[1] if keys else None,

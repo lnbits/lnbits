@@ -284,6 +284,11 @@
 </div>
 {% endblock %} {% block scripts %}
 <script>
+  const mapProductsItems = obj => {
+    obj.price = (obj.price / 100).toFixed(2)
+
+    return obj
+  }
   Vue.component(VueQrcode.name, VueQrcode)
   new Vue({
     el: '#vue',
@@ -333,8 +338,8 @@
         let zoneCost = this.stall.zones.find(
           z => z.value == this.checkoutDialog.data.shippingzone
         )
-
-        return this.cart.total + zoneCost.cost
+        console.log(+this.cart.total, zoneCost.cost)
+        return +this.cart.total + zoneCost.cost
       }
     },
     methods: {
@@ -350,7 +355,7 @@
         }
       },
       getAmountFormated(amount) {
-        return LNbits.utils.formatCurrency(amount.toFixed(2), this.unit)
+        return LNbits.utils.formatCurrency(amount, this.unit)
       },
       async getRates() {
         if (this.unit == 'sat') return
@@ -492,6 +497,9 @@
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
       this.unit = this.stall.currency
+      if (this.unit != 'sat') {
+        this.products = this.products.map(mapProductsItems)
+      }
       await this.getRates()
       setInterval(this.getRates, 300000)
     }

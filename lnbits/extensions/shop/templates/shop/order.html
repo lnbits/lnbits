@@ -94,7 +94,10 @@
             </q-item-section>
 
             <q-item-section side>
-              <span> {{p.price}} sats</span>
+              <span v-if="stall.currency != 'sat'"
+                >{{ getAmountFormated(p.price) }}</span
+              >
+              <span v-else> {{p.price}} sats</span>
             </q-item-section>
           </q-item>
           {% endraw %}
@@ -273,6 +276,12 @@
     }
     return obj
   }
+
+  const mapProductsItems = obj => {
+    obj.price = (obj.price / 100).toFixed(2)
+
+    return obj
+  }
   Vue.component(VueQrcode.name, VueQrcode)
   const nostr = window.NostrTools
   new Vue({
@@ -314,6 +323,9 @@
       }
     },
     methods: {
+      getAmountFormated(amount) {
+        return LNbits.utils.formatCurrency(amount, this.stall.currency)
+      },
       clearMessage() {
         this.newMessage = ''
         this.$refs.newMessage.focus()
@@ -471,6 +483,10 @@
           price: product.price
         }
       })
+      console.log(this.stall)
+      if (this.stall.currency != 'sat') {
+        this.products = this.products.map(mapProductsItems)
+      }
 
       let data = this.$q.localStorage.getItem(`lnbits.shop.data`) || false
 
