@@ -246,7 +246,7 @@ async def lnurl_callback(
             wallet_id=device.wallet,
             amount=int(lnurldevicepayment.sats / 1000),
             memo=device.id + " PIN " + str(lnurldevicepayment.pin),
-            unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
+            unhashed_description=device.lnurlpay_metadata.encode(),
             extra={
                 "tag": "Switch",
                 "pin": str(lnurldevicepayment.pin),
@@ -267,7 +267,7 @@ async def lnurl_callback(
         wallet_id=device.wallet,
         amount=int(lnurldevicepayment.sats / 1000),
         memo=device.title,
-        unhashed_description=device.lnurlpay_metadata.encode("utf-8"),
+        unhashed_description=device.lnurlpay_metadata.encode(),
         extra={"tag": "PoS"},
     )
     lnurldevicepayment = await update_lnurldevicepayment(
