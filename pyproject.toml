@@ -93,6 +93,7 @@ exclude = """(?x)(
     | ^lnbits/extensions/boltz.
     | ^lnbits/extensions/boltcards.
     | ^lnbits/extensions/events.
+    | ^lnbits/extensions/gerty.
     | ^lnbits/extensions/hivemind.
     | ^lnbits/extensions/invoices.
     | ^lnbits/extensions/livestream.
