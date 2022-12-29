@@ -94,36 +94,47 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
       <div class="text-h6">Servers to check</div>
     </q-card-section>
     <q-card-section class="q-pa-none">
-      <p v-for="(item, t) in url_checker">
-        <b>{{item[0].value.slice(0, 20)}}...:</b>
-        <q-chip
-          v-if="item[1].value < 300"
-          square
-          color="green"
-          text-color="white"
-          icon="sentiment_satisfied"
-        >
-          {{item[1].value}}
-        </q-chip>
-        <q-chip
-          v-else-if="item[1].value >= 300"
-          square
-          color="yellow"
-          text-color="white"
-          icon="sentiment_dissatisfied"
-        >
-          {{item[1].value}}
-        </q-chip>
-        <q-chip
-          v-else
-          square
-          color="red"
-          text-color="white"
-          icon="sentiment_dissatisfied"
-        >
-          {{item[1].value}}
-        </q-chip>
-      </p>
+      <div class="row q-pb-md" v-for="(item, t) in url_checker">
+        <div class="col-8">
+          <small>
+            <b style="word-wrap: break-word; max-width: 230px; display: block">
+              <a class="text-primary"> {{item[0].value}} </a>
+            </b>
+          </small>
+        </div>
+        <div class="col-4">
+          <q-chip
+            v-if="item[1].value < 300"
+            square
+            size="sm"
+            color="green"
+            text-color="white"
+            icon="sentiment_satisfied"
+          >
+            {{item[1].value}}
+          </q-chip>
+          <q-chip
+            v-else-if="item[1].value >= 300"
+            square
+            size="sm"
+            color="yellow"
+            text-color="white"
+            icon="sentiment_dissatisfied"
+          >
+            {{item[1].value}}
+          </q-chip>
+          <q-chip
+            v-else
+            square
+            size="sm"
+            color="red"
+            text-color="white"
+            icon="sentiment_dissatisfied"
+          >
+            {{item[1].value}}
+          </q-chip>
+        </div>
+      </div>
     </q-card-section>
   </q-card>
 </div>
