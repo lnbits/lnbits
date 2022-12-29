@@ -13,12 +13,7 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import (

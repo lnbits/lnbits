@@ -4,13 +4,13 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from fastapi import Query
 from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for
