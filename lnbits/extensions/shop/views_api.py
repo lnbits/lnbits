@@ -9,7 +9,6 @@ from fastapi.params import Depends
 from loguru import logger
 from secp256k1 import PrivateKey, PublicKey
 from starlette.exceptions import HTTPException
-from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -21,19 +20,18 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import urlsafe_short_hash
+from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import db, shop_ext
 from .crud import (
-    set_shop_settings,
-    get_shop_settings,
     create_shop_market,
     create_shop_market_stalls,
     create_shop_order,
     create_shop_order_details,
     create_shop_product,
+    create_shop_settings,
     create_shop_stall,
     create_shop_zone,
-    create_shop_settings,
     delete_shop_order,
     delete_shop_product,
     delete_shop_stall,
@@ -50,22 +48,24 @@ from .crud import (
     get_shop_orders,
     get_shop_product,
     get_shop_products,
+    get_shop_settings,
     get_shop_stall,
     get_shop_stalls,
     get_shop_stalls_by_ids,
     get_shop_zone,
     get_shop_zones,
     set_shop_order_pubkey,
+    set_shop_settings,
     update_shop_market,
     update_shop_product,
     update_shop_stall,
     update_shop_zone,
 )
 from .models import (
-    SetSettings,
     CreateMarket,
     Orders,
     Products,
+    SetSettings,
     Stalls,
     Zones,
     createOrder,

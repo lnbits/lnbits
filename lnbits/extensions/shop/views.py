@@ -17,17 +17,17 @@ from lnbits.extensions.shop.notifier import Notifier
 
 from .crud import (
     create_chat_message,
+    create_shop_settings,
     get_shop_market,
     get_shop_market_stalls,
     get_shop_order_details,
     get_shop_order_invoiceid,
     get_shop_products,
+    get_shop_settings,
     get_shop_stall,
     get_shop_zone,
     get_shop_zones,
     update_shop_product_stock,
-    get_shop_settings,
-    create_shop_settings,
 )
 
 templates = Jinja2Templates(directory="templates")

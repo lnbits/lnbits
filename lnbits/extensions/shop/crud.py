@@ -9,7 +9,6 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
-    ShopSettings,
     ChatMessage,
     CreateChatMessage,
     CreateMarket,
@@ -18,6 +17,7 @@ from .models import (
     OrderDetail,
     Orders,
     Products,
+    ShopSettings,
     Stalls,
     Zones,
     createOrder,
