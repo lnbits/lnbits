@@ -7,11 +7,17 @@ context %}{% block page %}
         <center>
           {% if lost %}
           <h5 class="q-my-none">
-            You lost. <a href="/satsdice/{{ link }}">Play again?</a>
+            You lost.
+            <a class="text-secondary" href="/satsdice/{{ link }}"
+              >Play again?</a
+            >
           </h5>
           {% endif %} {% if paid %}
           <h5 class="q-my-none">
-            Winnings spent. <a href="/satsdice/{{ link }}">Play again?</a>
+            Winnings spent.
+            <a class="text-secondary" href="/satsdice/{{ link }}"
+              >Play again?</a
+            >
           </h5>
           {% endif %}
           <br />

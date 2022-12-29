@@ -6,7 +6,7 @@ Monitor an extended public key and generate deterministic fresh public keys with
 
 You can now use this wallet on the LNbits [SatsPayServer](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/satspay/README.md) extension
 
-<a href="https://www.youtube.com/watch?v=rQMHzQEPwZY">Video demo</a>
+<a class="text-secondary" href="https://www.youtube.com/watch?v=rQMHzQEPwZY">Video demo</a>
 
 ### Wallet Account
  - a user can add one or more `xPubs` or `descriptors`
