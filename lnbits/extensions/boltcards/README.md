@@ -55,6 +55,8 @@ Since v0.1.2 of Boltcard NFC Card Creator it is possible not only reset the keys
 - Click RESET CARD NOW and approach the NFC card to erase it. DO NOT REMOVE THE CARD PREMATURELY! 
 - Now if there is all success the card can be safely delete from LNbits (but keep the keys backuped anyway; batter safe than brick).
 
+If you somehow find yourself in some non-standard state (for instance only k3 and k4 remains filled after previous unsuccessful reset), then you need edit the key fields manually (for instance leave k0-k2 to zeroes and provide the right k3 and k4).  
+
 ## Setting the card - computer (hard way)
 
 Follow the guide. 
