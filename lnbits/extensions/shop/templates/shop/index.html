@@ -1194,10 +1194,12 @@
           })
       },
       shipOrder(order_id) {
+        let shipped = this.orders.find(o => o.id == order_id).shipped
+        console.log(this.orders, order_id, shipped)
         LNbits.api
           .request(
             'GET',
-            '/shop/api/v1/orders/shipped/' + order_id,
+            `/shop/api/v1/orders/shipped/${order_id}?shipped=${!shipped}`,
             this.g.user.wallets[0].inkey
           )
           .then(response => {

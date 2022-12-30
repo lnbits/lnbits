@@ -358,12 +358,12 @@ async def api_shop_order_pubkey(payment_hash: str, pubkey: str):
 
 @shop_ext.get("/api/v1/orders/shipped/{order_id}")
 async def api_shop_order_shipped(
-    order_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    order_id, shipped: bool = Query(...), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     await db.execute(
         "UPDATE shop.orders SET shipped = ? WHERE id = ?",
         (
-            True,
+            shipped,
             order_id,
         ),
     )
