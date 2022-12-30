@@ -15,6 +15,7 @@ context %} {% block page %}
     <p>
       Bookmark this link:
       <a
+        class="text-secondary"
         v-bind:href="'/nostrnip5/rotate/' + domain_id + '/' + successData.address_id"
         target="_blank"
         >{{ base_url }}nostrnip5/rotate/{{ domain_id }}/{{
@@ -87,7 +88,10 @@ context %} {% block page %}
     @hide="closeQrCodeDialog"
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
-      <a :href="'lightning:' + qrCodeDialog.data.payment_request">
+      <a
+        class="text-secondary"
+        :href="'lightning:' + qrCodeDialog.data.payment_request"
+      >
         <q-responsive :ratio="1" class="q-mx-xs">
           <qrcode
             :value="qrCodeDialog.data.payment_request"

@@ -616,7 +616,7 @@ page_container %}
             ></q-input>
           </div>
           <div v-else class="text-center q-mb-lg">
-            <a :href="'lightning:' + invoiceData.bolt11">
+            <a class="text-secondary" :href="'lightning:' + invoiceData.bolt11">
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
                   :value="invoiceData.bolt11"
@@ -681,7 +681,7 @@ page_container %}
           </div>
           <div v-else class="text-center q-mb-lg">
             <div class="text-center q-mb-lg">
-              <!-- <a :href="'cashu:' + sendData.tokensBase64"> -->
+              <!-- <a class="text-secondary" :href="'cashu:' + sendData.tokensBase64"> -->
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
                   :value="disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64"

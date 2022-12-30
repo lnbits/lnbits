@@ -2,7 +2,7 @@
 
 This extension allows you to link your Bolt Card (or other compatible NXP NTAG device) with a LNbits instance and use it in a more secure way than a static LNURLw. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow. 
 
-<a href="https://www.youtube.com/watch?v=wJ7QLFTRjK0">Tutorial</a>
+<a class="text-secondary" href="https://www.youtube.com/watch?v=wJ7QLFTRjK0">Tutorial</a>
 
 **Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
