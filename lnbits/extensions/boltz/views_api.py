@@ -203,7 +203,9 @@ async def api_reverse_submarineswap(
         500: {"description": "boltz error"},
     },
 )
-async def api_reverse_submarineswap_create(data: CreateReverseSubmarineSwap) -> ReverseSubmarineSwap:
+async def api_reverse_submarineswap_create(
+    data: CreateReverseSubmarineSwap,
+) -> ReverseSubmarineSwap:
 
     if not await check_balance(data):
         raise HTTPException(

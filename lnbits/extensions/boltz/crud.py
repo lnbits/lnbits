@@ -1,5 +1,4 @@
 import time
-
 from typing import List, Optional, Union
 
 from boltz_client.boltz import BoltzReverseSwapResponse, BoltzSwapResponse
@@ -214,7 +213,7 @@ async def create_reverse_submarine_swap(
             reverse_swap.onchain_address,
             reverse_swap.timeout_block_height,
             reverse_swap.redeem_script,
-            reverse_swap.amount
+            reverse_swap.amount,
         ),
     )
     return reverse_swap

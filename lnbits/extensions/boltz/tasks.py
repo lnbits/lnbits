@@ -12,8 +12,8 @@ from lnbits.tasks import register_invoice_listener
 from .crud import (
     get_all_pending_reverse_submarine_swaps,
     get_all_pending_submarine_swaps,
-    get_submarine_swap,
     get_reverse_submarine_swap,
+    get_submarine_swap,
     update_swap_status,
 )
 from .utils import create_boltz_client
