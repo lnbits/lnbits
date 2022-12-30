@@ -125,7 +125,7 @@
           >
         </div>
         <div v-if="item.categories" class="text-subtitle1">
-          <q-chip v-for="cat in item.categories.split(',')" dense
+          <q-chip v-for="(cat, i) in item.categories.split(',')" :key="i" dense
             >{{cat}}</q-chip
           >
         </div>
@@ -140,13 +140,17 @@
       <q-separator></q-separator>
 
       <q-card-actions>
+        <span>{{ stall.find(s => s.id == item.stall).name }}</span>
         <q-btn
           flat
-          class="text-weight-bold text-capitalize"
+          class="text-weight-bold text-capitalize q-ml-auto"
           dense
           color="primary"
+          type="a"
+          :href="'/shop/stalls/' + item.stall"
+          target="_blank"
         >
-          View details
+          Visit shop
         </q-btn>
       </q-card-actions>
       {% endraw %}
