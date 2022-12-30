@@ -338,7 +338,6 @@
         let zoneCost = this.stall.zones.find(
           z => z.value == this.checkoutDialog.data.shippingzone
         )
-        console.log(+this.cart.total, zoneCost.cost)
         return +this.cart.total + zoneCost.cost
       }
     },
@@ -367,7 +366,6 @@
             })
           ).data
           this.exchangeRate = rate[this.unit]
-          console.log(this.exchangeRate)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -397,7 +395,7 @@
           icon: 'thumb_up'
         })
         this.cart.products = prod
-        this.updateCart(item.price)
+        this.updateCart(+item.price)
       },
       removeFromCart() {},
       updateCart(price) {
