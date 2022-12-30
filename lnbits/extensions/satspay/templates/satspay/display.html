@@ -197,7 +197,7 @@
               >
                 <q-responsive :ratio="1" class="q-mx-md">
                   <qrcode
-                    :value="charge.payment_request"
+                    :value="'lightning:' + charge.payment_request.toUpperCase()"
                     :options="{width: 800}"
                     class="rounded-borders"
                   ></qrcode>

@@ -78,7 +78,7 @@
         <a class="text-secondary" :href="'lightning:' + receive.paymentReq">
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
-              :value="paymentReq"
+              :value="'lightning:' + paymentReq.toUpperCase()"
               :options="{width: 340}"
               class="rounded-borders"
             ></qrcode>
