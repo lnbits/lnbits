@@ -136,12 +136,11 @@
     },
     methods: {
       async getRates() {
-        let hasFiat = this.stalls.map(s => s.currency).every(c => c != 'sat')
-        if (!hasFiat) return
+        let noFiat = this.stalls.map(s => s.currency).every(c => c == 'sat')
+        if (noFiat) return
         try {
           let rates = await axios.get('https://api.opennode.co/v1/rates')
           this.exchangeRates = rates.data.data
-          console.log(this.exchangeRates)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -170,8 +169,6 @@
         return obj
       })
       await this.getRates()
-
-      console.log(this.stalls, this.products)
     }
   })
 </script>
