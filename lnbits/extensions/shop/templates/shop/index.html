@@ -213,12 +213,12 @@
 
   const mapMarkets = obj => {
     obj._data = _.clone(obj)
-    obj.stores = []
+    obj.stalls = []
     LNbits.api
       .request('GET', `/shop/api/v1/markets/${obj.id}/stalls`, null)
       .then(response => {
         if (response.data) {
-          obj.stores = response.data.map(s => s.name).toString()
+          obj.stalls = response.data.map(s => s.id) //.toString()
         }
       })
       .catch(error => {
@@ -460,10 +460,10 @@
               field: 'name'
             },
             {
-              name: 'stores',
+              name: 'stalls',
               align: 'left',
               label: 'Stalls',
-              field: 'stores'
+              field: 'stalls'
             }
           ],
           pagination: {
@@ -637,6 +637,9 @@
       ////////////////////////////////////////
       ////////////////STALLS//////////////////
       ////////////////////////////////////////
+      stallName(id) {
+        return id.map(c => this.stalls.find(s => s.id == c).name).toString()
+      },
       getStalls: function () {
         var self = this
         LNbits.api
@@ -1035,44 +1038,38 @@
           })
       },
 
-      openShopUpdateDialog: function (linkId) {
-        var self = this
-        var link = _.findWhere(self.markets, {id: linkId})
-
-        this.marketDialog.data = _.clone(link._data)
+      openMarketUpdateDialog(linkId) {
+        var link = _.findWhere(this.markets, {id: linkId})
+        this.marketDialog.data = link
         this.marketDialog.show = true
       },
-      sendMarketplaceFormData: function () {
+      sendMarketplaceFormData() {
         let data = {...this.marketDialog.data}
 
         if (!data.usr) {
           data.usr = this.g.user.id
         }
-
         if (data.id) {
-          this.updateZone(data)
+          this.updateMarketplace(data)
         } else {
           this.createMarketplace(data)
         }
       },
-      updateShop: function (data) {
-        var self = this
+      updateMarketplace(data) {
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/shops' + data.id,
-            _.findWhere(self.g.user.wallets, {
-              id: self.marketDialog.data.wallet
-            }).inkey,
-            _.pick(data, 'countries', 'cost')
+            '/shop/api/v1/markets/' + data.id,
+            this.g.user.wallets[0].inkey,
+            data
           )
-          .then(function (response) {
-            self.markets = _.reject(self.markets, function (obj) {
+          .then(response => {
+            this.markets = _.reject(this.markets, obj => {
               return obj.id == data.id
             })
-            self.markets.push(mapShops(response.data))
-            self.marketDialog.show = false
-            self.marketDialog.data = {}
+            this.markets.push(mapMarkets(response.data))
+            this.marketDialog.show = false
+            this.marketDialog.data = {}
             data = {}
           })
           .catch(function (error) {
@@ -1097,21 +1094,20 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteShop: function (shopId) {
-        var self = this
-        var shop = _.findWhere(self.markets, {id: shopId})
+      deleteMarket(shopId) {
+        let market = _.findWhere(this.markets, {id: shopId})
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this Shop link?')
-          .onOk(function () {
+          .confirmDialog('Are you sure you want to delete this Marketplace?')
+          .onOk(() => {
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/shops/' + shopId,
-                _.findWhere(self.g.user.wallets, {id: shop.wallet}).inkey
+                '/shop/api/v1/markets/' + shopId,
+                this.g.user.wallets[0].inkey
               )
-              .then(function (response) {
-                self.markets = _.reject(self.markets, function (obj) {
+              .then(response => {
+                this.markets = _.reject(this.markets, obj => {
                   return obj.id == shopId
                 })
               })
@@ -1144,32 +1140,6 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      /*createOrder: function () {
-        var data = {
-          address: this.orderDialog.data.address,
-          email: this.orderDialog.data.email,
-          quantity: this.orderDialog.data.quantity,
-          shippingzone: this.orderDialog.data.shippingzone
-        }
-        var self = this
-
-        LNbits.api
-          .request(
-            'POST',
-            '/shop/api/v1/orders',
-            _.findWhere(self.g.user.wallets, {id: self.orderDialog.data.wallet})
-              .inkey,
-            data
-          )
-          .then(function (response) {
-            self.orders.push(mapOrders(response.data))
-            self.orderDialog.show = false
-            self.orderDialog.data = {}
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },*/
       deleteOrder: function (orderId) {
         var self = this
         var order = _.findWhere(self.orders, {id: orderId})
@@ -1195,7 +1165,6 @@
       },
       shipOrder(order_id) {
         let shipped = this.orders.find(o => o.id == order_id).shipped
-        console.log(this.orders, order_id, shipped)
         LNbits.api
           .request(
             'GET',
@@ -1383,7 +1352,6 @@
         this.diagonAlley =
           this.$q.localStorage.getItem('lnbits.DAmode') || false
         this.currencies.unit = '{{ currency }}'
-        console.log(this.currencies.unit, '{{currency}}')
         await this.getCurrencies()
         this.getStalls()
         this.getProducts()

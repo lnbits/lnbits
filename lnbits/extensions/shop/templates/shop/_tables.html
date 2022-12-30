@@ -354,14 +354,14 @@
             <q-tooltip> Link to pass to stall relay </q-tooltip>
           </q-td>
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
-            {{ col.value }}
+            {{ col.name == 'stalls' ? stallName(col.value) : col.value }}
           </q-td>
           <q-td auto-width>
             <q-btn
               flat
               dense
               size="xs"
-              @click="openStallUpdateDialog(props.row.id)"
+              @click="openMarketUpdateDialog(props.row.id)"
               icon="edit"
               color="light-blue"
             ></q-btn>
@@ -369,7 +369,7 @@
               flat
               dense
               size="xs"
-              @click="deleteStall(props.row.id)"
+              @click="deleteMarket(props.row.id)"
               icon="cancel"
               color="pink"
             ></q-btn>

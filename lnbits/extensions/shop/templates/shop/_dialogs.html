@@ -195,12 +195,12 @@
       ></q-toggle>
       <q-select
         filled
-        dense
         multiple
         emit-value
         :options="stalls.map(s => ({label: s.name, value: s.id}))"
         label="Stalls"
-        v-model.trim="marketDialog.data.stalls"
+        v-model="marketDialog.data.stalls"
+        map-options
       ></q-select>
       <q-input
         filled

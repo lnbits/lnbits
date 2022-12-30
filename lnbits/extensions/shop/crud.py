@@ -399,8 +399,18 @@ async def create_shop_market_stalls(market_id: str, data: List[CreateMarketStall
     return market_stalls
 
 
-async def update_shop_market(market_id):
-    pass
+async def update_shop_market(market_id: str, name: str):
+    await db.execute(
+        "UPDATE shop.markets SET name = ? WHERE id = ?",
+        (name, market_id),
+    )
+    await db.execute(
+        "DELETE FROM shop.market_stalls WHERE marketid = ?",
+        (market_id,),
+    )
+
+    market = await get_shop_market(market_id)
+    return market
 
 
 ### CHAT / MESSAGES

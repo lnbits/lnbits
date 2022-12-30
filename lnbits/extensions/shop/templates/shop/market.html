@@ -21,49 +21,6 @@
           </template>
         </q-input>
       </div>
-      <q-btn dense round flat icon="shopping_cart">
-        {% raw %}
-        <q-badge v-if="cart.size" color="red" class="text-bold" floating>
-          {{ cart.size }}
-        </q-badge>
-        {% endraw %}
-        <q-menu auto-close v-if="cart.size">
-          <q-list style="min-width: 100px">
-            {% raw %}
-            <q-item clickable :key="p.id" v-for="p in cartMenu">
-              <q-item-section side>
-                <span>{{p.quantity}} x </span>
-              </q-item-section>
-              <q-item-section avatar>
-                <q-avatar color="primary">
-                  <img
-                    size="sm"
-                    :src="products.find(f => f.id == p.id).image"
-                  />
-                </q-avatar>
-              </q-item-section>
-
-              <q-item-section>
-                <q-item-label>{{ p.name }}</q-item-label>
-              </q-item-section>
-
-              <q-item-section side>
-                <span> {{p.price}} sats</span>
-              </q-item-section>
-            </q-item>
-            {% endraw %}
-            <q-separator />
-          </q-list>
-          <div class="q-pa-md q-gutter-md">
-            <q-btn
-              color="primary"
-              icon-right="checkout"
-              label="Checkout"
-              @click="checkoutDialog.show = true"
-            />
-          </div>
-        </q-menu>
-      </q-btn>
     </q-toolbar>
   </div>
 </div>
@@ -85,22 +42,6 @@
       ></q-img>
 
       <q-card-section class="q-pb-xs q-pt-md">
-        <q-btn
-          round
-          :disabled="item.quantity < 1"
-          color="primary"
-          icon="shopping_cart"
-          size="lg"
-          style="
-            position: absolute;
-            top: 0;
-            right: 0;
-            transform: translate(-50%, -50%);
-          "
-          @click="addToCart(item)"
-          ><q-tooltip> Add to cart </q-tooltip></q-btn
-        >
-
         <div class="row no-wrap items-center">
           <div class="col text-subtitle2 ellipsis-2-lines">
             {{ item.product }}
@@ -112,13 +53,23 @@
 
       <q-card-section class="q-py-sm">
         <div>
-          <!-- <div class="text-caption text-green-8 text-weight-bolder">
-            {{ stall.name }}
-          </div> -->
-          <span class="text-h6">{{ item.price }} sats</span
-          ><span class="q-ml-sm text-grey-6"
-            >BTC {{ (item.price / 1e8).toFixed(8) }}</span
-          >
+          <div class="text-caption text-weight-bolder">
+            {{ item.stallName }}
+          </div>
+          <span v-if="item.currency == 'sat'">
+            <span class="text-h6">{{ item.price }} sats</span
+            ><span class="q-ml-sm text-grey-6"
+              >BTC {{ (item.price / 1e8).toFixed(8) }}</span
+            >
+          </span>
+          <span v-else>
+            <span class="text-h6"
+              >{{ getAmountFormated(item.price, item.currency) }}</span
+            >
+            <span v-if="exchangeRates" class="q-ml-sm text-grey-6"
+              >({{ getValueInSats(item.price, item.currency) }} sats)</span
+            >
+          </span>
           <span
             class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
             >{{item.quantity}} left</span
@@ -140,7 +91,7 @@
       <q-separator></q-separator>
 
       <q-card-actions>
-        <span>{{ stall.find(s => s.id == item.stall).name }}</span>
+        <span>{{ item.stallName }}</span>
         <q-btn
           flat
           class="text-weight-bold text-capitalize q-ml-auto"
@@ -156,110 +107,6 @@
       {% endraw %}
     </q-card>
   </div>
-  <!-- CHECKOUT DIALOG -->
-  <q-dialog v-model="checkoutDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="placeOrder" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          v-model.trim="checkoutDialog.data.username"
-          label="Name *optional"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="checkoutDialog.data.address"
-          label="Address"
-        ></q-input>
-        <!-- <q-input
-          filled
-          dense
-          v-model.trim="checkoutDialog.data.address_2"
-          label="Address (line 2)"
-        ></q-input> -->
-        <q-input
-          v-model="checkoutDialog.data.email"
-          filled
-          dense
-          type="email"
-          label="Email"
-        ></q-input>
-        <p>Select the shipping zone:</p>
-        <div class="row q-mt-lg">
-          <q-option-group
-            :options="stall.zones"
-            type="radio"
-            emit-value
-            v-model="checkoutDialog.data.shippingzone"
-          />
-        </div>
-        <div class="row q-mt-lg">
-          {% raw %} Total: {{ finalCost }} {% endraw %}
-        </div>
-        <div class="row q-mt-lg">
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="checkoutDialog.data.address == null
-              || checkoutDialog.data.email == null
-              || checkoutDialog.data.shippingzone == null"
-            type="submit"
-            >Checkout</q-btn
-          >
-          <q-btn
-            v-close-popup
-            flat
-            @click="checkoutDialog = {show: false, data: {}}"
-            color="grey"
-            class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-  <!-- INVOICE DIALOG -->
-  <q-dialog
-    v-model="qrCodeDialog.show"
-    position="top"
-    @hide="closeQrCodeDialog"
-  >
-    <q-card
-      v-if="!qrCodeDialog.data.payment_request"
-      class="q-pa-lg q-pt-xl lnbits__dialog-card"
-    >
-    </q-card>
-    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <div class="text-center q-mb-lg">
-        <a :href="'lightning:' + qrCodeDialog.data.payment_request">
-          <q-responsive :ratio="1" class="q-mx-xl">
-            <qrcode
-              :value="qrCodeDialog.data.payment_request"
-              :options="{width: 340}"
-              class="rounded-borders"
-            ></qrcode>
-          </q-responsive>
-        </a>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          outline
-          color="grey"
-          @click="copyText(qrCodeDialog.data.payment_request)"
-          >Copy invoice</q-btn
-        >
-        <q-btn
-          @click="closeQrCodeDialog"
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          >Close</q-btn
-        >
-      </div>
-    </q-card>
-  </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
 <script>
@@ -269,25 +116,10 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        stall: null,
+        stalls: null,
         products: [],
         searchText: null,
-        cart: {
-          total: 0,
-          size: 0,
-          products: new Map()
-        },
-        cartMenu: [],
-        checkoutDialog: {
-          show: false,
-          data: {}
-        },
-        qrCodeDialog: {
-          data: {
-            payment_request: null
-          },
-          show: false
-        }
+        exchangeRates: null
       }
     },
     computed: {
@@ -300,124 +132,47 @@
             p.categories.includes(this.searchText)
           )
         })
-      },
-      finalCost() {
-        if (!this.checkoutDialog.data.shippingzone) return this.cart.total
-
-        let zoneCost = this.stall.zones.find(
-          z => z.value == this.checkoutDialog.data.shippingzone
-        )
-
-        return this.cart.total + zoneCost.cost
       }
     },
     methods: {
-      closeQrCodeDialog() {
-        this.qrCodeDialog.dismissMsg()
-        this.qrCodeDialog.show = false
-      },
-      resetCart() {
-        this.cart = {
-          total: 0,
-          size: 0,
-          products: new Map()
+      async getRates() {
+        let hasFiat = this.stalls.map(s => s.currency).every(c => c != 'sat')
+        if (!hasFiat) return
+        try {
+          let rates = await axios.get('https://api.opennode.co/v1/rates')
+          this.exchangeRates = rates.data.data
+          console.log(this.exchangeRates)
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
         }
       },
-      addToCart(item) {
-        let prod = this.cart.products
-        if (prod.has(item.id)) {
-          let qty = prod.get(item.id).quantity
-          prod.set(item.id, {
-            ...prod.get(item.id),
-            quantity: qty + 1
-          })
-        } else {
-          prod.set(item.id, {
-            name: item.product,
-            quantity: 1,
-            price: item.price
-          })
-        }
-        this.cart.products = prod
-        this.updateCart(item.price)
+      getValueInSats(amount, unit = 'USD') {
+        if (!this.exchangeRates) return 0
+        return Math.ceil(
+          (amount / this.exchangeRates[`BTC${unit}`][unit]) * 1e8
+        )
       },
-      removeFromCart() {},
-      updateCart(price) {
-        this.cart.total += price
-        this.cart.size++
-        this.cartMenu = Array.from(this.cart.products, item => {
-          return {id: item[0], ...item[1]}
-        })
-        console.log(this.cartMenu, this.cart)
-      },
-      placeOrder() {
-        let dialog = this.checkoutDialog.data
-        let data = {
-          ...this.checkoutDialog.data,
-          wallet: this.stall.wallet,
-          total: this.finalCost,
-          products: Array.from(this.cart.products, p => {
-            return {product_id: p[0], quantity: p[1].quantity}
-          })
-        }
-        LNbits.api
-          .request('POST', '/shop/api/v1/orders', null, data)
-          .then(res => {
-            this.checkoutDialog = {show: false, data: {}}
-
-            return res.data
-          })
-          .then(data => {
-            this.qrCodeDialog.data = data
-            this.qrCodeDialog.show = true
-
-            this.qrCodeDialog.dismissMsg = this.$q.notify({
-              timeout: 0,
-              message: 'Waiting for payment...'
-            })
-            return data
-          })
-          .then(data => {
-            this.qrCodeDialog.paymentChecker = setInterval(() => {
-              LNbits.api
-                .request(
-                  'GET',
-                  `/shop/api/v1/orders/payments/${this.qrCodeDialog.data.payment_hash}`
-                )
-                .then(res => {
-                  if (res.data.paid) {
-                    this.$q.notify({
-                      type: 'positive',
-                      message: 'Sats received, thanks!',
-                      icon: 'thumb_up'
-                    })
-                    clearInterval(this.qrCodeDialog.paymentChecker)
-                    this.resetCart()
-                    this.closeQrCodeDialog()
-                  }
-                })
-                .catch(error => {
-                  console.error(error)
-                  LNbits.utils.notifyApiError(error)
-                })
-            }, 3000)
-          })
-          .catch(error => {
-            console.error(error)
-            LNbits.utils.notifyApiError(error)
-          })
+      getAmountFormated(amount, unit = 'USD') {
+        return LNbits.utils.formatCurrency(amount, unit)
       }
     },
-    created() {
-      this.stall = JSON.parse('{{ stalls | tojson }}')
-      this.products = JSON.parse('{{ products | tojson }}')
+    async created() {
+      this.stalls = JSON.parse('{{ stalls | tojson }}')
+      let products = JSON.parse('{{ products | tojson }}')
 
-      console.log(this.stall, this.products)
+      this.products = products.map(obj => {
+        let stall = this.stalls.find(s => s.id == obj.stall)
+        obj.currency = stall.currency
+        if (obj.currency != 'sat') {
+          obj.price = parseFloat((obj.price / 100).toFixed(2))
+        }
+        obj.stallName = stall.name
+        return obj
+      })
+      await this.getRates()
+
+      console.log(this.stalls, this.products)
     }
   })
 </script>
-<style scoped>
-  .card--product {
-  }
-</style>
 {% endblock %}

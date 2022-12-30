@@ -439,10 +439,11 @@ async def api_shop_stall_create(
         if market.usr != wallet.wallet.user:
             return {"message": "Not your market."}
 
-        market = await update_shop_market(market_id, **data.dict())
+        market = await update_shop_market(market_id, data.name)
     else:
         market = await create_shop_market(data=data)
-        await create_shop_market_stalls(market_id=market.id, data=data.stalls)
+
+    await create_shop_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()
 

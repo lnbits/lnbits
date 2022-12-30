@@ -300,7 +300,7 @@
 {% endblock %} {% block scripts %}
 <script>
   const mapProductsItems = obj => {
-    obj.price = (obj.price / 100).toFixed(2)
+    obj.price = parseFloat((obj.price / 100).toFixed(2))
 
     return obj
   }
