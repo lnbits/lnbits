@@ -27,10 +27,10 @@
           {{ cart.size }}
         </q-badge>
         {% endraw %}
-        <q-menu auto-close v-if="cart.size">
+        <q-menu v-if="cart.size">
           <q-list style="min-width: 100px">
             {% raw %}
-            <q-item clickable :key="p.id" v-for="p in cartMenu">
+            <q-item :key="p.id" v-for="p in cartMenu">
               <q-item-section side>
                 <span>{{p.quantity}} x </span>
               </q-item-section>
@@ -50,20 +50,35 @@
               <q-item-section side>
                 <span>
                   {{unit != 'sat' ? getAmountFormated(p.price) : p.price +
-                  'sats'}}</span
-                >
+                  'sats'}}
+                  <q-btn
+                    class="q-ml-md"
+                    round
+                    color="red"
+                    size="xs"
+                    icon="close"
+                    @click="removeFromCart(p)"
+                  />
+                </span>
               </q-item-section>
             </q-item>
             {% endraw %}
             <q-separator />
           </q-list>
-          <div class="q-pa-md q-gutter-md">
+          <div class="row q-pa-md q-gutter-md">
             <q-btn
               color="primary"
               icon-right="checkout"
               label="Checkout"
               @click="checkoutDialog.show = true"
-            />
+            ></q-btn>
+            <q-btn
+              class="q-ml-lg"
+              flat
+              color="primary"
+              label="Reset"
+              @click="resetCart"
+            /></q-btn>
           </div>
         </q-menu>
       </q-btn>
@@ -397,13 +412,23 @@
         this.cart.products = prod
         this.updateCart(+item.price)
       },
-      removeFromCart() {},
-      updateCart(price) {
-        this.cart.total += price
-        this.cart.size++
+      removeFromCart(item) {
+        this.cart.products.delete(item.id)
+        this.updateCart(+item.price, true)
+      },
+      updateCart(price, del = false) {
+        console.log(this.cart, this.cartMenu)
+        if (del) {
+          this.cart.total -= price
+          this.cart.size--
+        } else {
+          this.cart.total += price
+          this.cart.size++
+        }
         this.cartMenu = Array.from(this.cart.products, item => {
           return {id: item[0], ...item[1]}
         })
+        console.log(this.cart, this.cartMenu)
       },
       getPubkey() {
         let data = this.$q.localStorage.getItem(`lnbits.shop.data`)
@@ -503,8 +528,4 @@
     }
   })
 </script>
-<style scoped>
-  .card--product {
-  }
-</style>
 {% endblock %}
