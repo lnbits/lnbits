@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 
-from fastapi import Query, Depends
+from fastapi import Depends, Query
 from loguru import logger
 from starlette.exceptions import HTTPException
 
@@ -17,7 +17,6 @@ from .crud import (
     get_mempool_info,
     update_gerty,
 )
-
 from .helpers import *
 from .models import Gerty
 

@@ -390,9 +390,7 @@ async def api_get_mining_stat(stat_slug: str, gerty):
         r = await get_mempool_info("hashrate_1m", gerty)
         data = r
         stat["current"] = data["currentDifficulty"]
-        stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2][
-            "difficulty"
-        ]
+        stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2]["difficulty"]
     return stat
 
 
@@ -946,5 +944,3 @@ async def get_mempool_stat(stat_slug: str, gerty):
                 )
             )
     return text
-
-
