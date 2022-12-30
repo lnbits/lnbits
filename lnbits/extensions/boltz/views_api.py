@@ -1,7 +1,8 @@
+import asyncio
 from http import HTTPStatus
 from typing import List
 
-from fastapi import BackgroundTasks, Depends, Query, status
+from fastapi import Depends, Query, status
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -183,7 +184,7 @@ async def api_reverse_submarineswap(
     if all_wallets:
         user = await get_user(g.wallet.user)
         wallet_ids = user.wallet_ids if user else []
-    return [swap.dict() for swap in await get_reverse_submarine_swaps(wallet_ids)]
+    return [swap for swap in await get_reverse_submarine_swaps(wallet_ids)]
 
 
 @boltz_ext.post(
@@ -202,9 +203,7 @@ async def api_reverse_submarineswap(
         500: {"description": "boltz error"},
     },
 )
-async def api_reverse_submarineswap_create(
-    data: CreateReverseSubmarineSwap, bg: BackgroundTasks
-):
+async def api_reverse_submarineswap_create(data: CreateReverseSubmarineSwap) -> ReverseSubmarineSwap:
 
     if not await check_balance(data):
         raise HTTPException(
@@ -216,28 +215,30 @@ async def api_reverse_submarineswap_create(
         amount=data.amount
     )
 
-    bg.add_task(
-        client.claim_reverse_swap,
-        privkey_wif=claim_privkey_wif,
-        preimage_hex=preimage_hex,
-        lockup_address=swap.lockupAddress,
-        receive_address=data.onchain_address,
-        redeem_script_hex=swap.redeemScript,
+    claim_task = asyncio.create_task(
+        client.claim_reverse_swap(
+            privkey_wif=claim_privkey_wif,
+            preimage_hex=preimage_hex,
+            lockup_address=swap.lockupAddress,
+            receive_address=data.onchain_address,
+            redeem_script_hex=swap.redeemScript,
+        )
     )
 
     swap_id = urlsafe_short_hash()
-    bg.add_task(
-        pay_invoice,
-        wallet_id=data.wallet,
-        payment_request=swap.invoice,
-        description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
-        extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
+    pay_task = asyncio.create_task(
+        pay_invoice(
+            wallet_id=data.wallet,
+            payment_request=swap.invoice,
+            description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
+            extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
+        )
     )
+    asyncio.gather(claim_task, pay_task)
 
-    new_swap = await create_reverse_submarine_swap(
+    return await create_reverse_submarine_swap(
         swap, data, swap_id, claim_privkey_wif, preimage_hex
     )
-    return new_swap.dict() if new_swap else None
 
 
 @boltz_ext.get(

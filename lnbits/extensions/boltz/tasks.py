@@ -13,6 +13,7 @@ from .crud import (
     get_all_pending_reverse_submarine_swaps,
     get_all_pending_submarine_swaps,
     get_submarine_swap,
+    get_reverse_submarine_swap,
     update_swap_status,
 )
 from .utils import create_boltz_client
@@ -92,7 +93,7 @@ async def check_for_pending_swaps():
         logger.debug(f"Boltz - {len(reverse_swaps)} pending reverse swaps")
         for reverse_swap in reverse_swaps:
             try:
-                swap_status = client.swap_status(reverse_swap.boltz_id)
+                _ = client.swap_status(reverse_swap.boltz_id)
                 await client.claim_reverse_swap(
                     lockup_address=reverse_swap.lockup_address,
                     receive_address=reverse_swap.onchain_address,
@@ -136,11 +137,14 @@ async def on_invoice_paid(payment: Payment) -> None:
         swap_id = payment.extra.get("swap_id")
         if swap_id:
             swap = await get_submarine_swap(swap_id)
-            if not swap:
-                logger.error(f"swap: {swap_id} not found.")
-                return
-
-            logger.info(
-                f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
-            )
-            await update_swap_status(swap_id, "complete")
+            if swap:
+                logger.info(
+                    f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
+                )
+                await update_swap_status(swap_id, "complete")
+            reverse_swap = await get_reverse_submarine_swap(swap_id)
+            if reverse_swap:
+                logger.info(
+                    f"Boltz - lightning invoice is paid, reverse swap completed. swap_id: {swap_id}"
+                )
+                await update_swap_status(swap_id, "complete")

@@ -1,3 +1,5 @@
+import time
+
 from typing import List, Optional, Union
 
 from boltz_client.boltz import BoltzReverseSwapResponse, BoltzSwapResponse
@@ -158,7 +160,25 @@ async def create_reverse_submarine_swap(
     swap_id: str,
     claim_privkey_wif: str,
     preimage_hex: str,
-) -> Optional[ReverseSubmarineSwap]:
+) -> ReverseSubmarineSwap:
+
+    reverse_swap = ReverseSubmarineSwap(
+        id=swap_id,
+        wallet=data.wallet,
+        status="created",
+        boltz_id=swap.id,
+        instant_settlement=data.instant_settlement,
+        preimage=preimage_hex,
+        claim_privkey=claim_privkey_wif,
+        lockup_address=swap.lockupAddress,
+        invoice=swap.invoice,
+        onchain_amount=swap.onchainAmount,
+        onchain_address=data.onchain_address,
+        timeout_block_height=swap.timeoutBlockHeight,
+        redeem_script=swap.redeemScript,
+        amount=data.amount,
+        time=int(time.time()),
+    )
 
     await db.execute(
         """
@@ -181,23 +201,23 @@ async def create_reverse_submarine_swap(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            swap_id,
-            data.wallet,
-            "created",
-            swap.id,
-            data.instant_settlement,
-            preimage_hex,
-            claim_privkey_wif,
-            swap.lockupAddress,
-            swap.invoice,
-            swap.onchainAmount,
-            data.onchain_address,
-            swap.timeoutBlockHeight,
-            swap.redeemScript,
-            data.amount,
+            reverse_swap.id,
+            reverse_swap.wallet,
+            reverse_swap.status,
+            reverse_swap.boltz_id,
+            reverse_swap.instant_settlement,
+            reverse_swap.preimage,
+            reverse_swap.claim_privkey,
+            reverse_swap.lockup_address,
+            reverse_swap.invoice,
+            reverse_swap.onchain_amount,
+            reverse_swap.onchain_address,
+            reverse_swap.timeout_block_height,
+            reverse_swap.redeem_script,
+            reverse_swap.amount
         ),
     )
-    return await get_reverse_submarine_swap(swap.id)
+    return reverse_swap
 
 
 async def get_auto_reverse_submarine_swaps(
