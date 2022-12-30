@@ -55,7 +55,10 @@ async def update_gerty(gerty_id: str, **kwargs) -> Gerty:
     await db.execute(
         f"UPDATE gerty.gertys SET {q} WHERE id = ?", (*kwargs.values(), gerty_id)
     )
-    return await get_gerty(gerty_id)
+
+    gerty = await get_gerty(gerty_id)
+    assert gerty
+    return gerty
 
 
 async def get_gerty(gerty_id: str) -> Optional[Gerty]:
@@ -82,7 +85,7 @@ async def delete_gerty(gerty_id: str) -> None:
 #############MEMPOOL###########
 
 
-async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
+async def get_mempool_info(endPoint: str, gerty) -> dict:
     logger.debug(endPoint)
     endpoints = MempoolEndpoint()
     url = ""

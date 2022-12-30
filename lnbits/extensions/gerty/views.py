@@ -1,10 +1,7 @@
-import json
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Request, Depends
 from fastapi.templating import Jinja2Templates
-from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
@@ -13,7 +10,6 @@ from lnbits.decorators import check_user_exists
 
 from . import gerty_ext, gerty_renderer
 from .crud import get_gerty
-from .views_api import api_gerty_json
 
 templates = Jinja2Templates(directory="templates")
 
