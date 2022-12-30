@@ -45,7 +45,7 @@ async def create_tipjar(data: createTipJar) -> TipJar:
         """,
         (data.name, data.wallet, data.webhook, data.onchain),
     )
-    row = await db.fetchone( "SELECT * FROM tipjar.TipJars LIMIT 1")
+    row = await db.fetchone("SELECT * FROM tipjar.TipJars LIMIT 1")
     tipjar = TipJar(**row)
     assert tipjar
     return tipjar

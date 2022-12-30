@@ -22,7 +22,7 @@ from .crud import (
     update_tipjar,
 )
 from .helpers import get_charge_details
-from .models import createTipJar, createTip, createTips
+from .models import createTip, createTipJar, createTips
 
 
 @tipjar_ext.post("/api/v1/tipjars")
@@ -116,7 +116,11 @@ async def api_get_tips(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @tipjar_ext.put("/api/v1/tips/{tip_id}")
-async def api_update_tip(data: createTip, wallet: WalletTypeInfo = Depends(get_key_type), tip_id: str = Query(None)):
+async def api_update_tip(
+    data: createTip,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    tip_id: str = Query(None),
+):
     """Update a tip with the data given in the request"""
     if tip_id:
         tip = await get_tip(tip_id)
@@ -141,7 +145,10 @@ async def api_update_tip(data: createTip, wallet: WalletTypeInfo = Depends(get_k
 
 
 @tipjar_ext.put("/api/v1/tipjars/{tipjar_id}")
-async def api_update_tipjar(data: createTipJar, wallet: WalletTypeInfo = Depends(get_key_type), tipjar_id: int = Query(None)
+async def api_update_tipjar(
+    data: createTipJar,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    tipjar_id: int = Query(None),
 ):
     """Update a tipjar with the data given in the request"""
     if tipjar_id:
