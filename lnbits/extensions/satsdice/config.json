@@ -1,6 +1,6 @@
 {
   "name": "Sats Dice",
   "short_description": "LNURL Satoshi dice",
-  "icon": "casino",
+  "tile": "/cashu/static/image/tile.png",
   "contributors": ["arcbtc"]
 }

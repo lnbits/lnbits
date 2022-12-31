@@ -1,6 +1,6 @@
 {
   "name": "Subdomains",
   "short_description": "Sell subdomains of your domain",
-  "icon": "domain",
+  "tile": "/cashu/static/image/tile.png",
   "contributors": ["grmkris"]
 }

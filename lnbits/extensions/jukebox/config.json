@@ -1,6 +1,6 @@
 {
   "name": "Spotify Jukebox",
   "short_description": "Spotify jukebox middleware",
-  "icon": "radio",
+  "tile": "/cashu/static/image/tile.png",
   "contributors": ["benarc"]
 }
