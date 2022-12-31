@@ -6,7 +6,7 @@ from loguru import logger
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
-from lnbits.core.services import check_transaction_status
+from lnbits.core.services import check_transaction_status, fee_reserve
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
@@ -36,8 +36,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     if auto_swap:
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
+            reserve = fee_reserve(wallet.balance_msat) / 1000
             balance = wallet.balance_msat / 1000
-            amount = balance - auto_swap.balance
+            amount = balance - auto_swap.balance - reserve
             if amount >= auto_swap.amount:
                 new_swap = await create_reverse_submarine_swap(
                     CreateReverseSubmarineSwap(
@@ -62,17 +63,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         if swap_id:
             swap = await get_submarine_swap(swap_id)
             if swap:
-                logger.info(
-                    f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
-                )
                 await update_swap_status(swap_id, "complete")
-            # TODO: should be able to attach to sent invoice
-            # reverse_swap = await get_reverse_submarine_swap(swap_id)
-            # if reverse_swap:
-            #     logger.info(
-            #         f"Boltz - lightning invoice is paid, reverse swap completed. swap_id: {swap_id}"
-            #     )
-            #     await update_swap_status(swap_id, "complete")
 
 
 """

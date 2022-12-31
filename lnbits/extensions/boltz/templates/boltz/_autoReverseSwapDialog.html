@@ -15,12 +15,12 @@
         filled
         dense
         emit-value
-        label="Balance kept: min 100"
+        label="Balance to kept + fee_reserve"
         v-model="autoReverseSubmarineSwapDialog.data.balance"
         type="number"
       >
         <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-          mininum balance kept in wallet after a swap. min: 100 (fees/reserve)
+          mininum balance kept in wallet after a swap + the fee_reserve
         </q-tooltip>
       </q-input>
       <q-input
