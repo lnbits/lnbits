@@ -1,4 +1,3 @@
-import asyncio
 from http import HTTPStatus
 from typing import List
 
@@ -6,7 +5,7 @@ from fastapi import Depends, Query, status
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import settings
@@ -18,6 +17,7 @@ from .crud import (
     create_submarine_swap,
     delete_auto_reverse_submarine_swap,
     get_auto_reverse_submarine_swaps,
+    get_auto_reverse_submarine_swap_by_wallet,
     get_pending_reverse_submarine_swaps,
     get_pending_submarine_swaps,
     get_reverse_submarine_swap,
@@ -133,11 +133,18 @@ async def api_submarineswap_refund(swap_id: str):
     response_model=SubmarineSwap,
     dependencies=[Depends(require_admin_key)],
     responses={
-        405: {"description": "not allowed method, insufficient balance"},
+        405: {"description": "auto reverse swap is active, a swap would immediatly be swapped out again."},
         500: {"description": "boltz error"},
     },
 )
 async def api_submarineswap_create(data: CreateSubmarineSwap):
+
+    auto_swap = await get_auto_reverse_submarine_swap_by_wallet(data.wallet)
+    if auto_swap:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="auto reverse swap is active, a swap would immediatly be swapped out again."
+        )
+
     client = create_boltz_client()
     swap_id = urlsafe_short_hash()
     payment_hash, payment_request = await create_invoice(
@@ -237,8 +244,18 @@ async def api_auto_reverse_submarineswap(
     response_description="create auto reverse swap",
     response_model=AutoReverseSubmarineSwap,
     dependencies=[Depends(require_admin_key)],
+    responses={
+        405: {"description": "auto reverse swap is active, only 1 swap per wallet possible."},
+    },
 )
 async def api_auto_reverse_submarineswap_create(data: CreateAutoReverseSubmarineSwap):
+
+    auto_swap = await get_auto_reverse_submarine_swap_by_wallet(data.wallet)
+    if auto_swap:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="auto reverse swap is active, only 1 swap per wallet possible."
+        )
+
     swap = await create_auto_reverse_submarine_swap(data)
     return swap.dict() if swap else None
 
