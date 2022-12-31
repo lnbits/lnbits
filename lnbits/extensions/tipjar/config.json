@@ -1,6 +1,6 @@
 {
     "name": "Tip Jar",
     "short_description": "Accept Bitcoin donations, with messages attached!",
-    "tile": "/cashu/static/image/tile.png",
+	"tile": "./tipjar/static/image/tipjar.png",
     "contributors": ["Fittiboy"]
 }

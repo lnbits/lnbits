@@ -1,6 +1,6 @@
 {
     "name": "User Manager",
     "short_description": "Generate users and wallets",
-    "tile": "/cashu/static/image/tile.png",
+	"tile": "./usermanager/static/image/usermanager.png",
     "contributors": ["benarc"]
 }

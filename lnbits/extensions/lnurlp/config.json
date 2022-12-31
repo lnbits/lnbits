@@ -1,7 +1,7 @@
 {
   "name": "LNURLp",
   "short_description": "Make reusable LNURL pay links",
-  "tile": "/cashu/static/image/tile.png",
+	"tile": "./lnurlp/static/image/lnurl-pay.png",
   "contributors": [
     "arcbtc",
     "eillarra",

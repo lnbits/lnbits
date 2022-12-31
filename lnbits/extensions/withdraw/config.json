@@ -1,6 +1,6 @@
 {
   "name": "LNURLw",
   "short_description": "Make LNURL withdraw links",
-  "tile": "/cashu/static/image/tile.png",
+	"tile": "./withdraw/static/image/lnurl-withdraw.png",
   "contributors": ["arcbtc", "eillarra"]
 }

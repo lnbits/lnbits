@@ -19,6 +19,7 @@ lnaddress_static_files = [
     }
 ]
 
+
 def lnaddress_renderer():
     return template_renderer(["lnbits/extensions/lnaddress/templates"])
 
