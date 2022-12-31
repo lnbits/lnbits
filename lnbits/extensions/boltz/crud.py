@@ -1,9 +1,11 @@
+import asyncio
 import time
-from typing import List, Optional, Union
+from typing import Awaitable, List, Optional, Union
 
-from boltz_client.boltz import BoltzReverseSwapResponse, BoltzSwapResponse
+from boltz_client.boltz import BoltzSwapResponse
 from loguru import logger
 
+from lnbits.core.services import pay_invoice
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -15,6 +17,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
+from .utils import create_boltz_client
 
 
 async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[SubmarineSwap]:
@@ -89,7 +92,7 @@ async def create_submarine_swap(
             swap_id,
             data.wallet,
             payment_hash,
-            "created",
+            "pending",
             swap.id,
             refund_privkey_wif,
             data.refund_address,
@@ -102,10 +105,6 @@ async def create_submarine_swap(
         ),
     )
     return await get_submarine_swap(swap_id)
-
-
-async def delete_submarine_swap(swap_id):
-    await db.execute("DELETE FROM boltz.submarineswap WHERE id = ?", (swap_id,))
 
 
 async def get_reverse_submarine_swaps(
@@ -154,17 +153,19 @@ async def get_reverse_submarine_swap(swap_id) -> Optional[ReverseSubmarineSwap]:
 
 
 async def create_reverse_submarine_swap(
-    swap: BoltzReverseSwapResponse,
     data: CreateReverseSubmarineSwap,
-    swap_id: str,
-    claim_privkey_wif: str,
-    preimage_hex: str,
 ) -> ReverseSubmarineSwap:
+
+    client = create_boltz_client()
+    claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
+        amount=data.amount
+    )
+    swap_id = urlsafe_short_hash()
 
     reverse_swap = ReverseSubmarineSwap(
         id=swap_id,
         wallet=data.wallet,
-        status="created",
+        status="pending",
         boltz_id=swap.id,
         instant_settlement=data.instant_settlement,
         preimage=preimage_hex,
@@ -216,7 +217,46 @@ async def create_reverse_submarine_swap(
             reverse_swap.amount,
         ),
     )
+
+    claim_task = asyncio.create_task(
+        client.claim_reverse_swap(
+            privkey_wif=claim_privkey_wif,
+            preimage_hex=preimage_hex,
+            lockup_address=swap.lockupAddress,
+            receive_address=data.onchain_address,
+            redeem_script_hex=swap.redeemScript,
+        )
+    )
+
+    pay_task = pay_invoice_and_update_status(
+        swap_id,
+        claim_task,
+        pay_invoice(
+            wallet_id=data.wallet,
+            payment_request=swap.invoice,
+            description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
+            extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
+        ),
+    )
+
+    asyncio.gather(claim_task, pay_task)
+
     return reverse_swap
+
+
+def pay_invoice_and_update_status(
+    swap_id: str, wstask: asyncio.Task, awaitable: Awaitable
+) -> asyncio.Task:
+    async def _pay_invoice(awaitable):
+        try:
+            awaited = await awaitable
+            await update_swap_status(swap_id, "complete")
+            return awaited
+        except:
+            wstask.cancel()
+            await update_swap_status(swap_id, "failed")
+
+    return asyncio.create_task(_pay_invoice(awaitable))
 
 
 async def get_auto_reverse_submarine_swaps(
@@ -243,6 +283,15 @@ async def get_auto_reverse_submarine_swap(
     return AutoReverseSubmarineSwap(**row) if row else None
 
 
+async def get_auto_reverse_submarine_swap_by_wallet(
+    wallet_id,
+) -> Optional[AutoReverseSubmarineSwap]:
+    row = await db.fetchone(
+        "SELECT * FROM boltz.auto_reverse_submarineswap WHERE wallet = ?", (wallet_id,)
+    )
+    return AutoReverseSubmarineSwap(**row) if row else None
+
+
 async def create_auto_reverse_submarine_swap(
     swap: CreateAutoReverseSubmarineSwap,
 ) -> Optional[AutoReverseSubmarineSwap]:
@@ -253,23 +302,29 @@ async def create_auto_reverse_submarine_swap(
         INSERT INTO boltz.auto_reverse_submarineswap (
             id,
             wallet,
-            status,
+            onchain_address,
             instant_settlement,
-            threshold,
+            balance,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             swap_id,
             swap.wallet,
-            "created",
+            swap.onchain_address,
             swap.instant_settlement,
-            swap.threshold,
+            swap.balance,
             swap.amount,
         ),
     )
     return await get_auto_reverse_submarine_swap(swap_id)
+
+
+async def delete_auto_reverse_submarine_swap(swap_id):
+    await db.execute(
+        "DELETE FROM boltz.auto_reverse_submarineswap WHERE id = ?", (swap_id,)
+    )
 
 
 async def update_swap_status(swap_id: str, status: str):

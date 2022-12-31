@@ -1,13 +1,13 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md">
-  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+  <div class="col-12 col-md-8 q-gutter-y-md">
     {% include "boltz/_buttons.html" %} {% include
     "boltz/_submarineSwapList.html" %} {% include
     "boltz/_reverseSubmarineSwapList.html" %} {% include
     "boltz/_autoReverseSwapList.html" %}
   </div>
-  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+  <div class="col-12 col-md-4 q-gutter-y-md">
     {% include "boltz/_api_docs.html" %}
   </div>
   {% include "boltz/_submarineSwapDialog.html" %} {% include
@@ -43,6 +43,7 @@
         autoReverseSubmarineSwapDialog: {
           show: false,
           data: {
+            balance: 100,
             instant_settlement: true
           }
         },
@@ -121,28 +122,22 @@
               }
             },
             {
-              name: 'status',
+              name: 'balance',
               align: 'left',
-              label: 'status',
-              field: 'status'
+              label: 'balance',
+              field: 'balance'
             },
             {
-              name: 'boltz_id',
+              name: 'amount',
               align: 'left',
-              label: 'boltz id',
-              field: 'boltz_id'
+              label: 'amount',
+              field: 'amount'
             },
             {
-              name: 'onchain_amount',
+              name: 'onchain_address',
               align: 'left',
-              label: 'onchain amount',
-              field: 'onchain_amount'
-            },
-            {
-              name: 'timeout_block_height',
-              align: 'left',
-              label: 'timeout block height',
-              field: 'timeout_block_height'
+              label: 'onchain_address',
+              field: 'onchain_address'
             }
           ],
           pagination: {
@@ -311,6 +306,7 @@
             /^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/
           ) !== 0 ||
           data.wallet == null ||
+          data.balance < 100 ||
           data.amount < limits.min ||
           data.amount > limits.max
         )
@@ -467,6 +463,12 @@
           this.reverseSubmarineSwaps
         )
       },
+      exportAutoReverseSubmarineSwapCSV() {
+        LNbits.utils.exportCSV(
+          this.autoReverseSubmarineSwapTable.columns,
+          this.autoReverseSubmarineSwaps
+        )
+      },
       createSubmarineSwap(wallet, data) {
         LNbits.api
           .request(
@@ -513,6 +515,24 @@
             this.resetAutoReverseSubmarineSwapDialog()
           })
           .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteAutoReverseSwap(swap_id) {
+        LNbits.api
+          .request(
+            'DELETE',
+            '/boltz/api/v1/swap/reverse/auto/' + swap_id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(res => {
+            let i = this.autoReverseSubmarineSwaps.findIndex(
+              swap => swap.id === swap_id
+            )
+            this.autoReverseSubmarineSwaps.splice(i, 1)
+          })
+          .catch(error => {
+            console.log(error)
             LNbits.utils.notifyApiError(error)
           })
       },

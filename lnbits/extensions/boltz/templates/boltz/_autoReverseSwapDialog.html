@@ -15,6 +15,18 @@
         filled
         dense
         emit-value
+        label="Balance kept: min 100"
+        v-model="autoReverseSubmarineSwapDialog.data.balance"
+        type="number"
+      >
+        <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+          mininum balance kept in wallet after a swap. min: 100 (fees/reserve)
+        </q-tooltip>
+      </q-input>
+      <q-input
+        filled
+        dense
+        emit-value
         :label="amountLabel()"
         v-model.trim="autoReverseSubmarineSwapDialog.data.amount"
         type="number"
@@ -53,7 +65,7 @@
           v-else
           unelevated
           color="primary"
-          :disable="disableReverseSubmarineSwapDialog()"
+          :disable="disableAutoReverseSubmarineSwapDialog()"
           type="submit"
           label="Create Auto Reverse Swap (Out)"
         ></q-btn>

@@ -16,6 +16,7 @@ from .crud import (
     create_auto_reverse_submarine_swap,
     create_reverse_submarine_swap,
     create_submarine_swap,
+    delete_auto_reverse_submarine_swap,
     get_auto_reverse_submarine_swaps,
     get_pending_reverse_submarine_swaps,
     get_pending_submarine_swaps,
@@ -70,18 +71,6 @@ async def api_submarineswap(
     if all_wallets:
         user = await get_user(g.wallet.user)
         wallet_ids = user.wallet_ids if user else []
-
-    # client = create_boltz_client()
-    # for swap in await get_pending_submarine_swaps(wallet_ids):
-    #     try:
-    #         swap_status = client.swap_status(swap.boltz_id)
-    #     # if swap_status.hit_timeout:
-    #     #     if not swap_status.has_lockup:
-    #     #         logger.warning(
-    #     #             f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
-    #     #         )
-    #     #         await update_swap_status(swap.id, "timeout")
-
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
 
@@ -212,35 +201,7 @@ async def api_reverse_submarineswap_create(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
 
-    client = create_boltz_client()
-    claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
-        amount=data.amount
-    )
-
-    claim_task = asyncio.create_task(
-        client.claim_reverse_swap(
-            privkey_wif=claim_privkey_wif,
-            preimage_hex=preimage_hex,
-            lockup_address=swap.lockupAddress,
-            receive_address=data.onchain_address,
-            redeem_script_hex=swap.redeemScript,
-        )
-    )
-
-    swap_id = urlsafe_short_hash()
-    pay_task = asyncio.create_task(
-        pay_invoice(
-            wallet_id=data.wallet,
-            payment_request=swap.invoice,
-            description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
-            extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
-        )
-    )
-    asyncio.gather(claim_task, pay_task)
-
-    return await create_reverse_submarine_swap(
-        swap, data, swap_id, claim_privkey_wif, preimage_hex
-    )
+    return await create_reverse_submarine_swap(data)
 
 
 @boltz_ext.get(
@@ -280,6 +241,21 @@ async def api_auto_reverse_submarineswap(
 async def api_auto_reverse_submarineswap_create(data: CreateAutoReverseSubmarineSwap):
     swap = await create_auto_reverse_submarine_swap(data)
     return swap.dict() if swap else None
+
+
+@boltz_ext.delete(
+    "/api/v1/swap/reverse/auto/{swap_id}",
+    name=f"boltz.delete /swap/reverse/auto",
+    summary="delete a auto reverse submarine swap",
+    description="""
+        This endpoint deletes a auto reverse submarine swap
+    """,
+    response_description="delete auto reverse swap",
+    dependencies=[Depends(require_admin_key)],
+)
+async def api_auto_reverse_submarineswap_delete(swap_id: str):
+    await delete_auto_reverse_submarine_swap(swap_id)
+    return "OK"
 
 
 @boltz_ext.post(

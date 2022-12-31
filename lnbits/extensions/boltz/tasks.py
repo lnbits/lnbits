@@ -4,19 +4,76 @@ from boltz_client.boltz import BoltzNotFoundException, BoltzSwapStatusException
 from boltz_client.mempool import MempoolBlockHeightException
 from loguru import logger
 
+from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
 from lnbits.core.services import check_transaction_status
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import (
+    create_reverse_submarine_swap,
     get_all_pending_reverse_submarine_swaps,
     get_all_pending_submarine_swaps,
-    get_reverse_submarine_swap,
+    get_auto_reverse_submarine_swap_by_wallet,
     get_submarine_swap,
     update_swap_status,
 )
+from .models import CreateReverseSubmarineSwap
 from .utils import create_boltz_client
+
+
+async def wait_for_paid_invoices():
+    invoice_queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue, get_current_extension_name())
+
+    while True:
+        payment = await invoice_queue.get()
+        await on_invoice_paid(payment)
+
+
+async def on_invoice_paid(payment: Payment) -> None:
+    auto_swap = await get_auto_reverse_submarine_swap_by_wallet(payment.wallet_id)
+    if auto_swap:
+        wallet = await get_wallet(payment.wallet_id)
+        if wallet:
+            balance = wallet.balance_msat / 1000
+            amount = balance - auto_swap.balance
+            if amount >= auto_swap.amount:
+                new_swap = await create_reverse_submarine_swap(
+                    CreateReverseSubmarineSwap(
+                        wallet=auto_swap.wallet,
+                        amount=int(amount),
+                        instant_settlement=auto_swap.instant_settlement,
+                        onchain_address=auto_swap.onchain_address,
+                    )
+                )
+                logger.info(
+                    f"Boltz: auto reverse swap created with amount: {amount}, boltz_id: {new_swap.boltz_id}"
+                )
+
+    if payment.extra and "boltz" != payment.extra.get("tag"):
+        # not a boltz invoice
+        return
+
+    await payment.set_pending(False)
+
+    if payment.extra:
+        swap_id = payment.extra.get("swap_id")
+        if swap_id:
+            swap = await get_submarine_swap(swap_id)
+            if swap:
+                logger.info(
+                    f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
+                )
+                await update_swap_status(swap_id, "complete")
+            # TODO: should be able to attach to sent invoice
+            # reverse_swap = await get_reverse_submarine_swap(swap_id)
+            # if reverse_swap:
+            #     logger.info(
+            #         f"Boltz - lightning invoice is paid, reverse swap completed. swap_id: {swap_id}"
+            #     )
+            #     await update_swap_status(swap_id, "complete")
+
 
 """
 testcases for boltz startup
@@ -116,35 +173,3 @@ async def check_for_pending_swaps():
                 logger.error(
                     f"Boltz - unhandled exception, reverse swap: {reverse_swap.id} - {str(exc)}"
                 )
-
-
-async def wait_for_paid_invoices():
-    invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue, get_current_extension_name())
-
-    while True:
-        payment = await invoice_queue.get()
-        await on_invoice_paid(payment)
-
-
-async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra and "boltz" != payment.extra.get("tag"):
-        # not a boltz invoice
-        return
-
-    await payment.set_pending(False)
-    if payment.extra:
-        swap_id = payment.extra.get("swap_id")
-        if swap_id:
-            swap = await get_submarine_swap(swap_id)
-            if swap:
-                logger.info(
-                    f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
-                )
-                await update_swap_status(swap_id, "complete")
-            reverse_swap = await get_reverse_submarine_swap(swap_id)
-            if reverse_swap:
-                logger.info(
-                    f"Boltz - lightning invoice is paid, reverse swap completed. swap_id: {swap_id}"
-                )
-                await update_swap_status(swap_id, "complete")

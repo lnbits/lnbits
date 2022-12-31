@@ -54,9 +54,8 @@ async def m002_auto_swaps(db):
             wallet TEXT NOT NULL,
             onchain_address TEXT NOT NULL,
             amount INT NOT NULL,
-            threshold INT NOT NULL,
+            balance INT NOT NULL,
             instant_settlement BOOLEAN NOT NULL,
-            status TEXT NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
         + """

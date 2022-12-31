@@ -54,16 +54,15 @@ class AutoReverseSubmarineSwap(BaseModel):
     id: str
     wallet: str
     amount: int
-    threshold: int
+    balance: int
     onchain_address: str
     instant_settlement: bool
     time: int
-    status: str
 
 
 class CreateAutoReverseSubmarineSwap(BaseModel):
     wallet: str = Query(...)
     amount: int = Query(...)
-    threshold: int = Query(...)
+    balance: int = Query(0)
     instant_settlement: bool = Query(...)
     onchain_address: str = Query(...)
