@@ -18,8 +18,6 @@ from .crud import (
     delete_auto_reverse_submarine_swap,
     get_auto_reverse_submarine_swap_by_wallet,
     get_auto_reverse_submarine_swaps,
-    get_pending_reverse_submarine_swaps,
-    get_pending_submarine_swaps,
     get_reverse_submarine_swap,
     get_reverse_submarine_swaps,
     get_submarine_swap,
@@ -305,32 +303,6 @@ async def api_swap_status(swap_id: str):
 
     client = create_boltz_client()
     status = client.swap_status(swap.boltz_id)
-    return status
-
-
-@boltz_ext.post(
-    "/api/v1/swap/check",
-    name=f"boltz.swap_check",
-    summary="list all pending swaps",
-    description="""
-        This endpoint gives you 2 lists of pending swaps and reverse swaps.
-    """,
-    response_description="list of pending swaps",
-)
-async def api_check_swaps(
-    g: WalletTypeInfo = Depends(require_admin_key),
-    all_wallets: bool = Query(False),
-) -> List:
-    wallet_ids = [g.wallet.id]
-    if all_wallets:
-        user = await get_user(g.wallet.user)
-        wallet_ids = user.wallet_ids if user else []
-    status = []
-    client = create_boltz_client()
-    for swap in await get_pending_submarine_swaps(wallet_ids):
-        status.append(client.swap_status(swap.boltz_id))
-    for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
-        status.append(client.swap_status(reverseswap.boltz_id))
     return status
 
 

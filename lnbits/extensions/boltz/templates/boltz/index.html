@@ -13,8 +13,7 @@
   {% include "boltz/_submarineSwapDialog.html" %} {% include
   "boltz/_reverseSubmarineSwapDialog.html" %} {% include
   "boltz/_autoReverseSwapDialog.html" %} {% include "boltz/_qrDialog.html" %} {%
-  include "boltz/_statusDialog.html" %} {% include "boltz/_checkSwapDialog.html"
-  %}
+  include "boltz/_statusDialog.html" %}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -52,10 +51,6 @@
           data: {}
         },
         statusDialog: {
-          show: false,
-          data: {}
-        },
-        checkSwapDialog: {
           show: false,
           data: {}
         },
@@ -406,12 +401,6 @@
           data: {}
         }
       },
-      resetAllStatusDialog() {
-        this.checkSwapDialog = {
-          show: false,
-          data: {}
-        }
-      },
       resetSubmarineSwapDialog() {
         this.submarineSwapDialog = {
           show: false,
@@ -594,25 +583,6 @@
           .request('GET', '/boltz/api/v1/swap/boltz')
           .then(res => {
             this.boltzConfig = res.data
-          })
-          .catch(error => {
-            console.log('error', error)
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      checkSwaps() {
-        LNbits.api
-          .request(
-            'POST',
-            '/boltz/api/v1/swap/check',
-            this.g.user.wallets[0].adminkey
-          )
-          .then(res => {
-            this.checkSwapDialog.data = {
-              swaps: _.where(res.data, {reverse: false}),
-              reverse_swaps: _.where(res.data, {reverse: true})
-            }
-            this.checkSwapDialog.show = true
           })
           .catch(error => {
             console.log('error', error)

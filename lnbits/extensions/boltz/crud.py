@@ -33,20 +33,6 @@ async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[Submari
     return [SubmarineSwap(**row) for row in rows]
 
 
-async def get_pending_submarine_swaps(
-    wallet_ids: Union[str, List[str]]
-) -> List[SubmarineSwap]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
-
-    q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(
-        f"SELECT * FROM boltz.submarineswap WHERE wallet IN ({q}) and status='pending' order by time DESC",
-        (*wallet_ids,),
-    )
-    return [SubmarineSwap(**row) for row in rows]
-
-
 async def get_all_pending_submarine_swaps() -> List[SubmarineSwap]:
     rows = await db.fetchall(
         f"SELECT * FROM boltz.submarineswap WHERE status='pending' order by time DESC",
@@ -116,21 +102,6 @@ async def get_reverse_submarine_swaps(
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"SELECT * FROM boltz.reverse_submarineswap WHERE wallet IN ({q}) order by time DESC",
-        (*wallet_ids,),
-    )
-
-    return [ReverseSubmarineSwap(**row) for row in rows]
-
-
-async def get_pending_reverse_submarine_swaps(
-    wallet_ids: Union[str, List[str]]
-) -> List[ReverseSubmarineSwap]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
-
-    q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(
-        f"SELECT * FROM boltz.reverse_submarineswap WHERE wallet IN ({q}) and status='pending' order by time DESC",
         (*wallet_ids,),
     )
 
