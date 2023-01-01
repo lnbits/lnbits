@@ -1,6 +1,6 @@
 {
     "name": "User Manager",
     "short_description": "Generate users and wallets",
-	"tile": "./usermanager/static/image/usermanager.png",
+	"tile": "/usermanager/static/image/usermanager.png",
     "contributors": ["benarc"]
 }

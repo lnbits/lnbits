@@ -1,7 +1,7 @@
 {
   "name": "Cashu",
   "short_description": "Ecash mint and wallet",
-  "tile": "./cashu/static/image/cashu.png",
+  "tile": "/cashu/static/image/cashu.png",
   "contributors": ["calle", "vlad", "arcbtc"],
   "hidden": false
 }

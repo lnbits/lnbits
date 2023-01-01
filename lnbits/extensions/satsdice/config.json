@@ -1,6 +1,6 @@
 {
   "name": "Sats Dice",
   "short_description": "LNURL Satoshi dice",
-	"tile": "./satsdice/static/image/satsdice.png",
+	"tile": "/satsdice/static/image/satsdice.png",
   "contributors": ["arcbtc"]
 }

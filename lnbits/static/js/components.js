@@ -119,16 +119,14 @@ Vue.component('lnbits-extension-list', {
         tag="a" :href="[extension.url, '?usr=', user.id].join('')">
         <q-item-section side>
           <q-avatar size="md">
-
-              <q-img
-          :src="extension.tile"
-          style="max-width:20px"
-        ></q-img>
-
+            <q-img
+              :src="extension.tile"
+              style="max-width:20px"
+            ></q-img>
           </q-avatar>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1">{{ extension.name }}</q-item-label>
+          <q-item-label lines="1">{{ extension.name }} </q-item-label>
         </q-item-section>
         <q-item-section side v-show="extension.isActive">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>

@@ -1,6 +1,6 @@
 {
   "name": "Scrub",
   "short_description": "Pass payments to LNURLp/LNaddress",
-	"tile": "./scrub/static/image/scrub.png",
+	"tile": "/scrub/static/image/scrub.png",
   "contributors": ["arcbtc", "talvasconcelos"]
 }
