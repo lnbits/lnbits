@@ -70,16 +70,14 @@ async def on_invoice_paid(payment: Payment) -> None:
 testcases for boltz startup
 A. normal swaps
   1. test: create -> kill -> start -> startup invoice listeners -> pay onchain funds -> should complete
-  2. test: create -> kill -> pay onchain funds -> start -> startup check  -> should complete
+  2. test: create -> kill -> pay onchain funds -> mine block -> start -> startup check  -> should complete
   3. test: create -> kill -> mine blocks and hit timeout -> start -> should go timeout/failed
   4. test: create -> kill -> pay to less onchain funds -> mine blocks hit timeout -> start lnbits -> should be refunded
 
 B. reverse swaps
   1. test: create instant -> kill -> boltz does lockup -> not confirmed -> start lnbits -> should claim/complete
-  2. test: create instant -> kill -> no lockup -> start lnbits -> should start onchain listener -> boltz does lockup -> should claim/complete (difficult to test)
-  3. test: create -> kill -> boltz does lockup -> not confirmed -> start lnbits -> should start tx listener -> after confirmation -> should claim/complete
-  4. test: create -> kill -> boltz does lockup -> confirmed -> start lnbits -> should claim/complete
-  5. test: create -> kill -> boltz does lockup -> hit timeout -> boltz refunds -> start -> should timeout
+  2. test: create -> kill -> boltz does lockup -> not confirmed -> start lnbits -> mine blocks -> should claim/complete
+  3. test: create -> kill -> boltz does lockup -> confirmed -> start lnbits -> should claim/complete
 """
 
 
@@ -100,7 +98,6 @@ async def check_for_pending_swaps():
         logger.debug(f"Boltz - {len(swaps)} pending swaps")
         for swap in swaps:
             try:
-                swap_status = client.swap_status(swap.boltz_id)
                 payment_status = await check_transaction_status(
                     swap.wallet, swap.payment_hash
                 )
@@ -110,28 +107,28 @@ async def check_for_pending_swaps():
                     )
                     await update_swap_status(swap.id, "complete")
                 else:
-                    logger.debug(f"Boltz - refunding swap: {swap.id}...")
                     try:
-                        await client.refund_swap(
-                            privkey_wif=swap.refund_privkey,
-                            lockup_address=swap.address,
-                            receive_address=swap.refund_address,
-                            redeem_script_hex=swap.redeem_script,
-                            timeout_block_height=swap.timeout_block_height,
-                        )
-                        await update_swap_status(swap.id, "refunded")
-                    except MempoolBlockHeightException as exc:
-                        logger.error(
-                            f"Boltz - tried to refund swap: {swap.id}, but has not reached the timeout."
-                        )
-
-            except BoltzSwapStatusException as exc:
-                logger.debug(f"Boltz - swap_status: {str(exc)}")
-                await update_swap_status(swap.id, "failed")
-            # should only happen while development when regtest is reset
+                        _ = client.swap_status(swap.id)
+                    except:
+                        txs = client.mempool.get_txs_from_address(swap.address)
+                        if len(txs) == 0:
+                            await update_swap_status(swap.id, "timeout")
+                        else:
+                            await client.refund_swap(
+                                privkey_wif=swap.refund_privkey,
+                                lockup_address=swap.address,
+                                receive_address=swap.refund_address,
+                                redeem_script_hex=swap.redeem_script,
+                                timeout_block_height=swap.timeout_block_height,
+                            )
+                            await update_swap_status(swap.id, "refunded")
             except BoltzNotFoundException as exc:
                 logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
                 await update_swap_status(swap.id, "failed")
+            except MempoolBlockHeightException as exc:
+                logger.debug(
+                    f"Boltz - tried to refund swap: {swap.id}, but has not reached the timeout."
+                )
             except Exception as exc:
                 logger.error(
                     f"Boltz - unhandled exception, swap: {swap.id} - {str(exc)}"
@@ -150,6 +147,7 @@ async def check_for_pending_swaps():
                     redeem_script_hex=reverse_swap.redeem_script,
                     zeroconf=reverse_swap.instant_settlement,
                 )
+                await update_swap_status(reverse_swap.id, "complete")
 
             except BoltzSwapStatusException as exc:
                 logger.debug(f"Boltz - swap_status: {str(exc)}")

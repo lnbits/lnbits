@@ -223,6 +223,8 @@ def pay_invoice_and_update_status(
             awaited = await awaitable
             await update_swap_status(swap_id, "complete")
             return awaited
+        except asyncio.exceptions.CancelledError:
+            """lnbits process was exited, do nothing and handle it in startup script"""
         except:
             wstask.cancel()
             await update_swap_status(swap_id, "failed")
