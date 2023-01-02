@@ -3,10 +3,9 @@ import json
 from http import HTTPStatus
 
 import httpx
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse  # type: ignore
+from starlette.responses import HTMLResponse
 
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
@@ -28,7 +27,7 @@ from .models import CreateJukeboxPayment, CreateJukeLinkData
 
 @jukebox_ext.get("/api/v1/jukebox")
 async def api_get_jukeboxs(
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     wallet_user = wallet.wallet.user
 
