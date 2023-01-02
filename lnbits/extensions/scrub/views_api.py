@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Query, Depends
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -40,9 +40,7 @@ async def api_links(
 
 
 @scrub_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_retrieve(
-    link_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_scrub_link(link_id)
 
     if not link:
