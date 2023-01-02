@@ -1,10 +1,7 @@
 from http import HTTPStatus
 
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from loguru import logger
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -38,7 +35,8 @@ async def api_events(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [event.dict() for event in await get_events(wallet_ids)]
 
@@ -92,7 +90,8 @@ async def api_tickets(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [ticket.dict() for ticket in await get_tickets(wallet_ids)]
 
@@ -119,6 +118,11 @@ async def api_ticket_make_ticket(event_id, name, email):
 @events_ext.post("/api/v1/tickets/{event_id}/{payment_hash}")
 async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
     event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Event could not be fetched.",
+        )
     try:
         status = await api_payment(payment_hash)
         if status["paid"]:
@@ -129,7 +133,6 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
                 name=data.name,
                 email=data.email,
             )
-
             if not ticket:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
