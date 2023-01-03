@@ -55,6 +55,9 @@ async def api_link_create_or_update(
 
         data.wallet = wallet.wallet.id
         gerty = await update_gerty(gerty_id, **data.dict())
+        assert gerty, HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist"
+        )
     else:
         gerty = await create_gerty(wallet_id=wallet.wallet.id, data=data)
 
