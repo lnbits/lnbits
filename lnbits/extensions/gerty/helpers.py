@@ -406,7 +406,7 @@ async def get_satoshi():
     quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
     # logger.debug(quote.text)
     if len(quote["text"]) > maxQuoteLength:
-        logger.debug("Quote is too long, getting another")
+        logger.trace("Quote is too long, getting another")
         return await get_satoshi()
     else:
         return quote

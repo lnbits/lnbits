@@ -82,9 +82,9 @@ async def api_gerty_delete(
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-# @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
-# async def api_gerty_satoshi():
-#     return await get_satoshi
+@gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
+async def api_gerty_satoshi():
+    return await get_satoshi
 
 
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
