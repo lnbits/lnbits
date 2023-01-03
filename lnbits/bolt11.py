@@ -1,7 +1,6 @@
 import hashlib
 import re
 import time
-from binascii import unhexlify
 from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
@@ -108,7 +107,7 @@ def decode(pr: str) -> Invoice:
     message = bytearray([ord(c) for c in hrp]) + data.tobytes()
     sig = signature[0:64]
     if invoice.payee:
-        key = VerifyingKey.from_string(unhexlify(invoice.payee), curve=SECP256k1)
+        key = VerifyingKey.from_string(bytes.fromhex(invoice.payee), curve=SECP256k1)
         key.verify(sig, message, hashlib.sha256, sigdecode=sigdecode_string)
     else:
         keys = VerifyingKey.from_public_key_recovery(
@@ -131,7 +130,7 @@ def encode(options):
     if options["timestamp"]:
         addr.date = int(options["timestamp"])
 
-    addr.paymenthash = unhexlify(options["paymenthash"])
+    addr.paymenthash = bytes.fromhex(options["paymenthash"])
 
     if options["description"]:
         addr.tags.append(("d", options["description"]))
@@ -149,8 +148,8 @@ def encode(options):
             while len(splits) >= 5:
                 route.append(
                     (
-                        unhexlify(splits[0]),
-                        unhexlify(splits[1]),
+                        bytes.fromhex(splits[0]),
+                        bytes.fromhex(splits[1]),
                         int(splits[2]),
                         int(splits[3]),
                         int(splits[4]),
@@ -235,7 +234,7 @@ def lnencode(addr, privkey):
         raise ValueError("Must include either 'd' or 'h'")
 
     # We actually sign the hrp, then data (padded to 8 bits with zeroes).
-    privkey = secp256k1.PrivateKey(bytes(unhexlify(privkey)))
+    privkey = secp256k1.PrivateKey(bytes.fromhex(privkey))
     sig = privkey.ecdsa_sign_recoverable(
         bytearray([ord(c) for c in hrp]) + data.tobytes()
     )
@@ -261,7 +260,7 @@ class LnAddr(object):
 
     def __str__(self):
         return "LnAddr[{}, amount={}{} tags=[{}]]".format(
-            hexlify(self.pubkey.serialize()).decode("utf-8"),
+            bytes.hex(self.pubkey.serialize()).decode("utf-8"),
             self.amount,
             self.currency,
             ", ".join([k + "=" + str(v) for k, v in self.tags]),
