@@ -292,7 +292,7 @@ async def api_psbt_create(
 
 
 @watchonly_ext.put("/api/v1/psbt/utxos")
-async def api_psbt_extract_tx(
+async def api_psbt_utxos_tx(
     req: Request, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     """Extract previous unspent transaction outputs (tx_id, vout) from PSBT"""
