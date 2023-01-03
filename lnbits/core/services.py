@@ -1,6 +1,5 @@
 import asyncio
 import json
-from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
@@ -13,12 +12,7 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import (
@@ -308,7 +302,7 @@ async def perform_lnurlauth(
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
-    k1 = unhexlify(parse_qs(cb.query)["k1"][0])
+    k1 = bytes.fromhex(parse_qs(cb.query)["k1"][0])
 
     key = wallet.wallet.lnurlauth_key(cb.netloc)
 

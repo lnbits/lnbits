@@ -37,13 +37,19 @@ from .models import CreateCharge, SatsPayThemes
 async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    charge = await create_charge(user=wallet.wallet.user, data=data)
-    return {
-        **charge.dict(),
-        **{"time_elapsed": charge.time_elapsed},
-        **{"time_left": charge.time_left},
-        **{"paid": charge.paid},
-    }
+    try:
+        charge = await create_charge(user=wallet.wallet.user, data=data)
+        return {
+            **charge.dict(),
+            **{"time_elapsed": charge.time_elapsed},
+            **{"time_left": charge.time_left},
+            **{"paid": charge.paid},
+        }
+    except Exception as ex:
+        logger.debug(f"Satspay error: {str}")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
@@ -142,7 +148,7 @@ async def api_charge_balance(charge_id):
 @satspay_ext.post("/api/v1/themes/{css_id}", dependencies=[Depends(check_admin)])
 async def api_themes_save(
     data: SatsPayThemes,
-    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     css_id: str = Query(...),
 ):
 
@@ -165,7 +171,7 @@ async def api_themes_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @satspay_ext.delete("/api/v1/themes/{theme_id}")
-async def api_charge_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_theme_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     theme = await get_theme(theme_id)
 
     if not theme:

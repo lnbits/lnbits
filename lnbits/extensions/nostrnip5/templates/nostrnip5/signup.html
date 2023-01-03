@@ -1,0 +1,207 @@
+{% extends "public.html" %} {% block toolbar_title %} Verify NIP-5 For {{
+domain.domain }} {% endblock %} {% from "macros.jinja" import window_vars with
+context %} {% block page %}
+<link rel="stylesheet" href="/nostrnip5/static/css/signup.css" />
+<div>
+  <q-card class="q-pa-lg q-pt-lg" v-if="success == true">
+    {% raw %}
+    <p>
+      Success! Your username is now active at {{ successData.local_part }}@{{
+      domain }}. Please add this to your nostr profile accordingly. If you ever
+      need to rotate your keys, you can still keep your identity!
+    </p>
+
+    <h3>Important!</h3>
+    <p>
+      Bookmark this link:
+      <a
+        class="text-secondary"
+        v-bind:href="'/nostrnip5/rotate/' + domain_id + '/' + successData.address_id"
+        target="_blank"
+        >{{ base_url }}nostrnip5/rotate/{{ domain_id }}/{{
+        successData.address_id }}</a
+      >
+    </p>
+    <p>
+      In case you ever need to change your pubkey, you can still keep this NIP-5
+      identity. Just come back to the above linked page to change the pubkey
+      associated to your identity.
+    </p>
+    {% endraw %}
+  </q-card>
+  <q-card class="q-pa-lg q-pt-lg" v-if="success == false">
+    <q-form @submit="createAddress" class="q-gutter-md">
+      <p>
+        You can use this page to get NIP-5 verified on the nostr protocol under
+        the {{ domain.domain }} domain.
+      </p>
+      <p>
+        The current price is
+        <b
+          >{{ "{:0,.2f}".format(domain.amount / 100) }} {{ domain.currency }}</b
+        >
+        for an account (if you do not own the domain, the service provider can
+        disable at any time).
+      </p>
+
+      <p>After submitting payment, your address will be</p>
+
+      <q-input
+        filled
+        dense
+        v-model.trim="formDialog.data.local_part"
+        label="Local Part"
+        placeholder="benarc"
+      >
+        <template v-slot:append>
+          <span style="font-size: 18px">@{{ domain.domain }} </span>
+        </template>
+      </q-input>
+
+      <p>and will be tied to this nostr pubkey</p>
+
+      <q-input
+        filled
+        dense
+        v-model.trim="formDialog.data.pubkey"
+        label="Pub Key"
+        placeholder="abc234"
+        :rules="[ val => val.length = 64 || val.indexOf('npub') === 0 ||'Please enter a hex pubkey' ]"
+      >
+      </q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          unelevated
+          color="primary"
+          :disable="formDialog.data.local_part == null || formDialog.data.pubkey == null"
+          type="submit"
+          >Create Address</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+
+  <q-dialog
+    v-model="qrCodeDialog.show"
+    position="top"
+    @hide="closeQrCodeDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
+      <a
+        class="text-secondary"
+        :href="'lightning:' + qrCodeDialog.data.payment_request"
+      >
+        <q-responsive :ratio="1" class="q-mx-xs">
+          <qrcode
+            :value="qrCodeDialog.data.payment_request"
+            :options="{width: 400}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+      </a>
+      <br />
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText('lightning:' + qrCodeDialog.data.payment_request, 'Invoice copied to clipboard!')"
+        >Copy Invoice</q-btn
+      >
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        base_url: '{{ request.base_url }}',
+        domain: '{{ domain.domain }}',
+        domain_id: '{{ domain_id }}',
+        wallet: '{{ domain.wallet }}',
+        currency: '{{ domain.currency }}',
+        amount: '{{ domain.amount }}',
+        success: false,
+        successData: {
+          local_part: null,
+          address_id: null
+        },
+        qrCodeDialog: {
+          data: {
+            payment_request: null
+          },
+          show: false
+        },
+        formDialog: {
+          data: {
+            local_part: null,
+            pubkey: null
+          }
+        },
+        urlDialog: {
+          show: false
+        }
+      }
+    },
+    methods: {
+      closeQrCodeDialog: function () {
+        this.qrCodeDialog.show = false
+      },
+      createAddress: function () {
+        var self = this
+        var qrCodeDialog = this.qrCodeDialog
+        var formDialog = this.formDialog
+        formDialog.data.domain_id = this.domain_id
+        var localPart = formDialog.data.local_part
+
+        axios
+          .post(
+            '/nostrnip5/api/v1/domain/' + this.domain_id + '/address',
+            formDialog.data
+          )
+          .then(function (response) {
+            formDialog.data = {}
+
+            qrCodeDialog.data = response.data
+            qrCodeDialog.show = true
+
+            console.log(qrCodeDialog.data)
+
+            qrCodeDialog.dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+
+            qrCodeDialog.paymentChecker = setInterval(function () {
+              axios
+                .get(
+                  '/nostrnip5/api/v1/domain/' +
+                    self.domain_id +
+                    '/payments/' +
+                    response.data.payment_hash
+                )
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(qrCodeDialog.paymentChecker)
+                    qrCodeDialog.dismissMsg()
+                    qrCodeDialog.show = false
+
+                    self.successData.local_part = localPart
+                    self.successData.address_id = qrCodeDialog.data.address_id
+                    self.success = true
+                  }
+                })
+            }, 3000)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}

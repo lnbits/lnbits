@@ -117,7 +117,7 @@ async def print_qr(request: Request, link_id):
 
 
 @withdraw_ext.get("/csv/{link_id}", response_class=HTMLResponse)
-async def print_qr(request: Request, link_id):
+async def csv(request: Request, link_id):
     link = await get_withdraw_link(link_id)
     if not link:
         raise HTTPException(

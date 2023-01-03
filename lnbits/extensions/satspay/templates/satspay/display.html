@@ -191,10 +191,13 @@
                 </div>
               </div>
 
-              <a :href="'lightning:'+charge.payment_request">
+              <a
+                class="text-secondary"
+                :href="'lightning:'+charge.payment_request"
+              >
                 <q-responsive :ratio="1" class="q-mx-md">
                   <qrcode
-                    :value="charge.payment_request"
+                    :value="'lightning:' + charge.payment_request.toUpperCase()"
                     :options="{width: 800}"
                     class="rounded-borders"
                   ></qrcode>
@@ -221,6 +224,7 @@
         <div v-if="charge.timeLeft && !charge.paid" class="row items-center">
           <div class="col text-center">
             <a
+              class="text-secondary"
               style="color: unset"
               :href="'https://' + mempoolHostname + '/address/' + charge.onchainaddress"
               target="_blank"
@@ -269,7 +273,10 @@
                 </div>
               </div>
 
-              <a :href="'bitcoin:'+charge.onchainaddress">
+              <a
+                class="text-secondary"
+                :href="'bitcoin:'+charge.onchainaddress"
+              >
                 <q-responsive :ratio="1" class="q-mx-md">
                   <qrcode
                     :value="charge.onchainaddress"

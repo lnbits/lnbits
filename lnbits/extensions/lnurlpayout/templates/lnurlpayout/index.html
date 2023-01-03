@@ -41,7 +41,10 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                <a v-if="col.label == 'LNURLPay'" @click="copyText(col.value)"
+                <a
+                  class="text-secondary"
+                  v-if="col.label == 'LNURLPay'"
+                  @click="copyText(col.value)"
                   ><q-tooltip>Click to copy LNURL</q-tooltip>{{
                   col.value.substring(0, 40) }}...</a
                 >

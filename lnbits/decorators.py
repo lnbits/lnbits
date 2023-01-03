@@ -236,8 +236,8 @@ async def check_user_exists(usr: UUID4) -> User:
     if (
         len(settings.lnbits_allowed_users) > 0
         and g().user.id not in settings.lnbits_allowed_users
-        and g().user.id != settings.super_user
         and g().user.id not in settings.lnbits_admin_users
+        and g().user.id != settings.super_user
     ):
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."

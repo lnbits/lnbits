@@ -10,7 +10,7 @@
       >
         <q-card-section class="q-pa-none">
           <div class="text-center">
-            <a :href="selectedWallet[type]">
+            <a class="text-secondary" :href="selectedWallet[type]">
               <q-responsive :ratio="1" class="q-mx-sm">
                 <qrcode
                   :value="selectedWallet[type]"

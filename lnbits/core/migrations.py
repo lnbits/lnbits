@@ -224,7 +224,7 @@ async def m007_set_invoice_expiries(db):
             )
         ).fetchall()
         if len(rows):
-            logger.info(f"Mirgraion: Checking expiry of {len(rows)} invoices")
+            logger.info(f"Migration: Checking expiry of {len(rows)} invoices")
         for i, (
             payment_request,
             checking_id,
@@ -238,7 +238,7 @@ async def m007_set_invoice_expiries(db):
                     invoice.date + invoice.expiry
                 )
                 logger.info(
-                    f"Mirgraion: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
                     """
