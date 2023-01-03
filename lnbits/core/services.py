@@ -1,6 +1,5 @@
 import asyncio
 import json
-from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
@@ -303,7 +302,7 @@ async def perform_lnurlauth(
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
-    k1 = unhexlify(parse_qs(cb.query)["k1"][0])
+    k1 = bytes.fromhex(parse_qs(cb.query)["k1"][0])
 
     key = wallet.wallet.lnurlauth_key(cb.netloc)
 

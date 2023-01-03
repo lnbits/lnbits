@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import urllib
-from binascii import unhexlify
 from http import HTTPStatus
 from typing import Dict
 
@@ -19,7 +18,7 @@ def generate_bleskomat_lnurl_signature(
     payload: str, api_key_secret: str, api_key_encoding: str = "hex"
 ):
     if api_key_encoding == "hex":
-        key = unhexlify(api_key_secret)
+        key = bytes.fromhex(api_key_secret)
     elif api_key_encoding == "base64":
         key = base64.b64decode(api_key_secret)
     else:

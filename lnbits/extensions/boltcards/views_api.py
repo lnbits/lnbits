@@ -147,7 +147,7 @@ async def api_hits(
 
 
 @boltcards_ext.get("/api/v1/refunds")
-async def api_hits(
+async def api_refunds(
     g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]

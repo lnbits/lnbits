@@ -8,7 +8,7 @@ from .models import Tip, TipJar, createTipJar
 
 
 async def create_tip(
-    id: int, wallet: str, message: str, name: str, sats: int, tipjar: str
+    id: str, wallet: str, message: str, name: str, sats: int, tipjar: str
 ) -> Tip:
     """Create a new Tip"""
     await db.execute(
@@ -33,11 +33,7 @@ async def create_tip(
 
 async def create_tipjar(data: createTipJar) -> TipJar:
     """Create a new TipJar"""
-
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
-
-    result = await (method)(
+    await db.execute(
         f"""
         INSERT INTO tipjar.TipJars (
             name,
@@ -46,16 +42,11 @@ async def create_tipjar(data: createTipJar) -> TipJar:
             onchain
         )
         VALUES (?, ?, ?, ?)
-        {returning}
         """,
         (data.name, data.wallet, data.webhook, data.onchain),
     )
-    if db.type == SQLITE:
-        tipjar_id = result._result_proxy.lastrowid
-    else:
-        tipjar_id = result[0]
-
-    tipjar = await get_tipjar(tipjar_id)
+    row = await db.fetchone("SELECT * FROM tipjar.TipJars LIMIT 1")
+    tipjar = TipJar(**row)
     assert tipjar
     return tipjar
 

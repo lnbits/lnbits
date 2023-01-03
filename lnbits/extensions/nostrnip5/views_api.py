@@ -1,10 +1,8 @@
 import re
 from http import HTTPStatus
-from typing import Optional
 
 from bech32 import bech32_decode, convertbits
-from fastapi import Query, Request, Response
-from fastapi.params import Depends
+from fastapi import Depends, Query, Response
 from loguru import logger
 from starlette.exceptions import HTTPException
 
@@ -38,7 +36,10 @@ async def api_domains(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        if not user:
+            return []
+        wallet_ids = user.wallet_ids
 
     return [domain.dict() for domain in await get_domains(wallet_ids)]
 
@@ -49,13 +50,20 @@ async def api_addresses(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        if not user:
+            return []
+        wallet_ids = user.wallet_ids
 
     return [address.dict() for address in await get_all_addresses(wallet_ids)]
 
 
-@nostrnip5_ext.get("/api/v1/domain/{domain_id}", status_code=HTTPStatus.OK)
-async def api_invoice(domain_id: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+@nostrnip5_ext.get(
+    "/api/v1/domain/{domain_id}",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(get_key_type)],
+)
+async def api_invoice(domain_id: str):
     domain = await get_domain(domain_id)
     if not domain:
         raise HTTPException(
@@ -104,11 +112,11 @@ async def api_address_delete(
 @nostrnip5_ext.post(
     "/api/v1/domain/{domain_id}/address/{address_id}/activate",
     status_code=HTTPStatus.OK,
+    dependencies=[Depends(require_admin_key)],
 )
 async def api_address_activate(
     domain_id: str,
     address_id: str,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     await activate_address(domain_id, address_id)
 
@@ -126,9 +134,11 @@ async def api_address_rotate(
 ):
 
     if post_data.pubkey.startswith("npub"):
-        hrp, data = bech32_decode(post_data.pubkey)
-        decoded_data = convertbits(data, 5, 8, False)
-        post_data.pubkey = bytes(decoded_data).hex()
+        _, data = bech32_decode(post_data.pubkey)
+        if data:
+            decoded_data = convertbits(data, 5, 8, False)
+            if decoded_data:
+                post_data.pubkey = bytes(decoded_data).hex()
 
     if len(bytes.fromhex(post_data.pubkey)) != 32:
         raise HTTPException(
@@ -173,10 +183,12 @@ async def api_address_create(
             status_code=HTTPStatus.NOT_FOUND, detail="Local part already exists."
         )
 
-    if post_data.pubkey.startswith("npub"):
-        hrp, data = bech32_decode(post_data.pubkey)
-        decoded_data = convertbits(data, 5, 8, False)
-        post_data.pubkey = bytes(decoded_data).hex()
+    if post_data and post_data.pubkey.startswith("npub"):
+        _, data = bech32_decode(post_data.pubkey)
+        if data:
+            decoded_data = convertbits(data, 5, 8, False)
+            if decoded_data:
+                post_data.pubkey = bytes(decoded_data).hex()
 
     if len(bytes.fromhex(post_data.pubkey)) != 32:
         raise HTTPException(
@@ -233,15 +245,17 @@ async def api_get_nostr_json(
     output = {}
 
     for address in addresses:
-        local_part = address.get("local_part").lower()
+        local_part = address.get("local_part")
+        if not local_part:
+            continue
 
         if address.get("active") == False:
             continue
 
-        if name and name.lower() != local_part:
+        if name and name.lower() != local_part.lower():
             continue
 
-        output[local_part] = address.get("pubkey")
+        output[local_part.lower()] = address.get("pubkey")
 
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"

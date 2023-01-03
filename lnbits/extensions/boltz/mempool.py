@@ -1,6 +1,5 @@
 import asyncio
 import json
-from binascii import hexlify
 
 import httpx
 import websockets
@@ -84,7 +83,7 @@ def get_mempool_blockheight() -> int:
 
 
 async def send_onchain_tx(tx: Transaction):
-    raw = hexlify(tx.serialize())
+    raw = bytes.hex(tx.serialize())
     logger.debug(f"Boltz - mempool sending onchain tx...")
     req_wrap(
         "post",

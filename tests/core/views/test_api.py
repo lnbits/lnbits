@@ -1,5 +1,4 @@
 import hashlib
-from binascii import hexlify
 
 import pytest
 import pytest_asyncio

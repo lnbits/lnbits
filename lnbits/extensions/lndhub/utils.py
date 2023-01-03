@@ -1,10 +1,8 @@
-from binascii import unhexlify
-
 from lnbits.bolt11 import Invoice
 
 
 def to_buffer(payment_hash: str):
-    return {"type": "Buffer", "data": [b for b in unhexlify(payment_hash)]}
+    return {"type": "Buffer", "data": [b for b in bytes.fromhex(payment_hash)]}
 
 
 def decoded_as_lndhub(invoice: Invoice):
