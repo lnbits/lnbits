@@ -171,7 +171,7 @@ async def api_themes_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @satspay_ext.delete("/api/v1/themes/{theme_id}")
-async def api_charge_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_theme_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     theme = await get_theme(theme_id)
 
     if not theme:

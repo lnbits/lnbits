@@ -1,5 +1,4 @@
 import asyncio
-import binascii
 import hashlib
 import json
 import time
@@ -142,16 +141,14 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash or data.unhashed_description:
         try:
             description_hash = (
-                binascii.unhexlify(data.description_hash)
-                if data.description_hash
-                else b""
+                bytes.fromhex(data.description_hash) if data.description_hash else b""
             )
             unhashed_description = (
-                binascii.unhexlify(data.unhashed_description)
+                bytes.fromhex(data.unhashed_description)
                 if data.unhashed_description
                 else b""
             )
-        except binascii.Error:
+        except ValueError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="'description_hash' and 'unhashed_description' must be a valid hex strings",

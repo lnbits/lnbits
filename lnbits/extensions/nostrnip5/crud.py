@@ -71,7 +71,7 @@ async def get_all_addresses(wallet_ids: Union[str, List[str]]) -> List[Address]:
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
-        SELECT a.* 
+        SELECT a.*
         FROM nostrnip5.addresses a
         JOIN nostrnip5.domains d ON d.id = a.domain_id
         WHERE d.wallet IN ({q})
@@ -139,7 +139,7 @@ async def delete_domain(domain_id) -> bool:
     return True
 
 
-async def delete_address(address_id) -> bool:
+async def delete_address(address_id):
     await db.execute(
         """
         DELETE FROM nostrnip5.addresses WHERE id = ?

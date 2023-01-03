@@ -1,9 +1,9 @@
 import asyncio
-import json
+
+from loguru import logger
 
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash
-from lnbits.tasks import internal_invoice_queue, register_invoice_listener
+from lnbits.tasks import register_invoice_listener
 
 from .crud import activate_address
 
@@ -18,17 +18,18 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+    if not payment.extra:
+        return
     if payment.extra.get("tag") != "nostrnip5":
-        # not relevant
         return
 
     domain_id = payment.extra.get("domain_id")
     address_id = payment.extra.get("address_id")
 
-    print("Activating NOSTR NIP-05")
-    print(domain_id)
-    print(address_id)
-
-    active = await activate_address(domain_id, address_id)
+    if domain_id and address_id:
+        logger.info("Activating NOSTR NIP-05")
+        logger.info(domain_id)
+        logger.info(address_id)
+        await activate_address(domain_id, address_id)
 
     return
