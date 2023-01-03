@@ -19,7 +19,8 @@ async def api_paywalls(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [paywall.dict() for paywall in await get_paywalls(wallet_ids)]
 
@@ -57,6 +58,7 @@ async def api_paywall_create_invoice(
     data: CreatePaywallInvoice, paywall_id: str = Query(None)
 ):
     paywall = await get_paywall(paywall_id)
+    assert paywall
     if data.amount < paywall.amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -94,7 +96,9 @@ async def api_paywal_check_invoice(
 
     if is_paid:
         wallet = await get_wallet(paywall.wallet)
+        assert wallet
         payment = await wallet.get_payment(payment_hash)
+        assert payment
         await payment.set_pending(False)
 
         return {"paid": True, "url": paywall.url, "remembers": paywall.remembers}

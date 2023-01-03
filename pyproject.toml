@@ -102,7 +102,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/lnurldevice.
     | ^lnbits/extensions/lnurlp.
     | ^lnbits/extensions/offlineshop.
-    | ^lnbits/extensions/paywall.
     | ^lnbits/extensions/satspay.
     | ^lnbits/extensions/splitpayments.
     | ^lnbits/extensions/streamalerts.
