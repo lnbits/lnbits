@@ -946,7 +946,7 @@
       sendZoneFormData: function () {
         var data = {
           countries: String(this.zoneDialog.data.countries),
-          cost: parseInt(this.zoneDialog.data.cost)
+          cost: parseFloat(this.zoneDialog.data.cost)
         }
         if (this.zoneDialog.data.id) {
           data.id = this.zoneDialog.data.id
