@@ -1,20 +1,16 @@
 import asyncio
 import json
-from binascii import hexlify
 
 import httpx
 import websockets
 from embit.transaction import Transaction
 from loguru import logger
 
-from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL, BOLTZ_MEMPOOL_SPACE_URL_WS
+from lnbits.settings import settings
 
 from .utils import req_wrap
 
-logger.trace(f"BOLTZ_MEMPOOL_SPACE_URL: {BOLTZ_MEMPOOL_SPACE_URL}")
-logger.trace(f"BOLTZ_MEMPOOL_SPACE_URL_WS: {BOLTZ_MEMPOOL_SPACE_URL_WS}")
-
-websocket_url = f"{BOLTZ_MEMPOOL_SPACE_URL_WS}/api/v1/ws"
+websocket_url = f"{settings.boltz_mempool_space_url_ws}/api/v1/ws"
 
 
 async def wait_for_websocket_message(send, message_string):
@@ -33,7 +29,7 @@ async def wait_for_websocket_message(send, message_string):
 def get_mempool_tx(address):
     res = req_wrap(
         "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/address/{address}/txs",
+        f"{settings.boltz_mempool_space_url}/api/address/{address}/txs",
         headers={"Content-Type": "text/plain"},
     )
     txs = res.json()
@@ -70,7 +66,7 @@ def get_fee_estimation() -> int:
 def get_mempool_fees() -> int:
     res = req_wrap(
         "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
+        f"{settings.boltz_mempool_space_url}/api/v1/fees/recommended",
         headers={"Content-Type": "text/plain"},
     )
     fees = res.json()
@@ -80,18 +76,18 @@ def get_mempool_fees() -> int:
 def get_mempool_blockheight() -> int:
     res = req_wrap(
         "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/blocks/tip/height",
+        f"{settings.boltz_mempool_space_url}/api/blocks/tip/height",
         headers={"Content-Type": "text/plain"},
     )
     return int(res.text)
 
 
 async def send_onchain_tx(tx: Transaction):
-    raw = hexlify(tx.serialize())
+    raw = bytes.hex(tx.serialize())
     logger.debug(f"Boltz - mempool sending onchain tx...")
     req_wrap(
         "post",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/tx",
+        f"{settings.boltz_mempool_space_url}/api/tx",
         headers={"Content-Type": "text/plain"},
         content=raw,
     )

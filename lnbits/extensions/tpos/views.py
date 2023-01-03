@@ -8,7 +8,7 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.settings import LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE
+from lnbits.settings import settings
 
 from . import tpos_ext, tpos_renderer
 from .crud import get_tpos
@@ -50,12 +50,12 @@ async def manifest(tpos_id: str):
         )
 
     return {
-        "short_name": LNBITS_SITE_TITLE,
-        "name": tpos.name + " - " + LNBITS_SITE_TITLE,
+        "short_name": settings.lnbits_site_title,
+        "name": tpos.name + " - " + settings.lnbits_site_title,
         "icons": [
             {
-                "src": LNBITS_CUSTOM_LOGO
-                if LNBITS_CUSTOM_LOGO
+                "src": settings.lnbits_custom_logo
+                if settings.lnbits_custom_logo
                 else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",
@@ -69,9 +69,9 @@ async def manifest(tpos_id: str):
         "theme_color": "#1F2234",
         "shortcuts": [
             {
-                "name": tpos.name + " - " + LNBITS_SITE_TITLE,
+                "name": tpos.name + " - " + settings.lnbits_site_title,
                 "short_name": tpos.name,
-                "description": tpos.name + " - " + LNBITS_SITE_TITLE,
+                "description": tpos.name + " - " + settings.lnbits_site_title,
                 "url": "/tpos/" + tpos_id,
             }
         ],

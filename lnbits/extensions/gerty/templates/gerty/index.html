@@ -1,0 +1,798 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
+          >New Gerty
+        </q-btn>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Gerty</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="gertys"
+          row-key="id"
+          :columns="gertysTable.columns"
+          :pagination.sync="gertysTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                :class="`col__${col.name} text-truncate elipsis`"
+              >
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="sentiment_satisfied"
+                  color="green"
+                  type="a"
+                  :href="props.row.gerty"
+                  target="_blank"
+                >
+                  <q-tooltip>Launch software Gerty</q-tooltip>
+                </q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="code"
+                  color="pink"
+                  type="a"
+                  :href="props.row.gertyJson"
+                  target="_blank"
+                >
+                  <q-tooltip>View Gerty API</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ (col.name == 'tip_options' && col.value ?
+                JSON.parse(col.value).join(", ") : col.value) }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateformDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteGerty(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row">
+          <div class="col-9">
+            <h6 class="text-subtitle1 q-my-none">
+              {{ SITE_TITLE }} Gerty extension
+            </h6>
+          </div>
+          <div class="col-3">
+            <q-btn
+              flat
+              label="Swagger API"
+              type="a"
+              href="../docs#/gerty"
+            ></q-btn>
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "gerty/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="sendFormDataGerty" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.name"
+          label="Name"
+          placeholder="Son of Gerty"
+        ></q-input>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.fun_satoshi_quotes"
+          val="xs"
+          label="Satoshi Quotes"
+          ><q-tooltip
+            >Displays random quotes from Satoshi</q-tooltip
+          ></q-checkbox
+        >
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
+          val="xs"
+          label="Fiat to BTC price"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.lnbits_wallets_balance"
+          val="xs"
+          label="LNbits"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.dashboard_onchain"
+          val="xs"
+          label="Onchain"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.dashboard_mining"
+          val="xs"
+          label="Mining"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.lightning_dashboard"
+          val="xs"
+          label="Lightning"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.url_checker"
+          val="xs"
+          label="URL Checker"
+        ></q-checkbox>
+        <br />
+        <q-select
+          v-if="formDialog.data.display_preferences.fun_exchange_market_rate"
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.exchange"
+          :options="currencyOptions"
+          label="Exchange rate"
+        ></q-select>
+
+        <q-select
+          v-if="formDialog.data.display_preferences.lnbits_wallets_balance"
+          filled
+          multiple
+          dense
+          emit-value
+          v-model="formDialog.data.lnbits_wallets"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          new-value-mode="add-unique"
+          label="Invoice keys of wallets to watch"
+        >
+          <q-tooltip>Hit enter to add values</q-tooltip>
+        </q-select>
+
+        <q-select
+          v-if="formDialog.data.display_preferences.url_checker"
+          filled
+          multiple
+          dense
+          emit-value
+          v-model="formDialog.data.urls"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          new-value-mode="add-unique"
+          label="Urls to watch."
+        >
+          <q-tooltip>Hit enter to add values</q-tooltip>
+        </q-select>
+
+        <q-toggle
+          label="*Advanced"
+          v-model="toggleStates.advanced"
+          @input="setAdvanced"
+        ></q-toggle>
+        <br />
+        <q-input
+          v-if="toggleStates.advanced"
+          filled
+          dense
+          v-model.trim="formDialog.data.mempool_endpoint"
+          label="Mempool link"
+          class="q-pb-sm"
+        >
+        </q-input>
+        <q-input
+          v-if="toggleStates.advanced"
+          filled
+          dense
+          v-model.trim="formDialog.data.refresh_time"
+          label="Refresh time in seconds"
+          class="q-pb-md"
+        >
+          <q-tooltip
+            >The amount of time in seconds between screen updates
+          </q-tooltip>
+        </q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="formDialog.data.name == null"
+            type="submit"
+            class="q-mr-md"
+            v-if="!formDialog.data.id"
+            >Create Gerty
+          </q-btn>
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="formDialog.data.name == null"
+            type="submit"
+            >Update Gerty
+          </q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel
+          </q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapGerty = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.gerty = ['/gerty/', obj.id].join('')
+    obj.gertyJson = ['/gerty/api/v1/gerty/pages/', obj.id, '/0'].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        toggleStates: {
+          fun: false,
+          onchain: false,
+          mempool: false,
+          mining: false,
+          lightning: false,
+          advanced: false
+        },
+        oldToggleStates: {},
+        gertys: [],
+        currencyOptions: [
+          'USD',
+          'EUR',
+          'GBP',
+          'AED',
+          'AFN',
+          'ALL',
+          'AMD',
+          'ANG',
+          'AOA',
+          'ARS',
+          'AUD',
+          'AWG',
+          'AZN',
+          'BAM',
+          'BBD',
+          'BDT',
+          'BGN',
+          'BHD',
+          'BIF',
+          'BMD',
+          'BND',
+          'BOB',
+          'BRL',
+          'BSD',
+          'BTN',
+          'BWP',
+          'BYN',
+          'BZD',
+          'CAD',
+          'CDF',
+          'CHF',
+          'CLF',
+          'CLP',
+          'CNH',
+          'CNY',
+          'COP',
+          'CRC',
+          'CUC',
+          'CUP',
+          'CVE',
+          'CZK',
+          'DJF',
+          'DKK',
+          'DOP',
+          'DZD',
+          'EGP',
+          'ERN',
+          'ETB',
+          'EUR',
+          'FJD',
+          'FKP',
+          'GBP',
+          'GEL',
+          'GGP',
+          'GHS',
+          'GIP',
+          'GMD',
+          'GNF',
+          'GTQ',
+          'GYD',
+          'HKD',
+          'HNL',
+          'HRK',
+          'HTG',
+          'HUF',
+          'IDR',
+          'ILS',
+          'IMP',
+          'INR',
+          'IQD',
+          'IRR',
+          'IRT',
+          'ISK',
+          'JEP',
+          'JMD',
+          'JOD',
+          'JPY',
+          'KES',
+          'KGS',
+          'KHR',
+          'KMF',
+          'KPW',
+          'KRW',
+          'KWD',
+          'KYD',
+          'KZT',
+          'LAK',
+          'LBP',
+          'LKR',
+          'LRD',
+          'LSL',
+          'LYD',
+          'MAD',
+          'MDL',
+          'MGA',
+          'MKD',
+          'MMK',
+          'MNT',
+          'MOP',
+          'MRO',
+          'MUR',
+          'MVR',
+          'MWK',
+          'MXN',
+          'MYR',
+          'MZN',
+          'NAD',
+          'NGN',
+          'NIO',
+          'NOK',
+          'NPR',
+          'NZD',
+          'OMR',
+          'PAB',
+          'PEN',
+          'PGK',
+          'PHP',
+          'PKR',
+          'PLN',
+          'PYG',
+          'QAR',
+          'RON',
+          'RSD',
+          'RUB',
+          'RWF',
+          'SAR',
+          'SBD',
+          'SCR',
+          'SDG',
+          'SEK',
+          'SGD',
+          'SHP',
+          'SLL',
+          'SOS',
+          'SRD',
+          'SSP',
+          'STD',
+          'SVC',
+          'SYP',
+          'SZL',
+          'THB',
+          'TJS',
+          'TMT',
+          'TND',
+          'TOP',
+          'TRY',
+          'TTD',
+          'TWD',
+          'TZS',
+          'UAH',
+          'UGX',
+          'USD',
+          'UYU',
+          'UZS',
+          'VEF',
+          'VES',
+          'VND',
+          'VUV',
+          'WST',
+          'XAF',
+          'XAG',
+          'XAU',
+          'XCD',
+          'XDR',
+          'XOF',
+          'XPD',
+          'XPF',
+          'XPT',
+          'YER',
+          'ZAR',
+          'ZMW',
+          'ZWL'
+        ],
+        gertysTable: {
+          columns: [
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+            {
+              name: 'exchange',
+              align: 'left',
+              label: 'Exchange',
+              field: 'exchange'
+            },
+            {
+              name: 'mempool_endpoint',
+              align: 'left',
+              label: 'Mempool Endpoint',
+              field: 'mempool_endpoint'
+            },
+            {name: 'id', align: 'left', label: 'Gerty ID', field: 'id'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        formDialog: {
+          show: false,
+          data: {
+            type: 'Mini Gerty',
+            exchange: 'USD',
+            utc_offset: new Date().getTimezoneOffset(),
+            display_preferences: {
+              dashboard: false,
+              fun_satoshi_quotes: false,
+              fun_exchange_market_rate: false,
+              dashboard_onchain: false,
+              mempool_recommended_fees: false,
+              dashboard_mining: false,
+              lightning_dashboard: false,
+              onchain: false,
+              onchain_difficulty_epoch_progress: false,
+              onchain_difficulty_retarget_date: false,
+              onchain_difficulty_blocks_remaining: false,
+              onchain_difficulty_epoch_time_remaining: false,
+              onchain_block_height: false,
+              mempool_tx_count: false,
+              mining_current_hash_rate: false,
+              mining_current_difficulty: false,
+              lnbits_wallets_balance: false,
+              url_checker: false
+            },
+            lnbits_wallets: [],
+            urls: [],
+            mempool_endpoint: 'https://mempool.space',
+            refresh_time: 300
+          }
+        }
+      }
+    },
+    methods: {
+      setAdvanced: function () {
+        self = this
+        self.formDialog.data.mempool_endpoint = 'https://mempool.space'
+        self.formDialog.data.refresh_time = 300
+      },
+      setWallets: function () {
+        self = this
+        if (!self.formDialog.data.display_preferences.lnbits_wallets_balance) {
+          self.formDialog.data.lnbits_wallets = []
+        }
+      },
+      setUrls: function () {
+        self = this
+        if (!self.formDialog.data.display_preferences.url_checker) {
+          self.formDialog.data.urls = []
+        }
+      },
+      setOnchain: function () {
+        self = this
+        self.formDialog.data.display_preferences.onchain_difficulty_epoch_progress =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_retarget_date =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_blocks_remaining = !self
+          .toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_difficulty_epoch_time_remaining =
+          self.toggleStates.onchain
+        self.formDialog.data.display_preferences.onchain_block_height =
+          self.toggleStates.onchain
+      },
+      setMining: function () {
+        self = this
+        self.formDialog.data.display_preferences.mining_current_hash_rate =
+          self.toggleStates.mining
+        self.formDialog.data.display_preferences.mining_current_difficulty =
+          self.toggleStates.mining
+      },
+      closeFormDialog: function () {
+        this.formDialog.data = {
+          utc_offset: 0,
+          lnbits_wallets: [],
+          urls: [],
+          mempool_endpoint: 'https://mempool.space',
+          refresh_time: 300,
+          display_preferences: {}
+        }
+      },
+      getGertys: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/gerty/api/v1/gerty?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.gertys = response.data.map(function (obj) {
+              return mapGerty(obj)
+            })
+          })
+      },
+      updateformDialog: function (formId) {
+        var gerty = _.findWhere(this.gertys, {id: formId})
+        this.formDialog.data.id = gerty.id
+        this.formDialog.data.name = gerty.name
+        this.formDialog.data.type = gerty.type
+        this.formDialog.data.utc_offset = gerty.utc_offset
+        this.formDialog.data.lnbits_wallets = JSON.parse(gerty.lnbits_wallets)
+        this.formDialog.data.urls = JSON.parse(gerty.urls)
+        ;(this.formDialog.data.exchange = gerty.exchange),
+          (this.formDialog.data.mempool_endpoint = gerty.mempool_endpoint),
+          (this.formDialog.data.refresh_time = gerty.refresh_time),
+          (this.formDialog.data.display_preferences = JSON.parse(
+            gerty.display_preferences
+          )),
+          (this.formDialog.show = true)
+      },
+      sendFormDataGerty: function () {
+        if (this.formDialog.data.id) {
+          this.updateGerty(
+            this.g.user.wallets[0].adminkey,
+            this.formDialog.data
+          )
+        } else {
+          this.createGerty(
+            this.g.user.wallets[0].adminkey,
+            this.formDialog.data
+          )
+        }
+      },
+      createGerty: function () {
+        if (
+          this.formDialog.data.display_preferences.dashboard ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.lightning_dashboard ||
+          this.formDialog.data.display_preferences.url_checker
+        ) {
+          this.formDialog.data.type = 'Gerty'
+        }
+        var data = {
+          name: this.formDialog.data.name,
+          utc_offset: this.formDialog.data.utc_offset,
+          type: this.formDialog.data.type,
+          lnbits_wallets: JSON.stringify(this.formDialog.data.lnbits_wallets),
+          urls: JSON.stringify(this.formDialog.data.urls),
+          exchange: this.formDialog.data.exchange,
+          mempool_endpoint: this.formDialog.data.mempool_endpoint,
+          refresh_time: this.formDialog.data.refresh_time,
+          display_preferences: JSON.stringify(
+            this.formDialog.data.display_preferences
+          )
+        }
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/gerty/api/v1/gerty',
+            this.g.user.wallets[0].inkey,
+            data
+          )
+          .then(function (response) {
+            self.formDialog.show = false
+            self.gertys.push(mapGerty(response.data))
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateGerty: function (wallet, data) {
+        var self = this
+        if (
+          this.formDialog.data.display_preferences.dashboard ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.dashboard_onchain ||
+          this.formDialog.data.display_preferences.lightning_dashboard ||
+          this.formDialog.data.display_preferences.url_checker
+        ) {
+          this.formDialog.data.type = 'Gerty'
+        }
+        data.utc_offset = this.formDialog.data.utc_offset
+        data.type = this.formDialog.data.type
+        data.lnbits_wallets = JSON.stringify(
+          this.formDialog.data.lnbits_wallets
+        )
+        data.urls = JSON.stringify(this.formDialog.data.urls)
+        data.display_preferences = JSON.stringify(
+          this.formDialog.data.display_preferences
+        )
+        LNbits.api
+          .request('PUT', '/gerty/api/v1/gerty/' + data.id, wallet, data)
+          .then(function (response) {
+            self.gertys = _.reject(self.gertys, function (obj) {
+              return obj.id == data.id
+            })
+            self.formDialog.show = false
+            self.gertys.push(mapGerty(response.data))
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteGerty: function (gertyId) {
+        var self = this
+
+        var gerty = _.findWhere(self.gertys, {id: gertyId})
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Gerty?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/gerty/api/v1/gerty/' + gertyId,
+                _.findWhere(self.g.user.wallets, {id: gerty.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.gertys = _.reject(self.gertys, function (obj) {
+                  return obj.id == gertyId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportCSV: function () {
+        LNbits.utils.exportCSV(this.gertysTable.columns, this.gertys)
+      }
+    },
+    computed: {
+      isMiniGerty() {
+        return this.formDialog.data.type == 'Mini Gerty'
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getGertys()
+      }
+    },
+    watch: {
+      'formDialog.data.type': {
+        handler(value) {
+          if (value == 'Mini Gerty') {
+            this.formDialog.data.display_preferences.dashboard = false
+            this.formDialog.data.display_preferences.dashboard_onchain = false
+            this.formDialog.data.display_preferences.dashboard_mining = false
+            this.formDialog.data.display_preferences.lightning_dashboard = false
+            this.formDialog.data.display_preferences.fun_satoshi_quotes = false
+            this.formDialog.data.display_preferences.mempool_recommended_fees = false
+            this.formDialog.data.display_preferences.onchain = false
+            this.formDialog.data.display_preferences.url_checker = false
+          }
+        }
+      },
+      toggleStates: {
+        handler(toggleStatesValue) {
+          // Switch all the toggles in each section to the relevant state
+          for (const [toggleKey, toggleValue] of Object.entries(
+            toggleStatesValue
+          )) {
+            if (this.oldToggleStates[toggleKey] !== toggleValue) {
+              for (const [dpKey, dpValue] of Object.entries(
+                this.formDialog.data.display_preferences
+              )) {
+                if (dpKey.indexOf(toggleKey) === 0) {
+                  this.formDialog.data.display_preferences[dpKey] = toggleValue
+                }
+              }
+            }
+          }
+          // This is a weird hack we have to use to get VueJS to persist the previous toggle state between
+          // watches. VueJS passes the old and new values by reference so when comparing objects they
+          // will have the same values unless we do this
+          this.oldToggleStates = JSON.parse(JSON.stringify(toggleStatesValue))
+        },
+        deep: true
+      }
+    }
+  })
+</script>
+{% endblock %} {% block styles %}
+<style>
+  .col__display_preferences {
+    border: 1px solid red;
+  }
+</style>
+{% endblock %}

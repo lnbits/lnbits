@@ -163,6 +163,7 @@
               <q-td auto-width>{{ props.row.name }}</q-td>
               <q-td class="text-center" auto-width>
                 <a
+                  class="text-secondary"
                   target="_blank"
                   :href="'/wallet?usr=' + props.row.user + '&wal=' + props.row.wallet"
                 >
@@ -191,7 +192,7 @@
           </q-select>
         </q-form>
 
-        <a :href="'lightning:' + livestream.lnurl">
+        <a class="text-secondary" :href="'lightning:' + livestream.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
               :value="livestream.lnurl"
@@ -235,10 +236,10 @@
         <p class="text-subtitle1 q-my-none">
           Standalone QR Code for this track
         </p>
-        <a :href="'lightning:' + trackDialog.data.lnurl">
+        <a class="text-secondary" :href="'lightning:' + trackDialog.data.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
-              :value="trackDialog.data.lnurl"
+              :value="'lightning:' + trackDialog.data.lnurl.toUpperCase()"
               :options="{width: 800}"
               class="rounded-borders"
             ></qrcode>

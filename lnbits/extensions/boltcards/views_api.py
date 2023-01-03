@@ -12,7 +12,6 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from . import boltcards_ext
 from .crud import (
     create_card,
-    create_hit,
     delete_card,
     enable_disable_card,
     get_card,
@@ -22,11 +21,9 @@ from .crud import (
     get_hits,
     get_refunds,
     update_card,
-    update_card_counter,
     update_card_otp,
 )
 from .models import CreateCardData
-from .nxp424 import decryptSUN, getSunMAC
 
 
 @boltcards_ext.get("/api/v1/cards")
@@ -150,7 +147,7 @@ async def api_hits(
 
 
 @boltcards_ext.get("/api/v1/refunds")
-async def api_hits(
+async def api_refunds(
     g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]

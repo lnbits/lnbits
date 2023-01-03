@@ -1,0 +1,6 @@
+{
+  "name": "Nostr NIP-5",
+  "short_description": "Verify addresses for Nostr NIP-5",
+  "icon": "request_quote",
+  "contributors": ["leesalminen"]
+}

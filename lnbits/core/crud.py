@@ -4,11 +4,9 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from loguru import logger
-
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
+from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -63,9 +61,8 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
-        if LNBITS_ADMIN_USERS
-        else False,
+        admin=user["id"] == settings.super_user
+        or user["id"] in settings.lnbits_admin_users,
     )
 
 
@@ -99,7 +96,7 @@ async def create_wallet(
         """,
         (
             wallet_id,
-            wallet_name or DEFAULT_WALLET_NAME,
+            wallet_name or settings.lnbits_default_wallet_name,
             user_id,
             uuid4().hex,
             uuid4().hex,
@@ -232,8 +229,8 @@ async def get_wallet_payment(
 async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
     rows = await db.fetchall(
         f"""
-        SELECT * FROM apipayments 
-        WHERE pending = 'false' 
+        SELECT * FROM apipayments
+        WHERE pending = 'false'
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -454,6 +451,34 @@ async def update_payment_details(
     return
 
 
+async def update_payment_extra(
+    payment_hash: str,
+    extra: dict,
+    outgoing: bool = False,
+    conn: Optional[Connection] = None,
+) -> None:
+    """
+    Only update the `extra` field for the payment.
+    Old values in the `extra` JSON object will be kept unless the new `extra` overwrites them.
+    """
+
+    amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
+
+    row = await (conn or db).fetchone(
+        f"SELECT hash, extra from apipayments WHERE hash = ? {amount_clause}",
+        (payment_hash,),
+    )
+    if not row:
+        return
+    db_extra = json.loads(row["extra"] if row["extra"] else "{}")
+    db_extra.update(extra)
+
+    await (conn or db).execute(
+        f"UPDATE apipayments SET extra = ? WHERE hash = ? {amount_clause} ",
+        (json.dumps(db_extra), payment_hash),
+    )
+
+
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
     await (conn or db).execute(
         "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
@@ -550,3 +575,48 @@ async def get_balance_notify(
         (wallet_id,),
     )
     return row[0] if row else None
+
+
+# admin
+# --------
+
+
+async def get_super_settings() -> Optional[SuperSettings]:
+    row = await db.fetchone("SELECT * FROM settings")
+    if not row:
+        return None
+    editable_settings = json.loads(row["editable_settings"])
+    return SuperSettings(**{"super_user": row["super_user"], **editable_settings})
+
+
+async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
+    sets = await get_super_settings()
+    if not sets:
+        return None
+    row_dict = dict(sets)
+    row_dict.pop("super_user")
+    admin_settings = AdminSettings(
+        super_user=is_super_user,
+        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+        **row_dict,
+    )
+    return admin_settings
+
+
+async def delete_admin_settings():
+    await db.execute("DELETE FROM settings")
+
+
+async def update_admin_settings(data: EditableSettings):
+    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+
+
+async def update_super_user(super_user: str):
+    await db.execute("UPDATE settings SET super_user = ?", (super_user,))
+    return await get_super_settings()
+
+
+async def create_admin_settings(super_user: str, new_settings: dict):
+    sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
+    await db.execute(sql, (super_user, json.dumps(new_settings)))
+    return await get_super_settings()

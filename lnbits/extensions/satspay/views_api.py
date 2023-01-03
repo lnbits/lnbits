@@ -1,20 +1,19 @@
 import json
 from http import HTTPStatus
 
-import httpx
+from fastapi import Query
 from fastapi.params import Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_wallet
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_admin,
     get_key_type,
     require_admin_key,
     require_invoice_key,
 )
 from lnbits.extensions.satspay import satspay_ext
-from lnbits.settings import LNBITS_ADMIN_EXTENSIONS, LNBITS_ADMIN_USERS
 
 from .crud import (
     check_address_balance,
@@ -38,13 +37,19 @@ from .models import CreateCharge, SatsPayThemes
 async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    charge = await create_charge(user=wallet.wallet.user, data=data)
-    return {
-        **charge.dict(),
-        **{"time_elapsed": charge.time_elapsed},
-        **{"time_left": charge.time_left},
-        **{"paid": charge.paid},
-    }
+    try:
+        charge = await create_charge(user=wallet.wallet.user, data=data)
+        return {
+            **charge.dict(),
+            **{"time_elapsed": charge.time_elapsed},
+            **{"time_left": charge.time_left},
+            **{"paid": charge.paid},
+        }
+    except Exception as ex:
+        logger.debug(f"Satspay error: {str}")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
@@ -139,18 +144,14 @@ async def api_charge_balance(charge_id):
 #############################THEMES##########################
 
 
-@satspay_ext.post("/api/v1/themes")
-@satspay_ext.post("/api/v1/themes/{css_id}")
+@satspay_ext.post("/api/v1/themes", dependencies=[Depends(check_admin)])
+@satspay_ext.post("/api/v1/themes/{css_id}", dependencies=[Depends(check_admin)])
 async def api_themes_save(
     data: SatsPayThemes,
-    wallet: WalletTypeInfo = Depends(require_invoice_key),
-    css_id: str = None,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    css_id: str = Query(...),
 ):
-    if LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Only server admins can create themes.",
-        )
+
     if css_id:
         theme = await save_theme(css_id=css_id, data=data)
     else:
@@ -170,7 +171,7 @@ async def api_themes_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @satspay_ext.delete("/api/v1/themes/{theme_id}")
-async def api_charge_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_theme_delete(theme_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     theme = await get_theme(theme_id)
 
     if not theme:

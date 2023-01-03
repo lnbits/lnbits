@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 RUN apt-get clean
 RUN apt-get update
@@ -13,7 +13,7 @@ RUN mkdir -p lnbits/data
 COPY . .
 
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev --no-root
+RUN poetry install --only main --no-root
 RUN poetry run python build.py
 
 ENV LNBITS_PORT="5000"

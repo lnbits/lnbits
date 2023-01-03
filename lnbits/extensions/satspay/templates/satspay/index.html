@@ -109,6 +109,7 @@
                   color="red"
                 >
                   <a
+                    class="text-secondary"
                     :href="props.row.displayUrl"
                     target="_blank"
                     style="color: unset; text-decoration: none"
@@ -121,6 +122,7 @@
                   color="green"
                 >
                   <a
+                    class="text-secondary"
                     :href="props.row.displayUrl"
                     target="_blank"
                     style="color: unset; text-decoration: none"
@@ -130,6 +132,7 @@
 
                 <q-badge v-else color="blue"
                   ><a
+                    class="text-secondary"
                     :href="props.row.displayUrl"
                     target="_blank"
                     style="color: unset; text-decoration: none"
@@ -139,6 +142,7 @@
               </q-td>
               <q-td key="description" :props="props" :class="">
                 <a
+                  class="text-secondary"
                   :href="props.row.displayUrl"
                   target="_blank"
                   style="color: unset; text-decoration: none"
@@ -170,6 +174,7 @@
               </q-td>
               <q-td key="onchain address" :props="props" :class="">
                 <a
+                  class="text-secondary"
                   :href="props.row.displayUrl"
                   target="_blank"
                   style="color: unset; text-decoration: none"
@@ -205,6 +210,7 @@
                   <div class="col-2 q-pr-lg">Completed Link:</div>
                   <div class="col-4 q-pr-lg">
                     <a
+                      class="text-secondary"
                       :href="props.row.completelink"
                       target="_blank"
                       style="color: unset; text-decoration: none"
@@ -220,6 +226,7 @@
                   <div class="col-2 q-pr-lg">Webhook:</div>
                   <div class="col-4 q-pr-lg">
                     <a
+                      class="text-secondary"
                       :href="props.row.webhook"
                       target="_blank"
                       style="color: unset; text-decoration: none"
@@ -227,7 +234,12 @@
                     >
                   </div>
                   <div class="col-4 q-pr-lg">
-                    <q-badge v-if="props.row.webhook_message" color="blue">
+                    <q-badge
+                      v-if="props.row.webhook_message"
+                      @click="showWebhookResponseDialog(props.row.extra.webhook_response)"
+                      color="blue"
+                      class="cursor-pointer"
+                    >
                       {{props.row.webhook_message }}
                     </q-badge>
                   </div>
@@ -528,6 +540,23 @@
       </q-form>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showWebhookResponse" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-input
+        filled
+        dense
+        readonly
+        v-model.trim="webhookResponse"
+        type="textarea"
+        label="Response"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn flat v-close-popup color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <!-- lnbits/static/vendor
@@ -669,7 +698,9 @@
           data: {
             custom_css: ''
           }
-        }
+        },
+        showWebhookResponse: false,
+        webhookResponse: ''
       }
     },
     methods: {
@@ -757,7 +788,6 @@
             '/satspay/api/v1/themes',
             this.g.user.wallets[0].inkey
           )
-          console.log(data)
           this.themeLinks = data.map(c =>
             mapCSS(
               c,
@@ -852,14 +882,12 @@
       },
       updateformDialog: function (themeId) {
         const theme = _.findWhere(this.themeLinks, {css_id: themeId})
-        console.log(theme.css_id)
         this.formDialogThemes.data.css_id = theme.css_id
         this.formDialogThemes.data.title = theme.title
         this.formDialogThemes.data.custom_css = theme.custom_css
         this.formDialogThemes.show = true
       },
       createTheme: async function (wallet, data) {
-        console.log(data.css_id)
         try {
           if (data.css_id) {
             const resp = await LNbits.api.request(
@@ -887,7 +915,6 @@
             custom_css: ''
           }
         } catch (error) {
-          console.log('cun')
           LNbits.utils.notifyApiError(error)
         }
       },
@@ -954,6 +981,10 @@
               LNbits.utils.notifyApiError(error)
             }
           })
+      },
+      showWebhookResponseDialog(webhookResponse) {
+        this.webhookResponse = webhookResponse
+        this.showWebhookResponse = true
       },
       exportchargeCSV: function () {
         LNbits.utils.exportCSV(

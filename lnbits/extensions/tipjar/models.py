@@ -1,20 +1,7 @@
 from sqlite3 import Row
 from typing import Optional
 
-from fastapi.param_functions import Query
 from pydantic import BaseModel
-from pydantic.main import BaseModel
-
-
-class CreateCharge(BaseModel):
-    onchainwallet: str = Query(None)
-    lnbitswallet: str = Query(None)
-    description: str = Query(...)
-    webhook: str = Query(None)
-    completelink: str = Query(None)
-    completelinktext: str = Query(None)
-    time: int = Query(..., ge=1)
-    amount: int = Query(..., ge=1)
 
 
 class createTip(BaseModel):
@@ -44,8 +31,8 @@ class Tip(BaseModel):
 class createTipJar(BaseModel):
     name: str
     wallet: str
-    webhook: str = None
-    onchain: str = None
+    webhook: Optional[str]
+    onchain: Optional[str]
 
 
 class createTips(BaseModel):

@@ -224,7 +224,7 @@ async def m007_set_invoice_expiries(db):
             )
         ).fetchall()
         if len(rows):
-            logger.info(f"Mirgraion: Checking expiry of {len(rows)} invoices")
+            logger.info(f"Migration: Checking expiry of {len(rows)} invoices")
         for i, (
             payment_request,
             checking_id,
@@ -238,7 +238,7 @@ async def m007_set_invoice_expiries(db):
                     invoice.date + invoice.expiry
                 )
                 logger.info(
-                    f"Mirgraion: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
                     """
@@ -258,3 +258,14 @@ async def m007_set_invoice_expiries(db):
         # catching errors like this won't be necessary in anymore now that we
         # keep track of db versions so no migration ever runs twice.
         pass
+
+
+async def m008_create_admin_settings_table(db):
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS settings (
+            super_user TEXT,
+            editable_settings TEXT NOT NULL DEFAULT '{}'
+        );
+    """
+    )

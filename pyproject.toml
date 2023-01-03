@@ -20,7 +20,6 @@ charset-normalizer = "2.0.12"
 click = "8.0.4"
 ecdsa = "0.18.0"
 embit = "0.4.9"
-environs = "9.5.0"
 fastapi = "0.83.0"
 h11 = "0.12.0"
 httpcore = "0.15.0"
@@ -39,7 +38,6 @@ pydantic = "1.10.2"
 pypng = "0.0.21"
 pyqrcode = "1.2.1"
 pyScss = "1.4.0"
-python-dotenv = "0.21.0"
 pyyaml = "5.4.1"
 represent = "1.6.0.post0"
 rfc3986 = "1.5.0"
@@ -64,7 +62,7 @@ protobuf = "^4.21.6"
 Cerberus = "^1.3.4"
 async-timeout = "^4.0.2"
 pyln-client = "0.11.1"
-cashu = "0.5.5"
+cashu = "^0.6.0"
 
 
 [tool.poetry.dev-dependencies]
@@ -95,7 +93,7 @@ exclude = """(?x)(
     | ^lnbits/extensions/boltz.
     | ^lnbits/extensions/boltcards.
     | ^lnbits/extensions/events.
-    | ^lnbits/extensions/hivemind.
+    | ^lnbits/extensions/gerty.
     | ^lnbits/extensions/invoices.
     | ^lnbits/extensions/livestream.
     | ^lnbits/extensions/lnaddress.
@@ -103,16 +101,12 @@ exclude = """(?x)(
     | ^lnbits/extensions/lnticket.
     | ^lnbits/extensions/lnurldevice.
     | ^lnbits/extensions/lnurlp.
-    | ^lnbits/extensions/lnurlpayout.
     | ^lnbits/extensions/offlineshop.
     | ^lnbits/extensions/paywall.
     | ^lnbits/extensions/satspay.
-    | ^lnbits/extensions/scrub.
     | ^lnbits/extensions/splitpayments.
     | ^lnbits/extensions/streamalerts.
-    | ^lnbits/extensions/tipjar.
     | ^lnbits/extensions/tpos.
-    | ^lnbits/extensions/usermanager.
     | ^lnbits/extensions/watchonly.
     | ^lnbits/extensions/withdraw.
     | ^lnbits/wallets/lnd_grpc_files.

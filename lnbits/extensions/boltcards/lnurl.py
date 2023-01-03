@@ -1,21 +1,13 @@
-import base64
-import hashlib
-import hmac
 import json
 import secrets
 from http import HTTPStatus
-from io import BytesIO
-from typing import Optional
 from urllib.parse import urlparse
 
-from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends, Query
-from lnurl import Lnurl, LnurlWithdrawResponse
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
-from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
@@ -33,7 +25,6 @@ from .crud import (
     get_hit,
     get_hits_today,
     spend_hit,
-    update_card,
     update_card_counter,
     update_card_otp,
 )
@@ -108,15 +99,27 @@ async def lnurl_callback(
     pr: str = Query(None),
     k1: str = Query(None),
 ):
+    if not k1:
+        return {"status": "ERROR", "reason": "Missing K1 token"}
+
     hit = await get_hit(k1)
-    card = await get_card(hit.card_id)
+
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
-    if hit.id != k1:
-        return {"status": "ERROR", "reason": "Bad K1"}
+        return {
+            "status": "ERROR",
+            "reason": "Record not found for this charge (bad k1)",
+        }
     if hit.spent:
-        return {"status": "ERROR", "reason": f"Payment already claimed"}
-    invoice = bolt11.decode(pr)
+        return {"status": "ERROR", "reason": "Payment already claimed"}
+    if not pr:
+        return {"status": "ERROR", "reason": "Missing payment request"}
+
+    try:
+        invoice = bolt11.decode(pr)
+    except:
+        return {"status": "ERROR", "reason": "Failed to decode payment request"}
+
+    card = await get_card(hit.card_id)
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
     try:
         await pay_invoice(
@@ -126,8 +129,8 @@ async def lnurl_callback(
             extra={"tag": "boltcard", "tag": hit.id},
         )
         return {"status": "OK"}
-    except:
-        return {"status": "ERROR", "reason": f"Payment failed"}
+    except Exception as exc:
+        return {"status": "ERROR", "reason": f"Payment failed - {exc}"}
 
 
 # /boltcards/api/v1/auth?a=00000000000000000000000000000000

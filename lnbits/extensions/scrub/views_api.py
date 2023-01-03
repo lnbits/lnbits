@@ -1,9 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -23,14 +20,14 @@ from .models import CreateScrubLink
 
 @scrub_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 async def api_links(
-    req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     try:
         return [link.dict() for link in await get_scrub_links(wallet_ids)]
@@ -43,9 +40,7 @@ async def api_links(
 
 
 @scrub_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_retrieve(
-    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_scrub_link(link_id)
 
     if not link:

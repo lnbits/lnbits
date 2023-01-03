@@ -1,12 +1,11 @@
 import asyncio
-import binascii
 import hashlib
 import json
 import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -26,19 +25,20 @@ from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse, ServerSentEvent
-from starlette.responses import HTMLResponse, StreamingResponse
+from sse_starlette.sse import EventSourceResponse
+from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_admin,
     get_key_type,
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE, WALLET
+from lnbits.helpers import url_for
+from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -47,14 +47,11 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
-    create_payment,
     get_payments,
     get_standalone_payment,
     get_total_balance,
-    get_wallet,
     get_wallet_for_key,
     save_balance_check,
-    update_payment_status,
     update_wallet,
 )
 from ..services import (
@@ -70,6 +67,11 @@ from ..services import (
 from ..tasks import api_invoice_listeners
 
 
+@core_app.get("/api/v1/health", status_code=HTTPStatus.OK)
+async def health():
+    return
+
+
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet_type == 0:
@@ -80,35 +82,6 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         }
     else:
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
-
-
-@core_app.put("/api/v1/wallet/balance/{amount}")
-async def api_update_balance(
-    amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
-
-    payHash = urlsafe_short_hash()
-    await create_payment(
-        wallet_id=wallet.wallet.id,
-        checking_id=payHash,
-        payment_request="selfPay",
-        payment_hash=payHash,
-        amount=amount * 1000,
-        memo="selfPay",
-        fee=0,
-    )
-    await update_payment_status(checking_id=payHash, pending=False)
-    updatedWallet = await get_wallet(wallet.wallet.id)
-
-    return {
-        "id": wallet.wallet.id,
-        "name": wallet.wallet.name,
-        "balance": amount,
-    }
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
@@ -168,16 +141,14 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash or data.unhashed_description:
         try:
             description_hash = (
-                binascii.unhexlify(data.description_hash)
-                if data.description_hash
-                else b""
+                bytes.fromhex(data.description_hash) if data.description_hash else b""
             )
             unhashed_description = (
-                binascii.unhexlify(data.unhashed_description)
+                bytes.fromhex(data.unhashed_description)
                 if data.unhashed_description
                 else b""
             )
-        except binascii.Error:
+        except ValueError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="'description_hash' and 'unhashed_description' must be a valid hex strings",
@@ -186,7 +157,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         unhashed_description = b""
-        memo = data.memo or LNBITS_SITE_TITLE
+        memo = data.memo or settings.lnbits_site_title
 
     if data.unit == "sat":
         amount = int(data.amount)
@@ -242,7 +213,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         lnurl_response = resp["reason"]
                     else:
                         lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError):
+            except (httpx.ConnectError, httpx.RequestError) as ex:
+                logger.error(ex)
                 lnurl_response = False
 
     return {
@@ -416,7 +388,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
             yield dict(data=jdata, event=typ)
     except asyncio.CancelledError as e:
-        logger.debug(f"CancelledError on listener {uid}: {e}")
+        logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
         task.cancel()
         return
@@ -686,13 +658,9 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit")
-async def api_auditor(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
-        )
-
+@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
+async def api_auditor():
+    WALLET = get_wallet_class()
     total_balance = await get_total_balance()
     error_message, node_balance = await WALLET.status()
 
