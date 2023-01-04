@@ -18,10 +18,10 @@ from .crud import (
     update_gerty,
 )
 from .helpers import (
-    get_screen_data,
-    get_satoshi,
     gerty_should_sleep,
     get_next_update_time,
+    get_satoshi,
+    get_screen_data,
     get_screen_slug_by_index,
 )
 from .models import Gerty

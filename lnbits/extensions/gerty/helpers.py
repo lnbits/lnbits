@@ -70,7 +70,7 @@ def get_text_item_dict(
     else:
         data_text["x"] = x_pos if x_pos > 0 else 0
         data_text["y"] = y_pos if x_pos > 0 else 0
-    return text
+    return data_text
 
 
 def get_date_suffix(dayNumber):
@@ -532,7 +532,6 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
         "title": title,
         "areas": areas,
     }
-
     return data
 
 
