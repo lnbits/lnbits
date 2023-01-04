@@ -4,14 +4,18 @@ from http import HTTPStatus
 
 import httpx
 import shortuuid
-from fastapi import HTTPException, Response, Request, Query
+from fastapi import HTTPException, Query, Request, Response
 from loguru import logger
 
 from lnbits.core.crud import update_payment_extra
 from lnbits.core.services import pay_invoice
 
 from . import withdraw_ext
-from .crud import get_withdraw_link_by_hash, remove_unique_withdraw_link, increment_withdraw_link
+from .crud import (
+    get_withdraw_link_by_hash,
+    increment_withdraw_link,
+    remove_unique_withdraw_link,
+)
 from .models import WithdrawLink
 
 
