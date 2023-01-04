@@ -52,7 +52,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
 
 <div
   class="q-pa-md row items-start q-gutter-md"
-  v-if="dashboard_onchain[0] || dashboard_mining[0] || lightning_dashboard[0]"
+  v-if="dashboard_onchain[0] || dashboard_mining[0] || lightning_dashboard[0] || url_checker[0]"
 >
   <q-card
     class="q-pa-sm"
@@ -96,8 +96,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
       </p>
     </q-card-section>
   </q-card>
-
-  <q-card class="q-pa-sm" v-if="url_checker[0]" unelevated class="q-pa-sm">
+  <q-card class="q-pa-sm" v-if="url_checker" unelevated class="q-pa-sm">
     <q-card-section>
       <div class="text-h6">Servers to check</div>
     </q-card-section>
@@ -196,7 +195,6 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
             LNbits.utils.notifyApiError(error)
           }
         }
-        console.log(this.gerty)
         for (let i = 0; i < this.gerty.length; i++) {
           if (this.gerty[i].screen.group == 'lnbits_wallets_balance') {
             for (let q = 0; q < this.gerty[i].screen.areas.length; q++) {
