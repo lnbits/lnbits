@@ -3,8 +3,7 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
-from fastapi import HTTPException, Request
-from fastapi.params import Depends, Query
+from fastapi import Depends, HTTPException, Query, Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import get_standalone_payment
@@ -25,10 +24,10 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @offlineshop_ext.get("/print", response_class=HTMLResponse)
-async def print_qr_codes(request: Request, items: List[int] = None):
+async def print_qr_codes(request: Request):
     items = []
     for item_id in request.query_params.get("items").split(","):
-        item = await get_item(item_id)  # type: Item
+        item = await get_item(item_id)
         if item:
             items.append(
                 {
@@ -53,7 +52,8 @@ async def confirmation_code(p: str = Query(...)):
 
     payment_hash = p
     await api_payment(payment_hash)
-    payment: Payment = await get_standalone_payment(payment_hash)
+
+    payment = await get_standalone_payment(payment_hash)
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -72,8 +72,13 @@ async def confirmation_code(p: str = Query(...)):
             detail="Too much time has passed." + style,
         )
 
-    item = await get_item(payment.extra.get("item"))
+    assert payment.extra
+    item_id = payment.extra.get("item")
+    assert item_id
+    item = await get_item(item_id)
+    assert item
     shop = await get_shop(item.shop)
+    assert shop
 
     return (
         f"""
