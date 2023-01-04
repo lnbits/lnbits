@@ -17,7 +17,13 @@ from .crud import (
     get_mempool_info,
     update_gerty,
 )
-from .helpers import *
+from .helpers import (
+    get_screen_data,
+    get_satoshi,
+    gerty_should_sleep,
+    get_next_update_time,
+    get_screen_slug_by_index,
+)
 from .models import Gerty
 
 
@@ -84,7 +90,7 @@ async def api_gerty_delete(
 
 @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
 async def api_gerty_satoshi():
-    return await get_satoshi
+    return await get_satoshi()
 
 
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
