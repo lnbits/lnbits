@@ -1,15 +1,17 @@
-import hashlib
-
-from fastapi.params import Query
-from lnurl import (  # type: ignore
+from fastapi import Query
+from lnurl import (
     LnurlErrorResponse,
     LnurlPayActionResponse,
     LnurlPayResponse,
 )
+from lnurl.models import (
+    LightningInvoice,
+    ClearnetUrl,
+    MilliSatoshi
+)
 from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
-from lnbits.extensions.offlineshop.models import Item
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import offlineshop_ext
@@ -17,8 +19,8 @@ from .crud import get_item, get_shop
 
 
 @offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")
-async def lnurl_response(req: Request, item_id: int = Query(...)):
-    item = await get_item(item_id)  # type: Item
+async def lnurl_response(req: Request, item_id: int = Query(...)) -> dict:
+    item = await get_item(item_id)
     if not item:
         return {"status": "ERROR", "reason": "Item not found."}
 
@@ -32,9 +34,9 @@ async def lnurl_response(req: Request, item_id: int = Query(...)):
     ) * 1000
 
     resp = LnurlPayResponse(
-        callback=req.url_for("offlineshop.lnurl_callback", item_id=item.id),
-        min_sendable=price_msat,
-        max_sendable=price_msat,
+        callback=ClearnetUrl(req.url_for("offlineshop.lnurl_callback", item_id=item.id), scheme="https"),
+        minSendable=MilliSatoshi(price_msat),
+        maxSendable=MilliSatoshi(price_msat),
         metadata=await item.lnurlpay_metadata(),
     )
 
@@ -43,7 +45,7 @@ async def lnurl_response(req: Request, item_id: int = Query(...)):
 
 @offlineshop_ext.get("/lnurl/cb/{item_id}", name="offlineshop.lnurl_callback")
 async def lnurl_callback(request: Request, item_id: int):
-    item = await get_item(item_id)  # type: Item
+    item = await get_item(item_id)
     if not item:
         return {"status": "ERROR", "reason": "Couldn't find item."}
 
@@ -67,6 +69,7 @@ async def lnurl_callback(request: Request, item_id: int):
         ).dict()
 
     shop = await get_shop(item.shop)
+    assert shop
 
     try:
         payment_hash, payment_request = await create_invoice(
@@ -77,14 +80,15 @@ async def lnurl_callback(request: Request, item_id: int):
             extra={"tag": "offlineshop", "item": item.id},
         )
     except Exception as exc:
-        return LnurlErrorResponse(reason=exc.message).dict()
+        return LnurlErrorResponse(reason=str(exc)).dict()
 
-    resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=item.success_action(shop, payment_hash, request)
-        if shop.method
-        else None,
-        routes=[],
-    )
+    if shop.method:
+        success_action = item.success_action(shop, payment_hash, request)
+        assert success_action
+        resp = LnurlPayActionResponse(
+            pr=LightningInvoice(payment_request),
+            successAction=success_action,
+            routes=[],
+        )
 
-    return resp.dict()
+        return resp.dict()
