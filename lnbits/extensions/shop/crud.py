@@ -209,7 +209,7 @@ async def delete_shop_stall(stall_id: str) -> None:
 ###Orders
 
 
-async def create_shop_order(data: createOrder, invoiceid: str) -> Orders:
+async def create_shop_order(data: createOrder, invoiceid: str):
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
 
@@ -234,9 +234,6 @@ async def create_shop_order(data: createOrder, invoiceid: str) -> Orders:
         return result._result_proxy.lastrowid
     else:
         return result[0]
-    # link = await get_shop_order(link.id)
-    # assert link, "Newly created link couldn't be retrieved"
-    # return link
 
 
 async def create_shop_order_details(order_id: str, data: List[createOrderDetails]):
@@ -278,7 +275,7 @@ async def get_shop_order_invoiceid(invoice_id: str) -> Optional[Orders]:
     return Orders(**row) if row else None
 
 
-async def set_shop_order_paid(payment_hash: str) -> Orders:
+async def set_shop_order_paid(payment_hash: str):
     await db.execute(
         """
             UPDATE shop.orders
@@ -380,7 +377,7 @@ async def create_shop_market(data: CreateMarket):
     return market
 
 
-async def create_shop_market_stalls(market_id: str, data: List[CreateMarketStalls]):
+async def create_shop_market_stalls(market_id: str, data: List[str]):
     for stallid in data:
         id = urlsafe_short_hash()
 

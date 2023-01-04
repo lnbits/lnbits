@@ -2,8 +2,14 @@ import json
 from http import HTTPStatus
 from typing import List
 
-from fastapi import BackgroundTasks, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.params import Depends
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -42,6 +48,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
             user=user.id, data=SetSettings(currency="sat", fiat_base_multiplier=1)
         )
         settings = await get_shop_settings(user.id)
+    assert settings
     return shop_renderer().TemplateResponse(
         "shop/index.html",
         {"request": request, "user": user.dict(), "currency": settings.currency},
@@ -52,26 +59,28 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def stall(request: Request, stall_id):
     stall = await get_shop_stall(stall_id)
     products = await get_shop_products(stall_id)
-    zones = []
-    for id in stall.shippingzones.split(","):
-        z = await get_shop_zone(id)
-        z = z.dict()
-        zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
 
     if not stall:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
         )
 
-    stall = stall.dict()
+    zones = []
+    for id in stall.shippingzones.split(","):
+        zone = await get_shop_zone(id)
+        assert zone
+        z = zone.dict()
+        zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
 
-    stall["zones"] = zones
+    _stall = stall.dict()
+
+    _stall["zones"] = zones
 
     return shop_renderer().TemplateResponse(
         "shop/stall.html",
         {
             "request": request,
-            "stall": stall,
+            "stall": _stall,
             "products": [product.dict() for product in products],
         },
     )
@@ -109,9 +118,12 @@ async def order_chat(
     keys: str = Query(None),
 ):
     stall = await get_shop_stall(merch)
+    assert stall
     order = await get_shop_order_invoiceid(invoice_id)
+    assert order
     _order = await get_shop_order_details(order.id)
     products = await get_shop_products(stall.id)
+    assert products
 
     return shop_renderer().TemplateResponse(
         "shop/order.html",

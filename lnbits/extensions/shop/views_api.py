@@ -3,11 +3,8 @@ from http import HTTPStatus
 from typing import List, Union
 from uuid import uuid4
 
-from fastapi import Request
-from fastapi.param_functions import Body, Query
-from fastapi.params import Depends
+from fastapi import Body, Depends, Query, Request
 from loguru import logger
-from secp256k1 import PrivateKey, PublicKey
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -63,6 +60,7 @@ from .crud import (
 )
 from .models import (
     CreateMarket,
+    CreateMarketStalls,
     Orders,
     Products,
     SetSettings,
@@ -86,7 +84,8 @@ async def api_shop_products(
     wallet_ids = [wallet.wallet.id]
 
     if all_stalls:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     stalls = [stall.id for stall in await get_shop_stalls(wallet_ids)]
 
@@ -106,7 +105,11 @@ async def api_shop_product_create(
     # For fiat currencies,
     # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.
     settings = await get_shop_settings(user=wallet.wallet.user)
+    assert settings
+
     stall = await get_shop_stall(stall_id=data.stall)
+    assert stall
+
     if stall.currency != "sat":
         data.price *= settings.fiat_base_multiplier
 
@@ -122,7 +125,7 @@ async def api_shop_product_create(
         product = await update_shop_product(product_id, **data.dict())
     else:
         product = await create_shop_product(data=data)
-
+    assert product
     return product.dict()
 
 
@@ -136,6 +139,8 @@ async def api_shop_products_delete(
         return {"message": "Product does not exist."}
 
     stall = await get_shop_stall(product.stall)
+    assert stall
+
     if stall.wallet != wallet.wallet.id:
         return {"message": "Not your Shop."}
 
@@ -201,7 +206,8 @@ async def api_shop_stalls(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [stall.dict() for stall in await get_shop_stalls(wallet_ids)]
 
@@ -225,7 +231,7 @@ async def api_shop_stall_create(
         stall = await update_shop_stall(stall_id, **data.dict())
     else:
         stall = await create_shop_stall(data=data)
-
+    assert stall
     return stall.dict()
 
 
@@ -254,16 +260,17 @@ async def api_shop_orders(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     orders = await get_shop_orders(wallet_ids)
     if not orders:
         return
     orders_with_details = []
     for order in orders:
-        order = order.dict()
-        order["details"] = await get_shop_order_details(order["id"])
-        orders_with_details.append(order)
+        _order = order.dict()
+        _order["details"] = await get_shop_order_details(_order["id"])
+        orders_with_details.append(_order)
     try:
         return orders_with_details  # [order for order in orders]
         # return [order.dict() for order in await get_shop_orders(wallet_ids)]
@@ -273,10 +280,12 @@ async def api_shop_orders(
 
 @shop_ext.get("/api/v1/orders/{order_id}")
 async def api_shop_order_by_id(order_id: str):
-    order = (await get_shop_order(order_id)).dict()
-    order["details"] = await get_shop_order_details(order_id)
+    order = await get_shop_order(order_id)
+    assert order
+    _order = order.dict()
+    _order["details"] = await get_shop_order_details(order_id)
 
-    return order
+    return _order
 
 
 @shop_ext.post("/api/v1/orders")
@@ -336,18 +345,18 @@ async def api_shop_order_delete(
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-@shop_ext.get("/api/v1/orders/paid/{order_id}")
-async def api_shop_order_paid(
-    order_id, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
-    await db.execute(
-        "UPDATE shop.orders SET paid = ? WHERE id = ?",
-        (
-            True,
-            order_id,
-        ),
-    )
-    return "", HTTPStatus.OK
+# @shop_ext.get("/api/v1/orders/paid/{order_id}")
+# async def api_shop_order_paid(
+#     order_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+# ):
+#     await db.execute(
+#         "UPDATE shop.orders SET paid = ? WHERE id = ?",
+#         (
+#             True,
+#             order_id,
+#         ),
+#     )
+#     return "", HTTPStatus.OK
 
 
 @shop_ext.get("/api/v1/order/pubkey/{payment_hash}/{pubkey}")
@@ -375,33 +384,33 @@ async def api_shop_order_shipped(
 ###List products based on stall id
 
 
-@shop_ext.get("/api/v1/stall/products/{stall_id}")
-async def api_shop_stall_products(
-    stall_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+# @shop_ext.get("/api/v1/stall/products/{stall_id}")
+# async def api_shop_stall_products(
+#     stall_id, wallet: WalletTypeInfo = Depends(get_key_type)
+# ):
 
-    rows = await db.fetchone("SELECT * FROM shop.stalls WHERE id = ?", (stall_id,))
-    if not rows:
-        return {"message": "Stall does not exist."}
+#     rows = await db.fetchone("SELECT * FROM shop.stalls WHERE id = ?", (stall_id,))
+#     if not rows:
+#         return {"message": "Stall does not exist."}
 
-    products = db.fetchone("SELECT * FROM shop.products WHERE wallet = ?", (rows[1],))
-    if not products:
-        return {"message": "No products"}
+#     products = db.fetchone("SELECT * FROM shop.products WHERE wallet = ?", (rows[1],))
+#     if not products:
+#         return {"message": "No products"}
 
-    return [products.dict() for products in await get_shop_products(rows[1])]
+#     return [products.dict() for products in await get_shop_products(rows[1])]
 
 
 ###Check a product has been shipped
 
 
-@shop_ext.get("/api/v1/stall/checkshipped/{checking_id}")
-async def api_shop_stall_checkshipped(
-    checking_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    rows = await db.fetchone(
-        "SELECT * FROM shop.orders WHERE invoiceid = ?", (checking_id,)
-    )
-    return {"shipped": rows["shipped"]}
+# @shop_ext.get("/api/v1/stall/checkshipped/{checking_id}")
+# async def api_shop_stall_checkshipped(
+#     checking_id, wallet: WalletTypeInfo = Depends(get_key_type)
+# ):
+#     rows = await db.fetchone(
+#         "SELECT * FROM shop.orders WHERE invoiceid = ?", (checking_id,)
+#     )
+#     return {"shipped": rows["shipped"]}
 
 
 ##
@@ -426,7 +435,7 @@ async def api_shop_market_stalls(market_id: str):
 
 @shop_ext.post("/api/v1/markets")
 @shop_ext.put("/api/v1/markets/{market_id}")
-async def api_shop_stall_create(
+async def api_shop_market_create(
     data: CreateMarket,
     market_id: str = None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
@@ -443,6 +452,7 @@ async def api_shop_stall_create(
     else:
         market = await create_shop_market(data=data)
 
+    assert market
     await create_shop_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()
@@ -494,6 +504,7 @@ async def api_set_settings(
             return {"message": "Not your Shop."}
 
         settings = await get_shop_settings(user=usr)
+        assert settings
 
         if settings.user != wallet.wallet.user:
             return {"message": "Not your Shop."}
