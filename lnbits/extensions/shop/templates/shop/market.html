@@ -3,7 +3,7 @@
   <div class="col-12 q-gutter-y-md">
     <q-toolbar class="row">
       <div class="col">
-        <q-toolbar-title> {{ market.name }} </q-toolbar-title>
+        <q-toolbar-title> Market: {{ market.name }} </q-toolbar-title>
       </div>
       <div class="col q-mx-md">
         <q-input
@@ -91,7 +91,7 @@
       <q-separator></q-separator>
 
       <q-card-actions>
-        <span>{{ item.stallName }}</span>
+        <span>Stall: {{ item.stallName }}</span>
         <q-btn
           flat
           class="text-weight-bold text-capitalize q-ml-auto"
@@ -101,7 +101,7 @@
           :href="'/shop/stalls/' + item.stall"
           target="_blank"
         >
-          Visit shop
+          Visit Stall
         </q-btn>
       </q-card-actions>
       {% endraw %}
