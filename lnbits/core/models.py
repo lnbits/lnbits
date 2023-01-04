@@ -88,7 +88,7 @@ class Payment(BaseModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Optional[Dict] = {}
+    extra: Dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
