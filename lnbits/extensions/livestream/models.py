@@ -1,12 +1,12 @@
 import json
 from typing import Optional
 
-from fastapi.params import Query
+from fastapi import Query
 from lnurl import Lnurl
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
-from pydantic.main import BaseModel
+from pydantic import BaseModel
 from starlette.requests import Request
 
 

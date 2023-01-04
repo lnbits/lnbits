@@ -1,6 +1,6 @@
 {
   "name": "LNURLw",
   "short_description": "Make LNURL withdraw links",
-  "icon": "crop_free",
+	"tile": "/withdraw/static/image/lnurl-withdraw.png",
   "contributors": ["arcbtc", "eillarra"]
 }

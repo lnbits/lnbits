@@ -46,8 +46,8 @@ class Wallet(BaseModel):
             return ""
 
     def lnurlauth_key(self, domain: str) -> SigningKey:
-        hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
-        linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
+        hashing_key = hashlib.sha256(self.id.encode()).digest()
+        linking_key = hmac.digest(hashing_key, domain.encode(), "sha256")
 
         return SigningKey.from_string(
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256

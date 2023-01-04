@@ -17,7 +17,7 @@ from ..crud import delete_admin_settings, get_admin_settings, update_admin_setti
 
 @core_app.get("/admin/api/v1/settings/")
 async def api_get_settings(
-    user: User = Depends(check_admin),  # type: ignore
+    user: User = Depends(check_admin),
 ) -> Optional[AdminSettings]:
     admin_settings = await get_admin_settings(user.super_user)
     return admin_settings

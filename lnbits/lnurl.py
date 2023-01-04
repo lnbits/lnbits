@@ -6,11 +6,11 @@ def decode(lnurl: str) -> str:
     assert data
     bech32_data = convertbits(data, 5, 8, False)
     assert bech32_data
-    return bytes(bech32_data).decode("utf-8")
+    return bytes(bech32_data).decode()
 
 
 def encode(url: str) -> str:
-    bech32_data = convertbits(url.encode("utf-8"), 8, 5, True)
+    bech32_data = convertbits(url.encode(), 8, 5, True)
     assert bech32_data
     lnurl = bech32_encode("lnurl", bech32_data)
     return lnurl.upper()

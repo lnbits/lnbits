@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet, get_wallet_for_key

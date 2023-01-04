@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter
+from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -10,6 +11,14 @@ db = Database("ext_events")
 
 
 events_ext: APIRouter = APIRouter(prefix="/events", tags=["Events"])
+
+events_static_files = [
+    {
+        "path": "/events/static",
+        "app": StaticFiles(packages=[("lnbits", "extensions/events/static")]),
+        "name": "events_static",
+    }
+]
 
 
 def events_renderer():

@@ -2,9 +2,8 @@ import asyncio
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import Request, status
+from fastapi import Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
-from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
@@ -49,9 +48,9 @@ async def home(request: Request, lightning: str = ""):
 )
 async def extensions(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
-    enable: str = Query(None),  # type: ignore
-    disable: str = Query(None),  # type: ignore
+    user: User = Depends(check_user_exists),
+    enable: str = Query(None),
+    disable: str = Query(None),
 ):
     extension_to_enable = enable
     extension_to_disable = disable
@@ -103,10 +102,10 @@ nothing: create everything<br>
 """,
 )
 async def wallet(
-    request: Request = Query(None),  # type: ignore
-    nme: Optional[str] = Query(None),  # type: ignore
-    usr: Optional[UUID4] = Query(None),  # type: ignore
-    wal: Optional[UUID4] = Query(None),  # type: ignore
+    request: Request = Query(None),
+    nme: Optional[str] = Query(None),
+    usr: Optional[UUID4] = Query(None),
+    wal: Optional[UUID4] = Query(None),
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
@@ -132,6 +131,8 @@ async def wallet(
             )
         if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
             user.admin = True
+        if user_id == settings.super_user:
+            user.super_user = True
 
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore
@@ -217,7 +218,7 @@ async def lnurl_full_withdraw_callback(request: Request):
 
 
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
-async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):  # type: ignore
+async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
     user_wallet_ids = [u.id for u in user.wallets]  # type: ignore
 
@@ -313,7 +314,7 @@ async def manifest(usr: str):
 
 
 @core_html_routes.get("/admin", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):  # type: ignore
+async def index(request: Request, user: User = Depends(check_admin)):
     WALLET = get_wallet_class()
     _, balance = await WALLET.status()
 

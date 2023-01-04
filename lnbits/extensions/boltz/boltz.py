@@ -55,7 +55,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         raise
 
     refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
-    refund_pubkey_hex = bytes.hex(refund_privkey.sec()).decode("UTF-8")
+    refund_pubkey_hex = bytes.hex(refund_privkey.sec()).decode()
 
     res = req_wrap(
         "post",
@@ -120,7 +120,7 @@ async def create_reverse_swap(
         return False
 
     claim_privkey = ec.PrivateKey(os.urandom(32), True, net)
-    claim_pubkey_hex = bytes.hex(claim_privkey.sec()).decode("UTF-8")
+    claim_pubkey_hex = bytes.hex(claim_privkey.sec()).decode()
     preimage = os.urandom(32)
     preimage_hash = sha256(preimage).hexdigest()
 
