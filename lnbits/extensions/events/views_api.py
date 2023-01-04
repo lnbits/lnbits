@@ -123,25 +123,27 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Event could not be fetched.",
         )
-    try:
-        status = await api_payment(payment_hash)
-        if status["paid"]:
-            ticket = await create_ticket(
-                payment_hash=payment_hash,
-                wallet=event.wallet,
-                event=event_id,
-                name=data.name,
-                email=data.email,
-            )
-            if not ticket:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Event could not be fetched.",
-                )
 
-            return {"paid": True, "ticket_id": ticket.id}
-    except Exception:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Not paid")
+    status = await api_payment(payment_hash)
+    if status["paid"]:
+
+        exists = await get_ticket(payment_hash)
+        if exists:
+            return {"paid": True, "ticket_id": exists.id}
+
+        ticket = await create_ticket(
+            payment_hash=payment_hash,
+            wallet=event.wallet,
+            event=event_id,
+            name=data.name,
+            email=data.email,
+        )
+        if not ticket:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f"Event could not be fetched.",
+            )
+        return {"paid": True, "ticket_id": ticket.id}
     return {"paid": False}
 
 
