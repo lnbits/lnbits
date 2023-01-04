@@ -301,6 +301,34 @@ def gerty_should_sleep(utc_offset: int = 0):
         return False
 
 
+def get_date_suffix(dayNumber):
+    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
+        return "th"
+    else:
+        return ["st", "nd", "rd"][dayNumber % 10 - 1]
+
+
+def get_time_remaining(seconds, granularity=2):
+    intervals = (
+        # ('weeks', 604800),  # 60 * 60 * 24 * 7
+        ("days", 86400),  # 60 * 60 * 24
+        ("hours", 3600),  # 60 * 60
+        ("minutes", 60),
+        ("seconds", 1),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip("s")
+            result.append("{} {}".format(round(value), name))
+    return ", ".join(result[:granularity])
+
+
 async def get_mining_stat(stat_slug: str, gerty):
     text = []
     if stat_slug == "mining_current_hash_rate":
