@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Depends, Query
+from fastapi import Request, Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import websocketUpdater
