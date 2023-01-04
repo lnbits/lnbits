@@ -33,6 +33,7 @@ async def display(request: Request, form_id):
         )
 
     wallet = await get_wallet(form.wallet)
+    assert wallet
 
     return lnticket_renderer().TemplateResponse(
         "lnticket/display.html",

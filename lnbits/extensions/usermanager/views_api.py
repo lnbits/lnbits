@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core import update_user_extension
@@ -26,7 +25,7 @@ from .models import CreateUserData, CreateUserWallet
 
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
 async def api_usermanager_users(
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     user_id = wallet.wallet.user
     return [user.dict() for user in await get_usermanager_users(user_id)]
@@ -101,7 +100,7 @@ async def api_usermanager_wallets_create(data: CreateUserWallet):
 
 @usermanager_ext.get("/api/v1/wallets")
 async def api_usermanager_wallets(
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     admin_id = wallet.wallet.user
     return [wallet.dict() for wallet in await get_usermanager_wallets(admin_id)]

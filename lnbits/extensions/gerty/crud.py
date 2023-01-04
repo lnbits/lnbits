@@ -117,7 +117,7 @@ async def get_mempool_info(endPoint: str, gerty) -> dict:
                     mempool_id,
                     json.dumps(response.json()),
                     endPoint,
-                    int(time.time()),
+                    time.time(),
                     gerty.mempool_endpoint,
                 ),
             )
@@ -129,7 +129,7 @@ async def get_mempool_info(endPoint: str, gerty) -> dict:
                 "UPDATE gerty.mempool SET data = ?, time = ? WHERE endpoint = ? AND mempool_endpoint = ?",
                 (
                     json.dumps(response.json()),
-                    int(time.time()),
+                    time.time(),
                     endPoint,
                     gerty.mempool_endpoint,
                 ),

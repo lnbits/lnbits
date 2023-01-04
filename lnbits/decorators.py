@@ -1,11 +1,8 @@
 from http import HTTPStatus
-from typing import Union
 
-from cerberus import Validator  # type: ignore
-from fastapi import status
+from fastapi import Security, status
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
-from fastapi.params import Security
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
 from pydantic.types import UUID4
@@ -118,8 +115,8 @@ api_key_query = APIKeyQuery(
 
 async def get_key_type(
     r: Request,
-    api_key_header: str = Security(api_key_header),  # type: ignore
-    api_key_query: str = Security(api_key_query),  # type: ignore
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
 ) -> WalletTypeInfo:
     # 0: admin
     # 1: invoice
@@ -174,8 +171,8 @@ async def get_key_type(
 
 async def require_admin_key(
     r: Request,
-    api_key_header: str = Security(api_key_header),  # type: ignore
-    api_key_query: str = Security(api_key_query),  # type: ignore
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
 ):
 
     token = api_key_header or api_key_query
@@ -200,8 +197,8 @@ async def require_admin_key(
 
 async def require_invoice_key(
     r: Request,
-    api_key_header: str = Security(api_key_header),  # type: ignore
-    api_key_query: str = Security(api_key_query),  # type: ignore
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
 ):
 
     token = api_key_header or api_key_query

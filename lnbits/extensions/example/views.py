@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 
@@ -14,7 +13,7 @@ templates = Jinja2Templates(directory="templates")
 @example_ext.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
+    user: User = Depends(check_user_exists),
 ):
     return example_renderer().TemplateResponse(
         "example/index.html", {"request": request, "user": user.dict()}

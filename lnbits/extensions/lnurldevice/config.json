@@ -1,6 +1,6 @@
 {
   "name": "LNURLDevice",
   "short_description": "For offline LNURL devices",
-  "icon": "point_of_sale",
+	"tile": "/lnurldevice/static/image/lnurldevice.png",
   "contributors": ["arcbtc"]
 }

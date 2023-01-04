@@ -1,7 +1,7 @@
 {
   "name": "Streamer Copilot",
   "short_description": "Video tips/animations/webhooks",
-  "icon": "face",
+	"tile": "/copilot/static/bitcoin-streaming.png",
   "contributors": [
     "arcbtc"
   ]
