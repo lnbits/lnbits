@@ -147,7 +147,6 @@ async def create_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
         (the_hash, lnurl_id),
     )
     hashCheck = await get_hash_check(the_hash, lnurl_id)
-    assert hashCheck
     return hashCheck
 
 
