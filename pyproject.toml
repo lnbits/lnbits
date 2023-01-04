@@ -103,7 +103,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/offlineshop.
     | ^lnbits/extensions/paywall.
     | ^lnbits/extensions/satspay.
-    | ^lnbits/extensions/splitpayments.
     | ^lnbits/extensions/streamalerts.
     | ^lnbits/extensions/tpos.
     | ^lnbits/extensions/watchonly.
