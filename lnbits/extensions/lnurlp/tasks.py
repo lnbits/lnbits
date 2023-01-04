@@ -41,7 +41,6 @@ async def on_invoice_paid(payment: Payment):
                         "amount": payment.amount,
                         "comment": payment.extra.get("comment"),
                         "lnurlp": pay_link.id,
-                        "lnurlp": pay_link.id,
                         "body": json.loads(pay_link.webhook_body)
                         if pay_link.webhook_body
                         else "",
