@@ -131,6 +131,8 @@ async def wallet(
             )
         if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
             user.admin = True
+        if user_id == settings.super_user:
+            user.super_user = True
 
     if not wallet_id:
         if user.wallets and not wallet_name:  # type: ignore
