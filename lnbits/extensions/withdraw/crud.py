@@ -1,3 +1,5 @@
+import shortuuid
+
 from datetime import datetime
 from typing import List, Optional, Union
 
@@ -96,8 +98,7 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
 
 
 async def remove_unique_withdraw_link(link: WithdrawLink, unique_hash: str) -> None:
-    unique_links = link.usescsv.split(",")
-    unique_links.remove(unique_hash)
+    unique_links = [x.strip() for x in link.usescsv.split(",") if unique_hash != shortuuid.uuid(name=link.id + link.unique_hash + x.strip())]
     await update_withdraw_link(
         link.id,
         usescsv=",".join(unique_links),
