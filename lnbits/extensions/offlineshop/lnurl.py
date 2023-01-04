@@ -1,14 +1,6 @@
 from fastapi import Query
-from lnurl import (
-    LnurlErrorResponse,
-    LnurlPayActionResponse,
-    LnurlPayResponse,
-)
-from lnurl.models import (
-    LightningInvoice,
-    ClearnetUrl,
-    MilliSatoshi
-)
+from lnurl import LnurlErrorResponse, LnurlPayActionResponse, LnurlPayResponse
+from lnurl.models import ClearnetUrl, LightningInvoice, MilliSatoshi
 from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
@@ -34,7 +26,9 @@ async def lnurl_response(req: Request, item_id: int = Query(...)) -> dict:
     ) * 1000
 
     resp = LnurlPayResponse(
-        callback=ClearnetUrl(req.url_for("offlineshop.lnurl_callback", item_id=item.id), scheme="https"),
+        callback=ClearnetUrl(
+            req.url_for("offlineshop.lnurl_callback", item_id=item.id), scheme="https"
+        ),
         minSendable=MilliSatoshi(price_msat),
         maxSendable=MilliSatoshi(price_msat),
         metadata=await item.lnurlpay_metadata(),

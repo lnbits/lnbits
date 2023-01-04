@@ -1,10 +1,9 @@
 from http import HTTPStatus
 from typing import Optional
 
-from pydantic import BaseModel
-from fastapi import Query, Depends, Request, HTTPException, Response
-
+from fastapi import Depends, HTTPException, Query, Request, Response
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
+from pydantic import BaseModel
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies

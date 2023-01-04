@@ -3,7 +3,7 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
-from fastapi import HTTPException, Request, Depends, Query
+from fastapi import Depends, HTTPException, Query, Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import get_standalone_payment
