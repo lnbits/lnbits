@@ -101,7 +101,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/satspay.
     | ^lnbits/extensions/streamalerts.
     | ^lnbits/extensions/watchonly.
-    | ^lnbits/extensions/withdraw.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 
