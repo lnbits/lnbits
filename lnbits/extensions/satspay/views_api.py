@@ -1,8 +1,7 @@
 import json
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from loguru import logger
 from starlette.exceptions import HTTPException
 
