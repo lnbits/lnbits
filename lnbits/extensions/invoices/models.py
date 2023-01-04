@@ -2,7 +2,7 @@ from enum import Enum
 from sqlite3 import Row
 from typing import List, Optional
 
-from fastapi.param_functions import Query
+from fastapi import Query
 from pydantic import BaseModel
 
 
