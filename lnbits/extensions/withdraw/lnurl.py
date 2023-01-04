@@ -1,10 +1,10 @@
 import json
-import traceback
 from datetime import datetime
 from http import HTTPStatus
 
 import httpx
-import shortuuid  # type: ignore
+import shortuuid
+
 from fastapi import HTTPException
 from fastapi.param_functions import Query
 from loguru import logger
@@ -15,9 +15,8 @@ from lnbits.core.crud import update_payment_extra
 from lnbits.core.services import pay_invoice
 
 from . import withdraw_ext
-from .crud import get_withdraw_link_by_hash, update_withdraw_link
-
-# FOR LNURLs WHICH ARE NOT UNIQUE
+from .crud import get_withdraw_link_by_hash, increment_withdraw_link
+from .models import WithdrawLink
 
 
 @withdraw_ext.get(
@@ -51,9 +50,6 @@ async def api_lnurl_response(request: Request, unique_hash):
     }
 
     return json.dumps(withdrawResponse)
-
-
-# CALLBACK
 
 
 @withdraw_ext.get(
@@ -99,102 +95,75 @@ async def api_lnurl_callback(
             detail=f"wait link open_time {link.open_time - now} seconds.",
         )
 
-    usescsv = ""
-
-    for x in range(1, link.uses - link.used):
-        usecv = link.usescsv.split(",")
-        usescsv += "," + str(usecv[x])
-    usecsvback = usescsv
-
-    found = False
-    if id_unique_hash is not None:
-        useslist = link.usescsv.split(",")
-        for ind, x in enumerate(useslist):
-            tohash = link.id + link.unique_hash + str(x)
-            if id_unique_hash == shortuuid.uuid(name=tohash):
-                found = True
-                useslist.pop(ind)
-                usescsv = ",".join(useslist)
-        if not found:
+    if id_unique_hash:
+        if check_unique_link(link, id_unique_hash):
+            # remove it from usescsv list
+            pass
+        else:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="withdraw not found."
             )
-    else:
-        usescsv = usescsv[1:]
-
-    changesback = {
-        "open_time": link.wait_time,
-        "used": link.used,
-        "usescsv": usecsvback,
-    }
 
     try:
-        changes = {
-            "open_time": link.wait_time + now,
-            "used": link.used + 1,
-            "usescsv": usescsv,
-        }
-        await update_withdraw_link(link.id, **changes)
-
-        payment_request = pr
-
         payment_hash = await pay_invoice(
             wallet_id=link.wallet,
-            payment_request=payment_request,
+            payment_request=pr,
             max_sat=link.max_withdrawable,
             extra={"tag": "withdraw"},
         )
-
+        await increment_withdraw_link(link)
         if link.webhook_url:
-            async with httpx.AsyncClient() as client:
-                try:
-                    kwargs = {
-                        "json": {
-                            "payment_hash": payment_hash,
-                            "payment_request": payment_request,
-                            "lnurlw": link.id,
-                        },
-                        "timeout": 40,
-                    }
-                    if link.webhook_body:
-                        kwargs["json"]["body"] = json.loads(link.webhook_body)
-                    if link.webhook_headers:
-                        kwargs["headers"] = json.loads(link.webhook_headers)
-
-                    r: httpx.Response = await client.post(link.webhook_url, **kwargs)
-                    await update_payment_extra(
-                        payment_hash=payment_hash,
-                        extra={
-                            "wh_success": r.is_success,
-                            "wh_message": r.reason_phrase,
-                            "wh_response": r.text,
-                        },
-                        outgoing=True,
-                    )
-                except Exception as exc:
-                    # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
-                    logger.error(
-                        "Caught exception when dispatching webhook url: " + str(exc)
-                    )
-                    await update_payment_extra(
-                        payment_hash=payment_hash,
-                        extra={"wh_success": False, "wh_message": str(exc)},
-                        outgoing=True,
-                    )
-
+            await dispatch_webhook(link, payment_hash, pr)
         return {"status": "OK"}
-
     except Exception as e:
-        await update_withdraw_link(link.id, **changesback)
-        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=f"withdraw not working. {str(e)}"
         )
 
 
+def check_unique_link(link: WithdrawLink, unique_hash: str) -> bool:
+    unique_links = link.usescsv.split(",")
+    return any(unique_hash == shortuuid.uuid(name=link.id + link.unique_hash + x.strip()) for x in unique_links)
+
+
+async def dispatch_webhook(
+    link: WithdrawLink, payment_hash: str, payment_request: str
+) -> None:
+    async with httpx.AsyncClient() as client:
+        try:
+            r: httpx.Response = await client.post(
+                link.webhook_url,
+                json={
+                    "payment_hash": payment_hash,
+                    "payment_request": payment_request,
+                    "lnurlw": link.id,
+                    "body": json.loads(link.webhook_body) if link.webhook_body else "",
+                },
+                headers=json.loads(link.webhook_headers)
+                if link.webhook_headers
+                else None,
+                timeout=40,
+            )
+            await update_payment_extra(
+                payment_hash=payment_hash,
+                extra={
+                    "wh_success": r.is_success,
+                    "wh_message": r.reason_phrase,
+                    "wh_response": r.text,
+                },
+                outgoing=True,
+            )
+        except Exception as exc:
+            # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
+            logger.error("Caught exception when dispatching webhook url: " + str(exc))
+            await update_payment_extra(
+                payment_hash=payment_hash,
+                extra={"wh_success": False, "wh_message": str(exc)},
+                outgoing=True,
+            )
+
+
 # FOR LNURLs WHICH ARE UNIQUE
-
-
 @withdraw_ext.get(
     "/api/v1/lnurl/{unique_hash}/{id_unique_hash}",
     response_class=HTMLResponse,

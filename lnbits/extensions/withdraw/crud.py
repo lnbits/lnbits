@@ -8,9 +8,10 @@ from .models import CreateWithdrawData, HashCheck, WithdrawLink
 
 
 async def create_withdraw_link(
-    data: CreateWithdrawData, wallet_id: str, usescsv: str
+    data: CreateWithdrawData, wallet_id: str
 ) -> WithdrawLink:
     link_id = urlsafe_short_hash()
+    available_links = ",".join([str(i) for i in range(data.uses)])
     await db.execute(
         """
         INSERT INTO withdraw.withdraw_link (
@@ -45,7 +46,7 @@ async def create_withdraw_link(
             urlsafe_short_hash(),
             urlsafe_short_hash(),
             int(datetime.now().timestamp()) + data.wait_time,
-            usescsv,
+            available_links,
             data.webhook_url,
             data.webhook_headers,
             data.webhook_body,
@@ -94,6 +95,14 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
     return [WithdrawLink(**row) for row in rows]
 
 
+async def increment_withdraw_link(link: WithdrawLink) -> None:
+    await update_withdraw_link(
+        link.id,
+        used=link.used + 1,
+        open_time=link.wait_time + int(datetime.now().timestamp()),
+    )
+
+
 async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     if "is_unique" in kwargs:
         kwargs["is_unique"] = int(kwargs["is_unique"])
@@ -129,10 +138,11 @@ async def create_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
         (the_hash, lnurl_id),
     )
     hashCheck = await get_hash_check(the_hash, lnurl_id)
+    assert hashCheck
     return hashCheck
 
 
-async def get_hash_check(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
+async def get_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
     rowid = await db.fetchone(
         "SELECT * FROM withdraw.hash_check WHERE id = ?", (the_hash,)
     )
@@ -141,10 +151,10 @@ async def get_hash_check(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
     )
     if not rowlnurl:
         await create_hash_check(the_hash, lnurl_id)
-        return {"lnurl": True, "hash": False}
+        return HashCheck(lnurl=True, hash=False)
     else:
         if not rowid:
             await create_hash_check(the_hash, lnurl_id)
-            return {"lnurl": True, "hash": False}
+            return HashCheck(lnurl=True, hash=False)
         else:
-            return {"lnurl": True, "hash": True}
+            return HashCheck(lnurl=True, hash=True)
