@@ -1,9 +1,8 @@
-from sqlite3 import Row
-
-import shortuuid  # type: ignore
-from fastapi.param_functions import Query
+import shortuuid
+from fastapi import Query
 from lnurl import Lnurl, LnurlWithdrawResponse
-from lnurl import encode as lnurl_encode  # type: ignore
+from lnurl import encode as lnurl_encode
+from lnurl.models import ClearnetUrl, MilliSatoshi
 from pydantic import BaseModel
 from starlette.requests import Request
 
@@ -67,18 +66,14 @@ class WithdrawLink(BaseModel):
             name="withdraw.api_lnurl_callback", unique_hash=self.unique_hash
         )
         return LnurlWithdrawResponse(
-            callback=url,
+            callback=ClearnetUrl(url, scheme="https"),
             k1=self.k1,
-            min_withdrawable=self.min_withdrawable * 1000,
-            max_withdrawable=self.max_withdrawable * 1000,
-            default_description=self.title,
+            minWithdrawable=MilliSatoshi(self.min_withdrawable * 1000),
+            maxWithdrawable=MilliSatoshi(self.max_withdrawable * 1000),
+            defaultDescription=self.title,
         )
 
 
 class HashCheck(BaseModel):
-    id: str
-    lnurl_id: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Hash":
-        return cls(**dict(row))
+    hash: bool
+    lnurl: bool

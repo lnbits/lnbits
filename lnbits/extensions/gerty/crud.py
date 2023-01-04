@@ -50,11 +50,12 @@ async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:
     return gerty
 
 
-async def update_gerty(gerty_id: str, **kwargs) -> Gerty:
+async def update_gerty(gerty_id: str, **kwargs) -> Optional[Gerty]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE gerty.gertys SET {q} WHERE id = ?", (*kwargs.values(), gerty_id)
     )
+
     return await get_gerty(gerty_id)
 
 
@@ -82,7 +83,7 @@ async def delete_gerty(gerty_id: str) -> None:
 #############MEMPOOL###########
 
 
-async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
+async def get_mempool_info(endPoint: str, gerty) -> dict:
     logger.debug(endPoint)
     endpoints = MempoolEndpoint()
     url = ""
@@ -116,7 +117,7 @@ async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
                     mempool_id,
                     json.dumps(response.json()),
                     endPoint,
-                    int(time.time()),
+                    time.time(),
                     gerty.mempool_endpoint,
                 ),
             )
@@ -128,7 +129,7 @@ async def get_mempool_info(endPoint: str, gerty) -> Optional[Mempool]:
                 "UPDATE gerty.mempool SET data = ?, time = ? WHERE endpoint = ? AND mempool_endpoint = ?",
                 (
                     json.dumps(response.json()),
-                    int(time.time()),
+                    time.time(),
                     endPoint,
                     gerty.mempool_endpoint,
                 ),
