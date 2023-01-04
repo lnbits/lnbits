@@ -74,7 +74,7 @@ def decode(pr: str) -> Invoice:
         data_length = len(tagdata) / 5
 
         if tag == "d":
-            invoice.description = _trim_to_bytes(tagdata).decode("utf-8")
+            invoice.description = _trim_to_bytes(tagdata).decode()
         elif tag == "h" and data_length == 52:
             invoice.description_hash = _trim_to_bytes(tagdata).hex()
         elif tag == "p" and data_length == 52:
@@ -260,7 +260,7 @@ class LnAddr(object):
 
     def __str__(self):
         return "LnAddr[{}, amount={}{} tags=[{}]]".format(
-            bytes.hex(self.pubkey.serialize()).decode("utf-8"),
+            bytes.hex(self.pubkey.serialize()).decode(),
             self.amount,
             self.currency,
             ", ".join([k + "=" + str(v) for k, v in self.tags]),

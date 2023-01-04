@@ -1,6 +1,6 @@
 {
   "name": "TPoS",
   "short_description": "A shareable PoS terminal!",
-  "icon": "dialpad",
+	"tile": "/tpos/static/image/tpos.png",
   "contributors": ["talvasconcelos", "arcbtc", "leesalminen"]
 }

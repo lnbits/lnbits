@@ -35,9 +35,9 @@ async def lndhub_auth(data: AuthData):
     token = (
         data.refresh_token
         if data.refresh_token
-        else urlsafe_b64encode(
-            (data.login + ":" + data.password).encode("utf-8")
-        ).decode("ascii")
+        else urlsafe_b64encode((data.login + ":" + data.password).encode()).decode(
+            "ascii"
+        )
     )
     return {"refresh_token": token, "access_token": token}
 

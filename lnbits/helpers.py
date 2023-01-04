@@ -17,7 +17,7 @@ class Extension(NamedTuple):
     is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
-    icon: Optional[str] = None
+    tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
     migration_module: Optional[str] = None
@@ -63,7 +63,7 @@ class ExtensionManager:
                     is_admin_only,
                     config.get("name"),
                     config.get("short_description"),
-                    config.get("icon"),
+                    config.get("tile"),
                     config.get("contributors"),
                     config.get("hidden") or False,
                     config.get("migration_module"),

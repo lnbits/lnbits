@@ -23,7 +23,7 @@
               <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
               {{LNBITS_DENOMINATION}}
               <q-btn
-                v-if="'{{user.admin}}' == 'True'"
+                v-if="'{{user.super_user}}' == 'True'"
                 flat
                 round
                 color="primary"
@@ -36,27 +36,16 @@
                   v-model="credit"
                 >
                   <q-input
-                    v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                    label="Amount to credit account"
+                    filled
+                    label="{{LNBITS_DENOMINATION}} to credit"
+                    hint="Press Enter to credit account"
                     v-model="scope.value"
                     dense
                     autofocus
-                    mask="#.##"
+                    :mask="'{{LNBITS_DENOMINATION}}' != 'sats' ? '#.##' : '#'"
                     fill-mask="0"
                     reverse-fill-mask
-                    @keyup.enter="updateBalance(scope.value)"
-                  >
-                    <template v-slot:append>
-                      <q-icon name="edit" />
-                    </template>
-                  </q-input>
-                  <q-input
-                    v-else
-                    type="number"
-                    label="Amount to credit account"
-                    v-model="scope.value"
-                    dense
-                    autofocus
+                    :step="'{{LNBITS_DENOMINATION}}' != 'sats' ? '0.01' : '1'"
                     @keyup.enter="updateBalance(scope.value)"
                   >
                     <template v-slot:append>
@@ -479,10 +468,10 @@
               dense
               v-model.number="receive.data.amount"
               :label="'Amount (' + receive.unit + ') *'"
-              :mask="receive.unit != 'sat' ? '#.##' : '#'"
+              :mask="receive.unit != 'sats' ? '#.##' : '#'"
               fill-mask="0"
               reverse-fill-mask
-              :step="receive.unit != 'sat' ? '0.01' : '1'"
+              :step="receive.unit != 'sats' ? '0.01' : '1'"
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
               :readonly="receive.lnurl && receive.lnurl.fixed"
