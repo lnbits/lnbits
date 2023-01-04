@@ -75,7 +75,7 @@ async def lnurl_callback(
         memo=cp.lnurl_title,
         unhashed_description=(
             LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
-        ).encode("utf-8"),
+        ).encode(),
         extra={"tag": "copilot", "copilotid": cp.id, "comment": comment},
     )
     payResponse = {"pr": payment_request, "routes": []}

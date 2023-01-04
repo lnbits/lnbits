@@ -213,7 +213,7 @@ async def lnurlp_callback(
         memo=f"Refund {hit_id}",
         unhashed_description=LnurlPayMetadata(
             json.dumps([["text/plain", "Refund"]])
-        ).encode("utf-8"),
+        ).encode(),
         extra={"refund": hit_id},
     )
 

@@ -536,7 +536,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
                 params.update(
                     description_hash=hashlib.sha256(
-                        data["metadata"].encode("utf-8")
+                        data["metadata"].encode()
                     ).hexdigest()
                 )
                 metadata = json.loads(data["metadata"])

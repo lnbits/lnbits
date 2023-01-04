@@ -71,7 +71,7 @@ def b64_to_bytes(checking_id: str) -> bytes:
 
 
 def bytes_to_b64(r_hash: bytes) -> str:
-    return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
+    return base64.b64encode(r_hash).decode().replace("/", "_")
 
 
 def hex_to_b64(hex_str: str) -> str:
