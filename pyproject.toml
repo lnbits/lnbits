@@ -98,7 +98,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/lnaddress.
     | ^lnbits/extensions/lndhub.
     | ^lnbits/extensions/lnurldevice.
-    | ^lnbits/extensions/lnurlp.
     | ^lnbits/extensions/offlineshop.
     | ^lnbits/extensions/satspay.
     | ^lnbits/extensions/streamalerts.

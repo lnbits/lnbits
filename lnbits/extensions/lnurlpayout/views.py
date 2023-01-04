@@ -1,16 +1,13 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import lnurlpayout_ext, lnurlpayout_renderer
-from .crud import get_lnurlpayout
 
 templates = Jinja2Templates(directory="templates")
 

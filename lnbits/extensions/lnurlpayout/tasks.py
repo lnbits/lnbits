@@ -2,14 +2,13 @@ import asyncio
 from http import HTTPStatus
 
 import httpx
+from lnurl import decode as lnurl_decode
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core import db as core_db
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
-from lnbits.core.views.api import api_payments_decode
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
@@ -35,6 +34,7 @@ async def on_invoice_paid(payment: Payment) -> None:
             # Check the wallet balance is more than the threshold
 
             wallet = await get_wallet(lnurlpayout_link.wallet)
+            assert wallet
             threshold = lnurlpayout_link.threshold + (lnurlpayout_link.threshold * 0.02)
 
             if wallet.balance < threshold:
@@ -42,14 +42,10 @@ async def on_invoice_paid(payment: Payment) -> None:
             # Get the invoice from the LNURL to pay
             async with httpx.AsyncClient() as client:
                 try:
-                    url = await api_payments_decode({"data": lnurlpayout_link.lnurlpay})
-                    if str(url["domain"])[0:4] != "http":
-                        raise HTTPException(
-                            status_code=HTTPStatus.FORBIDDEN, detail="LNURL broken"
-                        )
+                    url = lnurl_decode(lnurlpayout_link.lnurlpay)
 
                     try:
-                        r = await client.get(str(url["domain"]), timeout=40)
+                        r = await client.get(str(url), timeout=40)
                         res = r.json()
                         try:
                             r = await client.get(

@@ -53,7 +53,7 @@ async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayou
         f"SELECT * FROM lnurlpayout.lnurlpayouts WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
-    return [lnurlpayout(**row) if row else None for row in rows]
+    return [lnurlpayout(**row) for row in rows]
 
 
 async def delete_lnurlpayout(lnurlpayout_id: str) -> None:

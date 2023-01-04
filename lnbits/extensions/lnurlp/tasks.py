@@ -4,7 +4,6 @@ import json
 import httpx
 from loguru import logger
 
-from lnbits.core import db as core_db
 from lnbits.core.crud import update_payment_extra
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
@@ -22,9 +21,8 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "lnurlp":
-        # not an lnurlp invoice
+async def on_invoice_paid(payment: Payment):
+    if not payment.extra or payment.extra.get("tag") != "lnurlp":
         return
 
     if payment.extra.get("wh_status"):
@@ -35,22 +33,24 @@ async def on_invoice_paid(payment: Payment) -> None:
     if pay_link and pay_link.webhook_url:
         async with httpx.AsyncClient() as client:
             try:
-                kwargs = {
-                    "json": {
+                r: httpx.Response = await client.post(
+                    pay_link.webhook_url,
+                    json={
                         "payment_hash": payment.payment_hash,
                         "payment_request": payment.bolt11,
                         "amount": payment.amount,
                         "comment": payment.extra.get("comment"),
                         "lnurlp": pay_link.id,
+                        "lnurlp": pay_link.id,
+                        "body": json.loads(pay_link.webhook_body)
+                        if pay_link.webhook_body
+                        else "",
                     },
-                    "timeout": 40,
-                }
-                if pay_link.webhook_body:
-                    kwargs["json"]["body"] = json.loads(pay_link.webhook_body)
-                if pay_link.webhook_headers:
-                    kwargs["headers"] = json.loads(pay_link.webhook_headers)
-
-                r: httpx.Response = await client.post(pay_link.webhook_url, **kwargs)
+                    headers=json.loads(pay_link.webhook_headers)
+                    if pay_link.webhook_headers
+                    else None,
+                    timeout=40,
+                )
                 await mark_webhook_sent(
                     payment.payment_hash,
                     r.status_code,
