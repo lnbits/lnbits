@@ -4,24 +4,20 @@ from http import HTTPStatus
 
 import httpx
 import shortuuid
-
-from fastapi import HTTPException
-from fastapi.param_functions import Query
+from fastapi import HTTPException, Response, Request, Query
 from loguru import logger
-from starlette.requests import Request
-from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import update_payment_extra
 from lnbits.core.services import pay_invoice
 
 from . import withdraw_ext
-from .crud import get_withdraw_link_by_hash, increment_withdraw_link
+from .crud import get_withdraw_link_by_hash, remove_unique_withdraw_link, increment_withdraw_link
 from .models import WithdrawLink
 
 
 @withdraw_ext.get(
     "/api/v1/lnurl/{unique_hash}",
-    response_class=HTMLResponse,
+    response_class=Response,
     name="withdraw.api_lnurl_response",
 )
 async def api_lnurl_response(request: Request, unique_hash):
@@ -97,8 +93,7 @@ async def api_lnurl_callback(
 
     if id_unique_hash:
         if check_unique_link(link, id_unique_hash):
-            # remove it from usescsv list
-            pass
+            await remove_unique_withdraw_link(link, id_unique_hash)
         else:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="withdraw not found."
@@ -122,8 +117,10 @@ async def api_lnurl_callback(
 
 
 def check_unique_link(link: WithdrawLink, unique_hash: str) -> bool:
-    unique_links = link.usescsv.split(",")
-    return any(unique_hash == shortuuid.uuid(name=link.id + link.unique_hash + x.strip()) for x in unique_links)
+    return any(
+        unique_hash == shortuuid.uuid(name=link.id + link.unique_hash + x.strip())
+        for x in link.usescsv.split(",")
+    )
 
 
 async def dispatch_webhook(
@@ -166,7 +163,7 @@ async def dispatch_webhook(
 # FOR LNURLs WHICH ARE UNIQUE
 @withdraw_ext.get(
     "/api/v1/lnurl/{unique_hash}/{id_unique_hash}",
-    response_class=HTMLResponse,
+    response_class=Response,
     name="withdraw.api_lnurl_multi_response",
 )
 async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
@@ -182,14 +179,7 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
             status_code=HTTPStatus.NOT_FOUND, detail="Withdraw is spent."
         )
 
-    useslist = link.usescsv.split(",")
-    found = False
-    for x in useslist:
-        tohash = link.id + link.unique_hash + str(x)
-        if id_unique_hash == shortuuid.uuid(name=tohash):
-            found = True
-
-    if not found:
+    if not check_unique_link(link, id_unique_hash):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
         )

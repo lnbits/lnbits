@@ -95,6 +95,15 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
     return [WithdrawLink(**row) for row in rows]
 
 
+async def remove_unique_withdraw_link(link: WithdrawLink, unique_hash: str) -> None:
+    unique_links = link.usescsv.split(",")
+    unique_links.remove(unique_hash)
+    await update_withdraw_link(
+        link.id,
+        usescsv=",".join(unique_links),
+    )
+
+
 async def increment_withdraw_link(link: WithdrawLink) -> None:
     await update_withdraw_link(
         link.id,

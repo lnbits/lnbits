@@ -1,8 +1,8 @@
 import shortuuid
 from fastapi import Query
 from lnurl import Lnurl, LnurlWithdrawResponse
-from lnurl.models import ClearnetUrl, MilliSatoshi
 from lnurl import encode as lnurl_encode
+from lnurl.models import ClearnetUrl, MilliSatoshi
 from pydantic import BaseModel
 from starlette.requests import Request
 

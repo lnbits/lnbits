@@ -1,11 +1,7 @@
 from http import HTTPStatus
 
-from typing import Optional
-
-from fastapi import Query, Depends
+from fastapi import Depends, HTTPException, Query, Request
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -70,7 +66,7 @@ async def api_link_retrieve(
 async def api_link_create_or_update(
     req: Request,
     data: CreateWithdrawData,
-    link_id: Optional[str] = Query(),
+    link_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     if data.uses > 250:
