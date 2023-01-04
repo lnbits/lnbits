@@ -4,7 +4,7 @@ from fastapi.param_functions import Query
 from pydantic import BaseModel
 
 
-class ShopSettings(BaseModel):
+class MarketSettings(BaseModel):
     user: str
     currency: str
     fiat_base_multiplier: int

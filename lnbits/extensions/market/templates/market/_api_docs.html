@@ -7,7 +7,7 @@
   <q-card>
     <q-card-section>
       <h5 class="text-subtitle1 q-my-none">
-        LNbits Shop (Nostr support coming soon)
+        LNbits Market (Nostr support coming soon)
       </h5>
 
       <ol>
@@ -17,9 +17,9 @@
         <li>Take orders</li>
         <li>Includes chat support!</li>
       </ol>
-      The first LNbits shop idea 'Diagon Alley' helped create Nostr, and soon
-      this shop extension will have the option to work on Nostr 'Diagon Alley'
-      mode, by the merchant, shop, and buyer all having keys, and data being
+      The first LNbits market idea 'Diagon Alley' helped create Nostr, and soon
+      this market extension will have the option to work on Nostr 'Diagon Alley'
+      mode, by the merchant, market, and buyer all having keys, and data being
       routed through Nostr relays.
       <br />
       <small>
@@ -48,7 +48,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /shop/api/v1/stall/products/&lt;relay_id&gt;</code
+          /market/api/v1/stall/products/&lt;relay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -73,7 +73,7 @@
       <q-card-section>
         <code
           ><span class="text-light-green">POST</span>
-          /shop/api/v1/stall/order/&lt;relay_id&gt;</code
+          /market/api/v1/stall/order/&lt;relay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code
@@ -109,7 +109,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /shop/api/v1/stall/checkshipped/&lt;checking_id&gt;</code
+          /market/api/v1/stall/checkshipped/&lt;checking_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">

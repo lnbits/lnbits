@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md">
-  {% include "shop/_dialogs.html" %}
+  {% include "market/_dialogs.html" %}
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section class="q-gutter-sm row">
@@ -60,14 +60,14 @@
           @click="marketDialog.show = true"
           >Create Market
           <q-tooltip>
-            Makes a simple frontend shop for your stalls (not NOSTR)</q-tooltip
+            Makes a simple frontend market for your stalls (not NOSTR)</q-tooltip
           ></q-btn
         >
       </q-card-section>
       <q-separator inset></q-separator>
       <q-card-section>
-        <div class="text-h6">Shop</div>
-        <div class="text-subtitle2">Make a shop of multiple stalls.</div>
+        <div class="text-h6">Market</div>
+        <div class="text-subtitle2">Make a market of multiple stalls.</div>
       </q-card-section>
 
       <q-card-section>
@@ -87,16 +87,16 @@
           class="float-right"
           unelevated
           color="primary"
-          @click="shopDataDownload"
+          @click="marketDataDownload"
           >Export all Data
           <q-tooltip>
-            Export all data (shops, products, orders, etc...)</q-tooltip
+            Export all data (markets, products, orders, etc...)</q-tooltip
           ></q-btn
         >
       </q-card-section>
     </q-card>
 
-    {% include "shop/_tables.html" %}
+    {% include "market/_tables.html" %}
     <!-- KEYS -->
     <q-card v-if="keys">
       <q-card-section>
@@ -149,16 +149,16 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          LNbits Shop Extension, powered by Nostr
+          LNbits Market Extension (Nostr support coming soon)
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "shop/_api_docs.html" %} </q-list>
+        <q-list> {% include "market/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
     <!-- CHAT BOX -->
-    {% include "shop/_chat_box.html" %}
+    {% include "market/_chat_box.html" %}
   </div>
 </div>
 
@@ -215,7 +215,7 @@
     obj._data = _.clone(obj)
     obj.stalls = []
     LNbits.api
-      .request('GET', `/shop/api/v1/markets/${obj.id}/stalls`, null)
+      .request('GET', `/market/api/v1/markets/${obj.id}/stalls`, null)
       .then(response => {
         if (response.data) {
           obj.stalls = response.data.map(s => s.id) //.toString()
@@ -548,7 +548,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/settings/' + this.g.user.id,
+            '/market/api/v1/settings/' + this.g.user.id,
             this.g.user.wallets[0].adminkey,
             data
           )
@@ -563,7 +563,7 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      shopDataDownload() {
+      marketDataDownload() {
         const removeClone = obj => {
           delete obj._data
           return obj
@@ -593,10 +593,10 @@
         this.keys = {privkey, pubkey}
         this.stallDialog.data.publickey = this.keys.pubkey
         this.stallDialog.data.privatekey = this.keys.privkey
-        this.$q.localStorage.set(`lnbits.shop.${this.g.user.id}`, this.keys)
+        this.$q.localStorage.set(`lnbits.market.${this.g.user.id}`, this.keys)
       },
       restoreKeys() {
-        let keys = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
+        let keys = this.$q.localStorage.getItem(`lnbits.market.${this.g.user.id}`)
         if (keys) {
           this.keys = keys
           this.stallDialog.data.publickey = this.keys.pubkey
@@ -645,7 +645,7 @@
         LNbits.api
           .request(
             'GET',
-            '/shop/api/v1/stalls?all_wallets=true',
+            '/market/api/v1/stalls?all_wallets=true',
             self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
@@ -704,7 +704,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/stalls/' + data.id,
+            '/market/api/v1/stalls/' + data.id,
             _.findWhere(self.g.user.wallets, {
               id: self.stallDialog.data.wallet
             }).inkey,
@@ -726,7 +726,7 @@
         LNbits.api
           .request(
             'POST',
-            '/shop/api/v1/stalls',
+            '/market/api/v1/stalls',
             _.findWhere(self.g.user.wallets, {
               id: self.stallDialog.data.wallet
             }).inkey,
@@ -753,7 +753,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/stalls/' + stallId,
+                '/market/api/v1/stalls/' + stallId,
                 _.findWhere(self.g.user.wallets, {id: stall.wallet}).adminkey
               )
               .then(function (response) {
@@ -778,7 +778,7 @@
         LNbits.api
           .request(
             'GET',
-            '/shop/api/v1/products?all_stalls=true',
+            '/market/api/v1/products?all_stalls=true',
             self.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -851,7 +851,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/products/' + data.id,
+            '/market/api/v1/products/' + data.id,
             _.findWhere(self.g.user.wallets, {
               id: wallet
             }).inkey,
@@ -877,7 +877,7 @@
         LNbits.api
           .request(
             'POST',
-            '/shop/api/v1/products',
+            '/market/api/v1/products',
             _.findWhere(self.g.user.wallets, {id: walletId}).inkey,
             data
           )
@@ -899,7 +899,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/products/' + productId,
+                '/market/api/v1/products/' + productId,
                 _.findWhere(this.g.user.wallets, {id: walletId}).adminkey
               )
               .then(() => {
@@ -922,7 +922,7 @@
         var self = this
 
         LNbits.api
-          .request('GET', '/shop/api/v1/zones', this.g.user.wallets[0].inkey)
+          .request('GET', '/market/api/v1/zones', this.g.user.wallets[0].inkey)
           .then(function (response) {
             if (response.data) {
               self.zones = response.data.map(mapZone)
@@ -960,7 +960,7 @@
         LNbits.api
           .request(
             'POST',
-            '/shop/api/v1/zones/' + data.id,
+            '/market/api/v1/zones/' + data.id,
             self.g.user.wallets[0].adminkey,
             data
           )
@@ -982,7 +982,7 @@
         LNbits.api
           .request(
             'POST',
-            '/shop/api/v1/zones',
+            '/market/api/v1/zones',
             self.g.user.wallets[0].inkey,
             data
           )
@@ -1006,7 +1006,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/zones/' + zoneId,
+                '/market/api/v1/zones/' + zoneId,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
@@ -1027,7 +1027,7 @@
       ////////////////////////////////////////
       getMarkets() {
         LNbits.api
-          .request('GET', '/shop/api/v1/markets', this.g.user.wallets[0].inkey)
+          .request('GET', '/market/api/v1/markets', this.g.user.wallets[0].inkey)
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
@@ -1059,7 +1059,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/shop/api/v1/markets/' + data.id,
+            '/market/api/v1/markets/' + data.id,
             this.g.user.wallets[0].inkey,
             data
           )
@@ -1080,7 +1080,7 @@
         LNbits.api
           .request(
             'POST',
-            '/shop/api/v1/markets',
+            '/market/api/v1/markets',
             this.g.user.wallets[0].inkey,
             data
           )
@@ -1094,8 +1094,8 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteMarket(shopId) {
-        let market = _.findWhere(this.markets, {id: shopId})
+      deleteMarket(marketId) {
+        let market = _.findWhere(this.markets, {id: marketId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this Marketplace?')
@@ -1103,12 +1103,12 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/markets/' + shopId,
+                '/market/api/v1/markets/' + marketId,
                 this.g.user.wallets[0].inkey
               )
               .then(response => {
                 this.markets = _.reject(this.markets, obj => {
-                  return obj.id == shopId
+                  return obj.id == marketId
                 })
               })
               .catch(function (error) {
@@ -1116,8 +1116,8 @@
               })
           })
       },
-      exportShopsCSV: function () {
-        LNbits.utils.exportCSV(this.shopsTable.columns, this.markets)
+      exportMarketsCSV: function () {
+        LNbits.utils.exportCSV(this.marketsTable.columns, this.markets)
       },
       ////////////////////////////////////////
       ////////////////ORDERS//////////////////
@@ -1128,7 +1128,7 @@
         await LNbits.api
           .request(
             'GET',
-            '/shop/api/v1/orders?all_wallets=true',
+            '/market/api/v1/orders?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -1150,7 +1150,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/shop/api/v1/orders/' + orderId,
+                '/market/api/v1/orders/' + orderId,
                 _.findWhere(self.g.user.wallets, {id: order.wallet}).adminkey
               )
               .then(function (response) {
@@ -1168,7 +1168,7 @@
         LNbits.api
           .request(
             'GET',
-            `/shop/api/v1/orders/shipped/${order_id}?shipped=${!shipped}`,
+            `/market/api/v1/orders/shipped/${order_id}?shipped=${!shipped}`,
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -1189,7 +1189,7 @@
         await LNbits.api
           .request(
             'GET',
-            `/shop/api/v1/chat/messages/merchant?orders=${this.orders
+            `/market/api/v1/chat/messages/merchant?orders=${this.orders
               .map(o => o.invoiceid)
               .toString()}`,
             this.g.user.wallets[0].adminkey
@@ -1205,7 +1205,7 @@
           })
       },
       updateLastSeenMsg(id) {
-        let data = this.$q.localStorage.getItem(`lnbits.shop.chat`)
+        let data = this.$q.localStorage.getItem(`lnbits.market.chat`)
         let chat = {
           ...data,
           [`${id}`]: {
@@ -1214,11 +1214,11 @@
             ]
           }
         }
-        this.$q.localStorage.set(`lnbits.shop.chat`, chat)
+        this.$q.localStorage.set(`lnbits.market.chat`, chat)
         this.checkUnreadMessages()
       },
       checkUnreadMessages() {
-        let lastMsgs = this.$q.localStorage.getItem(`lnbits.shop.chat`) || {}
+        let lastMsgs = this.$q.localStorage.getItem(`lnbits.market.chat`) || {}
 
         for (let key in this.messages) {
           let idx = this.orders.findIndex(f => f.invoiceid == key)
@@ -1287,7 +1287,7 @@
         if (this.ws.readyState === WebSocket.CLOSED) {
           console.log('WebSocket CLOSED: Reopening')
           this.ws = new WebSocket(
-            ws_scheme + location.host + '/shop/ws/' + this.customerKey
+            ws_scheme + location.host + '/market/ws/' + this.customerKey
           )
         }
       },
@@ -1318,7 +1318,7 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
+        ws = new WebSocket(ws_scheme + location.host + '/market/ws/' + room_name)
 
         ws.onmessage = async event => {
           let event_data = JSON.parse(event.data)
@@ -1335,7 +1335,7 @@
       },
       async getCurrencies() {
         await LNbits.api
-          .request('GET', '/shop/api/v1/currencies')
+          .request('GET', '/market/api/v1/currencies')
           .then(response => {
             this.currencies.units = ['sat', ...response.data]
           })
@@ -1359,7 +1359,7 @@
         await this.getOrders()
         this.getMarkets()
         await this.getAllMessages()
-        let keys = this.$q.localStorage.getItem(`lnbits.shop.${this.g.user.id}`)
+        let keys = this.$q.localStorage.getItem(`lnbits.market.${this.g.user.id}`)
         if (keys) {
           this.keys = keys
         }

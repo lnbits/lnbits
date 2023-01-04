@@ -33,7 +33,7 @@
     <q-card class="card--product">
       {% raw %}
       <q-img
-        :src="item.image ? item.image : '/shop/static/images/placeholder.png'"
+        :src="item.image ? item.image : '/market/static/images/placeholder.png'"
         alt="Product Image"
         loading="lazy"
         spinner-color="white"
@@ -98,7 +98,7 @@
           dense
           color="primary"
           type="a"
-          :href="'/shop/stalls/' + item.stall"
+          :href="'/market/stalls/' + item.stall"
           target="_blank"
         >
           Visit Stall

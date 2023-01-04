@@ -184,7 +184,7 @@
     </q-form>
   </q-card>
 </q-dialog>
-<!-- MARKETPLACE/SHOP DIALOG -->
+<!-- MARKETPLACE/market DIALOG -->
 <q-dialog v-model="marketDialog.show" position="top">
   <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
     <q-form @submit="sendMarketplaceFormData" class="q-gutter-md">
@@ -314,8 +314,8 @@
         v-if="diagonAlley"
         filled
         dense
-        v-model.trim="stallDialog.data.nostrShops"
-        label="Nostr shop public keys (seperate by comma)"
+        v-model.trim="stallDialog.data.nostrMarkets"
+        label="Nostr market public keys (seperate by comma)"
       ></q-input>
 
       <div class="row q-mt-lg">
@@ -350,7 +350,7 @@
 <!-- ONBOARDING DIALOG -->
 <q-dialog v-model="onboarding.show">
   <q-card class="q-pa-lg">
-    <h6 class="q-my-md text-primary">How to use Shop</h6>
+    <h6 class="q-my-md text-primary">How to use Market</h6>
     <q-stepper v-model="step" color="primary" vertical animated>
       <q-step
         :name="1"

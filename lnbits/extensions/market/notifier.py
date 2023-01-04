@@ -10,8 +10,8 @@ from collections import defaultdict
 from fastapi import WebSocket
 from loguru import logger
 
-from lnbits.extensions.shop.crud import create_chat_message
-from lnbits.extensions.shop.models import CreateChatMessage
+from lnbits.extensions.market.crud import create_chat_message
+from lnbits.extensions.market.models import CreateChatMessage
 
 
 class Notifier:

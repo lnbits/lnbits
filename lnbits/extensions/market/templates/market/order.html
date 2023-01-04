@@ -292,7 +292,7 @@
         lnbitsBookmark: {
           show: true,
           finish: () => {
-            this.$q.localStorage.set('lnbits.shopbookmark', false)
+            this.$q.localStorage.set('lnbits.marketbookmark', false)
             this.lnbitsBookmark.show = false
           }
         },
@@ -368,8 +368,8 @@
       },
       restoreKeys() {
         this.user.keys = this.keysDialog.data
-        let data = this.$q.localStorage.getItem(`lnbits.shop.data`)
-        this.$q.localStorage.set(`lnbits.shop.data`, {
+        let data = this.$q.localStorage.getItem(`lnbits.market.data`)
+        this.$q.localStorage.set(`lnbits.market.data`, {
           ...data,
           keys: this.user.keys
         })
@@ -380,7 +380,7 @@
         LNbits.utils
           .confirmDialog('Are you sure you want to delete your stored data?')
           .onOk(() => {
-            this.$q.localStorage.remove('lnbits.shop.data')
+            this.$q.localStorage.remove('lnbits.market.data')
             this.user = null
           })
       },
@@ -401,7 +401,7 @@
         await LNbits.api
           .request(
             'GET',
-            `/shop/api/v1/chat/messages/${room_name}${
+            `/market/api/v1/chat/messages/${room_name}${
               all ? '?all_messages=true' : ''
             }`
           )
@@ -430,7 +430,7 @@
         if (this.ws.readyState === WebSocket.CLOSED) {
           console.log('WebSocket CLOSED: Reopening')
           this.ws = new WebSocket(
-            ws_scheme + location.host + '/shop/ws/' + this.selectedOrder
+            ws_scheme + location.host + '/market/ws/' + this.selectedOrder
           )
         }
       },
@@ -443,7 +443,7 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(ws_scheme + location.host + '/shop/ws/' + room_name)
+        ws = new WebSocket(ws_scheme + location.host + '/market/ws/' + room_name)
 
         ws.onmessage = event => {
           let event_data = JSON.parse(event.data)
@@ -455,7 +455,7 @@
       }
     },
     async created() {
-      let showBookmark = this.$q.localStorage.getItem('lnbits.shopbookmark')
+      let showBookmark = this.$q.localStorage.getItem('lnbits.marketbookmark')
       this.lnbitsBookmark.show = showBookmark === true || showBookmark == null
 
       let order_details = JSON.parse('{{ order | tojson }}')
@@ -488,7 +488,7 @@
         this.products = this.products.map(mapProductsItems)
       }
 
-      let data = this.$q.localStorage.getItem(`lnbits.shop.data`) || false
+      let data = this.$q.localStorage.getItem(`lnbits.market.data`) || false
 
       if (data) {
         this.user = data
@@ -501,7 +501,7 @@
         try {
           await LNbits.api.request(
             'GET',
-            `/shop/api/v1/order/pubkey/${order_id}/${this.user.keys.publickey}`
+            `/market/api/v1/order/pubkey/${order_id}/${this.user.keys.publickey}`
           )
         } catch (error) {
           LNbits.utils.notifyApiError(error)
@@ -516,7 +516,7 @@
 
       await this.getMessages(order_id)
 
-      this.$q.localStorage.set(`lnbits.shop.data`, this.user)
+      this.$q.localStorage.set(`lnbits.market.data`, this.user)
       this.startChat(order_id)
     }
   })

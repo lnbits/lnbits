@@ -1,10 +1,10 @@
 async def m001_initial(db):
     """
-    Initial Shop settings table.
+    Initial Market settings table.
     """
     await db.execute(
         """
-        CREATE TABLE shop.settings (
+        CREATE TABLE market.settings (
             "user" TEXT PRIMARY KEY,
             currency TEXT DEFAULT 'sat',
             fiat_base_multiplier INTEGER DEFAULT 1
@@ -17,7 +17,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE shop.stalls (
+        CREATE TABLE market.stalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -35,7 +35,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE shop.products (
+        CREATE TABLE market.products (
             id TEXT PRIMARY KEY,
             stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id) ON DELETE CASCADE,
             product TEXT NOT NULL,
@@ -54,7 +54,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE shop.zones (
+        CREATE TABLE market.zones (
             id TEXT PRIMARY KEY,
             "user" TEXT NOT NULL,
             cost TEXT NOT NULL,
@@ -68,7 +68,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE shop.orders (
+        CREATE TABLE market.orders (
             id {db.serial_primary_key},
             wallet TEXT NOT NULL,
             username TEXT,
@@ -92,7 +92,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE shop.order_details (
+        CREATE TABLE market.order_details (
             id TEXT PRIMARY KEY,
             order_id INTEGER NOT NULL REFERENCES {db.references_schema}orders (id) ON DELETE CASCADE,
             product_id TEXT NOT NULL REFERENCES {db.references_schema}products (id) ON DELETE CASCADE,
@@ -106,7 +106,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE shop.markets (
+        CREATE TABLE market.markets (
             id TEXT PRIMARY KEY,
             usr TEXT NOT NULL,
             name TEXT
@@ -119,7 +119,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE shop.market_stalls (
+        CREATE TABLE market.market_stalls (
             id TEXT PRIMARY KEY,
             marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id) ON DELETE CASCADE,
             stallid TEXT NOT NULL REFERENCES {db.references_schema}stalls (id) ON DELETE CASCADE
@@ -132,7 +132,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE shop.messages (
+        CREATE TABLE market.messages (
             id {db.serial_primary_key},
             msg TEXT NOT NULL,
             pubkey TEXT NOT NULL,
@@ -149,8 +149,8 @@ async def m001_initial(db):
         Create indexes for message fetching
         """
         await db.execute(
-            "CREATE INDEX idx_messages_timestamp ON shop.messages (timestamp DESC)"
+            "CREATE INDEX idx_messages_timestamp ON market.messages (timestamp DESC)"
         )
         await db.execute(
-            "CREATE INDEX idx_messages_conversations ON shop.messages (id_conversation)"
+            "CREATE INDEX idx_messages_conversations ON market.messages (id_conversation)"
         )

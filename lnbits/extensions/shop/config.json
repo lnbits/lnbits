@@ -1,6 +1,0 @@
-{
-  "name": "Shop",
-  "short_description": "Make a webshop on LNbits",
-	"tile": "/shop/static/images/bitcoin-shop.png",
-  "contributors": ["benarc", "talvasconcelos"]
-}

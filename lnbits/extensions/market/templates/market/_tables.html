@@ -67,7 +67,7 @@
               dense
               size="xs"
               @click="shipOrder(props.row.id)"
-              icon="add_shopping_cart"
+              icon="add_marketping_cart"
               color="green"
             >
               <q-tooltip> Product shipped? </q-tooltip>
@@ -194,7 +194,7 @@
               unelevated
               dense
               size="xs"
-              icon="add_shopping_cart"
+              icon="add_marketping_cart"
               :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               type="a"
               :href="props.row.wallet"
@@ -276,10 +276,10 @@
               icon="storefront"
               :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               type="a"
-              :href="'/shop/stalls/' + props.row.id"
+              :href="'/market/stalls/' + props.row.id"
               target="_blank"
             ></q-btn>
-            <q-tooltip> Stall simple UI shopping cart </q-tooltip>
+            <q-tooltip> Stall simple UI marketping cart </q-tooltip>
           </q-td>
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
             {{ col.value }}
@@ -348,7 +348,7 @@
               icon="storefront"
               :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               type="a"
-              :href="'/shop/market/' + props.row.id"
+              :href="'/market/market/' + props.row.id"
               target="_blank"
             ></q-btn>
             <q-tooltip> Link to pass to stall relay </q-tooltip>

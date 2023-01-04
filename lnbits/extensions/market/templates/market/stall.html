@@ -94,7 +94,7 @@
     <q-card class="card--product">
       {% raw %}
       <q-img
-        :src="item.image ? item.image : '/shop/static/images/placeholder.png'"
+        :src="item.image ? item.image : '/market/static/images/placeholder.png'"
         alt="Product Image"
         loading="lazy"
         spinner-color="white"
@@ -431,7 +431,7 @@
         console.log(this.cart, this.cartMenu)
       },
       getPubkey() {
-        let data = this.$q.localStorage.getItem(`lnbits.shop.data`)
+        let data = this.$q.localStorage.getItem(`lnbits.market.data`)
         if (data && data.keys.publickey) {
           this.checkoutDialog.data.pubkey = data.keys.publickey
         } else {
@@ -456,7 +456,7 @@
           })
         }
         LNbits.api
-          .request('POST', '/shop/api/v1/orders', null, data)
+          .request('POST', '/market/api/v1/orders', null, data)
           .then(res => {
             this.checkoutDialog = {show: false, data: {}}
 
@@ -477,7 +477,7 @@
               LNbits.api
                 .request(
                   'GET',
-                  `/shop/api/v1/orders/payments/${this.qrCodeDialog.data.payment_hash}`
+                  `/market/api/v1/orders/payments/${this.qrCodeDialog.data.payment_hash}`
                 )
                 .then(res => {
                   if (res.data.paid) {
@@ -491,7 +491,7 @@
                         {
                           label: 'See Order',
                           handler: () => {
-                            window.location.href = `/shop/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                            window.location.href = `/market/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
                           }
                         }
                       ]
@@ -500,7 +500,7 @@
                     this.resetCart()
                     this.closeQrCodeDialog()
                     setTimeout(() => {
-                      window.location.href = `/shop/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                      window.location.href = `/market/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
                     }, 5000)
                   }
                 })
