@@ -422,7 +422,9 @@ async def api_market_order_shipped(
 async def api_market_markets(wallet: WalletTypeInfo = Depends(get_key_type)):
     # await get_market_market_stalls(market_id="FzpWnMyHQMcRppiGVua4eY")
     try:
-        return [market.dict() for market in await get_market_markets(wallet.wallet.user)]
+        return [
+            market.dict() for market in await get_market_markets(wallet.wallet.user)
+        ]
     except:
         return {"message": "We could not retrieve the markets."}
 

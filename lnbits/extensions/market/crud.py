@@ -14,10 +14,10 @@ from .models import (
     CreateMarket,
     CreateMarketStalls,
     Market,
+    MarketSettings,
     OrderDetail,
     Orders,
     Products,
-    MarketSettings,
     Stalls,
     Zones,
     createOrder,
@@ -456,7 +456,9 @@ async def get_market_chat_by_merchant(ids: List[str]) -> List[ChatMessage]:
 
 
 async def get_market_settings(user) -> Optional[MarketSettings]:
-    row = await db.fetchone("""SELECT * FROM market.settings WHERE "user" = ?""", (user,))
+    row = await db.fetchone(
+        """SELECT * FROM market.settings WHERE "user" = ?""", (user,)
+    )
 
     return MarketSettings(**row) if row else None
 

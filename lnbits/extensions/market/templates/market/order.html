@@ -443,7 +443,9 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(ws_scheme + location.host + '/market/ws/' + room_name)
+        ws = new WebSocket(
+          ws_scheme + location.host + '/market/ws/' + room_name
+        )
 
         ws.onmessage = event => {
           let event_data = JSON.parse(event.data)

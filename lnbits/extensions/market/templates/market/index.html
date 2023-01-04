@@ -60,7 +60,8 @@
           @click="marketDialog.show = true"
           >Create Market
           <q-tooltip>
-            Makes a simple frontend market for your stalls (not NOSTR)</q-tooltip
+            Makes a simple frontend market for your stalls (not
+            NOSTR)</q-tooltip
           ></q-btn
         >
       </q-card-section>
@@ -596,7 +597,9 @@
         this.$q.localStorage.set(`lnbits.market.${this.g.user.id}`, this.keys)
       },
       restoreKeys() {
-        let keys = this.$q.localStorage.getItem(`lnbits.market.${this.g.user.id}`)
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.market.${this.g.user.id}`
+        )
         if (keys) {
           this.keys = keys
           this.stallDialog.data.publickey = this.keys.pubkey
@@ -1027,7 +1030,11 @@
       ////////////////////////////////////////
       getMarkets() {
         LNbits.api
-          .request('GET', '/market/api/v1/markets', this.g.user.wallets[0].inkey)
+          .request(
+            'GET',
+            '/market/api/v1/markets',
+            this.g.user.wallets[0].inkey
+          )
           .then(response => {
             if (response.data) {
               this.markets = response.data.map(mapMarkets)
@@ -1318,7 +1325,9 @@
         } else {
           ws_scheme = 'ws://'
         }
-        ws = new WebSocket(ws_scheme + location.host + '/market/ws/' + room_name)
+        ws = new WebSocket(
+          ws_scheme + location.host + '/market/ws/' + room_name
+        )
 
         ws.onmessage = async event => {
           let event_data = JSON.parse(event.data)
@@ -1359,7 +1368,9 @@
         await this.getOrders()
         this.getMarkets()
         await this.getAllMessages()
-        let keys = this.$q.localStorage.getItem(`lnbits.market.${this.g.user.id}`)
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.market.${this.g.user.id}`
+        )
         if (keys) {
           this.keys = keys
         }
