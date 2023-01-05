@@ -41,8 +41,10 @@ async def on_invoice_paid(payment: Payment) -> None:
     logger.debug(f"performing split payments to {len(targets)} targets")
 
     amount_to_split = payment.amount
+
     if payment.extra.get("amount"):
-        amount_to_split = int(payment.extra.get("amount") * 1000)
+        _amount = payment.extra.get("amount") or 0
+        amount_to_split = _amount * 1000
 
     for target in targets:
         if target.percent > 0:
@@ -65,13 +67,11 @@ async def on_invoice_paid(payment: Payment) -> None:
             logger.debug(f"created split invoice: {payment_hash}")
 
             extra = {**payment.extra, "splitted": True}
-            if not extra.get("tag"):
-                extra["tag"] = "splitpayments"
 
             checking_id = await pay_invoice(
                 payment_request=payment_request,
                 wallet_id=payment.wallet_id,
-                extra={**extra},
+                extra=extra,
             )
             logger.debug(f"paid split invoice: {checking_id}")
 
