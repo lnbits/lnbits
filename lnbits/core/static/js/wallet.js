@@ -468,8 +468,10 @@ new Vue({
 
       // keysend
       if (
-        this.parse.data.request.toLowerCase().startsWith('keysend:') ||
-        this.parse.data.request.match(/[\w.+-~_]+/)
+        !this.parse.data.request.match(/^ln(?:bc|tb|bcrt)[\w.+-~_]+/) && (
+          this.parse.data.request.toLowerCase().startsWith('keysend:') ||
+          this.parse.data.request.match(/[\w.+-~_]+/)
+        )
       ) {
         this.parse.keysend = {
           pubkey: Object.freeze(this.parse.data.request),
