@@ -26,7 +26,7 @@ class CreatePayLinkData(BaseModel):
 
 
 class PayLink(BaseModel):
-    id: str
+    id: int
     wallet: str
     description: str
     min: float
