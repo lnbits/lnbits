@@ -7,19 +7,21 @@
 #  response.is_error that is its inverse)
 
 from . import deezy_ext
-from . import db
 from .models import (
     Token,
     LnToBtcSwap,
-    BtcToLnSwap
+    BtcToLnSwap,
+    UpdateLnToBtcSwap,
 )
+
 from .crud import (
     get_token,
     get_ln_to_btc,
     get_btc_to_ln,
     save_token,
     save_btc_to_ln,
-    save_ln_to_btc
+    save_ln_to_btc,
+    update_ln_to_btc
 )
 
 
@@ -51,6 +53,13 @@ async def api_deezy(data: Token):
 @deezy_ext.post("/api/v1/store-ln-to-btc")
 async def api_deezy(data: LnToBtcSwap):
     response = await save_ln_to_btc(data)
+
+    return response
+
+
+@deezy_ext.post("/api/v1/update-ln-to-btc")
+async def api_deezy(data: UpdateLnToBtcSwap):
+    response = await update_ln_to_btc(data)
 
     return response
 

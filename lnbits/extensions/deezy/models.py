@@ -18,6 +18,12 @@ class LnToBtcSwap(BaseModel):
     created_at: str = ""
 
 
+class UpdateLnToBtcSwap(BaseModel):
+    txid: str
+    tx_hex: str
+    bolt11_invoice: str
+
+
 class BtcToLnSwap(BaseModel):
     ln_address: str
     on_chain_address: str

@@ -287,6 +287,19 @@
       this.getBtcToLn()
     },
     methods: {
+      updateLnToBtc(payload) {
+        var self = this
+        return axios
+          .post('/deezy/api/v1/update-ln-to-btc', {
+            ...payload
+          })
+          .then(function (response) {
+            console.log('btc to ln is update', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
       getToken() {
         var self = this
         axios({
@@ -337,13 +350,20 @@
               .get(
                 `https://api.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`
               )
-              .then(function (response) {
-                if (response.data.on_chain_txid || count > 4) {
+              .then(async function (response) {
+                if (response.data.on_chain_txid) {
                   self.swapLnToBtc = {
                     ...self.swapLnToBtc,
                     invoicePaid: true,
                     onchainTxId: response.data.on_chain_txid
                   }
+                  self.updateLnToBtc({
+                    txid: response.data.on_chain_txid,
+                    tx_hex: response.data.tx_hex,
+                    bolt11_invoice: self.swapLnToBtc.response 
+                  }).then(() => {
+                    self.getLnToBtc()
+                  })
                   clearInterval(interval)
                 }
               })

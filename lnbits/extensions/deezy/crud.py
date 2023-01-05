@@ -5,7 +5,8 @@ from . import db
 from .models import (
     Token,
     LnToBtcSwap,
-    BtcToLnSwap
+    BtcToLnSwap,
+    UpdateLnToBtcSwap
 )
 
 
@@ -81,6 +82,19 @@ async def save_ln_to_btc(
             data.tx_hex,
         ),
     )
+
+
+async def update_ln_to_btc(data: UpdateLnToBtcSwap) -> str:
+    await db.execute(
+        """
+        UPDATE deezy.ln_to_btc_swap
+        SET txid = ?, tx_hex = ?
+        WHERE bolt11_invoice = ?
+        """,
+        (data.txid, data.tx_hex, data.bolt11_invoice),
+    )
+
+    return data.txid
 
 
 async def save_btc_to_ln(
