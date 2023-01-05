@@ -122,7 +122,7 @@ async def get_mempool_info(endPoint: str, gerty) -> dict:
                 ),
             )
             return response.json()
-    if int(time.time()) - int(row.time) > 20:
+    if float(time.time()) - row.time > 20:
         async with httpx.AsyncClient() as client:
             response = await client.get(gerty.mempool_endpoint + url)
             await db.execute(
