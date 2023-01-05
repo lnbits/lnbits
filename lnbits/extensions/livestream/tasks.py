@@ -22,6 +22,9 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+    if not payment.extra:
+        return
+
     if payment.extra.get("tag") != "livestream":
         # not a livestream invoice
         return
