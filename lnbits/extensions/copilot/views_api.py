@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query, Request
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import websocketUpdater
@@ -22,9 +20,7 @@ from .models import CreateCopilotData
 
 
 @copilot_ext.get("/api/v1/copilot")
-async def api_copilots_retrieve(
-    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
-):
+async def api_copilots_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_user = wallet.wallet.user
     copilots = [copilot.dict() for copilot in await get_copilots(wallet_user)]
     try:
@@ -37,7 +33,7 @@ async def api_copilots_retrieve(
 async def api_copilot_retrieve(
     req: Request,
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     copilot = await get_copilot(copilot_id)
     if not copilot:
@@ -54,7 +50,7 @@ async def api_copilot_retrieve(
 async def api_copilot_create_or_update(
     data: CreateCopilotData,
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     data.user = wallet.wallet.user
     data.wallet = wallet.wallet.id
@@ -68,7 +64,7 @@ async def api_copilot_create_or_update(
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 async def api_copilot_delete(
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     copilot = await get_copilot(copilot_id)
 

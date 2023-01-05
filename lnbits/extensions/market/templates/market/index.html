@@ -1,0 +1,1419 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  {% include "market/_dialogs.html" %}
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section class="q-gutter-sm row">
+        <q-btn unelevated color="primary" @click="zoneDialog.show = true"
+          >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-if="zones.length > 0"
+          color="primary"
+          @click="openStallDialog()"
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-else
+          color="primary"
+          @click="errorMessage('First set shipping zone(s).')"
+          >+ Stall
+          <q-tooltip>
+            Create a market stall to list products on
+          </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-if="stalls.length > 0"
+          color="primary"
+          @click="productDialog.show = true"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
+        >
+        <q-btn
+          unelevated
+          v-else
+          color="primary"
+          @click="errorMessage('First set shipping zone(s), then create a stall.')"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
+        >
+        <q-select
+          style="width: 100px"
+          filled
+          dense
+          v-model="currencies.unit"
+          type="text"
+          label="Unit"
+          :options="currencies.units"
+          @input="(value) => setCurrency(value)"
+        ></q-select>
+        <q-btn
+          class="q-ml-auto"
+          unelevated
+          flat
+          color="primary"
+          @click="marketDialog.show = true"
+          >Create Market
+          <q-tooltip>
+            Makes a simple frontend market for your stalls (not
+            NOSTR)</q-tooltip
+          ></q-btn
+        >
+      </q-card-section>
+      <q-separator inset></q-separator>
+      <q-card-section>
+        <div class="text-h6">Market</div>
+        <div class="text-subtitle2">Make a market of multiple stalls.</div>
+      </q-card-section>
+
+      <q-card-section>
+        <q-toggle
+          disable
+          v-model="diagonAlley"
+          checked-icon="check"
+          color="green"
+          unchecked-icon="clear"
+          label='"Diagon Alley" mode (Nostr)'
+          @input="toggleDA"
+        >
+          <q-tooltip>Coming soon...</q-tooltip></q-toggle
+        >
+        <q-btn
+          disable
+          class="float-right"
+          unelevated
+          color="primary"
+          @click="marketDataDownload"
+          >Export all Data
+          <q-tooltip>
+            Export all data (markets, products, orders, etc...)</q-tooltip
+          ></q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    {% include "market/_tables.html" %}
+    <!-- KEYS -->
+    <q-card v-if="keys">
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Keys</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportKeysCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section>
+        <div class="row">
+          <div
+            class="col-6"
+            v-for="type in ['pubkey', 'privkey']"
+            v-bind:key="type"
+          >
+            <div class="text-center q-mb-lg">
+              {% raw %}
+              <q-responsive
+                :ratio="1"
+                class="q-mx-xl"
+                @click="copyText(keys[type])"
+              >
+                <qrcode
+                  :value="keys[type]"
+                  :options="{width: 250}"
+                  class="rounded-borders"
+                ></qrcode>
+                <q-tooltip>{{ keys[type] }}</q-tooltip>
+              </q-responsive>
+              <p>
+                {{ type == 'pubkey' ? 'Public Key' : 'Private Key' }}<br /><small
+                  >Click to copy</small
+                >
+              </p>
+              {% endraw %}
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          LNbits Market Extension (Nostr support coming soon)
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "market/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+    <!-- CHAT BOX -->
+    {% include "market/_chat_box.html" %}
+  </div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+
+<script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
+<script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  const pica = window.pica()
+  const nostr = window.NostrTools
+
+  function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
+    let ratio = Math.min(
+      1,
+      maxWidth / img.naturalWidth,
+      maxHeight / img.naturalHeight
+    )
+    return {width: img.naturalWidth * ratio, height: img.naturalHeight * ratio}
+  }
+
+  const mapStalls = obj => {
+    obj._data = _.clone(obj)
+    return obj
+  }
+  const mapProducts = obj => {
+    obj._data = _.clone(obj)
+    if ('{{  currency }}' != 'sat') {
+      obj.price /= 100
+    }
+    return obj
+  }
+  const mapZone = obj => {
+    obj._data = _.clone(obj)
+    return obj
+  }
+  const mapOrders = obj => {
+    obj._data = _.clone(obj)
+    obj.time = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    // obj.unread = false
+    return obj
+  }
+  const mapKeys = obj => {
+    obj._data = _.clone(obj)
+    return obj
+  }
+
+  const mapMarkets = obj => {
+    obj._data = _.clone(obj)
+    obj.stalls = []
+    LNbits.api
+      .request('GET', `/market/api/v1/markets/${obj.id}/stalls`, null)
+      .then(response => {
+        if (response.data) {
+          obj.stalls = response.data.map(s => s.id) //.toString()
+        }
+      })
+      .catch(error => {
+        LNbits.utils.notifyApiError(error)
+      })
+    return obj
+  }
+
+  const humanReadableZones = zones => {
+    return zones.map(z => `${z.id} - ${z.countries}`)
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        step: 1,
+        onboarding: {
+          show: true,
+          showAgain: false,
+          finish: () => {
+            this.$q.localStorage.set(
+              'lnbits.DAOnboarding',
+              this.onboarding.showAgain
+            )
+            this.onboarding.show = false
+          }
+        },
+        keys: null,
+        diagonAlley: false,
+        currencies: {
+          units: ['sat'],
+          unit: 'sat'
+        },
+        products: [],
+        orders: [],
+        stalls: [],
+        markets: [],
+        zones: [],
+        zoneOptions: [],
+        customerKeys: [],
+        customerKey: '',
+        customerMessages: {},
+        messages: {},
+        newMessage: '',
+        orderMessages: {},
+        shippedModel: false,
+        shippingZoneOptions: [
+          'Free (digital)',
+          'Worldwide',
+          'Europe',
+          'Australia',
+          'Austria',
+          'Belgium',
+          'Brazil',
+          'Canada',
+          'Denmark',
+          'Finland',
+          'France',
+          'Germany',
+          'Greece',
+          'Hong Kong',
+          'Hungary',
+          'Ireland',
+          'Indonesia',
+          'Israel',
+          'Italy',
+          'Japan',
+          'Kazakhstan',
+          'Korea',
+          'Luxembourg',
+          'Malaysia',
+          'Mexico',
+          'Netherlands',
+          'New Zealand',
+          'Norway',
+          'Poland',
+          'Portugal',
+          'Russia',
+          'Saudi Arabia',
+          'Singapore',
+          'Spain',
+          'Sweden',
+          'Switzerland',
+          'Thailand',
+          'Turkey',
+          'Ukraine',
+          'United Kingdom**',
+          'United States***',
+          'Vietnam',
+          'China'
+        ],
+        categories: [
+          'Fashion (clothing and accessories)',
+          'Health (and beauty)',
+          'Toys (and baby equipment)',
+          'Media (Books and CDs)',
+          'Groceries (Food and Drink)',
+          'Technology (Phones and Computers)',
+          'Home (furniture and accessories)',
+          'Gifts (flowers, cards, etc)',
+          'Adult',
+          'Other'
+        ],
+        relayOptions: [
+          'wss://nostr-relay.herokuapp.com/ws',
+          'wss://nostr-relay.bigsun.xyz/ws',
+          'wss://freedom-relay.herokuapp.com/ws'
+        ],
+        label: '',
+        ordersTable: {
+          columns: [
+            /*{
+            name: 'product',
+            align: 'left',
+            label: 'Product',
+            field: 'product'
+          },
+          {
+            name: 'quantity',
+            align: 'left',
+            label: 'Quantity',
+            field: 'quantity'
+          },*/
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'time',
+              align: 'left',
+              label: 'Date',
+              field: 'time'
+            },
+            {
+              name: 'invoiceid',
+              align: 'left',
+              label: 'InvoiceID',
+              field: 'invoiceid'
+            },
+            {name: 'paid', align: 'left', label: 'Paid', field: 'paid'},
+            {name: 'shipped', align: 'left', label: 'Shipped', field: 'shipped'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        productsTable: {
+          columns: [
+            {
+              name: 'stall',
+              align: 'left',
+              label: 'Stall',
+              field: 'stall'
+            },
+            {
+              name: 'product',
+              align: 'left',
+              label: 'Product',
+              field: 'product'
+            },
+            {
+              name: 'description',
+              align: 'left',
+              label: 'Description',
+              field: 'description'
+            },
+            {
+              name: 'categories',
+              align: 'left',
+              label: 'Categories',
+              field: 'categories'
+            },
+            {name: 'price', align: 'left', label: 'Price', field: 'price'},
+            {
+              name: 'quantity',
+              align: 'left',
+              label: 'Quantity',
+              field: 'quantity'
+            },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        stallTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'name',
+              align: 'left',
+              label: 'Name',
+              field: 'name'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'publickey',
+              align: 'left',
+              label: 'Public key',
+              field: 'publickey'
+            },
+            {
+              name: 'privatekey',
+              align: 'left',
+              label: 'Private key',
+              field: 'privatekey'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        marketTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'name',
+              align: 'left',
+              label: 'Name',
+              field: 'name'
+            },
+            {
+              name: 'stalls',
+              align: 'left',
+              label: 'Stalls',
+              field: 'stalls'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        zonesTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'countries',
+              align: 'left',
+              label: 'Countries',
+              field: 'countries'
+            },
+            {
+              name: 'cost',
+              align: 'left',
+              label: 'Cost',
+              field: 'cost'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        productDialog: {
+          show: false,
+          data: {}
+        },
+        stallDialog: {
+          show: false,
+          data: {}
+        },
+        zoneDialog: {
+          show: false,
+          data: {countries: []}
+        },
+        marketDialog: {
+          show: false,
+          data: {activate: false}
+        },
+        orderDialog: {
+          show: false,
+          data: {}
+        },
+        relayDialog: {
+          show: false,
+          data: {}
+        }
+      }
+    },
+    computed: {
+      categoryOther: function () {
+        cats = trim(this.productDialog.data.categories.split(','))
+        for (let i = 0; i < cats.length; i++) {
+          if (cats[i] == 'Others') {
+            return true
+          }
+        }
+        return false
+      }
+    },
+    methods: {
+      resetDialog(dialog) {
+        this[dialog].show = false
+        this[dialog].data = {}
+      },
+      toggleDA(value, evt) {
+        this.$q.localStorage.set(`lnbits.DAmode`, value)
+      },
+      setCurrency(v) {
+        let data = {
+          currency: v,
+          fiat_base_multiplier: this.currencies.unit != 'sat' ? 100 : 1
+        }
+        LNbits.api
+          .request(
+            'PUT',
+            '/market/api/v1/settings/' + this.g.user.id,
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Currency changed`,
+              icon: 'check'
+            })
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      marketDataDownload() {
+        const removeClone = obj => {
+          delete obj._data
+          return obj
+        }
+        let data = {
+          orders: this.orders.map(removeClone),
+          stalls: this.stalls.map(removeClone),
+          products: this.products.map(removeClone),
+          keys: this.keys
+        }
+        const file = new File([JSON.stringify(data)], 'backup_data.json', {
+          type: 'text/json'
+        })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(file)
+
+        link.href = url
+        link.download = file.name
+        link.click()
+
+        window.URL.revokeObjectURL(url)
+      },
+      generateKeys() {
+        const privkey = nostr.generatePrivateKey()
+        const pubkey = nostr.getPublicKey(privkey)
+
+        this.keys = {privkey, pubkey}
+        this.stallDialog.data.publickey = this.keys.pubkey
+        this.stallDialog.data.privatekey = this.keys.privkey
+        this.$q.localStorage.set(`lnbits.market.${this.g.user.id}`, this.keys)
+      },
+      restoreKeys() {
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.market.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+          this.stallDialog.data.publickey = this.keys.pubkey
+          this.stallDialog.data.privatekey = this.keys.privkey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No keys found.'
+          })
+        }
+      },
+      exportKeysCSV: function () {
+        let colls = [
+          {
+            name: 'privatekey',
+            align: 'left',
+            label: 'Private Key',
+            field: 'privkey'
+          },
+          {
+            name: 'publickey',
+            align: 'left',
+            label: 'Public Key',
+            field: 'pubkey'
+          }
+        ]
+        LNbits.utils.exportCSV(colls, [this.keys])
+      },
+      capitalizeFirstLetter: function (string) {
+        return string.charAt(0).toUpperCase() + string.slice(1)
+      },
+      errorMessage: function (error) {
+        this.$q.notify({
+          color: 'primary',
+          message: error
+        })
+      },
+      ////////////////////////////////////////
+      ////////////////STALLS//////////////////
+      ////////////////////////////////////////
+      stallName(id) {
+        return id.map(c => this.stalls.find(s => s.id == c).name).toString()
+      },
+      getStalls: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/market/api/v1/stalls?all_wallets=true',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.stalls = response.data.map(mapStalls)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      openStallDialog: function () {
+        this.zoneOptions = humanReadableZones(this.zones)
+        this.stallDialog.show = true
+        if (!this.keys && !this.diagonAlley) {
+          this.generateKeys()
+        }
+      },
+      openStallUpdateDialog: function (linkId) {
+        var self = this
+        var link = _.findWhere(self.stalls, {id: linkId})
+        this.zoneOptions = humanReadableZones(this.zones)
+        this.stallDialog.data = _.clone(link._data)
+        let shippingzones = this.zoneOptions.filter(z =>
+          this.stallDialog.data.shippingzones
+            .split(',')
+            .includes(z.split('-')[0].trim())
+        )
+
+        this.stallDialog.data.shippingzones = shippingzones //this.stallDialog.data.shippingzones.split(",")
+
+        //let zones = this.zoneOptions
+        //  .filter(z => z.id == )
+        this.stallDialog.show = true
+      },
+      sendStallFormData: function () {
+        let data = {
+          name: this.stallDialog.data.name,
+          wallet: this.stallDialog.data.wallet,
+          publickey: this.stallDialog.data.publickey || this.keys.pubkey,
+          currency: this.currencies.unit,
+          relays: this.stallDialog.data.relays,
+          shippingzones: this.stallDialog.data.shippingzones
+            .map(z => z.split('-')[0].trim())
+            .toString()
+        }
+        if (this.stallDialog.data.id) {
+          this.stallDialog.data = {...this.stallDialog.data, ...data}
+          this.updateStall(this.stallDialog.data)
+        } else {
+          this.createStall(data)
+        }
+      },
+      updateStall: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'PUT',
+            '/market/api/v1/stalls/' + data.id,
+            _.findWhere(self.g.user.wallets, {
+              id: self.stallDialog.data.wallet
+            }).inkey,
+            data
+          )
+          .then(function (response) {
+            self.stalls = _.reject(self.stalls, function (obj) {
+              return obj.id == data.id
+            })
+            self.stalls.push(mapStalls(response.data))
+            self.resetDialog('stallDialog')
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createStall: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/market/api/v1/stalls',
+            _.findWhere(self.g.user.wallets, {
+              id: self.stallDialog.data.wallet
+            }).inkey,
+            data
+          )
+          .then(function (response) {
+            self.stalls.push(mapStalls(response.data))
+            self.resetDialog('stallDialog')
+            //self.stallDialog.show = false
+            //self.stallDialog.data = {}
+            //data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteStall: function (stallId) {
+        var self = this
+        var stall = _.findWhere(self.stalls, {id: stallId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Stall link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/market/api/v1/stalls/' + stallId,
+                _.findWhere(self.g.user.wallets, {id: stall.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.stalls = _.reject(self.stalls, function (obj) {
+                  return obj.id == stallId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportStallsCSV: function () {
+        LNbits.utils.exportCSV(this.stallsTable.columns, this.stalls)
+      },
+      ////////////////////////////////////////
+      ///////////////PRODUCTS/////////////////
+      ////////////////////////////////////////
+      getProducts: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/market/api/v1/products?all_stalls=true',
+            self.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.products = response.data.map(mapProducts)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      openProductUpdateDialog: function (linkId) {
+        var self = this
+        var link = _.findWhere(self.products, {id: linkId})
+
+        self.productDialog.data = _.clone(link._data)
+        self.productDialog.data.categories = self.productDialog.data.categories.split(
+          ','
+        )
+
+        self.productDialog.show = true
+      },
+      sendProductFormData: function () {
+        let _data = {...this.productDialog.data}
+        var data = {
+          stall: _data.stall,
+          product: _data.product,
+          categories: _data.categories && _data.categories.toString(),
+          description: _data.description,
+          image: _data.image,
+          price: _data.price,
+          quantity: _data.quantity
+        }
+        if (_data.id) {
+          data.id = _data.id
+          this.updateProduct(data)
+        } else {
+          this.createProduct(data)
+        }
+      },
+      imageAdded(file) {
+        let blobURL = URL.createObjectURL(file)
+        let image = new Image()
+        image.src = blobURL
+        image.onload = async () => {
+          let fit = imgSizeFit(image)
+          let canvas = document.createElement('canvas')
+          canvas.setAttribute('width', fit.width)
+          canvas.setAttribute('height', fit.height)
+          await pica.resize(image, canvas, {
+            quality: 0,
+            alpha: true,
+            unsharpAmount: 95,
+            unsharpRadius: 0.9,
+            unsharpThreshold: 70
+          })
+          this.productDialog.data.image = canvas.toDataURL()
+          this.productDialog = {...this.productDialog}
+        }
+      },
+      imageCleared() {
+        this.productDialog.data.image = null
+        this.productDialog = {...this.productDialog}
+      },
+      updateProduct: function (data) {
+        var self = this
+        let wallet = _.findWhere(this.stalls, {
+          id: self.productDialog.data.stall
+        }).wallet
+        LNbits.api
+          .request(
+            'PUT',
+            '/market/api/v1/products/' + data.id,
+            _.findWhere(self.g.user.wallets, {
+              id: wallet
+            }).inkey,
+            data
+          )
+          .then(function (response) {
+            self.products = _.reject(self.products, function (obj) {
+              return obj.id == data.id
+            })
+            self.products.push(mapProducts(response.data))
+            self.resetDialog('productDialog')
+            //self.productDialog.show = false
+            //self.productDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createProduct: function (data) {
+        let self = this
+        const walletId = _.findWhere(this.stalls, {id: data.stall}).wallet
+
+        LNbits.api
+          .request(
+            'POST',
+            '/market/api/v1/products',
+            _.findWhere(self.g.user.wallets, {id: walletId}).inkey,
+            data
+          )
+          .then(response => {
+            self.products.push(mapProducts(response.data))
+            self.resetDialog('productDialog')
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteProduct: function (productId) {
+        const product = _.findWhere(this.products, {id: productId})
+        const walletId = _.findWhere(this.stalls, {id: product.stall}).wallet
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this products link?')
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/market/api/v1/products/' + productId,
+                _.findWhere(this.g.user.wallets, {id: walletId}).adminkey
+              )
+              .then(() => {
+                this.products = _.reject(this.products, obj => {
+                  return obj.id == productId
+                })
+              })
+              .catch(error => {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportProductsCSV: function () {
+        LNbits.utils.exportCSV(this.productsTable.columns, this.products)
+      },
+      ////////////////////////////////////////
+      //////////////////ZONE//////////////////
+      ////////////////////////////////////////
+      getZones: function () {
+        var self = this
+
+        LNbits.api
+          .request('GET', '/market/api/v1/zones', this.g.user.wallets[0].inkey)
+          .then(function (response) {
+            if (response.data) {
+              self.zones = response.data.map(mapZone)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      openZoneUpdateDialog: function (linkId) {
+        var self = this
+        var link = _.findWhere(self.zones, {id: linkId})
+        countriesArray = link._data.countries.split(',')
+        for (let i = 0; i < countriesArray.length; i++) {
+          countriesArray[i] = self.capitalizeFirstLetter(countriesArray[i])
+        }
+        link._data.countries = countriesArray
+        this.zoneDialog.data = _.clone(link._data)
+        this.zoneDialog.show = true
+      },
+      sendZoneFormData: function () {
+        var data = {
+          countries: String(this.zoneDialog.data.countries),
+          cost: parseFloat(this.zoneDialog.data.cost)
+        }
+        if (this.zoneDialog.data.id) {
+          data.id = this.zoneDialog.data.id
+          this.updateZone(data)
+        } else {
+          this.createZone(data)
+        }
+      },
+      updateZone: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/market/api/v1/zones/' + data.id,
+            self.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(function (response) {
+            self.zones = _.reject(self.zones, function (obj) {
+              return obj.id == data.id
+            })
+            self.zones.push(mapZone(response.data))
+            self.zoneDialog.show = false
+            self.zoneDialog.data = {}
+            data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createZone: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/market/api/v1/zones',
+            self.g.user.wallets[0].inkey,
+            data
+          )
+          .then(function (response) {
+            self.zones.push(mapZone(response.data))
+            self.zoneDialog.show = false
+            self.zoneDialog.data = {}
+            data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteZone: function (zoneId) {
+        var self = this
+        var zone = _.findWhere(self.zones, {id: zoneId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Zone link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/market/api/v1/zones/' + zoneId,
+                self.g.user.wallets[0].adminkey
+              )
+              .then(function (response) {
+                self.zones = _.reject(self.zones, function (obj) {
+                  return obj.id == zoneId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportZonesCSV: function () {
+        LNbits.utils.exportCSV(this.zonesTable.columns, this.zones)
+      },
+      ////////////////////////////////////////
+      //////////////////MARKET//////////////////
+      ////////////////////////////////////////
+      getMarkets() {
+        LNbits.api
+          .request(
+            'GET',
+            '/market/api/v1/markets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            if (response.data) {
+              this.markets = response.data.map(mapMarkets)
+            }
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+
+      openMarketUpdateDialog(linkId) {
+        var link = _.findWhere(this.markets, {id: linkId})
+        this.marketDialog.data = link
+        this.marketDialog.show = true
+      },
+      sendMarketplaceFormData() {
+        let data = {...this.marketDialog.data}
+
+        if (!data.usr) {
+          data.usr = this.g.user.id
+        }
+        if (data.id) {
+          this.updateMarketplace(data)
+        } else {
+          this.createMarketplace(data)
+        }
+      },
+      updateMarketplace(data) {
+        LNbits.api
+          .request(
+            'PUT',
+            '/market/api/v1/markets/' + data.id,
+            this.g.user.wallets[0].inkey,
+            data
+          )
+          .then(response => {
+            this.markets = _.reject(this.markets, obj => {
+              return obj.id == data.id
+            })
+            this.markets.push(mapMarkets(response.data))
+            this.marketDialog.show = false
+            this.marketDialog.data = {}
+            data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createMarketplace(data) {
+        LNbits.api
+          .request(
+            'POST',
+            '/market/api/v1/markets',
+            this.g.user.wallets[0].inkey,
+            data
+          )
+          .then(response => {
+            this.markets.push(mapMarkets(response.data))
+            this.marketDialog.show = false
+            this.marketDialog.data = {}
+            data = {}
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteMarket(marketId) {
+        let market = _.findWhere(this.markets, {id: marketId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Marketplace?')
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/market/api/v1/markets/' + marketId,
+                this.g.user.wallets[0].inkey
+              )
+              .then(response => {
+                this.markets = _.reject(this.markets, obj => {
+                  return obj.id == marketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportMarketsCSV: function () {
+        LNbits.utils.exportCSV(this.marketsTable.columns, this.markets)
+      },
+      ////////////////////////////////////////
+      ////////////////ORDERS//////////////////
+      ////////////////////////////////////////
+      getOrders: async function () {
+        var self = this
+
+        await LNbits.api
+          .request(
+            'GET',
+            '/market/api/v1/orders?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            if (response.data) {
+              this.orders = response.data.map(mapOrders)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteOrder: function (orderId) {
+        var self = this
+        var order = _.findWhere(self.orders, {id: orderId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this order link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/market/api/v1/orders/' + orderId,
+                _.findWhere(self.g.user.wallets, {id: order.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.orders = _.reject(self.orders, function (obj) {
+                  return obj.id == orderId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      shipOrder(order_id) {
+        let shipped = this.orders.find(o => o.id == order_id).shipped
+        LNbits.api
+          .request(
+            'GET',
+            `/market/api/v1/orders/shipped/${order_id}?shipped=${!shipped}`,
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.orders = _.reject(this.orders, obj => {
+              return obj.id == order_id
+            })
+            this.orders.push(mapOrders(response.data))
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      exportOrdersCSV: function () {
+        LNbits.utils.exportCSV(this.ordersTable.columns, this.orders)
+      },
+      /// CHAT
+      async getAllMessages() {
+        await LNbits.api
+          .request(
+            'GET',
+            `/market/api/v1/chat/messages/merchant?orders=${this.orders
+              .map(o => o.invoiceid)
+              .toString()}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(res => {
+            if (!res.data.length) return
+            this.messages = _.groupBy(res.data, 'id_conversation')
+            this.checkUnreadMessages()
+          })
+          .catch(error => {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateLastSeenMsg(id) {
+        let data = this.$q.localStorage.getItem(`lnbits.market.chat`)
+        let chat = {
+          ...data,
+          [`${id}`]: {
+            timestamp: Object.keys(this.orderMessages)[
+              Object.keys(this.orderMessages).length - 1
+            ]
+          }
+        }
+        this.$q.localStorage.set(`lnbits.market.chat`, chat)
+        this.checkUnreadMessages()
+      },
+      checkUnreadMessages() {
+        let lastMsgs = this.$q.localStorage.getItem(`lnbits.market.chat`) || {}
+
+        for (let key in this.messages) {
+          let idx = this.orders.findIndex(f => f.invoiceid == key)
+          if (!lastMsgs[key]) {
+            this.updateLastSeenMsg(key)
+            this.$set(this.orders[idx], 'unread', true)
+            return
+          }
+          if (
+            lastMsgs[key].timestamp <
+            Math.max(...this.messages[key].map(c => c.timestamp))
+          ) {
+            this.$set(this.orders[idx], 'unread', true)
+          } else {
+            this.$set(this.orders[idx], 'unread', false)
+          }
+        }
+      },
+      clearMessage() {
+        this.newMessage = ''
+        this.$refs.newMessage.focus()
+      },
+      async sendMessage() {
+        // this is way more tricky...
+        // need to figure out how to better display our messages in plain text, and incoming with encryption
+        // also, as we're saving messages to the DB, the full Nostr event format will be much more heavy in size
+        /*
+        let orderPublicKey = this.orders.find(
+          o => o.invoiceid == this.customerKey
+        ).pubkey
+
+        let ciphertext = await nostr.nip04.encrypt(
+          this.keys.privkey,
+          orderPublicKey,
+          this.newMessage
+        )
+
+        */
+        // if diagon alley mode is active create a propper event
+        /*
+        if (this.diagonAlley) {
+          let event = {
+            kind: 4,
+            pubkey: this.keys.publickey,
+            tags: [['p', orderPublicKey]],
+            content: ciphertext,
+            created_at: Math.floor(Date.now() / 1000)
+          }
+
+          event.id = nostr.getEventHash(event)
+          event.sig = await nostr.signEvent(event, this.keys.privatekey)
+        }
+        */
+
+        let message = {
+          msg: this.newMessage,
+          pubkey: this.keys.pubkey
+        }
+
+        this.ws.send(JSON.stringify(message))
+
+        this.clearMessage()
+      },
+      checkWebSocket() {
+        if (!this.ws) return
+        if (this.ws.readyState === WebSocket.CLOSED) {
+          console.log('WebSocket CLOSED: Reopening')
+          this.ws = new WebSocket(
+            ws_scheme + location.host + '/market/ws/' + this.customerKey
+          )
+        }
+      },
+      chatRoom(id) {
+        this.startChat(id)
+        this.orderMessages = {}
+        this.messages[id].map(m => {
+          this.$set(this.orderMessages, m.timestamp, {
+            msg: m.msg,
+            pubkey: m.pubkey
+          })
+        })
+        this.customerKey = id
+        this.$refs.chatCard.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'nearest'
+        })
+        this.updateLastSeenMsg(id)
+        //"ea2fbf6c91aa228603681e2cc34bb06e34e6d1375fa4d6c35756182b2fa3307f"
+        //"c7435a04875c26e28db91a377bd6e991dbfefeefea8258415f3ae0c716ed2335"
+      },
+      startChat(room_name) {
+        if (this.ws) {
+          this.ws.close()
+        }
+        if (location.protocol == 'https:') {
+          ws_scheme = 'wss://'
+        } else {
+          ws_scheme = 'ws://'
+        }
+        ws = new WebSocket(
+          ws_scheme + location.host + '/market/ws/' + room_name
+        )
+
+        ws.onmessage = async event => {
+          let event_data = JSON.parse(event.data)
+
+          this.$set(this.orderMessages, Date.now(), event_data)
+          this.updateLastSeenMsg(room_name)
+        }
+
+        ws.onclose = event => {
+          this.updateLastSeenMsg(room_name)
+        }
+
+        this.ws = ws
+      },
+      async getCurrencies() {
+        await LNbits.api
+          .request('GET', '/market/api/v1/currencies')
+          .then(response => {
+            this.currencies.units = ['sat', ...response.data]
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      }
+    },
+    async created() {
+      if (this.g.user.wallets.length) {
+        let showOnboard = this.$q.localStorage.getItem('lnbits.DAOnboarding')
+        this.onboarding.show = showOnboard === true || showOnboard == null
+        this.onboarding.showAgain = showOnboard || false
+        this.diagonAlley =
+          this.$q.localStorage.getItem('lnbits.DAmode') || false
+        this.currencies.unit = '{{ currency }}'
+        await this.getCurrencies()
+        this.getStalls()
+        this.getProducts()
+        this.getZones()
+        await this.getOrders()
+        this.getMarkets()
+        await this.getAllMessages()
+        let keys = this.$q.localStorage.getItem(
+          `lnbits.market.${this.g.user.id}`
+        )
+        if (keys) {
+          this.keys = keys
+        }
+        setInterval(() => {
+          this.getAllMessages()
+          this.getOrders()
+        }, 300000)
+      }
+    }
+  })
+</script>
+<style scoped>
+  .q-field__native span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-container {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    /*height: calc(100vh - 200px);*/
+    height: 50vh;
+  }
+
+  .chat-box {
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 1rem;
+    overflow-y: auto;
+    margin-left: auto;
+    width: 50%;
+  }
+
+  .chat-messages {
+    width: auto;
+  }
+
+  .chat-input {
+    position: relative;
+    display: flex;
+    align-items: end;
+    margin-top: 1rem;
+  }
+</style>
+{% endblock %}

@@ -1,9 +1,6 @@
-import json
 import math
 from http import HTTPStatus
 from typing import Dict, List, Union
-
-import httpx
 
 # -------- cashu imports
 from cashu.core.base import (
@@ -17,14 +14,10 @@ from cashu.core.base import (
     MeltRequest,
     MintRequest,
     PostSplitResponse,
-    Proof,
     SplitRequest,
 )
-from fastapi import Query
-from fastapi.params import Depends
-from lnurl import decode as decode_lnurl
+from fastapi import Depends, Query
 from loguru import logger
-from secp256k1 import PublicKey
 from starlette.exceptions import HTTPException
 
 from lnbits import bolt11
@@ -35,7 +28,6 @@ from lnbits.core.services import (
     fee_reserve,
     pay_invoice,
 )
-from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.wallets.base import PaymentStatus
@@ -63,7 +55,7 @@ if not LIGHTNING:
 
 @cashu_ext.get("/api/v1/mints", status_code=HTTPStatus.OK)
 async def api_cashus(
-    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     """
     Get all mints of this wallet.
@@ -80,7 +72,7 @@ async def api_cashus(
 @cashu_ext.post("/api/v1/mints", status_code=HTTPStatus.CREATED)
 async def api_cashu_create(
     data: Cashu,
-    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     """
     Create a new mint for this wallet.
@@ -98,7 +90,7 @@ async def api_cashu_create(
 
 @cashu_ext.delete("/api/v1/mints/{cashu_id}")
 async def api_cashu_delete(
-    cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
+    cashu_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     """
     Delete an existing cashu mint.

@@ -12,6 +12,7 @@ import async_timeout
 import httpx
 import pyqrcode
 from fastapi import (
+    Body,
     Depends,
     Header,
     Query,
@@ -21,7 +22,6 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
@@ -251,7 +251,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoiceData = Body(...),  # type: ignore
+    invoiceData: CreateInvoiceData = Body(...),
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -387,7 +387,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 jdata = json.dumps(dict(data.dict(), pending=False))
 
             yield dict(data=jdata, event=typ)
-    except asyncio.CancelledError as e:
+    except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
         task.cancel()
@@ -536,7 +536,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
                 params.update(
                     description_hash=hashlib.sha256(
-                        data["metadata"].encode("utf-8")
+                        data["metadata"].encode()
                     ).hexdigest()
                 )
                 metadata = json.loads(data["metadata"])

@@ -1,0 +1,440 @@
+<q-card>
+  <!-- ORDERS TABLE -->
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Orders</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportOrdersCSV">Export to CSV</q-btn>
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="orders"
+      row-key="id"
+      :columns="ordersTable.columns"
+      :pagination.sync="ordersTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+          <q-th auto-width></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              size="sm"
+              color="accent"
+              round
+              dense
+              @click="props.expand = !props.expand"
+              :icon="props.expand ? 'remove' : 'add'"
+            />
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              size="sm"
+              color="green"
+              dense
+              icon="chat"
+              @click="chatRoom(props.row.invoiceid)"
+            >
+              <q-badge
+                v-if="props.row.unread"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="shipOrder(props.row.id)"
+              icon="add_marketping_cart"
+              color="green"
+            >
+              <q-tooltip> Product shipped? </q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="deleteOrder(props.row.id)"
+              icon="cancel"
+              color="pink"
+            ></q-btn>
+          </q-td>
+        </q-tr>
+        <q-tr v-show="props.expand" :props="props">
+          <q-td colspan="100%">
+            <template>
+              <div class="q-pa-md">
+                <q-list>
+                  <q-item-label header>Order Details</q-item-label>
+
+                  <q-item v-for="col in props.row.details" :key="col.id">
+                    <q-item-section>
+                      <q-item-label>Products</q-item-label>
+                      <q-item-label caption
+                        >{{ products.length && (_.findWhere(products, {id:
+                        col.product_id})).product }}</q-item-label
+                      >
+                      <q-item-label caption
+                        >Quantity: {{ col.quantity }}</q-item-label
+                      >
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label>Shipping to</q-item-label>
+                      <q-item-label caption
+                        >{{ props.row.address }}</q-item-label
+                      >
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label>User info</q-item-label>
+                      <q-item-label caption v-if="props.row.username"
+                        >{{ props.row.username }}</q-item-label
+                      >
+                      <q-item-label caption>{{ props.row.email }}</q-item-label>
+                      <q-item-label caption v-if="props.row.pubkey"
+                        >{{ props.row.pubkey }}</q-item-label
+                      >
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label>Total</q-item-label>
+                      <q-item-label>{{ props.row.total }}</q-item-label>
+                      <!-- <q-icon name="star" color="yellow" /> -->
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
+            </template>
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>
+
+<q-card>
+  <!-- PRODUCTS TABLE -->
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">
+          Products
+          <span v-if="stalls.length > 0" class="q-px-sm">
+            <q-btn
+              round
+              color="primary"
+              icon="add"
+              size="sm"
+              @click="productDialog.show = true"
+            />
+            <q-tooltip> Add a product </q-tooltip>
+          </span>
+        </h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportProductsCSV"
+          >Export to CSV</q-btn
+        >
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="products"
+      row-key="id"
+      :columns="productsTable.columns"
+      :pagination.sync="productsTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+          <q-th auto-width></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              disabled
+              unelevated
+              dense
+              size="xs"
+              icon="add_marketping_cart"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              type="a"
+              :href="props.row.wallet"
+              target="_blank"
+            ></q-btn>
+            <q-tooltip> Link to pass to stall relay </q-tooltip>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+          <q-td class="text-center" auto-width>
+            <img
+              v-if="props.row.image"
+              :src="props.row.image"
+              style="height: 1.5em"
+            />
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="openProductUpdateDialog(props.row.id)"
+              icon="edit"
+              color="light-blue"
+            ></q-btn>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="deleteProduct(props.row.id)"
+              icon="cancel"
+              color="pink"
+            ></q-btn>
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>
+
+<q-card>
+  <!-- STALLS TABLE -->
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Market Stalls</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportStallsCSV">Export to CSV</q-btn>
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="stalls"
+      row-key="id"
+      :columns="stallTable.columns"
+      :pagination.sync="stallTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+          <q-th auto-width></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="storefront"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              type="a"
+              :href="'/market/stalls/' + props.row.id"
+              target="_blank"
+            ></q-btn>
+            <q-tooltip> Stall simple UI marketping cart </q-tooltip>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="openStallUpdateDialog(props.row.id)"
+              icon="edit"
+              color="light-blue"
+            ></q-btn>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="deleteStall(props.row.id)"
+              icon="cancel"
+              color="pink"
+            ></q-btn>
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>
+
+<q-card v-if="markets.length">
+  <!-- MARKETPLACES TABLE -->
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Marketplaces</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportStallsCSV">Export to CSV</q-btn>
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="markets"
+      row-key="id"
+      :columns="marketTable.columns"
+      :pagination.sync="marketTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+          <q-th auto-width></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="storefront"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              type="a"
+              :href="'/market/market/' + props.row.id"
+              target="_blank"
+            ></q-btn>
+            <q-tooltip> Link to pass to stall relay </q-tooltip>
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.name == 'stalls' ? stallName(col.value) : col.value }}
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="openMarketUpdateDialog(props.row.id)"
+              icon="edit"
+              color="light-blue"
+            ></q-btn>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="deleteMarket(props.row.id)"
+              icon="cancel"
+              color="pink"
+            ></q-btn>
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>
+
+<q-card>
+  <!-- ZONES TABLE -->
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Shipping Zones</h5>
+      </div>
+      <div class="col-auto">
+        <q-btn flat color="grey" @click="exportZonesCSV">Export to CSV</q-btn>
+      </div>
+    </div>
+    <q-table
+      dense
+      flat
+      :data="zones"
+      row-key="id"
+      :columns="zonesTable.columns"
+      :pagination.sync="zonesTable.pagination"
+    >
+      {% raw %}
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.label }}
+          </q-th>
+          <q-th auto-width></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            {{ col.value }}
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="openZoneUpdateDialog(props.row.id)"
+              icon="edit"
+              color="light-blue"
+            ></q-btn>
+            <q-btn
+              flat
+              dense
+              size="xs"
+              @click="deleteZone(props.row.id)"
+              icon="cancel"
+              color="pink"
+            ></q-btn>
+          </q-td>
+        </q-tr>
+      </template>
+      {% endraw %}
+    </q-table>
+  </q-card-section>
+</q-card>

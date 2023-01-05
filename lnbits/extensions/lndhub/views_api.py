@@ -1,15 +1,13 @@
-import asyncio
 import time
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
 
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 
 from lnbits import bolt11
-from lnbits.core.crud import delete_expired_invoices, get_payments
+from lnbits.core.crud import get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
 from lnbits.settings import get_wallet_class, settings
@@ -35,9 +33,9 @@ async def lndhub_auth(data: AuthData):
     token = (
         data.refresh_token
         if data.refresh_token
-        else urlsafe_b64encode(
-            (data.login + ":" + data.password).encode("utf-8")
-        ).decode("ascii")
+        else urlsafe_b64encode((data.login + ":" + data.password).encode()).decode(
+            "ascii"
+        )
     )
     return {"refresh_token": token, "access_token": token}
 
@@ -73,13 +71,13 @@ async def lndhub_addinvoice(
     }
 
 
-class Invoice(BaseModel):
+class CreateInvoice(BaseModel):
     invoice: str = Query(...)
 
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(require_admin_key)
+    r_invoice: CreateInvoice, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
         await pay_invoice(

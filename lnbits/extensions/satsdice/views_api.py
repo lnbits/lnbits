@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query, Request
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
@@ -26,7 +24,7 @@ from .models import CreateSatsDiceLink
 @satsdice_ext.get("/api/v1/links")
 async def api_links(
     request: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    wallet: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
@@ -49,7 +47,7 @@ async def api_links(
 
 @satsdice_ext.get("/api/v1/links/{link_id}")
 async def api_link_retrieve(
-    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     link = await get_satsdice_pay(link_id)
 
@@ -70,7 +68,7 @@ async def api_link_retrieve(
 @satsdice_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
     data: CreateSatsDiceLink,
-    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    wallet: WalletTypeInfo = Depends(get_key_type),
     link_id: str = Query(None),
 ):
     if data.min_bet > data.max_bet:
@@ -98,7 +96,7 @@ async def api_link_create_or_update(
 
 @satsdice_ext.delete("/api/v1/links/{link_id}")
 async def api_link_delete(
-    wallet: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    wallet: WalletTypeInfo = Depends(get_key_type),
     link_id: str = Query(None),
 ):
     link = await get_satsdice_pay(link_id)

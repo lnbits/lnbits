@@ -1,7 +1,7 @@
 {
   "name": "LNURLp",
   "short_description": "Make reusable LNURL pay links",
-  "icon": "receipt",
+	"tile": "/lnurlp/static/image/lnurl-pay.png",
   "contributors": [
     "arcbtc",
     "eillarra",

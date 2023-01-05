@@ -3,15 +3,16 @@ import os
 import random
 import textwrap
 from datetime import datetime, timedelta
+from typing import List
 
 import httpx
 from loguru import logger
 
-from lnbits.core.crud import get_user, get_wallet_for_key
+from lnbits.core.crud import get_wallet_for_key
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
-from .crud import get_gerty, get_mempool_info
+from .crud import get_mempool_info
 from .number_prefixer import *
 
 
@@ -24,8 +25,8 @@ def get_percent_difference(current, previous, precision=3):
 def get_text_item_dict(
     text: str,
     font_size: int,
-    x_pos: int = None,
-    y_pos: int = None,
+    x_pos: int = -1,
+    y_pos: int = -1,
     gerty_type: str = "Gerty",
 ):
     # Get line size by font size
@@ -63,13 +64,41 @@ def get_text_item_dict(
     # logger.debug('multilineText')
     # logger.debug(multilineText)
 
-    text = {"value": multilineText, "size": font_size}
-    if x_pos is None and y_pos is None:
-        text["position"] = "center"
+    data_text = {"value": multilineText, "size": font_size}
+    if x_pos == -1 and y_pos == -1:
+        data_text["position"] = "center"
     else:
-        text["x"] = x_pos
-        text["y"] = y_pos
-    return text
+        data_text["x"] = x_pos if x_pos > 0 else 0
+        data_text["y"] = y_pos if x_pos > 0 else 0
+    return data_text
+
+
+def get_date_suffix(dayNumber):
+    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
+        return "th"
+    else:
+        return ["st", "nd", "rd"][dayNumber % 10 - 1]
+
+
+def get_time_remaining(seconds, granularity=2):
+    intervals = (
+        # ('weeks', 604800),  # 60 * 60 * 24 * 7
+        ("days", 86400),  # 60 * 60 * 24
+        ("hours", 3600),  # 60 * 60
+        ("minutes", 60),
+        ("seconds", 1),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip("s")
+            result.append("{} {}".format(round(value), name))
+    return ", ".join(result[:granularity])
 
 
 # format a number for nice display output
@@ -293,8 +322,7 @@ def get_next_update_time(sleep_time_seconds: int = 0, utc_offset: int = 0):
 def gerty_should_sleep(utc_offset: int = 0):
     utc_now = datetime.utcnow()
     local_time = utc_now + timedelta(hours=utc_offset)
-    hours = local_time.strftime("%H")
-    hours = int(hours)
+    hours = int(local_time.strftime("%H"))
     if hours >= 22 and hours <= 23:
         return True
     else:
@@ -352,23 +380,17 @@ async def get_mining_stat(stat_slug: str, gerty):
 
 
 async def api_get_mining_stat(stat_slug: str, gerty):
-    stat = ""
+    stat = {}
     if stat_slug == "mining_current_hash_rate":
-        async with httpx.AsyncClient() as client:
-            r = await get_mempool_info("hashrate_1m", gerty)
-            data = r
-            stat = {}
-            stat["current"] = data["currentHashrate"]
-            stat["1w"] = data["hashrates"][len(data["hashrates"]) - 7]["avgHashrate"]
+        r = await get_mempool_info("hashrate_1m", gerty)
+        data = r
+        stat["current"] = data["currentHashrate"]
+        stat["1w"] = data["hashrates"][len(data["hashrates"]) - 7]["avgHashrate"]
     elif stat_slug == "mining_current_difficulty":
-        async with httpx.AsyncClient() as client:
-            r = await get_mempool_info("hashrate_1m", gerty)
-            data = r
-            stat = {}
-            stat["current"] = data["currentDifficulty"]
-            stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2][
-                "difficulty"
-            ]
+        r = await get_mempool_info("hashrate_1m", gerty)
+        data = r
+        stat["current"] = data["currentDifficulty"]
+        stat["previous"] = data["difficulty"][len(data["difficulty"]) - 2]["difficulty"]
     return stat
 
 
@@ -384,7 +406,7 @@ async def get_satoshi():
     quote = satoshiQuotes[random.randint(0, len(satoshiQuotes) - 1)]
     # logger.debug(quote.text)
     if len(quote["text"]) > maxQuoteLength:
-        logger.debug("Quote is too long, getting another")
+        logger.trace("Quote is too long, getting another")
         return await get_satoshi()
     else:
         return quote
@@ -399,15 +421,16 @@ def get_screen_slug_by_index(index: int, screens_list):
 
 
 # Get a list of text items for the screen number
-async def get_screen_data(screen_num: int, screens_list: dict, gerty):
+async def get_screen_data(screen_num: int, screens_list: list, gerty):
     screen_slug = get_screen_slug_by_index(screen_num, screens_list)
     # first get the relevant slug from the display_preferences
-    areas = []
+    areas: List = []
     title = ""
 
     if screen_slug == "dashboard":
         title = gerty.name
         areas = await get_dashboard(gerty)
+
     if screen_slug == "lnbits_wallets_balance":
         wallets = await get_lnbits_wallet_balances(gerty)
 
@@ -505,10 +528,10 @@ async def get_screen_data(screen_num: int, screens_list: dict, gerty):
         title = "Lightning Network"
         areas = await get_lightning_stats(gerty)
 
-    data = {}
-    data["title"] = title
-    data["areas"] = areas
-
+    data = {
+        "title": title,
+        "areas": areas,
+    }
     return data
 
 
@@ -570,7 +593,7 @@ async def get_dashboard(gerty):
     text = []
     text.append(
         get_text_item_dict(
-            text=await get_time_remaining_next_difficulty_adjustment(gerty),
+            text=await get_time_remaining_next_difficulty_adjustment(gerty) or "0",
             font_size=15,
             gerty_type=gerty.type,
         )
@@ -602,7 +625,7 @@ async def get_lnbits_wallet_balances(gerty):
     return wallets
 
 
-async def get_placeholder_text():
+async def get_placeholder_text(gerty):
     return [
         get_text_item_dict(
             text="Some placeholder text",
@@ -810,14 +833,14 @@ async def get_time_remaining_next_difficulty_adjustment(gerty):
         r = await get_mempool_info("difficulty_adjustment", gerty)
         stat = r["remainingTime"]
         time = get_time_remaining(stat / 1000, 3)
-    return time
+        return time
 
 
 async def get_mempool_stat(stat_slug: str, gerty):
     text = []
     if isinstance(gerty.mempool_endpoint, str):
         if stat_slug == "mempool_tx_count":
-            r = get_mempool_info("mempool", gerty)
+            r = await get_mempool_info("mempool", gerty)
             if stat_slug == "mempool_tx_count":
                 stat = round(r["count"])
                 text.append(
@@ -921,31 +944,3 @@ async def get_mempool_stat(stat_slug: str, gerty):
                 )
             )
     return text
-
-
-def get_date_suffix(dayNumber):
-    if 4 <= dayNumber <= 20 or 24 <= dayNumber <= 30:
-        return "th"
-    else:
-        return ["st", "nd", "rd"][dayNumber % 10 - 1]
-
-
-def get_time_remaining(seconds, granularity=2):
-    intervals = (
-        # ('weeks', 604800),  # 60 * 60 * 24 * 7
-        ("days", 86400),  # 60 * 60 * 24
-        ("hours", 3600),  # 60 * 60
-        ("minutes", 60),
-        ("seconds", 1),
-    )
-
-    result = []
-
-    for name, count in intervals:
-        value = seconds // count
-        if value:
-            seconds -= value * count
-            if value == 1:
-                name = name.rstrip("s")
-            result.append("{} {}".format(round(value), name))
-    return ", ".join(result[:granularity])
