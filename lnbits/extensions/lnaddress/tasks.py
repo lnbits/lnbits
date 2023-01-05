@@ -48,8 +48,7 @@ async def call_webhook_on_paid(payment_hash):
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if not payment.extra:
-        return
+
     if payment.extra.get("tag") == "lnaddress":
         await payment.set_pending(False)
         await set_address_paid(payment_hash=payment.payment_hash)
