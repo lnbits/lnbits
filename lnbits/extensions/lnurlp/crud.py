@@ -7,7 +7,7 @@ from .models import CreatePayLinkData, PayLink
 
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
-    link_id = urlsafe_short_hash()[:5]
+    link_id = urlsafe_short_hash()[:6]
 
     result = await db.execute(
         f"""
@@ -29,7 +29,6 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             fiat_base_multiplier
         )
         VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)
-        {returning}
         """,
         (
             link_id,
@@ -53,7 +52,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     return link
 
 
-async def get_pay_link(link_id: int) -> Optional[PayLink]:
+async def get_pay_link(link_id: str) -> Optional[PayLink]:
     row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
