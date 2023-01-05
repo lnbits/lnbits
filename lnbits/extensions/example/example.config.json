@@ -1,6 +1,6 @@
 {
   "name": "Build your own!!",
   "short_description": "Join us, make an extension",
-  "icon": "info",
+  "tile": "/cashu/static/image/tile.png",
   "contributors": ["github_username"]
 }

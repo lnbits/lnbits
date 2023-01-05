@@ -126,7 +126,7 @@ window.LNbits = {
           'isAdminOnly',
           'name',
           'shortDescription',
-          'icon',
+          'tile',
           'contributors',
           'hidden'
         ],

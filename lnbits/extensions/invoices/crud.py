@@ -6,7 +6,6 @@ from . import db
 from .models import (
     CreateInvoiceData,
     CreateInvoiceItemData,
-    CreatePaymentData,
     Invoice,
     InvoiceItem,
     Payment,
@@ -30,7 +29,7 @@ async def get_invoice_items(invoice_id: str) -> List[InvoiceItem]:
     return [InvoiceItem.from_row(row) for row in rows]
 
 
-async def get_invoice_item(item_id: str) -> InvoiceItem:
+async def get_invoice_item(item_id: str) -> Optional[InvoiceItem]:
     row = await db.fetchone(
         "SELECT * FROM invoices.invoice_items WHERE id = ?", (item_id,)
     )
@@ -61,7 +60,7 @@ async def get_invoice_payments(invoice_id: str) -> List[Payment]:
     return [Payment.from_row(row) for row in rows]
 
 
-async def get_invoice_payment(payment_id: str) -> Payment:
+async def get_invoice_payment(payment_id: str) -> Optional[Payment]:
     row = await db.fetchone(
         "SELECT * FROM invoices.payments WHERE id = ?", (payment_id,)
     )
@@ -120,7 +119,9 @@ async def create_invoice_items(
     return invoice_items
 
 
-async def update_invoice_internal(wallet_id: str, data: UpdateInvoiceData) -> Invoice:
+async def update_invoice_internal(
+    wallet_id: str, data: Union[UpdateInvoiceData, Invoice]
+) -> Invoice:
     await db.execute(
         """
         UPDATE invoices.invoices
@@ -155,21 +156,21 @@ async def update_invoice_items(
             updated_items.append(item.id)
             await db.execute(
                 """
-                UPDATE invoices.invoice_items 
+                UPDATE invoices.invoice_items
                 SET description = ?, amount = ?
                 WHERE id = ?
                 """,
                 (item.description, int(item.amount * 100), item.id),
             )
 
-    placeholders = ",".join("?" for i in range(len(updated_items)))
+    placeholders = ",".join("?" for _ in range(len(updated_items)))
     if not placeholders:
         placeholders = "?"
-        updated_items = ("skip",)
+        updated_items = ["skip"]
 
     await db.execute(
         f"""
-        DELETE FROM invoices.invoice_items 
+        DELETE FROM invoices.invoice_items
         WHERE invoice_id = ?
         AND id NOT IN ({placeholders})
         """,
@@ -180,8 +181,11 @@ async def update_invoice_items(
     )
 
     for item in data:
-        if not item.id:
-            await create_invoice_items(invoice_id=invoice_id, data=[item])
+        if not item:
+            await create_invoice_items(
+                invoice_id=invoice_id,
+                data=[CreateInvoiceItemData(description=item.description)],
+            )
 
     invoice_items = await get_invoice_items(invoice_id)
     return invoice_items

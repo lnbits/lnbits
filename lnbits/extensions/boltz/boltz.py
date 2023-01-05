@@ -1,6 +1,5 @@
 import asyncio
 import os
-from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import Awaitable, Union
 
@@ -56,7 +55,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         raise
 
     refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
-    refund_pubkey_hex = hexlify(refund_privkey.sec()).decode("UTF-8")
+    refund_pubkey_hex = bytes.hex(refund_privkey.sec()).decode()
 
     res = req_wrap(
         "post",
@@ -121,7 +120,7 @@ async def create_reverse_swap(
         return False
 
     claim_privkey = ec.PrivateKey(os.urandom(32), True, net)
-    claim_pubkey_hex = hexlify(claim_privkey.sec()).decode("UTF-8")
+    claim_pubkey_hex = bytes.hex(claim_privkey.sec()).decode()
     preimage = os.urandom(32)
     preimage_hash = sha256(preimage).hexdigest()
 
@@ -311,12 +310,12 @@ async def create_onchain_tx(
         sequence = 0xFFFFFFFE
     else:
         privkey = ec.PrivateKey.from_wif(swap.claim_privkey)
-        preimage = unhexlify(swap.preimage)
+        preimage = bytes.fromhex(swap.preimage)
         onchain_address = swap.onchain_address
         sequence = 0xFFFFFFFF
 
     locktime = swap.timeout_block_height
-    redeem_script = unhexlify(swap.redeem_script)
+    redeem_script = bytes.fromhex(swap.redeem_script)
 
     fees = get_fee_estimation()
 
@@ -324,7 +323,7 @@ async def create_onchain_tx(
 
     script_pubkey = script.address_to_scriptpubkey(onchain_address)
 
-    vin = [TransactionInput(unhexlify(txid), vout_cnt, sequence=sequence)]
+    vin = [TransactionInput(bytes.fromhex(txid), vout_cnt, sequence=sequence)]
     vout = [TransactionOutput(vout_amount - fees, script_pubkey)]
     tx = Transaction(vin=vin, vout=vout)
 

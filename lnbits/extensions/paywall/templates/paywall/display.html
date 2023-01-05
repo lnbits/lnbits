@@ -30,10 +30,10 @@
             </div>
           </q-form>
           <div v-if="paymentReq" class="q-mt-lg">
-            <a :href="'lightning:' + paymentReq">
+            <a class="text-secondary" :href="'lightning:' + paymentReq">
               <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
                 <qrcode
-                  :value="paymentReq"
+                  :value="'lightning:' + paymentReq.toUpperCase()"
                   :options="{width: 800}"
                   class="rounded-borders"
                 ></qrcode>

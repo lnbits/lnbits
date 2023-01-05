@@ -23,7 +23,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("tag") != "tpos":
         return
 
-    tpos = await get_tpos(payment.extra.get("tposId"))
     tipAmount = payment.extra.get("tipAmount")
 
     strippedPayment = {
@@ -34,14 +33,23 @@ async def on_invoice_paid(payment: Payment) -> None:
         "bolt11": payment.bolt11,
     }
 
-    await websocketUpdater(payment.extra.get("tposId"), str(strippedPayment))
+    tpos_id = payment.extra.get("tposId")
+    assert tpos_id
 
-    if tipAmount is None:
+    tpos = await get_tpos(tpos_id)
+    assert tpos
+
+    await websocketUpdater(tpos_id, str(strippedPayment))
+
+    if not tipAmount:
         # no tip amount
         return
 
+    wallet_id = tpos.tip_wallet
+    assert wallet_id
+
     payment_hash, payment_request = await create_invoice(
-        wallet_id=tpos.tip_wallet,
+        wallet_id=wallet_id,
         amount=int(tipAmount),  # sats
         internal=True,
         memo=f"tpos tip",

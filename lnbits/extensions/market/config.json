@@ -1,0 +1,6 @@
+{
+  "name": "Marketplace",
+  "short_description": "Webshop/market on LNbits",
+	"tile": "/market/static/images/bitcoin-shop.png",
+  "contributors": ["benarc", "talvasconcelos"]
+}

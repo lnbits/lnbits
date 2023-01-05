@@ -1,0 +1,393 @@
+<!-- PRODUCT DIALOG -->
+<q-dialog v-model="productDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-form @submit="sendProductFormData" class="q-gutter-md">
+      <q-select
+        filled
+        dense
+        emit-value
+        v-model="productDialog.data.stall"
+        :options="stalls.map(s => ({label: s.name, value: s.id}))"
+        label="Stall"
+      >
+      </q-select>
+      <q-input
+        filled
+        dense
+        v-model.trim="productDialog.data.product"
+        label="Product"
+      ></q-input>
+
+      <q-input
+        filled
+        dense
+        v-model.trim="productDialog.data.description"
+        label="Description"
+      ></q-input>
+      <!-- <div class="row"> -->
+      <!-- <div class="col-5">
+            <q-select
+              filled
+              dense
+              multiple
+              v-model.trim="productDialog.data.categories"
+              :options="categories"
+              label="Categories"
+              class="q-pr-sm"
+            ></q-select>
+          </div> -->
+      <!-- <div class="col-7"> -->
+      <q-select
+        filled
+        multiple
+        dense
+        emit-value
+        v-model.trim="productDialog.data.categories"
+        use-input
+        use-chips
+        multiple
+        hide-dropdown-icon
+        input-debounce="0"
+        new-value-mode="add-unique"
+        label="Categories"
+        placeholder="crafts,robots,etc"
+        hint="Hit Enter to add"
+      ></q-select>
+      <!-- </div> -->
+      <!-- </div> -->
+
+      <q-file
+        class="q-pr-md"
+        filled
+        dense
+        capture="environment"
+        accept="image/jpeg, image/png"
+        :max-file-size="3*1024**2"
+        label="Small image (optional)"
+        clearable
+        @input="imageAdded"
+        @clear="imageCleared"
+      >
+        <template v-if="productDialog.data.image" v-slot:before>
+          <img style="height: 1em" :src="productDialog.data.image" />
+        </template>
+        <template v-if="productDialog.data.image" v-slot:append>
+          <q-icon
+            name="cancel"
+            @click.stop.prevent="imageCleared"
+            class="cursor-pointer"
+          />
+        </template>
+      </q-file>
+      <q-input
+        filled
+        dense
+        v-model.number="productDialog.data.price"
+        type="number"
+        :label="'Price (' + currencies.unit + ') *'"
+        :mask="currencies.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="currencies.unit != 'sat' ? '0.01' : '1'"
+      ></q-input>
+      <q-input
+        filled
+        dense
+        v-model.number="productDialog.data.quantity"
+        type="number"
+        label="Quantity"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="productDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          >Update Product</q-btn
+        >
+
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="productDialog.data.price == null
+              || productDialog.data.product == null
+              || productDialog.data.description == null
+              || productDialog.data.quantity == null"
+          type="submit"
+          >Create Product</q-btn
+        >
+
+        <q-btn
+          v-close-popup
+          flat
+          @click="resetDialog('productDialog')"
+          color="grey"
+          class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
+<!-- ZONE DIALOG -->
+<q-dialog v-model="zoneDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-form @submit="sendZoneFormData" class="q-gutter-md">
+      <q-select
+        filled
+        dense
+        multiple
+        :options="shippingZoneOptions"
+        label="Countries"
+        v-model.trim="zoneDialog.data.countries"
+      ></q-select>
+      <q-input
+        filled
+        dense
+        :label="'Amount (' + currencies.unit + ') *'"
+        :mask="currencies.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="currencies.unit != 'sat' ? '0.01' : '1'"
+        type="number"
+        v-model.trim="zoneDialog.data.cost"
+      ></q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="zoneDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          >Update Shipping Zone</q-btn
+        >
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="zoneDialog.data.countries == null
+              || zoneDialog.data.cost == null"
+          type="submit"
+          >Create Shipping Zone</q-btn
+        >
+
+        <q-btn
+          v-close-popup
+          flat
+          @click="resetDialog('zoneDialog')"
+          color="grey"
+          class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
+<!-- MARKETPLACE/market DIALOG -->
+<q-dialog v-model="marketDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-form @submit="sendMarketplaceFormData" class="q-gutter-md">
+      <q-toggle
+        label="Activate marketplace"
+        color="primary"
+        v-model="marketDialog.data.activate"
+      ></q-toggle>
+      <q-select
+        filled
+        multiple
+        emit-value
+        :options="stalls.map(s => ({label: s.name, value: s.id}))"
+        label="Stalls"
+        v-model="marketDialog.data.stalls"
+        map-options
+      ></q-select>
+      <q-input
+        filled
+        dense
+        v-model.trim="marketDialog.data.name"
+        label="Name"
+      ></q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="marketDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          >Update Marketplace</q-btn
+        >
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="marketDialog.data.activate == null
+              || marketDialog.data.stalls == null"
+          type="submit"
+          >Launch Marketplace</q-btn
+        >
+
+        <q-btn
+          v-close-popup
+          flat
+          @click="resetDialog('marketDialog')"
+          color="grey"
+          class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
+<!-- STALL/STORE DIALOG -->
+<q-dialog v-model="stallDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-form @submit="sendStallFormData" class="q-gutter-md">
+      <q-input
+        filled
+        dense
+        v-model.trim="stallDialog.data.name"
+        label="Name"
+      ></q-input>
+      <q-select
+        filled
+        dense
+        emit-value
+        v-model="stallDialog.data.wallet"
+        :options="g.user.walletOptions"
+        label="Wallet *"
+      >
+      </q-select>
+      <q-input
+        v-if="diagonAlley"
+        v-if="keys"
+        filled
+        dense
+        v-model.trim="stallDialog.data.publickey"
+        label="Public Key"
+      ></q-input>
+      <q-input
+        v-if="diagonAlley"
+        v-if="keys"
+        filled
+        dense
+        v-model.trim="stallDialog.data.privatekey"
+        label="Private Key"
+      ></q-input>
+      <!-- NOSTR -->
+      <div v-if="diagonAlley" class="row">
+        <div class="col-5">
+          <q-btn unelevated @click="generateKeys" color="primary"
+            >Generate keys</q-btn
+          >
+        </div>
+        <div class="col-5">
+          <q-btn unelevated @click="restoreKeys" color="primary"
+            >Restore keys</q-btn
+          >
+        </div>
+      </div>
+      <q-select
+        :options="zoneOptions"
+        filled
+        dense
+        multiple
+        v-model.trim="stallDialog.data.shippingzones"
+        label="Shipping Zones"
+      ></q-select>
+      <q-select
+        v-if="diagonAlley"
+        :options="relayOptions"
+        filled
+        dense
+        multiple
+        v-model.trim="stallDialog.data.relays"
+        label="Relays"
+      ></q-select>
+      <q-input
+        v-if="diagonAlley"
+        filled
+        dense
+        v-model.trim="stallDialog.data.crelays"
+        label="Custom relays (seperate by comma)"
+      ></q-input>
+      <q-input
+        v-if="diagonAlley"
+        filled
+        dense
+        v-model.trim="stallDialog.data.nostrMarkets"
+        label="Nostr market public keys (seperate by comma)"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="stallDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          >Update Stall</q-btn
+        >
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="stallDialog.data.wallet == null
+              || stallDialog.data.shippingzones == null"
+          type="submit"
+          >Create Stall</q-btn
+        >
+        <q-btn
+          v-close-popup
+          flat
+          @click="resetDialog('stallDialog')"
+          color="grey"
+          class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
+<!-- ONBOARDING DIALOG -->
+<q-dialog v-model="onboarding.show">
+  <q-card class="q-pa-lg">
+    <h6 class="q-my-md text-primary">How to use Market</h6>
+    <q-stepper v-model="step" color="primary" vertical animated>
+      <q-step
+        :name="1"
+        title="Create a Shipping Zone"
+        icon="settings"
+        :done="step > 1"
+      >
+        Create Shipping Zones you're willing to ship to. You can define
+        different values for different zones.
+        <q-stepper-navigation>
+          <q-btn @click="step = step + 1" color="primary" label="Next" />
+        </q-stepper-navigation>
+      </q-step>
+      <q-step
+        :name="2"
+        title="Create a Stall"
+        icon="create_new_folder"
+        :done="step > 2"
+      >
+        Create a Stall and provide private and public keys to use for
+        communication. If you don't have one, LNbits will create a key pair for
+        you. It will be saved and can be used on other stalls.
+        <q-stepper-navigation>
+          <q-btn @click="step = step + 1" color="primary" label="Next" />
+        </q-stepper-navigation>
+      </q-step>
+
+      <q-step :name="3" title="Create Products" icon="assignment">
+        Create your products, add a small description and an image. Choose to
+        what stall, if you have more than one, it belongs to
+        <q-stepper-navigation>
+          <q-btn @click="onboarding.finish" color="primary" label="Finish" />
+        </q-stepper-navigation>
+        <div>
+          <q-checkbox v-model="onboarding.showAgain" label="Show this again?" />
+        </div>
+      </q-step>
+    </q-stepper>
+  </q-card>
+</q-dialog>

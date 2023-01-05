@@ -3,13 +3,9 @@ import secrets
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends, Query
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
+from fastapi import HTTPException, Query, Request
+from lnurl import encode as lnurl_encode
+from lnurl.types import LnurlPayMetadata
 from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
@@ -28,14 +24,13 @@ from .crud import (
     update_card_counter,
     update_card_otp,
 )
-from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
 
 ###############LNURLWITHDRAW#################
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan/{external_id}")
-async def api_scan(p, c, request: Request, external_id: str = None):
+async def api_scan(p, c, request: Request, external_id: str = Query(None)):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
@@ -63,6 +58,7 @@ async def api_scan(p, c, request: Request, external_id: str = None):
     await update_card_counter(ctr_int, card.id)
 
     # gathering some info for hit record
+    assert request.client
     ip = request.client.host
     if "x-real-ip" in request.headers:
         ip = request.headers["x-real-ip"]
@@ -95,7 +91,6 @@ async def api_scan(p, c, request: Request, external_id: str = None):
     name="boltcards.lnurl_callback",
 )
 async def lnurl_callback(
-    request: Request,
     pr: str = Query(None),
     k1: str = Query(None),
 ):
@@ -120,7 +115,9 @@ async def lnurl_callback(
         return {"status": "ERROR", "reason": "Failed to decode payment request"}
 
     card = await get_card(hit.card_id)
+    assert card
     hit = await spend_hit(id=hit.id, amount=int(invoice.amount_msat / 1000))
+    assert hit
     try:
         await pay_invoice(
             wallet_id=card.wallet,
@@ -155,7 +152,7 @@ async def api_auth(a, request: Request):
 
     response = {
         "card_name": card.card_name,
-        "id": 1,
+        "id": str(1),
         "k0": card.k0,
         "k1": card.k1,
         "k2": card.k2,
@@ -163,7 +160,7 @@ async def api_auth(a, request: Request):
         "k4": card.k2,
         "lnurlw_base": "lnurlw://" + lnurlw_base,
         "protocol_name": "new_bolt_card_response",
-        "protocol_version": 1,
+        "protocol_version": str(1),
     }
 
     return response
@@ -179,7 +176,9 @@ async def api_auth(a, request: Request):
 )
 async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     hit = await get_hit(hit_id)
+    assert hit
     card = await get_card(hit.card_id)
+    assert card
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
     if not card.enable:
@@ -199,21 +198,21 @@ async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     response_class=HTMLResponse,
     name="boltcards.lnurlp_callback",
 )
-async def lnurlp_callback(
-    req: Request, hit_id: str = Query(None), amount: str = Query(None)
-):
+async def lnurlp_callback(hit_id: str = Query(None), amount: str = Query(None)):
     hit = await get_hit(hit_id)
+    assert hit
     card = await get_card(hit.card_id)
+    assert card
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
 
-    payment_hash, payment_request = await create_invoice(
+    _, payment_request = await create_invoice(
         wallet_id=card.wallet,
-        amount=int(amount) / 1000,
+        amount=int(int(amount) / 1000),
         memo=f"Refund {hit_id}",
         unhashed_description=LnurlPayMetadata(
             json.dumps([["text/plain", "Refund"]])
-        ).encode("utf-8"),
+        ).encode(),
         extra={"refund": hit_id},
     )
 

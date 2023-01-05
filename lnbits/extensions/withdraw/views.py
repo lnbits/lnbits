@@ -2,10 +2,8 @@ from http import HTTPStatus
 from io import BytesIO
 
 import pyqrcode
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits.core.models import User
@@ -117,7 +115,7 @@ async def print_qr(request: Request, link_id):
 
 
 @withdraw_ext.get("/csv/{link_id}", response_class=HTMLResponse)
-async def print_qr(request: Request, link_id):
+async def csv(request: Request, link_id):
     link = await get_withdraw_link(link_id)
     if not link:
         raise HTTPException(

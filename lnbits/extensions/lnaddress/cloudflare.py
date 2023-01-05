@@ -16,7 +16,7 @@ async def cloudflare_create_record(domain: Domains, ip: str):
         "Content-Type": "application/json",
     }
 
-    cf_response = ""
+    cf_response = {}
     async with httpx.AsyncClient() as client:
         try:
             r = await client.post(
@@ -31,9 +31,9 @@ async def cloudflare_create_record(domain: Domains, ip: str):
                 },
                 timeout=40,
             )
-            cf_response = json.loads(r.text)
+            cf_response = r.json()
         except AssertionError:
-            cf_response = "Error occured"
+            cf_response = {"error": "Error occured"}
     return cf_response
 
 
@@ -53,3 +53,4 @@ async def cloudflare_deleterecord(domain: Domains, domain_id: str):
             cf_response = r.text
         except AssertionError:
             cf_response = "Error occured"
+        return cf_response

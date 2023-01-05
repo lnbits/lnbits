@@ -1,17 +1,9 @@
-import hashlib
-import json
 from datetime import datetime, timedelta
 
 import httpx
-from fastapi.params import Query
-from lnurl import (  # type: ignore
-    LnurlErrorResponse,
-    LnurlPayActionResponse,
-    LnurlPayResponse,
-)
+from fastapi import Query, Request
+from lnurl import LnurlErrorResponse
 from loguru import logger
-from starlette.requests import Request
-from starlette.responses import HTMLResponse
 
 from . import lnaddress_ext
 from .crud import get_address, get_address_by_username, get_domain
@@ -52,6 +44,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
     amount_received = amount
 
     domain = await get_domain(address.domain)
+    assert domain
 
     base_url = (
         address.wallet_endpoint[:-1]
@@ -72,14 +65,14 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "amount": int(amount_received / 1000),
                     "description_hash": (
                         await address.lnurlpay_metadata(domain=domain.domain)
-                    ).encode("utf-8"),
+                    ).encode(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
                 timeout=40,
             )
 
             r = call.json()
-        except AssertionError as e:
+        except Exception:
             return LnurlErrorResponse(reason="ERROR")
 
     # resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])

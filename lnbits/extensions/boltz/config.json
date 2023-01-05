@@ -1,6 +1,6 @@
 {
   "name": "Boltz",
   "short_description": "Perform onchain/offchain swaps",
-  "icon": "swap_horiz",
+  "tile": "/boltz/static/image/boltz.png",
   "contributors": ["dni"]
 }

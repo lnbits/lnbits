@@ -1,10 +1,6 @@
-import secrets
 from http import HTTPStatus
 
-from fastapi.params import Depends, Query
-from loguru import logger
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
+from fastapi import Depends, HTTPException, Query
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -15,13 +11,11 @@ from .crud import (
     delete_card,
     enable_disable_card,
     get_card,
-    get_card_by_otp,
     get_card_by_uid,
     get_cards,
     get_hits,
     get_refunds,
     update_card,
-    update_card_otp,
 )
 from .models import CreateCardData
 
@@ -33,7 +27,8 @@ async def api_cards(
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [card.dict() for card in await get_cards(wallet_ids)]
 
@@ -41,9 +36,8 @@ async def api_cards(
 @boltcards_ext.post("/api/v1/cards", status_code=HTTPStatus.CREATED)
 @boltcards_ext.put("/api/v1/cards/{card_id}", status_code=HTTPStatus.OK)
 async def api_card_create_or_update(
-    #    req: Request,
     data: CreateCardData,
-    card_id: str = None,
+    card_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     try:
@@ -95,6 +89,7 @@ async def api_card_create_or_update(
                 status_code=HTTPStatus.BAD_REQUEST,
             )
         card = await create_card(wallet_id=wallet.wallet.id, data=data)
+    assert card
     return card.dict()
 
 
@@ -110,6 +105,7 @@ async def enable_card(
     if card.wallet != wallet.wallet.id:
         raise HTTPException(detail="Not your card.", status_code=HTTPStatus.FORBIDDEN)
     card = await enable_disable_card(enable=enable, id=card_id)
+    assert card
     return card.dict()
 
 
@@ -136,7 +132,8 @@ async def api_hits(
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     cards = await get_cards(wallet_ids)
     cards_ids = []
@@ -147,21 +144,19 @@ async def api_hits(
 
 
 @boltcards_ext.get("/api/v1/refunds")
-async def api_hits(
+async def api_refunds(
     g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     cards = await get_cards(wallet_ids)
     cards_ids = []
     for card in cards:
         cards_ids.append(card.id)
     hits = await get_hits(cards_ids)
-    hits_ids = []
-    for hit in hits:
-        hits_ids.append(hit.id)
 
-    return [refund.dict() for refund in await get_refunds(hits_ids)]
+    return [refund.dict() for refund in await get_refunds(hits)]

@@ -25,15 +25,20 @@ async def get_charge_details(service_id):
 
     These might be different depending for services implemented in the future.
     """
-    details = {"time": 1440}
     service = await get_service(service_id)
+    assert service
+
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
+    assert wallet
+
     user = wallet.user
-    details["user"] = user
-    details["lnbitswallet"] = wallet_id
-    details["onchainwallet"] = service.onchain
-    return details
+    return {
+        "time": 1440,
+        "user": user,
+        "lnbitswallet": wallet_id,
+        "onchainwallet": service.onchain,
+    }
 
 
 async def create_donation(
@@ -71,7 +76,7 @@ async def create_donation(
     return donation
 
 
-async def post_donation(donation_id: str) -> tuple:
+async def post_donation(donation_id: str) -> dict:
     """Post donations to their respective third party APIs
 
     If the donation has already been posted, it will not be posted again.
@@ -97,7 +102,6 @@ async def post_donation(donation_id: str) -> tuple:
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, data=data)
-        status = [s for s in list(HTTPStatus) if s == response.status_code][0]
     elif service.servicename == "StreamElements":
         return {"message": "StreamElements not yet supported!"}
     else:

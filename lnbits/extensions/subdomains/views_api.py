@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -29,7 +28,7 @@ from .crud import (
 
 @subdomains_ext.get("/api/v1/domains")
 async def api_domains(
-    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    g: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
@@ -47,7 +46,7 @@ async def api_domains(
 async def api_domain_create(
     data: CreateDomain,
     domain_id=None,
-    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    g: WalletTypeInfo = Depends(get_key_type),
 ):
     if domain_id:
         domain = await get_domain(domain_id)
@@ -68,9 +67,7 @@ async def api_domain_create(
 
 
 @subdomains_ext.delete("/api/v1/domains/{domain_id}")
-async def api_domain_delete(
-    domain_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
-):
+async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)):
     domain = await get_domain(domain_id)
 
     if not domain:
@@ -89,7 +86,7 @@ async def api_domain_delete(
 
 @subdomains_ext.get("/api/v1/subdomains")
 async def api_subdomains(
-    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)
 ):
     wallet_ids = [g.wallet.id]
 
@@ -169,6 +166,7 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
 @subdomains_ext.get("/api/v1/subdomains/{payment_hash}")
 async def api_subdomain_send_subdomain(payment_hash):
     subdomain = await get_subdomain(payment_hash)
+    assert subdomain
     try:
         status = await check_transaction_status(subdomain.wallet, payment_hash)
         is_paid = not status.pending
@@ -182,9 +180,7 @@ async def api_subdomain_send_subdomain(payment_hash):
 
 
 @subdomains_ext.delete("/api/v1/subdomains/{subdomain_id}")
-async def api_subdomain_delete(
-    subdomain_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
-):
+async def api_subdomain_delete(subdomain_id, g: WalletTypeInfo = Depends(get_key_type)):
     subdomain = await get_subdomain(subdomain_id)
 
     if not subdomain:

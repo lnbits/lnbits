@@ -1,8 +1,7 @@
 from datetime import date, datetime
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse

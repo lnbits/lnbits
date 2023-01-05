@@ -2,7 +2,7 @@
 
 This extension allows you to link your Bolt Card (or other compatible NXP NTAG device) with a LNbits instance and use it in a more secure way than a static LNURLw. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow. 
 
-<a href="https://www.youtube.com/watch?v=wJ7QLFTRjK0">Tutorial</a>
+<a class="text-secondary" href="https://www.youtube.com/watch?v=wJ7QLFTRjK0">Tutorial</a>
 
 **Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
@@ -54,6 +54,8 @@ Since v0.1.2 of Boltcard NFC Card Creator it is possible not only reset the keys
     - Or click WIPE DATA in LNbits to copy and paste in to the app (PASTE KEY JSON)
 - Click RESET CARD NOW and approach the NFC card to erase it. DO NOT REMOVE THE CARD PREMATURELY! 
 - Now if there is all success the card can be safely delete from LNbits (but keep the keys backuped anyway; batter safe than brick).
+
+If you somehow find yourself in some non-standard state (for instance only k3 and k4 remains filled after previous unsuccessful reset), then you need edit the key fields manually (for instance leave k0-k2 to zeroes and provide the right k3 and k4).  
 
 ## Setting the card - computer (hard way)
 

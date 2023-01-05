@@ -4,13 +4,13 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from fastapi import Query
 from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for
@@ -46,8 +46,8 @@ class Wallet(BaseModel):
             return ""
 
     def lnurlauth_key(self, domain: str) -> SigningKey:
-        hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
-        linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
+        hashing_key = hashlib.sha256(self.id.encode()).digest()
+        linking_key = hmac.digest(hashing_key, domain.encode(), "sha256")
 
         return SigningKey.from_string(
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
@@ -88,7 +88,7 @@ class Payment(BaseModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Optional[Dict] = {}
+    extra: Dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]

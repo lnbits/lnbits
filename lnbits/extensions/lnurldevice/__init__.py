@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter
+from starlette.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -9,6 +10,14 @@ from lnbits.tasks import catch_everything_and_restart
 db = Database("ext_lnurldevice")
 
 lnurldevice_ext: APIRouter = APIRouter(prefix="/lnurldevice", tags=["lnurldevice"])
+
+lnurldevice_static_files = [
+    {
+        "path": "/lnurldevice/static",
+        "app": StaticFiles(directory="lnbits/extensions/lnurldevice/static"),
+        "name": "lnurldevice_static",
+    }
+]
 
 
 def lnurldevice_renderer():

@@ -1,6 +1,6 @@
 {
 	"name": "Events",
 	"short_description": "Sell and register event tickets",
-	"icon": "local_activity",
+	"tile": "/events/static/image/events.png",
 	"contributors": ["benarc"]
 }

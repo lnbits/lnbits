@@ -1,5 +1,7 @@
 from typing import List, Optional, Union
 
+import shortuuid
+
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -11,7 +13,10 @@ from .models import createLnurldevice, lnurldevicepayment, lnurldevices
 async def create_lnurldevice(
     data: createLnurldevice,
 ) -> lnurldevices:
-    lnurldevice_id = urlsafe_short_hash()
+    if data.device == "pos" or data.device == "atm":
+        lnurldevice_id = shortuuid.uuid()[:5]
+    else:
+        lnurldevice_id = urlsafe_short_hash()
     lnurldevice_key = urlsafe_short_hash()
     await db.execute(
         """

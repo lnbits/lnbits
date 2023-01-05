@@ -32,6 +32,7 @@ def public_charge(charge: Charges):
 async def call_webhook(charge: Charges):
     async with httpx.AsyncClient() as client:
         try:
+            assert charge.webhook
             r = await client.post(
                 charge.webhook,
                 json=public_charge(charge),
@@ -54,6 +55,8 @@ async def fetch_onchain_balance(charge: Charges):
         if charge.config.network == "Testnet"
         else charge.config.mempool_endpoint
     )
+    assert endpoint
+    assert charge.onchainaddress
     async with httpx.AsyncClient() as client:
         r = await client.get(endpoint + "/api/address/" + charge.onchainaddress)
         return r.json()["chain_stats"]["funded_txo_sum"]

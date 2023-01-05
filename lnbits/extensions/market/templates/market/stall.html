@@ -1,0 +1,531 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-mb-md">
+  <div class="col-12 q-gutter-y-md">
+    <q-toolbar class="row">
+      <div class="col">
+        <q-toolbar-title> Stall: {{ stall.name }} </q-toolbar-title>
+      </div>
+      <div class="col q-mx-md">
+        <q-input
+          class="float-left full-width q-ml-md"
+          standout
+          square
+          dense
+          outlined
+          clearable
+          v-model.trim="searchText"
+          label="Search for products"
+        >
+          <template v-slot:append>
+            <q-icon v-if="!searchText" name="search" />
+          </template>
+        </q-input>
+      </div>
+      <q-btn dense round flat icon="shopping_cart">
+        {% raw %}
+        <q-badge v-if="cart.size" color="red" class="text-bold" floating>
+          {{ cart.size }}
+        </q-badge>
+        {% endraw %}
+        <q-menu v-if="cart.size">
+          <q-list style="min-width: 100px">
+            {% raw %}
+            <q-item :key="p.id" v-for="p in cartMenu">
+              <q-item-section side>
+                <span>{{p.quantity}} x </span>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-avatar color="primary">
+                  <img
+                    size="sm"
+                    :src="products.find(f => f.id == p.id).image"
+                  />
+                </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>{{ p.name }}</q-item-label>
+              </q-item-section>
+
+              <q-item-section side>
+                <span>
+                  {{unit != 'sat' ? getAmountFormated(p.price) : p.price +
+                  'sats'}}
+                  <q-btn
+                    class="q-ml-md"
+                    round
+                    color="red"
+                    size="xs"
+                    icon="close"
+                    @click="removeFromCart(p)"
+                  />
+                </span>
+              </q-item-section>
+            </q-item>
+            {% endraw %}
+            <q-separator />
+          </q-list>
+          <div class="row q-pa-md q-gutter-md">
+            <q-btn
+              color="primary"
+              icon-right="checkout"
+              label="Checkout"
+              @click="checkoutDialog.show = true"
+            ></q-btn>
+            <q-btn
+              class="q-ml-lg"
+              flat
+              color="primary"
+              label="Reset"
+              @click="resetCart"
+            ></q-btn>
+          </div>
+        </q-menu>
+      </q-btn>
+    </q-toolbar>
+  </div>
+</div>
+<div class="row q-col-gutter-md">
+  <div
+    class="col-xs-12 col-sm-6 col-md-4 col-lg-3"
+    v-for="item in filterProducts"
+    :key="item.id"
+  >
+    <q-card class="card--product">
+      {% raw %}
+      <q-img
+        :src="item.image ? item.image : '/market/static/images/placeholder.png'"
+        alt="Product Image"
+        loading="lazy"
+        spinner-color="white"
+        fit="contain"
+        height="300px"
+      ></q-img>
+
+      <q-card-section class="q-pb-xs q-pt-md">
+        <q-btn
+          round
+          :disabled="item.quantity < 1"
+          color="primary"
+          icon="shopping_cart"
+          size="lg"
+          style="
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(-50%, -50%);
+          "
+          @click="addToCart(item)"
+          ><q-tooltip> Add to cart </q-tooltip></q-btn
+        >
+
+        <div class="row no-wrap items-center">
+          <div class="col text-subtitle2 ellipsis-2-lines">
+            {{ item.product }}
+          </div>
+        </div>
+
+        <!-- <q-rating v-model="stars" color="orange" :max="5" readonly size="17px"></q-rating> -->
+      </q-card-section>
+
+      <q-card-section class="q-py-sm">
+        <div>
+          <span v-if="unit == 'sat'">
+            <span class="text-h6">{{ item.price }} sats</span
+            ><span class="q-ml-sm text-grey-6"
+              >BTC {{ (item.price / 1e8).toFixed(8) }}</span
+            >
+          </span>
+          <span v-else>
+            <span class="text-h6">{{ getAmountFormated(item.price) }}</span>
+            <span v-if="exchangeRate" class="q-ml-sm text-grey-6"
+              >({{ getValueInSats(item.price) }} sats)</span
+            >
+          </span>
+          <span
+            class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
+            >{{item.quantity}} left</span
+          >
+        </div>
+        <div v-if="item.categories" class="text-subtitle1">
+          <q-chip v-for="(cat, i) in item.categories.split(',')" :key="i" dense
+            >{{cat}}</q-chip
+          >
+        </div>
+        <div
+          class="text-caption text-grey ellipsis-2-lines"
+          style="min-height: 40px"
+        >
+          <p v-if="item.description">{{ item.description }}</p>
+        </div>
+      </q-card-section>
+
+      <!-- <q-separator></q-separator>
+
+      <q-card-actions>
+        <q-btn
+          flat
+          class="text-weight-bold text-capitalize"
+          dense
+          color="primary"
+        >
+          View details
+        </q-btn>
+      </q-card-actions> -->
+      {% endraw %}
+    </q-card>
+  </div>
+  <!-- CHECKOUT DIALOG -->
+  <q-dialog v-model="checkoutDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="placeOrder" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.username"
+          label="Name *optional"
+        ></q-input>
+        <q-input
+          v-if="diagonalley"
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.pubkey"
+          label="Public key *optional"
+        >
+          <template v-slot:append>
+            <q-icon @click="getPubkey" name="settings_backup_restore" />
+            <q-tooltip>Click to restore saved public key</q-tooltip>
+          </template>
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.address"
+          label="Address"
+        ></q-input>
+        <!-- <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.address_2"
+          label="Address (line 2)"
+        ></q-input> -->
+        <q-input
+          v-model="checkoutDialog.data.email"
+          filled
+          dense
+          type="email"
+          label="Email"
+        ></q-input>
+        <p>Select the shipping zone:</p>
+        <div class="row q-mt-lg">
+          <q-option-group
+            :options="stall.zones"
+            type="radio"
+            emit-value
+            v-model="checkoutDialog.data.shippingzone"
+          />
+        </div>
+        <div class="row q-mt-lg">
+          {% raw %} Total: {{ unit != 'sat' ? getAmountFormated(finalCost) :
+          finalCost + 'sats' }}
+          <span v-if="unit != 'sat'" class="q-ml-sm text-grey-6"
+            >({{ getValueInSats(finalCost) }} sats)</span
+          >
+          {% endraw %}
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="checkoutDialog.data.address == null
+              || checkoutDialog.data.email == null
+              || checkoutDialog.data.shippingzone == null"
+            type="submit"
+            >Checkout</q-btn
+          >
+          <q-btn
+            v-close-popup
+            flat
+            @click="checkoutDialog = {show: false, data: {pubkey: ''}}"
+            color="grey"
+            class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <!-- INVOICE DIALOG -->
+  <q-dialog
+    v-model="qrCodeDialog.show"
+    position="top"
+    @hide="closeQrCodeDialog"
+  >
+    <q-card
+      v-if="!qrCodeDialog.data.payment_request"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + qrCodeDialog.data.payment_request">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="qrCodeDialog.data.payment_request"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.payment_request)"
+          >Copy invoice</q-btn
+        >
+        <q-btn
+          @click="closeQrCodeDialog"
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          >Close</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  const mapProductsItems = obj => {
+    obj.price = parseFloat((obj.price / 100).toFixed(2))
+
+    return obj
+  }
+  Vue.component(VueQrcode.name, VueQrcode)
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        stall: null,
+        products: [],
+        searchText: null,
+        diagonalley: false,
+        unit: 'sat',
+        exchangeRate: 0,
+        cart: {
+          total: 0,
+          size: 0,
+          products: new Map()
+        },
+        cartMenu: [],
+        checkoutDialog: {
+          show: false,
+          data: {
+            pubkey: ''
+          }
+        },
+        qrCodeDialog: {
+          data: {
+            payment_request: null
+          },
+          show: false
+        }
+      }
+    },
+    computed: {
+      filterProducts() {
+        if (!this.searchText || this.searchText.length < 2) return this.products
+        return this.products.filter(p => {
+          return (
+            p.product.includes(this.searchText) ||
+            p.description.includes(this.searchText) ||
+            p.categories.includes(this.searchText)
+          )
+        })
+      },
+      finalCost() {
+        if (!this.checkoutDialog.data.shippingzone) return this.cart.total
+
+        let zoneCost = this.stall.zones.find(
+          z => z.value == this.checkoutDialog.data.shippingzone
+        )
+        return +this.cart.total + zoneCost.cost
+      }
+    },
+    methods: {
+      closeQrCodeDialog() {
+        this.qrCodeDialog.dismissMsg()
+        this.qrCodeDialog.show = false
+      },
+      resetCart() {
+        this.cart = {
+          total: 0,
+          size: 0,
+          products: new Map()
+        }
+      },
+      getAmountFormated(amount) {
+        return LNbits.utils.formatCurrency(amount, this.unit)
+      },
+      async getRates() {
+        if (this.unit == 'sat') return
+        try {
+          let rate = (
+            await LNbits.api.request('POST', '/api/v1/conversion', null, {
+              amount: 1e8,
+              to: this.unit
+            })
+          ).data
+          this.exchangeRate = rate[this.unit]
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      getValueInSats(amount) {
+        if (!this.exchangeRate) return 0
+        return Math.ceil((amount / this.exchangeRate) * 1e8)
+      },
+      addToCart(item) {
+        let prod = this.cart.products
+        if (prod.has(item.id)) {
+          let qty = prod.get(item.id).quantity
+          prod.set(item.id, {
+            ...prod.get(item.id),
+            quantity: qty + 1
+          })
+        } else {
+          prod.set(item.id, {
+            name: item.product,
+            quantity: 1,
+            price: item.price
+          })
+        }
+        this.$q.notify({
+          type: 'positive',
+          message: `${item.product} added to cart`,
+          icon: 'thumb_up'
+        })
+        this.cart.products = prod
+        this.updateCart(+item.price)
+      },
+      removeFromCart(item) {
+        this.cart.products.delete(item.id)
+        this.updateCart(+item.price, true)
+      },
+      updateCart(price, del = false) {
+        console.log(this.cart, this.cartMenu)
+        if (del) {
+          this.cart.total -= price
+          this.cart.size--
+        } else {
+          this.cart.total += price
+          this.cart.size++
+        }
+        this.cartMenu = Array.from(this.cart.products, item => {
+          return {id: item[0], ...item[1]}
+        })
+        console.log(this.cart, this.cartMenu)
+      },
+      getPubkey() {
+        let data = this.$q.localStorage.getItem(`lnbits.market.data`)
+        if (data && data.keys.publickey) {
+          this.checkoutDialog.data.pubkey = data.keys.publickey
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No public key stored!',
+            icon: 'settings_backup_restore'
+          })
+        }
+      },
+      placeOrder() {
+        let dialog = this.checkoutDialog.data
+        let data = {
+          ...this.checkoutDialog.data,
+          wallet: this.stall.wallet,
+          total:
+            this.unit != 'sat'
+              ? this.getValueInSats(this.finalCost)
+              : this.finalCost, // maybe this is better made in Python to allow API ordering?!
+          products: Array.from(this.cart.products, p => {
+            return {product_id: p[0], quantity: p[1].quantity}
+          })
+        }
+        LNbits.api
+          .request('POST', '/market/api/v1/orders', null, data)
+          .then(res => {
+            this.checkoutDialog = {show: false, data: {}}
+
+            return res.data
+          })
+          .then(data => {
+            this.qrCodeDialog.data = data
+            this.qrCodeDialog.show = true
+
+            this.qrCodeDialog.dismissMsg = this.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+            return data
+          })
+          .then(data => {
+            this.qrCodeDialog.paymentChecker = setInterval(() => {
+              LNbits.api
+                .request(
+                  'GET',
+                  `/market/api/v1/orders/payments/${this.qrCodeDialog.data.payment_hash}`
+                )
+                .then(res => {
+                  if (res.data.paid) {
+                    this.$q.notify({
+                      type: 'positive',
+                      multiLine: true,
+                      message:
+                        "Sats received, thanks! You'l be redirected to the order page...",
+                      icon: 'thumb_up',
+                      actions: [
+                        {
+                          label: 'See Order',
+                          handler: () => {
+                            window.location.href = `/market/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                          }
+                        }
+                      ]
+                    })
+                    clearInterval(this.qrCodeDialog.paymentChecker)
+                    this.resetCart()
+                    this.closeQrCodeDialog()
+                    setTimeout(() => {
+                      window.location.href = `/market/order/?merch=${this.stall.id}&invoice_id=${this.qrCodeDialog.data.payment_hash}`
+                    }, 5000)
+                  }
+                })
+                .catch(error => {
+                  console.error(error)
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 3000)
+          })
+          .catch(error => {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    },
+    async created() {
+      this.stall = JSON.parse('{{ stall | tojson }}')
+      this.products = JSON.parse('{{ products | tojson }}')
+      this.unit = this.stall.currency
+      if (this.unit != 'sat') {
+        this.products = this.products.map(mapProductsItems)
+      }
+      await this.getRates()
+      setInterval(this.getRates, 300000)
+    }
+  })
+</script>
+{% endblock %}

@@ -1,5 +1,4 @@
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
@@ -9,9 +8,7 @@ from . import discordbot_ext, discordbot_renderer
 
 
 @discordbot_ext.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request, user: User = Depends(check_user_exists)  # type: ignore
-):
+async def index(request: Request, user: User = Depends(check_user_exists)):
     return discordbot_renderer().TemplateResponse(
         "discordbot/index.html", {"request": request, "user": user.dict()}
     )

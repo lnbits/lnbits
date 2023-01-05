@@ -1,8 +1,6 @@
 import asyncio
 import json
 
-import httpx
-
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
@@ -21,22 +19,23 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+
     if not payment.extra.get("refund"):
         return
 
     if payment.extra.get("wh_status"):
         # this webhook has already been sent
         return
-    hit = await get_hit(payment.extra.get("refund"))
+
+    hit = await get_hit(str(payment.extra.get("refund")))
 
     if hit:
-        refund = await create_refund(
-            hit_id=hit.id, refund_amount=(payment.amount / 1000)
-        )
+        await create_refund(hit_id=hit.id, refund_amount=(payment.amount / 1000))
         await mark_webhook_sent(payment, 1)
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
+
     payment.extra["wh_status"] = status
 
     await core_db.execute(

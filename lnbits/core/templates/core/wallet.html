@@ -23,7 +23,7 @@
               <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
               {{LNBITS_DENOMINATION}}
               <q-btn
-                v-if="'{{user.admin}}' == 'True'"
+                v-if="'{{user.super_user}}' == 'True'"
                 flat
                 round
                 color="primary"
@@ -36,27 +36,16 @@
                   v-model="credit"
                 >
                   <q-input
-                    v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                    label="Amount to credit account"
+                    filled
+                    label="{{LNBITS_DENOMINATION}} to credit"
+                    hint="Press Enter to credit account"
                     v-model="scope.value"
                     dense
                     autofocus
-                    mask="#.##"
+                    :mask="'{{LNBITS_DENOMINATION}}' != 'sats' ? '#.##' : '#'"
                     fill-mask="0"
                     reverse-fill-mask
-                    @keyup.enter="updateBalance(scope.value)"
-                  >
-                    <template v-slot:append>
-                      <q-icon name="edit" />
-                    </template>
-                  </q-input>
-                  <q-input
-                    v-else
-                    type="number"
-                    label="Amount to credit account"
-                    v-model="scope.value"
-                    dense
-                    autofocus
+                    :step="'{{LNBITS_DENOMINATION}}' != 'sats' ? '0.01' : '1'"
                     @keyup.enter="updateBalance(scope.value)"
                   >
                     <template v-slot:append>
@@ -231,7 +220,7 @@
                           <a :href="'lightning:' + props.row.bolt11">
                             <q-responsive :ratio="1" class="q-mx-xl">
                               <qrcode
-                                :value="props.row.bolt11"
+                                :value="'lightning:' + props.row.bolt11.toUpperCase()"
                                 :options="{width: 340}"
                                 class="rounded-borders"
                               ></qrcode>
@@ -325,7 +314,7 @@
                       </p>
                       <a href="lightning:{{wallet.lnurlwithdraw_full}}">
                         <qrcode
-                          value="{{wallet.lnurlwithdraw_full}}"
+                          value="lightning:{{wallet.lnurlwithdraw_full}}"
                           :options="{width:240}"
                         ></qrcode>
                       </a>
@@ -524,7 +513,7 @@
             <a :href="'lightning:' + receive.paymentReq">
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="receive.paymentReq"
+                  :value="'lightning:' + receive.paymentReq.toUpperCase()"
                   :options="{width: 340}"
                   class="rounded-borders"
                 ></qrcode>
