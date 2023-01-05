@@ -1,16 +1,11 @@
 import base64
-import hashlib
 import hmac
 from http import HTTPStatus
 from io import BytesIO
-from typing import Optional
 
 import shortuuid
 from embit import bech32, compact
-from fastapi import Request
-from fastapi.param_functions import Query
-from loguru import logger
-from starlette.exceptions import HTTPException
+from fastapi import HTTPException, Query, Request
 
 from lnbits import bolt11
 from lnbits.core.services import create_invoice
@@ -44,7 +39,9 @@ def bech32_decode(bech):
     encoding = bech32.bech32_verify_checksum(hrp, data)
     if encoding is None:
         return
-    return bytes(bech32.convertbits(data[:-6], 5, 8, False))
+    bits = bech32.convertbits(data[:-6], 5, 8, False)
+    assert bits
+    return bytes(bits)
 
 
 def xor_decrypt(key, blob):
@@ -105,6 +102,8 @@ async def lnurl_v1_params(
             "reason": f"lnurldevice {device_id} not found on this server",
         }
     if device.device == "switch":
+        # TODO: AMOUNT IN CENT was never reference here
+        amount_in_cent = 0
         price_msat = (
             await fiat_amount_as_satoshis(float(profit), device.currency)
             if device.currency != "sat"
@@ -160,21 +159,13 @@ async def lnurl_v1_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await get_lnurldevicepayment(shortuuid.uuid(name=p))
-        if lnurldevicepayment:
-            logger.debug("lnurldevicepayment")
-            logger.debug(lnurldevicepayment)
-            logger.debug("lnurldevicepayment")
-            if lnurldevicepayment.payload == lnurldevicepayment.payhash:
-                return {"status": "ERROR", "reason": f"Payment already claimed"}
-        else:
-            lnurldevicepayment = await create_lnurldevicepayment(
-                deviceid=device.id,
-                payload=p,
-                sats=price_msat * 1000,
-                pin=pin,
-                payhash="payment_hash",
-            )
+        lnurldevicepayment = await create_lnurldevicepayment(
+            deviceid=device.id,
+            payload=p,
+            sats=price_msat * 1000,
+            pin=str(pin),
+            payhash="payment_hash",
+        )
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create payment."}
         return {
@@ -193,7 +184,7 @@ async def lnurl_v1_params(
         deviceid=device.id,
         payload=p,
         sats=price_msat * 1000,
-        pin=pin,
+        pin=str(pin),
         payhash="payment_hash",
     )
     if not lnurldevicepayment:
@@ -221,6 +212,10 @@ async def lnurl_callback(
     k1: str = Query(None),
 ):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
+    if not lnurldevicepayment:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevicepayment not found."
+        )
     device = await get_lnurldevice(lnurldevicepayment.deviceid)
     if not device:
         raise HTTPException(
@@ -241,13 +236,20 @@ async def lnurl_callback(
         else:
             if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
+<<<<<<< HEAD
             lnurldevicepayment = await update_lnurldevicepayment(
+=======
+            if lnurldevicepayment.payhash != "payment_hash":
+                return {"status": "ERROR", "reason": f"Payment already claimed"}
+            lnurldevicepayment_updated = await update_lnurldevicepayment(
+>>>>>>> c2f4a7c9 (fix mypy lnurldevices issues)
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
+            assert lnurldevicepayment_updated
             await pay_invoice(
                 wallet_id=device.wallet,
                 payment_request=pr,
-                max_sat=lnurldevicepayment.sats / 1000,
+                max_sat=int(lnurldevicepayment_updated.sats / 1000),
                 extra={"tag": "withdraw"},
             )
             return {"status": "OK"}
