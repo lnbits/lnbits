@@ -64,14 +64,6 @@ async def m005_add_gerty_model_col(db):
 
 async def m006_add_gerty_model_col(db):
     """
-    support for Gerty model col
-    """
-    await db.execute("ALTER TABLE gerty.mempool RENAME TO mempool_old;")
-    await db.execute("ALTER TABLE gerty.mempool ADD COLUMN time FLOAT;")
-
-
-async def m006_add_gerty_model_col(db):
-    """
     Add UUID ID's to links and migrates existing data
     """
     await db.execute("ALTER TABLE gerty.mempool RENAME TO mempool_old")
