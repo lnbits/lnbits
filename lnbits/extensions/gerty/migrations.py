@@ -57,3 +57,22 @@ async def m005_add_gerty_model_col(db):
     support for Gerty model col
     """
     await db.execute("ALTER TABLE gerty.gertys ADD COLUMN urls TEXT;")
+
+
+async def m006_set_default_mempool_cache_timestamp(db):
+    """
+    Set default timestamp to current timestamp on time col
+    """
+    await db.execute(
+        "ALTER TABLE gerty.mempool DROP COLUMN time;"
+    )
+
+    await db.execute(
+        """
+        ALTER TABLE gerty.mempool
+        ADD COLUMN time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """ 
+        ;
+        """
+        )
