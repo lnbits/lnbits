@@ -63,9 +63,7 @@ async def m006_set_default_mempool_cache_timestamp(db):
     """
     Set default timestamp to current timestamp on time col
     """
-    await db.execute(
-        "ALTER TABLE gerty.mempool DROP COLUMN time;"
-    )
+    await db.execute("ALTER TABLE gerty.mempool DROP COLUMN time;")
 
     await db.execute(
         """
@@ -75,4 +73,4 @@ async def m006_set_default_mempool_cache_timestamp(db):
         + """ 
         ;
         """
-        )
+    )
