@@ -7,7 +7,7 @@ from .models import CreatePayLinkData, PayLink
 
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
-    link_id = urlsafe_short_hash()
+    link_id = urlsafe_short_hash()[:5]
 
     result = await db.execute(
         f"""
