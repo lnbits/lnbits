@@ -5,15 +5,26 @@
     <q-card>
       <q-card-section>
         <h5 class="text-subtitle1 q-mt-none q-mb-md">Deezy</h5>
-        <p class="text-subtitle2 q-mt-none q-mb-md">Due to regulatory reasons you need to get a access token from deezy. Contact - support@deezy.io or @dannydeezy on telegram </p>
+        <p class="text-subtitle2 q-mt-none q-mb-md">
+          Due to regulatory reasons you need to get a access token from deezy.
+          Contact - support@deezy.io or @dannydeezy on telegram
+        </p>
         <div>
           <div class="flex justify-between items-center">
             <span>Deezy token </span>
-            <q-btn type="button" @click="showDeezyTokenForm = !showDeezyTokenForm">Add or Update token</q-btn>
+            <q-btn
+              type="button"
+              @click="showDeezyTokenForm = !showDeezyTokenForm"
+              >Add or Update token</q-btn
+            >
           </div>
           <p v-if="storedDeezyToken" v-text="storedDeezyToken"></p>
         </div>
-        <q-form v-if="showDeezyTokenForm" @submit="storeDeezyToken" class="q-gutter-md q-mt-lg">
+        <q-form
+          v-if="showDeezyTokenForm"
+          @submit="storeDeezyToken"
+          class="q-gutter-md q-mt-lg"
+        >
           <q-input
             filled
             dense
@@ -23,11 +34,7 @@
             label="Deezy Token"
             type="text"
           ></q-input>
-          <q-btn
-            color="grey"
-            type="submit"
-            label="Store Deezy Token"
-          ></q-btn>
+          <q-btn color="grey" type="submit" label="Store Deezy Token"></q-btn>
         </q-form>
         <q-separator class="q-my-lg"></q-separator>
         <q-card>
@@ -239,22 +246,83 @@
     data: function () {
       return {
         columnsLnToBtc: [
-          { name: 'amount_sats',label: 'Amount Sats', align: 'left', field: 'amount_sats', sortable: true},
-          { name: 'on_chain_address', align: 'left', label: 'On chain address', field: 'on_chain_address' },
-          { name: 'on_chain_sats_per_vbyte', align: 'left', label: 'Onchin sats per vbyte', field: 'on_chain_sats_per_vbyte', sortable: true },
-          { name: 'fee_sats', label: 'Fee sats', align: 'left',field: 'fee_sats' },
-          { name: 'txid', label: 'Tx Id',align: 'left', field: 'txid' },
-          { name: 'tx_hex', label: 'Tx Hex',align: 'left', field: 'tx_hex' },
-          { name: 'created_at', label: 'Created at',align: 'left', field: 'created_at', sortable: true, sort: true }
+          {
+            name: 'amount_sats',
+            label: 'Amount Sats',
+            align: 'left',
+            field: 'amount_sats',
+            sortable: true
+          },
+          {
+            name: 'on_chain_address',
+            align: 'left',
+            label: 'On chain address',
+            field: 'on_chain_address'
+          },
+          {
+            name: 'on_chain_sats_per_vbyte',
+            align: 'left',
+            label: 'Onchin sats per vbyte',
+            field: 'on_chain_sats_per_vbyte',
+            sortable: true
+          },
+          {
+            name: 'fee_sats',
+            label: 'Fee sats',
+            align: 'left',
+            field: 'fee_sats'
+          },
+          {name: 'txid', label: 'Tx Id', align: 'left', field: 'txid'},
+          {name: 'tx_hex', label: 'Tx Hex', align: 'left', field: 'tx_hex'},
+          {
+            name: 'created_at',
+            label: 'Created at',
+            align: 'left',
+            field: 'created_at',
+            sortable: true,
+            sort: true
+          }
         ],
         rowsLnToBtc: [],
         columnsBtcToLn: [
-          { name: 'ln_address', align: 'left', label: 'Ln Address or Invoice', field: 'ln_address' },
-          { name: 'on_chain_address', align: 'left', label: 'Onchain Address', field: 'on_chain_address' },
-          { name: 'secret_access_key', align: 'left', label: 'Onchain Address', field: 'secret_access_key' },
-          { name: 'commitment', align: 'left', label: 'Commitment', field: 'commitment' },
-          { name: 'signature', align: 'left', label: 'Signature', field: 'signature' },
-          { name: 'created_at', label: 'Created at', field: 'created_at', align: 'left', sortable: true, sort: true }
+          {
+            name: 'ln_address',
+            align: 'left',
+            label: 'Ln Address or Invoice',
+            field: 'ln_address'
+          },
+          {
+            name: 'on_chain_address',
+            align: 'left',
+            label: 'Onchain Address',
+            field: 'on_chain_address'
+          },
+          {
+            name: 'secret_access_key',
+            align: 'left',
+            label: 'Onchain Address',
+            field: 'secret_access_key'
+          },
+          {
+            name: 'commitment',
+            align: 'left',
+            label: 'Commitment',
+            field: 'commitment'
+          },
+          {
+            name: 'signature',
+            align: 'left',
+            label: 'Signature',
+            field: 'signature'
+          },
+          {
+            name: 'created_at',
+            label: 'Created at',
+            field: 'created_at',
+            align: 'left',
+            sortable: true,
+            sort: true
+          }
         ],
         rowsBtcToLn: [],
         showDeezyTokenForm: false,
@@ -304,7 +372,7 @@
         var self = this
         axios({
           method: 'GET',
-          url: '/deezy/api/v1/token',
+          url: '/deezy/api/v1/token'
         }).then(function (response) {
           self.storedDeezyToken = response.data.deezy_token
           if (!self.storeDeezyToken) {
@@ -357,13 +425,15 @@
                     invoicePaid: true,
                     onchainTxId: response.data.on_chain_txid
                   }
-                  self.updateLnToBtc({
-                    txid: response.data.on_chain_txid,
-                    tx_hex: response.data.tx_hex,
-                    bolt11_invoice: self.swapLnToBtc.response 
-                  }).then(() => {
-                    self.getLnToBtc()
-                  })
+                  self
+                    .updateLnToBtc({
+                      txid: response.data.on_chain_txid,
+                      tx_hex: response.data.tx_hex,
+                      bolt11_invoice: self.swapLnToBtc.response
+                    })
+                    .then(() => {
+                      self.getLnToBtc()
+                    })
                   clearInterval(interval)
                 }
               })
@@ -376,17 +446,21 @@
       sendLnToBtc() {
         var self = this
         axios
-          .post('https://api.deezy.io/v1/swap', {
-            amount_sats: parseInt(self.swapLnToBtc.data.amount),
-            on_chain_address: self.swapLnToBtc.data.on_chain_address,
-            on_chain_sats_per_vbyte: parseInt(
-              self.swapLnToBtc.data.on_chain_sats_per_vbyte
-            )
-          }, {
-            headers: {
-              "x-api-token": self.storedDeezyToken,
+          .post(
+            'https://api.deezy.io/v1/swap',
+            {
+              amount_sats: parseInt(self.swapLnToBtc.data.amount),
+              on_chain_address: self.swapLnToBtc.data.on_chain_address,
+              on_chain_sats_per_vbyte: parseInt(
+                self.swapLnToBtc.data.on_chain_sats_per_vbyte
+              )
+            },
+            {
+              headers: {
+                'x-api-token': self.storedDeezyToken
+              }
             }
-          })
+          )
           .then(function (response) {
             self.swapLnToBtc = {
               ...self.swapLnToBtc,
@@ -394,11 +468,12 @@
               response: response.data.bolt11_invoice
             }
             const payload = {
-              amount_sats: parseInt(self.swapLnToBtc.data.amount), 
-              on_chain_address: self.swapLnToBtc.data.on_chain_address, 
-              on_chain_sats_per_vbyte:  self.swapLnToBtc.data.on_chain_sats_per_vbyte,
+              amount_sats: parseInt(self.swapLnToBtc.data.amount),
+              on_chain_address: self.swapLnToBtc.data.on_chain_address,
+              on_chain_sats_per_vbyte:
+                self.swapLnToBtc.data.on_chain_sats_per_vbyte,
               bolt11_invoice: response.data.bolt11_invoice,
-              fee_sats: response.data.fee_sats, 
+              fee_sats: response.data.fee_sats
             }
             self.storeLnToBtc(payload)
             self.checkIfInvoiceIsPaid()
@@ -410,13 +485,17 @@
       sendBtcToLn() {
         var self = this
         axios
-          .post('https://api.deezy.io/v1/source', {
-            lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress
-          }, {
-            headers: {
-              "x-api-token": self.storedDeezyToken,
+          .post(
+            'https://api.deezy.io/v1/source',
+            {
+              lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress
+            },
+            {
+              headers: {
+                'x-api-token': self.storedDeezyToken
+              }
             }
-          })
+          )
           .then(function (response) {
             self.swapBtcToLn = {
               ...self.swapBtcToLn,
@@ -427,7 +506,7 @@
               ln_address: self.swapBtcToLn.data.lnurl_or_lnaddress,
               on_chain_address: response.data.address,
               secret_access_key: response.data.secret_access_key,
-              commitment:response.data.commitment,
+              commitment: response.data.commitment,
               signature: response.data.signature
             }
             self.storeBtcToLn(payload)
@@ -470,7 +549,7 @@
           })
           .then(function (response) {
             self.storedDeezyToken = response.data
-            self.showDeezyTokenForm = false 
+            self.showDeezyTokenForm = false
           })
           .catch(function (error) {
             console.log(error)
