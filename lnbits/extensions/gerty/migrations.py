@@ -1,5 +1,6 @@
 import time
 
+
 async def m001_initial(db):
     """
     Initial Gertys table.
@@ -60,12 +61,14 @@ async def m005_add_gerty_model_col(db):
     """
     await db.execute("ALTER TABLE gerty.gertys ADD COLUMN urls TEXT;")
 
+
 async def m006_add_gerty_model_col(db):
     """
     support for Gerty model col
     """
     await db.execute("ALTER TABLE gerty.mempool RENAME TO mempool_old;")
     await db.execute("ALTER TABLE gerty.mempool ADD COLUMN time FLOAT;")
+
 
 async def m006_add_gerty_model_col(db):
     """
