@@ -12,14 +12,13 @@ from . import db
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
 
-###############CHARGES##########################
 
-
-async def create_charge(user: str, data: CreateCharge) -> Charges:
+async def create_charge(user: str, data: CreateCharge) -> Optional[Charges]:
     data = CreateCharge(**data.dict())
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:
         config = await get_config(user)
+        assert config
         data.extra = json.dumps(
             {"mempool_endpoint": config.mempool_endpoint, "network": config.network}
         )
@@ -92,7 +91,7 @@ async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
     return Charges.from_row(row) if row else None
 
 
-async def get_charge(charge_id: str) -> Charges:
+async def get_charge(charge_id: str) -> Optional[Charges]:
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None
 
@@ -111,6 +110,7 @@ async def delete_charge(charge_id: str) -> None:
 
 async def check_address_balance(charge_id: str) -> Optional[Charges]:
     charge = await get_charge(charge_id)
+    assert charge
 
     if not charge.paid:
         if charge.onchainaddress:
@@ -131,7 +131,7 @@ async def check_address_balance(charge_id: str) -> Optional[Charges]:
 ################## SETTINGS ###################
 
 
-async def save_theme(data: SatsPayThemes, css_id: str = None):
+async def save_theme(data: SatsPayThemes, css_id: Optional[str]):
     # insert or update
     if css_id:
         await db.execute(
@@ -162,7 +162,7 @@ async def save_theme(data: SatsPayThemes, css_id: str = None):
     return await get_theme(css_id)
 
 
-async def get_theme(css_id: str) -> SatsPayThemes:
+async def get_theme(css_id: str) -> Optional[SatsPayThemes]:
     row = await db.fetchone("SELECT * FROM satspay.themes WHERE css_id = ?", (css_id,))
     return SatsPayThemes.from_row(row) if row else None
 
