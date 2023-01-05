@@ -27,7 +27,7 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment):
     # (avoid loops)
-    if payment.extra and payment.extra.get("tag") == "scrubed":
+    if payment.extra.get("tag") == "scrubed":
         # already scrubbed
         return
 
