@@ -6,7 +6,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
   v-if="fun_exchange_market_rate || fun_satoshi_quotes"
 >
   <q-card
-    v-if="fun_exchange_market_rate"
+    v-if="fun_exchange_market_rate[0]"
     unelevated
     class="q-pa-sm"
     style="background: none !important"
