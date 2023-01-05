@@ -122,7 +122,7 @@ async def m006_redux(db):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                row[0],
+                str(row[0]),
                 row[1],
                 row[2],
                 row[3],
