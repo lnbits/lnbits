@@ -349,6 +349,7 @@ async def pay_with_keysend(
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay with keysend
+        WALLET = get_wallet_class()
         payment: PaymentResponse = await WALLET.pay_with_keysend(
             public_key,
             pre_image,
