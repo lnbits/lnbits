@@ -1,5 +1,5 @@
 import secrets
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
@@ -124,7 +124,6 @@ async def get_card_by_otp(otp: str) -> Optional[Card]:
 
 async def delete_card(card_id: str) -> None:
     # Delete cards
-    card = await get_card(card_id)
     await db.execute("DELETE FROM boltcards.cards WHERE id = ?", (card_id,))
     # Delete hits
     hits = await get_hits([card_id])
@@ -146,7 +145,7 @@ async def update_card_counter(counter: int, id: str):
 
 
 async def enable_disable_card(enable: bool, id: str) -> Optional[Card]:
-    row = await db.execute(
+    await db.execute(
         "UPDATE boltcards.cards SET enable = ? WHERE id = ?",
         (enable, id),
     )
@@ -161,7 +160,7 @@ async def update_card_otp(otp: str, id: str):
 
 
 async def get_hit(hit_id: str) -> Optional[Hit]:
-    row = await db.fetchone(f"SELECT * FROM boltcards.hits WHERE id = ?", (hit_id))
+    row = await db.fetchone(f"SELECT * FROM boltcards.hits WHERE id = ?", (hit_id,))
     if not row:
         return None
 
@@ -182,7 +181,7 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
     return [Hit(**row) for row in rows]
 
 
-async def get_hits_today(card_id: str) -> Optional[Hit]:
+async def get_hits_today(card_id: str) -> List[Hit]:
     rows = await db.fetchall(
         f"SELECT * FROM boltcards.hits WHERE card_id = ?",
         (card_id,),
@@ -259,7 +258,7 @@ async def create_refund(hit_id, refund_amount) -> Refund:
 
 async def get_refund(refund_id: str) -> Optional[Refund]:
     row = await db.fetchone(
-        f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id)
+        f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id,)
     )
     if not row:
         return None
@@ -267,7 +266,7 @@ async def get_refund(refund_id: str) -> Optional[Refund]:
     return Refund.parse_obj(refund)
 
 
-async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
+async def get_refunds(hits_ids: List[Hit]) -> List[Refund]:
     if len(hits_ids) == 0:
         return []
 

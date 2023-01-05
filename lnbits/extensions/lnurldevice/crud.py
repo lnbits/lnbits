@@ -120,7 +120,11 @@ async def create_lnurldevicepayment(
     payhash: Optional[str] = None,
     sats: Optional[int] = 0,
 ) -> lnurldevicepayment:
-    lnurldevicepayment_id = urlsafe_short_hash()
+    device = await get_lnurldevice(deviceid)
+    if device.device == "atm":
+        lnurldevicepayment_id = shortuuid.uuid(name=payload)
+    else:
+        lnurldevicepayment_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnurldevice.lnurldevicepayment (
