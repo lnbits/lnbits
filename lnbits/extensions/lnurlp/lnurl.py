@@ -23,7 +23,7 @@ from .crud import increment_pay_link
     name="lnurlp.api_lnurl_response.deprecated",
 )
 @lnurlp_ext.get(
-    "/a/{link_id}",
+    "/{link_id}",
     status_code=HTTPStatus.OK,
     name="lnurlp.api_lnurl_response",
 )
