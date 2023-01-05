@@ -1,0 +1,175 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-mb-md">
+  <div class="col-12 q-gutter-y-md">
+    <q-toolbar class="row">
+      <div class="col">
+        <q-toolbar-title> Market: {{ market.name }} </q-toolbar-title>
+      </div>
+      <div class="col q-mx-md">
+        <q-input
+          class="float-left full-width q-ml-md"
+          standout
+          square
+          dense
+          outlined
+          clearable
+          v-model.trim="searchText"
+          label="Search for products"
+        >
+          <template v-slot:append>
+            <q-icon v-if="!searchText" name="search" />
+          </template>
+        </q-input>
+      </div>
+    </q-toolbar>
+  </div>
+</div>
+<div class="row q-col-gutter-md">
+  <div
+    class="col-xs-12 col-sm-6 col-md-4 col-lg-3"
+    v-for="item in filterProducts"
+    :key="item.id"
+  >
+    <q-card class="card--product">
+      {% raw %}
+      <q-img
+        :src="item.image ? item.image : '/market/static/images/placeholder.png'"
+        alt="Product Image"
+        loading="lazy"
+        spinner-color="white"
+        fit="contain"
+        height="300px"
+      ></q-img>
+
+      <q-card-section class="q-pb-xs q-pt-md">
+        <div class="row no-wrap items-center">
+          <div class="col text-subtitle2 ellipsis-2-lines">
+            {{ item.product }}
+          </div>
+        </div>
+
+        <!-- <q-rating v-model="stars" color="orange" :max="5" readonly size="17px"></q-rating> -->
+      </q-card-section>
+
+      <q-card-section class="q-py-sm">
+        <div>
+          <div class="text-caption text-weight-bolder">
+            {{ item.stallName }}
+          </div>
+          <span v-if="item.currency == 'sat'">
+            <span class="text-h6">{{ item.price }} sats</span
+            ><span class="q-ml-sm text-grey-6"
+              >BTC {{ (item.price / 1e8).toFixed(8) }}</span
+            >
+          </span>
+          <span v-else>
+            <span class="text-h6"
+              >{{ getAmountFormated(item.price, item.currency) }}</span
+            >
+            <span v-if="exchangeRates" class="q-ml-sm text-grey-6"
+              >({{ getValueInSats(item.price, item.currency) }} sats)</span
+            >
+          </span>
+          <span
+            class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
+            >{{item.quantity}} left</span
+          >
+        </div>
+        <div v-if="item.categories" class="text-subtitle1">
+          <q-chip v-for="(cat, i) in item.categories.split(',')" :key="i" dense
+            >{{cat}}</q-chip
+          >
+        </div>
+        <div
+          class="text-caption text-grey ellipsis-2-lines"
+          style="min-height: 40px"
+        >
+          <p v-if="item.description">{{ item.description }}</p>
+        </div>
+      </q-card-section>
+
+      <q-separator></q-separator>
+
+      <q-card-actions>
+        <span>Stall: {{ item.stallName }}</span>
+        <q-btn
+          flat
+          class="text-weight-bold text-capitalize q-ml-auto"
+          dense
+          color="primary"
+          type="a"
+          :href="'/market/stalls/' + item.stall"
+          target="_blank"
+        >
+          Visit Stall
+        </q-btn>
+      </q-card-actions>
+      {% endraw %}
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        stalls: null,
+        products: [],
+        searchText: null,
+        exchangeRates: null
+      }
+    },
+    computed: {
+      filterProducts() {
+        if (!this.searchText || this.searchText.length < 2) return this.products
+        return this.products.filter(p => {
+          return (
+            p.product.includes(this.searchText) ||
+            p.description.includes(this.searchText) ||
+            p.categories.includes(this.searchText)
+          )
+        })
+      }
+    },
+    methods: {
+      async getRates() {
+        let noFiat = this.stalls.map(s => s.currency).every(c => c == 'sat')
+        if (noFiat) return
+        try {
+          let rates = await axios.get('https://api.opennode.co/v1/rates')
+          this.exchangeRates = rates.data.data
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      getValueInSats(amount, unit = 'USD') {
+        if (!this.exchangeRates) return 0
+        return Math.ceil(
+          (amount / this.exchangeRates[`BTC${unit}`][unit]) * 1e8
+        )
+      },
+      getAmountFormated(amount, unit = 'USD') {
+        return LNbits.utils.formatCurrency(amount, unit)
+      }
+    },
+    async created() {
+      this.stalls = JSON.parse('{{ stalls | tojson }}')
+      let products = JSON.parse('{{ products | tojson }}')
+
+      this.products = products.map(obj => {
+        let stall = this.stalls.find(s => s.id == obj.stall)
+        obj.currency = stall.currency
+        if (obj.currency != 'sat') {
+          obj.price = parseFloat((obj.price / 100).toFixed(2))
+        }
+        obj.stallName = stall.name
+        return obj
+      })
+      await this.getRates()
+    }
+  })
+</script>
+{% endblock %}

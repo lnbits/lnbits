@@ -91,20 +91,9 @@ files = "lnbits"
 exclude = """(?x)(
     ^lnbits/extensions/bleskomat.
     | ^lnbits/extensions/boltz.
-    | ^lnbits/extensions/boltcards.
-    | ^lnbits/extensions/gerty.
-    | ^lnbits/extensions/invoices.
     | ^lnbits/extensions/livestream.
-    | ^lnbits/extensions/lnaddress.
-    | ^lnbits/extensions/lndhub.
     | ^lnbits/extensions/lnurldevice.
-    | ^lnbits/extensions/lnurlp.
-    | ^lnbits/extensions/offlineshop.
-    | ^lnbits/extensions/satspay.
-    | ^lnbits/extensions/streamalerts.
-    | ^lnbits/extensions/tpos.
     | ^lnbits/extensions/watchonly.
-    | ^lnbits/extensions/withdraw.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 

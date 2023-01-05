@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi.params import Depends, Query
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
@@ -84,6 +84,8 @@ async def api_authenticate_service(
     """
 
     service = await get_service(service_id)
+    assert service
+
     if service.state != state:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="State doesn't match!"
@@ -113,6 +115,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
     webhook_base = request.url.scheme + "://" + request.headers["Host"]
     service_id = data.service
     service = await get_service(service_id)
+    assert service
     charge_details = await get_charge_details(service.id)
     name = data.name if data.name else "Anonymous"
 
@@ -157,7 +160,8 @@ async def api_post_donation(request: Request, data: ValidateDonation):
 @streamalerts_ext.get("/api/v1/services")
 async def api_get_services(g: WalletTypeInfo = Depends(get_key_type)):
     """Return list of all services assigned to wallet with given invoice key"""
-    wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    user = await get_user(g.wallet.user)
+    wallet_ids = user.wallet_ids if user else []
     services = []
     for wallet_id in wallet_ids:
         new_services = await get_services(wallet_id)
@@ -170,7 +174,8 @@ async def api_get_donations(g: WalletTypeInfo = Depends(get_key_type)):
     """Return list of all donations assigned to wallet with given invoice
     key
     """
-    wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    user = await get_user(g.wallet.user)
+    wallet_ids = user.wallet_ids if user else []
     donations = []
     for wallet_id in wallet_ids:
         new_donations = await get_donations(wallet_id)

@@ -1,24 +1,12 @@
 import json
-import math
-import os
-import random
-import time
-from datetime import datetime
 from http import HTTPStatus
 
-import httpx
-from fastapi import Query
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-from lnurl import decode as decode_lnurl
+from fastapi import Depends, Query
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user, get_wallet_for_key
-from lnbits.core.services import create_invoice
-from lnbits.core.views.api import api_payment, api_wallet
+from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from . import gerty_ext
 from .crud import (
@@ -29,8 +17,14 @@ from .crud import (
     get_mempool_info,
     update_gerty,
 )
-from .helpers import *
-from .models import Gerty, MempoolEndpoint
+from .helpers import (
+    gerty_should_sleep,
+    get_next_update_time,
+    get_satoshi,
+    get_screen_data,
+    get_screen_slug_by_index,
+)
+from .models import Gerty
 
 
 @gerty_ext.get("/api/v1/gerty", status_code=HTTPStatus.OK)
@@ -39,7 +33,8 @@ async def api_gertys(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [gerty.dict() for gerty in await get_gertys(wallet_ids)]
 
@@ -51,7 +46,6 @@ async def api_link_create_or_update(
     wallet: WalletTypeInfo = Depends(get_key_type),
     gerty_id: str = Query(None),
 ):
-    logger.debug(data)
     if gerty_id:
         gerty = await get_gerty(gerty_id)
         if not gerty:
@@ -67,6 +61,9 @@ async def api_link_create_or_update(
 
         data.wallet = wallet.wallet.id
         gerty = await update_gerty(gerty_id, **data.dict())
+        assert gerty, HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Gerty does not exist"
+        )
     else:
         gerty = await create_gerty(wallet_id=wallet.wallet.id, data=data)
 
@@ -93,11 +90,11 @@ async def api_gerty_delete(
 
 @gerty_ext.get("/api/v1/gerty/satoshiquote", status_code=HTTPStatus.OK)
 async def api_gerty_satoshi():
-    return await get_satoshi
+    return await get_satoshi()
 
 
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
-async def api_gerty_json(gerty_id: str, p: int = None):  # page number
+async def api_gerty_json(gerty_id: str, p: int = 0):  # page number
     gerty = await get_gerty(gerty_id)
 
     if not gerty:
@@ -117,7 +114,7 @@ async def api_gerty_json(gerty_id: str, p: int = None):  # page number
             enabled_screen_count += 1
             enabled_screens.append(screen_slug)
 
-    logger.debug("Screeens " + str(enabled_screens))
+    logger.debug("Screens " + str(enabled_screens))
     data = await get_screen_data(p, enabled_screens, gerty)
 
     next_screen_number = 0 if ((p + 1) >= enabled_screen_count) else p + 1

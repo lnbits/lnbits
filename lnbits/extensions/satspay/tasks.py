@@ -22,10 +22,12 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+
     if payment.extra.get("tag") != "charge":
         # not a charge invoice
         return
 
+    assert payment.memo
     charge = await get_charge(payment.memo)
     if not charge:
         logger.error("this should never happen", payment)
@@ -33,6 +35,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     await payment.set_pending(False)
     charge = await check_address_balance(charge_id=charge.id)
+    assert charge
 
     if charge.must_call_webhook():
         resp = await call_webhook(charge)

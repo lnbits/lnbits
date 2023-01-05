@@ -28,6 +28,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra and not payment.extra.get("tag") == "cashu":
+    if payment.extra.get("tag") != "cashu":
         return
+
     return
