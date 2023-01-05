@@ -1,6 +1,6 @@
 {
   "name": "Deezy",
-  "short_description": "Swap lightning to on-chain, or receive on-chain to lightning addresses.",
-  "icon": "swap_horiz",
+  "short_description": "LN to onchain, onchain to LN swaps",
+	"tile": "/deezy/static/deezy.png",
   "contributors": ["Uthpala"]
 }
