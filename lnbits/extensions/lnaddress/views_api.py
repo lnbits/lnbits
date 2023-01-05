@@ -1,9 +1,7 @@
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from fastapi import Request
-from fastapi.params import Depends, Query
-from starlette.exceptions import HTTPException
+from fastapi import Depends, HTTPException, Query, Request
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
@@ -11,7 +9,7 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.lnaddress.models import CreateAddress, CreateDomain
 
 from . import lnaddress_ext
-from .cloudflare import cloudflare_create_record, cloudflare_deleterecord
+from .cloudflare import cloudflare_create_record
 from .crud import (
     check_address_available,
     create_address,
@@ -35,7 +33,8 @@ async def api_domains(
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [domain.dict() for domain in await get_domains(wallet_ids)]
 
@@ -69,7 +68,7 @@ async def api_domain_create(
 
         cf_response = await cloudflare_create_record(domain=domain, ip=root_url)
 
-        if not cf_response or cf_response["success"] != True:
+        if not cf_response or not cf_response["success"]:
             await delete_domain(domain.id)
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -106,7 +105,8 @@ async def api_addresses(
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [address.dict() for address in await get_addresses(wallet_ids)]
 
@@ -227,7 +227,9 @@ async def api_lnaddress_make_address(
 @lnaddress_ext.get("/api/v1/addresses/{payment_hash}")
 async def api_address_send_address(payment_hash):
     address = await get_address(payment_hash)
+    assert address
     domain = await get_domain(address.domain)
+    assert domain
     try:
         status = await check_transaction_status(domain.wallet, payment_hash)
         is_paid = not status.pending

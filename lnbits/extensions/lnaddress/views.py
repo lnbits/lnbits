@@ -1,10 +1,8 @@
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import get_wallet
@@ -35,6 +33,7 @@ async def display(domain_id, request: Request):
     await purge_addresses(domain_id)
 
     wallet = await get_wallet(domain.wallet)
+    assert wallet
     url = urlparse(str(request.url))
 
     return lnaddress_renderer().TemplateResponse(
