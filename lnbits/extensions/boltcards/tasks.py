@@ -35,8 +35,6 @@ async def on_invoice_paid(payment: Payment) -> None:
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
-    if not payment.extra:
-        return
 
     payment.extra["wh_status"] = status
 
