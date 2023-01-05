@@ -93,7 +93,6 @@ exclude = """(?x)(
     | ^lnbits/extensions/boltz.
     | ^lnbits/extensions/livestream.
     | ^lnbits/extensions/lnurldevice.
-    | ^lnbits/extensions/watchonly.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 
