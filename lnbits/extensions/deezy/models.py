@@ -1,5 +1,6 @@
-# from pydantic import BaseModel
+from pydantic.main import BaseModel
+from sqlalchemy.engine import base  # type: ignore
 
-# class Example(BaseModel):
-#    id: str
-#    wallet: str
+
+class Token(BaseModel):
+    deezy_token: str

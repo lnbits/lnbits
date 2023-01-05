@@ -5,6 +5,30 @@
     <q-card>
       <q-card-section>
         <h5 class="text-subtitle1 q-mt-none q-mb-md">Deezy</h5>
+        <p class="text-subtitle2 q-mt-none q-mb-md">Due to regulatory reasons you need to get a access token from deezy. Contact - support@deezy.io or @dannydeezy on telegram </p>
+        <div>
+          <div class="flex justify-between items-center">
+            <span>Deezy token </span>
+            <q-btn type="button" @click="showDeezyTokenForm = !showDeezyTokenForm">Add or Update token</q-btn>
+          </div>
+          <p v-if="storedDeezyToken" v-text="storedDeezyToken"></p>
+        </div>
+        <q-form v-if="showDeezyTokenForm" @submit="storeDeezyToken" class="q-gutter-md q-mt-lg">
+          <q-input
+            filled
+            dense
+            emit-value
+            :placeholder="storedDeezyToken"
+            v-model.trim="deezyToken"
+            label="Deezy Token"
+            type="text"
+          ></q-input>
+          <q-btn
+            color="grey"
+            type="submit"
+            label="Store Deezy Token"
+          ></q-btn>
+        </q-form>
         <q-separator class="q-my-lg"></q-separator>
         <q-card>
           <q-card-section>
@@ -189,6 +213,14 @@
       </q-card-section>
     </q-card>
   </div>
+  <div class="q-pa-md">
+    <q-table
+      title="Swaps Lightning -> BTC"
+      :data="rowsLnToBtc"
+      :columns="columnsLnToBtc"
+      row-key="name"
+    />
+  </div>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -198,6 +230,43 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        columnsLnToBtc: [
+          {
+            name: 'Amount Sats',
+            required: true,
+            label: 'Amount Sats',
+            align: 'left',
+            field: row => row.amount_sats,
+            format: val => `${val}`,
+            sortable: true
+          },
+          { name: 'on_chain_address', align: 'center', label: 'On chain address', field: 'on_chain_address' },
+          { name: 'on_chain_sats_per_vbyte', align: 'center', label: 'Onchin sats per vbyte', field: 'on_chain_sats_per_vbyte', sortable: true },
+          { name: 'txid', label: 'Tx id)', field: 'txid' },
+          { name: 'fee_sats', label: 'Fee sats', field: 'fee_sats' },
+          { name: 'created_at', label: 'Created at', field: 'created_at', sortable: true, sort: true }
+        ],
+        rowsLnToBtc: [
+          {
+            amount_sats: 1231232,
+            on_chain_address: 'btc address goes here',
+            on_chain_sats_per_vbyte: 6,
+            txid: 'transaction id',
+            fee_sats: 123,
+            created_at: '2002-02-01'
+          },
+          {
+            amount_sats: 1231232,
+            on_chain_address: 'btc address goes here',
+            on_chain_sats_per_vbyte: 6,
+            txid: 'transaction id',
+            fee_sats: 123,
+            created_at: '2002-02-01'
+          },
+        ],
+        showDeezyTokenForm: false,
+        storedDeezyToken: null,
+        deezyToken: null,
         lightning_btc: '',
         tools: [],
         swapLnToBtc: {
@@ -219,9 +288,23 @@
         }
       }
     },
+    created: function () {
+      var self = this
+      axios({
+        method: 'GET',
+        url: '/deezy/api/v1/token',
+      }).then(function (response) {
+        self.storedDeezyToken = response.data.deezy_token
+        if (!self.storeDeezyToken) {
+          showDeezyTokenForm = true
+        }
+      })
+    },
     methods: {
       showLnToBtcForm() {
-        this.getSuggestedOnChainFees()
+        if (!this.swapLnToBtc.show) {
+          this.getSuggestedOnChainFees()
+        }
         this.swapLnToBtc.show = true
         this.swapBtcToLn.show = false
       },
@@ -265,6 +348,10 @@
             on_chain_sats_per_vbyte: parseInt(
               self.swapLnToBtc.data.on_chain_sats_per_vbyte
             )
+          }, {
+            headers: {
+              "x-api-token": self.storedDeezyToken,
+            }
           })
           .then(function (response) {
             self.swapLnToBtc = {
@@ -272,6 +359,16 @@
               showInvoice: true,
               response: response.data.bolt11_invoice
             }
+            const payload = {
+              amount_sats: self.swapLnToBtc.data.amount_sats, 
+              on_chain_address: self.swapLnToBtc.data.on_chain_address, 
+              on_chain_sats_per_vbyte:  self.swapLnToBtc.data.on_chain_sats_per_vbyte,
+              bolt11_invoice: response.data.bolt11_invoice,
+              fee_sats: response.data.fee_sats, 
+              txid: response.data.txid, 
+              tx_hex: response.data.tx_hex 
+            }
+            self.storeLnToBtc(payload)
             self.checkIfInvoiceIsPaid()
           })
           .catch(function (error) {
@@ -283,6 +380,10 @@
         axios
           .post('https://api.deezy.io/v1/source', {
             lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress
+          }, {
+            headers: {
+              "x-api-token": self.storedDeezyToken,
+            }
           })
           .then(function (response) {
             self.swapBtcToLn = {
@@ -290,6 +391,54 @@
               response: response.data,
               showDetails: true
             }
+            const payload = {
+              ln_address: selt.swapBtcToLn.data.lnurl_or_lnaddress,
+              on_chain_address: response.data.address,
+              secret_access_key: response.data.secret_access_key,
+              commitment:response.data.commitment,
+              signature: response.data.signature
+            }
+            self.storeBtcToLn(payload)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeBtcToLn(payload) {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-btc-to-ln', {
+            data: payload
+          })
+          .then(function (response) {
+            console.log('btc to ln is stored', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeLnToBtc(payload) {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-ln-to-btc', {
+            data: payload
+          })
+          .then(function (response) {
+            console.log('ln to btc is stored', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeDeezyToken() {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-token', {
+            deezy_token: self.deezyToken
+          })
+          .then(function (response) {
+            self.storedDeezyToken = response.data
+            self.showDeezyTokenForm = false 
           })
           .catch(function (error) {
             console.log(error)
