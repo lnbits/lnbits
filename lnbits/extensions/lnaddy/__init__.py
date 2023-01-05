@@ -9,15 +9,16 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_lnaddy")
 
+lnaddy_ext: APIRouter = APIRouter(prefix="/lnaddy", tags=["lnaddy"])
+
 lnaddy_static_files = [
     {
         "path": "/lnaddy/static",
-        "app": StaticFiles(packages=[("lnbits", "extensions/lnaddy/static")]),
+        "app": StaticFiles(directory="lnbits/extensions/lnaddy/static"),
         "name": "lnaddy_static",
     }
 ]
 
-lnaddy_ext: APIRouter = APIRouter(prefix="/lnaddy", tags=["lnaddy"])
 
 
 def lnurlp_renderer():

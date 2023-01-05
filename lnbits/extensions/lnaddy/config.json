@@ -1,8 +1,6 @@
 {
   "name": "LNAddress Simple",
   "short_description": "Simple Lightning Address per Wallet with LNURL pay links",
-  "icon": "receipt",
-  "contributors": [
-    "bitkarrot"
-  ]
+  "tile": "/lnaddress/static/image/lnaddress.png",
+  "contributors": ["bitkarrot"]
 }
