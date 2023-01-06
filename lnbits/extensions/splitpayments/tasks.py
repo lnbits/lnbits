@@ -43,8 +43,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     amount_to_split = payment.amount
 
     if payment.extra.get("amount"):
-        _amount = payment.extra.get("amount") or 0
-        amount_to_split = _amount * 1000
+        amount_to_split = (payment.extra.get("amount") or 0) * 1000
 
     for target in targets:
         if target.percent > 0:
