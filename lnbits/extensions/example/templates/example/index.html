@@ -79,195 +79,184 @@
           <div class="text-h6">Frameworks</div>
 
           <div>
-            
-              <template >
-                <q-tabs align="left" v-model="framworktab" inline-label>
-                  <q-tab name="fastapi"
-                    ><img src="./static/fastapi-framework.png" />FASTAPI</q-tab
-                  >
-                  <q-tab name="quasar"
-                    ><img src="./static/quasar-framework.png" />QUASAR</q-tab
-                  >
-                  <q-tab name="vuejs"
-                    ><img src="./static/vuejs-framework.png" />VUE-JS</q-tab
-                  >
-                </q-tabs>
-              </template>
+            <template>
+              <q-tabs align="left" v-model="framworktab" inline-label>
+                <q-tab name="fastapi"
+                  ><img src="./static/fastapi-framework.png" />FASTAPI</q-tab
+                >
+                <q-tab name="quasar"
+                  ><img src="./static/quasar-framework.png" />QUASAR</q-tab
+                >
+                <q-tab name="vuejs"
+                  ><img src="./static/vuejs-framework.png" />VUE-JS</q-tab
+                >
+              </q-tabs>
+            </template>
 
-              <template>
-                <q-tab-panels v-model="framworktab">
-                  <q-tab-panel name="fastapi" class="text-body1">
-                    <a href="https://fastapi.tiangolo.com/"
-                      ><img src="./static/fastapilogo.png"
-                    /></a>
-                    <p>
-                      LNbits API is built using
-                      <a
-                        href="https://fastapi.tiangolo.com/"
-                        class="text-primary"
-                        >FastAPI</a
-                      >, a high-performance, easy to code API framework.<br /><br />
-                      FastAPI auto-generates swagger UI docs for testing
-                      endpoints <a class="text-primary" href="../docs">/docs</a>
-                    </p>
+            <template>
+              <q-tab-panels v-model="framworktab">
+                <q-tab-panel name="fastapi" class="text-body1">
+                  <a href="https://fastapi.tiangolo.com/"
+                    ><img src="./static/fastapilogo.png"
+                  /></a>
+                  <p>
+                    LNbits API is built using
+                    <a href="https://fastapi.tiangolo.com/" class="text-primary"
+                      >FastAPI</a
+                    >, a high-performance, easy to code API framework.<br /><br />
+                    FastAPI auto-generates swagger UI docs for testing endpoints
+                    <a class="text-primary" href="../docs">/docs</a>
+                  </p>
 
-                    <i>
-                      <strong>TIP:</strong> Although it is possible for
-                      extensions to use other extensions API endpoints (such as
-                      with the Satspay and Onchain extension), ideally an
-                      extension should only use LNbits
-                      <a href="../docs#/default" class="text-primary">core</a>
-                      endpoints. </i
-                    ><br /><br />
+                  <i>
+                    <strong>TIP:</strong> Although it is possible for extensions
+                    to use other extensions API endpoints (such as with the
+                    Satspay and Onchain extension), ideally an extension should
+                    only use LNbits
+                    <a href="../docs#/default" class="text-primary">core</a>
+                    endpoints. </i
+                  ><br /><br />
 
-                    <code class="bg-grey-3 text-black">views.py</code> is used
-                    for setting application routes:
-                    <img src="./static/fastapi-example.png" /><br /><br />
-                    <code class="bg-grey-3 text-black">views_api.py</code> is
-                    used for setting application API endpoints:<br />
-                    <img src="./static/fastapi-example2.png" />
-                  </q-tab-panel>
+                  <code class="bg-grey-3 text-black">views.py</code> is used for
+                  setting application routes:
+                  <img src="./static/fastapi-example.png" /><br /><br />
+                  <code class="bg-grey-3 text-black">views_api.py</code> is used
+                  for setting application API endpoints:<br />
+                  <img src="./static/fastapi-example2.png" />
+                </q-tab-panel>
 
-                  <q-tab-panel name="quasar" class="text-body1">
-                    <a href="https://quasar.dev/"
-                      ><img src="./static/quasarlogo.png"
-                    /></a>
-                    <p>
-                      LNbits uses
-                      <a class="text-primary" href="https://quasar.dev/"
-                        >Quasar Framework</a
-                      >
-                      for frontend deisgn elements. Quasar Framework is an
-                      open-source Vue.js based framework for building apps.
-                    </p>
-
-                    <i>
-                      <strong>TIP:</strong> Look through
-                      <code class="bg-grey-3 text-black">/template</code> files
-                      in other extensions for examples of Quasar elements being
-                      used. </i
-                    ><br /><br />
-
-                    <p>
-                      In the below example we make a dialogue popup box (box can
-                      be triggered
-                      <q-btn
-                        size="sm"
-                        color="primary"
-                        @click="thingDialog.show = true"
-                        >here</q-btn
-                      >): <q-tooltip>Exmple of a tooltip!</q-tooltip>
-                    </p>
-                    <img src="./static/quasar-example.png" /><br /><br />
-                    <div class="text-h6">Useful links:</div>
-                    <q-btn
-                      color="primary"
-                      type="a"
-                      href="https://quasar.dev/style/"
-                      >Style (typography, spacing, etc)</q-btn
+                <q-tab-panel name="quasar" class="text-body1">
+                  <a href="https://quasar.dev/"
+                    ><img src="./static/quasarlogo.png"
+                  /></a>
+                  <p>
+                    LNbits uses
+                    <a class="text-primary" href="https://quasar.dev/"
+                      >Quasar Framework</a
                     >
-                    <q-btn
-                      color="primary"
-                      type="a"
-                      href="https://quasar.dev/vue-components/"
-                      >Genral components (cards, buttons, popup dialogs,
-                      etc)</q-btn
-                    >
-                    <q-btn
-                      color="primary"
-                      type="a"
-                      href="https://quasar.dev/layout/grid"
-                      >Layouts (rows/columns, flexbox)</q-btn
-                    >
-                  </q-tab-panel>
+                    for frontend deisgn elements. Quasar Framework is an
+                    open-source Vue.js based framework for building apps.
+                  </p>
 
-                  <q-tab-panel
-                    v-if="someBool == true"
-                    name="vuejs"
-                    class="text-body1"
+                  <i>
+                    <strong>TIP:</strong> Look through
+                    <code class="bg-grey-3 text-black">/template</code> files in
+                    other extensions for examples of Quasar elements being used. </i
+                  ><br /><br />
+
+                  <p>
+                    In the below example we make a dialogue popup box (box can
+                    be triggered
+                    <q-btn
+                      size="sm"
+                      color="primary"
+                      @click="thingDialog.show = true"
+                      >here</q-btn
+                    >): <q-tooltip>Exmple of a tooltip!</q-tooltip>
+                  </p>
+                  <img src="./static/quasar-example.png" /><br /><br />
+                  <div class="text-h6">Useful links:</div>
+                  <q-btn
+                    color="primary"
+                    type="a"
+                    href="https://quasar.dev/style/"
+                    >Style (typography, spacing, etc)</q-btn
                   >
-                    <a href="https://vuejs.org/">
-                      <img src="./static/vuejslogo.png"
-                    /></a>
-                    <p>
-                      LNbits uses
-                      <a href="https://vuejs.org/" class="text-primary">Vue</a>
-                      components for best-in-class high-performance and
-                      responsive performance.
-                    </p>
+                  <q-btn
+                    color="primary"
+                    type="a"
+                    href="https://quasar.dev/vue-components/"
+                    >Genral components (cards, buttons, popup dialogs,
+                    etc)</q-btn
+                  >
+                  <q-btn
+                    color="primary"
+                    type="a"
+                    href="https://quasar.dev/layout/grid"
+                    >Layouts (rows/columns, flexbox)</q-btn
+                  >
+                </q-tab-panel>
 
-                    <p>
-                      Typical example of Vue components in a frontend script:
-                    </p>
-                    <img
-                      src="./static/script-example.png"
-                      style="max-width: 800px"
-                    /><br /><br />
+                <q-tab-panel
+                  v-if="someBool == true"
+                  name="vuejs"
+                  class="text-body1"
+                >
+                  <a href="https://vuejs.org/">
+                    <img src="./static/vuejslogo.png"
+                  /></a>
+                  <p>
+                    LNbits uses
+                    <a href="https://vuejs.org/" class="text-primary">Vue</a>
+                    components for best-in-class high-performance and responsive
+                    performance.
+                  </p>
 
-                    <p>
-                      In a page body, models can be called. <br />Content can be
-                      conditionally rendered using Vue's
-                      <code class="bg-grey-3 text-black">v-if</code>:
-                    </p>
-                    <img
-                      src="./static/vif-example.png"
-                      style="max-width: 800px"
-                    />
-                  </q-tab-panel>
-                </q-tab-panels>
-              </template>
-            
+                  <p>Typical example of Vue components in a frontend script:</p>
+                  <img
+                    src="./static/script-example.png"
+                    style="max-width: 800px"
+                  /><br /><br />
+
+                  <p>
+                    In a page body, models can be called. <br />Content can be
+                    conditionally rendered using Vue's
+                    <code class="bg-grey-3 text-black">v-if</code>:
+                  </p>
+                  <img
+                    src="./static/vif-example.png"
+                    style="max-width: 800px"
+                  />
+                </q-tab-panel>
+              </q-tab-panels>
+            </template>
           </div>
         </q-tab-panel>
 
         <q-tab-panel name="tools">
           <div class="text-h6">Useful Tools</div>
           <div>
-           
-              <template>
-                <q-tabs v-model="usefultab" align="left">
-                  <q-tab name="magicalg">MAGICAL G</q-tab>
-                  <q-tab name="exchange">EXCHANGE RATES</q-tab>
-                </q-tabs>
-              </template>
+            <template>
+              <q-tabs v-model="usefultab" align="left">
+                <q-tab name="magicalg">MAGICAL G</q-tab>
+                <q-tab name="exchange">EXCHANGE RATES</q-tab>
+              </q-tabs>
+            </template>
 
-              <template>
-                <q-tab-panels v-model="usefultab">
-                  <q-tab-panel name="magicalg" class="text-body1">
-                    <div class="text-h5 q-mb-md">Magical G</div>
-                    <p>
-                      A magical "g" (ie
-                      <code class="bg-grey-3 text-black"
-                        >this.g.user.wallets[0].inkey</code
-                      >) is always available, with info about the user, wallets
-                      and extensions:
-                    </p>
-                    <code class="text-caption"
-                      >{% raw %}{{ g }}{% endraw %}</code
-                    >
-                  </q-tab-panel>
-                  <q-tab-panel name="exchange">
-                    <div class="text-h6">Exchange rates</div>
-                    <p>
-                      LNbits includes a handy
-                      <a
-                        href="../docs#/default/api_fiat_as_sats_api_v1_conversion_post"
-                        class="text-primary"
-                        >exchange rate function</a
-                      >, that streams rates from 6 different sources.
-                    </p>
-                    Exchange rate API:<br />
-                    <img src="./static/conversion-example.png" /><br /><br />
-                    Exchange rate functions, included using
+            <template>
+              <q-tab-panels v-model="usefultab">
+                <q-tab-panel name="magicalg" class="text-body1">
+                  <div class="text-h5 q-mb-md">Magical G</div>
+                  <p>
+                    A magical "g" (ie
                     <code class="bg-grey-3 text-black"
-                      >from lnbits.utils.exchange_rates import
-                      fiat_amount_as_satoshis</code
-                    >:<br />
-                    <img src="./static/conversion-example2.png" />
-                  </q-tab-panel>
-                </q-tab-panels>
-              </template>
-           
+                      >this.g.user.wallets[0].inkey</code
+                    >) is always available, with info about the user, wallets
+                    and extensions:
+                  </p>
+                  <code class="text-caption">{% raw %}{{ g }}{% endraw %}</code>
+                </q-tab-panel>
+                <q-tab-panel name="exchange">
+                  <div class="text-h6">Exchange rates</div>
+                  <p>
+                    LNbits includes a handy
+                    <a
+                      href="../docs#/default/api_fiat_as_sats_api_v1_conversion_post"
+                      class="text-primary"
+                      >exchange rate function</a
+                    >, that streams rates from 6 different sources.
+                  </p>
+                  Exchange rate API:<br />
+                  <img src="./static/conversion-example.png" /><br /><br />
+                  Exchange rate functions, included using
+                  <code class="bg-grey-3 text-black"
+                    >from lnbits.utils.exchange_rates import
+                    fiat_amount_as_satoshis</code
+                  >:<br />
+                  <img src="./static/conversion-example2.png" />
+                </q-tab-panel>
+              </q-tab-panels>
+            </template>
           </div>
         </q-tab-panel>
 
