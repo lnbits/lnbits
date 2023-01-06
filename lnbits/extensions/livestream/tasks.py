@@ -42,11 +42,11 @@ async def on_invoice_paid(payment: Payment) -> None:
     ls = await get_livestream_by_track(track.id)
     assert ls, f"track {track.id} is not associated with a livestream"
 
-    amount = int(payment.amount * (100 - ls.fee_pct) / 100)  # msats
+    amount = int(payment.amount * (100 - ls.fee_pct) / 100)
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=producer.wallet,
-        amount=int(amount / 1000),  # sats
+        amount=int(amount / 1000),
         internal=True,
         memo=f"Revenue from '{track.name}'.",
     )

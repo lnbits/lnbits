@@ -53,7 +53,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=wallet_id,
-        amount=int(tipAmount),  # sats
+        amount=int(tipAmount),
         internal=True,
         memo=f"tpos tip",
     )
