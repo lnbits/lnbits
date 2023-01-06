@@ -20,6 +20,9 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+    if not payment.extra:
+        return
+
     if payment.extra.get("tag") != "tpos":
         return
 
@@ -50,7 +53,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=wallet_id,
-        amount=int(tipAmount),  # sats
+        amount=int(tipAmount),
         internal=True,
         memo=f"tpos tip",
     )
@@ -59,6 +62,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     checking_id = await pay_invoice(
         payment_request=payment_request,
         wallet_id=payment.wallet_id,
-        extra={"tag": "tpos"},
+        extra={**payment.extra, "tipSplitted": True},
     )
     logger.debug(f"tpos: tip invoice paid: {checking_id}")
