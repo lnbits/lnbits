@@ -31,8 +31,8 @@ async def lnurl_response(username: str, domain: str, request: Request):
         "tag": "payRequest",
         "callback": request.url_for("lnaddy.api_lnurl_callback", link_id=address_data.id),
         "metadata": await address_data.lnurlpay_metadata(domain=domain),
-        "minSendable": address_data.min,
-        "maxSendable": address_data.max,
+        "minSendable": int(address_data.min*address_data.fiat_base_multiplier),
+        "maxSendable": int(address_data.max*address_data.fiat_base_multiplier),
     }
 
     logger.debug("RESP", resp)
@@ -91,7 +91,7 @@ async def api_lnurl_callback(request: Request, link_id):
         max = link.max * 1000
 
     # remove the *1000 after i find error on invalid int literal
-    amount_received = int(request.query_params.get("amount") or 0)*1000
+    amount_received = int(request.query_params.get("amount") or 0)
     if amount_received < min:
         return LnurlErrorResponse(
             reason=f"Amount {amount_received} is smaller than minimum {min}."
