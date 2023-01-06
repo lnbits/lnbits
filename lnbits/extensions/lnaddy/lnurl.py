@@ -1,6 +1,7 @@
 import hashlib
 import math
 from http import HTTPStatus
+import json
 
 from fastapi import Request
 from lnurl import (  # type: ignore
@@ -23,6 +24,7 @@ from .crud import increment_pay_link, get_address_data
 # for .well-known/lnurlp
 async def lnurl_response(username: str, domain: str, request: Request):
     address_data = await get_address_data(username)
+    # print("well-known lnurlp")
 
     if not address_data:
         return {"status": "ERROR", "reason": "Address not found."}
@@ -55,11 +57,13 @@ async def api_lnurl_response(request: Request, link_id):
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
 
     try:
+        metadata = [["text/plain", link.description]]
+
         resp = LnurlPayResponse(
             callback=request.url_for("lnaddy.api_lnurl_callback", link_id=link.id),
             min_sendable=round(link.min * rate) * 1000,
             max_sendable=round(link.max * rate) * 1000,
-            metadata=link.lnurlpay_metadata,
+            metadata=json.dumps(metadata),
         )
         params = resp.dict()
 
