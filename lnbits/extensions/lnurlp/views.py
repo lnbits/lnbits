@@ -21,7 +21,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@lnurlp_ext.get("/{link_id}", response_class=HTMLResponse)
+@lnurlp_ext.get("/link/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id):
     link = await get_pay_link(link_id)
     if not link:

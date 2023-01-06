@@ -17,7 +17,7 @@ var mapPayLink = obj => {
   )
   obj.amount = new Intl.NumberFormat(LOCALE).format(obj.amount)
   obj.print_url = [locationPath, 'print/', obj.id].join('')
-  obj.pay_url = [locationPath, obj.id].join('')
+  obj.pay_url = [locationPath, 'link/', obj.id].join('')
   return obj
 }
 
