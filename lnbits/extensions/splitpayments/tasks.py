@@ -44,8 +44,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         amount_to_split = (payment.extra.get("amount") or 0) * 1000
 
     for target in targets:
-        if target.percent > 0:
-            tagged = target.tag in payment.extra
+        tagged = target.tag in payment.extra
+        if tagged or target.percent > 0:
 
             amount = int(amount_to_split * target.percent / 100)
             memo = (
@@ -64,7 +64,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
             logger.debug(f"created split invoice: {payment_hash}")
 
-            extra = {**payment.extra, "splitted": True}
+            extra = {**payment.extra, "tag": "splitpayments", "splitted": True}
 
             checking_id = await pay_invoice(
                 payment_request=payment_request,
