@@ -1,7 +1,6 @@
 import hashlib
 import math
 from http import HTTPStatus
-import json
 
 from fastapi import Request
 from lnurl import (  # type: ignore
@@ -56,14 +55,11 @@ async def api_lnurl_response(request: Request, link_id):
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
 
     try:
-        # NOTE: unclear why link.lnurlpay_metadata does not output same as lnurlp ext here.
-        metadata = [["text/plain", str(link.description)]]
-
         resp = LnurlPayResponse(
             callback=request.url_for("lnaddy.api_lnurl_callback", link_id=link.id),
             min_sendable=round(link.min * rate) * 1000,
             max_sendable=round(link.max * rate) * 1000,
-            metadata=json.dumps(metadata)
+            metadata=link.lnurlpay_metadata,
         )
         params = resp.dict()
 

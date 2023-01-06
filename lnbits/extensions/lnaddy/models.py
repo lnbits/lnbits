@@ -75,10 +75,3 @@ class PayLink(BaseModel):
             return {"tag": "message", "message": self.success_text}
         else:
             return None
-
-    async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
-        text = f"Payment to {self.lnaddress}"
-        identifier = f"{self.lnaddress}@{domain}"
-        metadata = [["text/plain", text], ["text/identifier", identifier]]
-
-        return LnurlPayMetadata(json.dumps(metadata))
