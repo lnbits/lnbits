@@ -56,8 +56,22 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
+                <q-btn
+                unelevated
+                dense
+                size="xs"
+                icon="checkmark"
+                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                type="a"
+                :href="'https://sendsats.to/' + props.row.lnaddress +'@' + domain" 
+                target="_blank"
+                >
+              </q-btn>
+              <q-tooltip>Check LN Address works via external call</q-tooltip>
               </q-td>
-              <q-td auto-width>{{ props.row.lnaddress }}@{{domain}} </q-td>
+              <q-td auto-width>
+                  {{props.row.lnaddress}}@{{domain}} 
+              </q-td>
               <q-td auto-width>
                 <span v-if="props.row.min == props.row.max">
                   {{ props.row.min }}

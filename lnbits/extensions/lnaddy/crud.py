@@ -9,7 +9,7 @@ import re
 
 
 async def check_lnaddress_update(lnaddress: str, id: str) -> bool: 
-    # check no duplicates for lnaddress
+    # check no duplicates for lnaddress when updating an lnaddress name
     row = await db.fetchall("SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ? AND id = ?", (lnaddress,id))
     logger.info("number of rows from lnaddress search")
     logger.info(len(row))
@@ -19,7 +19,9 @@ async def check_lnaddress_update(lnaddress: str, id: str) -> bool:
     else: 
         return True
 
+
 async def check_lnaddress_exists(lnaddress: str) -> bool:
+    # check if lnaddress name exists in the database when creating a new entry
     row = await db.fetchall("SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress))
     logger.info("number of rows from lnaddress search")
     if row: 
