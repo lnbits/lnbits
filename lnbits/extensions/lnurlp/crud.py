@@ -1,19 +1,18 @@
 from typing import List, Optional, Union
 
-from lnbits.db import SQLITE
+from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import CreatePayLinkData, PayLink
 
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
+    link_id = urlsafe_short_hash()[:6]
 
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
-
-    result = await (method)(
+    result = await db.execute(
         f"""
         INSERT INTO lnurlp.pay_links (
+            id,
             wallet,
             description,
             min,
@@ -29,10 +28,10 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             currency,
             fiat_base_multiplier
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)
-        {returning}
+        VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
+            link_id,
             wallet_id,
             data.description,
             data.min,
@@ -47,17 +46,13 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.fiat_base_multiplier,
         ),
     )
-    if db.type == SQLITE:
-        link_id = result._result_proxy.lastrowid
-    else:
-        link_id = result[0]
 
     link = await get_pay_link(link_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
 
-async def get_pay_link(link_id: int) -> Optional[PayLink]:
+async def get_pay_link(link_id: str) -> Optional[PayLink]:
     row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
