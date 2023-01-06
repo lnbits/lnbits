@@ -49,7 +49,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         return
 
     for target in targets:
-        tagged = target.tag in payment.extra.values()
+        tagged = target.tag in payment.extra
 
         if tagged or target.percent > 0:
 
@@ -67,7 +67,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                 memo=memo,
             )
 
-            extra = {**payment.extra, "splitted": True}
+            extra = {**payment.extra, "tag": "splitpayments", "splitted": True}
 
             await pay_invoice(
                 payment_request=payment_request,
