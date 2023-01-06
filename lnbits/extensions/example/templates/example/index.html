@@ -19,7 +19,7 @@
 <q-card flat>
   <q-card-section>
     <div class="text-h5 q-mb-md">
-      {{SITE_TITLE}} Extension Development Guide
+      {{SITE_TITLE}} Extension Development Guide <small>(Collection of resources for extension developers)</small>
     </div>
 
     <q-card unelevated flat>
@@ -36,6 +36,7 @@
         <q-tab name="tools" label="Useful Tools" ></q-tab>
         <q-tab name="structure" label="File Structure" ></q-tab>
         <q-tab name="enviroment" label="Dev Enviroment" ></q-tab>
+        <q-tab name="submission" label="Submisson to LNbits repo" ></q-tab>
       </q-tabs>
 
       <q-separator></q-separator>
@@ -68,15 +69,17 @@
                 <img src="./static/fastapilogo.png">
                   <p>LNbits API is built using FastAPI, a high-performance, easy to code API framework.<br/><br/>
                   FastAPI auto-generates swagger UI docs for testing endpoints <a class="text-primary" href="../docs">/docs</a></p>
-                  <code class="bg-grey-3 text-black">views.py</code>
+                  <code class="bg-grey-3 text-black">views.py</code> is used for setting application routes:
                   <img src="./static/fastapi-example.png">
+                  <code class="bg-grey-3 text-black">views_api.py</code> is used for setting application API endpoints:
+                  <img src="./static/fastapi-example2.png">
                 </q-tab-panel>
                 
                   <q-tab-panel name="quasar" class="text-body1">
                     <img src="./static/quasarlogo.png">
                     <p>LNbits uses Quasar for frontend deisgn elements. Quasar Framework is an open-source Vue.js based framework for building apps.</p>
 
-                    <p class="text-weight-bold">TIP: Look through <code>/template</code> files in other extensions for examples.</p>
+                    <p class="text-weight-bold">TIP: Look through <code class="bg-grey-3 text-black">/template</code> files in other extensions for examples.</p>
 
                     <p>In the below example we make a dialogue popup box (box can be triggered <q-btn size="sm" color="primary" @click="thingDialog.show = true">here</q-btn>):
                     <q-tooltip>Exmple of a tooltip!</q-tooltip></p>
@@ -91,7 +94,7 @@
                   <q-tab-panel v-if="someBool == true" name="vuejs" class="text-body1">
                     <img src="./static/vuejslogo.png">
                     <p>Quasar is built on Vue-JS, so LNbits uses Vue-JS for rendering page elements, organising JS functions and declaring modles and elements.</p>
-                    <p><code>v-if</code> can be used to render elements:</p>
+                    <p><code class="bg-grey-3 text-black">v-if</code> can be used to render elements:</p>
                     <img src="./static/vif-example.png" style="max-width:800px">
                     <p>Typical example of a frontend page JS:</p>
                     <img src="./static/script-example.png" style="max-width:800px">
@@ -111,6 +114,11 @@
 
         <q-tab-panel name="enviroment">
           <div class="text-h6">Dev Enviroment</div>
+          Coming soon...
+        </q-tab-panel>
+
+        <q-tab-panel name="submission">
+          <div class="text-h6">Submission</div>
           Coming soon...
         </q-tab-panel>
 
@@ -138,10 +146,14 @@
                   <q-tab-panel name="magicalg" class="text-body1">
                     <div class="text-h5 q-mb-md">Magical G</div>
                     <p>
-                      A magical "g" (ie <code>this.g.user.wallets[0].inkey</code>) is always available, with info about the user, wallets and
+                      A magical "g" (ie <code class="bg-grey-3 text-black">this.g.user.wallets[0].inkey</code>) is always available, with info about the user, wallets and
                       extensions:
                     </p>
                     <code class="text-caption">{% raw %}{{ g }}{% endraw %}</code>
+                  </q-tab-panel>
+                  <q-tab-panel name="conversion">
+                    <div class="text-h6">Conversion </div>
+                    Coming soon...
                   </q-tab-panel>
                 </q-tab-panels>
               </template>
