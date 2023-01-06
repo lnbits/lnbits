@@ -1,4 +1,5 @@
 import asyncio
+
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
 
@@ -22,9 +23,11 @@ example_static_files = [
 def example_renderer():
     return template_renderer(["lnbits/extensions/example/templates"])
 
+
 from .tasks import wait_for_paid_invoices
 from .views import *
 from .views_api import *
+
 
 def tpos_start():
     loop = asyncio.get_event_loop()
