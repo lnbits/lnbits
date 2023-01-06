@@ -90,6 +90,7 @@ async def api_lnurl_callback(request: Request, link_id):
         min = link.min * 1000
         max = link.max * 1000
 
+    # remove the *1000 after i find error on invalid int literal
     amount_received = int(request.query_params.get("amount") or 0)*1000
     if amount_received < min:
         return LnurlErrorResponse(
