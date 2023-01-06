@@ -1,9 +1,9 @@
 import json
 from typing import Optional
 
-from fastapi.params import Query
+from fastapi import Query
 from lnurl.types import LnurlPayMetadata
-from pydantic.main import BaseModel
+from pydantic import BaseModel
 
 
 class CreateDomain(BaseModel):

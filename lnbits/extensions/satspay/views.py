@@ -1,10 +1,7 @@
 from http import HTTPStatus
 
-from fastapi import Response
-from fastapi.param_functions import Depends
+from fastapi import Depends, HTTPException, Request, Response
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
