@@ -20,6 +20,7 @@ from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 from . import lnaddy_ext
 from .crud import increment_pay_link, get_address_data
 
+# for .well-known/lnurlp
 async def lnurl_response(username: str, domain: str, request: Request):
     address_data = await get_address_data(username)
 
