@@ -31,8 +31,8 @@ async def lnurl_response(username: str, domain: str, request: Request):
         "tag": "payRequest",
         "callback": request.url_for("lnaddy.api_lnurl_callback", link_id=address_data.id),
         "metadata": await address_data.lnurlpay_metadata(domain=domain),
-        "minSendable": int(address_data.min*address_data.fiat_base_multiplier),
-        "maxSendable": int(address_data.max*address_data.fiat_base_multiplier),
+        "minSendable": int(address_data.min*1000),
+        "maxSendable": int(address_data.max*1000),
     }
 
     logger.debug("RESP", resp)
