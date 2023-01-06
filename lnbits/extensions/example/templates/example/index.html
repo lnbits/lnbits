@@ -79,9 +79,9 @@
           <div class="text-h6">Frameworks</div>
 
           <div>
-            <q-splitter v-model="splitterModel">
-              <template v-slot:before>
-                <q-tabs v-model="framworktab" vertical>
+            
+              <template >
+                <q-tabs align="left" v-model="framworktab" inline-label>
                   <q-tab name="fastapi"
                     ><img src="./static/fastapi-framework.png" />FASTAPI</q-tab
                   >
@@ -94,7 +94,7 @@
                 </q-tabs>
               </template>
 
-              <template v-slot:after>
+              <template>
                 <q-tab-panels v-model="framworktab">
                   <q-tab-panel name="fastapi" class="text-body1">
                     <a href="https://fastapi.tiangolo.com/"
@@ -122,9 +122,9 @@
 
                     <code class="bg-grey-3 text-black">views.py</code> is used
                     for setting application routes:
-                    <img src="./static/fastapi-example.png" />
+                    <img src="./static/fastapi-example.png" /><br /><br />
                     <code class="bg-grey-3 text-black">views_api.py</code> is
-                    used for setting application API endpoints:
+                    used for setting application API endpoints:<br />
                     <img src="./static/fastapi-example2.png" />
                   </q-tab-panel>
 
@@ -216,22 +216,22 @@
                   </q-tab-panel>
                 </q-tab-panels>
               </template>
-            </q-splitter>
+            
           </div>
         </q-tab-panel>
 
         <q-tab-panel name="tools">
           <div class="text-h6">Useful Tools</div>
           <div>
-            <q-splitter v-model="splitterModel">
-              <template v-slot:before>
-                <q-tabs v-model="usefultab" vertical>
+           
+              <template>
+                <q-tabs v-model="usefultab" align="left">
                   <q-tab name="magicalg">MAGICAL G</q-tab>
                   <q-tab name="exchange">EXCHANGE RATES</q-tab>
                 </q-tabs>
               </template>
 
-              <template v-slot:after>
+              <template>
                 <q-tab-panels v-model="usefultab">
                   <q-tab-panel name="magicalg" class="text-body1">
                     <div class="text-h5 q-mb-md">Magical G</div>
@@ -267,7 +267,7 @@
                   </q-tab-panel>
                 </q-tab-panels>
               </template>
-            </q-splitter>
+           
           </div>
         </q-tab-panel>
 
