@@ -49,12 +49,13 @@ async def on_invoice_paid(payment: Payment) -> None:
         if target.percent > 0:
             tagged = target.tag in payment.extra
 
-            amount = int(payment.amount * target.percent / 100)  # msats
+            amount = int(amount_to_split * target.percent / 100)  # msats
             memo = (
                 f"split payment: {target.percent}% for {target.alias or target.wallet}"
             )
             if tagged:
                 memo = f"Pushed tagged payment to {target.alias}"
+                amount = int(amount_to_split)
 
             payment_hash, payment_request = await create_invoice(
                 wallet_id=target.wallet,
