@@ -130,7 +130,7 @@ async def delete_card(card_id: str) -> None:
     for hit in hits:
         await db.execute("DELETE FROM boltcards.hits WHERE id = ?", (hit.id,))
         # Delete refunds
-        refunds = await get_refunds([hit])
+        refunds = await get_refunds([hit.id])
         for refund in refunds:
             await db.execute(
                 "DELETE FROM boltcards.refunds WHERE id = ?", (refund.hit_id,)
@@ -266,7 +266,7 @@ async def get_refund(refund_id: str) -> Optional[Refund]:
     return Refund.parse_obj(refund)
 
 
-async def get_refunds(hits_ids: List[Hit]) -> List[Refund]:
+async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
     if len(hits_ids) == 0:
         return []
 
