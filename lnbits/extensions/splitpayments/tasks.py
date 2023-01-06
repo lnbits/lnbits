@@ -36,9 +36,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     if total_percent > 100:
         logger.error("splitpayment: total percent adds up to more than 100%")
         return
-    if not all([target.percent > 0 for target in targets]):
-        logger.error("splitpayment: not all percentages are positive > 0")
-        return
 
     logger.trace(f"splitpayments: performing split payments to {len(targets)} targets")
 
@@ -52,7 +49,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         return
 
     for target in targets:
-        tagged = target.tag in payment.extra
+        tagged = target.tag in payment.extra.values()
+
         if tagged or target.percent > 0:
 
             if tagged:
