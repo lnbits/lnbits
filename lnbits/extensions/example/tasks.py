@@ -1,4 +1,4 @@
-# views_api.py is for you API endpoints that could be hit by another service
+# tasks.py is for asynchronous when invoices get paid
 
 # add your dependencies here
 
@@ -17,7 +17,7 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "example":
+    if payment.extra.get("tag") != "example": # Will grab any payment with the tag "example"
         logger.debug(payment)
         # Do something
     return
