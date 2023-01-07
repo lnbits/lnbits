@@ -89,8 +89,7 @@ profile = "black"
 ignore_missing_imports = "True"
 files = "lnbits"
 exclude = """(?x)(
-    ^lnbits/extensions/bleskomat.
-    | ^lnbits/extensions/boltz.
+    ^lnbits/extensions/boltz.
     | ^lnbits/extensions/livestream.
     | ^lnbits/extensions/lnurldevice.
     | ^lnbits/extensions/watchonly.
