@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Callable
 
 import httpx
 
@@ -65,17 +66,15 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
         "to": currency.lower(),
     }
 
-    url = exchange_rate_providers[provider]["api_url"]
-    if url:
-        for key in replacements.keys():
-            url = url.replace("{" + key + "}", replacements[key])
-        async with httpx.AsyncClient() as client:
-            r = await client.get(url)
-            r.raise_for_status()
-            data = r.json()
-    else:
-        data = {}
+    api_url = str(exchange_rate_providers[provider]["api_url"])
+    for key in replacements.keys():
+        api_url = api_url.replace("{" + key + "}", replacements[key])
+    async with httpx.AsyncClient() as client:
+        r = await client.get(api_url)
+        r.raise_for_status()
+        data = r.json()
 
     getter = exchange_rate_providers[provider]["getter"]
-    rate = float(getter(data, replacements))
+    # TODO: mypy typing does not work out
+    rate = float(getter(data, replacements))  # type: ignore
     return rate

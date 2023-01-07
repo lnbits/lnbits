@@ -2,10 +2,9 @@ import json
 import time
 from typing import Dict
 
-from fastapi.params import Query
+from fastapi import Query, Request
 from loguru import logger
 from pydantic import BaseModel, validator
-from starlette.requests import Request
 
 from lnbits import bolt11
 from lnbits.core.services import PaymentFailure, pay_invoice
@@ -80,7 +79,7 @@ class BleskomatLnurl(BaseModel):
             response["k1"] = secret
         return response
 
-    def validate_action(self, query: Dict[str, str]) -> None:
+    def validate_action(self, query) -> None:
         tag = self.tag
         params = json.loads(self.params)
         # Perform tag-specific checks.
@@ -109,7 +108,7 @@ class BleskomatLnurl(BaseModel):
         else:
             raise LnurlValidationError(f'Unknown subprotocol: "{tag}"')
 
-    async def execute_action(self, query: Dict[str, str]):
+    async def execute_action(self, query):
         self.validate_action(query)
         used = False
         async with db.connect() as conn:
