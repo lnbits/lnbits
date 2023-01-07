@@ -2,12 +2,7 @@ from http import HTTPStatus
 from typing import List
 
 from . import db
-from .models import (
-    Token,
-    LnToBtcSwap,
-    BtcToLnSwap,
-    UpdateLnToBtcSwap
-)
+from .models import BtcToLnSwap, LnToBtcSwap, Token, UpdateLnToBtcSwap
 
 
 async def get_ln_to_btc() -> List[LnToBtcSwap]:
@@ -48,9 +43,7 @@ async def save_token(
         )
         VALUES (?)
         """,
-        (
-            data.deezy_token,
-        ),
+        (data.deezy_token,),
     )
     return data
 

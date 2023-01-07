@@ -7,22 +7,16 @@
 #  response.is_error that is its inverse)
 
 from . import deezy_ext
-from .models import (
-    Token,
-    LnToBtcSwap,
-    BtcToLnSwap,
-    UpdateLnToBtcSwap,
-)
-
 from .crud import (
-    get_token,
-    get_ln_to_btc,
     get_btc_to_ln,
-    save_token,
+    get_ln_to_btc,
+    get_token,
     save_btc_to_ln,
     save_ln_to_btc,
-    update_ln_to_btc
+    save_token,
+    update_ln_to_btc,
 )
+from .models import BtcToLnSwap, LnToBtcSwap, Token, UpdateLnToBtcSwap
 
 
 @deezy_ext.get("/api/v1/token")
