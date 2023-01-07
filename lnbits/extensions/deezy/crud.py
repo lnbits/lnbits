@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from . import db
 from .models import BtcToLnSwap, LnToBtcSwap, Token, UpdateLnToBtcSwap
