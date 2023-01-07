@@ -23,7 +23,7 @@ async def get_btc_to_ln() -> List[BtcToLnSwap]:
     return [BtcToLnSwap(**row) for row in rows]
 
 
-async def get_token() -> Token:
+async def get_token() -> Optional[Token]:
 
     row = await db.fetchone(
         f"SELECT * FROM deezy.token ORDER BY created_at DESC",
@@ -75,6 +75,7 @@ async def save_ln_to_btc(
             data.tx_hex,
         ),
     )
+    return
 
 
 async def update_ln_to_btc(data: UpdateLnToBtcSwap) -> str:
@@ -113,3 +114,4 @@ async def save_btc_to_ln(
             data.signature,
         ),
     )
+    return
