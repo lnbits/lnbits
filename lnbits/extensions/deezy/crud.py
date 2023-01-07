@@ -52,7 +52,7 @@ async def save_ln_to_btc(
     data: LnToBtcSwap,
 ) -> LnToBtcSwap:
 
-    await db.execute(
+    return await db.execute(
         """
         INSERT INTO deezy.ln_to_btc_swap (
             amount_sats,
@@ -75,7 +75,6 @@ async def save_ln_to_btc(
             data.tx_hex,
         ),
     )
-    return
 
 
 async def update_ln_to_btc(data: UpdateLnToBtcSwap) -> str:
@@ -95,7 +94,7 @@ async def save_btc_to_ln(
     data: BtcToLnSwap,
 ) -> BtcToLnSwap:
 
-    await db.execute(
+    return await db.execute(
         """
         INSERT INTO deezy.btc_to_ln_swap (
             ln_address,
@@ -114,4 +113,3 @@ async def save_btc_to_ln(
             data.signature,
         ),
     )
-    return
