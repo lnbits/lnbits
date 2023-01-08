@@ -206,6 +206,11 @@ poetry add setuptools wheel
 ./venv/bin/pip install setuptools wheel
 ```
 
+### poetry
+
+If your poetry version is less than ^1.2, for `poetry install`, ignore the -- flags, it will install just fine. 
+
+
 ### Optional: PostgreSQL database
 
 If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
