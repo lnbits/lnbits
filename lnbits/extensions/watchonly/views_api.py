@@ -11,8 +11,8 @@ from embit.transaction import Transaction, TransactionInput, TransactionOutput
 from fastapi import Depends, HTTPException, Query, Request
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.watchonly import watchonly_ext
 
+from . import watchonly_ext
 from .crud import (
     create_config,
     create_fresh_addresses,
