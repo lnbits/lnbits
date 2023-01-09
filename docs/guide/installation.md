@@ -210,7 +210,6 @@ poetry add setuptools wheel
 
 If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
-
 ### Optional: PostgreSQL database
 
 If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
