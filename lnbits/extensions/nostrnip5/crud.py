@@ -177,7 +177,7 @@ async def create_domain_internal(wallet_id: str, data: CreateDomainData) -> Doma
         amount = data.amount * 100
     else:
         amount = data.amount
-        
+
     await db.execute(
         """
         INSERT INTO nostrnip5.domains (id, wallet, currency, amount, domain)
