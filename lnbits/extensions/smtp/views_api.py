@@ -1,8 +1,11 @@
 from http import HTTPStatus
+from typing import Optional
 
+import shortuuid
 from fastapi import Depends, HTTPException, Query
+from loguru import logger
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_user, get_wallet, get_wallet_for_key
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.smtp.models import CreateEmail, CreateEmailaddress
@@ -19,7 +22,7 @@ from .crud import (
     get_emails,
     update_emailaddress,
 )
-from .smtp import valid_email
+from .smtp import send_mail, valid_email
 
 
 ## EMAILS
@@ -58,8 +61,9 @@ async def api_smtp_send_email(payment_hash):
 
 
 @smtp_ext.post("/api/v1/email/{emailaddress_id}")
-async def api_smtp_make_email(emailaddress_id, data: CreateEmail):
-
+async def api_smtp_make_email(
+    emailaddress_id, data: CreateEmail, key: Optional[str] = None
+):
     valid_email(data.receiver)
 
     emailaddress = await get_emailaddress(emailaddress_id)
@@ -69,6 +73,14 @@ async def api_smtp_make_email(emailaddress_id, data: CreateEmail):
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Emailaddress address does not exist.",
         )
+    if key:
+        user = await get_wallet_for_key(key)
+        userwallet = await get_wallet(emailaddress.wallet)
+        if user.adminkey == userwallet.adminkey:
+            email = await create_email(
+                payment_hash=shortuuid.uuid(), wallet=emailaddress.wallet, data=data
+            )
+            return await send_mail(emailaddress, email)
     try:
         memo = f"sent email from {emailaddress.email} to {data.receiver}"
         if emailaddress.anonymize:
