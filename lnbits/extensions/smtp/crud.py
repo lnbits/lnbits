@@ -1,8 +1,6 @@
 from http import HTTPStatus
 from typing import List, Optional, Union
 
-from starlette.exceptions import HTTPException
-
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db

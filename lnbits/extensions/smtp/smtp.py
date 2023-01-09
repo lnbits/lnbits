@@ -1,9 +1,9 @@
-import os
 import re
 import socket
-import sys
+import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate
 from http import HTTPStatus
 from smtplib import SMTP_SSL as SMTP
 
@@ -25,7 +25,12 @@ async def send_mail(emailaddress, email):
     valid_email(emailaddress.email)
     valid_email(email.receiver)
 
+    ts = time.time()
+    date = formatdate(ts, True)
+
     msg = MIMEMultipart("alternative")
+    msg = MIMEMultipart("alternative")
+    msg["Date"] = date
     msg["Subject"] = email.subject
     msg["From"] = emailaddress.email
     msg["To"] = email.receiver
