@@ -1,6 +1,6 @@
 {
   "name": "SMTP",
-  "short_description": "Let users send emails via your SMTP and earn sats",
-  "icon": "email",
+  "short_description": "Charge sats for sending emails",
+	"tile": "/smtp/static/smtp-bitcoin-email.png",
   "contributors": ["dni"]
 }
