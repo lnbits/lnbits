@@ -3,6 +3,7 @@ from typing import Optional
 
 import shortuuid
 from fastapi import Depends, HTTPException, Query
+from loguru import logger
 
 from lnbits.core.crud import get_user, get_wallet, get_wallet_for_key
 from lnbits.core.services import check_transaction_status, create_invoice
