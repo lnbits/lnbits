@@ -1,0 +1,6 @@
+{
+  "name": "SMTP",
+  "short_description": "Let users send emails via your SMTP and earn sats",
+  "icon": "email",
+  "contributors": ["dni"]
+}
