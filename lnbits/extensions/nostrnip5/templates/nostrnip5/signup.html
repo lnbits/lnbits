@@ -37,9 +37,15 @@ context %} {% block page %}
       </p>
       <p>
         The current price is
+        {% if domain.currency != "Satoshis" %}
         <b
           >{{ "{:0,.2f}".format(domain.amount / 100) }} {{ domain.currency }}</b
         >
+        {% else %}
+        <b
+          >{{ "{}".format(domain.amount) }} {{ domain.currency }}</b
+        >   
+        {% endif %}
         for an account (if you do not own the domain, the service provider can
         disable at any time).
       </p>
