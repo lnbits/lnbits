@@ -1,14 +1,11 @@
 from http import HTTPStatus
-from typing import Optional
 
-import shortuuid
 from fastapi import Depends, HTTPException, Query
-from loguru import logger
 
-from lnbits.core.crud import get_user, get_wallet, get_wallet_for_key
+from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.smtp.models import CreateEmail, CreateEmailaddress
+from .models import CreateEmail, CreateEmailaddress
 
 from . import smtp_ext
 from .crud import (
@@ -23,7 +20,7 @@ from .crud import (
     update_emailaddress,
 )
 from .models import CreateEmail, CreateEmailaddress
-from .smtp import send_mail, valid_email
+from .smtp import valid_email, send_mail
 
 
 ## EMAILS
@@ -108,14 +105,12 @@ async def api_smtp_make_email_send(emailaddress_id, data: CreateEmail):
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Emailaddress address does not exist.",
         )
-    email = await create_email(
-        payment_hash=shortuuid.uuid()[:5], wallet=emailaddress.wallet, data=data
-    )
+    email = await create_email(wallet=emailaddress.wallet, data=data)
     if not email:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Email could not be fetched."
         )
-    await send_mail(emailaddress, data)
+    await send_mail(emailaddress, email)
     return {"sent": True}
 
 
