@@ -76,11 +76,12 @@ async def api_smtp_make_email(
     if key:
         user = await get_wallet_for_key(key)
         userwallet = await get_wallet(emailaddress.wallet)
-        if user.adminkey == userwallet.adminkey:
+        if user and userwallet and user.adminkey == userwallet.adminkey:
             email = await create_email(
                 payment_hash=shortuuid.uuid(), wallet=emailaddress.wallet, data=data
             )
-            return await send_mail(emailaddress, email)
+            await send_mail(emailaddress, email)
+            return {"sent": True}
     try:
         memo = f"sent email from {emailaddress.email} to {data.receiver}"
         if emailaddress.anonymize:
