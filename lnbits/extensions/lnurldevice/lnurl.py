@@ -159,15 +159,18 @@ async def lnurl_v1_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await create_lnurldevicepayment(
-            deviceid=device.id,
-            payload=p,
-            sats=price_msat * 1000,
-            pin=str(pin),
-            payhash="payment_hash",
-        )
+        try:
+            lnurldevicepayment = await create_lnurldevicepayment(
+                deviceid=device.id,
+                payload=p,
+                sats=price_msat * 1000,
+                pin=str(pin),
+                payhash="payment_hash",
+            )
+        except:
+            return {"status": "ERROR", "reason": "Could not create ATM payment."}
         if not lnurldevicepayment:
-            return {"status": "ERROR", "reason": "Could not create payment."}
+            return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
             "callback": request.url_for(
