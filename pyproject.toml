@@ -95,7 +95,24 @@ exclude = """(?x)(
 )"""
 
 [[tool.mypy.overrides]]
-module = "embit.*,secp256k1.*,uvicorn.*,sqlalchemy.*,sqlalchemy_aio.*,websocket.*,websockets.*,pyqrcode.*,cashu.*,shortuuid.*,grpc.*,lnurl.*,bitstring.*,ecdsa.*,psycopg2.*,pyngrok.*"
+module = [
+  "embit.*",
+  "secp256k1.*",
+  "uvicorn.*",
+  "sqlalchemy.*",
+  "sqlalchemy_aio.*",
+  "websocket.*",
+  "websockets.*",
+  "pyqrcode.*",
+  "cashu.*",
+  "shortuuid.*",
+  "grpc.*",
+  "lnurl.*",
+  "bitstring.*",
+  "ecdsa.*",
+  "psycopg2.*",
+  "pyngrok.*"
+]
 ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
