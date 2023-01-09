@@ -7,7 +7,7 @@ from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
-from ..watchonly.crud import get_config, get_fresh_address
+from ..watchonly.crud import get_config, get_fresh_address  # type: ignore
 from . import db
 from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes

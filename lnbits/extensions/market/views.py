@@ -16,7 +16,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
-from lnbits.decorators import check_user_exists  # type: ignore
+from lnbits.decorators import check_user_exists
 
 from . import market_ext, market_renderer
 from .crud import (

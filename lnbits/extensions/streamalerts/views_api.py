@@ -7,10 +7,13 @@ from starlette.responses import RedirectResponse
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.satspay.models import CreateCharge
+
+# todo: use the API, not direct import
+from lnbits.extensions.satspay.models import CreateCharge  # type: ignore
 from lnbits.utils.exchange_rates import btc_price
 
-from ..satspay.crud import create_charge, get_charge
+# todo: use the API, not direct import
+from ..satspay.crud import create_charge, get_charge  # type: ignore
 from . import streamalerts_ext
 from .crud import (
     authenticate_service,

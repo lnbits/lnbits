@@ -2,6 +2,7 @@ from typing import Optional
 
 from lnbits.db import SQLITE
 
+# todo: use the API, not direct import
 from ..satspay.crud import delete_charge  # type: ignore
 from . import db
 from .models import Tip, TipJar, createTipJar
