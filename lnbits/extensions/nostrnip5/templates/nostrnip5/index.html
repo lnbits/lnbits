@@ -201,7 +201,7 @@
           dense
           v-model.trim="formDialog.data.amount"
           label="Amount"
-          placeholder="10.00"
+          placeholder="How much do you want to charge?"
         ></q-input>
         <q-input
           filled
@@ -293,6 +293,7 @@
         domains: [],
         addresses: [],
         currencyOptions: [
+          'Satoshis',
           'USD',
           'EUR',
           'GBP',
