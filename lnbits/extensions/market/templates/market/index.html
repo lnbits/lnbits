@@ -831,14 +831,8 @@
           let canvas = document.createElement('canvas')
           canvas.setAttribute('width', fit.width)
           canvas.setAttribute('height', fit.height)
-          await pica.resize(image, canvas, {
-            quality: 0,
-            alpha: true,
-            unsharpAmount: 95,
-            unsharpRadius: 0.9,
-            unsharpThreshold: 70
-          })
-          this.productDialog.data.image = canvas.toDataURL()
+          output = await pica.resize(image, canvas)
+          this.productDialog.data.image = output.toDataURL('image/jpeg', 0.4)
           this.productDialog = {...this.productDialog}
         }
       },
