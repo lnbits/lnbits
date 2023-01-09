@@ -1,7 +1,7 @@
 from sqlite3 import Row
 from typing import List, Optional
 
-from fastapi.param_functions import Query
+from fastapi import Query
 from pydantic import BaseModel
 
 
@@ -35,7 +35,7 @@ class Address(BaseModel):
     amount: int = 0
     branch_index: int = 0
     address_index: int
-    note: str = None
+    note: Optional[str] = None
     has_activity: bool = False
 
     @classmethod
@@ -57,9 +57,9 @@ class TransactionInput(BaseModel):
 class TransactionOutput(BaseModel):
     amount: int
     address: str
-    branch_index: int = None
-    address_index: int = None
-    wallet: str = None
+    branch_index: Optional[int] = None
+    address_index: Optional[int] = None
+    wallet: Optional[str] = None
 
 
 class MasterPublicKey(BaseModel):
