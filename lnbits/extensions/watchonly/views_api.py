@@ -73,8 +73,7 @@ async def api_wallet_create_or_update(
     data: CreateWallet, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
-        # TODO: talk to motorina about this
-        (descriptor, network) = parse_key(data.masterpub)  # type: ignore
+        (descriptor, network) = parse_key(data.masterpub)
         if data.network != network["name"]:
             raise ValueError(
                 "Account network error.  This account is for '{}'".format(
