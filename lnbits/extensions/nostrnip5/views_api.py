@@ -199,7 +199,9 @@ async def api_address_create(
     if domain.currency == "Satoshis":
         price_in_sats = domain.amount
     else:
-        price_in_sats = await fiat_amount_as_satoshis(domain.amount / 100, domain.currency)
+        price_in_sats = await fiat_amount_as_satoshis(
+            domain.amount / 100, domain.currency
+        )
 
     try:
         payment_hash, payment_request = await create_invoice(
