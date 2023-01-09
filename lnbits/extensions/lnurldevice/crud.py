@@ -118,6 +118,7 @@ async def create_lnurldevicepayment(
     sats: Optional[int] = 0,
 ) -> lnurldevicepayment:
     device = await get_lnurldevice(deviceid)
+    assert device
     if device.device == "atm":
         lnurldevicepayment_id = shortuuid.uuid(name=payload)
     else:

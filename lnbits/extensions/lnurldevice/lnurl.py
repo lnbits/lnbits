@@ -236,13 +236,10 @@ async def lnurl_callback(
         else:
             if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
-<<<<<<< HEAD
-            lnurldevicepayment = await update_lnurldevicepayment(
-=======
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": f"Payment already claimed"}
+
             lnurldevicepayment_updated = await update_lnurldevicepayment(
->>>>>>> c2f4a7c9 (fix mypy lnurldevices issues)
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
             assert lnurldevicepayment_updated
