@@ -3,11 +3,10 @@ from typing import Optional
 
 import shortuuid
 from fastapi import Depends, HTTPException, Query
-from loguru import logger
 
 from lnbits.core.crud import get_user, get_wallet, get_wallet_for_key
 from lnbits.core.services import check_transaction_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.smtp.models import CreateEmail, CreateEmailaddress
 
 from . import smtp_ext
@@ -47,6 +46,7 @@ async def api_smtp_send_email(payment_hash):
         )
 
     emailaddress = await get_emailaddress(email.emailaddress_id)
+    assert emailaddress
 
     try:
         status = await check_transaction_status(email.wallet, payment_hash)
@@ -61,27 +61,15 @@ async def api_smtp_send_email(payment_hash):
 
 
 @smtp_ext.post("/api/v1/email/{emailaddress_id}")
-async def api_smtp_make_email(
-    emailaddress_id, data: CreateEmail, key: Optional[str] = None
-):
+async def api_smtp_make_email(emailaddress_id, data: CreateEmail):
     valid_email(data.receiver)
 
     emailaddress = await get_emailaddress(emailaddress_id)
-    # If the request is coming for the non-existant emailaddress
     if not emailaddress:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Emailaddress address does not exist.",
         )
-    if key:
-        user = await get_wallet_for_key(key)
-        userwallet = await get_wallet(emailaddress.wallet)
-        if user and userwallet and user.adminkey == userwallet.adminkey:
-            email = await create_email(
-                payment_hash=shortuuid.uuid(), wallet=emailaddress.wallet, data=data
-            )
-            await send_mail(emailaddress, email)
-            return {"sent": True}
     try:
         memo = f"sent email from {emailaddress.email} to {data.receiver}"
         if emailaddress.anonymize:
@@ -105,6 +93,21 @@ async def api_smtp_make_email(
             status_code=HTTPStatus.NOT_FOUND, detail="Email could not be fetched."
         )
     return {"payment_hash": payment_hash, "payment_request": payment_request}
+
+
+@smtp_ext.post(
+    "/api/v1/email/{emailaddress_id}/send", dependencies=[Depends(require_admin_key)]
+)
+async def api_smtp_make_email_send(emailaddress_id, data: CreateEmail):
+    valid_email(data.receiver)
+    emailaddress = await get_emailaddress(emailaddress_id)
+    if not emailaddress:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Emailaddress address does not exist.",
+        )
+    await send_mail(emailaddress, data)
+    return {"sent": True}
 
 
 @smtp_ext.delete("/api/v1/email/{email_id}")
