@@ -1,12 +1,9 @@
-import hashlib
 import math
 from http import HTTPStatus
-from os import name
 
-from fastapi.exceptions import HTTPException
-from fastapi.params import Query
+from fastapi import HTTPException, Query, Request
 from lnurl import LnurlErrorResponse, LnurlPayActionResponse, LnurlPayResponse
-from starlette.requests import Request  # type: ignore
+from lnurl.models import ClearnetUrl, LightningInvoice, MilliSatoshi
 
 from lnbits.core.services import create_invoice
 
@@ -29,9 +26,12 @@ async def lnurl_livestream(ls_id, request: Request):
         )
 
     resp = LnurlPayResponse(
-        callback=request.url_for("livestream.lnurl_callback", track_id=track.id),
-        min_sendable=track.min_sendable,
-        max_sendable=track.max_sendable,
+        callback=ClearnetUrl(
+            request.url_for("livestream.lnurl_callback", track_id=track.id),
+            scheme="https",
+        ),
+        minSendable=MilliSatoshi(track.min_sendable),
+        maxSendable=MilliSatoshi(track.max_sendable),
         metadata=await track.lnurlpay_metadata(),
     )
 
@@ -48,9 +48,12 @@ async def lnurl_track(track_id, request: Request):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Track not found.")
 
     resp = LnurlPayResponse(
-        callback=request.url_for("livestream.lnurl_callback", track_id=track.id),
-        min_sendable=track.min_sendable,
-        max_sendable=track.max_sendable,
+        callback=ClearnetUrl(
+            request.url_for("livestream.lnurl_callback", track_id=track.id),
+            scheme="https",
+        ),
+        minSendable=MilliSatoshi(track.min_sendable),
+        maxSendable=MilliSatoshi(track.max_sendable),
         metadata=await track.lnurlpay_metadata(),
     )
 
@@ -85,6 +88,7 @@ async def lnurl_callback(
         ).dict()
 
     ls = await get_livestream_by_track(track_id)
+    assert ls
 
     extra_amount = amount_received - int(amount_received * (100 - ls.fee_pct) / 100)
 
@@ -101,13 +105,14 @@ async def lnurl_callback(
         },
     )
 
+    assert track.price_msat
     if amount_received < track.price_msat:
         success_action = None
     else:
         success_action = track.success_action(payment_hash, request=request)
 
     resp = LnurlPayActionResponse(
-        pr=payment_request, success_action=success_action, routes=[]
+        pr=LightningInvoice(payment_request), successAction=success_action, routes=[]
     )
 
     return resp.dict()

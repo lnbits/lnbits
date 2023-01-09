@@ -42,3 +42,18 @@ location /.well-known/nostr.json {
    proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
 }
 ```
+
+Example Caddy configuration
+
+```
+my.lnbits.instance {
+    reverse_proxy {your_lnbits} 
+}
+
+nip.5.domain {
+    route /.well-known/nostr.json {
+        rewrite * /nostrnip5/api/v1/domain/{domain_id}/nostr.json
+        reverse_proxy {your_lnbits} 
+    }
+}
+```

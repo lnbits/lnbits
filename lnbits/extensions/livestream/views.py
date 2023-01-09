@@ -1,19 +1,15 @@
 from http import HTTPStatus
 
-from fastapi.param_functions import Depends
-from fastapi.params import Query
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
+from fastapi import Depends, HTTPException, Query, Request
+from starlette.datastructures import URL
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from lnbits.core.crud import get_wallet_payment
-from lnbits.core.models import Payment, User
+from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import livestream_ext, livestream_renderer
 from .crud import get_livestream_by_track, get_track
-
-# from mmap import MAP_DENYWRITE
 
 
 @livestream_ext.get("/", response_class=HTMLResponse)
@@ -28,12 +24,18 @@ async def track_redirect_download(track_id, p: str = Query(...)):
     payment_hash = p
     track = await get_track(track_id)
     ls = await get_livestream_by_track(track_id)
-    payment: Payment = await get_wallet_payment(ls.wallet, payment_hash)
+    assert ls
+    payment = await get_wallet_payment(ls.wallet, payment_hash)
 
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Couldn't find the payment {payment_hash} or track {track.id}.",
+            detail=f"Couldn't find the payment {payment_hash}.",
+        )
+    if not track:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Couldn't find the track {track_id}.",
         )
 
     if payment.pending:
@@ -41,4 +43,6 @@ async def track_redirect_download(track_id, p: str = Query(...)):
             status_code=HTTPStatus.PAYMENT_REQUIRED,
             detail=f"Payment {payment_hash} wasn't received yet. Please try again in a minute.",
         )
-    return RedirectResponse(url=track.download_url)
+
+    assert track.download_url
+    return RedirectResponse(url=URL(track.download_url))

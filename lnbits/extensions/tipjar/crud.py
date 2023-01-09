@@ -33,7 +33,11 @@ async def create_tip(
 
 async def create_tipjar(data: createTipJar) -> TipJar:
     """Create a new TipJar"""
-    await db.execute(
+
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
+
+    result = await (method)(
         f"""
         INSERT INTO tipjar.TipJars (
             name,
@@ -42,11 +46,16 @@ async def create_tipjar(data: createTipJar) -> TipJar:
             onchain
         )
         VALUES (?, ?, ?, ?)
+        {returning}
         """,
         (data.name, data.wallet, data.webhook, data.onchain),
     )
-    row = await db.fetchone("SELECT * FROM tipjar.TipJars LIMIT 1")
-    tipjar = TipJar(**row)
+    if db.type == SQLITE:
+        tipjar_id = result._result_proxy.lastrowid
+    else:
+        tipjar_id = result[0]
+
+    tipjar = await get_tipjar(tipjar_id)
     assert tipjar
     return tipjar
 
