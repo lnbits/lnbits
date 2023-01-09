@@ -6,10 +6,10 @@ from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.extensions.satspay.helpers import public_charge
 
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge, get_theme
+from .helpers import public_charge
 
 templates = Jinja2Templates(directory="templates")
 

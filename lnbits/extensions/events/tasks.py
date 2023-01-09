@@ -1,10 +1,10 @@
 import asyncio
 
 from lnbits.core.models import Payment
-from lnbits.extensions.events.models import CreateTicket
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
+from .models import CreateTicket
 from .views_api import api_ticket_send_ticket
 
 
