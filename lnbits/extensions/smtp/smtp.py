@@ -36,32 +36,23 @@ async def send_mail(emailaddress, email):
     msg["To"] = email.receiver
 
     signature = "Email sent anonymiously by LNbits Sendmail extension."
-    text = (
-        """\
-        """
-        + email.message
-        + """
-        """
-        + signature
-        + """
-    """
-    )
+    text = f"""
+{email.message}
 
-    html = (
-        """\
-    <html>
-      <head></head>
-      <body>
-        <p>"""
-        + email.message
-        + """<p>
-        <p><br>"""
-        + signature
-        + """</p>
-      </body>
-    </html>
-    """
-    )
+{signature}
+"""
+
+    html = f"""
+<html>
+  <head></head>
+  <body>
+    <p>{email.message}<p>
+    <br>
+    <p>{signature}</p>
+  </body>
+</html>
+"""
+
     part1 = MIMEText(text, "plain")
     part2 = MIMEText(html, "html")
     msg.attach(part1)

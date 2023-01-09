@@ -9,18 +9,6 @@ This extension allows you to setup a smtp, to offer sending emails with it for a
 ## Usage
 
 1. Create new emailaddress
-2. Verify if email goes to your testemail. Testmail is send on create and update
-3. enjoy
+2. Verify if email goes to your testemail. Testmail is sent on create and update
+3. Share the link with the email form.
 
-## API Endpoints
-
-- **Emailaddresses**
-  - GET /api/v1/emailaddress
-  - POST /api/v1/emailaddress
-  - PUT /api/v1/emailaddress/<domain_id>
-  - DELETE /api/v1/emailaddress/<domain_id>
-- **Emails**
-  - GET /api/v1/email
-  - POST /api/v1/email/<emailaddress_id>
-  - GET /api/v1/email/<payment_hash>
-  - DELETE /api/v1/email/<email_id>
