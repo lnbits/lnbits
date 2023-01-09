@@ -173,12 +173,17 @@ async def create_address_internal(domain_id: str, data: CreateAddressData) -> Ad
 async def create_domain_internal(wallet_id: str, data: CreateDomainData) -> Domain:
     domain_id = urlsafe_short_hash()
 
+    if data.currency != "Satoshis":
+        amount = data.amount * 100
+    else:
+        amount = data.amount
+        
     await db.execute(
         """
         INSERT INTO nostrnip5.domains (id, wallet, currency, amount, domain)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (domain_id, wallet_id, data.currency, int(data.amount * 100), data.domain),
+        (domain_id, wallet_id, data.currency, int(amount), data.domain),
     )
 
     domain = await get_domain(domain_id)
