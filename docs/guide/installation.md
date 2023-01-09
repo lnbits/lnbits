@@ -206,9 +206,9 @@ poetry add setuptools wheel
 ./venv/bin/pip install setuptools wheel
 ```
 
-### poetry
+#### Poetry
 
-If your poetry version is less than ^1.2, for `poetry install`, ignore the -- flags, it will install just fine. 
+If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
 
 ### Optional: PostgreSQL database
