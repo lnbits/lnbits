@@ -4,7 +4,6 @@ import json
 import httpx
 from loguru import logger
 
-from lnbits.core import db as core_db
 from lnbits.core.crud import update_payment_extra
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
