@@ -51,23 +51,25 @@ def get_vapid_public_key():
 
 async def on_invoice_paid(payment: Payment) -> None:
     wallet = await get_wallet(payment.wallet_id)
-    subscriptions = await get_subscriptions_by_wallet(wallet.id)
+    if wallet:
+        subscriptions = await get_subscriptions_by_wallet(wallet.id)
 
-    amount = int(payment.amount / 1000)
-    comment = payment.extra.get("comment")
+        amount = int(payment.amount / 1000)
+        comment = payment.extra.get("comment")
 
-    title = f"LNbits: {wallet.name}"
-    body = f"You just received {amount} sat{'s'[:amount^1]}!"
+        title = f"LNbits: {wallet.name}"
+        body = f"You just received {amount} sat{'s'[:amount^1]}!"
 
-    if payment.memo:
-        body += f"\r\n{payment.memo}"
+        if payment.memo:
+            body += f"\r\n{payment.memo}"
 
-    if comment:
-        body += f"\r\n{comment}"
+        if comment:
+            body += f"\r\n{comment}"
 
-    for subscription in subscriptions:
-        url = f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
-        send_push_notification(subscription, title, body, url)
+        for subscription in subscriptions:
+            url = f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+            send_push_notification(subscription, title, body, url)
+    return
 
 
 def send_push_notification(subscription, title, body, url=""):
