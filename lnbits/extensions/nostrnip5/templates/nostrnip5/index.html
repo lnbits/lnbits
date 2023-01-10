@@ -280,7 +280,9 @@
       'YYYY-MM-DD HH:mm'
     )
 
-    obj.amount = parseFloat(obj.amount / 100).toFixed(2)
+    if (obj.currency != "Satoshis") {
+      obj.amount = parseFloat(obj.amount / 100).toFixed(2)
+    }
 
     return obj
   }
