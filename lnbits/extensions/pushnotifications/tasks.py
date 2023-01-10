@@ -74,7 +74,7 @@ def send_push_notification(subscription, title, body, url=""):
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
             Vapid().from_file(vapid_key_file.format("private")),
-            {"aud": "", "sub": "mailto:dev@schneimi.de"},
+            {"aud": "", "sub": "mailto:alan@lnbits.com"},
         )
     except WebPushException as e:
         """
