@@ -35,7 +35,9 @@ async def api_subscription_create(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        if user:
+            wallet_ids = user.wallet_ids
 
     for wallet_id in wallet_ids:
         new_subscription = await create_subscription(
