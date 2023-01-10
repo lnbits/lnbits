@@ -1,0 +1,6 @@
+{
+  "name": "Nostr NIP-5",
+  "short_description": "Verify addresses for Nostr NIP-5",
+	"tile": "/nostrnip5/static/image/nostrnip5.png",
+  "contributors": ["leesalminen"]
+}

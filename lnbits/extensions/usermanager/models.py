@@ -19,7 +19,7 @@ class CreateUserWallet(BaseModel):
     admin_id: str = Query(...)
 
 
-class Users(BaseModel):
+class User(BaseModel):
     id: str
     name: str
     admin: str
@@ -27,7 +27,7 @@ class Users(BaseModel):
     password: Optional[str] = None
 
 
-class Wallets(BaseModel):
+class Wallet(BaseModel):
     id: str
     admin: str
     name: str
@@ -36,5 +36,5 @@ class Wallets(BaseModel):
     inkey: str
 
     @classmethod
-    def from_row(cls, row: Row) -> "Wallets":
+    def from_row(cls, row: Row) -> "Wallet":
         return cls(**dict(row))

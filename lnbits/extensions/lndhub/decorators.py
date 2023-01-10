@@ -23,7 +23,7 @@ async def check_wallet(
         )
 
     t = api_key_header_auth.split(" ")[1]
-    _, token = b64decode(t).decode("utf-8").split(":")
+    _, token = b64decode(t).decode().split(":")
 
     return await get_key_type(r, api_key_header=token)
 

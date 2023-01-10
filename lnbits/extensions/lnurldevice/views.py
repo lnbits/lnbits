@@ -1,12 +1,7 @@
 from http import HTTPStatus
-from io import BytesIO
 
-import pyqrcode
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits.core.crud import update_payment_status
@@ -62,4 +57,6 @@ async def img(request: Request, lnurldevice_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
         )
-    return lnurldevice.lnurl(request)
+    # error: "lnurldevices" has no attribute "lnurl"
+    # return lnurldevice.lnurl(request)
+    return None

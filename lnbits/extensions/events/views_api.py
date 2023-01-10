@@ -1,10 +1,7 @@
 from http import HTTPStatus
 
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from loguru import logger
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
@@ -38,7 +35,8 @@ async def api_events(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [event.dict() for event in await get_events(wallet_ids)]
 
@@ -92,7 +90,8 @@ async def api_tickets(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [ticket.dict() for ticket in await get_tickets(wallet_ids)]
 
@@ -119,26 +118,32 @@ async def api_ticket_make_ticket(event_id, name, email):
 @events_ext.post("/api/v1/tickets/{event_id}/{payment_hash}")
 async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
     event = await get_event(event_id)
-    try:
-        status = await api_payment(payment_hash)
-        if status["paid"]:
-            ticket = await create_ticket(
-                payment_hash=payment_hash,
-                wallet=event.wallet,
-                event=event_id,
-                name=data.name,
-                email=data.email,
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Event could not be fetched.",
+        )
+
+    status = await api_payment(payment_hash)
+    if status["paid"]:
+
+        exists = await get_ticket(payment_hash)
+        if exists:
+            return {"paid": True, "ticket_id": exists.id}
+
+        ticket = await create_ticket(
+            payment_hash=payment_hash,
+            wallet=event.wallet,
+            event=event_id,
+            name=data.name,
+            email=data.email,
+        )
+        if not ticket:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f"Event could not be fetched.",
             )
-
-            if not ticket:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Event could not be fetched.",
-                )
-
-            return {"paid": True, "ticket_id": ticket.id}
-    except Exception:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Not paid")
+        return {"paid": True, "ticket_id": ticket.id}
     return {"paid": False}
 
 

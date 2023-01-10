@@ -22,7 +22,7 @@ def list_parse_fallback(v):
             return []
 
 
-class LNbitsSetings(BaseSettings):
+class LNbitsSettings(BaseSettings):
     def validate(cls, val):
         if type(val) == str:
             val = val.split(",") if val else []
@@ -35,14 +35,14 @@ class LNbitsSetings(BaseSettings):
         json_loads = list_parse_fallback
 
 
-class UsersSetings(LNbitsSetings):
+class UsersSettings(LNbitsSettings):
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
 
 
-class ThemesSetings(LNbitsSetings):
+class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
     lnbits_site_description: str = Field(default=None)
@@ -58,7 +58,7 @@ class ThemesSetings(LNbitsSetings):
     lnbits_ad_space_enabled: bool = Field(default=False)
 
 
-class OpsSetings(LNbitsSetings):
+class OpsSettings(LNbitsSettings):
     lnbits_force_https: bool = Field(default=False)
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
@@ -67,29 +67,30 @@ class OpsSetings(LNbitsSetings):
     lnbits_denomination: str = Field(default="sats")
 
 
-class FakeWalletFundingSource(LNbitsSetings):
+class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
 
 
-class LNbitsFundingSource(LNbitsSetings):
+class LNbitsFundingSource(LNbitsSettings):
     lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
 
 
-class ClicheFundingSource(LNbitsSetings):
+class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: Optional[str] = Field(default=None)
 
 
-class CoreLightningFundingSource(LNbitsSetings):
+class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
+    clightning_rpc: Optional[str] = Field(default=None)
 
 
-class EclairFundingSource(LNbitsSetings):
+class EclairFundingSource(LNbitsSettings):
     eclair_url: Optional[str] = Field(default=None)
     eclair_pass: Optional[str] = Field(default=None)
 
 
-class LndRestFundingSource(LNbitsSetings):
+class LndRestFundingSource(LNbitsSettings):
     lnd_rest_endpoint: Optional[str] = Field(default=None)
     lnd_rest_cert: Optional[str] = Field(default=None)
     lnd_rest_macaroon: Optional[str] = Field(default=None)
@@ -99,7 +100,7 @@ class LndRestFundingSource(LNbitsSetings):
     lnd_invoice_macaroon: Optional[str] = Field(default=None)
 
 
-class LndGrpcFundingSource(LNbitsSetings):
+class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_endpoint: Optional[str] = Field(default=None)
     lnd_grpc_cert: Optional[str] = Field(default=None)
     lnd_grpc_port: Optional[int] = Field(default=None)
@@ -109,28 +110,28 @@ class LndGrpcFundingSource(LNbitsSetings):
     lnd_grpc_macaroon_encrypted: Optional[str] = Field(default=None)
 
 
-class LnPayFundingSource(LNbitsSetings):
+class LnPayFundingSource(LNbitsSettings):
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)
     lnpay_wallet_key: Optional[str] = Field(default=None)
 
 
-class LnTxtBotFundingSource(LNbitsSetings):
+class LnTxtBotFundingSource(LNbitsSettings):
     lntxbot_api_endpoint: Optional[str] = Field(default=None)
     lntxbot_key: Optional[str] = Field(default=None)
 
 
-class OpenNodeFundingSource(LNbitsSetings):
+class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
 
 
-class SparkFundingSource(LNbitsSetings):
+class SparkFundingSource(LNbitsSettings):
     spark_url: Optional[str] = Field(default=None)
     spark_token: Optional[str] = Field(default=None)
 
 
-class LnTipsFundingSource(LNbitsSetings):
+class LnTipsFundingSource(LNbitsSettings):
     lntips_api_endpoint: Optional[str] = Field(default=None)
     lntips_api_key: Optional[str] = Field(default=None)
     lntips_admin_key: Optional[str] = Field(default=None)
@@ -138,14 +139,14 @@ class LnTipsFundingSource(LNbitsSetings):
 
 
 # todo: must be extracted
-class BoltzExtensionSettings(LNbitsSetings):
+class BoltzExtensionSettings(LNbitsSettings):
     boltz_network: str = Field(default="main")
     boltz_url: str = Field(default="https://boltz.exchange/api")
     boltz_mempool_space_url: str = Field(default="https://mempool.space")
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
 
-class FundingSourcesSetings(
+class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
     ClicheFundingSource,
@@ -162,11 +163,11 @@ class FundingSourcesSetings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
 
-class EditableSetings(
-    UsersSetings,
-    ThemesSetings,
-    OpsSetings,
-    FundingSourcesSetings,
+class EditableSettings(
+    UsersSettings,
+    ThemesSettings,
+    OpsSettings,
+    FundingSourcesSettings,
     BoltzExtensionSettings,
 ):
     @validator(
@@ -187,7 +188,7 @@ class EditableSetings(
         )
 
 
-class EnvSettings(LNbitsSetings):
+class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
@@ -197,18 +198,18 @@ class EnvSettings(LNbitsSetings):
     super_user: str = Field(default="")
 
 
-class SaaSSettings(LNbitsSetings):
+class SaaSSettings(LNbitsSettings):
     lnbits_saas_callback: Optional[str] = Field(default=None)
     lnbits_saas_secret: Optional[str] = Field(default=None)
     lnbits_saas_instance_id: Optional[str] = Field(default=None)
 
 
-class PersistenceSettings(LNbitsSetings):
+class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
 
 
-class SuperUserSettings(LNbitsSetings):
+class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: List[str] = Field(
         default=[
             "VoidWallet",
@@ -242,18 +243,18 @@ class ReadOnlySettings(
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSetings, ReadOnlySettings):
+class Settings(EditableSettings, ReadOnlySettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
         return cls(**data)
 
 
-class SuperSettings(EditableSetings):
+class SuperSettings(EditableSettings):
     super_user: str
 
 
-class AdminSettings(EditableSetings):
+class AdminSettings(EditableSettings):
     super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
 

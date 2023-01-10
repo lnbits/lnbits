@@ -25,7 +25,7 @@
   >
     <div class="col">
       <qrcode
-        :value="copilot.lnurl"
+        :value="'lightning:' + copilot.lnurl"
         :options="{width:250}"
         class="rounded-borders"
       ></qrcode>

@@ -3,13 +3,9 @@ from sqlite3 import Row
 from typing import List, Optional
 
 from fastapi import Request
-from lnurl import Lnurl
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
-from loguru import logger
+from lnurl import encode as lnurl_encode
+from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
-from pydantic.main import BaseModel
 
 
 class createLnurldevice(BaseModel):
@@ -17,8 +13,8 @@ class createLnurldevice(BaseModel):
     wallet: str
     currency: str
     device: str
-    profit: float
-    amount: int
+    profit: float = 0
+    amount: Optional[int] = 0
     pin: int = 0
     profit1: float = 0
     amount1: int = 0
@@ -58,6 +54,7 @@ class lnurldevices(BaseModel):
     pin4: int
     timestamp: str
 
+    @classmethod
     def from_row(cls, row: Row) -> "lnurldevices":
         return cls(**dict(row))
 

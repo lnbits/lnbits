@@ -1,0 +1,175 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h3 class="q-my-none">{{ email }}</h3>
+        <br />
+        <h5 class="q-my-none">{{ desc }}</h5>
+        <br />
+        <q-form @submit="Invoice()" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.receiver"
+            type="text"
+            label="Receiver"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.subject"
+            type="text"
+            label="Subject"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.message"
+            type="textarea"
+            label="Message "
+          ></q-input>
+          <p>Total cost: {{ cost }} sats</p>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="formDialog.data.receiver == '' || formDialog.data.subject == '' || formDialog.data.message == ''"
+              type="submit"
+              >Submit</q-btn
+            >
+          </div>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+    <q-card
+      v-if="!receive.paymentReq"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + receive.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  console.log('{{ cost }}')
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        paymentReq: null,
+        redirectUrl: null,
+        formDialog: {
+          show: false,
+          data: {
+            subject: '',
+            receiver: '',
+            message: ''
+          }
+        },
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null
+        }
+      }
+    },
+
+    methods: {
+      closeReceiveDialog: function () {
+        var checker = this.receive.paymentChecker
+        dismissMsg()
+
+        clearInterval(paymentChecker)
+        setTimeout(function () {}, 10000)
+      },
+      Invoice: function () {
+        var self = this
+        axios
+          .post('/smtp/api/v1/email/{{ emailaddress_id }}', {
+            emailaddress_id: '{{ emailaddress_id }}',
+            subject: self.formDialog.data.subject,
+            receiver: self.formDialog.data.receiver,
+            message: self.formDialog.data.message
+          })
+          .then(function (response) {
+            self.paymentReq = response.data.payment_request
+            self.paymentCheck = response.data.payment_hash
+
+            dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+
+            self.receive = {
+              show: true,
+              status: 'pending',
+              paymentReq: self.paymentReq
+            }
+
+            paymentChecker = setInterval(function () {
+              axios
+                .get('/smtp/api/v1/email/' + self.paymentCheck)
+                .then(function (res) {
+                  console.log(res.data)
+                  if (res.data.paid) {
+                    clearInterval(paymentChecker)
+                    self.receive = {
+                      show: false,
+                      status: 'complete',
+                      paymentReq: null
+                    }
+                    dismissMsg()
+
+                    console.log(self.formDialog)
+                    self.formDialog.data.subject = ''
+                    self.formDialog.data.receiver = ''
+                    self.formDialog.data.message = ''
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Sent, thank you!',
+                      icon: 'thumb_up'
+                    })
+                    console.log('END')
+                  }
+                })
+                .catch(function (error) {
+                  console.log(error)
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 2000)
+          })
+          .catch(function (error) {
+            console.log(error)
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}

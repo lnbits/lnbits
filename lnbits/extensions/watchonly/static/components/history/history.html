@@ -80,6 +80,7 @@
         </q-td>
         <q-td key="address" :props="props">
           <a
+            class="text-secondary"
             v-if="!props.row.sameTxItems"
             style="color: unset"
             :href="'https://' + mempoolEndpoint + '/address/' + props.row.address"
@@ -105,6 +106,7 @@
             <div class="col-2 q-pr-lg">Transaction Id</div>
             <div class="col-10 q-pr-lg">
               <a
+                class="text-secondary"
                 style="color: unset"
                 :href="'https://' +mempoolEndpoint + '/tx/' + props.row.txId"
                 target="_blank"

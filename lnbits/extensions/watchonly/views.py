@@ -1,6 +1,5 @@
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User

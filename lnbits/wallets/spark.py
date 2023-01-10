@@ -200,8 +200,9 @@ class SparkWallet(Wallet):
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
-                fee_msat = -int(
-                    r["pays"][0]["amount_sent_msat"] - r["pays"][0]["amount_msat"]
+                fee_msat = -(
+                    int(r["pays"][0]["amount_sent_msat"][0:-4])
+                    - int(r["pays"][0]["amount_msat"][0:-4])
                 )
                 return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
             elif status == "failed":

@@ -23,8 +23,8 @@ class FakeWallet(Wallet):
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",
-        secret.encode("utf-8"),
-        ("FakeWallet").encode("utf-8"),
+        secret.encode(),
+        ("FakeWallet").encode(),
         2048,
         32,
     ).hex()
@@ -68,9 +68,7 @@ class FakeWallet(Wallet):
             data["description"] = memo
         randomHash = (
             data["privkey"][:6]
-            + hashlib.sha256(str(random.getrandbits(256)).encode("utf-8")).hexdigest()[
-                6:
-            ]
+            + hashlib.sha256(str(random.getrandbits(256)).encode()).hexdigest()[6:]
         )
         data["paymenthash"] = randomHash
         payment_request = encode(data)

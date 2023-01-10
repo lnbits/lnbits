@@ -1,5 +1,4 @@
 import asyncio
-import binascii
 import hashlib
 import json
 import time
@@ -13,6 +12,7 @@ import async_timeout
 import httpx
 import pyqrcode
 from fastapi import (
+    Body,
     Depends,
     Header,
     Query,
@@ -22,7 +22,6 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
@@ -38,7 +37,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -48,14 +47,11 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
-    create_payment,
     get_payments,
     get_standalone_payment,
     get_total_balance,
-    get_wallet,
     get_wallet_for_key,
     save_balance_check,
-    update_payment_status,
     update_wallet,
 )
 from ..services import (
@@ -69,6 +65,11 @@ from ..services import (
     websocketUpdater,
 )
 from ..tasks import api_invoice_listeners
+
+
+@core_app.get("/api/v1/health", status_code=HTTPStatus.OK)
+async def health():
+    return
 
 
 @core_app.get("/api/v1/wallet")
@@ -140,16 +141,14 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash or data.unhashed_description:
         try:
             description_hash = (
-                binascii.unhexlify(data.description_hash)
-                if data.description_hash
-                else b""
+                bytes.fromhex(data.description_hash) if data.description_hash else b""
             )
             unhashed_description = (
-                binascii.unhexlify(data.unhashed_description)
+                bytes.fromhex(data.unhashed_description)
                 if data.unhashed_description
                 else b""
             )
-        except binascii.Error:
+        except ValueError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="'description_hash' and 'unhashed_description' must be a valid hex strings",
@@ -214,7 +213,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         lnurl_response = resp["reason"]
                     else:
                         lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError):
+            except (httpx.ConnectError, httpx.RequestError) as ex:
+                logger.error(ex)
                 lnurl_response = False
 
     return {
@@ -251,7 +251,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoiceData = Body(...),  # type: ignore
+    invoiceData: CreateInvoiceData = Body(...),
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -387,7 +387,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 jdata = json.dumps(dict(data.dict(), pending=False))
 
             yield dict(data=jdata, event=typ)
-    except asyncio.CancelledError as e:
+    except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
         task.cancel()
@@ -536,7 +536,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
                 params.update(
                     description_hash=hashlib.sha256(
-                        data["metadata"].encode("utf-8")
+                        data["metadata"].encode()
                     ).hexdigest()
                 )
                 metadata = json.loads(data["metadata"])
@@ -658,7 +658,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit/", dependencies=[Depends(check_admin)])
+@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
 async def api_auditor():
     WALLET = get_wallet_class()
     total_balance = await get_total_balance()

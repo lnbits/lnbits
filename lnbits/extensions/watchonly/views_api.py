@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import List
 
 import httpx
 from embit import finalizer, script
@@ -7,9 +8,7 @@ from embit.ec import PublicKey
 from embit.networks import NETWORKS
 from embit.psbt import PSBT, DerivationPath
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
-from fastapi import Query, Request
-from fastapi.params import Depends
-from starlette.exceptions import HTTPException
+from fastapi import Depends, HTTPException, Query, Request
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
@@ -57,10 +56,8 @@ async def api_wallets_retrieve(
         return []
 
 
-@watchonly_ext.get("/api/v1/wallet/{wallet_id}")
-async def api_wallet_retrieve(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@watchonly_ext.get("/api/v1/wallet/{wallet_id}", dependencies=[Depends(get_key_type)])
+async def api_wallet_retrieve(wallet_id: str):
     w_wallet = await get_watch_wallet(wallet_id)
 
     if not w_wallet:
@@ -126,8 +123,10 @@ async def api_wallet_create_or_update(
     return wallet.dict()
 
 
-@watchonly_ext.delete("/api/v1/wallet/{wallet_id}")
-async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(require_admin_key)):
+@watchonly_ext.delete(
+    "/api/v1/wallet/{wallet_id}", dependencies=[Depends(require_admin_key)]
+)
+async def api_wallet_delete(wallet_id: str):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
@@ -144,16 +143,15 @@ async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(require_admin
 #############################ADDRESSES##########################
 
 
-@watchonly_ext.get("/api/v1/address/{wallet_id}")
-async def api_fresh_address(wallet_id, w: WalletTypeInfo = Depends(get_key_type)):
+@watchonly_ext.get("/api/v1/address/{wallet_id}", dependencies=[Depends(get_key_type)])
+async def api_fresh_address(wallet_id: str):
     address = await get_fresh_address(wallet_id)
+    assert address
     return address.dict()
 
 
-@watchonly_ext.put("/api/v1/address/{id}")
-async def api_update_address(
-    id: str, req: Request, w: WalletTypeInfo = Depends(require_admin_key)
-):
+@watchonly_ext.put("/api/v1/address/{id}", dependencies=[Depends(require_admin_key)])
+async def api_update_address(id: str, req: Request):
     body = await req.json()
     params = {}
     # amout is only updated if the address has history
@@ -162,9 +160,10 @@ async def api_update_address(
         params["has_activity"] = True
 
     if "note" in body:
-        params["note"] = str(body["note"])
+        params["note"] = body["note"]
 
     address = await update_address(**params, id=id)
+    assert address
 
     wallet = (
         await get_watch_wallet(address.wallet)
@@ -189,6 +188,7 @@ async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 
     addresses = await get_addresses(wallet_id)
     config = await get_config(w.wallet.user)
+    assert config
 
     if not addresses:
         await create_fresh_addresses(wallet_id, 0, config.receive_gap_limit)
@@ -229,10 +229,8 @@ async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 #############################PSBT##########################
 
 
-@watchonly_ext.post("/api/v1/psbt")
-async def api_psbt_create(
-    data: CreatePsbt, w: WalletTypeInfo = Depends(require_admin_key)
-):
+@watchonly_ext.post("/api/v1/psbt", dependencies=[Depends(require_admin_key)])
+async def api_psbt_create(data: CreatePsbt):
     try:
         vin = [
             TransactionInput(bytes.fromhex(inp.tx_id), inp.vout) for inp in data.inputs
@@ -246,7 +244,7 @@ async def api_psbt_create(
         for _, masterpub in enumerate(data.masterpubs):
             descriptors[masterpub.id] = parse_key(masterpub.public_key)
 
-        inputs_extra = []
+        inputs_extra: List[dict] = []
 
         for i, inp in enumerate(data.inputs):
             bip32_derivations = {}
@@ -266,14 +264,15 @@ async def api_psbt_create(
         tx = Transaction(vin=vin, vout=vout)
         psbt = PSBT(tx)
 
-        for i, inp in enumerate(inputs_extra):
-            psbt.inputs[i].bip32_derivations = inp["bip32_derivations"]
-            psbt.inputs[i].non_witness_utxo = inp.get("non_witness_utxo", None)
+        for i, inp_extra in enumerate(inputs_extra):
+            psbt.inputs[i].bip32_derivations = inp_extra["bip32_derivations"]
+            psbt.inputs[i].non_witness_utxo = inp_extra.get("non_witness_utxo", None)
 
         outputs_extra = []
         bip32_derivations = {}
         for i, out in enumerate(data.outputs):
             if out.branch_index == 1:
+                assert out.wallet
                 descriptor = descriptors[out.wallet][0]
                 d = descriptor.derive(out.address_index, out.branch_index)
                 for k in d.keys:
@@ -282,8 +281,8 @@ async def api_psbt_create(
                     )
                 outputs_extra.append({"bip32_derivations": bip32_derivations})
 
-        for i, out in enumerate(outputs_extra):
-            psbt.outputs[i].bip32_derivations = out["bip32_derivations"]
+        for i, out_extra in enumerate(outputs_extra):
+            psbt.outputs[i].bip32_derivations = out_extra["bip32_derivations"]
 
         return psbt.to_string()
 
@@ -292,7 +291,7 @@ async def api_psbt_create(
 
 
 @watchonly_ext.put("/api/v1/psbt/utxos")
-async def api_psbt_extract_tx(
+async def api_psbt_utxos_tx(
     req: Request, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     """Extract previous unspent transaction outputs (tx_id, vout) from PSBT"""
@@ -360,7 +359,8 @@ async def api_tx_broadcast(
             else config.mempool_endpoint + "/testnet"
         )
         async with httpx.AsyncClient() as client:
-            r = await client.post(endpoint + "/api/tx", data=data.tx_hex)
+            r = await client.post(endpoint + "/api/tx", content=data.tx_hex)
+            r.raise_for_status()
             tx_id = r.text
             return tx_id
     except Exception as e:
@@ -375,6 +375,7 @@ async def api_update_config(
     data: Config, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     config = await update_config(data, user=w.wallet.user)
+    assert config
     return config.dict()
 
 

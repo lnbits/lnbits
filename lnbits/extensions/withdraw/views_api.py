@@ -1,10 +1,7 @@
 from http import HTTPStatus
 
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
+from fastapi import Depends, HTTPException, Query, Request
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -30,7 +27,8 @@ async def api_links(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     try:
         return [
@@ -47,7 +45,7 @@ async def api_links(
 
 @withdraw_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_retrieve(
-    link_id, request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    link_id: str, request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     link = await get_withdraw_link(link_id, 0)
 
@@ -68,7 +66,7 @@ async def api_link_retrieve(
 async def api_link_create_or_update(
     req: Request,
     data: CreateWithdrawData,
-    link_id: str = None,
+    link_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     if data.uses > 250:
@@ -85,14 +83,6 @@ async def api_link_create_or_update(
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
-    usescsv = ""
-    for i in range(data.uses):
-        if data.is_unique:
-            usescsv += "," + str(i + 1)
-        else:
-            usescsv += "," + str(1)
-    usescsv = usescsv[1:]
-
     if link_id:
         link = await get_withdraw_link(link_id, 0)
         if not link:
@@ -103,13 +93,10 @@ async def api_link_create_or_update(
             raise HTTPException(
                 detail="Not your withdraw link.", status_code=HTTPStatus.FORBIDDEN
             )
-        link = await update_withdraw_link(
-            link_id, **data.dict(), usescsv=usescsv, used=0
-        )
+        link = await update_withdraw_link(link_id, **data.dict())
     else:
-        link = await create_withdraw_link(
-            wallet_id=wallet.wallet.id, data=data, usescsv=usescsv
-        )
+        link = await create_withdraw_link(wallet_id=wallet.wallet.id, data=data)
+    assert link
     return {**link.dict(), **{"lnurl": link.lnurl(req)}}
 
 
@@ -131,9 +118,11 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admi
     return {"success": True}
 
 
-@withdraw_ext.get("/api/v1/links/{the_hash}/{lnurl_id}", status_code=HTTPStatus.OK)
-async def api_hash_retrieve(
-    the_hash, lnurl_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@withdraw_ext.get(
+    "/api/v1/links/{the_hash}/{lnurl_id}",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(get_key_type)],
+)
+async def api_hash_retrieve(the_hash, lnurl_id):
     hashCheck = await get_hash_check(the_hash, lnurl_id)
     return hashCheck

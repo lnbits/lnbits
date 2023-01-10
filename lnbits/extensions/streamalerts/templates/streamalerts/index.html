@@ -63,7 +63,9 @@
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
-                <a :href="props.row.redirectURI">Redirect URI for Streamlabs</a>
+                <a class="text-secondary" :href="props.row.redirectURI"
+                  >Redirect URI for Streamlabs</a
+                >
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}

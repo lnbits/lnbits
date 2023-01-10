@@ -1,5 +1,4 @@
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists

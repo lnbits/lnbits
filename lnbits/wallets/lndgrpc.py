@@ -8,7 +8,6 @@ except ImportError:  # pragma: nocover
 
 import asyncio
 import base64
-import binascii
 import hashlib
 from os import environ, error
 from typing import AsyncGenerator, Dict, Optional
@@ -72,7 +71,7 @@ def b64_to_bytes(checking_id: str) -> bytes:
 
 
 def bytes_to_b64(r_hash: bytes) -> str:
-    return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
+    return base64.b64encode(r_hash).decode().replace("/", "_")
 
 
 def hex_to_b64(hex_str: str) -> str:
@@ -229,8 +228,8 @@ class LndWallet(Wallet):
         try:
             r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
-                raise binascii.Error
-        except binascii.Error:
+                raise ValueError
+        except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
             return PaymentStatus(None)
@@ -250,8 +249,8 @@ class LndWallet(Wallet):
         try:
             r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
-                raise binascii.Error
-        except binascii.Error:
+                raise ValueError
+        except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
             return PaymentStatus(None)

@@ -1,6 +1,6 @@
-from embit.descriptor import Descriptor, Key  # type: ignore
-from embit.descriptor.arguments import AllowedDerivation  # type: ignore
-from embit.networks import NETWORKS  # type: ignore
+from embit.descriptor import Descriptor, Key
+from embit.descriptor.arguments import AllowedDerivation
+from embit.networks import NETWORKS
 
 
 def detect_network(k):

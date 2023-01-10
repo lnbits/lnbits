@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.settings import AdminSettings, EditableSetings, SuperSettings, settings
+from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
@@ -451,6 +451,34 @@ async def update_payment_details(
     return
 
 
+async def update_payment_extra(
+    payment_hash: str,
+    extra: dict,
+    outgoing: bool = False,
+    conn: Optional[Connection] = None,
+) -> None:
+    """
+    Only update the `extra` field for the payment.
+    Old values in the `extra` JSON object will be kept unless the new `extra` overwrites them.
+    """
+
+    amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
+
+    row = await (conn or db).fetchone(
+        f"SELECT hash, extra from apipayments WHERE hash = ? {amount_clause}",
+        (payment_hash,),
+    )
+    if not row:
+        return
+    db_extra = json.loads(row["extra"] if row["extra"] else "{}")
+    db_extra.update(extra)
+
+    await (conn or db).execute(
+        f"UPDATE apipayments SET extra = ? WHERE hash = ? {amount_clause} ",
+        (json.dumps(db_extra), payment_hash),
+    )
+
+
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
     await (conn or db).execute(
         "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
@@ -579,7 +607,7 @@ async def delete_admin_settings():
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: EditableSetings):
+async def update_admin_settings(data: EditableSettings):
     await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 

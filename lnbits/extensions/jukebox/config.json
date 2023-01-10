@@ -1,6 +1,6 @@
 {
   "name": "Spotify Jukebox",
   "short_description": "Spotify jukebox middleware",
-  "icon": "radio",
+	"tile": "/jukebox/static/image/jukebox.png",
   "contributors": ["benarc"]
 }

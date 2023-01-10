@@ -8,7 +8,7 @@ from .models import Tip, TipJar, createTipJar
 
 
 async def create_tip(
-    id: int, wallet: str, message: str, name: str, sats: int, tipjar: str
+    id: str, wallet: str, message: str, name: str, sats: int, tipjar: str
 ) -> Tip:
     """Create a new Tip"""
     await db.execute(

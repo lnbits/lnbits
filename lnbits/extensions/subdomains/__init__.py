@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter
+from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -9,6 +10,14 @@ from lnbits.tasks import catch_everything_and_restart
 db = Database("ext_subdomains")
 
 subdomains_ext: APIRouter = APIRouter(prefix="/subdomains", tags=["subdomains"])
+
+subdomains_static_files = [
+    {
+        "path": "/subdomains/static",
+        "app": StaticFiles(directory="lnbits/extensions/subdomains/static"),
+        "name": "subdomains_static",
+    }
+]
 
 
 def subdomains_renderer():

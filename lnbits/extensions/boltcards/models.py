@@ -1,14 +1,11 @@
+import json
 from sqlite3 import Row
-from typing import Optional
 
-from fastapi import Request
-from fastapi.params import Query
+from fastapi import Query, Request
 from lnurl import Lnurl
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl import encode as lnurl_encode
+from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
-from pydantic.main import BaseModel
 
 ZERO_KEY = "00000000000000000000000000000000"
 
@@ -32,6 +29,7 @@ class Card(BaseModel):
     otp: str
     time: int
 
+    @classmethod
     def from_row(cls, row: Row) -> "Card":
         return cls(**dict(row))
 
@@ -40,7 +38,7 @@ class Card(BaseModel):
         return lnurl_encode(url)
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
+        return LnurlPayMetadata(json.dumps([["text/plain", self.card_name]]))
 
 
 class CreateCardData(BaseModel):
@@ -69,6 +67,7 @@ class Hit(BaseModel):
     amount: int
     time: int
 
+    @classmethod
     def from_row(cls, row: Row) -> "Hit":
         return cls(**dict(row))
 
@@ -79,5 +78,6 @@ class Refund(BaseModel):
     refund_amount: int
     time: int
 
+    @classmethod
     def from_row(cls, row: Row) -> "Refund":
         return cls(**dict(row))

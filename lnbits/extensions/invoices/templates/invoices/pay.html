@@ -251,10 +251,13 @@ block page %}
     @hide="closeQrCodeDialog"
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
-      <a :href="'lightning:' + qrCodeDialog.data.payment_request">
+      <a
+        class="text-secondary"
+        :href="'lightning:' + qrCodeDialog.data.payment_request"
+      >
         <q-responsive :ratio="1" class="q-mx-xs">
           <qrcode
-            :value="qrCodeDialog.data.payment_request"
+            :value="'lightning:' + qrCodeDialog.data.payment_request"
             :options="{width: 400}"
             class="rounded-borders"
           ></qrcode>

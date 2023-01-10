@@ -1,10 +1,8 @@
 from datetime import datetime
 from http import HTTPStatus
 
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
@@ -30,7 +28,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @invoices_ext.get("/pay/{invoice_id}", response_class=HTMLResponse)
-async def index(request: Request, invoice_id: str):
+async def pay(request: Request, invoice_id: str):
     invoice = await get_invoice(invoice_id)
 
     if not invoice:
