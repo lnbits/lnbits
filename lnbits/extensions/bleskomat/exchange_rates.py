@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Callable
+from typing import Callable, Union, Dict
 
 import httpx
 
@@ -13,7 +13,9 @@ fiat_currencies = json.load(
     )
 )
 
-exchange_rate_providers = {
+exchange_rate_providers: dict[
+    str, dict[str, Union[str, Callable[[dict, dict], str]]]
+] = {
     "bitfinex": {
         "name": "Bitfinex",
         "domain": "bitfinex.com",
@@ -75,6 +77,6 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
         data = r.json()
 
     getter = exchange_rate_providers[provider]["getter"]
-    # TODO: mypy typing does not work out
-    rate = float(getter(data, replacements))  # type: ignore
+    if callable(getter):
+        rate = float(getter(data, replacements))
     return rate
