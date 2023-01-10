@@ -1,3 +1,8 @@
+# Python script to migrate an LNbits SQLite DB to Postgres
+# All credits to @Fritz446 for the awesome work
+
+# pip install psycopg2 OR psycopg2-binary
+
 import argparse
 import os
 import sqlite3
@@ -7,13 +12,6 @@ from typing import List
 import psycopg2
 
 from lnbits.settings import settings
-
-# Python script to migrate an LNbits SQLite DB to Postgres
-# All credits to @Fritz446 for the awesome work
-
-# pip install psycopg2 OR psycopg2-binary
-
-# Change these values as needed
 
 sqfolder = settings.lnbits_data_folder
 db_url = settings.lnbits_database_url
@@ -31,7 +29,7 @@ else:
     pgschema = ""
 
 
-def get_sqlite_cursor(sqdb) -> sqlite3:
+def get_sqlite_cursor(sqdb):
     consq = sqlite3.connect(sqdb)
     return consq.cursor()
 
@@ -112,12 +110,15 @@ def migrate_core(file: str, exclude_tables: List[str] = []):
 def migrate_ext(file: str):
     filename = os.path.basename(file)
     schema = filename.replace("ext_", "").split(".")[0]
-    print(f"Migrating ext: {file}.{schema}")
+    print(f"Migrating ext: {schema} from file {file}")
     migrate_db(file, schema)
     print(f"✅ Migrated ext: {schema}")
 
 
 def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
+    # first we check if this file exists:
+    assert os.path.isfile(file), f"{file} does not exist!"
+
     sq = get_sqlite_cursor(file)
     tables = sq.execute(
         """
@@ -125,6 +126,9 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
     """
     ).fetchall()
+
+    if len(tables) == 0:
+        print(f"⚠️ You sneaky dev! Schema {schema} is empty!")
 
     for table in tables:
         tableName = table[0]
