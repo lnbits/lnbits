@@ -127,9 +127,6 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     """
     ).fetchall()
 
-    if len(tables) == 0:
-        print(f"⚠️ You sneaky dev! Schema {schema} is empty!")
-
     for table in tables:
         tableName = table[0]
         print(f"Migrating table {tableName}")
@@ -143,6 +140,10 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
         q = build_insert_query(schema, tableName, columns)
 
         data = sq.execute(f"SELECT * FROM {tableName};").fetchall()
+
+        if len(data) == 0:
+            print(f"⚠️ You sneaky dev! Table {tableName} is empty!")
+
         insert_to_pg(q, data)
     sq.close()
 
