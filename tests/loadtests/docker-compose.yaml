@@ -1,0 +1,46 @@
+version: '3.5'
+
+networks:
+  lnbits-net:
+
+services:
+  lnbits:
+    build: /Users/moto/Documents/GitHub/motorina0/lnbits/
+    ports:
+      - "5000:5000"
+    environment:
+      LNBITS_DATABASE_URL: postgres://lnbits:secret@postgres-db:5444/lnbits_db
+      LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - lnbits-net
+
+  postgres-db:
+    container_name: postgres_container
+    image: postgres:14
+    environment:
+      POSTGRES_DB: lnbits_db
+      POSTGRES_USER: lnbits
+      POSTGRES_PASSWORD: secret
+      PGDATA: /lnbits//data/postgres
+    volumes:
+       - ./data/postgres:/data/postgres
+    ports:
+      - "5444:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d lnbits_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lnbits-net
+
+  jmeter:
+    container_name: jmeter_container
+    image: justb4/jmeter:5.5
+    # environment:
+    # volumes:
+    #    - ./data/jmeter:/data/postgres
