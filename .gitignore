@@ -22,6 +22,10 @@ tests/data/*.sqlite3
 *.pyo
 *.pyc
 *.env
+*.private
+*.public
+.private
+.public
 .env
 .venv
 venv

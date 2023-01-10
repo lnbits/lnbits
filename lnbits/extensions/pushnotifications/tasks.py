@@ -8,12 +8,14 @@ from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
-from lnbits.settings import LNBITS_DATA_FOLDER
+from lnbits.settings import settings
 from lnbits.tasks import register_invoice_listener
 
 from .crud import create_subscription, delete_subscriptions, get_subscriptions_by_wallet
 
-vapid_key_file = os.path.join(LNBITS_DATA_FOLDER, "ext_pushnotifications_vapid.{}")
+vapid_key_file = os.path.join(
+    settings.lnbits_data_folder, "ext_pushnotifications_vapid.{}"
+)
 
 
 async def wait_for_paid_invoices():
