@@ -113,6 +113,23 @@ async def api_market_product_create(
     if stall.currency != "sat":
         data.price *= settings.fiat_base_multiplier
 
+    if data.image:
+        image_is_url = data.image.startswith("https://") or data.image.startswith(
+            "http://"
+        )
+
+        if not image_is_url:
+
+            def size(b64string):
+                return int((len(b64string) * 3) / 4 - b64string.count("=", -2))
+
+            image_size = size(data.image) / 1024
+            if image_size > 100:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail=f"Image size is too big, {int(image_size)}Kb. Max: 100kb, Compress the image at https://tinypng.com, or use an URL.",
+                )
+
     if product_id:
         product = await get_market_product(product_id)
         if not product:
