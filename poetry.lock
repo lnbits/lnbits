@@ -368,6 +368,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "http-ece"
+version = "1.1.0"
+description = "Encrypted Content Encoding for HTTP"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+cryptography = ">=2.5"
+
+[[package]]
 name = "httpcore"
 version = "0.15.0"
 description = "A minimal low-level HTTP client."
@@ -663,6 +674,17 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
+name = "py-vapid"
+version = "1.9.0"
+description = "Simple VAPID header generation library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+cryptography = ">=2.5"
+
+[[package]]
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
@@ -848,6 +870,21 @@ python-versions = ">=3.7"
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "pywebpush"
+version = "1.14.0"
+description = "WebPush publication library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+cryptography = ">=2.6.1"
+http-ece = ">=1.1.0"
+py-vapid = ">=1.7.0"
+requests = ">=2.21.0"
+six = ">=1.15.0"
 
 [[package]]
 name = "pyyaml"
@@ -1141,8 +1178,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "7f75ca0b067a11f19520dc2121f0789e16738b573a8da84ba3838ed8a466a6e1"
-
+content-hash = "a2e0405290c93b96754222cc6b788d7e002640d8654c0bd086bd6391478d0992"
 
 [metadata.files]
 aiofiles = [
@@ -1475,6 +1511,9 @@ h11 = [
     {file = "h11-0.12.0-py3-none-any.whl", hash = "sha256:36a3cb8c0a032f56e2da7084577878a035d3b61d104230d4bd49c0c6b555a9c6"},
     {file = "h11-0.12.0.tar.gz", hash = "sha256:47222cb6067e4a307d535814917cd98fd0a57b6788ce715755fa2b6c28b56042"},
 ]
+http-ece = [
+    {file = "http_ece-1.1.0.tar.gz", hash = "sha256:932ebc2fa7c216954c320a188ae9c1f04d01e67bec9cdce1bfbc912813b0b4f8"},
+]
 httpcore = [
     {file = "httpcore-0.15.0-py3-none-any.whl", hash = "sha256:1105b8b73c025f23ff7c36468e4432226cbb959176eab66864b8e31c4ee27fa6"},
     {file = "httpcore-0.15.0.tar.gz", hash = "sha256:18b68ab86a3ccf3e7dc0f43598eaddcf472b602aba29f9aa6ab85fe2ada3980b"},
@@ -1737,6 +1776,9 @@ py = [
     {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
     {file = "py-1.11.0.tar.gz", hash = "sha256:51c75c4126074b472f746a24399ad32f6053d1b34b68d2fa41e558e6f4a98719"},
 ]
+py-vapid = [
+    {file = "py-vapid-1.9.0.tar.gz", hash = "sha256:0664ab7899742ef2b287397a4d461ef691ed0cc2f587205128d8cf617ffdb919"},
+]
 pycparser = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
     {file = "pycparser-2.21.tar.gz", hash = "sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"},
@@ -1858,6 +1900,9 @@ python-bitcoinlib = [
 python-dotenv = [
     {file = "python-dotenv-0.21.0.tar.gz", hash = "sha256:b77d08274639e3d34145dfa6c7008e66df0f04b7be7a75fd0d5292c191d79045"},
     {file = "python_dotenv-0.21.0-py3-none-any.whl", hash = "sha256:1684eb44636dd462b66c3ee016599815514527ad99965de77f43e0944634a7e5"},
+]
+pywebpush = [
+    {file = "pywebpush-1.14.0.tar.gz", hash = "sha256:6c36e1679268219e693ba940db2bf254c240ca02664de102b7269afc3c545731"},
 ]
 pyyaml = [
     {file = "PyYAML-5.4.1-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:3b2b1824fe7112845700f815ff6a489360226a5609b96ec2190a45e62a9fc922"},
