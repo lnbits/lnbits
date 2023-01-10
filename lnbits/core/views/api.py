@@ -734,13 +734,8 @@ async def websocket_update_get(item_id: str, data: str):
 
 @core_app.post("/api/v1/extension/{ext_id}/{hash}")
 async def api_install_extension(
-    ext_id: str, hash: str, user: User = Depends(check_user_exists)
+    ext_id: str, hash: str, user: User = Depends(check_admin)
 ):
-    if not user.admin:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
-        )
-
     try:
         extension_list: List[InstallableExtension] = await get_installable_extensions()
     except Exception as ex:
@@ -852,12 +847,7 @@ async def api_install_extension(
 
 
 @core_app.delete("/api/v1/extension/{ext_id}")
-async def api_uninstall_extension(ext_id: str, user: User = Depends(check_user_exists)):
-    if not user.admin:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
-        )
-
+async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
     try:
         extension_list: List[InstallableExtension] = await get_installable_extensions()
     except Exception as ex:
