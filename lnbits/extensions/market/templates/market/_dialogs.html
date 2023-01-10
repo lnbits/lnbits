@@ -55,8 +55,16 @@
       ></q-select>
       <!-- </div> -->
       <!-- </div> -->
-
+      <q-input
+        v-if="productDialog.url"
+        filled
+        dense
+        v-model.trim="productDialog.data.image"
+        type="url"
+        label="Image URL"
+      ></q-input>
       <q-file
+        v-else
         class="q-pr-md"
         filled
         dense
@@ -79,6 +87,10 @@
           />
         </template>
       </q-file>
+      <q-toggle
+        :label="`${productDialog.url ? 'Insert image URL' : 'Upload image file'}`"
+        v-model="productDialog.url"
+      ></q-toggle>
       <q-input
         filled
         dense

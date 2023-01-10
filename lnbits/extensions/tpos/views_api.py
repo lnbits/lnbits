@@ -76,7 +76,12 @@ async def api_tpos_create_invoice(
             wallet_id=tpos.wallet,
             amount=amount,
             memo=f"{tpos.name}",
-            extra={"tag": "tpos", "tipAmount": tipAmount, "tposId": tpos_id},
+            extra={
+                "tag": "tpos",
+                "tipAmount": tipAmount,
+                "tposId": tpos_id,
+                "amount": amount - tipAmount if tipAmount else False,
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))

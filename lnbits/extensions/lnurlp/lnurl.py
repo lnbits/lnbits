@@ -18,7 +18,12 @@ from .crud import increment_pay_link
 
 
 @lnurlp_ext.get(
-    "/api/v1/lnurl/{link_id}",
+    "/api/v1/lnurl/{link_id}",  # Backwards compatibility for old LNURLs / QR codes (with long URL)
+    status_code=HTTPStatus.OK,
+    name="lnurlp.api_lnurl_response.deprecated",
+)
+@lnurlp_ext.get(
+    "/{link_id}",
     status_code=HTTPStatus.OK,
     name="lnurlp.api_lnurl_response",
 )

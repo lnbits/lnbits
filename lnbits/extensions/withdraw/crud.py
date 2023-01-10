@@ -12,7 +12,7 @@ from .models import CreateWithdrawData, HashCheck, WithdrawLink
 async def create_withdraw_link(
     data: CreateWithdrawData, wallet_id: str
 ) -> WithdrawLink:
-    link_id = urlsafe_short_hash()
+    link_id = urlsafe_short_hash()[:6]
     available_links = ",".join([str(i) for i in range(data.uses)])
     await db.execute(
         """

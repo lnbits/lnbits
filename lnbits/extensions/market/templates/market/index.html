@@ -498,6 +498,7 @@
         },
         productDialog: {
           show: false,
+          url: true,
           data: {}
         },
         stallDialog: {
@@ -536,6 +537,9 @@
     methods: {
       resetDialog(dialog) {
         this[dialog].show = false
+        if (dialog == 'productDialog') {
+          this[dialog].url = true
+        }
         this[dialog].data = {}
       },
       toggleDA(value, evt) {
@@ -798,11 +802,17 @@
         var link = _.findWhere(self.products, {id: linkId})
 
         self.productDialog.data = _.clone(link._data)
-        self.productDialog.data.categories = self.productDialog.data.categories.split(
-          ','
-        )
+        if (self.productDialog.data.categories) {
+          self.productDialog.data.categories = self.productDialog.data.categories.split(
+            ','
+          )
+        }
+        if (self.productDialog.data.image.startsWith('data:')) {
+          self.productDialog.url = false
+        }
 
         self.productDialog.show = true
+        console.log(self.productDialog)
       },
       sendProductFormData: function () {
         let _data = {...this.productDialog.data}
@@ -831,14 +841,8 @@
           let canvas = document.createElement('canvas')
           canvas.setAttribute('width', fit.width)
           canvas.setAttribute('height', fit.height)
-          await pica.resize(image, canvas, {
-            quality: 0,
-            alpha: true,
-            unsharpAmount: 95,
-            unsharpRadius: 0.9,
-            unsharpThreshold: 70
-          })
-          this.productDialog.data.image = canvas.toDataURL()
+          output = await pica.resize(image, canvas)
+          this.productDialog.data.image = output.toDataURL('image/jpeg', 0.4)
           this.productDialog = {...this.productDialog}
         }
       },
