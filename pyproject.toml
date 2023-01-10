@@ -91,7 +91,6 @@ files = "lnbits"
 exclude = """(?x)(
     ^lnbits/extensions/bleskomat.
     | ^lnbits/extensions/boltz.
-    | ^lnbits/extensions/livestream.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 
