@@ -1,6 +1,6 @@
 import os
 
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 from starlette.responses import FileResponse, HTMLResponse

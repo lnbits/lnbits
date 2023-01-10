@@ -67,7 +67,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             body += f"\r\n{comment}"
 
         for subscription in subscriptions:
-            url = f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+            url = (
+                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+            )
             send_push_notification(subscription, title, body, url)
     return
 
