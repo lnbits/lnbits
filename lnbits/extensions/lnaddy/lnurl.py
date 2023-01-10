@@ -1,25 +1,25 @@
 import hashlib
+import json
 import math
 from http import HTTPStatus
-import json
 
 from fastapi import Request
+from fastapi.params import Query
 from lnurl import (  # type: ignore
     LnurlErrorResponse,
     LnurlPayActionResponse,
     LnurlPayResponse,
 )
 from loguru import logger
-from starlette.requests import Request
 from starlette.exceptions import HTTPException
-
-from fastapi.params import Query
+from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnaddy_ext
-from .crud import increment_pay_link, get_address_data
+from .crud import get_address_data, increment_pay_link
+
 
 # for .well-known/lnurlp
 async def lnurl_response(username: str, domain: str, request: Request):
@@ -31,10 +31,12 @@ async def lnurl_response(username: str, domain: str, request: Request):
 
     resp = {
         "tag": "payRequest",
-        "callback": request.url_for("lnaddy.api_lnurl_callback", link_id=address_data.id),
+        "callback": request.url_for(
+            "lnaddy.api_lnurl_callback", link_id=address_data.id
+        ),
         "metadata": await address_data.lnurlpay_metadata(domain=domain),
-        "minSendable": int(address_data.min*1000),
-        "maxSendable": int(address_data.max*1000),
+        "minSendable": int(address_data.min * 1000),
+        "maxSendable": int(address_data.max * 1000),
     }
 
     logger.debug("RESP", resp)
@@ -51,7 +53,8 @@ async def api_lnurl_response(request: Request, link_id):
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="API response: Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="API response: Pay link does not exist.",
         )
 
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
@@ -72,7 +75,8 @@ async def api_lnurl_response(request: Request, link_id):
 
         return params
     except Exception as e:
-        print(e) 
+        print(e)
+
 
 @lnaddy_ext.get(
     "/api/v1/lnurl/cb/{link_id}",
@@ -83,7 +87,8 @@ async def api_lnurl_callback(request: Request, link_id):
     link = await increment_pay_link(link_id, served_pr=1)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="API Call: Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="API Call: Pay link does not exist.",
         )
     min, max = link.min, link.max
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
@@ -118,7 +123,7 @@ async def api_lnurl_callback(request: Request, link_id):
         amount=int(amount_received / 1000),
         memo=link.description,
         # unclear why this is broken
-        # unhashed_description=link.lnurlpay_metadata.encode("utf-8"), 
+        # unhashed_description=link.lnurlpay_metadata.encode("utf-8"),
         unhashed_description="lightning address payment".encode("utf-8"),
         extra={
             "tag": "lnurlp",
@@ -137,4 +142,3 @@ async def api_lnurl_callback(request: Request, link_id):
         resp = LnurlPayActionResponse(pr=payment_request, routes=[])
 
     return resp.dict()
-

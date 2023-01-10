@@ -14,7 +14,9 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Lightning Address with paylink</h5>
+            <h5 class="text-subtitle1 q-my-none">
+              Lightning Address with paylink
+            </h5>
           </div>
         </div>
         <q-table
@@ -57,21 +59,19 @@
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
                 <q-btn
-                unelevated
-                dense
-                size="xs"
-                icon="checkmark"
-                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                type="a"
-                :href="'https://sendsats.to/' + props.row.lnaddress +'@' + domain" 
-                target="_blank"
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="checkmark"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'https://sendsats.to/' + props.row.lnaddress +'@' + domain"
+                  target="_blank"
                 >
-              </q-btn>
-              <q-tooltip>Check LN Address works via external call</q-tooltip>
+                </q-btn>
+                <q-tooltip>Check LN Address works via external call</q-tooltip>
               </q-td>
-              <q-td auto-width>
-                  {{props.row.lnaddress}}@{{domain}} 
-              </q-td>
+              <q-td auto-width> {{props.row.lnaddress}}@{{domain}} </q-td>
               <q-td auto-width>
                 <span v-if="props.row.min == props.row.max">
                   {{ props.row.min }}
@@ -162,24 +162,21 @@
           label="Wallet *"
         >
         </q-select>
-          <div class="row">
-            <div class="col">
+        <div class="row">
+          <div class="col">
             <q-input
-            filled
-            dense
-            v-model.trim="formDialog.data.lnaddress"
-            type="text"
-            label="Lightning Address *"
-          > </q-input>
-        </div>
-        <div  class="col" style="margin-top:10px">
-          <span class="label">
-            {% raw %}
-            @{{domain}}
-            {% endraw %}
-          </span>
+              filled
+              dense
+              v-model.trim="formDialog.data.lnaddress"
+              type="text"
+              label="Lightning Address *"
+            >
+            </q-input>
           </div>
-      </div>
+          <div class="col" style="margin-top: 10px">
+            <span class="label"> {% raw %} @{{domain}} {% endraw %} </span>
+          </div>
+        </div>
         <q-input
           filled
           dense

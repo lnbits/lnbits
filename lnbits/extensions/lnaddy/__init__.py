@@ -20,7 +20,6 @@ lnaddy_static_files = [
 ]
 
 
-
 def lnurlp_renderer():
     return template_renderer(["lnbits/extensions/lnaddy/templates"])
 

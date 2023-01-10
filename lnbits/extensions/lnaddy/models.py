@@ -76,11 +76,11 @@ class PayLink(BaseModel):
         else:
             return None
 
-    # this method is use for .well-known/lnurlp, must be kept for LN Addresses 
+    # this method is use for .well-known/lnurlp, must be kept for LN Addresses
     # However - we have duplicate name above and above conflicts
     async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
-            text = f"Payment to {self.lnaddress}"
-            identifier = f"{self.lnaddress}@{domain}"
-            metadata = [["text/plain", text], ["text/identifier", identifier]]
+        text = f"Payment to {self.lnaddress}"
+        identifier = f"{self.lnaddress}@{domain}"
+        metadata = [["text/plain", text], ["text/identifier", identifier]]
 
-            return LnurlPayMetadata(json.dumps(metadata))
+        return LnurlPayMetadata(json.dumps(metadata))

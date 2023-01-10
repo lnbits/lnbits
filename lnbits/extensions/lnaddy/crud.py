@@ -1,45 +1,53 @@
+import re
 from typing import List, Optional, Union
+
+from loguru import logger
 
 from lnbits.db import SQLITE
 
 from . import db
 from .models import CreatePayLinkData, PayLink
-from loguru import logger
-import re
 
 
-async def check_lnaddress_update(lnaddress: str, id: str) -> bool: 
+async def check_lnaddress_update(lnaddress: str, id: str) -> bool:
     # check no duplicates for lnaddress when updating an lnaddress name
-    row = await db.fetchall("SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ? AND id = ?", (lnaddress,id))
+    row = await db.fetchall(
+        "SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ? AND id = ?",
+        (lnaddress, id),
+    )
     logger.info("number of rows from lnaddress search")
     logger.info(len(row))
     if len(row) > 1:
         assert False, "Lighting Address Already exists. Try a different One?"
-        return 
-    else: 
+        return
+    else:
         return True
 
 
 async def check_lnaddress_exists(lnaddress: str) -> bool:
     # check if lnaddress name exists in the database when creating a new entry
-    row = await db.fetchall("SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress))
+    row = await db.fetchall(
+        "SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress)
+    )
     logger.info("number of rows from lnaddress search")
-    if row: 
+    if row:
         assert False, "Lighting Address Already exists. Try a different One?"
-        return 
-    else: 
+        return
+    else:
         return True
-        
+
+
 async def check_lnaddress_format(lnaddress: str) -> bool:
     if not re.match("^[a-z0-9-_.]{3,15}$", lnaddress):
         assert False, "Only letters a-z0-9-_. allowed, min 3 and max 15 characters!"
         return
     return True
 
+
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     await check_lnaddress_format(data.lnaddress)
     await check_lnaddress_exists(data.lnaddress)
-        
+
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
 
@@ -78,7 +86,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.comment_chars,
             data.currency,
             data.fiat_base_multiplier,
-            data.lnaddress
+            data.lnaddress,
         ),
     )
     if db.type == SQLITE:
@@ -92,7 +100,9 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
 
 
 async def get_address_data(lnaddress: str) -> Optional[PayLink]:
-    row = await db.fetchone("SELECT * FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress,))
+    row = await db.fetchone(
+        "SELECT * FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress,)
+    )
     return PayLink.from_row(row) if row else None
 
 
@@ -115,9 +125,10 @@ async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
     )
     return [PayLink.from_row(row) for row in rows]
 
+
 async def update_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
     for field in kwargs.items():
-       if field[0] == 'lnaddress':
+        if field[0] == "lnaddress":
             value = field[1]
             logger.info(value)
             await check_lnaddress_format(value)
