@@ -51,8 +51,8 @@
 <q-card flat>
   <q-card-section>
     <div class="text-h5 q-mb-md">
-      {{SITE_TITLE}} Extension Development Guide
-      <small>(Collection of resources for extension developers)</small>
+      Extension Development Guide
+      <small>(also check the <a class="text-primary" href="http://docs.lnbits.org/devs/development.html">docs</a>)</small>
     </div>
 
     <q-card unelevated flat>
@@ -188,8 +188,7 @@
                   <p>
                     LNbits uses
                     <a href="https://vuejs.org/" class="text-primary">Vue</a>
-                    components for best-in-class high-performance and responsive
-                    performance.
+                    for best-in-class, responsive and high-performance components.
                   </p>
 
                   <p>Typical example of Vue components in a frontend script:</p>
@@ -199,7 +198,7 @@
                   /><br /><br />
 
                   <p>
-                    In a page body, models can be called. <br />Content can be
+                    Content can be
                     conditionally rendered using Vue's
                     <code class="bg-grey-3 text-black">v-if</code>:
                   </p>
@@ -220,6 +219,8 @@
               <q-tabs v-model="usefultab" align="left">
                 <q-tab name="magicalg">MAGICAL G</q-tab>
                 <q-tab name="exchange">EXCHANGE RATES</q-tab>
+                <q-tab name="qrcodes">QR CODES</q-tab>
+                <q-tab name="websockets">WEBSOCKETS</q-tab>
               </q-tabs>
             </template>
 
@@ -255,6 +256,45 @@
                   >:<br />
                   <img src="./static/conversion-example2.png" />
                 </q-tab-panel>
+                <q-tab-panel name="qrcodes" class="text-body1">
+                  <div class="text-h5 q-mb-md">QR Codes</div>
+                  <p>For most purposes use Quasar's inbuilt VueQrcode library:</p>
+                  <img src="./static/qrcode-example1.png" />
+                  <p>
+                    LNbits does also include a handy
+                    <a
+                      href="../docs#/default/img_api_v1_qrcode__data__get"
+                      class="text-primary"
+                      > QR code enpoint</a
+                    >
+                  </p>
+                  {% raw
+                    %} You can use via <a href="/api/v1/qrcode/some-data-you-want-in-a-qrcode" class="text-primary">{{protocol + location}}{% endraw %}/api/v1/qrcode/some-data-you-want-in-a-qrcode:</a><br />
+                 <br />
+                 <img src="./static/qrcode-example.png" />
+                 <br/>
+                  <img class="bg-white" width="300px" src="/api/v1/qrcode/some-data-you-want-in-a-qrcode" />
+                  
+                  <br />
+
+                </q-tab-panel>
+
+                <q-tab-panel name="websockets" class="text-body1">
+                  <div class="text-h5 q-mb-md">Websockets</div>
+                  <p>Fastapi includes a great <a class="text-primary" href="https://fastapi.tiangolo.com/advanced/websockets/#websockets-client">websocket tool</a></p>
+                  {% raw
+                    %}
+                  <p>
+                    A few LNbits extensions also make use of a weird and useful websocket/GET tool built into LNbits, such as extensions Copilot and LNURLDevices<br/>
+                    You can subscribe to websocket with <code class="bg-grey-3 text-black">wss:{{location}}/api/v1/ws/{SOME-ID}</code><br/>
+                    You can post to any clients subscribed to the endpoint with <code class="bg-grey-3 text-black">{{protocol + location}}/api/v1/ws/{SOME-ID}/{THE-DATA-YOU-WANT-TO-POST}</code><br/>
+                 <br/>
+                 <strong></div><div id="text-to-change">DEMO: Hit <a target="_blank" href="/api/v1/ws/32872r23g29/blah%20blah%20blah" class="text-primary">{{protocol + location}}/api/v1/ws/32872r23g29/blah%20blah%20blah</a> in a different browser window to change this text to `blah blah blah`.</div></strong>
+                 <br/>
+                 Function used in this demo:<br/>
+                 <img src="./static/websocket-example.png" />
+                </q-tab-panel>
+                {% endraw %}
               </q-tab-panels>
             </template>
           </div>
@@ -296,6 +336,8 @@
     data: function () {
       return {
         ///// Declare models/variables /////
+        protocol: window.location.protocol,
+        location: "//" + window.location.hostname,
         thingDialog: {
           show: false,
           data: {}
@@ -310,7 +352,7 @@
     },
     ///// Where functions live /////
     methods: {
-      exampleFunction(data) {
+      exampleFunction: function(data) {
         var theData = data
         LNbits.api
           .request(
@@ -325,6 +367,28 @@
             LNbits.utils.notifyApiError(error) // Error will be passed to the frontend
           })
       },
+      initWs: async function () {
+        if (location.protocol !== 'http:') {
+        localUrl =
+          'wss://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/api/v1/ws/32872r23g29'
+        } else {
+        localUrl =
+          'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/api/v1/ws/32872r23g29'
+      }
+      this.ws = new WebSocket(localUrl)
+      this.ws.addEventListener('message', async ({data}) => {
+        const res = data.toString()
+        document.getElementById("text-to-change").innerHTML = res
+      })
+},
       sendThingDialog() {
         console.log(this.thingDialog)
       }
@@ -333,6 +397,7 @@
     created: function () {
       self = this // Often used to run a real object, rather than the event (all a bit confusing really)
       self.exampleFunction('lorum')
+      self.initWs()
     }
   })
 </script>
