@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        env: 
+        env:
           VIRTUAL_ENV: ./venv
           PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
@@ -43,9 +43,6 @@ jobs:
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
-        env:
-          VIRTUAL_ENV: ./venv
-          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
           poetry install
       - name: Run tests
