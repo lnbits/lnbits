@@ -2549,7 +2549,7 @@ vars.put(&quot;userBalance&quot;, userBalance)</stringProp>
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">/Users/moto/Documents/GitHub/motorina0/lnbits/tests/loadtests/lnurl-p.csv</stringProp>
+          <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
         <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
