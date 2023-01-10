@@ -106,6 +106,10 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if not "path" in scope:
+            await self.app(scope, receive, send)
+            return
+
         path_elements = scope["path"].split("/")
         if len(path_elements) > 2:
             _, path_name, path_type, *rest = path_elements
