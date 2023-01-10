@@ -1,15 +1,17 @@
 import json
+from typing import List, Optional
 
 from . import db
 from .models import Subscription
-from typing import List, Optional
 
 
-async def get_subscription(
-    endpoint: str, wallet: str
-) -> Optional[Subscription]:
+async def get_subscription(endpoint: str, wallet: str) -> Optional[Subscription]:
     row = await db.fetchone(
-        "SELECT * FROM pushnotifications.subscriptions WHERE endpoint = ? AND wallet = ?", (endpoint, wallet,)
+        "SELECT * FROM pushnotifications.subscriptions WHERE endpoint = ? AND wallet = ?",
+        (
+            endpoint,
+            wallet,
+        ),
     )
     return Subscription(**dict(row)) if row else None
 
@@ -36,7 +38,12 @@ async def create_subscription(
         INSERT INTO pushnotifications.subscriptions (endpoint, wallet, data, host)
         VALUES (?, ?, ?, ?)
         """,
-        (endpoint, wallet, data, host, )
+        (
+            endpoint,
+            wallet,
+            data,
+            host,
+        ),
     )
     subscription = await get_subscription(endpoint, wallet)
     assert subscription, "Newly created subscription couldn't be retrieved"
@@ -47,4 +54,6 @@ async def delete_subscriptions(endpoint: str) -> None:
     """
     Delete subscriptions of all wallets registered to this endpoint.
     """
-    await db.execute("DELETE FROM pushnotifications.subscriptions WHERE endpoint = ?", (endpoint,))
+    await db.execute(
+        "DELETE FROM pushnotifications.subscriptions WHERE endpoint = ?", (endpoint,)
+    )

@@ -1,12 +1,10 @@
 import os
 
 from fastapi import Request
+from fastapi.params import Depends
 from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
-from fastapi.params import Depends
-
-from starlette.responses import HTMLResponse
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
@@ -24,15 +22,13 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         {
             "request": request,
             "user": user.dict(),
-            "vapid_public_key": get_vapid_public_key()
-        }
+            "vapid_public_key": get_vapid_public_key(),
+        },
     )
 
 
 @pushnotifications_ext.get("/service_worker.js", response_class=FileResponse)
 async def service_worker(request: Request):
     return FileResponse(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "service_worker.js"
-        )
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "service_worker.js")
     )

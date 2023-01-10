@@ -104,7 +104,9 @@ const vm = new Vue({
       LNbits.api
         .request(
           'DELETE',
-          'api/v1/subscription?endpoint=' + btoa(endpoint) + '&all_wallets=true',
+          'api/v1/subscription?endpoint=' +
+            btoa(endpoint) +
+            '&all_wallets=true',
           this.g.user.wallets[0].adminkey
         )
         .catch(function (error) {
@@ -128,7 +130,7 @@ const vm = new Vue({
               }
             })
           })
-      } catch(e) {
+      } catch (e) {
         console.error(e)
       }
     }
@@ -160,7 +162,7 @@ const updateSubscriptionStatus = async () => {
           })
         })
     }
-  } catch(e) {
+  } catch (e) {
     console.error(e)
   }
 }

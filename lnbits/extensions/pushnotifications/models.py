@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 
+
 class CreateSubscription(BaseModel):
     subscription: str
+
 
 class Subscription(BaseModel):
     endpoint: str

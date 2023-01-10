@@ -1,7 +1,7 @@
 async def m001_initial(db):
 
-   await db.execute(
-       f"""
+    await db.execute(
+        f"""
        CREATE TABLE pushnotifications.subscriptions (
            endpoint TEXT NOT NULL,
            wallet TEXT NOT NULL,
@@ -10,4 +10,4 @@ async def m001_initial(db):
            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
        );
        """
-   )
+    )

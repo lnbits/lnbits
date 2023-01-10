@@ -1,25 +1,19 @@
-import os, asyncio, json
+import asyncio
+import json
+import os
+
+from cryptography.hazmat.primitives import serialization
+from py_vapid import Vapid, b64urlencode
+from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
-from lnbits.tasks import register_invoice_listener
 from lnbits.settings import LNBITS_DATA_FOLDER
+from lnbits.tasks import register_invoice_listener
 
-from pywebpush import webpush, WebPushException
-from py_vapid import Vapid, b64urlencode
-from cryptography.hazmat.primitives import serialization
+from .crud import create_subscription, delete_subscriptions, get_subscriptions_by_wallet
 
-from .crud import (
-    get_subscriptions_by_wallet,
-    create_subscription,
-    delete_subscriptions
-)
-
-
-vapid_key_file = os.path.join(
-  LNBITS_DATA_FOLDER,
-  "ext_pushnotifications_vapid.{}"
-)
+vapid_key_file = os.path.join(LNBITS_DATA_FOLDER, "ext_pushnotifications_vapid.{}")
 
 
 async def wait_for_paid_invoices():
@@ -39,8 +33,7 @@ def create_vapid_key_pair():
 
     if not os.path.exists(vapid_key_file.format("public")):
         public_key = private_key.public_key.public_bytes(
-            serialization.Encoding.X962,
-            serialization.PublicFormat.UncompressedPoint
+            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
         )
         f = open(vapid_key_file.format("public"), "w")
         f.write(b64urlencode(public_key))
@@ -49,8 +42,7 @@ def create_vapid_key_pair():
 def get_vapid_public_key():
     private_key = Vapid().from_file(vapid_key_file.format("private"))
     public_key = private_key.public_key.public_bytes(
-        serialization.Encoding.X962,
-        serialization.PublicFormat.UncompressedPoint
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
     )
     return b64urlencode(public_key)
 
@@ -80,13 +72,9 @@ def send_push_notification(subscription, title, body, url=""):
     try:
         webpush(
             json.loads(subscription.data),
-            json.dumps({
-                "title": title,
-                "body": body,
-                "url": url
-            }),
+            json.dumps({"title": title, "body": body, "url": url}),
             Vapid().from_file(vapid_key_file.format("private")),
-            {"aud":"", "sub": "mailto:dev@schneimi.de"}
+            {"aud": "", "sub": "mailto:dev@schneimi.de"},
         )
     except WebPushException as e:
         """
