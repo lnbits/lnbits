@@ -142,7 +142,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
         data = sq.execute(f"SELECT * FROM {tableName};").fetchall()
 
         if len(data) == 0:
-            print(f"⚠️ You sneaky dev! Table {tableName} is empty!")
+            print(f"🛑 You sneaky dev! Table {tableName} is empty!")
 
         insert_to_pg(q, data)
     sq.close()
