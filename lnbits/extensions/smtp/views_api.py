@@ -5,7 +5,6 @@ from fastapi import Depends, HTTPException, Query
 from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from .models import CreateEmail, CreateEmailaddress
 
 from . import smtp_ext
 from .crud import (
@@ -20,7 +19,7 @@ from .crud import (
     update_emailaddress,
 )
 from .models import CreateEmail, CreateEmailaddress
-from .smtp import valid_email, send_mail
+from .smtp import send_mail, valid_email
 
 
 ## EMAILS
