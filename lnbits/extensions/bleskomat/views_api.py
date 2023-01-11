@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.extensions.bleskomat.models import CreateBleskomat
+from .models import CreateBleskomat
 
 from . import bleskomat_ext
 from .crud import (
