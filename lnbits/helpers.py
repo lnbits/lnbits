@@ -48,6 +48,14 @@ class InstallableExtension(NamedTuple):
     is_admin_only: bool = False
     version: Optional[int] = 0
 
+    @property
+    def zip_path(self):
+        extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+        os.makedirs(extensions_data_dir, exist_ok=True)
+        ext_data_dir = os.path.join(extensions_data_dir, self.id)
+        shutil.rmtree(ext_data_dir, True)
+        return os.path.join(extensions_data_dir, f"{self.id}.zip")
+
 
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):

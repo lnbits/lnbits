@@ -1,14 +1,16 @@
 import hashlib
 import importlib
+import os
 import re
 import urllib.request
+from http import HTTPStatus
 from typing import List
 
 import httpx
 from fastapi.exceptions import HTTPException
 from loguru import logger
 
-from lnbits.helpers import InstallableExtension
+from lnbits.helpers import InstallableExtension, get_valid_extensions
 from lnbits.settings import settings
 
 from . import db as core_db
@@ -74,6 +76,56 @@ async def get_installable_extensions() -> List[InstallableExtension]:
                 ]
 
     return extension_list
+
+
+async def get_installable_extension_meta(
+    ext_id: str, hash: str
+) -> InstallableExtension:
+    installable_extensions: List[
+        InstallableExtension
+    ] = await get_installable_extensions()
+
+    valid_extensions = [
+        e for e in installable_extensions if e.id == ext_id and e.hash == hash
+    ]
+    if len(valid_extensions) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+    extension = valid_extensions[0]
+
+    # check that all dependecies are installed
+    installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+    if not set(extension.dependencies).issubset(installed_extensions):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Not all dependencies are installed: {extension.dependencies}",
+        )
+
+    return extension
+
+
+def download_extension_archive(archive: str, ext_zip_file: str, hash: str):
+    if os.path.isfile(ext_zip_file):
+        os.remove(ext_zip_file)
+    try:
+        download_url(archive, ext_zip_file)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Cannot fetch extension archive file",
+        )
+
+    archive_hash = file_hash(ext_zip_file)
+    if hash != archive_hash:
+        # remove downloaded archive
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="File hash missmatch. Will not install.",
+        )
 
 
 def download_url(url, save_path):
