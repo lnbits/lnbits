@@ -730,9 +730,9 @@ async def api_install_extension(
     ext_info: InstallableExtension = await InstallableExtension.get_extension_info(
         ext_id, hash
     )
+    ext_info.download_archive()
 
     try:
-        ext_info.download_archive()
         ext_info.extract_archive()
 
         extension = Extension.from_installable_ext(ext_info)
@@ -744,27 +744,15 @@ async def api_install_extension(
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
         settings.lnbits_disabled_extensions += [ext_id]
 
-        if ext_info.module_installed:
-            # update upgraded extensions list if module already installed
-            ext_temp_path = f"{extension.hash}/{extension.code}"
-            clean_upgraded_exts = list(
-                filter(
-                    lambda old_ext: old_ext.endswith(ext_temp_path),
-                    settings.lnbits_upgraded_extensions,
-                )
-            )
-            settings.lnbits_upgraded_extensions = clean_upgraded_exts + [ext_temp_path]
-
-        # mount routes at the very end
+        # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
+
+        if ext_info.module_installed:
+            ext_info.nofiy_upgrade()
+
     except Exception as ex:
         logger.warning(ex)
-        # remove downloaded archive
-        if os.path.isfile(ext_info.zip_path):
-            os.remove(ext_info.zip_path)
-
-        # remove module from extensions
-        shutil.rmtree(ext_info.ext_dir, True)
+        ext_info.clean_extension_files()
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )

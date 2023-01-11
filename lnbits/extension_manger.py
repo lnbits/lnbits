@@ -165,6 +165,29 @@ class InstallableExtension(NamedTuple):
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(ext_upgrade_dir)
 
+    def nofiy_upgrade(self) -> None:
+        """Update the the list of upgraded extensions. The middleware will perform redirects based on this"""
+        if not self.hash:
+            return
+
+        clean_upgraded_exts = list(
+            filter(
+                lambda old_ext: old_ext.endswith(f"/{self.id}"),
+                settings.lnbits_upgraded_extensions,
+            )
+        )
+        settings.lnbits_upgraded_extensions = clean_upgraded_exts + [
+            f"{self.hash}/{self.id}"
+        ]
+
+    def clean_extension_files(self):
+        # remove downloaded archive
+        if os.path.isfile(self.zip_path):
+            os.remove(self.zip_path)
+
+        # remove module from extensions
+        shutil.rmtree(self.ext_dir, True)
+
     @classmethod
     async def get_extension_info(cls, ext_id: str, hash: str) -> "InstallableExtension":
         installable_extensions: List[
