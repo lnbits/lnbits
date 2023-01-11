@@ -190,9 +190,8 @@ async def create_reverse_submarine_swap(
     return reverse_swap
 
 
-
 async def get_auto_reverse_submarine_swaps(
-    wallet_ids: List[str]
+    wallet_ids: List[str],
 ) -> List[AutoReverseSubmarineSwap]:
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(

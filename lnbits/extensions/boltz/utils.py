@@ -1,7 +1,6 @@
+import asyncio
 import calendar
 import datetime
-import asyncio
-
 from typing import Awaitable
 
 from boltz_client.boltz import BoltzClient, BoltzConfig
@@ -9,7 +8,6 @@ from boltz_client.boltz import BoltzClient, BoltzConfig
 from lnbits.core.services import fee_reserve, get_wallet, pay_invoice
 from lnbits.settings import settings
 
-from .crud import update_swap_status
 from .models import ReverseSubmarineSwap
 
 
@@ -52,7 +50,7 @@ async def execute_reverse_swap(client, swap: ReverseSubmarineSwap):
             redeem_script_hex=swap.redeem_script,
         )
     )
-    # pay_task is paying the hold invoice which gets holded until you reveal your preimage when claiming your onchain funds
+    # pay_task is paying the hold invoice which gets held until you reveal your preimage when claiming your onchain funds
     pay_task = pay_invoice_and_update_status(
         swap.id,
         claim_task,
@@ -74,6 +72,9 @@ def pay_invoice_and_update_status(
     swap_id: str, wstask: asyncio.Task, awaitable: Awaitable
 ) -> asyncio.Task:
     async def _pay_invoice(awaitable):
+        # circular import
+        from .crud import update_swap_status
+
         try:
             awaited = await awaitable
             await update_swap_status(swap_id, "complete")
