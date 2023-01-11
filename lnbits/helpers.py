@@ -1,12 +1,18 @@
 import glob
+import hashlib
 import json
 import os
+import shutil
+import urllib.request
 from http import HTTPStatus
 from typing import Any, List, NamedTuple, Optional
 
+import httpx
 import jinja2
 import shortuuid  # type: ignore
+from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.jinja2_templating import Jinja2Templates
@@ -52,9 +58,86 @@ class InstallableExtension(NamedTuple):
     def zip_path(self):
         extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
         os.makedirs(extensions_data_dir, exist_ok=True)
-        ext_data_dir = os.path.join(extensions_data_dir, self.id)
-        shutil.rmtree(ext_data_dir, True)
         return os.path.join(extensions_data_dir, f"{self.id}.zip")
+
+    def download_archive(self):
+        ext_zip_file = self.zip_path
+        if os.path.isfile(ext_zip_file):
+            os.remove(ext_zip_file)
+        try:
+            download_url(self.archive, ext_zip_file)
+        except Exception as ex:
+            logger.warning(ex)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Cannot fetch extension archive file",
+            )
+
+        archive_hash = file_hash(ext_zip_file)
+        if self.hash != archive_hash:
+            # remove downloaded archive
+            if os.path.isfile(ext_zip_file):
+                os.remove(ext_zip_file)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="File hash missmatch. Will not install.",
+            )
+
+    @classmethod
+    async def get_extension_info(cls, ext_id: str, hash: str) -> "InstallableExtension":
+        installable_extensions: List[
+            InstallableExtension
+        ] = await InstallableExtension.get_installable_extensions()
+
+        valid_extensions = [
+            e for e in installable_extensions if e.id == ext_id and e.hash == hash
+        ]
+        if len(valid_extensions) == 0:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown extension id: {ext_id}",
+            )
+        extension = valid_extensions[0]
+
+        # check that all dependecies are installed
+        installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+        if not set(extension.dependencies).issubset(installed_extensions):
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f"Not all dependencies are installed: {extension.dependencies}",
+            )
+
+        return extension
+
+    @classmethod
+    async def get_installable_extensions(cls) -> List["InstallableExtension"]:
+        extension_list: List[InstallableExtension] = []
+
+        async with httpx.AsyncClient() as client:
+            for url in settings.lnbits_extensions_manifests:
+                resp = await client.get(url)
+                if resp.status_code != 200:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Unable to fetch extension list for repository: {url}",
+                    )
+                for e in resp.json()["extensions"]:
+                    extension_list += [
+                        InstallableExtension(
+                            id=e["id"],
+                            name=e["name"],
+                            archive=e["archive"],
+                            hash=e["hash"],
+                            short_description=e["shortDescription"],
+                            details=e["details"] if "details" in e else "",
+                            icon=e["icon"],
+                            dependencies=e["dependencies"]
+                            if "dependencies" in e
+                            else [],
+                        )
+                    ]
+
+        return extension_list
 
 
 class ExtensionManager:
@@ -289,3 +372,19 @@ def get_current_extension_name() -> str:
     except:
         ext_name = extension_director_name
     return ext_name
+
+
+def download_url(url, save_path):
+    with urllib.request.urlopen(url) as dl_file:
+        with open(save_path, "wb") as out_file:
+            out_file.write(dl_file.read())
+
+
+def file_hash(filename):
+    h = hashlib.sha256()
+    b = bytearray(128 * 1024)
+    mv = memoryview(b)
+    with open(filename, "rb", buffering=0) as f:
+        while n := f.readinto(mv):
+            h.update(mv[:n])
+    return h.hexdigest()

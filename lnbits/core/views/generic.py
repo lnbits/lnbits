@@ -11,7 +11,6 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
-from lnbits.core.helpers import get_installable_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
@@ -81,7 +80,9 @@ async def extensions_install(
         )
 
     try:
-        extension_list: List[InstallableExtension] = await get_installable_extensions()
+        extension_list: List[
+            InstallableExtension
+        ] = await InstallableExtension.get_installable_extensions()
     except Exception as ex:
         logger.warning(ex)
         raise HTTPException(

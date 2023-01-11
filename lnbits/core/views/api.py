@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import importlib
 import inspect
 import json
 import os
@@ -30,26 +29,18 @@ from fastapi import (
 )
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
-from genericpath import isfile
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
-from sse_starlette.sse import EventSourceResponse, ServerSentEvent
+from sse_starlette.sse import EventSourceResponse
 from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.helpers import (
-    download_extension_archive,
-    file_hash,
-    get_installable_extension_meta,
-    get_installable_extensions,
-    migrate_extension_database,
-)
+from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
-    check_user_exists,
     get_key_type,
     require_admin_key,
     require_invoice_key,
@@ -737,34 +728,34 @@ async def websocket_update_get(item_id: str, data: str):
 async def api_install_extension(
     ext_id: str, hash: str, user: User = Depends(check_admin)
 ):
-
-    ext_meta: InstallableExtension = await get_installable_extension_meta(ext_id, hash)
-
-    download_extension_archive(ext_meta.archive, ext_meta.zip_path, ext_meta.hash)
+    ext_info: InstallableExtension = await InstallableExtension.get_extension_info(
+        ext_id, hash
+    )
+    ext_info.download_archive()
 
     try:
         ext_dir = os.path.join("lnbits/extensions", ext_id)
         shutil.rmtree(ext_dir, True)
-        with zipfile.ZipFile(ext_meta.zip_path, "r") as zip_ref:
+        with zipfile.ZipFile(ext_info.zip_path, "r") as zip_ref:
             zip_ref.extractall("lnbits/extensions")
 
         ext_upgrade_dir = os.path.join(
-            "lnbits/upgrades", f"{ext_meta.id}-{ext_meta.hash}"
+            "lnbits/upgrades", f"{ext_info.id}-{ext_info.hash}"
         )
         os.makedirs("lnbits/upgrades", exist_ok=True)
         shutil.rmtree(ext_upgrade_dir, True)
-        with zipfile.ZipFile(ext_meta.zip_path, "r") as zip_ref:
+        with zipfile.ZipFile(ext_info.zip_path, "r") as zip_ref:
             zip_ref.extractall(ext_upgrade_dir)
 
         module_name = f"lnbits.extensions.{ext_id}"
         module_installed = module_name in sys.modules
         # todo: is admin only
         ext = Extension(
-            code=ext_meta.id,
+            code=ext_info.id,
             is_valid=True,
             is_admin_only=False,
-            name=ext_meta.name,
-            hash=ext_meta.hash if module_installed else "",
+            name=ext_info.name,
+            hash=ext_info.hash if module_installed else "",
         )
 
         current_versions = await get_dbversions()
@@ -791,8 +782,8 @@ async def api_install_extension(
     except Exception as ex:
         logger.warning(ex)
         # remove downloaded archive
-        if os.path.isfile(ext_meta.zip_path):
-            os.remove(ext_meta.zip_path)
+        if os.path.isfile(ext_info.zip_path):
+            os.remove(ext_info.zip_path)
 
         # remove module from extensions
         shutil.rmtree(ext_dir, True)
@@ -804,7 +795,9 @@ async def api_install_extension(
 @core_app.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
     try:
-        extension_list: List[InstallableExtension] = await get_installable_extensions()
+        extension_list: List[
+            InstallableExtension
+        ] = await InstallableExtension.get_installable_extensions()
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
