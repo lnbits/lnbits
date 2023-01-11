@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Address, CreateAddressData, CreateDomainData, EditDomainData, Domain
+from .models import Address, CreateAddressData, CreateDomainData, Domain, EditDomainData
 
 
 async def get_domain(domain_id: str) -> Optional[Domain]:
@@ -169,6 +169,7 @@ async def create_address_internal(domain_id: str, data: CreateAddressData) -> Ad
     assert address, "Newly created address couldn't be retrieved"
     return address
 
+
 async def update_domain_internal(wallet_id: str, data: EditDomainData) -> Domain:
     if data.currency != "Satoshis":
         amount = data.amount * 100
@@ -187,6 +188,7 @@ async def update_domain_internal(wallet_id: str, data: EditDomainData) -> Domain
     domain = await get_domain(data.id)
     assert domain, "Domain couldn't be updated"
     return domain
+
 
 async def create_domain_internal(wallet_id: str, data: CreateDomainData) -> Domain:
     domain_id = urlsafe_short_hash()

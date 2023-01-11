@@ -28,7 +28,12 @@ from .crud import (
     rotate_address,
     update_domain_internal,
 )
-from .models import CreateAddressData, CreateDomainData, RotateAddressData, EditDomainData
+from .models import (
+    CreateAddressData,
+    CreateDomainData,
+    EditDomainData,
+    RotateAddressData,
+)
 
 
 @nostrnip5_ext.get("/api/v1/domains", status_code=HTTPStatus.OK)
@@ -89,6 +94,7 @@ async def api_domain_create(
 
     return domain
 
+
 @nostrnip5_ext.put("/api/v1/domain", status_code=HTTPStatus.OK)
 async def api_domain_update(
     data: EditDomainData, wallet: WalletTypeInfo = Depends(get_key_type)
@@ -97,6 +103,7 @@ async def api_domain_update(
     domain = await update_domain_internal(wallet_id=wallet.wallet.id, data=data)
 
     return domain
+
 
 @nostrnip5_ext.delete("/api/v1/domain/{domain_id}", status_code=HTTPStatus.CREATED)
 async def api_domain_delete(
