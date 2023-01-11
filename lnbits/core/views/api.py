@@ -735,17 +735,10 @@ async def api_install_extension(
         ext_info.download_archive()
         ext_info.extract_archive()
 
-        # todo: is admin only
-        ext = Extension(
-            code=ext_info.id,
-            is_valid=True,
-            is_admin_only=False,
-            name=ext_info.name,
-            hash=ext_info.hash if ext_info.module_installed else "",
-        )
+        extension = Extension.from_installable_ext(ext_info)
 
-        db_version = (await get_dbversions()).get(ext.code, 0)
-        await migrate_extension_database(ext, db_version)  # todo: use new module
+        db_version = (await get_dbversions()).get(ext_id, 0)
+        await migrate_extension_database(extension, db_version)
 
         # disable by default
         await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
@@ -753,7 +746,7 @@ async def api_install_extension(
 
         if ext_info.module_installed:
             # update upgraded extensions list if module already installed
-            ext_temp_path = f"{ext.hash}/{ext.code}"
+            ext_temp_path = f"{extension.hash}/{extension.code}"
             clean_upgraded_exts = list(
                 filter(
                     lambda old_ext: old_ext.endswith(ext_temp_path),
@@ -763,7 +756,7 @@ async def api_install_extension(
             settings.lnbits_upgraded_extensions = clean_upgraded_exts + [ext_temp_path]
 
         # mount routes at the very end
-        core_app_extra.register_new_ext_routes(ext)
+        core_app_extra.register_new_ext_routes(extension)
     except Exception as ex:
         logger.warning(ex)
         # remove downloaded archive

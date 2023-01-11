@@ -38,6 +38,15 @@ class Extension(NamedTuple):
             else f"lnbits.upgrades.{self.code}-{self.hash}.{self.code}"
         )
 
+    @classmethod
+    def from_installable_ext(cls, ext_info: "InstallableExtension") -> "Extension":
+        return Extension(
+            code=ext_info.id,
+            is_valid=True,
+            is_admin_only=False, # todo: is admin only
+            name=ext_info.name,
+            hash=ext_info.hash if ext_info.module_installed else "",
+        )
 
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
