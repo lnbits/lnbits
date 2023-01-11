@@ -301,7 +301,6 @@
             /^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/
           ) !== 0 ||
           data.wallet == null ||
-          data.balance < 100 ||
           data.amount < limits.min ||
           data.amount > limits.max
         )
