@@ -2,7 +2,7 @@ import json
 
 import httpx
 
-from lnbits.extensions.subdomains.models import Domains
+from .models import Domains
 
 
 async def cloudflare_create_subdomain(

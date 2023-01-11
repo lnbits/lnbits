@@ -6,8 +6,9 @@ from starlette.exceptions import HTTPException
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
-from ..satspay.crud import create_charge
-from ..satspay.models import CreateCharge
+# todo: use the API, not direct import
+from ..satspay.crud import create_charge  # type: ignore
+from ..satspay.models import CreateCharge  # type: ignore
 from . import tipjar_ext
 from .crud import (
     create_tip,

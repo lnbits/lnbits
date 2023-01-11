@@ -5,8 +5,8 @@ from typing import Dict, Optional
 from fastapi import Request
 from fastapi.param_functions import Query
 from lnurl import Lnurl
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl import encode as lnurl_encode
+from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
 from pydantic.main import BaseModel
 

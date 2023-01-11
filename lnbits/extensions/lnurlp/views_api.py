@@ -2,7 +2,7 @@ import json
 from http import HTTPStatus
 
 from fastapi import Depends, Query, Request
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user

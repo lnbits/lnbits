@@ -4,7 +4,6 @@ from fastapi import Depends, HTTPException, Query, Request
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.lnurldevice import lnurldevice_ext
 from lnbits.utils.exchange_rates import currencies
 
 from . import lnurldevice_ext
