@@ -5,7 +5,7 @@ from loguru import logger
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_email, get_emailaddress, set_email_paid
+from .crud import get_email_by_payment_hash, get_emailaddress, set_email_paid
 from .smtp import send_mail
 
 
@@ -21,7 +21,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("tag") != "smtp":
         return
 
-    email = await get_email(payment.checking_id)
+    email = await get_email_by_payment_hash(payment.checking_id)
     if not email:
         logger.error("SMTP: email can not by fetched")
         return
