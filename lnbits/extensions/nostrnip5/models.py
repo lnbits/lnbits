@@ -31,7 +31,7 @@ class EditDomainData(BaseModel):
     amount: float = Query(..., ge=0.01)
 
     @classmethod
-    def from_row(cls, row: Row) -> "Domain":
+    def from_row(cls, row: Row) -> "EditDomainData":
         return cls(**dict(row))
 
 
