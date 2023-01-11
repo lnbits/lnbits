@@ -43,10 +43,11 @@ class Extension(NamedTuple):
         return Extension(
             code=ext_info.id,
             is_valid=True,
-            is_admin_only=False, # todo: is admin only
+            is_admin_only=False,  # todo: is admin only
             name=ext_info.name,
             hash=ext_info.hash if ext_info.module_installed else "",
         )
+
 
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
