@@ -70,15 +70,10 @@ async def extensions(
 )
 async def extensions_install(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
-    activate: str = Query(None),  # type: ignore
-    deactivate: str = Query(None),  # type: ignore
+    user: User = Depends(check_admin),
+    activate: str = Query(None),
+    deactivate: str = Query(None),
 ):
-    if not user.admin:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Only for admin users"
-        )
-
     try:
         extension_list: List[
             InstallableExtension
