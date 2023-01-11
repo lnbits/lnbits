@@ -22,7 +22,7 @@ from .crud import (
     update_emailaddress,
 )
 from .models import CreateEmail, CreateEmailaddress
-from .smtp import valid_email
+from .smtp import send_mail, valid_email
 
 
 ## EMAILS
