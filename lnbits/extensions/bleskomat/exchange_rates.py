@@ -68,15 +68,19 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
         "to": currency.lower(),
     }
 
-    api_url = str(exchange_rate_providers[provider]["api_url"])
-    for key in replacements.keys():
-        api_url = api_url.replace("{" + key + "}", replacements[key])
-    async with httpx.AsyncClient() as client:
-        r = await client.get(api_url)
-        r.raise_for_status()
-        data = r.json()
-
+    api_url_or_none = exchange_rate_providers[provider]["api_url"]
+    if api_url_or_none is not None:
+        api_url = str(api_url_or_none)
+        for key in replacements.keys():
+            api_url = api_url.replace("{" + key + "}", replacements[key])
+        async with httpx.AsyncClient() as client:
+            r = await client.get(api_url)
+            r.raise_for_status()
+            data = r.json()
+    else:
+        data = {}
     getter = exchange_rate_providers[provider]["getter"]
+    print(getter)
     if callable(getter):
         rate = float(getter(data, replacements))
     return rate
