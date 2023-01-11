@@ -11,6 +11,7 @@ from lnbits.settings import settings
 
 from .extension_manger import get_valid_extensions
 
+
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
 
