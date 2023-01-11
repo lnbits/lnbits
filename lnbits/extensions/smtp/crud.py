@@ -100,7 +100,7 @@ async def create_email(wallet: str, data: CreateEmail, payment_hash: str = "") -
     await db.execute(
         """
         INSERT INTO smtp.email (id, payment_hash, wallet, emailaddress_id, subject, receiver, message, paid)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             id,
