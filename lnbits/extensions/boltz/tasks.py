@@ -18,7 +18,7 @@ from .crud import (
     get_submarine_swap,
     update_swap_status,
 )
-from .models import CreateReverseSubmarineSwap
+from .models import CreateReverseSubmarineSwap, ReverseSubmarineSwap, SubmarineSwap
 from .utils import create_boltz_client
 
 
@@ -32,6 +32,24 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+
+    await check_for_auto_swap(payment)
+
+    if payment.extra.get("tag") != "boltz":
+        # not a boltz invoice
+        return
+
+    await payment.set_pending(False)
+
+    if payment.extra:
+        swap_id = payment.extra.get("swap_id")
+        if swap_id:
+            swap = await get_submarine_swap(swap_id)
+            if swap:
+                await update_swap_status(swap_id, "complete")
+
+
+async def check_for_auto_swap(payment: Payment) -> None:
     auto_swap = await get_auto_reverse_submarine_swap_by_wallet(payment.wallet_id)
     if auto_swap:
         wallet = await get_wallet(payment.wallet_id)
@@ -52,19 +70,6 @@ async def on_invoice_paid(payment: Payment) -> None:
                     f"Boltz: auto reverse swap created with amount: {amount}, boltz_id: {new_swap.boltz_id}"
                 )
 
-    if payment.extra.get("tag") != "boltz":
-        # not a boltz invoice
-        return
-
-    await payment.set_pending(False)
-
-    if payment.extra:
-        swap_id = payment.extra.get("swap_id")
-        if swap_id:
-            swap = await get_submarine_swap(swap_id)
-            if swap:
-                await update_swap_status(swap_id, "complete")
-
 
 """
 testcases for boltz startup
@@ -82,7 +87,6 @@ B. reverse swaps
 
 
 async def check_for_pending_swaps():
-    client = create_boltz_client()
     try:
         swaps = await get_all_pending_submarine_swaps()
         reverse_swaps = await get_all_pending_reverse_submarine_swaps()
@@ -94,71 +98,73 @@ async def check_for_pending_swaps():
         )
         return
 
+    client = create_boltz_client()
+
     if len(swaps) > 0:
         logger.debug(f"Boltz - {len(swaps)} pending swaps")
         for swap in swaps:
-            try:
-                payment_status = await check_transaction_status(
-                    swap.wallet, swap.payment_hash
-                )
-                if payment_status.paid:
-                    logger.debug(
-                        f"Boltz - swap: {swap.boltz_id} got paid while offline."
-                    )
-                    await update_swap_status(swap.id, "complete")
-                else:
-                    try:
-                        _ = client.swap_status(swap.id)
-                    except:
-                        txs = client.mempool.get_txs_from_address(swap.address)
-                        if len(txs) == 0:
-                            await update_swap_status(swap.id, "timeout")
-                        else:
-                            await client.refund_swap(
-                                privkey_wif=swap.refund_privkey,
-                                lockup_address=swap.address,
-                                receive_address=swap.refund_address,
-                                redeem_script_hex=swap.redeem_script,
-                                timeout_block_height=swap.timeout_block_height,
-                            )
-                            await update_swap_status(swap.id, "refunded")
-            except BoltzNotFoundException as exc:
-                logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
-                await update_swap_status(swap.id, "failed")
-            except MempoolBlockHeightException as exc:
-                logger.debug(
-                    f"Boltz - tried to refund swap: {swap.id}, but has not reached the timeout."
-                )
-            except Exception as exc:
-                logger.error(
-                    f"Boltz - unhandled exception, swap: {swap.id} - {str(exc)}"
-                )
+            await check_swap(swap, client)
 
     if len(reverse_swaps) > 0:
         logger.debug(f"Boltz - {len(reverse_swaps)} pending reverse swaps")
         for reverse_swap in reverse_swaps:
-            try:
-                _ = client.swap_status(reverse_swap.boltz_id)
-                await client.claim_reverse_swap(
-                    lockup_address=reverse_swap.lockup_address,
-                    receive_address=reverse_swap.onchain_address,
-                    privkey_wif=reverse_swap.claim_privkey,
-                    preimage_hex=reverse_swap.preimage,
-                    redeem_script_hex=reverse_swap.redeem_script,
-                    zeroconf=reverse_swap.instant_settlement,
-                )
-                await update_swap_status(reverse_swap.id, "complete")
+            await check_reverse_swap(reverse_swap, client)
 
-            except BoltzSwapStatusException as exc:
-                logger.debug(f"Boltz - swap_status: {str(exc)}")
-                await update_swap_status(reverse_swap.id, "failed")
-            # should only happen while development when regtest is reset
-            except BoltzNotFoundException as exc:
-                logger.debug(
-                    f"Boltz - reverse swap: {reverse_swap.boltz_id} does not exist."
-                )
-                await update_swap_status(reverse_swap.id, "failed")
-            except Exception as exc:
-                logger.error(
-                    f"Boltz - unhandled exception, reverse swap: {reverse_swap.id} - {str(exc)}"
-                )
+
+async def check_swap(swap: SubmarineSwap, client):
+    try:
+        payment_status = await check_transaction_status(swap.wallet, swap.payment_hash)
+        if payment_status.paid:
+            logger.debug(f"Boltz - swap: {swap.boltz_id} got paid while offline.")
+            await update_swap_status(swap.id, "complete")
+        else:
+            try:
+                _ = client.swap_status(swap.id)
+            except:
+                txs = client.mempool.get_txs_from_address(swap.address)
+                if len(txs) == 0:
+                    await update_swap_status(swap.id, "timeout")
+                else:
+                    await client.refund_swap(
+                        privkey_wif=swap.refund_privkey,
+                        lockup_address=swap.address,
+                        receive_address=swap.refund_address,
+                        redeem_script_hex=swap.redeem_script,
+                        timeout_block_height=swap.timeout_block_height,
+                    )
+                    await update_swap_status(swap.id, "refunded")
+    except BoltzNotFoundException as exc:
+        logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
+        await update_swap_status(swap.id, "failed")
+    except MempoolBlockHeightException as exc:
+        logger.debug(
+            f"Boltz - tried to refund swap: {swap.id}, but has not reached the timeout."
+        )
+    except Exception as exc:
+        logger.error(f"Boltz - unhandled exception, swap: {swap.id} - {str(exc)}")
+
+
+async def check_reverse_swap(reverse_swap: ReverseSubmarineSwap, client):
+    try:
+        _ = client.swap_status(reverse_swap.boltz_id)
+        await client.claim_reverse_swap(
+            lockup_address=reverse_swap.lockup_address,
+            receive_address=reverse_swap.onchain_address,
+            privkey_wif=reverse_swap.claim_privkey,
+            preimage_hex=reverse_swap.preimage,
+            redeem_script_hex=reverse_swap.redeem_script,
+            zeroconf=reverse_swap.instant_settlement,
+        )
+        await update_swap_status(reverse_swap.id, "complete")
+
+    except BoltzSwapStatusException as exc:
+        logger.debug(f"Boltz - swap_status: {str(exc)}")
+        await update_swap_status(reverse_swap.id, "failed")
+    # should only happen while development when regtest is reset
+    except BoltzNotFoundException as exc:
+        logger.debug(f"Boltz - reverse swap: {reverse_swap.boltz_id} does not exist.")
+        await update_swap_status(reverse_swap.id, "failed")
+    except Exception as exc:
+        logger.error(
+            f"Boltz - unhandled exception, reverse swap: {reverse_swap.id} - {str(exc)}"
+        )
