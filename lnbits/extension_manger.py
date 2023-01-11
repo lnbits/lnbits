@@ -228,7 +228,9 @@ class InstallableExtension(NamedTuple):
                 try:
                     resp = await client.get(url)
                     if resp.status_code != 200:
-                        logger.warning(f"Unable to fetch extension list for repository: {url}")
+                        logger.warning(
+                            f"Unable to fetch extension list for repository: {url}"
+                        )
                         continue
                     for e in resp.json()["extensions"]:
                         extension_list += [
