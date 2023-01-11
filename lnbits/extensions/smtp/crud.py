@@ -95,14 +95,15 @@ async def delete_emailaddress(emailaddress_id: str) -> None:
     await db.execute("DELETE FROM smtp.emailaddress WHERE id = ?", (emailaddress_id,))
 
 
-## create emails
-async def create_email(payment_hash, wallet, data: CreateEmail) -> Email:
+async def create_email(wallet: str, data: CreateEmail, payment_hash: str = "") -> Email:
+    id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO smtp.email (id, wallet, emailaddress_id, subject, receiver, message, paid)
+        INSERT INTO smtp.email (id, payment_hash, wallet, emailaddress_id, subject, receiver, message, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
+            id,
             payment_hash,
             wallet,
             data.emailaddress_id,
@@ -113,32 +114,30 @@ async def create_email(payment_hash, wallet, data: CreateEmail) -> Email:
         ),
     )
 
-    new_email = await get_email(payment_hash)
+    new_email = await get_email(id)
     assert new_email, "Newly created email couldn't be retrieved"
     return new_email
 
 
-async def set_email_paid(payment_hash: str) -> Email:
-    email = await get_email(payment_hash)
+async def set_email_paid(payment_hash: str) -> bool:
+    email = await get_email_by_payment_hash(payment_hash)
     if email and email.paid == False:
         await db.execute(
-            """
-            UPDATE smtp.email
-            SET paid = true
-            WHERE id = ?
-            """,
-            (payment_hash,),
+            f"UPDATE smtp.email SET paid = true WHERE payment_hash = {payment_hash}"
         )
-    new_email = await get_email(payment_hash)
-    assert new_email, "Newly paid email couldn't be retrieved"
-    return new_email
+        return True
+    return False
 
 
-async def get_email(email_id: str) -> Optional[Email]:
+async def get_email_by_payment_hash(payment_hash: str) -> Optional[Email]:
     row = await db.fetchone(
-        "SELECT s.*, d.email as emailaddress FROM smtp.email s INNER JOIN smtp.emailaddress d ON (s.emailaddress_id = d.id) WHERE s.id = ?",
-        (email_id,),
+        f"SELECT * FROM smtp.email WHERE payment_hash = {payment_hash}"
     )
+    return Email(**row) if row else None
+
+
+async def get_email(id: str) -> Optional[Email]:
+    row = await db.fetchone(f"SELECT * FROM smtp.email WHERE id = {id}")
     return Email(**row) if row else None
 
 
