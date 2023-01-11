@@ -80,10 +80,7 @@ async def extensions_install(
         ] = await InstallableExtension.get_installable_extensions()
     except Exception as ex:
         logger.warning(ex)
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot fetch installable extension list",
-        )
+        extension_list = []
 
     try:
         if deactivate:

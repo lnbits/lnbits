@@ -190,7 +190,7 @@ class InstallableExtension(NamedTuple):
 
         # remove module from extensions
         shutil.rmtree(self.ext_dir, True)
-        
+
         shutil.rmtree(self.ext_upgrade_dir, True)
 
     @classmethod
@@ -225,27 +225,28 @@ class InstallableExtension(NamedTuple):
 
         async with httpx.AsyncClient() as client:
             for url in settings.lnbits_extensions_manifests:
-                resp = await client.get(url)
-                if resp.status_code != 200:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"Unable to fetch extension list for repository: {url}",
-                    )
-                for e in resp.json()["extensions"]:
-                    extension_list += [
-                        InstallableExtension(
-                            id=e["id"],
-                            name=e["name"],
-                            archive=e["archive"],
-                            hash=e["hash"],
-                            short_description=e["shortDescription"],
-                            details=e["details"] if "details" in e else "",
-                            icon=e["icon"],
-                            dependencies=e["dependencies"]
-                            if "dependencies" in e
-                            else [],
-                        )
-                    ]
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code != 200:
+                        logger.warning(f"Unable to fetch extension list for repository: {url}")
+                        continue
+                    for e in resp.json()["extensions"]:
+                        extension_list += [
+                            InstallableExtension(
+                                id=e["id"],
+                                name=e["name"],
+                                archive=e["archive"],
+                                hash=e["hash"],
+                                short_description=e["shortDescription"],
+                                details=e["details"] if "details" in e else "",
+                                icon=e["icon"],
+                                dependencies=e["dependencies"]
+                                if "dependencies" in e
+                                else [],
+                            )
+                        ]
+                except Exception as e:
+                    logger.warning(e)
 
         return extension_list
 
