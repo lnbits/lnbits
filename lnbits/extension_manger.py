@@ -124,6 +124,10 @@ class InstallableExtension(NamedTuple):
         return os.path.join("lnbits", "extensions", self.id)
 
     @property
+    def ext_upgrade_dir(self) -> str:
+        return os.path.join("lnbits", "upgrades", f"{self.id}-{self.hash}")
+
+    @property
     def module_name(self) -> str:
         return f"lnbits.extensions.{self.id}"
 
@@ -159,11 +163,10 @@ class InstallableExtension(NamedTuple):
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(os.path.join("lnbits", "extensions"))
 
-        ext_upgrade_dir = os.path.join("lnbits", "upgrades", f"{self.id}-{self.hash}")
         os.makedirs(os.path.join("lnbits", "upgrades"), exist_ok=True)
-        shutil.rmtree(ext_upgrade_dir, True)
+        shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
-            zip_ref.extractall(ext_upgrade_dir)
+            zip_ref.extractall(self.ext_upgrade_dir)
 
     def nofiy_upgrade(self) -> None:
         """Update the the list of upgraded extensions. The middleware will perform redirects based on this"""
@@ -172,7 +175,7 @@ class InstallableExtension(NamedTuple):
 
         clean_upgraded_exts = list(
             filter(
-                lambda old_ext: old_ext.endswith(f"/{self.id}"),
+                lambda old_ext: not old_ext.endswith(f"/{self.id}"),
                 settings.lnbits_upgraded_extensions,
             )
         )
@@ -187,6 +190,8 @@ class InstallableExtension(NamedTuple):
 
         # remove module from extensions
         shutil.rmtree(self.ext_dir, True)
+        
+        shutil.rmtree(self.ext_upgrade_dir, True)
 
     @classmethod
     async def get_extension_info(cls, ext_id: str, hash: str) -> "InstallableExtension":
