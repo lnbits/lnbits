@@ -4,6 +4,15 @@ Vue.component(VueQrcode.name, VueQrcode)
 
 const pica = window.pica()
 
+function imgSizeFit(img, maxWidth = 1024, maxHeight = 768) {
+  let ratio = Math.min(
+    1,
+    maxWidth / img.naturalWidth,
+    maxHeight / img.naturalHeight
+  )
+  return {width: img.naturalWidth * ratio, height: img.naturalHeight * ratio}
+}
+
 const defaultItemData = {
   unit: 'sat'
 }
@@ -23,6 +32,7 @@ new Vue({
       },
       itemDialog: {
         show: false,
+        urlImg: true,
         data: {...defaultItemData},
         units: ['sat']
       }
@@ -41,6 +51,9 @@ new Vue({
     openUpdateDialog(itemId) {
       this.itemDialog.show = true
       let item = this.offlineshop.items.find(item => item.id === itemId)
+      if (item.image.startsWith('data:')) {
+        this.itemDialog.urlImg = false
+      }
       this.itemDialog.data = item
     },
     imageAdded(file) {
@@ -48,17 +61,12 @@ new Vue({
       let image = new Image()
       image.src = blobURL
       image.onload = async () => {
+        let fit = imgSizeFit(image, 100, 100)
         let canvas = document.createElement('canvas')
-        canvas.setAttribute('width', 100)
-        canvas.setAttribute('height', 100)
-        await pica.resize(image, canvas, {
-          quality: 0,
-          alpha: true,
-          unsharpAmount: 95,
-          unsharpRadius: 0.9,
-          unsharpThreshold: 70
-        })
-        this.itemDialog.data.image = canvas.toDataURL()
+        canvas.setAttribute('width', fit.width)
+        canvas.setAttribute('height', fit.height)
+        output = await pica.resize(image, canvas)
+        this.itemDialog.data.image = output.toDataURL('image/jpeg', 0.4)
         this.itemDialog = {...this.itemDialog}
       }
     },
@@ -155,6 +163,7 @@ new Vue({
 
       this.loadShop()
       this.itemDialog.show = false
+      this.itemDialog.urlImg = true
       this.itemDialog.data = {...defaultItemData}
     },
     toggleItem(itemId) {
