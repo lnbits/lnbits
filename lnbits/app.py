@@ -26,12 +26,10 @@ from .commands import migrate_databases
 from .core import core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
+from .extensions import Extension, InstalledExtensionMiddleware, get_valid_extensions
 from .helpers import (
-    Extension,
-    InstalledExtensionMiddleware,
     get_css_vendored,
     get_js_vendored,
-    get_valid_extensions,
     template_renderer,
     url_for_vendored,
 )

@@ -14,12 +14,8 @@ from .core import migrations as core_migrations
 from .core.crud import USER_ID_ALL, get_dbversions, get_inactive_extensions
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
-from .helpers import (
-    get_css_vendored,
-    get_js_vendored,
-    get_valid_extensions,
-    url_for_vendored,
-)
+from .extensions import get_valid_extensions
+from .helpers import get_css_vendored, get_js_vendored, url_for_vendored
 
 
 @click.command("migrate")
