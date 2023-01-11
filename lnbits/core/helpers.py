@@ -3,11 +3,13 @@ import re
 
 from loguru import logger
 
+from lnbits.helpers import Extension
+
 from . import db as core_db
 from .crud import update_migration_version
 
 
-async def migrate_extension_database(ext, current_version):
+async def migrate_extension_database(ext: Extension, current_version):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db

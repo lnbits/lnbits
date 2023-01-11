@@ -3,7 +3,9 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import urllib.request
+import zipfile
 from http import HTTPStatus
 from typing import Any, List, NamedTuple, Optional
 
@@ -55,10 +57,22 @@ class InstallableExtension(NamedTuple):
     version: Optional[int] = 0
 
     @property
-    def zip_path(self):
+    def zip_path(self) -> str:
         extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
         os.makedirs(extensions_data_dir, exist_ok=True)
         return os.path.join(extensions_data_dir, f"{self.id}.zip")
+
+    @property
+    def ext_dir(self) -> str:
+        return os.path.join("lnbits", "extensions", self.id)
+
+    @property
+    def module_name(self) -> str:
+        return f"lnbits.extensions.{self.id}"
+
+    @property
+    def module_installed(self) -> bool:
+        return self.module_name in sys.modules
 
     def download_archive(self):
         ext_zip_file = self.zip_path
@@ -82,6 +96,17 @@ class InstallableExtension(NamedTuple):
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="File hash missmatch. Will not install.",
             )
+
+    def extract_archive(self):
+        shutil.rmtree(self.ext_dir, True)
+        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+            zip_ref.extractall(os.path.join("lnbits", "extensions"))
+
+        ext_upgrade_dir = os.path.join("lnbits", "upgrades", f"{self.id}-{self.hash}")
+        os.makedirs(os.path.join("lnbits", "upgrades"), exist_ok=True)
+        shutil.rmtree(ext_upgrade_dir, True)
+        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+            zip_ref.extractall(ext_upgrade_dir)
 
     @classmethod
     async def get_extension_info(cls, ext_id: str, hash: str) -> "InstallableExtension":
