@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.livestream.models import CreateTrack
+from .models import CreateTrack
 
 from . import livestream_ext
 from .crud import (
