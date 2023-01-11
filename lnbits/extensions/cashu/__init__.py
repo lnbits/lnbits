@@ -1,6 +1,6 @@
 import asyncio
 
-from environs import Env  # type: ignore
+from environs import Env
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
 

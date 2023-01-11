@@ -9,7 +9,7 @@ from typing import Optional
 from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
-from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
+from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
 
 from lnbits.settings import settings
 
@@ -129,7 +129,7 @@ class Database(Compat):
             else:
                 self.type = POSTGRES
 
-            import psycopg2  # type: ignore
+            import psycopg2
 
             def _parse_timestamp(value, _):
                 if value is None:

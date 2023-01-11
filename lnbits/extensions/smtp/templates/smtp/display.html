@@ -38,9 +38,6 @@
               type="submit"
               >Submit</q-btn
             >
-            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
-              >Cancel</q-btn
-            >
           </div>
         </q-form>
       </q-card-section>
@@ -104,13 +101,6 @@
     },
 
     methods: {
-      resetForm: function (e) {
-        e.preventDefault()
-        this.formDialog.data.subject = ''
-        this.formDialog.data.receiver = ''
-        this.formDialog.data.message = ''
-      },
-
       closeReceiveDialog: function () {
         var checker = this.receive.paymentChecker
         dismissMsg()

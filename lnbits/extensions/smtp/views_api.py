@@ -21,7 +21,8 @@ from .crud import (
     get_emails,
     update_emailaddress,
 )
-from .smtp import send_mail, valid_email
+from .models import CreateEmail, CreateEmailaddress
+from .smtp import valid_email
 
 
 ## EMAILS

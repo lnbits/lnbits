@@ -1,13 +1,9 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from starlette.exceptions import HTTPException
+from fastapi import Depends, HTTPException, Query, Request
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.lnurldevice import lnurldevice_ext
 from lnbits.utils.exchange_rates import currencies
 
 from . import lnurldevice_ext
@@ -26,9 +22,6 @@ async def api_list_currencies_available():
     return list(currencies.keys())
 
 
-#######################lnurldevice##########################
-
-
 @lnurldevice_ext.post("/api/v1/lnurlpos")
 @lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_create_or_update(
@@ -41,7 +34,7 @@ async def api_lnurldevice_create_or_update(
         lnurldevice = await create_lnurldevice(data)
         return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
     else:
-        lnurldevice = await update_lnurldevice(data, lnurldevice_id=lnurldevice_id)
+        lnurldevice = await update_lnurldevice(lnurldevice_id, **data.dict())
         return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
 
 
@@ -49,7 +42,8 @@ async def api_lnurldevice_create_or_update(
 async def api_lnurldevices_retrieve(
     req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+    user = await get_user(wallet.wallet.user)
+    wallet_ids = user.wallet_ids if user else []
     try:
         return [
             {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
@@ -65,10 +59,11 @@ async def api_lnurldevices_retrieve(
             return ""
 
 
-@lnurldevice_ext.get("/api/v1/lnurlpos/{lnurldevice_id}")
+@lnurldevice_ext.get(
+    "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(get_key_type)]
+)
 async def api_lnurldevice_retrieve(
     req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
     lnurldevice_id: str = Query(None),
 ):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
@@ -76,23 +71,18 @@ async def api_lnurldevice_retrieve(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
         )
-    if not lnurldevice.lnurl_toggle:
-        return {**lnurldevice.dict()}
     return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
 
 
-@lnurldevice_ext.delete("/api/v1/lnurlpos/{lnurldevice_id}")
-async def api_lnurldevice_delete(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-    lnurldevice_id: str = Query(None),
-):
+@lnurldevice_ext.delete(
+    "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)]
+)
+async def api_lnurldevice_delete(lnurldevice_id: str = Query(None)):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
-
     if not lnurldevice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Wallet link does not exist."
         )
 
     await delete_lnurldevice(lnurldevice_id)
-
     return "", HTTPStatus.NO_CONTENT
