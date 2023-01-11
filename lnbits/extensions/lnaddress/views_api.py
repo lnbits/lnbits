@@ -6,7 +6,6 @@ from fastapi import Depends, HTTPException, Query, Request
 from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.lnaddress.models import CreateAddress, CreateDomain
 
 from . import lnaddress_ext
 from .cloudflare import cloudflare_create_record
@@ -23,6 +22,7 @@ from .crud import (
     get_domains,
     update_domain,
 )
+from .models import CreateAddress, CreateDomain
 
 
 # DOMAINS

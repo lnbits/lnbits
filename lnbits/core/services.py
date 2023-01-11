@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
-from lnurl import decode as decode_lnurl  # type: ignore
+from lnurl import decode as decode_lnurl
 from loguru import logger
 
 from lnbits import bolt11
@@ -44,7 +44,7 @@ from .crud import (
 from .models import Payment
 
 try:
-    from typing import TypedDict  # type: ignore
+    from typing import TypedDict
 except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
 

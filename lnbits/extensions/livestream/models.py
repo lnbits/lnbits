@@ -1,13 +1,12 @@
 import json
 from typing import Optional
 
-from fastapi import Query
+from fastapi import Query, Request
 from lnurl import Lnurl
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl import encode as lnurl_encode
+from lnurl.models import ClearnetUrl, Max144Str, UrlAction
+from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
-from starlette.requests import Request
 
 
 class CreateTrack(BaseModel):
@@ -32,7 +31,7 @@ class Livestream(BaseModel):
 class Track(BaseModel):
     id: int
     download_url: Optional[str]
-    price_msat: Optional[int]
+    price_msat: int = 0
     name: str
     producer: int
 
@@ -71,7 +70,7 @@ class Track(BaseModel):
 
     def success_action(
         self, payment_hash: str, request: Request
-    ) -> Optional[LnurlPaySuccessAction]:
+    ) -> Optional[UrlAction]:
         if not self.download_url:
             return None
 
@@ -79,7 +78,8 @@ class Track(BaseModel):
         url_with_query = f"{url}?p={payment_hash}"
 
         return UrlAction(
-            url=url_with_query, description=f"Download the track {self.name}!"
+            url=ClearnetUrl(url_with_query, scheme="https"),
+            description=Max144Str(f"Download the track {self.name}!"),
         )
 
 
