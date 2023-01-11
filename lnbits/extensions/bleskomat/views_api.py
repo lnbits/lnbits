@@ -6,7 +6,6 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from .models import CreateBleskomat
 
 from . import bleskomat_ext
 from .crud import (
@@ -17,6 +16,7 @@ from .crud import (
     update_bleskomat,
 )
 from .exchange_rates import fetch_fiat_exchange_rate
+from .models import CreateBleskomat
 
 
 @bleskomat_ext.get("/api/v1/bleskomats")
