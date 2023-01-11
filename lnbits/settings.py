@@ -98,6 +98,8 @@ class LndRestFundingSource(LNbitsSettings):
     lnd_cert: Optional[str] = Field(default=None)
     lnd_admin_macaroon: Optional[str] = Field(default=None)
     lnd_invoice_macaroon: Optional[str] = Field(default=None)
+    lnd_rest_admin_macaroon: Optional[str] = Field(default=None)
+    lnd_rest_invoice_macaroon: Optional[str] = Field(default=None)
 
 
 class LndGrpcFundingSource(LNbitsSettings):
