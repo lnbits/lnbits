@@ -153,6 +153,7 @@
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
+        formAddExtensionsManifest: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -387,6 +388,18 @@
         this.formData.lnbits_allowed_users = allowed_users.filter(
           u => u !== user
         )
+      },
+      addExtensionsManifest() {
+        const addManifest = this.formAddExtensionsManifest
+        const manifests = this.formData.lnbits_extensions_manifests
+        if (addManifest && addManifest.length && !manifests.includes(addManifest)) {
+          this.formData.lnbits_extensions_manifests = [...manifests, addManifest]
+          this.formAddExtensionsManifest = ''
+        }
+      },
+      removeExtensionsManifest(manifest) {
+        const manifests = this.formData.lnbits_extensions_manifests
+        this.formData.lnbits_extensions_manifests = manifests.filter(m => m !== manifest)
       },
       restartServer() {
         LNbits.api
