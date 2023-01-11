@@ -110,7 +110,7 @@ module = [
   "bitstring.*",
   "ecdsa.*",
   "psycopg2.*",
-  "pyngrok.*"
+  "pyngrok.*",
 ]
 ignore_missing_imports = "True"
 
