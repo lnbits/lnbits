@@ -52,7 +52,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                     f"Boltz: auto reverse swap created with amount: {amount}, boltz_id: {new_swap.boltz_id}"
                 )
 
-    if payment.extra and "boltz" != payment.extra.get("tag"):
+    if payment.extra.get("tag") != "boltz":
         # not a boltz invoice
         return
 

@@ -1,7 +1,7 @@
 <q-card>
   <q-card-section>
     <q-btn
-      label="Swap (In)"
+      label="Onchain -> Lightning"
       unelevated
       color="primary"
       @click="submarineSwapDialog.show = true"
@@ -11,7 +11,7 @@
       </q-tooltip>
     </q-btn>
     <q-btn
-      label="Reverse Swap (Out)"
+      label="Lightning -> Onchain"
       unelevated
       color="primary"
       @click="reverseSubmarineSwapDialog.show = true"
@@ -21,7 +21,7 @@
       </q-tooltip>
     </q-btn>
     <q-btn
-      label="Auto Reverse Swap (Out)"
+      label="Auto (Lightning -> Onchain)"
       unelevated
       color="primary"
       @click="autoReverseSubmarineSwapDialog.show = true"
