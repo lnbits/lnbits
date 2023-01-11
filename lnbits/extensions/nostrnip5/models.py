@@ -1,4 +1,5 @@
 from enum import Enum
+from locale import currency
 from sqlite3 import Row
 from typing import List, Optional
 
@@ -23,6 +24,14 @@ class CreateDomainData(BaseModel):
     amount: float = Query(..., ge=0.01)
     domain: str
 
+class EditDomainData(BaseModel):
+    id: str 
+    currency: str
+    amount: float = Query(..., ge=0.01)
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Domain":
+        return cls(**dict(row))
 
 class Domain(BaseModel):
     id: str
