@@ -12,6 +12,7 @@ import httpx
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from loguru import logger
+from pydantic import BaseModel
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.settings import settings
@@ -101,7 +102,7 @@ class ExtensionManager:
         return output
 
 
-class InstallableExtension(NamedTuple):
+class InstallableExtension(BaseModel):
     id: str
     name: str
     archive: str

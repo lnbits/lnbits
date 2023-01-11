@@ -11,7 +11,7 @@ from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
-from .core.crud import USER_ID_ALL, get_dbversions, get_inactive_extensions
+from .core.crud import get_dbversions, get_inactive_extensions
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manger import get_valid_extensions
@@ -83,5 +83,5 @@ async def migrate_databases():
 
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
-    inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
+    inactive_extensions = await get_inactive_extensions()
     settings.lnbits_disabled_extensions += inactive_extensions

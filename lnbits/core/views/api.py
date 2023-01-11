@@ -59,14 +59,14 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, core_app_extra, db
 from ..crud import (
-    USER_ID_ALL,
+    add_installed_extension,
+    delete_installed_extension,
     get_dbversions,
     get_payments,
     get_standalone_payment,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
-    update_user_extension,
     update_wallet,
 )
 from ..services import (
@@ -741,7 +741,13 @@ async def api_install_extension(
         await migrate_extension_database(extension, db_version)
 
         # disable by default
-        await update_user_extension(user_id=USER_ID_ALL, extension=ext_id, active=False)
+        await add_installed_extension(
+            ext_id=ext_id,
+            version=ext_info.version,
+            active=False,
+            hash=hash,
+            meta=dict(ext_info),
+        )
         settings.lnbits_disabled_extensions += [ext_id]
 
         # mount routes for the new version
@@ -788,6 +794,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
 
         for ext_info in extensions:
             ext_info.clean_extension_files()
+            await delete_installed_extension(ext_id=ext_info.id)
 
     except Exception as ex:
         raise HTTPException(

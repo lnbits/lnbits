@@ -11,8 +11,6 @@ from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, sett
 from . import db
 from .models import BalanceCheck, Payment, User, Wallet
 
-USER_ID_ALL = "all"
-
 # accounts
 # --------
 
@@ -68,6 +66,61 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     )
 
 
+# extensions
+# -------
+
+
+async def add_installed_extension(
+    *,
+    ext_id: str,
+    version,
+    active: bool,
+    hash: str,
+    meta: dict,
+    conn: Optional[Connection] = None,
+) -> None:
+    await (conn or db).execute(
+        """
+        INSERT INTO installed_extensions (id, version, active, hash, meta) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT (id) DO
+        UPDATE SET (version, active, hash, meta) = (?, ?, ?, ?)
+        """,
+        (
+            ext_id,
+            version,
+            active,
+            hash,
+            json.dumps(meta),
+            version,
+            active,
+            hash,
+            json.dumps(meta),
+        ),
+    )
+
+
+async def update_installed_extension_state(
+    *, ext_id: str, active: bool, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        """
+        UPDATE installed_extensions SET active = ? WHERE id = ?
+        """,
+        (active, ext_id),
+    )
+
+
+async def delete_installed_extension(
+    *, ext_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        """
+        DELETE from installed_extensions  WHERE id = ?
+        """,
+        (ext_id,),
+    )
+
+
 async def update_user_extension(
     *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
 ) -> None:
@@ -80,12 +133,10 @@ async def update_user_extension(
     )
 
 
-async def get_inactive_extensions(
-    *, user_id: str, conn: Optional[Connection] = None
-) -> List[str]:
+async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
     inactive_extensions = await (conn or db).fetchall(
-        """SELECT extension FROM extensions WHERE "user" = ? AND NOT active""",
-        (user_id,),
+        """SELECT id FROM installed_extensions WHERE NOT active""",
+        (),
     )
     return (
         [ext[0] for ext in inactive_extensions] if len(inactive_extensions) != 0 else []

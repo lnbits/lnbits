@@ -269,3 +269,17 @@ async def m008_create_admin_settings_table(db):
         );
     """
     )
+
+
+async def m009_create_installed_extensions_table(db):
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS installed_extensions (
+            id TEXT PRIMARY KEY,
+            version INT NOT NULL,
+            active BOOLEAN DEFAULT false,
+            hash TEXT NOT NULL,
+            meta TEXT NOT NULL DEFAULT '{}'
+        );
+    """
+    )

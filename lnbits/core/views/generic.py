@@ -18,7 +18,6 @@ from lnbits.settings import get_wallet_class, settings
 
 from ...extension_manger import InstallableExtension, get_valid_extensions
 from ..crud import (
-    USER_ID_ALL,
     create_account,
     create_wallet,
     delete_wallet,
@@ -26,6 +25,7 @@ from ..crud import (
     get_inactive_extensions,
     get_user,
     save_balance_notify,
+    update_installed_extension_state,
     update_user_extension,
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
@@ -89,10 +89,15 @@ async def extensions_install(
             settings.lnbits_disabled_extensions = list(
                 filter(lambda e: e != activate, settings.lnbits_disabled_extensions)
             )
-        await toggle_extension(activate, deactivate, USER_ID_ALL)
+
+        ext_id = activate or deactivate
+        if ext_id:
+            await update_installed_extension_state(
+                ext_id=ext_id, active=activate != None
+            )
 
         installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
-        inactive_extensions = await get_inactive_extensions(user_id=USER_ID_ALL)
+        inactive_extensions = await get_inactive_extensions()
         extensions = list(
             map(
                 lambda ext: {
