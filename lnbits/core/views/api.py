@@ -44,7 +44,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.extensions import Extension, InstallableExtension, get_valid_extensions
+from lnbits.extension_manger import Extension, InstallableExtension, get_valid_extensions
 from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (

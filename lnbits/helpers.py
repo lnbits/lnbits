@@ -9,7 +9,7 @@ from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
-from .extensions import get_valid_extensions
+from .extension_manger import get_valid_extensions
 
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()

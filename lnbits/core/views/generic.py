@@ -16,7 +16,7 @@ from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import get_wallet_class, settings
 
-from ...extensions import InstallableExtension, get_valid_extensions
+from ...extension_manger import InstallableExtension, get_valid_extensions
 from ..crud import (
     USER_ID_ALL,
     create_account,

@@ -3,7 +3,7 @@ import re
 
 from loguru import logger
 
-from lnbits.extensions import Extension
+from lnbits.extension_manger import Extension
 
 from . import db as core_db
 from .crud import update_migration_version
