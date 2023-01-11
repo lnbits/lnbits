@@ -106,6 +106,13 @@ async def api_smtp_make_email_send(emailaddress_id, data: CreateEmail):
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Emailaddress address does not exist.",
         )
+    email = await create_email(
+        payment_hash=shortuuid.uuid()[:5], wallet=emailaddress.wallet, data=data
+    )
+    if not email:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Email could not be fetched."
+        )
     await send_mail(emailaddress, data)
     return {"sent": True}
 
