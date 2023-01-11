@@ -760,17 +760,12 @@ async def api_install_extension(
 
 @core_app.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
-    try:
-        extension_list: List[
-            InstallableExtension
-        ] = await InstallableExtension.get_installable_extensions()
-    except Exception as ex:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Cannot fetch installable extension list",
-        )
 
-    extensions = [e for e in extension_list if e.id == ext_id]
+    installable_extensions: List[
+        InstallableExtension
+    ] = await InstallableExtension.get_installable_extensions()
+
+    extensions = [e for e in installable_extensions if e.id == ext_id]
     if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -778,56 +773,23 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         )
 
     # check that other extensions do not depend on this one
-    for active_ext_id in list(map(lambda e: e.code, get_valid_extensions(True))):
-        active_ext = next(
-            (ext for ext in extension_list if ext.id == active_ext_id), None
+    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions(True))):
+        installed_ext = next(
+            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
         )
-        if active_ext and ext_id in active_ext.dependencies:
+        if installed_ext and ext_id in installed_ext.dependencies:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Cannot uninstall. Extension '{active_ext.name}' depends on this one.",
+                detail=f"Cannot uninstall. Extension '{installed_ext.name}' depends on this one.",
             )
 
     try:
         settings.lnbits_disabled_extensions += [ext_id]
 
-        # remove downloaded archive
-        ext_zip_file = os.path.join(
-            settings.lnbits_data_folder, "extensions", f"{ext_id}.zip"
-        )
-        if os.path.isfile(ext_zip_file):
-            os.remove(ext_zip_file)
+        for ext_info in extensions:
+            ext_info.clean_extension_files()
 
-        # module_name = f"lnbits.extensions.{ext_id}"
-
-        # modules_to_delete = list_modules_for_extension(ext_id)
-        # print('### modules_to_delete', modules_to_delete)
-        # for m in modules_to_delete:
-        #     module = sys.modules[m]
-        #     del sys.modules[m]
-        #     del module
-
-        # remove module from extensions
-        ext_dir = os.path.join("lnbits/extensions", ext_id)
-        shutil.rmtree(ext_dir, True)
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
-
-
-def list_modules_for_extension(ext_id: str) -> List[str]:
-    modules_for_extension = []
-    for key in sys.modules.keys():
-        try:
-            module = sys.modules[key]
-            moduleFilePath = inspect.getfile(module).lower()
-
-            dir_name = str(Path(moduleFilePath).parent.absolute())
-            if dir_name.endswith(f"lnbits/extensions/{ext_id}"):
-                print("## moduleFilePath", moduleFilePath)
-                modules_for_extension += [key]
-
-        except:
-            pass  # built in modules throw if queried
-    return modules_for_extension
