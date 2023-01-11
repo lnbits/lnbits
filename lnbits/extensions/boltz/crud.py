@@ -1,11 +1,9 @@
-import asyncio
 import time
-from typing import Awaitable, List, Optional, Union
+from typing import List, Optional, Union
 
 from boltz_client.boltz import BoltzSwapResponse
 from loguru import logger
 
-from lnbits.core.services import pay_invoice
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
@@ -17,7 +15,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-from .utils import create_boltz_client
+from .utils import create_boltz_client, execute_reverse_swap
 
 
 async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[SubmarineSwap]:
@@ -188,62 +186,19 @@ async def create_reverse_submarine_swap(
             reverse_swap.amount,
         ),
     )
-
-    claim_task = asyncio.create_task(
-        client.claim_reverse_swap(
-            privkey_wif=claim_privkey_wif,
-            preimage_hex=preimage_hex,
-            lockup_address=swap.lockupAddress,
-            receive_address=data.onchain_address,
-            redeem_script_hex=swap.redeemScript,
-        )
-    )
-
-    pay_task = pay_invoice_and_update_status(
-        swap_id,
-        claim_task,
-        pay_invoice(
-            wallet_id=data.wallet,
-            payment_request=swap.invoice,
-            description=f"reverse swap for {swap.onchainAmount} sats on boltz.exchange",
-            extra={"tag": "boltz", "swap_id": swap_id, "reverse": True},
-        ),
-    )
-
-    asyncio.gather(claim_task, pay_task)
-
+    await execute_reverse_swap(client, reverse_swap)
     return reverse_swap
 
 
-def pay_invoice_and_update_status(
-    swap_id: str, wstask: asyncio.Task, awaitable: Awaitable
-) -> asyncio.Task:
-    async def _pay_invoice(awaitable):
-        try:
-            awaited = await awaitable
-            await update_swap_status(swap_id, "complete")
-            return awaited
-        except asyncio.exceptions.CancelledError:
-            """lnbits process was exited, do nothing and handle it in startup script"""
-        except:
-            wstask.cancel()
-            await update_swap_status(swap_id, "failed")
-
-    return asyncio.create_task(_pay_invoice(awaitable))
-
 
 async def get_auto_reverse_submarine_swaps(
-    wallet_ids: Union[str, List[str]]
+    wallet_ids: List[str]
 ) -> List[AutoReverseSubmarineSwap]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
-
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"SELECT * FROM boltz.auto_reverse_submarineswap WHERE wallet IN ({q}) order by time DESC",
         (*wallet_ids,),
     )
-
     return [AutoReverseSubmarineSwap(**row) for row in rows]
 
 
