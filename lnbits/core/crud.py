@@ -9,7 +9,7 @@ from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, TinyURL, User, Wallet
+from .models import BalanceCheck, Payment, TinyURL, User, Wallet, TinyURL
 
 # accounts
 # --------
@@ -637,7 +637,7 @@ async def create_tinyurl(domain: str):
     return await get_tinyurl(tinyurl_id)
 
 
-async def get_tinyurl(tinyurl_id: str) -> Optional[BalanceCheck]:
+async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
     row = await db.fetchone(
         """
         SELECT *
@@ -649,7 +649,7 @@ async def get_tinyurl(tinyurl_id: str) -> Optional[BalanceCheck]:
     return TinyURL.from_row(row) if row else None
 
 
-async def get_tinyurl_by_url(url: str) -> Optional[BalanceCheck]:
+async def get_tinyurl_by_url(url: str) -> Optional[TinyURL]:
     row = await db.fetchone(
         """
         SELECT *
