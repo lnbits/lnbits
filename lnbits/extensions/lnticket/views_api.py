@@ -8,7 +8,6 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 
 from . import lnticket_ext
 from .crud import (
@@ -23,6 +22,7 @@ from .crud import (
     set_ticket_paid,
     update_form,
 )
+from .models import CreateFormData, CreateTicketData
 
 # FORMS
 

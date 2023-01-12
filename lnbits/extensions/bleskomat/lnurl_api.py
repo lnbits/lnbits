@@ -1,6 +1,5 @@
 import json
 import math
-import traceback
 from http import HTTPStatus
 
 from loguru import logger
@@ -28,7 +27,7 @@ from .helpers import (
 @bleskomat_ext.get("/u", name="bleskomat.api_bleskomat_lnurl")
 async def api_bleskomat_lnurl(req: Request):
     try:
-        query = req.query_params
+        query = dict(req.query_params)
 
         # Unshorten query if "s" is used instead of "signature".
         if "s" in query:
@@ -89,11 +88,15 @@ async def api_bleskomat_lnurl(req: Request):
                                 # Convert to msats:
                                 params[key] = int(amount_sats_less_fee * 1e3)
                 except LnurlValidationError as e:
-                    raise LnurlHttpError(e.message, HTTPStatus.BAD_REQUEST)
+                    raise LnurlHttpError(str(e), HTTPStatus.BAD_REQUEST)
                 # Create a new LNURL using the query parameters provided in the signed URL.
-                params = json.JSONEncoder().encode(params)
+                json_params = json.JSONEncoder().encode(params)
                 lnurl = await create_bleskomat_lnurl(
-                    bleskomat=bleskomat, secret=secret, tag=tag, params=params, uses=1
+                    bleskomat=bleskomat,
+                    secret=secret,
+                    tag=tag,
+                    params=json_params,
+                    uses=1,
                 )
 
             # Reply with LNURL response object.

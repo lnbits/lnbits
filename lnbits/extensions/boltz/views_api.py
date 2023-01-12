@@ -111,7 +111,7 @@ async def api_submarineswap(
 )
 async def api_submarineswap_refund(
     swap_id: str,
-    g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    g: WalletTypeInfo = Depends(require_admin_key),
 ):
     if swap_id == None:
         raise HTTPException(
@@ -160,7 +160,7 @@ async def api_submarineswap_refund(
 )
 async def api_submarineswap_create(
     data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     try:
         swap_data = await create_swap(data)
@@ -257,7 +257,7 @@ async def api_reverse_submarineswap_create(
     },
 )
 async def api_swap_status(
-    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
+    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     swap = await get_submarine_swap(swap_id) or await get_reverse_submarine_swap(
         swap_id
@@ -290,7 +290,7 @@ async def api_swap_status(
     response_description="list of pending swaps",
 )
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
+    g: WalletTypeInfo = Depends(require_admin_key),
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]

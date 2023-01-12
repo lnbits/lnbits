@@ -1,18 +1,11 @@
 import asyncio
-import json
-from http import HTTPStatus
-from urllib.parse import urlparse
 
-import httpx
-from fastapi import HTTPException
-
-from lnbits import bolt11
 from lnbits.core.models import Payment
-from lnbits.core.services import pay_invoice, websocketUpdater
+from lnbits.core.services import websocketUpdater
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_lnurldevice, get_lnurldevicepayment, update_lnurldevicepayment
+from .crud import get_lnurldevicepayment, update_lnurldevicepayment
 
 
 async def wait_for_paid_invoices():
@@ -27,14 +20,15 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
     if "Switch" == payment.extra.get("tag"):
-        lnurldevicepayment = await get_lnurldevicepayment(payment.extra.get("id"))
+        lnurldevicepayment = await get_lnurldevicepayment(payment.extra["id"])
         if not lnurldevicepayment:
             return
         if lnurldevicepayment.payhash == "used":
             return
         lnurldevicepayment = await update_lnurldevicepayment(
-            lnurldevicepayment_id=payment.extra.get("id"), payhash="used"
+            lnurldevicepayment_id=payment.extra["id"], payhash="used"
         )
+        assert lnurldevicepayment
         return await websocketUpdater(
             lnurldevicepayment.deviceid,
             str(lnurldevicepayment.pin) + "-" + str(lnurldevicepayment.payload),

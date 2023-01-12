@@ -28,7 +28,9 @@ Going over the example extension's structure:
 Adding new dependencies
 -----------------------
 
-If for some reason your extensions needs a new python package to work, you can add a new package using `venv`, or `poerty`:
+DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are availabe in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others. 
+
+If for some reason your extensions must have a new python package to work, and its nees are not met in `pyproject.toml`, you can add a new package using `venv`, or `poerty`:
 
 ```sh
 $ poetry add <package>
@@ -37,8 +39,7 @@ $ ./venv/bin/pip install <package>
 ```
 
 **But we need an extra step to make sure LNbits doesn't break in production.**
-Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry`.
-`nix` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
+Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
 
 
 SQLite to PostgreSQL migration

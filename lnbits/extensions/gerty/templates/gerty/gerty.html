@@ -6,7 +6,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
   v-if="fun_exchange_market_rate || fun_satoshi_quotes"
 >
   <q-card
-    v-if="fun_exchange_market_rate"
+    v-if="fun_exchange_market_rate['unit'] != ''"
     unelevated
     class="q-pa-sm"
     style="background: none !important"
@@ -96,7 +96,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
       </p>
     </q-card-section>
   </q-card>
-  <q-card class="q-pa-sm" v-if="url_checker" unelevated class="q-pa-sm">
+  <q-card class="q-pa-sm" v-if="url_checker[0]" unelevated class="q-pa-sm">
     <q-card-section>
       <div class="text-h6">Servers to check</div>
     </q-card-section>
@@ -126,7 +126,7 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
             v-else-if="item[1].value >= 300"
             square
             size="sm"
-            color="yellow"
+            color="orange"
             text-color="white"
             icon="sentiment_dissatisfied"
           >

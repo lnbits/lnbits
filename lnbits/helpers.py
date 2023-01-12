@@ -4,7 +4,7 @@ import os
 from typing import Any, List, NamedTuple, Optional
 
 import jinja2
-import shortuuid  # type: ignore
+import shortuuid
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g

@@ -200,7 +200,10 @@
               :href="props.row.wallet"
               target="_blank"
             ></q-btn>
-            <q-tooltip> Link to pass to stall relay </q-tooltip>
+            <q-tooltip
+              >Disabled: link to pass to stall relays when using
+              nostr</q-tooltip
+            >
           </q-td>
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
             {{ col.value }}

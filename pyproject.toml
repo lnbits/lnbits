@@ -86,16 +86,32 @@ lnbits = "lnbits.server:main"
 profile = "black"
 
 [tool.mypy]
-ignore_missing_imports = "True"
 files = "lnbits"
 exclude = """(?x)(
-    ^lnbits/extensions/bleskomat.
-    | ^lnbits/extensions/boltz.
-    | ^lnbits/extensions/livestream.
-    | ^lnbits/extensions/lnurldevice.
-    | ^lnbits/extensions/watchonly.
+    ^lnbits/extensions/boltz.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
+
+[[tool.mypy.overrides]]
+module = [
+  "embit.*",
+  "secp256k1.*",
+  "uvicorn.*",
+  "sqlalchemy.*",
+  "sqlalchemy_aio.*",
+  "websocket.*",
+  "websockets.*",
+  "pyqrcode.*",
+  "cashu.*",
+  "shortuuid.*",
+  "grpc.*",
+  "lnurl.*",
+  "bitstring.*",
+  "ecdsa.*",
+  "psycopg2.*",
+  "pyngrok.*",
+]
+ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"

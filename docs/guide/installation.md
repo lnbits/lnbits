@@ -53,6 +53,7 @@ poetry run lnbits
 cd lnbits-legend/
 # Stop LNbits with `ctrl + x`
 git pull
+# Keep your poetry install up to date, this can be done with `poetry self update`
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
@@ -205,6 +206,10 @@ poetry add setuptools wheel
 # if you used venv
 ./venv/bin/pip install setuptools wheel
 ```
+
+#### Poetry
+
+If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
 ### Optional: PostgreSQL database
 

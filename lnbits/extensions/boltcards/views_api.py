@@ -158,5 +158,8 @@ async def api_refunds(
     for card in cards:
         cards_ids.append(card.id)
     hits = await get_hits(cards_ids)
+    hits_ids = []
+    for hit in hits:
+        hits_ids.append(hit.id)
 
-    return [refund.dict() for refund in await get_refunds(hits)]
+    return [refund.dict() for refund in await get_refunds(hits_ids)]

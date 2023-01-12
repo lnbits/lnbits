@@ -1,12 +1,9 @@
 from http import HTTPStatus
 
-from fastapi.param_functions import Depends
+from fastapi import Depends, HTTPException, Request
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
-from starlette.exceptions import HTTPException
-from starlette.requests import Request  # type: ignore
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.livestream.models import CreateTrack
 
 from . import livestream_ext
 from .crud import (
@@ -20,6 +17,7 @@ from .crud import (
     update_livestream_fee,
     update_track,
 )
+from .models import CreateTrack
 
 
 @livestream_ext.get("/api/v1/livestream")
@@ -27,6 +25,7 @@ async def api_livestream_from_wallet(
     req: Request, g: WalletTypeInfo = Depends(get_key_type)
 ):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
+    assert ls
     tracks = await get_tracks(ls.id)
     producers = await get_producers(ls.id)
 
@@ -55,17 +54,17 @@ async def api_update_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
         id = int(track_id)
     except ValueError:
         id = 0
-    if id <= 0:
-        id = None
 
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
-    await update_current_track(ls.id, id)
+    assert ls
+    await update_current_track(ls.id, None if id <= 0 else id)
     return "", HTTPStatus.NO_CONTENT
 
 
 @livestream_ext.put("/api/v1/livestream/fee/{fee_pct}")
 async def api_update_fee(fee_pct, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
+    assert ls
     await update_livestream_fee(ls.id, int(fee_pct))
     return "", HTTPStatus.NO_CONTENT
 
@@ -76,9 +75,10 @@ async def api_add_track(
     data: CreateTrack, id=None, g: WalletTypeInfo = Depends(get_key_type)
 ):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
+    assert ls
 
     if data.producer_id:
-        p_id = data.producer_id
+        p_id = int(data.producer_id)
     elif data.producer_name:
         p_id = await add_producer(ls.id, data.producer_name)
     else:
@@ -96,5 +96,6 @@ async def api_add_track(
 @livestream_ext.delete("/api/v1/livestream/tracks/{track_id}")
 async def api_delete_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
+    assert ls
     await delete_track_from_livestream(ls.id, track_id)
     return "", HTTPStatus.NO_CONTENT

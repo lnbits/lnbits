@@ -1,16 +1,13 @@
 import base64
-import hashlib
 import hmac
 from http import HTTPStatus
 from io import BytesIO
-from typing import Optional
 
+import shortuuid
 from embit import bech32, compact
-from fastapi import Request
-from fastapi.param_functions import Query
-from loguru import logger
-from starlette.exceptions import HTTPException
+from fastapi import HTTPException, Query, Request
 
+from lnbits import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -42,7 +39,9 @@ def bech32_decode(bech):
     encoding = bech32.bech32_verify_checksum(hrp, data)
     if encoding is None:
         return
-    return bytes(bech32.convertbits(data[:-6], 5, 8, False))
+    bits = bech32.convertbits(data[:-6], 5, 8, False)
+    assert bits
+    return bytes(bits)
 
 
 def xor_decrypt(key, blob):
@@ -102,12 +101,9 @@ async def lnurl_v1_params(
             "status": "ERROR",
             "reason": f"lnurldevice {device_id} not found on this server",
         }
-    paymentcheck = await get_lnurlpayload(p)
-    if device.device == "atm":
-        if paymentcheck:
-            if paymentcheck.payhash != "payment_hash":
-                return {"status": "ERROR", "reason": f"Payment already claimed"}
     if device.device == "switch":
+        # TODO: AMOUNT IN CENT was never reference here
+        amount_in_cent = 0
         price_msat = (
             await fiat_amount_as_satoshis(float(profit), device.currency)
             if device.currency != "sat"
@@ -163,15 +159,18 @@ async def lnurl_v1_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await create_lnurldevicepayment(
-            deviceid=device.id,
-            payload=p,
-            sats=price_msat * 1000,
-            pin=pin,
-            payhash="payment_hash",
-        )
+        try:
+            lnurldevicepayment = await create_lnurldevicepayment(
+                deviceid=device.id,
+                payload=p,
+                sats=price_msat * 1000,
+                pin=str(pin),
+                payhash="payment_hash",
+            )
+        except:
+            return {"status": "ERROR", "reason": "Could not create ATM payment."}
         if not lnurldevicepayment:
-            return {"status": "ERROR", "reason": "Could not create payment."}
+            return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
             "callback": request.url_for(
@@ -188,7 +187,7 @@ async def lnurl_v1_params(
         deviceid=device.id,
         payload=p,
         sats=price_msat * 1000,
-        pin=pin,
+        pin=str(pin),
         payhash="payment_hash",
     )
     if not lnurldevicepayment:
@@ -216,28 +215,41 @@ async def lnurl_callback(
     k1: str = Query(None),
 ):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
+    if not lnurldevicepayment:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevicepayment not found."
+        )
     device = await get_lnurldevice(lnurldevicepayment.deviceid)
     if not device:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
         )
     if device.device == "atm":
+        if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+            return {"status": "ERROR", "reason": f"Payment already claimed"}
         if not pr:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
+            )
+        invoice = bolt11.decode(pr)
+        if not invoice.payment_hash:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
             )
         else:
             if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": f"Payment already claimed"}
-            lnurldevicepayment = await update_lnurldevicepayment(
+
+            lnurldevicepayment_updated = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )
+            assert lnurldevicepayment_updated
             await pay_invoice(
                 wallet_id=device.wallet,
                 payment_request=pr,
-                max_sat=lnurldevicepayment.sats / 1000,
+                max_sat=int(lnurldevicepayment_updated.sats / 1000),
                 extra={"tag": "withdraw"},
             )
             return {"status": "OK"}

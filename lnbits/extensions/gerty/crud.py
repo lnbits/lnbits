@@ -117,19 +117,19 @@ async def get_mempool_info(endPoint: str, gerty) -> dict:
                     mempool_id,
                     json.dumps(response.json()),
                     endPoint,
-                    db.timestamp_now,
+                    time.time(),
                     gerty.mempool_endpoint,
                 ),
             )
             return response.json()
-    if int(time.time()) - row.time > 20:
+    if float(time.time()) - row.time > 20:
         async with httpx.AsyncClient() as client:
             response = await client.get(gerty.mempool_endpoint + url)
             await db.execute(
                 "UPDATE gerty.mempool SET data = ?, time = ? WHERE endpoint = ? AND mempool_endpoint = ?",
                 (
                     json.dumps(response.json()),
-                    db.timestamp_now,
+                    time.time(),
                     endPoint,
                     gerty.mempool_endpoint,
                 ),

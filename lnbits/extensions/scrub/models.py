@@ -3,7 +3,7 @@ from sqlite3 import Row
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
+from lnbits.lnurl import encode as lnurl_encode
 
 
 class CreateScrubLink(BaseModel):
