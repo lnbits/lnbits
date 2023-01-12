@@ -1,5 +1,4 @@
 from enum import Enum
-from locale import currency
 from sqlite3 import Row
 from typing import List, Optional
 
