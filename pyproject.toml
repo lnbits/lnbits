@@ -2,11 +2,7 @@
 name = "lnbits"
 version = "0.9.5.3"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
-authors = [
-    "benarc <ben@lnbits.com>",
-    "dni <dni@lnbits.com>",
-    "matthewcroughan <matt@croughan.sh>"
-]
+authors = ["lnbits <lnbits@pm.me>"]
 
 [tool.poetry.build]
 generate-setup-file = false
