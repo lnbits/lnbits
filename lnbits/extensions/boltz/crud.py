@@ -1,7 +1,7 @@
 import time
 from typing import List, Optional, Union
 
-from boltz_client.boltz import BoltzSwapResponse
+from boltz_client.boltz import BoltzSwapResponse, BoltzReverseSwapResponse
 from loguru import logger
 
 from lnbits.helpers import urlsafe_short_hash
@@ -123,12 +123,11 @@ async def get_reverse_submarine_swap(swap_id) -> Optional[ReverseSubmarineSwap]:
 
 async def create_reverse_submarine_swap(
     data: CreateReverseSubmarineSwap,
+    claim_privkey_wif: str,
+    preimage_hex: str,
+    swap: BoltzReverseSwapResponse,
 ) -> ReverseSubmarineSwap:
 
-    client = create_boltz_client()
-    claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
-        amount=data.amount
-    )
     swap_id = urlsafe_short_hash()
 
     reverse_swap = ReverseSubmarineSwap(
@@ -186,7 +185,6 @@ async def create_reverse_submarine_swap(
             reverse_swap.amount,
         ),
     )
-    await execute_reverse_swap(client, reverse_swap)
     return reverse_swap
 
 

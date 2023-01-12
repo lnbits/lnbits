@@ -10,6 +10,8 @@ from lnbits.settings import settings
 
 from .models import ReverseSubmarineSwap
 
+from .crud import update_swap_status
+
 
 def create_boltz_client() -> BoltzClient:
     config = BoltzConfig(
@@ -72,9 +74,6 @@ def pay_invoice_and_update_status(
     swap_id: str, wstask: asyncio.Task, awaitable: Awaitable
 ) -> asyncio.Task:
     async def _pay_invoice(awaitable):
-        # circular import
-        from .crud import update_swap_status
-
         try:
             awaited = await awaitable
             await update_swap_status(swap_id, "complete")

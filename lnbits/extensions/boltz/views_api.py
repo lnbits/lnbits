@@ -32,7 +32,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-from .utils import check_balance, create_boltz_client
+from .utils import check_balance, create_boltz_client, execute_reverse_swap
 
 
 @boltz_ext.get(
@@ -208,8 +208,15 @@ async def api_reverse_submarineswap_create(
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
-
-    return await create_reverse_submarine_swap(data)
+    client = create_boltz_client()
+    claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
+        amount=data.amount
+    )
+    new_swap = await create_reverse_submarine_swap(
+        data, claim_privkey_wif, preimage_hex, swap
+    )
+    await execute_reverse_swap(client, new_swap)
+    return new_swap
 
 
 @boltz_ext.get(

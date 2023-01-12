@@ -19,7 +19,7 @@ from .crud import (
     update_swap_status,
 )
 from .models import CreateReverseSubmarineSwap, ReverseSubmarineSwap, SubmarineSwap
-from .utils import create_boltz_client
+from .utils import create_boltz_client, execute_reverse_swap
 
 
 async def wait_for_paid_invoices():
@@ -58,14 +58,24 @@ async def check_for_auto_swap(payment: Payment) -> None:
             balance = wallet.balance_msat / 1000
             amount = balance - auto_swap.balance - reserve
             if amount >= auto_swap.amount:
+
+                client = create_boltz_client()
+                claim_privkey_wif, preimage_hex, swap = client.create_reverse_swap(
+                    amount=int(amount)
+                )
                 new_swap = await create_reverse_submarine_swap(
                     CreateReverseSubmarineSwap(
                         wallet=auto_swap.wallet,
                         amount=int(amount),
                         instant_settlement=auto_swap.instant_settlement,
                         onchain_address=auto_swap.onchain_address,
-                    )
+                    ),
+                    claim_privkey_wif,
+                    preimage_hex,
+                    swap,
                 )
+                await execute_reverse_swap(client, new_swap)
+
                 logger.info(
                     f"Boltz: auto reverse swap created with amount: {amount}, boltz_id: {new_swap.boltz_id}"
                 )
