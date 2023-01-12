@@ -810,29 +810,6 @@
             this.formDialog.data.display_preferences.url_checker = false
           }
         }
-      },
-      toggleStates: {
-        handler(toggleStatesValue) {
-          // Switch all the toggles in each section to the relevant state
-          for (const [toggleKey, toggleValue] of Object.entries(
-            toggleStatesValue
-          )) {
-            if (this.oldToggleStates[toggleKey] !== toggleValue) {
-              for (const [dpKey, dpValue] of Object.entries(
-                this.formDialog.data.display_preferences
-              )) {
-                if (dpKey.indexOf(toggleKey) === 0) {
-                  this.formDialog.data.display_preferences[dpKey] = toggleValue
-                }
-              }
-            }
-          }
-          // This is a weird hack we have to use to get VueJS to persist the previous toggle state between
-          // watches. VueJS passes the old and new values by reference so when comparing objects they
-          // will have the same values unless we do this
-          this.oldToggleStates = JSON.parse(JSON.stringify(toggleStatesValue))
-        },
-        deep: true
       }
     }
   })

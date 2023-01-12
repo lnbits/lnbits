@@ -459,7 +459,9 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
                     response = await client.get(url)
                     text.append(
                         get_text_item_dict(
-                            text=url.replace("https://","").replace("http://","").strip("/"),
+                            text=url.replace("https://", "")
+                            .replace("http://", "")
+                            .strip("/"),
                             font_size=20,
                             gerty_type=gerty.type,
                         )
@@ -475,7 +477,9 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
                     text = []
                     text.append(
                         get_text_item_dict(
-                            text=url.replace("https://","").replace("http://","").strip("/"),
+                            text=url.replace("https://", "")
+                            .replace("http://", "")
+                            .strip("/"),
                             font_size=20,
                             gerty_type=gerty.type,
                         )
