@@ -36,4 +36,4 @@ async def m001_initial(db):
 
 
 async def m002_add_payment_hash(db):
-    await db.execute(f"ALTER TABLE smtp.email ADD COLUMN payment_hash TEXT NOT NULL;")
+    await db.execute(f"ALTER TABLE smtp.email ADD COLUMN payment_hash TEXT;")
