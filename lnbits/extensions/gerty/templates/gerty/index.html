@@ -71,6 +71,17 @@
                 >
                   <q-tooltip>View Gerty API</q-tooltip>
                 </q-btn>
+
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openSettingsModal(props.row.gertyJson)"
+                  icon="perm_data_setting"
+                  color="primary"
+                >
+                  <q-tooltip> Gerty Settings </q-tooltip>
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ (col.name == 'tip_options' && col.value ?
@@ -129,6 +140,34 @@
       </q-card-section>
     </q-card>
   </div>
+
+    <q-dialog
+    v-model="settingsDialog.show"
+    deviceition="top"
+    @hide="closeFormDialog"
+  >
+    <q-card
+      style="width: 700px; max-width: 80vw"
+      class="q-pa-lg lnbits__dialog-card"
+    >
+      <div class="text-h6 text-center">Gerty API URL</div>
+      <center>
+        <q-btn
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(settingsDialog.apiUrl, 'Link copied to clipboard!')"
+          >{% raw %}{{settingsDialog.apiUrl}}{% endraw
+          %}<q-tooltip> Click to copy URL </q-tooltip>
+        </q-btn>
+      </center>
+      <div class="text-subtitle2">
+        <small> </small>
+      </div>
+    </q-card>
+  </q-dialog>
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
@@ -300,7 +339,8 @@
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.gerty = ['/gerty/', obj.id].join('')
-    obj.gertyJson = ['/gerty/api/v1/gerty/pages/', obj.id, '/0'].join('')
+      obj.gertyJson = [window.location.origin, '/gerty/api/v1/gerty/pages/', obj.id].join('')
+      //obj.gertyJson = new URL(['/gerty/api/v1/gerty/pages/', obj.id].join(''))
     return obj
   }
 
@@ -514,6 +554,10 @@
             rowsPerPage: 10
           }
         },
+        settingsDialog: {
+          show: false,
+          data: {}
+        },
         formDialog: {
           show: false,
           data: {
@@ -609,6 +653,10 @@
               return mapGerty(obj)
             })
           })
+      },
+      openSettingsModal: function (apiUrl) {
+        this.settingsDialog.apiUrl = apiUrl
+        this.settingsDialog.show = true
       },
       updateformDialog: function (formId) {
         var gerty = _.findWhere(this.gertys, {id: formId})
