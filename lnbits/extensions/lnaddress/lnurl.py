@@ -44,7 +44,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
-async def lnurl_callback(address_id, amount: int = Query(...)):
+async def lnurl_callback(address_id, amount: int = Query(...), comment: str = Query(...)):
     address = await get_address(address_id)
     if not address:
         return LnurlErrorResponse(reason=f"Address not found").dict()
@@ -75,7 +75,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "description_hash": hashlib.sha256(
                         metadata.encode("utf-8")
                     ).hexdigest(),
-                    "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
+                    "extra": {"tag": comment or f"Payment to {address.username}@{domain.domain}"},
                 },
                 timeout=40,
             )
