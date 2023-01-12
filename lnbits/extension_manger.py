@@ -399,7 +399,9 @@ async def fetch_github_repo_info(org: str, repository: str):
                 detail=f"Cannot fetch extension releases: {releases_url}",
             )
 
-        releases= [r for r in resp.json() if r["draft"] == False and r["prerelease"] == False]
+        releases = [
+            r for r in resp.json() if r["draft"] == False and r["prerelease"] == False
+        ]
 
         config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
         resp = await client.get(config_url)
