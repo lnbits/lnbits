@@ -230,6 +230,7 @@ class InstallableExtension(BaseModel):
                 short_description=config.get("short_description"),
                 archive="xx",
                 hash="123",
+                version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
                 releases=ExtensionRelease.from_github_releases(releases),
