@@ -56,6 +56,7 @@ async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
     async with core_db.connect() as conn:
+        exists = False
         if conn.type == SQLITE:
             exists = await conn.fetchone(
                 "SELECT * FROM sqlite_master WHERE type='table' AND name='dbversions'"

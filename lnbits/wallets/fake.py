@@ -19,15 +19,16 @@ from .base import (
 
 
 class FakeWallet(Wallet):
-    queue: asyncio.Queue = asyncio.Queue(0)
-    secret: str = settings.fake_wallet_secret
-    privkey: str = hashlib.pbkdf2_hmac(
-        "sha256",
-        secret.encode(),
-        ("FakeWallet").encode(),
-        2048,
-        32,
-    ).hex()
+    def __init__(self):
+        self.queue: asyncio.Queue = asyncio.Queue(0)
+        self.secret: str = settings.fake_wallet_secret
+        self.privkey: str = hashlib.pbkdf2_hmac(
+            "sha256",
+            self.secret.encode(),
+            ("FakeWallet").encode(),
+            2048,
+            32,
+        ).hex()
 
     async def status(self) -> StatusResponse:
         logger.info(
@@ -45,10 +46,11 @@ class FakeWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {
             "out": False,
-            "amount": amount,
+            "amount": amount * 1000,
+            "timestamp": datetime.now().timestamp(),
             "currency": "bc",
             "privkey": self.privkey,
-            "memo": None,
+            "memo": "",
             "description_hash": None,
             "description": "",
             "fallback": None,
@@ -59,19 +61,20 @@ class FakeWallet(Wallet):
         data["amount"] = amount * 1000
         data["timestamp"] = datetime.now().timestamp()
         if description_hash:
-            data["tags_set"] = ["h"]
-            data["description_hash"] = description_hash
+            data["tags_set"] = ["h"]  # type: ignore
+            data["description_hash"] = description_hash.hex()
         elif unhashed_description:
-            data["tags_set"] = ["d"]
-            data["description_hash"] = hashlib.sha256(unhashed_description).digest()
+            data["tags_set"] = ["d"]  # type: ignore
+            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
         else:
-            data["tags_set"] = ["d"]
-            data["memo"] = memo
-            data["description"] = memo
+            data["tags_set"] = ["d"]  # type: ignore
+            data["memo"] = memo or ""
+            data["description"] = memo or ""
         randomHash = (
-            data["privkey"][:6]
+            data["privkey"][:6]  # type: ignore
             + hashlib.sha256(str(random.getrandbits(256)).encode()).hexdigest()[6:]
         )
+
         data["paymenthash"] = randomHash
         payment_request = encode(data)
         checking_id = randomHash

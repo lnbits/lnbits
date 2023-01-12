@@ -22,13 +22,17 @@ class LntxbotWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lntxbot_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
         key = (
             settings.lntxbot_key
             or settings.lntxbot_admin_key
             or settings.lntxbot_invoice_key
         )
+
+        if not endpoint or not key:
+            raise Exception("cannot initialize lntxbod")
+
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": f"Basic {key}"}
 
     async def status(self) -> StatusResponse:
@@ -54,7 +58,6 @@ class LntxbotWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"amt": str(amount)}
         if description_hash:

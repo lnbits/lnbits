@@ -1,12 +1,11 @@
 from http import HTTPStatus
+from typing import Optional
 
-from fastapi import Security, status
-from fastapi.exceptions import HTTPException
+from fastapi import HTTPException, Request, Security, status
 from fastapi.openapi.models import APIKey, APIKeyIn
-from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
+from fastapi.security import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
 from pydantic.types import UUID4
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
@@ -14,9 +13,13 @@ from lnbits.requestvars import g
 from lnbits.settings import settings
 
 
+# TODO: fix type ignores
 class KeyChecker(SecurityBase):
     def __init__(
-        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+        self,
+        scheme_name: Optional[str] = None,
+        auto_error: bool = True,
+        api_key: Optional[str] = None,
     ):
         self.scheme_name = scheme_name or self.__class__.__name__
         self.auto_error = auto_error
@@ -24,13 +27,13 @@ class KeyChecker(SecurityBase):
         self._api_key = api_key
         if api_key:
             key = APIKey(
-                **{"in": APIKeyIn.query},
+                **{"in": APIKeyIn.query},  # type: ignore
                 name="X-API-KEY",
                 description="Wallet API Key - QUERY",
             )
         else:
             key = APIKey(
-                **{"in": APIKeyIn.header},
+                **{"in": APIKeyIn.header},  # type: ignore
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
@@ -70,7 +73,10 @@ class WalletInvoiceKeyChecker(KeyChecker):
     """
 
     def __init__(
-        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+        self,
+        scheme_name: Optional[str] = None,
+        auto_error: bool = True,
+        api_key: Optional[str] = None,
     ):
         super().__init__(scheme_name, auto_error, api_key)
         self._key_type = "invoice"
@@ -86,7 +92,10 @@ class WalletAdminKeyChecker(KeyChecker):
     """
 
     def __init__(
-        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+        self,
+        scheme_name: Optional[str] = None,
+        auto_error: bool = True,
+        api_key: Optional[str] = None,
     ):
         super().__init__(scheme_name, auto_error, api_key)
         self._key_type = "admin"

@@ -1,11 +1,10 @@
 import asyncio
-import hmac
-from http import HTTPStatus
+
+# import hmac
+# from http import HTTPStatus
 from typing import AsyncGenerator, Optional
 
 import httpx
-from fastapi.exceptions import HTTPException
-from loguru import logger
 
 from lnbits.settings import settings
 
@@ -18,19 +17,24 @@ from .base import (
     Wallet,
 )
 
+# from fastapi import Request, HTTPException
+# from loguru import logger
+
 
 class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
     def __init__(self):
         endpoint = settings.opennode_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-
         key = (
             settings.opennode_key
             or settings.opennode_admin_key
             or settings.opennode_invoice_key
         )
+        if not endpoint or not key:
+            raise Exception("cannot initialize opennode")
+
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": key}
 
     async def status(self) -> StatusResponse:
@@ -54,7 +58,6 @@ class OpenNodeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
             raise Unsupported("description_hash")
@@ -139,17 +142,17 @@ class OpenNodeWallet(Wallet):
             value = await self.queue.get()
             yield value
 
-    async def webhook_listener(self):
-        data = await request.form
-        if "status" not in data or data["status"] != "paid":
-            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    # async def webhook_listener(self):
+    #     data = await request.form
+    #     if "status" not in data or data["status"] != "paid":
+    #         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-        charge_id = data["id"]
-        x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
-        x.update(charge_id.encode("ascii"))
-        if x.hexdigest() != data["hashed_order"]:
-            logger.error("invalid webhook, not from opennode")
-            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    #     charge_id = data["id"]
+    #     x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
+    #     x.update(charge_id.encode("ascii"))
+    #     if x.hexdigest() != data["hashed_order"]:
+    #         logger.error("invalid webhook, not from opennode")
+    #         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-        await self.queue.put(charge_id)
-        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    #     await self.queue.put(charge_id)
+    #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

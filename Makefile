@@ -4,7 +4,7 @@ all: format check requirements.txt
 
 format: prettier isort black
 
-check: mypy checkprettier checkisort checkblack
+check: mypy pyright checkprettier checkisort checkblack
 
 prettier: $(shell find lnbits -name "*.js" -o -name ".html")
 	./node_modules/.bin/prettier --write lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js  lnbits/extensions/*/static/components/*/*.html
@@ -20,6 +20,9 @@ flake8:
 
 mypy:
 	poetry run mypy
+
+pyright:
+	poetry run pyright
 
 isort:
 	poetry run isort .

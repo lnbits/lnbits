@@ -34,11 +34,13 @@ class UnknownError(Exception):
 class EclairWallet(Wallet):
     def __init__(self):
         url = settings.eclair_url
-        self.url = url[:-1] if url.endswith("/") else url
+        passw = settings.eclair_pass
+        if not url or not passw:
+            raise Exception("cannot initialize eclair")
 
+        self.url = url[:-1] if url.endswith("/") else url
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
-        passw = settings.eclair_pass
         encodedAuth = base64.b64encode(f":{passw}".encode())
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}
@@ -149,6 +151,7 @@ class EclairWallet(Wallet):
         }
 
         data = r.json()[-1]
+        fee_msat = 0
         if data["status"]["type"] == "sent":
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]

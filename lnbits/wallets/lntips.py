@@ -21,13 +21,14 @@ from .base import (
 class LnTipsWallet(Wallet):
     def __init__(self):
         endpoint = settings.lntips_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-
         key = (
             settings.lntips_api_key
             or settings.lntips_admin_key
             or settings.lntips_invoice_key
         )
+        if not endpoint or not key:
+            raise Exception("cannot initialize lntxbod")
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": f"Basic {key}"}
 
     async def status(self) -> StatusResponse:
@@ -53,15 +54,12 @@ class LnTipsWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"amount": amount}
+        data: Dict = {"amount": amount, "description_hash": "", "memo": memo or ""}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:
             data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["memo"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(

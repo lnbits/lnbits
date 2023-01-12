@@ -1,6 +1,3 @@
-# Borrowed from the excellent accent-starlette
-# https://github.com/accent-starlette/starlette-core/blob/master/starlette_core/templating.py
-
 import typing
 
 from starlette import templating
@@ -12,13 +9,12 @@ try:
 except ImportError:  # pragma: nocover
     jinja2 = None  # type: ignore
 
-
 class Jinja2Templates(templating.Jinja2Templates):
     def __init__(self, loader: jinja2.BaseLoader) -> None:  # pylint: disable=W0231
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self.get_environment(loader)
 
-    def get_environment(self, loader: "jinja2.BaseLoader") -> "jinja2.Environment":
+    def get_environment(self, loader: jinja2.BaseLoader) -> jinja2.Environment:
         @jinja2.pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
             request: Request = context["request"]

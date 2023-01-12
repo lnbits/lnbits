@@ -78,6 +78,9 @@ types-protobuf = "^3.19.22"
 flake8 = { version = "^6.0.0", python = ">=3.8.1" }
 pylint = { version = "^2.15.10", python = ">=3.7.2" }
 
+[tool.poetry.group.dev.dependencies]
+pyright = "^1.1.288"
+
 [build-system]
 requires = ["poetry-core>=1.0.0", "pyScss"]
 build-backend = "poetry.core.masonry.api"
