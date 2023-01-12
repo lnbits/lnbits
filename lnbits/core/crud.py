@@ -9,7 +9,7 @@ from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, User, Wallet
+from .models import BalanceCheck, Payment, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -620,3 +620,30 @@ async def create_admin_settings(super_user: str, new_settings: dict):
     sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
     return await get_super_settings()
+
+
+# tinyurl
+# -------
+
+
+async def create_tinyurl(tiny_url: str):
+    tinyurl_id = uuid4().hex[:8]
+    await (conn or db).execute(
+        """
+        INSERT INTO tiny_url (id, url) VALUES (?, ?)
+        """,
+        (tinyurl_id, domain),
+    )
+    return await get_tinyurl(tinyurl_id)
+
+
+async def get_tinyurl(tinyurl_id: str) -> Optional[BalanceCheck]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT *
+        FROM tiny_url
+        WHERE id = ?
+        """,
+        (tinyurl_id),
+    )
+    return TinyURL.from_row(row) if row else None

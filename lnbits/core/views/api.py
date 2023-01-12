@@ -706,3 +706,26 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
+
+############################TINYURL##################################
+
+
+@core_app.post("/api/v1/tinyurl")
+async def api_create_tinyurl(url: str):
+    return await create_tinyurl(url)
+
+
+@core_app.get("/api/v1/tinyurl/{tinyurl_id}")
+async def api_get_tinyurl(tinyurl_id: str):
+    return await get_tinyurl(tinyurl_id)
+
+
+@core_app.get("/{tinyurl_id}")
+async def api_tinyurl(tinyurl_id: str):
+    tinyurl = await get_tinyurl(tinyurl_id)
+    if tinyurl:
+        response = RedirectResponse(url=tinyurl.url)
+        return response
+    else:
+        return

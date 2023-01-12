@@ -213,3 +213,12 @@ class BalanceCheck(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
+
+
+class TinyURL(BaseModel):
+    id: str
+    url: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "TinyURL":
+        return cls(**dict(row))
