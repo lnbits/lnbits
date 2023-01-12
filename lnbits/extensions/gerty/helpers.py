@@ -41,17 +41,17 @@ def get_text_item_dict(
         line_width = 25
 
     # Get font sizes for Gerty mini
-    if gerty_type.lower() == "mini gerty":
-        if font_size <= 12:
-            font_size = 1
-        if font_size <= 15:
-            font_size = 1
-        elif font_size <= 20:
-            font_size = 2
-        elif font_size <= 40:
-            font_size = 2
-        else:
-            font_size = 5
+    # if gerty_type.lower() == "mini gerty":
+    #     if font_size <= 12:
+    #         font_size = 1
+    #     if font_size <= 15:
+    #         font_size = 1
+    #     elif font_size <= 20:
+    #         font_size = 2
+    #     elif font_size <= 40:
+    #         font_size = 2
+    #     else:
+    #         font_size = 5
 
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
@@ -500,6 +500,13 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
         areas.append(await get_onchain_stat(screen_slug, gerty))
     elif screen_slug == "onchain_block_height":
         text = []
+        text.append(
+            get_text_item_dict(
+                text="Block Height",
+                font_size=20,
+                gerty_type=gerty.type,
+            )
+        )
         text.append(
             get_text_item_dict(
                 text=format_number(await get_mempool_info("tip_height", gerty)),
