@@ -721,6 +721,7 @@ async def api_create_tinyurl(url: str):
         return tinyurl
     return await create_tinyurl(url)
 
+
 @core_app.get("/api/v1/tinyurl/{tinyurl_id}")
 async def api_get_tinyurl(tinyurl_id: str):
     return await get_tinyurl(tinyurl_id)

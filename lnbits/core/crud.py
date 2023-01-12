@@ -9,7 +9,7 @@ from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, TinyURL, User, Wallet, TinyURL
+from .models import BalanceCheck, Payment, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -626,36 +626,30 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 # -------
 
 
-async def create_tinyurl(domain: str):
+async def create_tinyurl(domain: str, conn: Optional[Connection] = None):
     tinyurl_id = uuid4().hex[:8]
-    await db.execute(
-        """
-        INSERT INTO tiny_url (id, url) VALUES (?, ?)
-        """,
+    await (conn or db).execute(
+        f"INSERT INTO tiny_url (id, url) VALUES (?, ?)",
         (tinyurl_id, domain),
     )
     return await get_tinyurl(tinyurl_id)
 
 
-async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
-    row = await db.fetchone(
-        """
-        SELECT *
-        FROM tiny_url
-        WHERE id = ?
-        """,
+async def get_tinyurl(
+    tinyurl_id: str, conn: Optional[Connection] = None
+) -> Optional[TinyURL]:
+    row = await (conn or db).fetchone(
+        f"SELECT * FROM tiny_url WHERE id = ?",
         (tinyurl_id),
     )
     return TinyURL.from_row(row) if row else None
 
 
-async def get_tinyurl_by_url(url: str) -> Optional[TinyURL]:
-    row = await db.fetchone(
-        """
-        SELECT *
-        FROM tiny_url
-        WHERE url = ?
-        """,
+async def get_tinyurl_by_url(
+    url: str, conn: Optional[Connection] = None
+) -> Optional[TinyURL]:
+    row = await (conn or db).fetchone(
+        f"SELECT * FROM tiny_url WHERE url = ?",
         (url),
     )
     return TinyURL.from_row(row) if row else None
