@@ -13,6 +13,7 @@ from .crud import (
     delete_email,
     delete_emailaddress,
     get_email,
+    get_email_by_payment_hash,
     get_emailaddress,
     get_emailaddresses,
     get_emails,
@@ -37,7 +38,7 @@ async def api_email(
 
 @smtp_ext.get("/api/v1/email/{payment_hash}")
 async def api_smtp_send_email(payment_hash):
-    email = await get_email(payment_hash)
+    email = await get_email_by_payment_hash(payment_hash)
     if not email:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="paymenthash is wrong"
