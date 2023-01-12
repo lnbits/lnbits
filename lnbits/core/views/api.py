@@ -51,6 +51,7 @@ from ..crud import (
     get_payments,
     get_standalone_payment,
     get_tinyurl,
+    get_tinyurl_by_url,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
@@ -715,15 +716,17 @@ async def websocket_update_get(item_id: str, data: str):
 
 @core_app.post("/api/v1/tinyurl")
 async def api_create_tinyurl(url: str):
+    tinyurl = await get_tinyurl_by_url(url)
+    if tinyurl:
+        return tinyurl
     return await create_tinyurl(url)
-
 
 @core_app.get("/api/v1/tinyurl/{tinyurl_id}")
 async def api_get_tinyurl(tinyurl_id: str):
     return await get_tinyurl(tinyurl_id)
 
 
-@core_app.get("/{tinyurl_id}")
+@core_app.get("/t/{tinyurl_id}")
 async def api_tinyurl(tinyurl_id: str):
     tinyurl = await get_tinyurl(tinyurl_id)
     if tinyurl:

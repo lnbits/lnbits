@@ -647,3 +647,15 @@ async def get_tinyurl(tinyurl_id: str) -> Optional[BalanceCheck]:
         (tinyurl_id),
     )
     return TinyURL.from_row(row) if row else None
+
+
+async def get_tinyurl_by_url(url: str) -> Optional[BalanceCheck]:
+    row = await db.fetchone(
+        """
+        SELECT *
+        FROM tiny_url
+        WHERE url = ?
+        """,
+        (url),
+    )
+    return TinyURL.from_row(row) if row else None
