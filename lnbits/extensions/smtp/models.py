@@ -15,7 +15,7 @@ class CreateEmailaddress(BaseModel):
     cost: int = Query(..., ge=0)
 
 
-class Emailaddresses(BaseModel):
+class Emailaddress(BaseModel):
     id: str
     wallet: str
     email: str
@@ -36,7 +36,7 @@ class CreateEmail(BaseModel):
     message: str = Query(...)
 
 
-class Emails(BaseModel):
+class Email(BaseModel):
     id: str
     wallet: str
     emailaddress_id: str
