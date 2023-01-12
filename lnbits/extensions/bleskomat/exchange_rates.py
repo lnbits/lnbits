@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Callable, Dict, Union
 
 import httpx
 
@@ -12,7 +13,9 @@ fiat_currencies = json.load(
     )
 )
 
-exchange_rate_providers = {
+exchange_rate_providers: dict[
+    str, dict[str, Union[str, Callable[[dict, dict], str]]]
+] = {
     "bitfinex": {
         "name": "Bitfinex",
         "domain": "bitfinex.com",
@@ -65,17 +68,19 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
         "to": currency.lower(),
     }
 
-    url = exchange_rate_providers[provider]["api_url"]
-    if url:
+    api_url_or_none = exchange_rate_providers[provider]["api_url"]
+    if api_url_or_none is not None:
+        api_url = str(api_url_or_none)
         for key in replacements.keys():
-            url = url.replace("{" + key + "}", replacements[key])
+            api_url = api_url.replace("{" + key + "}", replacements[key])
         async with httpx.AsyncClient() as client:
-            r = await client.get(url)
+            r = await client.get(api_url)
             r.raise_for_status()
             data = r.json()
     else:
         data = {}
-
     getter = exchange_rate_providers[provider]["getter"]
-    rate = float(getter(data, replacements))
+    print(getter)
+    if callable(getter):
+        rate = float(getter(data, replacements))
     return rate

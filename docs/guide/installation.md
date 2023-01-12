@@ -53,6 +53,7 @@ poetry run lnbits
 cd lnbits-legend/
 # Stop LNbits with `ctrl + x`
 git pull
+# Keep your poetry install up to date, this can be done with `poetry self update`
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```

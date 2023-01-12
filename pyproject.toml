@@ -88,8 +88,7 @@ profile = "black"
 [tool.mypy]
 files = "lnbits"
 exclude = """(?x)(
-    ^lnbits/extensions/bleskomat.
-    | ^lnbits/extensions/boltz.
+    ^lnbits/extensions/boltz.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 
