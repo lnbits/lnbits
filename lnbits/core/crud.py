@@ -73,7 +73,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 async def add_installed_extension(
     *,
     ext_id: str,
-    version,
+    version: str,
     active: bool,
     hash: str,
     meta: dict,

@@ -40,8 +40,14 @@
       <q-card-section>
         <div class="row">
           <div class="col-3">
-            <!-- hack must find better solution -->
+            <q-img
+              v-if="extension.iconUrl"
+              :src="extension.iconUrl"
+              spinner-color="white"
+              style="max-width: 100%"
+            ></q-img>
             <q-icon
+              v-else
               :name="extension.icon"
               color="grey-5"
               style="font-size: 4rem"
@@ -107,34 +113,20 @@
         </div>
 
         <div class="col-6">
-          <q-rating
-            max="5"
-            v-model="maxStars"
-            size="1.5em"
-            color="yellow"
-            icon="star_border"
-            icon-selected="star"
-            icon-half="star_half"
-            readonly
-            no-dimming
-            class="float-right"
-          >
-            <template v-slot:tip-1>
-              <q-tooltip>User Review Comming Soon</q-tooltip>
-            </template>
-            <template v-slot:tip-2>
-              <q-tooltip>User Review Comming Soon</q-tooltip>
-            </template>
-            <template v-slot:tip-3>
-              <q-tooltip>User Review Comming Soon</q-tooltip>
-            </template>
-            <template v-slot:tip-4>
-              <q-tooltip>User Review Comming Soon</q-tooltip>
-            </template>
-            <template v-slot:tip-5>
-              <q-tooltip>User Review Comming Soon</q-tooltip>
-            </template>
-          </q-rating>
+          <div class="float-right">
+            <small v-text="extension.stars"> </small>
+            <q-rating
+              max="1"
+              v-model="maxStars"
+              size="1.5em"
+              color="yellow"
+              icon="star"
+              icon-selected="star"
+              readonly
+              no-dimming
+            >
+            </q-rating>
+          </div>
         </div>
       </q-card-actions>
     </q-card>
@@ -279,6 +271,7 @@
         inProgress: false
       }))
       this.filteredExtensions = this.extensions.concat([])
+      console.log('### his.filteredExtensions', this.filteredExtensions)
     },
     mixins: [windowMixin]
   })

@@ -740,7 +740,6 @@ async def api_install_extension(
         db_version = (await get_dbversions()).get(ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
-        # disable by default
         await add_installed_extension(
             ext_id=ext_id,
             version=ext_info.version,
