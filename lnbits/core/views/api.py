@@ -26,7 +26,7 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import StreamingResponse
+from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
@@ -47,8 +47,10 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
+    create_tinyurl,
     get_payments,
     get_standalone_payment,
+    get_tinyurl,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,

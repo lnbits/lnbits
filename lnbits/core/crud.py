@@ -626,9 +626,9 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 # -------
 
 
-async def create_tinyurl(tiny_url: str):
+async def create_tinyurl(domain: str):
     tinyurl_id = uuid4().hex[:8]
-    await (conn or db).execute(
+    await db.execute(
         """
         INSERT INTO tiny_url (id, url) VALUES (?, ?)
         """,
@@ -638,7 +638,7 @@ async def create_tinyurl(tiny_url: str):
 
 
 async def get_tinyurl(tinyurl_id: str) -> Optional[BalanceCheck]:
-    row = await (conn or db).fetchone(
+    row = await db.fetchone(
         """
         SELECT *
         FROM tiny_url
