@@ -104,6 +104,7 @@ class CoreLightningWallet(Wallet):
                 deschashonly=True
                 if unhashed_description
                 else False,  # we can't pass None here
+                expiry=kwargs.get("expiry"),
             )
 
             if r.get("code") and r.get("code") < 0:

@@ -119,6 +119,7 @@ class SparkWallet(Wallet):
                     label=label,
                     description=memo or "",
                     exposeprivatechannels=True,
+                    expiry=kwargs.get("expiry"),
                 )
             ok, payment_request, error_message = True, r["bolt11"], ""
         except (SparkError, UnknownError) as e:
