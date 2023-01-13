@@ -77,10 +77,13 @@ class EclairWallet(Wallet):
     ) -> InvoiceResponse:
 
         data: Dict = {"amountMsat": amount * 1000}
+        if kwargs.get("expiry"):
+            data["expireIn"] = kwargs["expiry"]
+
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
+            data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
         else:
             data["description"] = memo or ""
 
