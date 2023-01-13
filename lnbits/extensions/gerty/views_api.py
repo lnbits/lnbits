@@ -92,6 +92,7 @@ async def api_gerty_delete(
 async def api_gerty_satoshi():
     return await get_satoshi()
 
+
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
 async def api_gerty_json(gerty_id: str, p: int = 0):  # page number
     gerty = await get_gerty(gerty_id)

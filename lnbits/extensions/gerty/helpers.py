@@ -794,9 +794,7 @@ async def get_onchain_dashboard(gerty):
                 text="Date of next adjustment", font_size=12, gerty_type=gerty.type
             )
         )
-        text.append(
-            get_text_item_dict(text=dt, font_size=20, gerty_type=gerty.type)
-        )
+        text.append(get_text_item_dict(text=dt, font_size=20, gerty_type=gerty.type))
         areas.append(text)
 
         text = []
