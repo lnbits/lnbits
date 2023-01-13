@@ -156,7 +156,9 @@ class LndWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        params: Dict = {"value": amount, "expiry": 600, "private": True}
+        params: Dict = {"value": amount, "private": True}
+        if kwargs.get("expiry"):
+            params["expiry"] = kwargs["expiry"]
         if description_hash:
             params["description_hash"] = description_hash
         elif unhashed_description:
