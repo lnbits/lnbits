@@ -62,6 +62,8 @@ class LNbitsWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
         if description_hash:
             data["description_hash"] = description_hash.hex()
         if unhashed_description:
