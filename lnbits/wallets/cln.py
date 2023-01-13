@@ -83,6 +83,7 @@ class CoreLightningWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
         msat: int = int(amount * 1000)

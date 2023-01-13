@@ -154,6 +154,7 @@ class LndWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         params: Dict = {"value": amount, "expiry": 600, "private": True}
         if description_hash:

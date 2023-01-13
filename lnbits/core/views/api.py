@@ -129,6 +129,7 @@ class CreateInvoiceData(BaseModel):
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
+    expiry: Optional[int] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -174,6 +175,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 memo=memo,
                 description_hash=description_hash,
                 unhashed_description=unhashed_description,
+                expiry=data.expiry,
                 extra=data.extra,
                 webhook=data.webhook,
                 internal=data.internal,
