@@ -92,14 +92,6 @@ async def api_gerty_delete(
 async def api_gerty_satoshi():
     return await get_satoshi()
 
-
-@gerty_ext.get("/api/v1/gerty/pages/{gerty_id}")
-async def api_gerty_no_page(gerty_id: str):
-    raise HTTPException(
-        status_code=HTTPStatus.BAD_REQUEST, detail="Please supply a page number"
-    )
-
-
 @gerty_ext.get("/api/v1/gerty/pages/{gerty_id}/{p}")
 async def api_gerty_json(gerty_id: str, p: int = 0):  # page number
     gerty = await get_gerty(gerty_id)
