@@ -40,19 +40,6 @@ def get_text_item_dict(
     elif font_size <= 40:
         line_width = 25
 
-    # Get font sizes for Gerty mini
-    # if gerty_type.lower() == "mini gerty":
-    #     if font_size <= 12:
-    #         font_size = 1
-    #     if font_size <= 15:
-    #         font_size = 1
-    #     elif font_size <= 20:
-    #         font_size = 2
-    #     elif font_size <= 40:
-    #         font_size = 2
-    #     else:
-    #         font_size = 5
-
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
     word_list = wrapper.wrap(text=text)
