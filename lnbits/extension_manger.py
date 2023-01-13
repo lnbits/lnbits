@@ -107,20 +107,20 @@ class ExtensionRelease(BaseModel):
     name: str
     version: str
     archive: str
-    description: str
+    hash: Optional[str]
+    published_at: Optional[str]
+    url: Optional[str]
+    description: Optional[str]
 
     @classmethod
-    def from_github_releases(cls, releases: dict) -> List["ExtensionRelease"]:
-        return list(
-            map(
-                lambda r: ExtensionRelease(
-                    name=r["name"],
-                    version=r["tag_name"],
-                    archive=r["zipball_url"],
-                    description=r["body"],
-                ),
-                releases,
-            )
+    def from_github_release(cls, r: dict) -> "ExtensionRelease":
+        return ExtensionRelease(
+            name=r["name"],
+            version=r["tag_name"],
+            archive=r["zipball_url"],
+            # description=r["body"], # bad for JSON
+            published_at=r["published_at"],
+            url=r["html_url"],
         )
 
 
@@ -137,7 +137,7 @@ class InstallableExtension(BaseModel):
     is_admin_only: bool = False
     version: str = "none"  # todo: move to Release
     stars: int = 0
-    releases: Optional[List[ExtensionRelease]]
+    release: Optional[ExtensionRelease]
 
     @property
     def zip_path(self) -> str:
@@ -222,7 +222,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def from_repo(cls, org, repository) -> Optional["InstallableExtension"]:
         try:
-            repo, releases, config = await fetch_github_repo_info(org, repository)
+            repo, latest_release, config = await fetch_github_repo_info(org, repository)
 
             return InstallableExtension(
                 id=repo["name"],
@@ -233,7 +233,7 @@ class InstallableExtension(BaseModel):
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
-                releases=ExtensionRelease.from_github_releases(releases),
+                release=ExtensionRelease.from_github_release(latest_release),
             )
         except Exception as e:
             logger.warning(e)
@@ -298,7 +298,6 @@ class InstallableExtension(BaseModel):
                             ext = await InstallableExtension.from_repo(
                                 r["organisation"], r["repository"]
                             )
-                            print("#### repo_extensions", ext)
                             if ext:
                                 extension_list += [ext]
                 except Exception as e:
@@ -391,7 +390,9 @@ async def fetch_github_repo_info(org: str, repository: str):
             )
         repo = resp.json()
 
-        releases_url = f"https://api.github.com/repos/{org}/{repository}/releases"
+        releases_url = (
+            f"https://api.github.com/repos/{org}/{repository}/releases/latest"
+        )
         resp = await client.get(releases_url)
         if resp.status_code != 200:
             raise HTTPException(
@@ -399,9 +400,7 @@ async def fetch_github_repo_info(org: str, repository: str):
                 detail=f"Cannot fetch extension releases: {releases_url}",
             )
 
-        releases = [
-            r for r in resp.json() if r["draft"] == False and r["prerelease"] == False
-        ]
+        latest_release = resp.json()
 
         config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
         resp = await client.get(config_url)
@@ -413,4 +412,4 @@ async def fetch_github_repo_info(org: str, repository: str):
 
         config = resp.json()
 
-        return repo, releases, config
+        return repo, latest_release, config

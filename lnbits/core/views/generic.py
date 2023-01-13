@@ -112,17 +112,7 @@ async def extensions_install(
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_extensions,
                     "isActive": not ext.id in inactive_extensions,
-                    "releases": [
-                        {
-                            "name": r.name,
-                            "version": r.version,
-                            "archive": r.archive,
-                            # "description": base64.b64encode(r.description.encode()),
-                        }
-                        for r in ext.releases
-                    ]
-                    if ext.releases
-                    else None,
+                    "release": dict(ext.release) if ext.release else None,
                 },
                 extension_list,
             )
