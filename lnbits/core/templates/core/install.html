@@ -83,8 +83,11 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
-        <div class="col-6">
+        <div class="col-10">
           <div v-if="extension.isInstalled">
+            <q-btn @click="showUpgrade(extension)" flat color="primary">
+              Upgrade</q-btn
+            >
             <q-btn @click="showUninstall(extension)" flat color="grey-5">
               Uninstall</q-btn
             >
@@ -112,7 +115,7 @@
           </div>
         </div>
 
-        <div class="col-6">
+        <div class="col-2">
           <div class="float-right">
             <small v-text="extension.stars"> </small>
             <q-rating
@@ -148,6 +151,16 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="showUpgradeDialog">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-primary">Upgrade</h6>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   {%raw%}
   <q-dialog v-model="showDetailsDialog">
     <q-card v-if="selectedExtension" class="q-pa-lg">
@@ -174,6 +187,7 @@
         showOnlyInstalledExtensions: false,
         filteredExtensions: null,
         showUninstallDialog: false,
+        showUpgradeDialog: false,
         showDetailsDialog: false,
         selectedExtension: null,
         maxStars: 0
@@ -258,6 +272,11 @@
       showUninstall: function (extension) {
         this.selectedExtension = extension
         this.showUninstallDialog = true
+      },
+
+      showUpgrade: function (extension) {
+        this.selectedExtension = extension
+        this.showUpgradeDialog = true
       },
 
       showExtensionDetails: function (extension) {

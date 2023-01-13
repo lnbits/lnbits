@@ -104,6 +104,7 @@ async def extensions_install(
                     "id": ext.id,
                     "name": ext.name,
                     "hash": ext.hash,
+                    "version": ext.version,
                     "icon": ext.icon,
                     "iconUrl": ext.icon_url,
                     "shortDescription": ext.short_description,
