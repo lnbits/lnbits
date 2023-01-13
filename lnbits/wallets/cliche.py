@@ -48,6 +48,7 @@ class ClicheWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         if unhashed_description or description_hash:
             description_hash_str = (

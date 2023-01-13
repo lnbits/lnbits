@@ -201,6 +201,10 @@ class EnvSettings(LNbitsSettings):
     super_user: str = Field(default="")
 
 
+class LightningSettings(LNbitsSettings):
+    lightning_invoice_expiry: int = Field(default=600)
+
+
 class SaaSSettings(LNbitsSettings):
     lnbits_saas_callback: Optional[str] = Field(default=None)
     lnbits_saas_secret: Optional[str] = Field(default=None)
@@ -230,7 +234,11 @@ class SuperUserSettings(LNbitsSettings):
 
 
 class ReadOnlySettings(
-    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
+    EnvSettings,
+    SaaSSettings,
+    PersistenceSettings,
+    SuperUserSettings,
+    LightningSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 

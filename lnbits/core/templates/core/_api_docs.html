@@ -48,9 +48,9 @@
         <code>{"X-Api-Key": "<i>{{ wallet.inkey }}</i>"}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code
-          >{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;, "unit":
-          &lt;string&gt;, "webhook": &lt;url:string&gt;, "internal":
-          &lt;bool&gt;}</code
+          >{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;,
+          "expiry": &lt;int&gt;, "unit": &lt;string&gt;, "webhook":
+          &lt;url:string&gt;, "internal": &lt;bool&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
@@ -62,8 +62,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
-          "amount": &lt;int&gt;, "memo": &lt;string&gt;, "webhook":
-          &lt;url:string&gt;, "unit": &lt;string&gt;}' -H "X-Api-Key:
+          "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "X-Api-Key:
           <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code
         >
       </q-card-section>

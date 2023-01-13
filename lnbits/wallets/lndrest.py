@@ -77,6 +77,7 @@ class LndRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
+
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"

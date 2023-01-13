@@ -73,6 +73,7 @@ class EclairWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
 
         data: Dict = {"amountMsat": amount * 1000}
