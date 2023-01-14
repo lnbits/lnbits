@@ -809,7 +809,8 @@
         this.createTheme(wallet, data)
       },
       sendFormDataCharge: function () {
-        this.formDialogCharge.data.custom_css = this.formDialogCharge.data.custom_css?.id
+        this.formDialogCharge.data.custom_css =
+          this.formDialogCharge.data.custom_css?.id
         const data = this.formDialogCharge.data
         const wallet = this.g.user.wallets[0].inkey
         data.amount = parseInt(data.amount)
