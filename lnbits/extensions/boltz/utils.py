@@ -8,7 +8,6 @@ from boltz_client.boltz import BoltzClient, BoltzConfig
 from lnbits.core.services import fee_reserve, get_wallet, pay_invoice
 from lnbits.settings import settings
 
-from .crud import update_swap_status
 from .models import ReverseSubmarineSwap
 
 
@@ -73,6 +72,7 @@ def pay_invoice_and_update_status(
     swap_id: str, wstask: asyncio.Task, awaitable: Awaitable
 ) -> asyncio.Task:
     async def _pay_invoice(awaitable):
+        from .crud import update_swap_status
         try:
             awaited = await awaitable
             await update_swap_status(swap_id, "complete")
