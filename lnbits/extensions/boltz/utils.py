@@ -73,6 +73,7 @@ def pay_invoice_and_update_status(
 ) -> asyncio.Task:
     async def _pay_invoice(awaitable):
         from .crud import update_swap_status
+
         try:
             awaited = await awaitable
             await update_swap_status(swap_id, "complete")
