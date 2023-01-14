@@ -10,6 +10,7 @@
             style="font-size: 10rem"
           ></q-icon>
           <h4 class="q-mt-none q-mb-md">{{ mint_name }}</h4>
+          <!-- <a class="text-secondary">Mint URL: {{testfield}} </a> <br /> -->
           <a
             class="text-secondary"
             class="q-my-xl text-white"
@@ -64,18 +65,26 @@
       </q-card-section>
     </q-card>
   </div>
-
-  {% endblock %} {% block scripts %}
-
-  <script>
-    new Vue({
-      el: '#vue',
-      mixins: [windowMixin],
-      data: function () {
-        return {}
-      }
-    })
-  </script>
-
-  {% endblock %}
 </div>
+
+{% endblock %} {% block scripts %}
+
+<!-- <script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        testfield: 'asd',
+        mintURL: {
+          location: window.location,
+          base_url: location.protocol + '//' + location.host + location.pathname
+        }
+      }
+    }
+  })
+</script> -->
+
+{% endblock %}
