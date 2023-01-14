@@ -8,9 +8,8 @@ from boltz_client.boltz import BoltzClient, BoltzConfig
 from lnbits.core.services import fee_reserve, get_wallet, pay_invoice
 from lnbits.settings import settings
 
-from .models import ReverseSubmarineSwap
-
 from .crud import update_swap_status
+from .models import ReverseSubmarineSwap
 
 
 def create_boltz_client() -> BoltzClient:
