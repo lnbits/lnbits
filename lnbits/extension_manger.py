@@ -299,6 +299,17 @@ class InstallableExtension(BaseModel):
                         logger.warning(f"Cannot fetch extensions manifest at: {url}")
                         continue
                     manifest = resp.json()
+                    if "repos" in manifest:
+                        for r in manifest["repos"]:
+                            ext = await InstallableExtension.from_repo(
+                                r["organisation"], r["repository"]
+                            )
+                            if ext:
+                                if ext.id in extension_id_list:
+                                    continue
+                                extension_list += [ext]
+                                extension_id_list += [ext.id]
+
                     if "extensions" in manifest:
                         for e in manifest["extensions"]:
                             if e["id"] in extension_id_list:
@@ -318,16 +329,6 @@ class InstallableExtension(BaseModel):
                                 )
                             ]
                             extension_id_list += [e["id"]]
-                    if "repos" in manifest:
-                        for r in manifest["repos"]:
-                            ext = await InstallableExtension.from_repo(
-                                r["organisation"], r["repository"]
-                            )
-                            if ext:
-                                if ext.id in extension_id_list:
-                                    continue
-                                extension_list += [ext]
-                                extension_id_list += [ext.id]
                 except Exception as e:
                     logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
@@ -344,6 +345,14 @@ class InstallableExtension(BaseModel):
                         logger.warning(f"Cannot fetch extensions manifest at: {url}")
                         continue
                     manifest = resp.json()
+                    if "repos" in manifest:
+                        for r in manifest["repos"]:
+                            if r["id"] == ext_id:
+                                repo_releases = await ExtensionRelease.all_releases(
+                                    r["organisation"], r["repository"]
+                                )
+                                extension_releases += repo_releases
+
                     if "extensions" in manifest:
                         for e in manifest["extensions"]:
                             if e["id"] == ext_id:
@@ -357,12 +366,6 @@ class InstallableExtension(BaseModel):
                                         description=e["shortDescription"],
                                     )
                                 ]
-                    if "repos" in manifest:
-                        for r in manifest["repos"]:
-                            repo_releases = await ExtensionRelease.all_releases(
-                                r["organisation"], r["repository"]
-                            )
-                            extension_releases += repo_releases
 
                 except Exception as e:
                     logger.warning(f"Manifest {url} failed with '{str(e)}'")
