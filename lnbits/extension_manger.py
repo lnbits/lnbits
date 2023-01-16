@@ -113,16 +113,33 @@ class ExtensionRelease(BaseModel):
     description: Optional[str]
 
     @classmethod
-    def from_github_release(cls, r: dict) -> "ExtensionRelease":
+    def from_github_release(cls, source_repo: str, r: dict) -> "ExtensionRelease":
         return ExtensionRelease(
             name=r["name"],
             version=r["tag_name"],
             archive=r["zipball_url"],
-            # source_repo=r[]
+            source_repo=source_repo,
             # description=r["body"], # bad for JSON
             published_at=r["published_at"],
             url=r["html_url"],
         )
+
+    @classmethod
+    async def all_releases(cls, org, repo) -> List["ExtensionRelease"]:
+        async with httpx.AsyncClient() as client:
+            releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
+            resp = await client.get(releases_url)
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail=f"Cannot fetch extension releases: {releases_url}",
+                )
+
+            releases = resp.json()
+            return [
+                ExtensionRelease.from_github_release(f"{org}/{repo}", r)
+                for r in releases
+            ]
 
 
 class InstallableExtension(BaseModel):
@@ -140,7 +157,6 @@ class InstallableExtension(BaseModel):
     stars: int = 0
     latest_release: Optional[ExtensionRelease]
     installed_release: Optional[ExtensionRelease]
-    all_releases: List[ExtensionRelease] = []
 
     @property
     def zip_path(self) -> str:
@@ -236,7 +252,9 @@ class InstallableExtension(BaseModel):
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
-                latest_release=ExtensionRelease.from_github_release(latest_release),
+                latest_release=ExtensionRelease.from_github_release(
+                    repo["html_url"], latest_release
+                ),
             )
         except Exception as e:
             logger.warning(e)
@@ -339,6 +357,13 @@ class InstallableExtension(BaseModel):
                                         description=e["shortDescription"],
                                     )
                                 ]
+                    if "repos" in manifest:
+                        for r in manifest["repos"]:
+                            repo_releases = await ExtensionRelease.all_releases(
+                                r["organisation"], r["repository"]
+                            )
+                            extension_releases += repo_releases
+
                 except Exception as e:
                     logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
