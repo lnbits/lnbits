@@ -68,7 +68,7 @@ from ..tasks import api_invoice_listeners, timed_job
 
 
 @core_app.get("/api/v1/time")
-async def api_wallet():
+async def api_wallet_time():
     async def torun():
         logger.debug("Cron worked!")
 
