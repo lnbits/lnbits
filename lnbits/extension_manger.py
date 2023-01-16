@@ -390,14 +390,14 @@ async def fetch_github_repo_info(org: str, repository: str):
             )
         repo = resp.json()
 
-        releases_url = (
+        lates_release_url = (
             f"https://api.github.com/repos/{org}/{repository}/releases/latest"
         )
-        resp = await client.get(releases_url)
+        resp = await client.get(lates_release_url)
         if resp.status_code != 200:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Cannot fetch extension releases: {releases_url}",
+                detail=f"Cannot fetch extension releases: {lates_release_url}",
             )
 
         latest_release = resp.json()
