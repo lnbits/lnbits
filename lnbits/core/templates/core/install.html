@@ -176,10 +176,16 @@
               >
                 <q-card>
                   <q-card-section>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+                    <q-btn type="a" color="primary unelevated mt-lg pt-lg"
+                      >Install</q-btn
+                    >
                   </q-card-section>
-                </q-card>
-              </q-expansion-item>
+                  <q-separator></q-separator>
+                  <div
+                    v-if="selectedExtension.details"
+                    v-html="selectedExtension.details"
+                  ></div> </q-card
+              ></q-expansion-item>
             </q-list>
           </q-card-section>
         </q-card>
