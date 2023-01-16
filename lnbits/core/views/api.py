@@ -795,3 +795,19 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
         )
+
+
+@core_app.get("/api/v1/extension/{ext_id}/releases")
+async def get_extension_releases(ext_id: str, user: User = Depends(check_admin)):
+    try:
+        installable_extensions: List[
+            InstallableExtension
+        ] = await InstallableExtension.get_installable_extensions()
+        extensions = [e for e in installable_extensions if e.id == ext_id]
+
+        return extensions
+
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )

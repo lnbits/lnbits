@@ -313,9 +313,16 @@
         this.showUninstallDialog = true
       },
 
-      showUpgrade: function (extension) {
+      showUpgrade: async function (extension) {
+        console.log('### showUpgrade')
         this.selectedExtension = extension
         this.showUpgradeDialog = true
+        const releases = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
+          this.g.user.wallets[0].adminkey
+        )
+        console.log('### releases', releases)
       },
 
       showExtensionDetails: function (extension) {

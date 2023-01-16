@@ -127,7 +127,7 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
-    archive: str
+    archive: str #todo: move to installed_release
     hash: str
     short_description: Optional[str] = None
     details: Optional[str] = None
