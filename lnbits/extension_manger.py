@@ -109,19 +109,20 @@ class ExtensionRelease(BaseModel):
     source_repo: str
     hash: Optional[str]
     published_at: Optional[str]
-    url: Optional[str]
+    html_url: Optional[str]
     description: Optional[str]
 
     @classmethod
     def from_github_release(cls, source_repo: str, r: dict) -> "ExtensionRelease":
         return ExtensionRelease(
             name=r["name"],
+            description=r["name"],
             version=r["tag_name"],
             archive=r["zipball_url"],
             source_repo=source_repo,
             # description=r["body"], # bad for JSON
             published_at=r["published_at"],
-            url=r["html_url"],
+            html_url=r["html_url"],
         )
 
     @classmethod

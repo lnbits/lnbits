@@ -171,36 +171,20 @@
                 group="extras"
                 icon="download"
                 :label="release.description"
-                :caption="'Version: ' + release.version"
+                :caption="release.version"
                 :content-inset-level="0.5"
               >
-                <q-expansion-item
-                  group="api"
-                  dense
-                  expand-separator
-                  label="List pay links"
-                >
-                  <q-card>
-                    <q-card-section>
-                      <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-                    </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-expansion-item
-                  group="api"
-                  dense
-                  expand-separator
-                  label="Get a pay link"
-                >
-                  <q-card>
-                    <q-card-section> </q-card-section>
-                  </q-card>
-                </q-expansion-item>
+                <q-card>
+                  <q-card-section>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+                  </q-card-section>
+                </q-card>
               </q-expansion-item>
             </q-list>
           </q-card-section>
         </q-card>
       </div>
+      <q-spinner v-else color="primary" size="2.55em"></q-spinner>
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
@@ -325,7 +309,7 @@
         console.log('### showUpgrade')
         this.selectedExtension = extension
         this.showUpgradeDialog = true
-        this.selectedExtensionRepos = []
+        this.selectedExtensionRepos = null
         const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
