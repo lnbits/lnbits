@@ -1,8 +1,7 @@
 from http import HTTPStatus
 
 import httpx
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -12,7 +11,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.settings import LNBITS_COMMIT
+from lnbits.settings import settings
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
@@ -25,7 +24,8 @@ async def api_tposs(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [tpos.dict() for tpos in await get_tposs(wallet_ids)]
 
@@ -58,8 +58,9 @@ async def api_tpos_delete(
 
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
 async def api_tpos_create_invoice(
-    amount: int = Query(..., ge=1), tipAmount: int = None, tpos_id: str = None
-):
+    tpos_id: str, amount: int = Query(..., ge=1), tipAmount: int = 0
+) -> dict:
+
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
@@ -67,7 +68,7 @@ async def api_tpos_create_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
 
-    if tipAmount:
+    if tipAmount > 0:
         amount += tipAmount
 
     try:
@@ -75,7 +76,12 @@ async def api_tpos_create_invoice(
             wallet_id=tpos.wallet,
             amount=amount,
             memo=f"{tpos.name}",
-            extra={"tag": "tpos", "tipAmount": tipAmount, "tposId": tpos_id},
+            extra={
+                "tag": "tpos",
+                "tipAmount": tipAmount,
+                "tposId": tpos_id,
+                "amount": amount - tipAmount if tipAmount else False,
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
@@ -84,7 +90,7 @@ async def api_tpos_create_invoice(
 
 
 @tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices")
-async def api_tpos_get_latest_invoices(tpos_id: str = None):
+async def api_tpos_get_latest_invoices(tpos_id: str):
     try:
         payments = [
             Payment.from_row(row)
@@ -111,7 +117,7 @@ async def api_tpos_get_latest_invoices(tpos_id: str = None):
     "/api/v1/tposs/{tpos_id}/invoices/{payment_request}/pay", status_code=HTTPStatus.OK
 )
 async def api_tpos_pay_invoice(
-    lnurl_data: PayLnurlWData, payment_request: str = None, tpos_id: str = None
+    lnurl_data: PayLnurlWData, payment_request: str, tpos_id: str
 ):
     tpos = await get_tpos(tpos_id)
 
@@ -135,7 +141,7 @@ async def api_tpos_pay_invoice(
 
     async with httpx.AsyncClient() as client:
         try:
-            headers = {"user-agent": f"lnbits/tpos commit {LNBITS_COMMIT[:7]}"}
+            headers = {"user-agent": f"lnbits/tpos commit {settings.lnbits_commit[:7]}"}
             r = await client.get(lnurl, follow_redirects=True, headers=headers)
             if r.is_error:
                 lnurl_response = {"success": False, "detail": "Error loading"}

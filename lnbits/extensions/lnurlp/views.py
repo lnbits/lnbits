@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
@@ -22,7 +21,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@lnurlp_ext.get("/{link_id}", response_class=HTMLResponse)
+@lnurlp_ext.get("/link/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id):
     link = await get_pay_link(link_id)
     if not link:

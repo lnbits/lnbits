@@ -1,13 +1,9 @@
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Query, Request, Response
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
-from pydantic.main import BaseModel
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import HTMLResponse  # type: ignore
+from pydantic import BaseModel
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies
@@ -34,6 +30,7 @@ async def api_shop_from_wallet(
     r: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
+    assert shop
     items = await get_items(shop.id)
     try:
         return {
@@ -62,6 +59,23 @@ async def api_add_or_update_item(
     data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
+    assert shop
+    if data.image:
+        image_is_url = data.image.startswith("https://") or data.image.startswith(
+            "http://"
+        )
+
+        if not image_is_url:
+
+            def size(b64string):
+                return int((len(b64string) * 3) / 4 - b64string.count("=", -2))
+
+            image_size = size(data.image) / 1024
+            if image_size > 100:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail=f"Image size is too big, {int(image_size)}Kb. Max: 100kb, Compress the image at https://tinypng.com, or use an URL.",
+                )
     if data.unit != "sat":
         data.price = data.price * 100
     if item_id == None:
@@ -71,11 +85,11 @@ async def api_add_or_update_item(
             data.name,
             data.description,
             data.image,
-            data.price,
+            int(data.price),
             data.unit,
             data.fiat_base_multiplier,
         )
-        return HTMLResponse(status_code=HTTPStatus.CREATED)
+        return Response(status_code=HTTPStatus.CREATED)
     else:
         await update_item(
             shop.id,
@@ -83,7 +97,7 @@ async def api_add_or_update_item(
             data.name,
             data.description,
             data.image,
-            data.price,
+            int(data.price),
             data.unit,
             data.fiat_base_multiplier,
         )
@@ -92,6 +106,7 @@ async def api_add_or_update_item(
 @offlineshop_ext.delete("/api/v1/offlineshop/items/{item_id}")
 async def api_delete_item(item_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
+    assert shop
     await delete_item_from_shop(shop.id, item_id)
     return "", HTTPStatus.NO_CONTENT
 
@@ -107,7 +122,7 @@ async def api_set_method(
 ):
     method = data.method
 
-    wordlist = data.wordlist.split("\n") if data.wordlist else None
+    wordlist = data.wordlist.split("\n") if data.wordlist else []
     wordlist = [word.strip() for word in wordlist if word.strip()]
 
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)

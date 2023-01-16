@@ -118,16 +118,15 @@ Vue.component('lnbits-extension-list', {
         :active="extension.isActive"
         tag="a" :href="[extension.url, '?usr=', user.id].join('')">
         <q-item-section side>
-          <q-avatar size="md"
-            :color="(extension.isActive)
-              ? (($q.dark.isActive) ? 'primary' : 'primary')
-              : 'grey-5'">
-            <q-icon :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
-              :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
+          <q-avatar size="md">
+            <q-img
+              :src="extension.tile"
+              style="max-width:20px"
+            ></q-img>
           </q-avatar>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1">{{ extension.name }}</q-item-label>
+          <q-item-label lines="1">{{ extension.name }} </q-item-label>
         </q-item-section>
         <q-item-section side v-show="extension.isActive">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
@@ -177,6 +176,34 @@ Vue.component('lnbits-extension-list', {
   }
 })
 
+Vue.component('lnbits-admin-ui', {
+  data: function () {
+    return {
+      extensions: [],
+      user: null
+    }
+  },
+  template: `
+    <q-list v-if="user && user.admin" dense class="lnbits-drawer__q-list">
+      <q-item-label header>Admin</q-item-label>
+      <q-item clickable tag="a" :href="['/admin?usr=', user.id].join('')">
+        <q-item-section side>
+          <q-icon name="admin_panel_settings" color="grey-5" size="md"></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" class="text-caption">Manage Server</q-item-label>
+        </q-item-section>
+      </q-item>
+    </q-list>
+  `,
+
+  created: function () {
+    if (window.user) {
+      this.user = LNbits.map.user(window.user)
+    }
+  }
+})
+
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
   data: function () {
@@ -192,9 +219,13 @@ Vue.component('lnbits-payment-details', {
         </q-badge>
       </div>
       <div class="row">
-        <div class="col-3"><b>Date</b>:</div>
+        <div class="col-3"><b>Created</b>:</div>
         <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
       </div>
+      <div class="row">
+        <div class="col-3"><b>Expiry</b>:</div>
+        <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
+      </div>      
       <div class="row">
         <div class="col-3"><b>Description</b>:</div>
         <div class="col-9">{{ payment.memo }}</div>

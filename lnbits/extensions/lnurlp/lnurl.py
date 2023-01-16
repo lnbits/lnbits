@@ -3,11 +3,7 @@ import math
 from http import HTTPStatus
 
 from fastapi import Request
-from lnurl import (  # type: ignore
-    LnurlErrorResponse,
-    LnurlPayActionResponse,
-    LnurlPayResponse,
-)
+from lnurl import LnurlErrorResponse, LnurlPayActionResponse, LnurlPayResponse
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
@@ -18,7 +14,12 @@ from .crud import increment_pay_link
 
 
 @lnurlp_ext.get(
-    "/api/v1/lnurl/{link_id}",
+    "/api/v1/lnurl/{link_id}",  # Backwards compatibility for old LNURLs / QR codes (with long URL)
+    status_code=HTTPStatus.OK,
+    name="lnurlp.api_lnurl_response.deprecated",
+)
+@lnurlp_ext.get(
+    "/{link_id}",
     status_code=HTTPStatus.OK,
     name="lnurlp.api_lnurl_response",
 )
@@ -87,7 +88,7 @@ async def api_lnurl_callback(request: Request, link_id):
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo=link.description,
-        unhashed_description=link.lnurlpay_metadata.encode("utf-8"),
+        unhashed_description=link.lnurlpay_metadata.encode(),
         extra={
             "tag": "lnurlp",
             "link": link.id,

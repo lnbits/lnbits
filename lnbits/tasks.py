@@ -16,7 +16,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-from lnbits.settings import WALLET
+from lnbits.settings import get_wallet_class
 
 from .core import db
 
@@ -100,6 +100,7 @@ async def webhook_handler():
     """
     Returns the webhook_handler for the selected wallet if present. Used by API.
     """
+    WALLET = get_wallet_class()
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
@@ -129,6 +130,7 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
+    WALLET = get_wallet_class()
     async for checking_id in WALLET.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
@@ -166,7 +168,7 @@ async def check_pending_payments():
             )
             # we delete expired invoices once upon the first pending check
             if incoming:
-                logger.info("Task: deleting all expired invoices")
+                logger.debug("Task: deleting all expired invoices")
                 start_time: float = time.time()
                 await delete_expired_invoices(conn=conn)
                 logger.info(

@@ -20,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if not payment.extra or payment.extra.get("tag") != "lnsubdomain":
+    if payment.extra.get("tag") != "lnsubdomain":
         # not an lnurlp invoice
         return
 
@@ -30,7 +30,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     ### Create subdomain
     cf_response = await cloudflare_create_subdomain(
-        domain=domain,
+        domain=domain,  # type: ignore
         subdomain=subdomain.subdomain,
         record_type=subdomain.record_type,
         ip=subdomain.ip,

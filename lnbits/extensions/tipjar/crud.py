@@ -2,13 +2,14 @@ from typing import Optional
 
 from lnbits.db import SQLITE
 
+# todo: use the API, not direct import
 from ..satspay.crud import delete_charge  # type: ignore
 from . import db
 from .models import Tip, TipJar, createTipJar
 
 
 async def create_tip(
-    id: int, wallet: str, message: str, name: str, sats: int, tipjar: str
+    id: str, wallet: str, message: str, name: str, sats: int, tipjar: str
 ) -> Tip:
     """Create a new Tip"""
     await db.execute(

@@ -4,11 +4,11 @@ from typing import Dict, Optional
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 from fastapi.param_functions import Query
-from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
+from lnbits.lnurl import encode as lnurl_encode
 
 
 class CreatePayLinkData(BaseModel):
@@ -26,7 +26,7 @@ class CreatePayLinkData(BaseModel):
 
 
 class PayLink(BaseModel):
-    id: int
+    id: str
     wallet: str
     description: str
     min: float

@@ -23,14 +23,55 @@
   >
     <q-card>
       <q-card-section>
-        <q-icon
-          :name="extension.icon"
-          color="grey-5"
-          style="font-size: 4rem"
-        ></q-icon>
-        {% raw %}
-        <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
-        <small>{{ extension.shortDescription }} </small>{% endraw %}
+        <div class="row">
+          <div class="col-3">
+            <q-img
+              :src="extension.tile"
+              spinner-color="white"
+              style="max-width: 100%"
+            ></q-img>
+          </div>
+          <div class="col-9 q-pl-sm">
+            {% raw %}
+            <div class="text-h5 gt-sm q-mt-sm q-mb-xs">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-subtitle2 gt-sm"
+              style="font-size: 11px; height: 34px"
+            >
+              {{ extension.shortDescription }}
+            </div>
+            <div class="text-subtitle1 lt-md q-mt-sm q-mb-xs">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-subtitle2 lt-md"
+              style="font-size: 9px; height: 34px"
+            >
+              {{ extension.shortDescription }}
+            </div>
+            {% endraw %}
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section>
+        <div>
+          <q-rating
+            class="gt-sm"
+            disable
+            size="2em"
+            :max="5"
+            color="primary"
+          ></q-rating
+          ><q-rating
+            class="lt-md"
+            size="1.5em"
+            :max="5"
+            color="primary"
+          ></q-rating
+          ><q-tooltip>Ratings coming soon</q-tooltip>
+        </div>
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>

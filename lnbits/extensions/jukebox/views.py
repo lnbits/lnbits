@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
@@ -17,9 +16,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @jukebox_ext.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request, user: User = Depends(check_user_exists)  # type: ignore
-):
+async def index(request: Request, user: User = Depends(check_user_exists)):
     return jukebox_renderer().TemplateResponse(
         "jukebox/index.html", {"request": request, "user": user.dict()}
     )

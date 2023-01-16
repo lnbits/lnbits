@@ -5,7 +5,7 @@ from http import HTTPStatus
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse  # type: ignore
+from starlette.responses import HTMLResponse
 
 from lnbits.core.services import create_invoice, pay_invoice
 
@@ -76,7 +76,7 @@ async def api_lnurlp_callback(
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo="Satsdice bet",
-        unhashed_description=link.lnurlpay_metadata.encode("utf-8"),
+        unhashed_description=link.lnurlpay_metadata.encode(),
         extra={"tag": "satsdice", "link": link.id, "comment": "comment"},
     )
 

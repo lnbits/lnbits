@@ -25,7 +25,7 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-async def on_invoice_paid(payment: Payment) -> None:
+async def on_invoice_paid(payment: Payment):
     # (avoid loops)
     if payment.extra.get("tag") == "scrubed":
         # already scrubbed
@@ -53,7 +53,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                 timeout=40,
             )
             if r.is_error:
-                raise httpx.ConnectError
+                raise httpx.ConnectError("issue with scrub callback")
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

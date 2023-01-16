@@ -1,15 +1,13 @@
 import re
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 
 from . import lnticket_ext
 from .crud import (
@@ -24,6 +22,7 @@ from .crud import (
     set_ticket_paid,
     update_form,
 )
+from .models import CreateFormData, CreateTicketData
 
 # FORMS
 
@@ -35,7 +34,8 @@ async def api_forms_get(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [form.dict() for form in await get_forms(wallet_ids)]
 
@@ -91,7 +91,8 @@ async def api_tickets(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [form.dict() for form in await get_tickets(wallet_ids)]
 

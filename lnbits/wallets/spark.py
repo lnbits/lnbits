@@ -2,11 +2,12 @@ import asyncio
 import hashlib
 import json
 import random
-from os import getenv
 from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -27,8 +28,8 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        self.url = getenv("SPARK_URL").replace("/rpc", "")
-        self.token = getenv("SPARK_TOKEN")
+        self.url = settings.spark_url.replace("/rpc", "")
+        self.token = settings.spark_token
 
     def __getattr__(self, key):
         async def call(*args, **kwargs):
@@ -199,8 +200,9 @@ class SparkWallet(Wallet):
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
-                fee_msat = -int(
-                    r["pays"][0]["amount_sent_msat"] - r["pays"][0]["amount_msat"]
+                fee_msat = -(
+                    int(r["pays"][0]["amount_sent_msat"][0:-4])
+                    - int(r["pays"][0]["amount_msat"][0:-4])
                 )
                 return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
             elif status == "failed":

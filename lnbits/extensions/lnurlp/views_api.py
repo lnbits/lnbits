@@ -1,10 +1,8 @@
 import json
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
+from fastapi import Depends, Query, Request
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -36,7 +34,8 @@ async def api_links(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     try:
         return [
@@ -137,6 +136,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
+    assert link
     return {**link.dict(), "lnurl": link.lnurl(request)}
 
 

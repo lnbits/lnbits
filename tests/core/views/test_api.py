@@ -1,5 +1,4 @@
 import hashlib
-from binascii import hexlify
 
 import pytest
 import pytest_asyncio
@@ -11,10 +10,11 @@ from lnbits.core.views.api import (
     api_payment,
     api_payments_create_invoice,
 )
-from lnbits.settings import wallet_class
+from lnbits.settings import get_wallet_class
 
 from ...helpers import get_random_invoice_data, is_regtest
 
+WALLET = get_wallet_class()
 
 # check if the client is working
 @pytest.mark.asyncio
@@ -209,13 +209,13 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    wallet_class.__name__ in ["CoreLightningWallet"],
+    WALLET.__class__.__name__ in ["CoreLightningWallet"],
     reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
-    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    descr_hash = hashlib.sha256("asdasdasd".encode()).hexdigest()
     data["description_hash"] = descr_hash
 
     response = await client.post(
@@ -232,8 +232,8 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
 @pytest.mark.asyncio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
-    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
-    data["unhashed_description"] = "asdasdasd".encode("utf-8").hex()
+    descr_hash = hashlib.sha256("asdasdasd".encode()).hexdigest()
+    data["unhashed_description"] = "asdasdasd".encode().hex()
 
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to

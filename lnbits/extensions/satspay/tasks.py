@@ -4,11 +4,10 @@ import json
 from loguru import logger
 
 from lnbits.core.models import Payment
-from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .crud import update_charge
+from .crud import check_address_balance, get_charge, update_charge
 from .helpers import call_webhook
 
 
@@ -22,10 +21,12 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+
     if payment.extra.get("tag") != "charge":
         # not a charge invoice
         return
 
+    assert payment.memo
     charge = await get_charge(payment.memo)
     if not charge:
         logger.error("this should never happen", payment)
@@ -33,6 +34,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     await payment.set_pending(False)
     charge = await check_address_balance(charge_id=charge.id)
+    assert charge
 
     if charge.must_call_webhook():
         resp = await call_webhook(charge)

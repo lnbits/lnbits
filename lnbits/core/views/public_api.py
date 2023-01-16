@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 from fastapi import HTTPException
 from loguru import logger
 from starlette.requests import Request
-from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
 
@@ -17,7 +16,7 @@ from ..tasks import api_invoice_listeners
 
 @core_app.get("/.well-known/lnurlp/{username}")
 async def lnaddress(username: str, request: Request):
-    from lnbits.extensions.lnaddress.lnurl import lnurl_response
+    from lnbits.extensions.lnaddress.lnurl import lnurl_response  # type: ignore
 
     domain = urlparse(str(request.url)).netloc
     return await lnurl_response(username, domain, request)

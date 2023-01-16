@@ -5,7 +5,7 @@ from fastapi.param_functions import Security
 from fastapi.security.api_key import APIKeyHeader
 from starlette.exceptions import HTTPException
 
-from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
 api_key_header_auth = APIKeyHeader(
     name="AUTHORIZATION",
@@ -23,7 +23,7 @@ async def check_wallet(
         )
 
     t = api_key_header_auth.split(" ")[1]
-    _, token = b64decode(t).decode("utf-8").split(":")
+    _, token = b64decode(t).decode().split(":")
 
     return await get_key_type(r, api_key_header=token)
 

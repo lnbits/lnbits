@@ -9,9 +9,9 @@ from typing import Optional
 from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
-from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
+from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
 
-from .settings import LNBITS_DATA_FOLDER, LNBITS_DATABASE_URL
+from lnbits.settings import settings
 
 POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
@@ -27,6 +27,13 @@ class Compat:
             return f"interval '{seconds} seconds'"
         elif self.type == SQLITE:
             return f"{seconds}"
+        return "<nothing>"
+
+    def datetime_to_timestamp(self, date: datetime.datetime):
+        if self.type in {POSTGRES, COCKROACH}:
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+        elif self.type == SQLITE:
+            return time.mktime(date.timetuple())
         return "<nothing>"
 
     @property
@@ -114,17 +121,19 @@ class Database(Compat):
     def __init__(self, db_name: str):
         self.name = db_name
 
-        if LNBITS_DATABASE_URL:
-            database_uri = LNBITS_DATABASE_URL
+        if settings.lnbits_database_url:
+            database_uri = settings.lnbits_database_url
 
             if database_uri.startswith("cockroachdb://"):
                 self.type = COCKROACH
             else:
                 self.type = POSTGRES
 
-            import psycopg2  # type: ignore
+            import psycopg2
 
             def _parse_timestamp(value, _):
+                if value is None:
+                    return None
                 f = "%Y-%m-%d %H:%M:%S.%f"
                 if not "." in value:
                     f = "%Y-%m-%d %H:%M:%S"
@@ -149,25 +158,20 @@ class Database(Compat):
 
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    (1184, 1114),
-                    "TIMESTAMP2INT",
-                    _parse_timestamp
-                    # lambda value, curs: time.mktime(
-                    #     datetime.datetime.strptime(
-                    #         value, "%Y-%m-%d %H:%M:%S.%f"
-                    #     ).timetuple()
-                    # ),
+                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
                 )
             )
         else:
-            if os.path.isdir(LNBITS_DATA_FOLDER):
-                self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
+            if os.path.isdir(settings.lnbits_data_folder):
+                self.path = os.path.join(
+                    settings.lnbits_data_folder, f"{self.name}.sqlite3"
+                )
                 database_uri = f"sqlite:///{self.path}"
                 self.type = SQLITE
             else:
                 raise NotADirectoryError(
-                    f"LNBITS_DATA_FOLDER named {LNBITS_DATA_FOLDER} was not created"
-                    f" - please 'mkdir {LNBITS_DATA_FOLDER}' and try again"
+                    f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
+                    f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
                 )
         logger.trace(f"database {self.type} added for {self.name}")
         self.schema = self.name

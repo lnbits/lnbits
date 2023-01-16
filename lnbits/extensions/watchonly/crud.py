@@ -41,8 +41,9 @@ async def create_watch_wallet(user: str, w: WalletAccount) -> WalletAccount:
             w.meta,
         ),
     )
-
-    return await get_watch_wallet(wallet_id)
+    wallet = await get_watch_wallet(wallet_id)
+    assert wallet
+    return wallet
 
 
 async def get_watch_wallet(wallet_id: str) -> Optional[WalletAccount]:
@@ -121,11 +122,11 @@ async def create_fresh_addresses(
     change_address=False,
 ) -> List[Address]:
     if start_address_index > end_address_index:
-        return None
+        return []
 
     wallet = await get_watch_wallet(wallet_id)
     if not wallet:
-        return None
+        return []
 
     branch_index = 1 if change_address else 0
 
@@ -150,7 +151,7 @@ async def create_fresh_addresses(
     # return fresh addresses
     rows = await db.fetchall(
         """
-            SELECT * FROM watchonly.addresses 
+            SELECT * FROM watchonly.addresses
             WHERE wallet = ? AND branch_index = ? AND address_index >= ? AND address_index < ?
             ORDER BY branch_index, address_index
         """,
@@ -172,7 +173,7 @@ async def get_address_at_index(
 ) -> Optional[Address]:
     row = await db.fetchone(
         """
-            SELECT * FROM watchonly.addresses 
+            SELECT * FROM watchonly.addresses
             WHERE wallet = ? AND branch_index = ? AND address_index = ?
         """,
         (

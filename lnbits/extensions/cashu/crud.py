@@ -1,7 +1,6 @@
 import os
 import random
 import time
-from binascii import hexlify, unhexlify
 from typing import Any, List, Optional, Union
 
 from cashu.core.base import MintKeyset

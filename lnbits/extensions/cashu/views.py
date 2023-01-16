@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
@@ -18,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 @cashu_ext.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
+    user: User = Depends(check_user_exists),
 ):
     return cashu_renderer().TemplateResponse(
         "cashu/index.html", {"request": request, "user": user.dict()}
@@ -27,11 +26,17 @@ async def index(
 
 @cashu_ext.get("/wallet")
 async def wallet(request: Request, mint_id: str):
+    cashu = await get_cashu(mint_id)
+    if not cashu:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+        )
     return cashu_renderer().TemplateResponse(
         "cashu/wallet.html",
         {
             "request": request,
             "web_manifest": f"/cashu/manifest/{mint_id}.webmanifest",
+            "mint_name": cashu.name,
         },
     )
 
@@ -41,7 +46,7 @@ async def cashu(request: Request, mintID):
     cashu = await get_cashu(mintID)
     if not cashu:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     return cashu_renderer().TemplateResponse(
         "cashu/mint.html",
@@ -54,7 +59,7 @@ async def manifest(cashu_id: str):
     cashu = await get_cashu(cashu_id)
     if not cashu:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
 
     return {

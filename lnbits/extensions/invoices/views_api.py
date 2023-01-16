@@ -1,14 +1,12 @@
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
+from fastapi import Depends, HTTPException, Query
 from loguru import logger
-from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import invoices_ext
@@ -33,7 +31,8 @@ async def api_invoices(
 ):
     wallet_ids = [wallet.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [invoice.dict() for invoice in await get_invoices(wallet_ids)]
 
@@ -83,9 +82,7 @@ async def api_invoice_update(
 @invoices_ext.post(
     "/api/v1/invoice/{invoice_id}/payments", status_code=HTTPStatus.CREATED
 )
-async def api_invoices_create_payment(
-    famount: int = Query(..., ge=1), invoice_id: str = None
-):
+async def api_invoices_create_payment(invoice_id: str, famount: int = Query(..., ge=1)):
     invoice = await get_invoice(invoice_id)
     invoice_items = await get_invoice_items(invoice_id)
     invoice_total = await get_invoice_total(invoice_items)

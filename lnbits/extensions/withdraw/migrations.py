@@ -122,3 +122,13 @@ async def m005_add_custom_print_design(db):
     Adds custom print design
     """
     await db.execute("ALTER TABLE withdraw.withdraw_link ADD COLUMN custom_url TEXT;")
+
+
+async def m006_webhook_headers_and_body(db):
+    """
+    Add headers and body to webhooks
+    """
+    await db.execute(
+        "ALTER TABLE withdraw.withdraw_link ADD COLUMN webhook_headers TEXT;"
+    )
+    await db.execute("ALTER TABLE withdraw.withdraw_link ADD COLUMN webhook_body TEXT;")

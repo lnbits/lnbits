@@ -1,9 +1,7 @@
 import asyncio
-import json
 
 from lnbits.core.models import Payment
-from lnbits.helpers import urlsafe_short_hash
-from lnbits.tasks import internal_invoice_queue, register_invoice_listener
+from lnbits.tasks import register_invoice_listener
 
 from .crud import (
     create_invoice_payment,
@@ -14,6 +12,7 @@ from .crud import (
     get_payments_total,
     update_invoice_internal,
 )
+from .models import InvoiceStatusEnum
 
 
 async def wait_for_paid_invoices():
@@ -27,16 +26,18 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("tag") != "invoices":
-        # not relevant
         return
 
     invoice_id = payment.extra.get("invoice_id")
+    assert invoice_id
 
-    payment = await create_invoice_payment(
-        invoice_id=invoice_id, amount=payment.extra.get("famount")
-    )
+    amount = payment.extra.get("famount")
+    assert amount
+
+    await create_invoice_payment(invoice_id=invoice_id, amount=amount)
 
     invoice = await get_invoice(invoice_id)
+    assert invoice
 
     invoice_items = await get_invoice_items(invoice_id)
     invoice_total = await get_invoice_total(invoice_items)
@@ -45,7 +46,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     payments_total = await get_payments_total(invoice_payments)
 
     if payments_total >= invoice_total:
-        invoice.status = "paid"
+        invoice.status = InvoiceStatusEnum.paid
         await update_invoice_internal(invoice.wallet, invoice)
 
     return

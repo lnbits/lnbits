@@ -1,0 +1,6 @@
+{
+  "name": "SMTP",
+  "short_description": "Charge sats for sending emails",
+	"tile": "/smtp/static/smtp-bitcoin-email.png",
+  "contributors": ["dni"]
+}

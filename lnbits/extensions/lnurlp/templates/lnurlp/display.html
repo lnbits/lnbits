@@ -4,10 +4,10 @@
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
         <div class="text-center">
-          <a href="lightning:{{ lnurl }}">
+          <a class="text-secondary" href="lightning:{{ lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                value="{{ lnurl }}"
+                value="lightning:{{ lnurl }}"
                 :options="{width: 800}"
                 class="rounded-borders"
               ></qrcode>

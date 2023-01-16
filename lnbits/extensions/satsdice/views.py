@@ -3,9 +3,7 @@ from http import HTTPStatus
 from io import BytesIO
 
 import pyqrcode
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
+from fastapi import Depends, Query, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
@@ -28,9 +26,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @satsdice_ext.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request, user: User = Depends(check_user_exists)  # type: ignore
-):
+async def index(request: Request, user: User = Depends(check_user_exists)):
     return satsdice_renderer().TemplateResponse(
         "satsdice/index.html", {"request": request, "user": user.dict()}
     )
@@ -108,7 +104,7 @@ async def displaywin(
 
     data = CreateSatsDiceWithdraw(
         satsdice_pay=satsdicelink.id,
-        value=paylink.value * satsdicelink.multiplier,
+        value=int(paylink.value * satsdicelink.multiplier),
         payment_hash=payment_hash,
         used=0,
     )

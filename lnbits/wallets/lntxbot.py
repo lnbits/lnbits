@@ -1,11 +1,12 @@
 import asyncio
 import hashlib
 import json
-from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
+
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -20,13 +21,13 @@ class LntxbotWallet(Wallet):
     """https://github.com/fiatjaf/lntxbot/blob/master/api.go"""
 
     def __init__(self):
-        endpoint = getenv("LNTXBOT_API_ENDPOINT")
+        endpoint = settings.lntxbot_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
         key = (
-            getenv("LNTXBOT_KEY")
-            or getenv("LNTXBOT_ADMIN_KEY")
-            or getenv("LNTXBOT_INVOICE_KEY")
+            settings.lntxbot_key
+            or settings.lntxbot_admin_key
+            or settings.lntxbot_invoice_key
         )
         self.auth = {"Authorization": f"Basic {key}"}
 

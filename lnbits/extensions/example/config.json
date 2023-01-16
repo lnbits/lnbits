@@ -1,0 +1,6 @@
+{
+  "name": "Build your own!",
+  "short_description": "Extension building guide",
+	"tile": "/example/static/bitcoin-extension.png",
+  "contributors": ["github_username"]
+}
