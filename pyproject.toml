@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.1.0"
-description = ""
-authors = ["matthewcroughan <matt@croughan.sh>"]
+version = "0.9.5.3"
+description = "LNbits, free and open-source Lightning wallet and accounts system."
+authors = ["Alan Bits <alan@lnbits.com>"]
 
 [tool.poetry.build]
 generate-setup-file = false
@@ -12,10 +12,10 @@ script = "build.py"
 python = "^3.10 | ^3.9 | ^3.8 | ^3.7"
 aiofiles = "0.8.0"
 asgiref = "3.4.1"
-attrs = "22.1.0"
+attrs = "22.2.0"
 bech32 = "1.2.0"
 bitstring = "3.1.9"
-certifi = "2022.9.24"
+certifi = "2022.12.7"
 charset-normalizer = "2.0.12"
 click = "8.0.4"
 ecdsa = "0.18.0"
@@ -26,15 +26,15 @@ httpcore = "0.15.0"
 httptools = "0.4.0"
 httpx = "0.23.0"
 idna = "3.4"
-importlib-metadata = "5.0.0"
+importlib-metadata = "5.2.0"
 jinja2 = "3.0.1"
 lnurl = "0.3.6"
 markupsafe = "2.0.1"
-marshmallow = "3.18.0"
+marshmallow = "3.19.0"
 outcome = "1.2.0"
 psycopg2-binary = "2.9.1"
-pycryptodomex = "3.14.1"
-pydantic = "1.10.2"
+pycryptodomex = "3.16.0"
+pydantic = "1.10.4"
 pypng = "0.0.21"
 pyqrcode = "1.2.1"
 pyScss = "1.4.0"
@@ -53,7 +53,7 @@ uvicorn = "0.18.3"
 uvloop = "0.16.0"
 watchgod = "0.7"
 websockets = "10.0"
-zipp = "3.9.0"
+zipp = "3.11.0"
 loguru = "0.6.0"
 cffi = "1.15.1"
 websocket-client = "1.3.3"
@@ -62,7 +62,7 @@ protobuf = "^4.21.6"
 Cerberus = "^1.3.4"
 async-timeout = "^4.0.2"
 pyln-client = "0.11.1"
-cashu = "^0.6.0"
+cashu = "0.8.2"
 
 
 [tool.poetry.dev-dependencies]
@@ -88,8 +88,7 @@ profile = "black"
 [tool.mypy]
 files = "lnbits"
 exclude = """(?x)(
-    ^lnbits/extensions/bleskomat.
-    | ^lnbits/extensions/boltz.
+    ^lnbits/extensions/boltz.
     | ^lnbits/wallets/lnd_grpc_files.
 )"""
 

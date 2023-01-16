@@ -24,6 +24,16 @@ class CreateDomainData(BaseModel):
     domain: str
 
 
+class EditDomainData(BaseModel):
+    id: str
+    currency: str
+    amount: float = Query(..., ge=0.01)
+
+    @classmethod
+    def from_row(cls, row: Row) -> "EditDomainData":
+        return cls(**dict(row))
+
+
 class Domain(BaseModel):
     id: str
     wallet: str

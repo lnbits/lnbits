@@ -4,18 +4,19 @@
     <q-card class="q-pa-lg q-mb-xl">
       <q-card-section class="q-pa-none">
         <center>
-          <q-icon
-            name="account_balance"
-            class="text-grey"
-            style="font-size: 10rem"
-          ></q-icon>
-          <h4 class="q-mt-none q-mb-md">{{ mint_name }}</h4>
+          <q-img
+            src="/cashu/static/image/cashu.png"
+            spinner-color="white"
+            style="max-width: 20%"
+          ></q-img>
+          <h4 class="q-mt-sm q-mb-md">{{ mint_name }}</h4>
+          <!-- <a class="text-secondary">Mint URL: {{testfield}} </a> <br /> -->
           <a
             class="text-secondary"
             class="q-my-xl text-white"
             style="font-size: 1.5rem"
             href="../wallet?mint_id={{ mint_id }}"
-            >Open wallet</a
+            >click to open wallet</a
           >
         </center>
       </q-card-section>
@@ -58,24 +59,34 @@
         </p>
         <p>
           <strong>This service is in BETA</strong> <br />
-          We hold no responsibility for people losing access to funds. Use at
-          your own risk!
+          Cashu is still experimental and in active development. There are
+          likely bugs in this implementation so please use this with caution. We
+          hold no responsibility for people losing access to funds. Use at your
+          own risk!
         </p>
       </q-card-section>
     </q-card>
   </div>
-
-  {% endblock %} {% block scripts %}
-
-  <script>
-    new Vue({
-      el: '#vue',
-      mixins: [windowMixin],
-      data: function () {
-        return {}
-      }
-    })
-  </script>
-
-  {% endblock %}
 </div>
+
+{% endblock %} {% block scripts %}
+
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        testfield: 'asd',
+        mintURL: {
+          location: window.location,
+          base_url: location.protocol + '//' + location.host + location.pathname
+        }
+      }
+    }
+  })
+</script>
+
+{% endblock %}

@@ -57,6 +57,14 @@
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="email"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="showEmailDialog(props.row.id)"
+                ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -154,6 +162,42 @@
     </q-card>
   </div>
 
+  <q-dialog v-model="emailDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendEmail()" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.receiver"
+          type="text"
+          label="Receiver"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.subject"
+          type="text"
+          label="Subject"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.message"
+          type="textarea"
+          label="Message "
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="emailDialog.data.receiver == '' || emailDialog.data.subject == '' || emailDialog.data.message == ''"
+            type="submit"
+            >Submit</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
   <q-dialog v-model="emailaddressDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormData" class="q-gutter-md">
@@ -316,10 +360,10 @@
         emailsTable: {
           columns: [
             {
-              name: 'emailaddress',
+              name: 'emailaddress_id',
               align: 'left',
               label: 'From',
-              field: 'emailaddress'
+              field: 'emailaddress_id'
             },
             {
               name: 'receiver',
@@ -349,6 +393,10 @@
           pagination: {
             rowsPerPage: 10
           }
+        },
+        emailDialog: {
+          show: false,
+          data: {}
         },
         emailaddressDialog: {
           show: false,
@@ -452,6 +500,33 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      sendEmail: function () {
+        var self = this
+        var emailaddress = _.findWhere(this.emailaddresses, {
+          id: self.emailDialog.data.emailaddress_id
+        })
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: emailaddress.wallet
+        })
+        LNbits.api
+          .request(
+            'POST',
+            '/smtp/api/v1/email/' + emailaddress.id + '/send',
+            wallet.adminkey,
+            self.emailDialog.data
+          )
+          .then(function (response) {
+            self.emailDialog.show = false
+            self.emailDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      showEmailDialog: function (emailaddress_id) {
+        this.emailDialog.data.emailaddress_id = emailaddress_id
+        this.emailDialog.show = true
       },
       updateEmailaddressDialog: function (formId) {
         var link = _.findWhere(this.emailaddresses, {id: formId})

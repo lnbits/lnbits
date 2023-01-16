@@ -15,8 +15,8 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 
 # for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
@@ -50,9 +50,10 @@ poetry run lnbits
 #### Updating the server
 
 ```
-cd lnbits-legend/
+cd lnbits
 # Stop LNbits with `ctrl + x`
 git pull
+# Keep your poetry install up to date, this can be done with `poetry self update`
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
@@ -62,8 +63,8 @@ poetry install --only main
 > note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 # Modern debian distros usually include Nix, however you can install with:
 # 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
 
@@ -82,8 +83,8 @@ LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT
 ## Option 3: venv
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 # ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
 python3.9 -m venv venv
 # If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
@@ -105,9 +106,9 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 ## Option 4: Docker
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
-docker build -t lnbits-legend .
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+docker build -t lnbits .
 cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
@@ -135,8 +136,8 @@ You can either run those commands, then `source ~/.bash_profile` or, if you don'
 Once installed, run the following commands.
 
 ```
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 fly auth login
 [complete login process]
 fly launch
@@ -437,8 +438,8 @@ If you want to run LNbits on your Umbrel but want it to be reached through clear
 To install using docker you first need to build the docker image as:
 
 ```
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 docker build -t lnbits-legend .
 ```
 
