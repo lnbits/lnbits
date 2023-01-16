@@ -236,7 +236,6 @@
         showUpgradeDialog: false,
         showDetailsDialog: false,
         selectedExtension: null,
-        selectedExtensionReleases: null,
         selectedExtensionRepos: null,
         maxStars: 0
       }
@@ -326,18 +325,18 @@
         console.log('### showUpgrade')
         this.selectedExtension = extension
         this.showUpgradeDialog = true
+        this.selectedExtensionRepos = []
         const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
           this.g.user.wallets[0].adminkey
         )
-        this.selectedExtensionReleases = data
+
         this.selectedExtensionRepos = data.reduce((repos, release) => {
           repos[release.source_repo] = repos[release.source_repo] || []
           repos[release.source_repo].push(release)
           return repos
         }, {})
-        console.log('### releases', this.selectedExtensionReleases)
         console.log('### repos', this.selectedExtensionRepos)
       },
 
