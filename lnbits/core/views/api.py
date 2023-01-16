@@ -42,6 +42,7 @@ from lnbits.decorators import (
 )
 from lnbits.extension_manger import (
     Extension,
+    ExtensionRelease,
     InstallableExtension,
     get_valid_extensions,
 )
@@ -800,12 +801,11 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
 @core_app.get("/api/v1/extension/{ext_id}/releases")
 async def get_extension_releases(ext_id: str, user: User = Depends(check_admin)):
     try:
-        installable_extensions: List[
-            InstallableExtension
-        ] = await InstallableExtension.get_installable_extensions()
-        extensions = [e for e in installable_extensions if e.id == ext_id]
+        extension_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
 
-        return extensions
+        return extension_releases
 
     except Exception as ex:
         raise HTTPException(

@@ -6,7 +6,6 @@ import sys
 import urllib.request
 import zipfile
 from http import HTTPStatus
-from platform import release
 from typing import List, NamedTuple, Optional
 
 import httpx
@@ -107,6 +106,7 @@ class ExtensionRelease(BaseModel):
     name: str
     version: str
     archive: str
+    source_repo: str
     hash: Optional[str]
     published_at: Optional[str]
     url: Optional[str]
@@ -118,6 +118,7 @@ class ExtensionRelease(BaseModel):
             name=r["name"],
             version=r["tag_name"],
             archive=r["zipball_url"],
+            # source_repo=r[]
             # description=r["body"], # bad for JSON
             published_at=r["published_at"],
             url=r["html_url"],
@@ -127,7 +128,7 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
-    archive: str #todo: move to installed_release
+    archive: str  # todo: move to installed_release
     hash: str
     short_description: Optional[str] = None
     details: Optional[str] = None
@@ -137,7 +138,9 @@ class InstallableExtension(BaseModel):
     is_admin_only: bool = False
     version: str = "none"  # todo: move to Release
     stars: int = 0
-    release: Optional[ExtensionRelease]
+    latest_release: Optional[ExtensionRelease]
+    installed_release: Optional[ExtensionRelease]
+    all_releases: List[ExtensionRelease] = []
 
     @property
     def zip_path(self) -> str:
@@ -233,7 +236,7 @@ class InstallableExtension(BaseModel):
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
-                release=ExtensionRelease.from_github_release(latest_release),
+                latest_release=ExtensionRelease.from_github_release(latest_release),
             )
         except Exception as e:
             logger.warning(e)
@@ -268,6 +271,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_installable_extensions(cls) -> List["InstallableExtension"]:
         extension_list: List[InstallableExtension] = []
+        extension_id_list: List[str] = []
 
         async with httpx.AsyncClient() as client:
             for url in settings.lnbits_extensions_manifests:
@@ -278,7 +282,9 @@ class InstallableExtension(BaseModel):
                         continue
                     manifest = resp.json()
                     if "extensions" in manifest:
-                        for e in manifest["extensions"] or []:
+                        for e in manifest["extensions"]:
+                            if e["id"] in extension_id_list:
+                                continue
                             extension_list += [
                                 InstallableExtension(
                                     id=e["id"],
@@ -293,17 +299,50 @@ class InstallableExtension(BaseModel):
                                     else [],
                                 )
                             ]
+                            extension_id_list += [e["id"]]
                     if "repos" in manifest:
                         for r in manifest["repos"]:
                             ext = await InstallableExtension.from_repo(
                                 r["organisation"], r["repository"]
                             )
                             if ext:
+                                if ext.id in extension_id_list:
+                                    continue
                                 extension_list += [ext]
+                                extension_id_list += [ext.id]
                 except Exception as e:
                     logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
         return extension_list
+
+    @classmethod
+    async def get_extension_releases(cls, ext_id: str) -> List["ExtensionRelease"]:
+        extension_releases: List[ExtensionRelease] = []
+        async with httpx.AsyncClient() as client:
+            for url in settings.lnbits_extensions_manifests:
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code != 200:
+                        logger.warning(f"Cannot fetch extensions manifest at: {url}")
+                        continue
+                    manifest = resp.json()
+                    if "extensions" in manifest:
+                        for e in manifest["extensions"]:
+                            if e["id"] == ext_id:
+                                extension_releases += [
+                                    ExtensionRelease(
+                                        name=e["name"],
+                                        version=e["version"],
+                                        archive=e["archive"],
+                                        hash=e["hash"],
+                                        source_repo=url,
+                                        description=e["shortDescription"],
+                                    )
+                                ]
+                except Exception as e:
+                    logger.warning(f"Manifest {url} failed with '{str(e)}'")
+
+        return extension_releases
 
 
 class InstalledExtensionMiddleware:
