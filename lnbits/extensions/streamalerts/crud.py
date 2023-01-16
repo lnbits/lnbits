@@ -7,6 +7,7 @@ from lnbits.core.crud import get_wallet
 from lnbits.db import SQLITE
 from lnbits.helpers import urlsafe_short_hash
 
+# todo: use the API, not direct import
 from ..satspay.crud import delete_charge  # type: ignore
 from . import db
 from .models import CreateService, Donation, Service

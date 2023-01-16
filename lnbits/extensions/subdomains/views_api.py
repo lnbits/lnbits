@@ -6,7 +6,6 @@ from starlette.exceptions import HTTPException
 from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.subdomains.models import CreateDomain, CreateSubdomain
 
 from . import subdomains_ext
 from .cloudflare import cloudflare_create_subdomain, cloudflare_deletesubdomain
@@ -22,6 +21,7 @@ from .crud import (
     get_subdomains,
     update_domain,
 )
+from .models import CreateDomain, CreateSubdomain
 
 # domainS
 

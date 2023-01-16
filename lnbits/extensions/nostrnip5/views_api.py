@@ -26,8 +26,14 @@ from .crud import (
     get_domain_by_name,
     get_domains,
     rotate_address,
+    update_domain_internal,
 )
-from .models import CreateAddressData, CreateDomainData, RotateAddressData
+from .models import (
+    CreateAddressData,
+    CreateDomainData,
+    EditDomainData,
+    RotateAddressData,
+)
 
 
 @nostrnip5_ext.get("/api/v1/domains", status_code=HTTPStatus.OK)
@@ -85,6 +91,16 @@ async def api_domain_create(
         )
 
     domain = await create_domain_internal(wallet_id=wallet.wallet.id, data=data)
+
+    return domain
+
+
+@nostrnip5_ext.put("/api/v1/domain", status_code=HTTPStatus.OK)
+async def api_domain_update(
+    data: EditDomainData, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+
+    domain = await update_domain_internal(wallet_id=wallet.wallet.id, data=data)
 
     return domain
 

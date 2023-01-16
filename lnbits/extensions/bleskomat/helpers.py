@@ -1,11 +1,11 @@
 import base64
 import hashlib
 import hmac
-import urllib
 from http import HTTPStatus
 from typing import Dict
+from urllib import parse
 
-from starlette.requests import Request
+from fastapi import Request
 
 
 def generate_bleskomat_lnurl_hash(secret: str):
@@ -22,7 +22,7 @@ def generate_bleskomat_lnurl_signature(
     elif api_key_encoding == "base64":
         key = base64.b64decode(api_key_secret)
     else:
-        key = bytes(f"{api_key_secret}")
+        key = bytes.fromhex(api_key_secret)
     return hmac.new(key=key, msg=payload.encode(), digestmod=hashlib.sha256).hexdigest()
 
 
@@ -57,8 +57,8 @@ class LnurlValidationError(Exception):
     pass
 
 
-def prepare_lnurl_params(tag: str, query: Dict[str, str]):
-    params = {}
+def prepare_lnurl_params(tag: str, query: dict) -> dict:
+    params: dict = {}
     if not is_supported_lnurl_subprotocol(tag):
         raise LnurlValidationError(f'Unsupported subprotocol: "{tag}"')
     if tag == "withdrawRequest":
@@ -85,15 +85,15 @@ def query_to_signing_payload(query: Dict[str, str]) -> str:
     payload = []
     for key in sorted_keys:
         if not key == "signature":
-            encoded_key = urllib.parse.quote(key, safe=encode_uri_component_safe_chars)
-            encoded_value = urllib.parse.quote(
+            encoded_key = parse.quote(key, safe=encode_uri_component_safe_chars)
+            encoded_value = parse.quote(
                 query[key], safe=encode_uri_component_safe_chars
             )
             payload.append(f"{encoded_key}={encoded_value}")
     return "&".join(payload)
 
 
-unshorten_rules = {
+unshorten_rules: dict[str, dict] = {
     "query": {"n": "nonce", "s": "signature", "t": "tag"},
     "tags": {
         "c": "channelRequest",
@@ -114,7 +114,7 @@ unshorten_rules = {
 }
 
 
-def unshorten_lnurl_query(query: Dict[str, str]) -> Dict[str, str]:
+def unshorten_lnurl_query(query: dict) -> Dict[str, str]:
     new_query = {}
     rules = unshorten_rules
     if "tag" in query:
@@ -131,9 +131,9 @@ def unshorten_lnurl_query(query: Dict[str, str]) -> Dict[str, str]:
     if not tag in rules["params"]:
         raise LnurlValidationError(f'Unknown tag: "{tag}"')
     for key in query:
-        if key in rules["params"][tag]:
+        if key in rules["params"][str(tag)]:
             short_param_key = key
-            long_param_key = rules["params"][tag][short_param_key]
+            long_param_key = rules["params"][str(tag)][short_param_key]
             if short_param_key in query:
                 new_query[long_param_key] = query[short_param_key]
             else:
@@ -146,7 +146,7 @@ def unshorten_lnurl_query(query: Dict[str, str]) -> Dict[str, str]:
                 if short_key in query:
                     new_query[long_key] = query[short_key]
                 else:
-                    new_query[long_key] = query[long_key]
+                    new_query[long_key] = query[str(long_key)]
         else:
             # Keep unknown key/value pairs unchanged:
             new_query[key] = query[key]

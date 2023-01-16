@@ -7,7 +7,6 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.events.models import CreateEvent, CreateTicket
 
 from . import events_ext
 from .crud import (
@@ -24,6 +23,7 @@ from .crud import (
     reg_ticket,
     update_event,
 )
+from .models import CreateEvent, CreateTicket
 
 # Events
 
