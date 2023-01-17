@@ -8,6 +8,15 @@ nav_order: 5
 Frequently  Asked Questions
 ===============
 
+<details><summary>When I scan a QR LNURL from my LNbits, I get "network error". What can I do?</summary>
+  <p>If your LNbits is running behind Tor (and you can't run it on clearnet), you must do the following:</p>
+  <ul>
+    <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be visible over internet, only in your LAN.</li>
+    <li>Open your LN wallet app that you use to scan that QR, using Tor connection. Otherwise your app cannot read that .onion URI. If the app it doesn't have integrated Tor, you can use Orbot (Android).</li>
+  </ul>
+  
+</details>
+
 <details><summary>Where can I see payment details?</summary>
 <p>
 When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
@@ -18,7 +27,7 @@ As you can see on the left side, there's a little green arrow for receiveing or 
 If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.
 </p>
 <p>
-If the sender's LN wallet support [LUD-18](https://github.com/lnurl/luds) (nameDesc) will also insert an alias/pseudonym preceeding the comment. This optional and only if the sender want to send that name. It can be any name and not related to real names.
+If the sender's LN wallet support [LUD-18](https://github.com/lnurl/luds) (nameDesc) will also insert an alias/pseudonym preceeding the comment. This is optional and only if the sender want to send that name. It can be any name and not related to real names.
 </p>
 
 ![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
