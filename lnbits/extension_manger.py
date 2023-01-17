@@ -473,9 +473,11 @@ async def fetch_github_repo_info(org: str, repository: str):
         repo_url = f"https://api.github.com/repos/{org}/{repository}"
         resp = await client.get(repo_url)
         if resp.status_code != 200:
+            detail = f"Cannot fetch extension repo: {repo_url}: {resp.text}"
+            logger.warning(detail)
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Cannot fetch extension repo: {repo_url}",
+                detail=detail,
             )
         repo = resp.json()
 
@@ -484,9 +486,13 @@ async def fetch_github_repo_info(org: str, repository: str):
         )
         resp = await client.get(lates_release_url)
         if resp.status_code != 200:
+            detail = (
+                f"Cannot fetch extension releases: {lates_release_url}: {resp.text}"
+            )
+            logger.warning(detail)
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Cannot fetch extension releases: {lates_release_url}",
+                detail=detail,
             )
 
         latest_release = resp.json()
@@ -494,9 +500,11 @@ async def fetch_github_repo_info(org: str, repository: str):
         config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
         resp = await client.get(config_url)
         if resp.status_code != 200:
+            detail = f"Cannot fetch config for extension: {config_url}: {resp.text}"
+            logger.warning(detail)
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Cannot fetch config for extension: {config_url}",
+                detail=detail,
             )
 
         config = resp.json()
