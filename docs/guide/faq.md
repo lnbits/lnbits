@@ -9,11 +9,18 @@ Frequently  Asked Questions
 ===============
 
 <details><summary>When I scan a QR LNURL from my LNbits, I get "network error". What can I do?</summary>
-  <p>If your LNbits is running behind Tor (and you can't run it on clearnet), you must do the following:</p>
+  <p>A - If your LNbits is running only behind Tor (you can't run it on clearnet), you must do the following:</p>
   <ul>
     <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be visible over internet, only in your LAN.</li>
     <li>Open your LN wallet app that you use to scan that QR, using Tor connection. Otherwise your app cannot read that .onion URI. If the app it doesn't have integrated Tor, you can use Orbot (Android).</li>
   </ul>
+  <p>B - If you run your LNbits over Tor and want to offer public LN services, you should consider to move it to a clearnet (domain/IP) access, with https SSL certificate.</p>
+  <ul>
+    <li>The easiest way (2 min setup) is to use Caddy. Just follow the instructions from [here](https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy) and your LNbits will be accesible through clearnet https.
+        You must have a domain and be able to configure in your DNS records a subdomain for your LNbits instance (eg. lnbits.mydomain.com).
+        Also you need access to your internet router to open the port 443 and forward it your LNbits IP machine in your LAN.</li>
+    <li>You can use also apache option, explained in the [LNBits installation manual](https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https).</li>
+    <li>If you LNbits run in a bundle node (Umbrel, Citadel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to make your Tor only LNbits into a clearnet LNbits.
   
 </details>
 
