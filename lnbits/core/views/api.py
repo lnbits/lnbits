@@ -747,13 +747,7 @@ async def api_install_extension(
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
-        await add_installed_extension(
-            ext_id=data.ext_id,
-            version=release.version,
-            name=ext_info.name,
-            active=False,
-            meta={"installed_release": dict(release)},
-        )
+        await add_installed_extension(ext_info)
         settings.lnbits_disabled_extensions += [data.ext_id]
 
         # mount routes for the new version

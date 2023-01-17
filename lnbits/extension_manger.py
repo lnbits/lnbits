@@ -15,7 +15,6 @@ from loguru import logger
 from pydantic import BaseModel
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from lnbits.core.crud import get_installed_extension
 from lnbits.settings import settings
 
 
@@ -255,9 +254,7 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_upgrade_dir, True)
 
     @classmethod
-    async def from_row(cls, data: dict) -> Optional["InstallableExtension"]:
-        if not data:
-            return None
+    def from_row(cls, data: dict) -> "InstallableExtension":
         meta = json.loads(data["meta"])
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
@@ -269,9 +266,6 @@ class InstallableExtension(BaseModel):
         cls, ext_id, org, repository
     ) -> Optional["InstallableExtension"]:
         try:
-            installed_release = await InstallableExtension.from_row(
-                await get_installed_extension(ext_id)
-            )
             repo, latest_release, config = await fetch_github_repo_info(org, repository)
 
             return InstallableExtension(
@@ -281,7 +275,6 @@ class InstallableExtension(BaseModel):
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
-                installed_release=installed_release,
                 latest_release=ExtensionRelease.from_github_release(
                     repo["html_url"], latest_release
                 ),
@@ -291,10 +284,7 @@ class InstallableExtension(BaseModel):
         return None
 
     @classmethod
-    async def from_manifest(cls, e: dict) -> "InstallableExtension":
-        installed_ext = await InstallableExtension.from_row(
-            await get_installed_extension(e["id"])
-        )
+    def from_manifest(cls, e: dict) -> "InstallableExtension":
         return InstallableExtension(
             id=e["id"],
             name=e["name"],
@@ -302,42 +292,17 @@ class InstallableExtension(BaseModel):
             hash=e["hash"],
             short_description=e["shortDescription"],
             icon=e["icon"],
-            installed_release=installed_ext.installed_release
-            if installed_ext
-            else None,
             dependencies=e["dependencies"] if "dependencies" in e else [],
         )
 
-    @classmethod  # todo: remove
-    async def get_extension_info(
-        cls, ext_id: str, archive: str
-    ) -> "InstallableExtension":
-        installable_extensions: List[
-            InstallableExtension
-        ] = await InstallableExtension.get_installable_extensions()
-
-        valid_extensions = [e for e in installable_extensions if e.id == ext_id]
-        if len(valid_extensions) == 0:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Unknown extension id: {ext_id}",
-            )
-        extension = valid_extensions[0]
-
-        # check that all dependecies are installed
-        installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
-        if not set(extension.dependencies).issubset(installed_extensions):
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Not all dependencies are installed: {extension.dependencies}",
-            )
-
-        return extension
-
     @classmethod
-    async def get_installable_extensions(cls) -> List["InstallableExtension"]:
-        extension_list: List[InstallableExtension] = []
-        extension_id_list: List[str] = []
+    async def get_installable_extensions(
+        cls, installed_extensions: List["InstallableExtension"] = []
+    ) -> List["InstallableExtension"]:
+        extension_list: List[InstallableExtension] = (
+            installed_extensions if installed_extensions else []
+        )
+        extension_id_list: List[str] = [e.id for e in extension_list]
 
         async with httpx.AsyncClient() as client:
             for url in settings.lnbits_extensions_manifests:
@@ -355,7 +320,6 @@ class InstallableExtension(BaseModel):
                                 r["id"], r["organisation"], r["repository"]
                             )
                             if ext:
-
                                 extension_list += [ext]
                                 extension_id_list += [ext.id]
 
@@ -363,9 +327,7 @@ class InstallableExtension(BaseModel):
                         for e in manifest["extensions"]:
                             if e["id"] in extension_id_list:
                                 continue
-                            extension_list += [
-                                await InstallableExtension.from_manifest(e)
-                            ]
+                            extension_list += [InstallableExtension.from_manifest(e)]
                             extension_id_list += [e["id"]]
                 except Exception as e:
                     logger.warning(f"Manifest {url} failed with '{str(e)}'")

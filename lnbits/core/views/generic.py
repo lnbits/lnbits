@@ -23,6 +23,7 @@ from ..crud import (
     delete_wallet,
     get_balance_check,
     get_inactive_extensions,
+    get_installed_extensions,
     get_user,
     save_balance_notify,
     update_installed_extension_state,
@@ -75,9 +76,12 @@ async def extensions_install(
     deactivate: str = Query(None),
 ):
     try:
+        installed_extensions: List[
+            "InstallableExtension"
+        ] = await get_installed_extensions()
         extension_list: List[
             InstallableExtension
-        ] = await InstallableExtension.get_installable_extensions()
+        ] = await InstallableExtension.get_installable_extensions(installed_extensions)
     except Exception as ex:
         logger.warning(ex)
         extension_list = []
@@ -96,7 +100,7 @@ async def extensions_install(
                 ext_id=ext_id, active=activate != None
             )
 
-        installed_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+        all_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
         inactive_extensions = await get_inactive_extensions()
         extensions = list(
             map(
@@ -108,7 +112,7 @@ async def extensions_install(
                     "shortDescription": ext.short_description,
                     "stars": ext.stars,
                     "dependencies": ext.dependencies,
-                    "isInstalled": ext.id in installed_extensions,
+                    "isInstalled": ext.id in all_extensions,
                     "isActive": not ext.id in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release

@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.extension_manger import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
@@ -71,29 +72,39 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 
 
 async def add_installed_extension(
-    *,
-    ext_id: str,
-    version: str,
-    name: str,
-    active: bool,
-    meta: dict,
+    ext: InstallableExtension,
     conn: Optional[Connection] = None,
 ) -> None:
+    meta = {
+        "installed_release": dict(ext.installed_release)
+        if ext.installed_release
+        else None,
+        "dependencies": ext.dependencies,
+    }
+
+    version = ext.installed_release.version if ext.installed_release else ""
+
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, name, active, meta) VALUES (?, ?, ?, ?, ?)
+        INSERT INTO installed_extensions (id, version, name, short_description, icon, icon_url, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (id) DO
-        UPDATE SET (version, name, active, meta) = (?, ?, ?, ?)
+        UPDATE SET (version, name, short_description, icon, icon_url, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            ext_id,
+            ext.id,
             version,
-            name,
-            active,
+            ext.name,
+            ext.short_description,
+            ext.icon,
+            ext.icon_url,
+            ext.stars,
             json.dumps(meta),
             version,
-            name,
-            active,
+            ext.name,
+            ext.short_description,
+            ext.icon,
+            ext.icon_url,
+            ext.stars,
             json.dumps(meta),
         ),
     )
@@ -130,6 +141,16 @@ async def get_installed_extension(ext_id: str, conn: Optional[Connection] = None
         return None
 
     return dict(row)
+
+
+async def get_installed_extensions(
+    conn: Optional[Connection] = None,
+) -> List["InstallableExtension"]:
+    rows = await (conn or db).fetchall(
+        "SELECT * FROM installed_extensions",
+        (),
+    )
+    return [InstallableExtension.from_row(row) for row in rows]
 
 
 async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
