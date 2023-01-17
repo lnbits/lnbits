@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.extension_manger import ExtensionRelease, InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
@@ -74,22 +75,25 @@ async def add_installed_extension(
     *,
     ext_id: str,
     version: str,
+    name: str,
     active: bool,
     meta: dict,
     conn: Optional[Connection] = None,
 ) -> None:
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, active, meta) VALUES (?, ?, ?, ?)
+        INSERT INTO installed_extensions (id, version, name, active, meta) VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (id) DO
-        UPDATE SET (version, active, meta) = (?, ?, ?)
+        UPDATE SET (version, name, active, meta) = (?, ?, ?, ?)
         """,
         (
             ext_id,
             version,
+            name,
             active,
             json.dumps(meta),
             version,
+            name,
             active,
             json.dumps(meta),
         ),
@@ -118,16 +122,22 @@ async def delete_installed_extension(
     )
 
 
-async def update_user_extension(
-    *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
-) -> None:
-    await (conn or db).execute(
-        """
-        INSERT INTO extensions ("user", extension, active) VALUES (?, ?, ?)
-        ON CONFLICT ("user", extension) DO UPDATE SET active = ?
-        """,
-        (user_id, extension, active, active),
+async def get_installed_extension(
+    ext_id: str, conn: Optional[Connection] = None
+) -> InstallableExtension:
+    row = await (conn or db).fetchone(
+        "SELECT * FROM installed_extensions WHERE id = ?",
+        (ext_id,),
     )
+    if not row:
+        return None
+
+    data = dict(row)
+    meta = json.loads(data["meta"])
+    ext = InstallableExtension(**data)
+    if "installed_release" in meta:
+        ext.installed_release = ExtensionRelease(**meta["installed_release"])
+    return ext
 
 
 async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
@@ -137,6 +147,18 @@ async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[
     )
     return (
         [ext[0] for ext in inactive_extensions] if len(inactive_extensions) != 0 else []
+    )
+
+
+async def update_user_extension(
+    *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        """
+        INSERT INTO extensions ("user", extension, active) VALUES (?, ?, ?)
+        ON CONFLICT ("user", extension) DO UPDATE SET active = ?
+        """,
+        (user_id, extension, active, active),
     )
 
 

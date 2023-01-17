@@ -254,16 +254,17 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_upgrade_dir, True)
 
     @classmethod
-    async def from_repo(cls, org, repository) -> Optional["InstallableExtension"]:
+    async def from_repo(
+        cls, ext_id, org, repository
+    ) -> Optional["InstallableExtension"]:
         try:
+            # installed_release = await get_installed_extension(ext_id)
             repo, latest_release, config = await fetch_github_repo_info(org, repository)
 
             return InstallableExtension(
-                id=repo["name"],
+                id=ext_id,
                 name=config.get("name"),
                 short_description=config.get("short_description"),
-                archive="xx",
-                hash="123",
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
@@ -317,7 +318,7 @@ class InstallableExtension(BaseModel):
                     if "repos" in manifest:
                         for r in manifest["repos"]:
                             ext = await InstallableExtension.from_repo(
-                                r["organisation"], r["repository"]
+                                r["id"], r["organisation"], r["repository"]
                             )
                             if ext:
                                 if ext.id in extension_id_list:

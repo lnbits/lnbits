@@ -750,6 +750,7 @@ async def api_install_extension(
         await add_installed_extension(
             ext_id=data.ext_id,
             version=installed_release.version,
+            name=ext_info.name,
             active=False,
             meta={"installed_release": dict(installed_release)},
         )

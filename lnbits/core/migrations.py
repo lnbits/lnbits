@@ -277,6 +277,7 @@ async def m009_create_installed_extensions_table(db):
         CREATE TABLE IF NOT EXISTS installed_extensions (
             id TEXT PRIMARY KEY,
             version TEXT NOT NULL,
+            name TEXT NOT NULL,
             active BOOLEAN DEFAULT false,
             meta TEXT NOT NULL DEFAULT '{}'
         );
