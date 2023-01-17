@@ -55,12 +55,11 @@
           </div>
           <div class="col-9">
             <q-badge
-              v-if="extension.details"
-              @click="showExtensionDetails(extension)"
-              color="secondary"
-              class="cursor-pointer float-right"
+              v-if="hasNewVersion(extension)"
+              color="green"
+              class="float-right"
             >
-              <small>More</small>
+              <small>New Version</small>
             </q-badge>
           </div>
         </div>
@@ -155,17 +154,22 @@
                 v-for="release of selectedExtensionRepos[repo]"
                 :key="release.version"
                 group="extras"
-                icon="download"
+                :icon="isInstalledVersion(selectedExtension, release) ? 'download_done' : 'download'"
                 :label="release.description"
                 :caption="release.version"
                 :content-inset-level="0.5"
+                :header-class="isInstalledVersion(selectedExtension, release) ? 'text-green' : ''"
               >
                 <q-card>
                   <q-card-section>
                     <q-btn
+                      v-if="!isInstalledVersion(selectedExtension, release)"
                       @click="installExtension(release)"
                       color="primary unelevated mt-lg pt-lg"
                       >Install</q-btn
+                    >
+                    <span v-if="isInstalledVersion(selectedExtension, release)"
+                      >xxxxx</span
                     >
                   </q-card-section>
                   <q-separator></q-separator>
@@ -185,22 +189,6 @@
       </div>
     </q-card>
   </q-dialog>
-
-  {%raw%}
-  <q-dialog v-model="showDetailsDialog">
-    <q-card v-if="selectedExtension" class="q-pa-lg">
-      <h6 class="q-my-md text-primary">{{selectedExtension.name}}</h6>
-      <div
-        v-if="selectedExtension.details"
-        v-html="selectedExtension.details"
-      ></div>
-
-      <div class="row q-mt-lg">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Done</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-  {%endraw%}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -213,7 +201,6 @@
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
-        showDetailsDialog: false,
         selectedExtension: null,
         selectedExtensionRepos: null,
         maxStars: 0
@@ -323,10 +310,21 @@
         }, {})
         console.log('### repos', this.selectedExtensionRepos)
       },
-
-      showExtensionDetails: function (extension) {
-        this.selectedExtension = extension
-        this.showDetailsDialog = true
+      hasNewVersion: function (extension) {
+        if (extension.installedRelease && extension.latestRelease) {
+          return (
+            extension.installedRelease.version !==
+            extension.latestRelease.version
+          )
+        }
+      },
+      isInstalledVersion: function (extension, release) {
+        if (extension.installedRelease) {
+          return (
+            extension.installedRelease.source_repo === release.source_repo &&
+            extension.installedRelease.version === release.version
+          )
+        }
       }
     },
     created: function () {
