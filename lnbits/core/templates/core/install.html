@@ -89,6 +89,7 @@
               Manage</q-btn
             >
             <q-toggle
+              v-if="extension.isInstalled"
               :label="extension.isActive ? 'Activated':  'Deactivated' "
               color="secodary"
               v-model="extension.isActive"
@@ -179,9 +180,7 @@
       </div>
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
       <div class="row q-mt-lg">
-        <q-btn @click="showUninstall()" flat color="red">
-          Uninstall</q-btn
-        >
+        <q-btn @click="showUninstall()" flat color="red"> Uninstall</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
