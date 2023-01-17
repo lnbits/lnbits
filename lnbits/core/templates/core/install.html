@@ -84,12 +84,9 @@
       <q-separator></q-separator>
       <q-card-actions>
         <div class="col-10">
-          <div v-if="extension.isInstalled">
+          <div v-if="!extension.inProgress">
             <q-btn @click="showUpgrade(extension)" flat color="primary">
-              Upgrade</q-btn
-            >
-            <q-btn @click="showUninstall(extension)" flat color="grey-5">
-              Uninstall</q-btn
+              Manage</q-btn
             >
             <q-toggle
               :label="extension.isActive ? 'Activated':  'Deactivated' "
@@ -99,19 +96,7 @@
             ></q-toggle>
           </div>
           <div v-else>
-            <q-spinner
-              v-if="extension.inProgress "
-              color="primary"
-              size="2.55em"
-            ></q-spinner>
-            <q-btn
-              v-else
-              @click="installExtension(extension)"
-              flat
-              color="primary"
-            >
-              Install</q-btn
-            >
+            <q-spinner color="primary" size="2.55em"></q-spinner>
           </div>
         </div>
 
@@ -194,6 +179,9 @@
       </div>
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
       <div class="row q-mt-lg">
+        <q-btn @click="showUninstall()" flat color="red">
+          Uninstall</q-btn
+        >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -285,7 +273,7 @@
         }
       },
       uninstallExtension: async function () {
-        extension = this.selectedExtension
+        const extension = this.selectedExtension
         try {
           extension.inProgress = true
           await LNbits.api.request(
@@ -314,13 +302,12 @@
         ].join('')
       },
 
-      showUninstall: function (extension) {
-        this.selectedExtension = extension
+      showUninstall: function () {
+        this.showUpgradeDialog = false
         this.showUninstallDialog = true
       },
 
       showUpgrade: async function (extension) {
-        console.log('### showUpgrade')
         this.selectedExtension = extension
         this.showUpgradeDialog = true
         this.selectedExtensionRepos = null
