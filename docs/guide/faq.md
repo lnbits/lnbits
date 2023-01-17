@@ -8,7 +8,7 @@ nav_order: 5
 Frequently  Asked Questions
 ===============
 
-<details><summary>Where I can see payment details?</summary>
+<details><summary>Where can I see payment details?</summary>
 <p>
 When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
 
@@ -17,6 +17,12 @@ When you receive a payment in Lnbits, the transaction log will display only a re
 As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.
 If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.
 </p>
+<p>
+If the sender's LN wallet support [LUD-18](https://github.com/lnurl/luds) (nameDesc) will also insert an alias/pseudonym preceeding the comment. This optional and only if the sender want to send that name. It can be any name and not related to real names.
+</p>
+
+![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
+
 </details>
 
 <details><summary>Can I receive a comment/message to my LNURL-p QR?</summary>
@@ -32,7 +38,7 @@ In order to allow comments, add the characters lenght of the box, from 1 to 250.
 <details><summary>How someone can deposit to my LNbits using onchain TX?</summary>
 <p>There are multiple ways to get sats from onchain into LN (LNbits). Depends on the case scenario you are in.</p>
 <p>Here are some options:</p>
-<p>A - Using a swap service like: [Boltz](https://boltz.exchange) | [FixedFloat](https://fixedfloat.com) | [DiamondHands](https://swap.diamondhands.technology/) | [ZigZag](https://zigzag.io).</p>
+<p>A - Using a swap service like: [Boltz](https://boltz.exchange/) or [FixedFloat](https://fixedfloat.com/) or [DiamondHands](https://swap.diamondhands.technology/) or [ZigZag](https://zigzag.io/).</p>
 <p>This is the case when you provide to the payer only a LNURL/LN invoice from your LNbits instance, but payer have only onchain sats. So will have to the swap first on his side.</p>
 <p>The procedure is simple: user will send onchain to the swap service, then will provide the LNURL or LN invoice from LNbits as destination of the swap.</p>
 <p>B - Using the Onchain LNbits extension.</p>
