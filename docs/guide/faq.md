@@ -16,10 +16,10 @@ Frequently  Asked Questions
   </ul>
   <p>B - If you run your LNbits over Tor and want to offer public LN services, you should consider to move it to a clearnet (domain/IP) access, with https SSL certificate.</p>
   <ul>
-    <li>The easiest way (2 min setup) is to use Caddy. Just follow the instructions from [here](https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy) and your LNbits will be accesible through clearnet https.
+    <li>The easiest way (2 min setup) is to use Caddy. Just follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">here</a> and your LNbits will be accesible through clearnet https.
         You must have a domain and be able to configure in your DNS records a subdomain for your LNbits instance (eg. lnbits.mydomain.com).
         Also you need access to your internet router to open the port 443 and forward it your LNbits IP machine in your LAN.</li>
-    <li>You can use also apache option, explained in the [LNBits installation manual](https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https).</li>
+    <li>You can also use apache option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
     <li>If you LNbits run in a bundle node (Umbrel, Citadel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to make your Tor only LNbits into a clearnet LNbits.
   
 </details>
@@ -34,7 +34,7 @@ As you can see on the left side, there's a little green arrow for receiveing or 
 If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.
 </p>
 <p>
-If the sender's LN wallet support [LUD-18](https://github.com/lnurl/luds) (nameDesc) will also insert an alias/pseudonym preceeding the comment. This is optional and only if the sender want to send that name. It can be any name and not related to real names.
+If the sender's LN wallet support <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) will also insert an alias/pseudonym preceeding the comment. This is optional and only if the sender want to send that name. It can be any name and not related to real names.
 </p>
 
 ![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
@@ -54,7 +54,7 @@ In order to allow comments, add the characters lenght of the box, from 1 to 250.
 <details><summary>How someone can deposit to my LNbits using onchain TX?</summary>
 <p>There are multiple ways to get sats from onchain into LN (LNbits). Depends on the case scenario you are in.</p>
 <p>Here are some options:</p>
-<p>A - Using a swap service like: [Boltz](https://boltz.exchange/) or [FixedFloat](https://fixedfloat.com/) or [DiamondHands](https://swap.diamondhands.technology/) or [ZigZag](https://zigzag.io/).</p>
+<p>A - Using a swap service like: <a href="https://boltz.exchange/">Boltz</a> or <a href="https://fixedfloat.com/">FixedFloat</a> or <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/"<ZigZag</a>.</p>
 <p>This is the case when you provide to the payer only a LNURL/LN invoice from your LNbits instance, but payer have only onchain sats. So will have to the swap first on his side.</p>
 <p>The procedure is simple: user will send onchain to the swap service, then will provide the LNURL or LN invoice from LNbits as destination of the swap.</p>
 <p>B - Using the Onchain LNbits extension.</p>
