@@ -291,26 +291,22 @@ class InstallableExtension(BaseModel):
         return None
 
     @classmethod
-    async def from_manifest(cls, e: dict) -> Optional["InstallableExtension"]:
-        try:
-            installed_ext = await InstallableExtension.from_row(
-                await get_installed_extension(e["id"])
-            )
-            return InstallableExtension(
-                id=e["id"],
-                name=e["name"],
-                archive=e["archive"],
-                hash=e["hash"],
-                short_description=e["shortDescription"],
-                icon=e["icon"],
-                installed_release=installed_ext.installed_release
-                if installed_ext
-                else None,
-                dependencies=e["dependencies"] if "dependencies" in e else [],
-            )
-        except Exception as e:
-            logger.warning(e)
-        return None
+    async def from_manifest(cls, e: dict) -> "InstallableExtension":
+        installed_ext = await InstallableExtension.from_row(
+            await get_installed_extension(e["id"])
+        )
+        return InstallableExtension(
+            id=e["id"],
+            name=e["name"],
+            archive=e["archive"],
+            hash=e["hash"],
+            short_description=e["shortDescription"],
+            icon=e["icon"],
+            installed_release=installed_ext.installed_release
+            if installed_ext
+            else None,
+            dependencies=e["dependencies"] if "dependencies" in e else [],
+        )
 
     @classmethod  # todo: remove
     async def get_extension_info(
@@ -353,12 +349,13 @@ class InstallableExtension(BaseModel):
                     manifest = resp.json()
                     if "repos" in manifest:
                         for r in manifest["repos"]:
+                            if r["id"] in extension_id_list:
+                                continue
                             ext = await InstallableExtension.from_repo(
                                 r["id"], r["organisation"], r["repository"]
                             )
                             if ext:
-                                if ext.id in extension_id_list:
-                                    continue
+
                                 extension_list += [ext]
                                 extension_id_list += [ext.id]
 
