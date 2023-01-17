@@ -227,7 +227,7 @@ class InstallableExtension(BaseModel):
             os.path.join(self.ext_upgrade_dir, self.id),
             os.path.join("lnbits", "extensions", self.id),
         )
-        
+
     def nofiy_upgrade(self) -> None:
         """Update the the list of upgraded extensions. The middleware will perform redirects based on this"""
         if not self.hash:
