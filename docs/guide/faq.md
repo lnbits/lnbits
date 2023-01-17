@@ -11,7 +11,7 @@ Frequently  Asked Questions
 <details><summary>Where I can see payment details?</summary>
 <p>
 When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
-![TXlogs](https://user-images.githubusercontent.com/56997124/212482604-9ce6b1a0-0c22-4d05-be5e-446b9fcd9538.png)
+[![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)](https://postimg.cc/w3ZGvrtF)
 As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.
 If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.
 </p>
@@ -21,7 +21,7 @@ If you click on that arrow, will popup a screen with more details about the tran
 <p>
 When you create a LNURL-p, by default the comment box is not filled. That means comments are not allowed to be attached to payments.
 In order to allow comments, add the characters lenght of the box, from 1 to 250. Once you put a number there, the comment box will be displayed in the payment process. You can also edit a LNURL-p already created and add that number.
-![Comment box](https://camo.githubusercontent.com/adc01ee61ab18d61428975385577a283d88c8a7c993d803e772e3ca089ff8ad4/68747470733a2f2f692e696d6775722e636f6d2f5070736641655a2e706e67)
+[![lnbits-lnurl-comment.png](https://i.postimg.cc/HkJQ9xKr/lnbits-lnurl-comment.png)](https://postimg.cc/rDk088qT)
 </p>
 </details>
 
