@@ -176,14 +176,16 @@
               >
                 <q-card>
                   <q-card-section>
-                    <q-btn type="a" color="primary unelevated mt-lg pt-lg"
+                    <q-btn
+                      @click="installExtension(release)"
+                      color="primary unelevated mt-lg pt-lg"
                       >Install</q-btn
                     >
                   </q-card-section>
                   <q-separator></q-separator>
                   <div
-                    v-if="selectedExtension.details"
-                    v-html="selectedExtension.details"
+                    v-if="release.details_html"
+                    v-html="release.details_html"
                   ></div> </q-card
               ></q-expansion-item>
             </q-list>
@@ -258,13 +260,19 @@
           )
           .filter(extensionNameContains(term))
       },
-      installExtension: async function (extension) {
+      installExtension: async function (release) {
+        const extension = this.selectedExtension
         try {
           extension.inProgress = true
           await LNbits.api.request(
             'POST',
-            `/api/v1/extension/${extension.id}/${extension.hash}?usr=${this.g.user.id}`,
-            this.g.user.wallets[0].adminkey
+            `/api/v1/extension?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey,
+            {
+              ext_id: extension.id,
+              archive: release.archive,
+              source_repo: release.source_repo
+            }
           )
           window.location.href = [
             "{{ url_for('install.extensions') }}",

@@ -75,25 +75,22 @@ async def add_installed_extension(
     ext_id: str,
     version: str,
     active: bool,
-    hash: str,
     meta: dict,
     conn: Optional[Connection] = None,
 ) -> None:
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, active, hash, meta) VALUES (?, ?, ?, ?, ?)
+        INSERT INTO installed_extensions (id, version, active, meta) VALUES (?, ?, ?, ?)
         ON CONFLICT (id) DO
-        UPDATE SET (version, active, hash, meta) = (?, ?, ?, ?)
+        UPDATE SET (version, active, meta) = (?, ?, ?)
         """,
         (
             ext_id,
             version,
             active,
-            hash,
             json.dumps(meta),
             version,
             active,
-            hash,
             json.dumps(meta),
         ),
     )

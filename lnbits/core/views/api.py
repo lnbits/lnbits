@@ -41,6 +41,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.extension_manger import (
+    CreateExtension,
     Extension,
     ExtensionRelease,
     InstallableExtension,
@@ -720,13 +721,30 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": False, "data": data}
 
 
-@core_app.post("/api/v1/extension/{ext_id}/{hash}")
+@core_app.post("/api/v1/extension")
 async def api_install_extension(
-    ext_id: str, hash: str, user: User = Depends(check_admin)
+    data: CreateExtension, user: User = Depends(check_admin)
 ):
-    ext_info: InstallableExtension = await InstallableExtension.get_extension_info(
-        ext_id, hash
+    # ext_info: InstallableExtension = await InstallableExtension.get_extension_info(
+    #     data.ext_id, data.archive
+    # )
+
+    all_releases: List[
+        ExtensionRelease
+    ] = await InstallableExtension.get_extension_releases(data.ext_id)
+    selected_release = [
+        r
+        for r in all_releases
+        if r.archive == data.archive and r.source_repo == data.source_repo
+    ]
+    if len(selected_release) == 0:
+        raise Exception("uuuuuuu")
+
+    installed_release = selected_release[0]
+    ext_info = InstallableExtension(
+        id=data.ext_id, name=data.ext_id, installed_release=installed_release
     )
+
     ext_info.download_archive()
 
     try:
@@ -734,17 +752,16 @@ async def api_install_extension(
 
         extension = Extension.from_installable_ext(ext_info)
 
-        db_version = (await get_dbversions()).get(ext_id, 0)
+        db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
         await add_installed_extension(
-            ext_id=ext_id,
-            version=ext_info.version,
+            ext_id=data.ext_id,
+            version=installed_release.version,
             active=False,
-            hash=hash,
-            meta=dict(ext_info),
+            meta={"installed_release": dict(installed_release)},
         )
-        settings.lnbits_disabled_extensions += [ext_id]
+        settings.lnbits_disabled_extensions += [data.ext_id]
 
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)

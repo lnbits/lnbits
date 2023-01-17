@@ -103,13 +103,10 @@ async def extensions_install(
                 lambda ext: {
                     "id": ext.id,
                     "name": ext.name,
-                    "hash": ext.hash,
-                    "version": ext.version,
                     "icon": ext.icon,
                     "iconUrl": ext.icon_url,
                     "shortDescription": ext.short_description,
                     "stars": ext.stars,
-                    "details": ext.details,
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_extensions,
                     "isActive": not ext.id in inactive_extensions,

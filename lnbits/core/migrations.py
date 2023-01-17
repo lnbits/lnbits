@@ -278,7 +278,6 @@ async def m009_create_installed_extensions_table(db):
             id TEXT PRIMARY KEY,
             version TEXT NOT NULL,
             active BOOLEAN DEFAULT false,
-            hash TEXT NOT NULL,
             meta TEXT NOT NULL DEFAULT '{}'
         );
     """

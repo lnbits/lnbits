@@ -111,6 +111,7 @@ class ExtensionRelease(BaseModel):
     published_at: Optional[str]
     html_url: Optional[str]
     description: Optional[str]
+    details_html: Optional[str] = None
 
     @classmethod
     def from_github_release(cls, source_repo: str, r: dict) -> "ExtensionRelease":
@@ -146,18 +147,24 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
-    archive: str  # todo: move to installed_release
-    hash: str
     short_description: Optional[str] = None
-    details: Optional[str] = None
     icon: Optional[str] = None
     icon_url: Optional[str] = None
     dependencies: List[str] = []
     is_admin_only: bool = False
-    version: str = "none"  # todo: move to Release
     stars: int = 0
     latest_release: Optional[ExtensionRelease]
     installed_release: Optional[ExtensionRelease]
+
+    @property
+    def hash(self) -> str:
+        if self.installed_release:
+            if self.installed_release.hash:
+                return self.installed_release.hash
+            m = hashlib.sha256()
+            m.update(f"{self.installed_release.archive}".encode())
+            return m.hexdigest()
+        return "not-installed"
 
     @property
     def zip_path(self) -> str:
@@ -186,7 +193,7 @@ class InstallableExtension(BaseModel):
         if os.path.isfile(ext_zip_file):
             os.remove(ext_zip_file)
         try:
-            download_url(self.archive, ext_zip_file)
+            download_url(self.installed_release.archive, ext_zip_file)
         except Exception as ex:
             logger.warning(ex)
             raise HTTPException(
@@ -195,7 +202,7 @@ class InstallableExtension(BaseModel):
             )
 
         archive_hash = file_hash(ext_zip_file)
-        if self.hash != archive_hash:
+        if self.installed_release.hash and self.installed_release.hash != archive_hash:
             # remove downloaded archive
             if os.path.isfile(ext_zip_file):
                 os.remove(ext_zip_file)
@@ -205,15 +212,22 @@ class InstallableExtension(BaseModel):
             )
 
     def extract_archive(self):
-        shutil.rmtree(self.ext_dir, True)
-        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
-            zip_ref.extractall(os.path.join("lnbits", "extensions"))
-
         os.makedirs(os.path.join("lnbits", "upgrades"), exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(self.ext_upgrade_dir)
+        generated_dir_name = os.listdir(self.ext_upgrade_dir)[0]
+        os.rename(
+            os.path.join(self.ext_upgrade_dir, generated_dir_name),
+            os.path.join(self.ext_upgrade_dir, self.id),
+        )
 
+        shutil.rmtree(self.ext_dir, True)
+        shutil.copytree(
+            os.path.join(self.ext_upgrade_dir, self.id),
+            os.path.join("lnbits", "extensions", self.id),
+        )
+        
     def nofiy_upgrade(self) -> None:
         """Update the the list of upgraded extensions. The middleware will perform redirects based on this"""
         if not self.hash:
@@ -261,15 +275,15 @@ class InstallableExtension(BaseModel):
             logger.warning(e)
         return None
 
-    @classmethod
-    async def get_extension_info(cls, ext_id: str, hash: str) -> "InstallableExtension":
+    @classmethod  # todo: remove
+    async def get_extension_info(
+        cls, ext_id: str, archive: str
+    ) -> "InstallableExtension":
         installable_extensions: List[
             InstallableExtension
         ] = await InstallableExtension.get_installable_extensions()
 
-        valid_extensions = [
-            e for e in installable_extensions if e.id == ext_id and e.hash == hash
-        ]
+        valid_extensions = [e for e in installable_extensions if e.id == ext_id]
         if len(valid_extensions) == 0:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -322,7 +336,6 @@ class InstallableExtension(BaseModel):
                                     archive=e["archive"],
                                     hash=e["hash"],
                                     short_description=e["shortDescription"],
-                                    details=e["details"] if "details" in e else "",
                                     icon=e["icon"],
                                     dependencies=e["dependencies"]
                                     if "dependencies" in e
@@ -365,6 +378,7 @@ class InstallableExtension(BaseModel):
                                         hash=e["hash"],
                                         source_repo=url,
                                         description=e["shortDescription"],
+                                        details_html=e.get("details"),
                                     )
                                 ]
 
@@ -413,6 +427,12 @@ class InstalledExtensionMiddleware:
                 scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
 
         await self.app(scope, receive, send)
+
+
+class CreateExtension(BaseModel):
+    ext_id: str
+    archive: str
+    source_repo: str
 
 
 def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
