@@ -79,9 +79,20 @@ async def extensions_install(
         installed_extensions: List[
             "InstallableExtension"
         ] = await get_installed_extensions()
+        installed_extensions_ids = [e.id for e in installed_extensions]
+
         extension_list: List[
             InstallableExtension
-        ] = await InstallableExtension.get_installable_extensions(installed_extensions)
+        ] = await InstallableExtension.get_installable_extensions()
+        extension_list += [
+            e for e in installed_extensions if e.id not in installed_extensions_ids
+        ]
+
+        for e in extension_list:
+            installed_ext = [ie for ie in installed_extensions if e.id == ie.id]
+            if len(installed_ext) != 0:
+                e.installed_release = installed_ext[0].installed_release
+
     except Exception as ex:
         logger.warning(ex)
         extension_list = []
