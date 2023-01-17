@@ -726,15 +726,15 @@ async def api_install_extension(
     data: CreateExtension, user: User = Depends(check_admin)
 ):
 
-    installed_release = await InstallableExtension.get_extension_release(
+    release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
     )
-    if not installed_release:
+    if not release:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
     ext_info = InstallableExtension(
-        id=data.ext_id, name=data.ext_id, installed_release=installed_release
+        id=data.ext_id, name=data.ext_id, installed_release=release
     )
 
     ext_info.download_archive()
@@ -749,10 +749,10 @@ async def api_install_extension(
 
         await add_installed_extension(
             ext_id=data.ext_id,
-            version=installed_release.version,
+            version=release.version,
             name=ext_info.name,
             active=False,
-            meta={"installed_release": dict(installed_release)},
+            meta={"installed_release": dict(release)},
         )
         settings.lnbits_disabled_extensions += [data.ext_id]
 

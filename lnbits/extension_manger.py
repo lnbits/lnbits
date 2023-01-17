@@ -15,6 +15,7 @@ from loguru import logger
 from pydantic import BaseModel
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from lnbits.core.crud import get_installed_extension
 from lnbits.settings import settings
 
 
@@ -254,11 +255,23 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_upgrade_dir, True)
 
     @classmethod
+    async def from_row(cls, data: dict) -> Optional["InstallableExtension"]:
+        if not data:
+            return None
+        meta = json.loads(data["meta"])
+        ext = InstallableExtension(**data)
+        if "installed_release" in meta:
+            ext.installed_release = ExtensionRelease(**meta["installed_release"])
+        return ext
+
+    @classmethod
     async def from_repo(
         cls, ext_id, org, repository
     ) -> Optional["InstallableExtension"]:
         try:
-            # installed_release = await get_installed_extension(ext_id)
+            installed_release = await InstallableExtension.from_row(
+                await get_installed_extension(ext_id)
+            )
             repo, latest_release, config = await fetch_github_repo_info(org, repository)
 
             return InstallableExtension(
@@ -268,9 +281,32 @@ class InstallableExtension(BaseModel):
                 version="0",
                 stars=repo["stargazers_count"],
                 icon_url=icon_to_github_url(org, config.get("tile")),
+                installed_release=installed_release,
                 latest_release=ExtensionRelease.from_github_release(
                     repo["html_url"], latest_release
                 ),
+            )
+        except Exception as e:
+            logger.warning(e)
+        return None
+
+    @classmethod
+    async def from_manifest(cls, e: dict) -> Optional["InstallableExtension"]:
+        try:
+            installed_ext = await InstallableExtension.from_row(
+                await get_installed_extension(e["id"])
+            )
+            return InstallableExtension(
+                id=e["id"],
+                name=e["name"],
+                archive=e["archive"],
+                hash=e["hash"],
+                short_description=e["shortDescription"],
+                icon=e["icon"],
+                installed_release=installed_ext.installed_release
+                if installed_ext
+                else None,
+                dependencies=e["dependencies"] if "dependencies" in e else [],
             )
         except Exception as e:
             logger.warning(e)
@@ -331,17 +367,7 @@ class InstallableExtension(BaseModel):
                             if e["id"] in extension_id_list:
                                 continue
                             extension_list += [
-                                InstallableExtension(
-                                    id=e["id"],
-                                    name=e["name"],
-                                    archive=e["archive"],
-                                    hash=e["hash"],
-                                    short_description=e["shortDescription"],
-                                    icon=e["icon"],
-                                    dependencies=e["dependencies"]
-                                    if "dependencies" in e
-                                    else [],
-                                )
+                                await InstallableExtension.from_manifest(e)
                             ]
                             extension_id_list += [e["id"]]
                 except Exception as e:

@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.extension_manger import ExtensionRelease, InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
@@ -122,9 +121,7 @@ async def delete_installed_extension(
     )
 
 
-async def get_installed_extension(
-    ext_id: str, conn: Optional[Connection] = None
-) -> InstallableExtension:
+async def get_installed_extension(ext_id: str, conn: Optional[Connection] = None):
     row = await (conn or db).fetchone(
         "SELECT * FROM installed_extensions WHERE id = ?",
         (ext_id,),
@@ -132,12 +129,7 @@ async def get_installed_extension(
     if not row:
         return None
 
-    data = dict(row)
-    meta = json.loads(data["meta"])
-    ext = InstallableExtension(**data)
-    if "installed_release" in meta:
-        ext.installed_release = ExtensionRelease(**meta["installed_release"])
-    return ext
+    return dict(row)
 
 
 async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:

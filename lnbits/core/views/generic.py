@@ -113,6 +113,9 @@ async def extensions_install(
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release
                     else None,
+                    "installedRelease": dict(ext.installed_release)
+                    if ext.installed_release
+                    else None,
                 },
                 extension_list,
             )
