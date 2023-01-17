@@ -387,6 +387,21 @@ class InstallableExtension(BaseModel):
 
         return extension_releases
 
+    @classmethod
+    async def get_extension_release(
+        cls, ext_id: str, source_repo: str, archive: str
+    ) -> Optional["ExtensionRelease"]:
+        all_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
+        selected_release = [
+            r
+            for r in all_releases
+            if r.archive == archive and r.source_repo == source_repo
+        ]
+
+        return selected_release[0] if len(selected_release) != 0 else None
+
 
 class InstalledExtensionMiddleware:
     def __init__(self, app: ASGIApp) -> None:

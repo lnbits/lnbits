@@ -725,22 +725,14 @@ async def websocket_update_get(item_id: str, data: str):
 async def api_install_extension(
     data: CreateExtension, user: User = Depends(check_admin)
 ):
-    # ext_info: InstallableExtension = await InstallableExtension.get_extension_info(
-    #     data.ext_id, data.archive
-    # )
 
-    all_releases: List[
-        ExtensionRelease
-    ] = await InstallableExtension.get_extension_releases(data.ext_id)
-    selected_release = [
-        r
-        for r in all_releases
-        if r.archive == data.archive and r.source_repo == data.source_repo
-    ]
-    if len(selected_release) == 0:
-        raise Exception("uuuuuuu")
-
-    installed_release = selected_release[0]
+    installed_release = await InstallableExtension.get_extension_release(
+        data.ext_id, data.source_repo, data.archive
+    )
+    if not installed_release:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
+        )
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=installed_release
     )
