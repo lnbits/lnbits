@@ -181,13 +181,7 @@ LNURLw are strings that represent a faucet-link to a wallet. By scanning it, eve
 
 
 <h2>Did you know?</h2>
-<ui><ul>
-<details><summary>Transaktion details</summary>
-    <ul><p>
-        </p></ul>
-  </details>
-</ui>
-
+<ul>
 <details><summary>Where can I see payment details?</summary>
 <p>
 When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
