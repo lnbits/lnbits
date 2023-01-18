@@ -15,7 +15,7 @@ A `merchant` and `customer` both have a NOSTR key-pair that are used to sign not
 
 * `merchant` - seller of products with NOSTR key-pair
 * `customer` - buyer of products with NOSTR key-pair
-* `product` - item for sale by the `merchhant`
+* `product` - item for sale by the `merchant`
 * `stall` - list of products controlled by `merchant`
 * `marketplace` - clientside software for searching `stalls` an buying `products`
 
@@ -40,7 +40,7 @@ The `merchant` event that publishes and updates product lists
 ALL fields are optional apart from the `timestamp`. Data from newer events should replace data from older events.  
 
 `action` types (used to indicate changes):
-* `update` element has chnaged
+* `update` element has changed
 * `delete` element should be deleted
 * `suspend` element is suspended
 * `unsuspend` element is unsuspended
@@ -54,7 +54,7 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
     "action": <String, optional action>,
     "stalls": [
         {
-            "id": <UUID dervied from merchant public-key>,
+            "id": <UUID derived from merchant public-key>,
             "name": <String, stall name>,
             "description": <String, stall description>,
             "categories": <String, CSV of voluntary categories>,
@@ -82,7 +82,7 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
             ]
         },
         {
-            "id": <UUID dervied from merchant public_key>,
+            "id": <UUID derived from merchant public_key>,
             "name": <String, stall name>,
             "description": <String, stall description>,
             "categories": <String, CSV of voluntary categories>,
@@ -121,7 +121,7 @@ ALL fields are optional apart from `timestamp`.
     "message": <String, special request>,
     "timestamp": <String, unix timestamp>,
     "contact": [
-        "nostr": <String, NOSTR pubkey>,
+        "nostr": <String, NOSTR public key>,
         "phone": <String, phone number>,
         "email": <String, email address>
     ],
@@ -166,15 +166,15 @@ Sent back from the merchant for payment. Any payment option is valid that the me
     "payment_options": [
         {
             "type": <String, option type>,
-            "link": <String, url, btc adress, ln invoice, etc>
+            "link": <String, url, btc address, ln invoice, etc>
         },
         {
             "type": <String, option type>,
-            "link": <String, url, btc adress, ln invoice, etc>
+            "link": <String, url, btc address, ln invoice, etc>
         },
                 {
             "type": <String, option type>,
-            "link": <String, url, btc adress, ln invoice, etc>
+            "link": <String, url, btc address, ln invoice, etc>
         }
 }
 
