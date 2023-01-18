@@ -139,53 +139,66 @@
   <q-dialog v-model="showUpgradeDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div class="col-12 col-md-5 q-gutter-y-md" v-if="selectedExtensionRepos">
-        <q-card v-for="repo of Object.keys(selectedExtensionRepos)" :key="repo">
-          <q-card-section>
-            <h6 class="text-subtitle1 q-my-none">Repository</h6>
-            <q-badge color="primary" rounded
-              ><small v-text="repo"></small
-            ></q-badge>
-          </q-card-section>
-          <q-card-section class="q-pa-none">
-            <q-separator></q-separator>
-            <q-list>
-              <q-expansion-item
-                v-for="release of selectedExtensionRepos[repo]"
-                :key="release.version"
-                group="extras"
-                :icon="isInstalledVersion(selectedExtension, release) ? 'download_done' : 'download'"
-                :label="release.description"
-                :caption="release.version"
-                :content-inset-level="0.5"
-                :header-class="isInstalledVersion(selectedExtension, release) ? 'text-green' : ''"
-              >
-                <q-card>
-                  <q-card-section>
-                    <q-btn
-                      v-if="!isInstalledVersion(selectedExtension, release)"
-                      @click="installExtension(release)"
-                      color="primary unelevated mt-lg pt-lg"
-                      >Install</q-btn
-                    >
-                    <a
-                    v-if="release.html_url"
-                    class="text-secondary float-right"
-                    :href="release.html_url"
-                    target="_blank"
-                    style="color: inherit"
-                    >Release Notes</a
-                  >
-                  </q-card-section>
-                 
-                  <div
-                    v-if="release.details_html"
-                    v-html="release.details_html"
-                  ></div>
-                  <q-separator></q-separator>
-                </q-card></q-expansion-item
-              >
-            </q-list>
-          </q-card-section>
+        <q-card
+          flat
+          bordered
+          class="my-card"
+          v-for="repoName of Object.keys(selectedExtensionRepos)"
+          :key="repoName"
+        >
+          <q-expansion-item
+            :key="repoName"
+            group="repos"
+            label="Repository"
+            :caption="repoName"
+            :content-inset-level="0.5"
+            :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': ''"
+            :header-class="selectedExtensionRepos[repoName].isInstalled ? 'text-green' : ''"
+          >
+            <q-card-section class="q-pa-none">
+              <q-separator></q-separator>
+
+              <q-list>
+                <q-expansion-item
+                  v-for="release of selectedExtensionRepos[repoName].releases"
+                  :key="release.version"
+                  group="releases"
+                  :icon="release.isInstalled ? 'download_done' : 'download'"
+                  :label="release.description"
+                  :caption="release.version"
+                  :content-inset-level="0.5"
+                  :header-class="release.isInstalled ? 'text-green' : ''"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <q-btn
+                        v-if="!release.isInstalled"
+                        @click="installExtension(release)"
+                        color="primary unelevated mt-lg pt-lg"
+                        >Install</q-btn
+                      >
+                      <q-btn v-else @click="showUninstall()" flat color="red">
+                        Uninstall</q-btn
+                      >
+                      <a
+                        v-if="release.html_url"
+                        class="text-secondary float-right"
+                        :href="release.html_url"
+                        target="_blank"
+                        style="color: inherit"
+                        >Release Notes</a
+                      >
+                    </q-card-section>
+
+                    <div
+                      v-if="release.details_html"
+                      v-html="release.details_html"
+                    ></div>
+                    <q-separator></q-separator> </q-card
+                ></q-expansion-item>
+              </q-list>
+            </q-card-section>
+          </q-expansion-item>
         </q-card>
       </div>
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
@@ -318,8 +331,18 @@
         )
 
         this.selectedExtensionRepos = data.reduce((repos, release) => {
-          repos[release.source_repo] = repos[release.source_repo] || []
-          repos[release.source_repo].push(release)
+          repos[release.source_repo] = repos[release.source_repo] || {
+            releases: [],
+            isInstalled: false
+          }
+          release.isInstalled = this.isInstalledVersion(
+            this.selectedExtension,
+            release
+          )
+          if (release.isInstalled) {
+            repos[release.source_repo].isInstalled = true
+          }
+          repos[release.source_repo].releases.push(release)
           return repos
         }, {})
         console.log('### repos', this.selectedExtensionRepos)
