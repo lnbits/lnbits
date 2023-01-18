@@ -6,7 +6,7 @@ import sys
 import urllib.request
 import zipfile
 from http import HTTPStatus
-from typing import List, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional
 
 import httpx
 from fastapi.exceptions import HTTPException
@@ -128,20 +128,16 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     async def all_releases(cls, org, repo) -> List["ExtensionRelease"]:
-        async with httpx.AsyncClient() as client:
+        try:
             releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
-            resp = await client.get(releases_url)
-            if resp.status_code != 200:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Cannot fetch extension releases: {releases_url}: {resp.text}",
-                )
-
-            releases = resp.json()
+            error_msg = "Cannot fetch extension releases"
+            releases = await gihub_api_get(releases_url, error_msg)
             return [
                 ExtensionRelease.from_github_release(f"{org}/{repo}", r)
                 for r in releases
             ]
+        except:
+            return []
 
 
 class InstallableExtension(BaseModel):
@@ -304,72 +300,65 @@ class InstallableExtension(BaseModel):
         )
         extension_id_list: List[str] = [e.id for e in extension_list]
 
-        async with httpx.AsyncClient() as client:
-            for url in settings.lnbits_extensions_manifests:
-                try:
-                    resp = await client.get(url)
-                    if resp.status_code != 200:
-                        logger.warning(f"Cannot fetch extensions manifest at: {url}")
-                        continue
-                    manifest = resp.json()
-                    if "repos" in manifest:
-                        for r in manifest["repos"]:
-                            if r["id"] in extension_id_list:
-                                continue
-                            ext = await InstallableExtension.from_repo(
-                                r["id"], r["organisation"], r["repository"]
-                            )
-                            if ext:
-                                extension_list += [ext]
-                                extension_id_list += [ext.id]
+        for url in settings.lnbits_extensions_manifests:
+            try:
+                error_msg = "Cannot fetch extensions manifest"
+                manifest = await gihub_api_get(url, error_msg)
+                if "repos" in manifest:
+                    for r in manifest["repos"]:
+                        if r["id"] in extension_id_list:
+                            continue
+                        ext = await InstallableExtension.from_repo(
+                            r["id"], r["organisation"], r["repository"]
+                        )
+                        if ext:
+                            extension_list += [ext]
+                            extension_id_list += [ext.id]
 
-                    if "extensions" in manifest:
-                        for e in manifest["extensions"]:
-                            if e["id"] in extension_id_list:
-                                continue
-                            extension_list += [InstallableExtension.from_manifest(e)]
-                            extension_id_list += [e["id"]]
-                except Exception as e:
-                    logger.warning(f"Manifest {url} failed with '{str(e)}'")
+                if "extensions" in manifest:
+                    for e in manifest["extensions"]:
+                        if e["id"] in extension_id_list:
+                            continue
+                        extension_list += [InstallableExtension.from_manifest(e)]
+                        extension_id_list += [e["id"]]
+            except Exception as e:
+                logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
         return extension_list
 
     @classmethod
     async def get_extension_releases(cls, ext_id: str) -> List["ExtensionRelease"]:
         extension_releases: List[ExtensionRelease] = []
-        async with httpx.AsyncClient() as client:
-            for url in settings.lnbits_extensions_manifests:
-                try:
-                    resp = await client.get(url)
-                    if resp.status_code != 200:
-                        logger.warning(f"Cannot fetch extensions manifest at: {url}")
-                        continue
-                    manifest = resp.json()
-                    if "repos" in manifest:
-                        for r in manifest["repos"]:
-                            if r["id"] == ext_id:
-                                repo_releases = await ExtensionRelease.all_releases(
-                                    r["organisation"], r["repository"]
+
+        for url in settings.lnbits_extensions_manifests:
+            try:
+                error_msg = "Cannot fetch extensions manifest"
+                manifest = await gihub_api_get(url, error_msg)
+                if "repos" in manifest:
+                    for r in manifest["repos"]:
+                        if r["id"] == ext_id:
+                            repo_releases = await ExtensionRelease.all_releases(
+                                r["organisation"], r["repository"]
+                            )
+                            extension_releases += repo_releases
+
+                if "extensions" in manifest:
+                    for e in manifest["extensions"]:
+                        if e["id"] == ext_id:
+                            extension_releases += [
+                                ExtensionRelease(
+                                    name=e["name"],
+                                    version=e["version"],
+                                    archive=e["archive"],
+                                    hash=e["hash"],
+                                    source_repo=url,
+                                    description=e["shortDescription"],
+                                    details_html=e.get("details"),
                                 )
-                                extension_releases += repo_releases
+                            ]
 
-                    if "extensions" in manifest:
-                        for e in manifest["extensions"]:
-                            if e["id"] == ext_id:
-                                extension_releases += [
-                                    ExtensionRelease(
-                                        name=e["name"],
-                                        version=e["version"],
-                                        archive=e["archive"],
-                                        hash=e["hash"],
-                                        source_repo=url,
-                                        description=e["shortDescription"],
-                                        details_html=e.get("details"),
-                                    )
-                                ]
-
-                except Exception as e:
-                    logger.warning(f"Manifest {url} failed with '{str(e)}'")
+            except Exception as e:
+                logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
         return extension_releases
 
@@ -469,44 +458,35 @@ def icon_to_github_url(org: str, path: Optional[str]) -> str:
 
 
 async def fetch_github_repo_info(org: str, repository: str):
+    repo_url = f"https://api.github.com/repos/{org}/{repository}"
+    error_msg = "Cannot fetch extension repo"
+    repo = await gihub_api_get(repo_url, error_msg)
+
+    lates_release_url = (
+        f"https://api.github.com/repos/{org}/{repository}/releases/latest"
+    )
+    error_msg = "Cannot fetch extension releases"
+    latest_release = await gihub_api_get(lates_release_url, error_msg)
+
+    config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
+    error_msg = "Cannot fetch config for extension"
+    config = await gihub_api_get(config_url, error_msg)
+
+    return repo, latest_release, config
+
+
+async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:
     async with httpx.AsyncClient() as client:
-        repo_url = f"https://api.github.com/repos/{org}/{repository}"
-        resp = await client.get(repo_url)
-        if resp.status_code != 200:
-            detail = f"Cannot fetch extension repo: {repo_url}: {resp.text}"
-            logger.warning(detail)
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=detail,
-            )
-        repo = resp.json()
-
-        lates_release_url = (
-            f"https://api.github.com/repos/{org}/{repository}/releases/latest"
+        headers = (
+            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
+            if settings.lnbits_ext_github_token
+            else None
         )
-        resp = await client.get(lates_release_url)
+        resp = await client.get(
+            url,
+            headers=headers,
+        )
         if resp.status_code != 200:
-            detail = (
-                f"Cannot fetch extension releases: {lates_release_url}: {resp.text}"
-            )
-            logger.warning(detail)
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=detail,
-            )
-
-        latest_release = resp.json()
-
-        config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
-        resp = await client.get(config_url)
-        if resp.status_code != 200:
-            detail = f"Cannot fetch config for extension: {config_url}: {resp.text}"
-            logger.warning(detail)
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=detail,
-            )
-
-        config = resp.json()
-
-        return repo, latest_release, config
+            logger.warning(f"{error_msg} ({url}): {resp.text}")
+        resp.raise_for_status()
+        return resp.json()

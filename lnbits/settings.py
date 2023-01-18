@@ -38,10 +38,16 @@ class LNbitsSettings(BaseSettings):
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
+
+
+class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(default=[])
     lnbits_upgraded_extensions: List[str] = Field(default=[])
+    lnbits_ext_github_token: str = Field(
+        default=""
+    )  # required due to GitHUb rate-limit
 
 
 class ThemesSettings(LNbitsSettings):
@@ -169,6 +175,7 @@ class FundingSourcesSettings(
 
 class EditableSettings(
     UsersSettings,
+    ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
     FundingSourcesSettings,
