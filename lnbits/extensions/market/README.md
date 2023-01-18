@@ -99,6 +99,23 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
                 }
             ]
         }
+    ],
+    "shipping_zones": [
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zone": <String, shipping zone>,
+            "price": <int, cost>,
+        },
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zone": <String, shipping zone>,
+            "price": <int, cost>,
+        },
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zone": <String, shipping zone>,
+            "price": <int, cost>,
+        }
     ]
 }
 
