@@ -137,7 +137,10 @@
   </q-dialog>
 
   <q-dialog v-model="showUpgradeDialog">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-card class="q-pa-lg lnbits__dialog-card">
+      <q-card-section>
+        <div class="text-h6" v-text="selectedExtension?.name"></div>
+      </q-card-section>
       <div class="col-12 col-md-5 q-gutter-y-md" v-if="selectedExtensionRepos">
         <q-card
           flat
@@ -154,6 +157,7 @@
             :content-inset-level="0.5"
             :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': ''"
             :header-class="selectedExtensionRepos[repoName].isInstalled ? 'text-green' : ''"
+            :default-opened="selectedExtensionRepos[repoName].isInstalled"
           >
             <q-card-section class="q-pa-none">
               <q-separator></q-separator>
