@@ -35,9 +35,27 @@ The `merchant` admin software can be purely clientside, but for `convenience` an
 
 NIP-01 https://github.com/nostr-protocol/nips/blob/master/01.md uses the basic NOSTR event type.
 
+```
+{
+  "id": <32-bytes sha256 of the the serialized event data>
+  "pubkey": <32-bytes hex-encoded public key of the event creator>,
+  "created_at": <unix timestamp in seconds>,
+  "kind": <integer>,
+  "tags": [
+    ["e", <32-bytes hex of the id of another event>, <recommended relay URL>],
+    ["p", <32-bytes hex of the key>, <recommended relay URL>],
+    ... // other kinds of tags may be included later
+  ],
+  "content": <arbitrary string>,
+  "sig": <64-bytes signature of the sha256 hash of the serialized event data, which is the same as the "id" field>
+}
+```
+
 The `merchant` event that publishes and updates product lists
 
-ALL fields are optional apart from the `timestamp`. Data from newer events should replace data from older events.  
+The below json goes in `content` of NIP-01.
+
+Data from newer events should replace data from older events.  
 
 `action` types (used to indicate changes):
 * `update` element has changed
@@ -50,7 +68,6 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
 {
     "name": <String, name of merchant>,
     "description": <String, description of merchant>,
-    "timestamp": <String, unix timestamp>,
     "currency": <Str, currency used>,
     "action": <String, optional action>,
     "shipping": [
@@ -86,6 +103,12 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
                     "categories": <String, CSV of voluntary categories>,
                     "amount": <Int, number of units>,
                     "price": <Int, cost per unit>,
+                    "images": [
+                        {
+                            "name": <String, image name>,
+                            "link": <String, URL or BASE64>
+                        }
+                    ],
                     "action": <String, optional action>,
                 },
                 {
@@ -95,6 +118,16 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
                     "categories": <String, CSV of voluntary categories>,
                     "amount": <Int, number of units>,
                     "price": <Int, cost per unit>,
+                    "images": [
+                        {
+                            "name": <String, image name>,
+                            "link": <String, URL or BASE64>
+                        },
+                        {
+                            "name": <String, image name>,
+                            "link": <String, URL or BASE64>
+                        }
+                    ],
                     "action": <String, optional action>,
                 },
             ]
@@ -113,6 +146,12 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
                     "categories": <String, CSV of voluntary categories>,
                     "amount": <Int, number of units>,
                     "price": <Int, cost per unit>,
+                    "images": [
+                        {
+                            "name": <String, image name>,
+                            "link": <String, URL or BASE64>
+                        }
+                    ],
                     "action": <String, optional action>,
                 }
             ]
@@ -126,9 +165,10 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
 
 NIP-04 https://github.com/nostr-protocol/nips/blob/master/04.md, all checkout events are encrypted
 
+The below json goes in `content` of NIP-04.
+
 ### Step 1: `customer` order (event)
 
-ALL fields are optional apart from `timestamp`.
 
 ```
 {
@@ -137,7 +177,6 @@ ALL fields are optional apart from `timestamp`.
     "description": <String, description of customer>,
     "address": <String, postal address>,
     "message": <String, special request>,
-    "timestamp": <String, unix timestamp>,
     "contact": [
         "nostr": <String, NOSTR public key>,
         "phone": <String, phone number>,
@@ -170,6 +209,8 @@ Merchant should verify the sum of product ids + timestamp.
 
 Sent back from the merchant for payment. Any payment option is valid that the merchant can check.
 
+The below json goes in `content` of NIP-04.
+
 `payment_options`/`type` include:
 * `url` URL to a payment page, stripe, paypal, btcpayserver, etc
 * `btc` onchain bitcoin address
@@ -180,7 +221,6 @@ Sent back from the merchant for payment. Any payment option is valid that the me
 {
     "id": <String, UUID derived from sum of product ids + timestamp>,
     "message": <String, message to customer>,
-    "timestamp": <String, unix timestamp>,
     "payment_options": [
         {
             "type": <String, option type>,
@@ -201,6 +241,9 @@ Sent back from the merchant for payment. Any payment option is valid that the me
 ### Step 3: `merchant` verify payment/shipped (event)
 
 Once payment has been received and processed.
+
+The below json goes in `content` of NIP-04.
+
 ```
 {
     "id": <String, UUID derived from sum of product ids + timestamp>,
