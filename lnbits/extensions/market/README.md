@@ -149,7 +149,7 @@ Data from newer events should replace data from older events.
 
 ```
 
-As all elements are optional, an `action` `update` to a `product` `image`, may look as simple as:
+As all elements are optional, an `update` `action` to a `product` `image`, may look as simple as:
 
 ```
 {
