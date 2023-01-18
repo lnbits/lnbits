@@ -6,7 +6,9 @@
 
 In Diagon Alley, `merchant` and `customer` communicate via NOSTR relays, so loss of money, product information, and reputation become far less likely if attacked.
 
-A `merchant` and `customer` both have a NOSTR key-pair that are used to sign notes and subscribe to events. For further information about NOSTR, see https://github.com/nostr-protocol/nostr
+A `merchant` and `customer` both have a NOSTR key-pair that are used to sign notes and subscribe to events. 
+
+#### For further information about NOSTR, see https://github.com/nostr-protocol/nostr
 
 
 ## Terms
@@ -17,7 +19,7 @@ A `merchant` and `customer` both have a NOSTR key-pair that are used to sign not
 * `stall` - list of products controlled by `merchant`
 * `marketplace` - clientside software for searching `stalls` an buying `products`
 
-## Client software
+## Diagon Alley Clients
 
 ### Merchant admin
 
