@@ -1,4 +1,5 @@
 ---
+---
 layout: default
 title: FAQ
 nav_order: 5
@@ -10,7 +11,7 @@ FAQ - Frequently Asked Questions on LNbits
 ==========================================
 
 <h2>Install options</h2>
-<ui>
+<ui><ul>
     <p>LNbits is not a node management software but a lightning only accounting system on top of a funding source.</p>
   
 <details><summary>Funding my LNbits wallet from my node doesnt work.</summary>
@@ -48,7 +49,7 @@ FAQ - Frequently Asked Questions on LNbits
  Please not that all entries in the .env file will not be the taken into account anylonger after you activated the admin extension.
  </p>
  </details>
-      
+  </ul>
     </p></ul>
 </details>
 </ui>
@@ -56,14 +57,14 @@ FAQ - Frequently Asked Questions on LNbits
 
 
 <h2>Troubleshooting</h2>
-<ui>
+<ui><ul>
   <details><summary>Message "https error" or network error" when scanning a QR made on LNbits</summary><ui>
 <p>Bad news, this is a routing error that might have quite a lot of reasons. Lets try a few of the most possible problems and their solutions. </p>
   <p>A - LNbits is running behind Tor only, you can't open it on a public domain like lnbits.yourdomain.com</p>
 
     <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be visible over internet, only in your LAN.</li>
     <li>Open your LN wallet app that you use to scan that QR, using Tor connection. Otherwise your app cannot read that .onion URI. If the app it doesn't have integrated Tor, you can use Orbot (Android).</li>
-  </ul>
+  </ui>
   <p>B - If you run your LNbits over Tor and want to offer public LN services, you should consider to move it to a clearnet (domain/IP) access, with https SSL certificate.</p>
   <ul>
     <li>The easiest way (2 min setup) is to use Caddy. Just follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">here</a> and your LNbits will be accesible through clearnet https.
@@ -84,7 +85,7 @@ FAQ - Frequently Asked Questions on LNbits
       <details><summary>Wallet on your own funding source/node</summary><p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits wallet-IDs in your LNbits database. 
          </ul>
       </details> 
-    </p>
+    </p></ul>
     
   </details>
  
@@ -130,7 +131,7 @@ FAQ - Frequently Asked Questions on LNbits
 
 
 <h2>Use cases of LNbits</h2>
-<ui>
+<ui><ul>
 <details><summary>Merchant</summary>
     <ul><p>
         </p></ul>
@@ -141,8 +142,6 @@ FAQ - Frequently Asked Questions on LNbits
         </p></ul>
 </details>
 </ui>
-
-
 
 <details><summary>NFC Cards, Badges, Rings etc.</summary>
     <ul><p>
@@ -169,31 +168,26 @@ LNURLw are strings that represent a faucet-link to a wallet. By scanning it, eve
 <li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
 <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
       </ul></ul><p>
-</details>
+  </details></ul>
 </ui>
 
 
     
 <h2>Developing for LNbits</h2>
-<ui>
+<ui><ul>
 <li><a href="http://docs.lnbits.org/devs/development.html">Making Estension / how to use Websockets / API reference</a></li>
-    <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li>
+  <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>
 </ui>
 
 
 
 <h2>Did you know?</h2>
-<ui>
+<ui><ul>
 <details><summary>Transaktion details</summary>
     <ul><p>
         </p></ul>
-</details>
+  </details>
 </ui>
-
-
-
-
-
 
 <details><summary>Where can I see payment details?</summary>
 <p>
@@ -239,5 +233,6 @@ In order to allow comments, add the characters lenght of the box, from 1 to 250.
 <li>Optional - Go to LNbits - SatsPay extension and create a new charge for onchain btc. You can choose between onchain and LN or both. It will then create an invoice that can be shared.</li>
 <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create/link a watch-only wallet to your LN btc shop wallet, the customer will have both options to pay on the same screen.</li>
 </ul>
-
+  </ul>
 </details>
+
