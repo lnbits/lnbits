@@ -242,6 +242,7 @@
         const extension = this.selectedExtension
         try {
           extension.inProgress = true
+          this.showUpgradeDialog = false
           await LNbits.api.request(
             'POST',
             `/api/v1/extension?usr=${this.g.user.id}`,
