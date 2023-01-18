@@ -80,7 +80,7 @@ allow_self_payment=1
 </details> 
 
 ## Building hardware tools
-  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for several use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building with LNbits or if you need help with a projekt - we got you!</p>
+  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for several use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building with LNbits or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
   <p>text coming here...</p>
@@ -102,12 +102,13 @@ allow_self_payment=1
 <p>text coming here...</p>
 </details>
 
-## Ressources
+<details><summary><h3>Resources - Building hardware tools<h3></summary>
   <ul>
   <li><a href="https://t.me/makerbits'">makerbits support Group</a></li>
   <li><a href="ereignishorizont.xyz/">Building Instructions by Axel</a></li>
   <li><a href="https://shop.lnbits.com/">LNbits shop</a></li>
   </ul>
+</details>
 
 ## Use cases of LNbits
 <details><summary>Merchant</summary>
@@ -149,7 +150,7 @@ allow_self_payment=1
      You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.</p>
 </details>
 
-## Ressources
+<details><summary><h3>Resources - Use cases<h3></summary>
   <ul>
     <li><a href="https://www.plebtag.com">PlebTag, infos, Lasercards, Badges</a></li>
     <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
@@ -157,7 +158,7 @@ allow_self_payment=1
     <li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
     <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
   </ul>
-  </details>
+</details>
    
 ## Developing for LNbits
   <ul>
