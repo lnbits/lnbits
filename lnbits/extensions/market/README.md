@@ -35,22 +35,6 @@ The `merchant` admin software can be purely clientside, but for `convenience` an
 
 NIP-01 https://github.com/nostr-protocol/nips/blob/master/01.md uses the basic NOSTR event type.
 
-```
-{
-  "id": <32-bytes sha256 of the the serialized event data>
-  "pubkey": <32-bytes hex-encoded public key of the event creator>,
-  "created_at": <unix timestamp in seconds>,
-  "kind": <integer>,
-  "tags": [
-    ["e", <32-bytes hex of the id of another event>, <recommended relay URL>],
-    ["p", <32-bytes hex of the key>, <recommended relay URL>],
-    ... // other kinds of tags may be included later
-  ],
-  "content": <arbitrary string>,
-  "sig": <64-bytes signature of the sha256 hash of the serialized event data, which is the same as the "id" field>
-}
-```
-
 The `merchant` event that publishes and updates product lists
 
 The below json goes in `content` of NIP-01.
