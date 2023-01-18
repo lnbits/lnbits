@@ -21,10 +21,11 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.crud import get_installed_extensions
+from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
-from .commands import migrate_databases
+from .commands import db_versions, migrate_databases
 from .core import core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
@@ -132,9 +133,11 @@ async def check_installed_extensions(app: FastAPI):
 
     for ext in installed_extensions:
         try:
-            is_installed = check_installed_extension(ext)
-            if not is_installed:
+            installed = check_installed_extension(ext)
+            if not installed:
                 register_ext_routes(app, Extension(ext.id, True, False))
+                current_version = (await db_versions()).get(ext.id, 0)
+                await migrate_extension_database(ext, current_version)
         except:
             logger.warning(f"Failed to re-install extension: {ext.id}")
 
@@ -204,9 +207,6 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
-            # check extensions after restart
-            await check_installed_extensions(app)
-
             # wait till migration is done
             await migrate_databases()
 
@@ -220,6 +220,9 @@ def register_startup(app: FastAPI):
 
             # initialize funding source
             await check_funding_source()
+
+            # check extensions after restart
+            await check_installed_extensions(app)
 
         except Exception as e:
             logger.error(str(e))

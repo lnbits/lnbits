@@ -81,6 +81,12 @@ async def migrate_databases():
     logger.info("✔️ All migrations done.")
 
 
+async def db_versions():
+    async with core_db.connect() as conn:
+        current_versions = await get_dbversions(conn)
+        return current_versions
+
+
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions()
