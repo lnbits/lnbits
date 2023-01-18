@@ -16,8 +16,8 @@ A `merchant` and `customer` both have a NOSTR key-pair that are used to sign not
 * `merchant` - seller of products with NOSTR key-pair
 * `customer` - buyer of products with NOSTR key-pair
 * `product` - item for sale by the `merchant`
-* `stall` - list of products controlled by `merchant`
-* `marketplace` - clientside software for searching `stalls` an buying `products`
+* `stall` - list of products controlled by `merchant` (a `merchant` can have multiple stalls)
+* `marketplace` - clientside software for searching `stalls` and purchasing `products`
 
 ## Diagon Alley Clients
 
@@ -89,6 +89,7 @@ Data from newer events should replace data from older events.
                     "price": <Int, cost per unit>,
                     "images": [
                         {
+                            "id": <String, UUID derived from product ID>,
                             "name": <String, image name>,
                             "link": <String, URL or BASE64>
                         }
@@ -104,10 +105,12 @@ Data from newer events should replace data from older events.
                     "price": <Int, cost per unit>,
                     "images": [
                         {
+                            "id": <String, UUID derived from product ID>,
                             "name": <String, image name>,
                             "link": <String, URL or BASE64>
                         },
                         {
+                            "id": <String, UUID derived from product ID>,
                             "name": <String, image name>,
                             "link": <String, URL or BASE64>
                         }
@@ -132,6 +135,7 @@ Data from newer events should replace data from older events.
                     "price": <Int, cost per unit>,
                     "images": [
                         {
+                            "id": <String, UUID derived from product ID>,
                             "name": <String, image name>,
                             "link": <String, URL or BASE64>
                         }
@@ -144,6 +148,33 @@ Data from newer events should replace data from older events.
 }
 
 ```
+
+As all elements are optional, an `action` `update` to a `product` `image`, may look as simple as:
+
+```
+{
+    "stalls": [
+        {
+            "id": <UUID derived from merchant public-key>,
+            "products": [
+                {
+                    "id": <String, UUID derived from stall ID>,
+                    "images": [
+                        {
+                            "id": <String, UUID derived from product ID>,
+                            "name": <String, image name>,
+                            "link": <String, URL or BASE64>
+                        }
+                    ],
+                    "action": <String, optional action>,
+                },
+            ]
+        }
+    ]
+}
+
+```
+
 
 ## Checkout events
 
@@ -241,3 +272,10 @@ The below json goes in `content` of NIP-04.
 ## Customer support events
 
 Customer support is handle over whatever communication method was specified. If communicationg via nostr, NIP-04 is used https://github.com/nostr-protocol/nips/blob/master/04.md.
+
+## Additional
+
+Standard data models can be found here <a href="models.json">here</a>
+
+
+
