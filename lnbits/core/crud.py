@@ -88,7 +88,7 @@ async def add_installed_extension(
         """
         INSERT INTO installed_extensions (id, version, name, short_description, icon, icon_url, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (id) DO
-        UPDATE SET (version, name, short_description, icon, icon_url, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
+        UPDATE SET (version, name, active, short_description, icon, icon_url, stars, meta) = (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ext.id,
@@ -101,6 +101,7 @@ async def add_installed_extension(
             json.dumps(meta),
             version,
             ext.name,
+            False,
             ext.short_description,
             ext.icon,
             ext.icon_url,
