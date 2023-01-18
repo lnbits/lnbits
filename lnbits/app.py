@@ -160,16 +160,14 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(core_app)
     app.include_router(core_html_routes)
 
-    @app.on_event("startup")
-    def register_all_ext_routes():
-        for ext in get_valid_extensions():
-            try:
-                register_ext_routes(app, ext)
-            except Exception as e:
-                logger.error(str(e))
-                raise ImportError(
-                    f"Please make sure that the extension `{ext.code}` follows conventions."
-                )
+    for ext in get_valid_extensions():
+        try:
+            register_ext_routes(app, ext)
+        except Exception as e:
+            logger.error(str(e))
+            raise ImportError(
+                f"Please make sure that the extension `{ext.code}` follows conventions."
+            )
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
