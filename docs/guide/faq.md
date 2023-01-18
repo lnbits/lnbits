@@ -51,7 +51,7 @@ FAQ - Frequently Asked Questions on LNbits
   </ul>
     </p></ul>
 </details>
-</ui>
+</ui></ul>
 
 
 
@@ -86,7 +86,7 @@ FAQ - Frequently Asked Questions on LNbits
       </details> 
     </p></ul>
     
-  </details>
+  </details></ul>
  
  
  
