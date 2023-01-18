@@ -291,6 +291,8 @@
       },
       uninstallExtension: async function () {
         const extension = this.selectedExtension
+        this.showUpgradeDialog = false
+        this.showUninstallDialog = false
         try {
           extension.inProgress = true
           await LNbits.api.request(
@@ -328,28 +330,32 @@
         this.selectedExtension = extension
         this.showUpgradeDialog = true
         this.selectedExtensionRepos = null
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
-          this.g.user.wallets[0].adminkey
-        )
-
-        this.selectedExtensionRepos = data.reduce((repos, release) => {
-          repos[release.source_repo] = repos[release.source_repo] || {
-            releases: [],
-            isInstalled: false
-          }
-          release.isInstalled = this.isInstalledVersion(
-            this.selectedExtension,
-            release
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
           )
-          if (release.isInstalled) {
-            repos[release.source_repo].isInstalled = true
-          }
-          repos[release.source_repo].releases.push(release)
-          return repos
-        }, {})
-        console.log('### repos', this.selectedExtensionRepos)
+
+          this.selectedExtensionRepos = data.reduce((repos, release) => {
+            repos[release.source_repo] = repos[release.source_repo] || {
+              releases: [],
+              isInstalled: false
+            }
+            release.isInstalled = this.isInstalledVersion(
+              this.selectedExtension,
+              release
+            )
+            if (release.isInstalled) {
+              repos[release.source_repo].isInstalled = true
+            }
+            repos[release.source_repo].releases.push(release)
+            return repos
+          }, {})
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+          extension.inProgress = false
+        }
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {
