@@ -135,9 +135,10 @@ async def check_installed_extensions(app: FastAPI):
         try:
             installed = check_installed_extension(ext)
             if not installed:
-                register_ext_routes(app, Extension(ext.id, True, False))
+                extension = Extension.from_installable_ext(ext)
+                register_ext_routes(app, extension)
                 current_version = (await db_versions()).get(ext.id, 0)
-                await migrate_extension_database(ext, current_version)
+                await migrate_extension_database(extension, current_version)
         except:
             logger.warning(f"Failed to re-install extension: {ext.id}")
 
