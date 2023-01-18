@@ -3,7 +3,8 @@ new Vue({
   data: function () {
     return {
       searchTerm: '',
-      filteredExtensions: null
+      filteredExtensions: null,
+      maxStars: 5
     }
   },
   mounted() {
