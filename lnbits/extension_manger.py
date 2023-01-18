@@ -293,12 +293,10 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     async def get_installable_extensions(
-        cls, installed_extensions: List["InstallableExtension"] = []
+        cls,
     ) -> List["InstallableExtension"]:
-        extension_list: List[InstallableExtension] = (
-            installed_extensions if installed_extensions else []
-        )
-        extension_id_list: List[str] = [e.id for e in extension_list]
+        extension_list: List[InstallableExtension] = []
+        extension_id_list: List[str] = []
 
         for url in settings.lnbits_extensions_manifests:
             try:
