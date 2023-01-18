@@ -120,39 +120,40 @@ async def check_funding_source() -> None:
     )
 
 
-async def check_installed_extensions():
+async def check_installed_extensions(app: FastAPI):
     """
     Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
     One reason might be a docker-container that was re-created.
     The 'data' directory (where the '.zip' files live) is expected to persist state.
+    Zips that are missing will be re-downloaded.
     """
-    extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
-    extensions_dir = os.path.join("lnbits", "extensions")
-    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
 
     installed_extensions = await get_installed_extensions()
 
     for ext in installed_extensions:
-        ext_zip_path = os.path.join(extensions_data_dir, f"{ext.id}.zip")
-        if ext_zip_path in zip_files:
-            continue
-        if Path(os.path.join(extensions_dir, ext.id)).is_dir():
-            continue  # todo: pre-installed that require upgrade
         try:
-            ext.download_archive()
-            ext.extract_archive()
+            is_installed = check_installed_extension(ext)
+            if not is_installed:
+                register_ext_routes(app, Extension(ext.id, True, False))
         except:
-            # error logged already
-            pass
-
-    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
-    for zip_file in zip_files:
-        ext_name = Path(zip_file).stem
-        if not Path(os.path.join(extensions_dir, ext_name)).is_dir():
-            with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(extensions_dir)
+            logger.warning(f"Failed to re-install extension: {ext.id}")
 
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
+
+
+def check_installed_extension(ext: InstallableExtension) -> bool:
+    extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+    extensions_dir = os.path.join("lnbits", "extensions")
+    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
+
+    if Path(os.path.join(extensions_dir, ext.id)).is_dir():
+        return True  # todo: pre-installed that require upgrade
+    if ext.zip_path in zip_files:
+        ext.extract_archive()
+    else:
+        ext.download_archive()
+        ext.extract_archive()
+    return False
 
 
 def register_routes(app: FastAPI) -> None:
@@ -204,7 +205,7 @@ def register_startup(app: FastAPI):
 
         try:
             # check extensions after restart
-            await check_installed_extensions()
+            await check_installed_extensions(app)
 
             # wait till migration is done
             await migrate_databases()
