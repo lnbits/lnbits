@@ -3,6 +3,7 @@ import glob
 import importlib
 import logging
 import os
+import shutil
 import signal
 import sys
 import traceback
@@ -19,6 +20,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
+from lnbits.core.crud import get_installed_extensions
 from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
@@ -28,6 +30,7 @@ from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manger import (
     Extension,
+    InstallableExtension,
     InstalledExtensionMiddleware,
     get_valid_extensions,
 )
@@ -124,13 +127,32 @@ async def check_installed_extensions():
     The 'data' directory (where the '.zip' files live) is expected to persist state.
     """
     extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+    extensions_dir = os.path.join("lnbits", "extensions")
+    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
+
+    installed_extensions = await get_installed_extensions()
+
+    for ext in installed_extensions:
+        ext_zip_path = os.path.join(extensions_data_dir, f"{ext.id}.zip")
+        if ext_zip_path in zip_files:
+            continue
+        if Path(os.path.join(extensions_dir, ext.id)).is_dir():
+            continue  # todo: pre-installed that require upgrade
+        try:
+            ext.download_archive()
+            ext.extract_archive()
+        except:
+            # error logged already
+            pass
 
     zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
     for zip_file in zip_files:
         ext_name = Path(zip_file).stem
-        if not Path(f"lnbits/extensions/{ext_name}").is_dir():
+        if not Path(os.path.join(extensions_dir, ext_name)).is_dir():
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall("lnbits/extensions/")
+                zip_ref.extractall(extensions_dir)
+
+    shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
 
 
 def register_routes(app: FastAPI) -> None:
@@ -138,14 +160,16 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(core_app)
     app.include_router(core_html_routes)
 
-    for ext in get_valid_extensions():
-        try:
-            register_ext_routes(app, ext)
-        except Exception as e:
-            logger.error(str(e))
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` follows conventions."
-            )
+    @app.on_event("startup")
+    def register_all_ext_routes():
+        for ext in get_valid_extensions():
+            try:
+                register_ext_routes(app, ext)
+            except Exception as e:
+                logger.error(str(e))
+                raise ImportError(
+                    f"Please make sure that the extension `{ext.code}` follows conventions."
+                )
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
@@ -181,22 +205,23 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
-            # 1. wait till migration is done
+            # check extensions after restart
+            await check_installed_extensions()
+
+            # wait till migration is done
             await migrate_databases()
 
-            # 2. setup admin settings
+            # setup admin settings
             await check_admin_settings()
 
             log_server_info()
 
-            # 3. initialize WALLET
+            # initialize WALLET
             set_wallet_class()
 
-            # 4. initialize funding source
+            # initialize funding source
             await check_funding_source()
 
-            # 5. check extensions in `data` directory
-            await check_installed_extensions()
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
