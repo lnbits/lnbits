@@ -18,16 +18,16 @@ from ..tasks import api_invoice_listeners
 @core_app.get("/.well-known/lnurlp/{username}")
 async def lnaddress(username: str, request: Request):
     if "lnaddress" not in settings.lnbits_disabled_extensions:
-        from lnbits.extensions.lnaddress.lnurl import lnurl_response # type: ignore
+        from lnbits.extensions.lnaddress.lnurl import lnurl_response  # type: ignore
 
         domain = urlparse(str(request.url)).netloc
         return await lnurl_response(username, domain, request)
 
     elif "lnaddy" not in settings.lnbits_disabled_extensions:
-        from lnbits.extensions.lnaddy.lnurl import lnurl_response
+        from lnbits.extensions.lnaddy.lnurl import lnaddy_lnurl_response  # type: ignore
 
         domain = urlparse(str(request.url)).netloc
-        return await lnurl_response(username, domain, request)
+        return await lnaddy_lnurl_response(username, domain, request)
 
 
 @core_app.get("/public/v1/payment/{payment_hash}")
@@ -46,7 +46,7 @@ async def api_public_payment_longpolling(payment_hash):
         expiration = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration < datetime.datetime.now():
             return {"status": "expired"}
-    except:
+    except HTTPException:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid bolt11 invoice."
         )

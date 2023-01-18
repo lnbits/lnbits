@@ -23,9 +23,8 @@ from .crud import get_address_data, increment_pay_link
 
 
 # for .well-known/lnurlp
-async def lnurl_response(username: str, domain: str, request: Request):
+async def lnaddy_lnurl_response(username: str, domain: str, request: Request):
     address_data = await get_address_data(username)
-    # print("well-known lnurlp")
 
     if not address_data:
         return {"status": "ERROR", "reason": "Address not found."}
@@ -123,7 +122,7 @@ async def api_lnurl_callback(request: Request, link_id):
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo=link.description,
-        # unclear why this is broken
+        # NEED TO FIX
         # unhashed_description=link.lnurlpay_metadata.encode("utf-8"),
         unhashed_description="lightning address payment".encode("utf-8"),
         extra={
