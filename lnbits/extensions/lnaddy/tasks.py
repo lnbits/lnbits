@@ -45,6 +45,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                     "timeout": 40,
                 }
                 if pay_link.webhook_body:
+                    # trunk-ignore(mypy/index)
                     kwargs["json"]["body"] = json.loads(pay_link.webhook_body)
                 if pay_link.webhook_headers:
                     kwargs["headers"] = json.loads(pay_link.webhook_headers)

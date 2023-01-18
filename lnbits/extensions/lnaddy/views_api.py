@@ -34,6 +34,7 @@ async def api_links(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
+        # trunk-ignore(mypy/union-attr)
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
@@ -82,7 +83,7 @@ async def api_link_create_or_update(
             detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST
         )
 
-    if data.currency == None and (
+    if data.currency is None and (
         round(data.min) != data.min or round(data.max) != data.max or data.min < 1
     ):
         raise HTTPException(
@@ -135,6 +136,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
+    # trunk-ignore(mypy/union-attr)
     return {**link.dict(), "lnurl": link.lnurl(request)}
 
 

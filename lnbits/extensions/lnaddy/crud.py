@@ -27,7 +27,7 @@ async def check_lnaddress_update(lnaddress: str, id: str) -> bool:
 async def check_lnaddress_exists(lnaddress: str) -> bool:
     # check if lnaddress name exists in the database when creating a new entry
     row = await db.fetchall(
-        "SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress)
+        "SELECT lnaddress FROM lnaddy.pay_links WHERE lnaddress = ?", (lnaddress,)
     )
     logger.info("number of rows from lnaddress search")
     if row:
@@ -132,7 +132,7 @@ async def update_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
             value = field[1]
             logger.info(value)
             await check_lnaddress_format(value)
-            await check_lnaddress_update(value, link_id)
+            await check_lnaddress_update(value, str(link_id))
 
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 

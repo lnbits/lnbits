@@ -1,10 +1,12 @@
-import hashlib
+# import hashlib
+# from fastapi.params import Query
+# import math
+# from starlette.requests import Request
+
 import json
-import math
 from http import HTTPStatus
 
 from fastapi import Request
-from fastapi.params import Query
 from lnurl import (  # type: ignore
     LnurlErrorResponse,
     LnurlPayActionResponse,
@@ -12,7 +14,6 @@ from lnurl import (  # type: ignore
 )
 from loguru import logger
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis

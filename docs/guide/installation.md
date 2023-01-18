@@ -49,7 +49,7 @@ poetry run lnbits
 ```
 #### Updating the server
 
-```
+```sh
 cd lnbits
 # Stop LNbits with `ctrl + x`
 git pull
@@ -77,6 +77,7 @@ mkdir data
 
 ```sh
 # .env variables are currently passed when running
+<!-- trunk-ignore(gitleaks/generic-api-key) -->
 LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
 ```
 
