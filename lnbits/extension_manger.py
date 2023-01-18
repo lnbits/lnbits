@@ -134,7 +134,7 @@ class ExtensionRelease(BaseModel):
             if resp.status_code != 200:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Cannot fetch extension releases: {releases_url}",
+                    detail=f"Cannot fetch extension releases: {releases_url}: {resp.text}",
                 )
 
             releases = resp.json()
