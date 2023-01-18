@@ -142,10 +142,12 @@
         <q-card v-for="repo of Object.keys(selectedExtensionRepos)" :key="repo">
           <q-card-section>
             <h6 class="text-subtitle1 q-my-none">
+              Repository
+            </h6>
               <q-badge color="primary" rounded
                 ><small v-text="repo"></small
               ></q-badge>
-            </h6>
+            
           </q-card-section>
           <q-card-section class="q-pa-none">
             <q-separator></q-separator>
