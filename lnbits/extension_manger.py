@@ -354,6 +354,7 @@ class InstallableExtension(BaseModel):
                                     source_repo=url,
                                     description=e["shortDescription"],
                                     details_html=e.get("details"),
+                                    html_url=e.get("htmlUrl"),
                                 )
                             ]
 

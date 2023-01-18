@@ -167,13 +167,23 @@
                       color="primary unelevated mt-lg pt-lg"
                       >Install</q-btn
                     >
+                    <a
+                    v-if="release.html_url"
+                    class="text-secondary float-right"
+                    :href="release.html_url"
+                    target="_blank"
+                    style="color: inherit"
+                    >Release Notes</a
+                  >
                   </q-card-section>
-                  <q-separator></q-separator>
+                 
                   <div
                     v-if="release.details_html"
                     v-html="release.details_html"
-                  ></div> </q-card
-              ></q-expansion-item>
+                  ></div>
+                  <q-separator></q-separator>
+                </q-card></q-expansion-item
+              >
             </q-list>
           </q-card-section>
         </q-card>
