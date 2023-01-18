@@ -51,14 +51,32 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
     "name": <String, name of merchant>,
     "description": <String, description of merchant>,
     "timestamp": <String, unix timestamp>,
+    "currency": <Str, currency used>,
     "action": <String, optional action>,
+    "shipping": [
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zones": <String, CSV of countries/zones>,
+            "price": <int, cost>,
+        },
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zones": <String, CSV of countries/zones>,
+            "price": <int, cost>,
+        },
+        {
+            "id": <String, UUID derived from stall ID>,
+            "zones": <String, CSV of countries/zones>,
+            "price": <int, cost>,
+        }
+    ],
     "stalls": [
         {
             "id": <UUID derived from merchant public-key>,
             "name": <String, stall name>,
             "description": <String, stall description>,
             "categories": <String, CSV of voluntary categories>,
-            "currency": <Str, currency used>,
+            "shipping": <String, CSV of shipping ids>,
             "action": <String, optional action>,
             "products": [
                 {
@@ -86,7 +104,7 @@ ALL fields are optional apart from the `timestamp`. Data from newer events shoul
             "name": <String, stall name>,
             "description": <String, stall description>,
             "categories": <String, CSV of voluntary categories>,
-            "currency": <Str, currency used>,
+            "shipping": <String, CSV of shipping ids>,
             "action": <String, optional action>,
             "products": [
                 {
