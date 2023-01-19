@@ -63,5 +63,18 @@ It goes under the `extensions` object and it is of the form:
 | criticalNotification | string        | optional  | Reserved for urgent notifications. The admin user will receive a message each time it visits the `Install` page. One example is if the extension has a critical bug. |
 
 </details>
+
+This mode has the advantage of strictly specifying what releases of an extension can be installed.
     
 ### GitHub Repository
+It goes under the `repos` object and it is of the form:
+
+```json
+{
+    "id": "withdraw",
+    "organisation": "lnbits",
+    "repository": "withdraw-extension"
+}
+```
+
+
