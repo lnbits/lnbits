@@ -50,7 +50,7 @@ It goes under the `extensions` object and it is of the form:
 
 | Field                | Type          |           | Description                                                                                                                                                          |
 |----------------------|---------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id                   | string        | mandatory | The ID of the extension. Must be unique for each extensions. It is also as path in the URL.                                                                          |
+| id                   | string        | mandatory | The ID of the extension. Must be unique for each extensions. It is also used as the path in the URL.                                                                          |
 | name                 | string        | mandatory | User friendly name for the extension. It will be displayed on the installation page.                                                                                 |
 | version              | string        | mandatory | Version of this release. [Semantic versoning](https://semver.org/) is recommended.                                                                                   |
 | shortDescription     | string        | optional  | A few words about the extension. It will be displayed on the installation page.                                                                                      |
@@ -77,4 +77,13 @@ It goes under the `repos` object and it is of the form:
 }
 ```
 
+| Field        | Type   | Description                                           |
+|--------------|--------|-------------------------------------------------------|
+| id           | string | The ID of the extension. Must be unique for each extensions. It is also used as the path in the URL.                               |
+| organisation | string | The GitHub organisation (eg: `lnbits`)                |
+| repository   | string | The GitHub repository name (eg: `withdraw-extension`) |
 
+<details><summary>GitHub Releases Page</summary>
+![image](https://user-images.githubusercontent.com/2951406/213508934-11de5ae5-2045-471c-854b-94b6acbf4434.png)
+
+</details>
