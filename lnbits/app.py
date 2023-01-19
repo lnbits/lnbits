@@ -126,21 +126,17 @@ async def check_installed_extensions(app: FastAPI):
     The 'data' directory (where the '.zip' files live) is expected to persist state.
     Zips that are missing will be re-downloaded.
     """
-
+    shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
     installed_extensions = await get_installed_extensions()
 
     for ext in installed_extensions:
         try:
             installed = check_installed_extension(ext)
             if not installed:
-                extension = Extension.from_installable_ext(ext)
-                register_ext_routes(app, extension)
-                current_version = (await db_versions()).get(ext.id, 0)
-                await migrate_extension_database(extension, current_version)
+                await restore_installed_extension(app, ext)
+                logger.warning(f"✔️ Successfully re-installed extension: {ext.id}")
         except:
             logger.warning(f"Failed to re-install extension: {ext.id}")
-
-    shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
 
 
 def check_installed_extension(ext: InstallableExtension) -> bool:
@@ -156,6 +152,19 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
         ext.download_archive()
         ext.extract_archive()
     return False
+
+
+async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
+    extension = Extension.from_installable_ext(ext)
+    register_ext_routes(app, extension)
+
+    current_version = (await db_versions()).get(ext.id, 0)
+    await migrate_extension_database(extension, current_version)
+
+    # mount routes for the new version
+    core_app_extra.register_new_ext_routes(extension)
+    if ext.module_installed:
+        ext.nofiy_upgrade()
 
 
 def register_routes(app: FastAPI) -> None:
