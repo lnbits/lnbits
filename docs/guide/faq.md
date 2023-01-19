@@ -117,6 +117,10 @@ allow_self_payment=1
   <p>text coming here...</p>
 </details>
 
+<details>Swapping ⚡️LN btc to a btc hardware/wallet</summary>
+  <p>Bolz, Deezy text coming here...</p>
+</details>
+
 <details><summary>Voucher</summary>
   <p> <ul><details><summary>Printed voucher links or tippingcards</summary>
   <p>To generate voucher you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
