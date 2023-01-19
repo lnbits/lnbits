@@ -6,6 +6,7 @@ import sys
 import urllib.request
 import zipfile
 from http import HTTPStatus
+from pathlib import Path
 from typing import Any, List, NamedTuple, Optional
 
 import httpx
@@ -108,7 +109,6 @@ class ExtensionRelease(BaseModel):
     archive: str
     source_repo: str
     hash: Optional[str]
-    published_at: Optional[str]
     html_url: Optional[str]
     description: Optional[str]
     details_html: Optional[str] = None
@@ -122,7 +122,6 @@ class ExtensionRelease(BaseModel):
             archive=r["zipball_url"],
             source_repo=source_repo,
             # description=r["body"], # bad for JSON
-            published_at=r["published_at"],
             html_url=r["html_url"],
         )
 
@@ -184,6 +183,14 @@ class InstallableExtension(BaseModel):
     def module_installed(self) -> bool:
         return self.module_name in sys.modules
 
+    @property
+    def has_installed_version(self) -> bool:
+        if not Path(self.ext_dir).is_dir():
+            return False
+        with open(os.path.join(self.ext_dir, "config.json"), "r") as json_file:
+            config_json = json.load(json_file)
+            return config_json.get("is_installed") == True
+
     def download_archive(self):
         ext_zip_file = self.zip_path
         if os.path.isfile(ext_zip_file):
@@ -217,6 +224,17 @@ class InstallableExtension(BaseModel):
             os.path.join(self.ext_upgrade_dir, generated_dir_name),
             os.path.join(self.ext_upgrade_dir, self.id),
         )
+
+        # Pre-packed extensions can be upgraded
+        # Mark the extension as installed so we know it is not the pre-packed version
+        with open(
+            os.path.join(self.ext_upgrade_dir, self.id, "config.json"), "r+"
+        ) as json_file:
+            config_json = json.load(json_file)
+            config_json["is_installed"] = True
+            json_file.seek(0)
+            json.dump(config_json, json_file)
+            json_file.truncate()
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(

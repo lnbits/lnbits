@@ -7,9 +7,7 @@ import shutil
 import signal
 import sys
 import traceback
-import zipfile
 from http import HTTPStatus
-from pathlib import Path
 from typing import Callable
 
 from fastapi import FastAPI, Request
@@ -146,12 +144,12 @@ async def check_installed_extensions(app: FastAPI):
 
 
 def check_installed_extension(ext: InstallableExtension) -> bool:
-    extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
-    extensions_dir = os.path.join("lnbits", "extensions")
-    zip_files = glob.glob(f"{extensions_data_dir}/*.zip")
+    zip_files = glob.glob(
+        os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
+    )
 
-    if Path(os.path.join(extensions_dir, ext.id)).is_dir():
-        return True  # todo: pre-installed that require upgrade
+    if ext.has_installed_version:
+        return True
     if ext.zip_path in zip_files:
         ext.extract_archive()
     else:

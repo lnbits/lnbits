@@ -5,7 +5,6 @@ import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
