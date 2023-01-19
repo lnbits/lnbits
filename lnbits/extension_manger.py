@@ -239,7 +239,6 @@ class InstallableExtension(BaseModel):
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
             self.icon = config_json.get("icon")
-            self.icon_url = config_json.get("tile")
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
