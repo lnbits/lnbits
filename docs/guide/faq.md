@@ -8,7 +8,7 @@ nav_order: 5
 # FAQ - Frequently Asked Questions
 
 ## Install options
-<p>LNbits is not a node management software but a lightning only accounting system on top of a funding source.</p>
+<p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
 
 <details><summary>Funding my LNbits wallet from my node doesnt work.</summary>
 <p>You will need to edit the lnd.conf file for this. The parameter to be included are:</p>
@@ -20,12 +20,12 @@ allow_self_payment=1
 
 </details>
   
-<details><summary>Funding source only available via tor (Umbrel, Citadel, ..)</summary>
-  <p>comming text...</p>
+<details><summary>Funding source only available via tor (e.g. Umbrel)</summary>
+  <p>If you want your setup to stay behind tor then only apps, pos and wallets that have tor activated can communicate with your wallets. Most likely you will have trouble when people try to redeem your voucher through onion or when importing your lnbits wallets into a wallet-app that doesnt support tor. If you plan to let LNbits wallets interact with plain internet shops and services you should consider <a href="https://github.com/TrezorHannes/Dual-LND-Hybrid-VPS">setting up hybrid mode for your node</a>.</p>
 </details>
     
 <details><summary>Funding source is in a cloud</summary>
-  <p>Voltage: lnd.conf cannot be edited atm</p>
+  <p>This means that you might not have access to some files which would allow certain administrative functions. E.g. on <a href="https://voltage.cloud/">Voltage</a> lnd.conf cannot be edited. Payments from your node to LNbits wallets can therefore not be configurated in this case atm so you will need to take an extra wallet to send from node->wallet x->LNbits wallet (only) for the initial funding of the wallet.</p>
 </details>
     
 <details><summary>LNbits via clearnet domain</summary>
@@ -37,7 +37,7 @@ allow_self_payment=1
 </details>
     
 <details><summary>Advanced setup options</summary>
-  <p>more text coming here...</p>
+  <p>more text coming soon...</p>
 </details>
 
 <details><summary>Can I prevent others from generating wallets on my node?</summary>
@@ -54,33 +54,34 @@ allow_self_payment=1
   <p>Bad news, this is a routing error that might have quite a lot of reasons. Lets try a few of the most possible problems and their solutions.</p>
   <p>A - LNbits is running behind Tor only, you can't open it on a public domain like lnbits.yourdomain.com:</p>
   <ul>
-    <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be visible over internet, only in your LAN.</li>
-    <li>Open your LN wallet app that you use to scan that QR, using Tor connection. Otherwise your app cannot read that .onion URI. If the app it doesn't have integrated Tor, you can use Orbot (Android).</li>
+    <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be reachable via internet, only from within your home-LAN.</li>
+    <li>Open your LN wallet app that you used to scan that QR and this time by using tor (see wallet app settings). If the app doesn't offer tor, you can use Orbot (Android) instead. See as well section Installation->Clearnet</li>
   </ul>
-  <p>B - If you run your LNbits over Tor and want to offer public LN services, you should consider to move it to a clearnet (domain/IP) access, with https SSL certificate.</p>
+  <p>B - If you run LNbits via Tor and want to offer public LN services consider to partially open it to a clearnet (domain/IP) access through a https SSL certificate.</p>
   <ul>
-    <li>The easiest way (2 min setup) is to use Caddy. Just follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">here</a> and your LNbits will be accesible through clearnet https.
-        You must have a domain and be able to configure in your DNS records a subdomain for your LNbits instance (eg. lnbits.mydomain.com).
-        Also you need access to your internet router to open the port 443 and forward it your LNbits IP machine in your LAN.</li>
-    <li>You can also use apache option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
-    <li>If you LNbits run in a bundle node (Umbrel, Citadel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to make your Tor only LNbits into a clearnet LNbits.
+    <li>The easiest way is to use caddy. Follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">this LNbits caddy installation instruction</a> and your LNbits will be accesible through https clearnet.
+        You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance (eg. lnbits.mydomain.com). You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80).</li>
+    <li>You can also follow the apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
+    <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits.
   </ul>
 </details>
 
-<details><summary>Wallet-URL deleted, are funds safu ?</summary>
-  <p>text coming here...</p>
-</details>
-
-<details><summary>Wallet on demo server legend.lnbits</summary>
-  <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.</p>
-</details>     
-
-<details><summary>Wallet on your own funding source/node</summary>
-  <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits wallet-IDs in your LNbits database.</p>
-</details> 
+  <details><summary>Wallet-URL deleted, are funds safu ?</summary>
+    <ul>
+        <p>
+            <details><summary>Wallet on demo server legend.lnbits</summary>
+                <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.
+            </details></p>
+        <p>
+            <details><summary>Wallet on your own funding source/node</summary>
+                <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits wallet-IDs in your LNbits database.</p>
+                </details></p>
+        </p>
+    </ul>
+    </details></ul>
 
 ## Building hardware tools
-  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for several use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building with LNbits or if you need help with a project - we got you!</p>
+  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
   <p>text coming here...</p>
@@ -107,6 +108,7 @@ allow_self_payment=1
   <li><a href="https://t.me/makerbits'">makerbits support Group</a></li>
   <li><a href="ereignishorizont.xyz/">Building Instructions by Axel</a></li>
   <li><a href="https://shop.lnbits.com/">LNbits shop</a></li>
+  <li><a href="https://github.com/cryptoteun/awesome-lnbits">Collection of awesome LNbits Projects</a></li>
   </ul>
 </details>
 
@@ -116,49 +118,34 @@ allow_self_payment=1
 </details>
 
 <details><summary>Voucher</summary>
-  <p>text coming here...</p>
+  <p> <ul><details><summary>Printed voucher links or tippingcards</summary>
+  <p>To generate voucher you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
+ <ul>
+LNURLw are strings that represent a faucet-link to a wallet. By scanning it, everyone will be able to withdraw sats from it. A LNURLw can be either a QR that leads to a static link or to one that responds with new invoices every time it is scanned (click "no assmilking"). You can create these QR by adding the LNURLw extension and generate the vouchertype you need. <ul>
+    <li>Voucher can as well be printed directly from LNbits. After you created it, click the "eye" next to the link. By pressing the printer-button you print the plain QR but you could as well integrate it into a nice tippincard or voucher template by choosing "Advanced voucher" -> "Use custom voucher design". We collected some designs as well as templates to make your own ones under <a href="https://youtu.be/c5EV9UNgVqk">this LNbits voucher video-guide.</a>. You will be able to create and print as much voucher as you like with it. Happy orangepilling!</li>
+  <li> Note that your LNbits needs to be reachable in clearnet to offer vouchers to others. </li>
+   </details></p></ul>
 </details>
 
 <details><summary>NFC Cards, Badges, Rings etc.</summary>
-  <p>text coming here...</p>
-</details>
-
-<details><summary>Printed voucher links or tippingcards</summary>
-<p>To write cards you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
-<p>
-   LNURLw are strings that represent a faucet-link to a wallet. By scanning it, everyone will be able to withdraw sats from it. 
-   A LNURLw can be either a QR that leads to a static link or to one that responds with new invoices every time it is scanned (click "no assmilking"). 
-   You can create these QR by adding the LNURLw extension and generate the vouchertype you need.
- </p>
- <p>Voucher can as well be printed directly from LNbits. After you created it, click the "eye" next to the link. 
-    By pressing the printer-button you print the plain QR but you could as well integrate it into a nice tippincard or voucher template 
-    by choosing "Advanced voucher" -> "Use custom voucher design". We collected some designs as well as templates to make your own ones under
-    <href="https://youtu.be/c5EV9UNgVqk">this LNbits voucher video-guide.</a>. 
-    You will be able to create and print as much voucher as you like with it. Happy orangepilling!</p>
-  <p>Note that your LNbits needs to be reachable in clearnet to offer vouchers to others.</p>
-</details>
-  
-<details><summary>Creating a NFC card for a wallet</summary>
-  <p>To write cards you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
-  <p>On top to just printing voucher for your wallet you can also <a href="https://youtu.be/CQz1ILcK0PY">write these LNURLw to a simple NFC card fromon NTAG216</a>
-     by not clicking the printer but the NFC symbol on android/chrome and tapping your card against the device. 
-     This will enable the cardholder to directly spend those sats at a tpos, pos or wallet-app another one uses that can handle lightning payments via NFC.</p>
-  <p>If you run an event and want to hand out bigger amounts of cards with simple voucher links on consider this <a hrel="nfc-brrr.com/">NFC-brrr batch tool</a> 
-     as well as using NTAG424 cards, so that your customers can rewrite them later with an own wallet and the boltcard service (see ff).</p>
-  <p>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments 
-     and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. 
-     You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.</p>
-</details>
-
-<details><summary><h3>Resources - Use cases<h3></summary>
-  <ul>
-    <li><a href="https://www.plebtag.com">PlebTag, infos, Lasercards, Badges</a></li>
-    <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
-    <li><a href="https://www.lasereyes.cards">Lasercards</a></li>
-    <li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
-    <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
-  </ul>
-</details>
+    <ul><p>
+       
+  <details><summary>Creating a NFC card for a wallet</summary>
+ <p>To generate links for your cards you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
+    <li>On top to just printing voucher for your wallet you can also <a href="https://youtu.be/CQz1ILcK0PY">write these LNURLw to a simple NFC card fromon NTAG216</a> by not clicking the printer but the NFC symbol on android/chrome and tapping your card against the device. This will enable the cardholder to directly spend those sats at a tpos, pos or wallet-app another one uses that can handle lightning payments via NFC. </li>
+    <li>If you run an event and want to hand out bigger amounts of cards with simple voucher links on consider this <a hrel="nfc-brrr.com/">NFC-brrr batch tool</a> as well as using NTAG424 cards, so that your customers can rewrite them later with an own wallet and the boltcard service (see ff)</li>
+<li>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.
+  </details>
+        </p></ul>
+      <p><b>Ressources</b>
+ <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
+<li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
+<li><a href="https://www.lasereyes.cards">Lasercards</a></li>
+<li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
+<li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
+      </ul></ul></p>
+  </details></ul>
+</ui>
    
 ## Developing for LNbits
   <ul>
