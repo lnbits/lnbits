@@ -46,6 +46,8 @@ It goes under the `extensions` object and it is of the form:
         }
 ```
 
+<details><summary>Fields Detailed Description</summary>
+
 | Field                | Type          |           | Description                                                                                                                                                          |
 |----------------------|---------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | id                   | string        | mandatory | The ID of the extension. Must be unique for each extensions. It is also as path in the URL.                                                                          |
@@ -60,5 +62,6 @@ It goes under the `extensions` object and it is of the form:
 | infoNotification     | string        | optional  | Users that have this release installed will see a info message for their extension. For example if the extension support will be terminated soon.                    |
 | criticalNotification | string        | optional  | Reserved for urgent notifications. The admin user will receive a message each time it visits the `Install` page. One example is if the extension has a critical bug. |
 
-
+</details>
+    
 ### GitHub Repository
