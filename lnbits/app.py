@@ -23,7 +23,7 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
-from .commands import db_versions, migrate_databases
+from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
@@ -127,6 +127,7 @@ async def check_installed_extensions(app: FastAPI):
     Zips that are missing will be re-downloaded.
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
+    await load_disabled_extension_list()
     installed_extensions = await get_installed_extensions()
 
     for ext in installed_extensions:
