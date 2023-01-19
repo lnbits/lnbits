@@ -76,26 +76,29 @@ async def extensions_install(
     deactivate: str = Query(None),
 ):
     try:
-        installed_extensions: List[
-            "InstallableExtension"
-        ] = await get_installed_extensions()
-        installed_extensions_ids = [e.id for e in installed_extensions]
+        installed_exts: List["InstallableExtension"] = await get_installed_extensions()
+        installed_exts_ids = [e.id for e in installed_exts]
 
-        extension_list: List[
+        installable_exts: List[
             InstallableExtension
         ] = await InstallableExtension.get_installable_extensions()
-        extension_list += [
-            e for e in installed_extensions if e.id not in installed_extensions_ids
+        installable_exts += [
+            e for e in installed_exts if e.id not in installed_exts_ids
         ]
 
-        for e in extension_list:
-            installed_ext = [ie for ie in installed_extensions if e.id == ie.id]
+        for e in installable_exts:
+            installed_ext = [ie for ie in installed_exts if e.id == ie.id]
             if len(installed_ext) != 0:
                 e.installed_release = installed_ext[0].installed_release
+                # use the installed extension values
+                e.name = installed_ext[0].name
+                e.short_description = installed_ext[0].short_description
+                e.icon = installed_ext[0].icon
+                e.icon_url = installed_ext[0].icon_url
 
     except Exception as ex:
         logger.warning(ex)
-        extension_list = []
+        installable_exts = []
 
     try:
         if deactivate:
@@ -123,7 +126,7 @@ async def extensions_install(
                     "shortDescription": ext.short_description,
                     "stars": ext.stars,
                     "dependencies": ext.dependencies,
-                    "isInstalled": ext.id in installed_extensions_ids,
+                    "isInstalled": ext.id in installed_exts_ids,
                     "isAvailable": ext.id in all_extensions,
                     "isActive": not ext.id in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
@@ -133,7 +136,7 @@ async def extensions_install(
                     if ext.installed_release
                     else None,
                 },
-                extension_list,
+                installable_exts,
             )
         )
 
