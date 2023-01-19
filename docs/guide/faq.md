@@ -203,3 +203,10 @@ allow_self_payment=1
   </ul>
 </details>
 
+<details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
+  <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
+  <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
+  <p>You can use Zeus or Bluewallet as wallet apps for a lndhub account.</p>
+  <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
+</details>
+
