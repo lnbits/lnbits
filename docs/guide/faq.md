@@ -122,34 +122,34 @@ allow_self_payment=1
 </details>
 
 <details><summary>Voucher</summary>
-  <p> <ul><details><summary>Printed voucher links or tippingcards</summary>
+  <p>Printed voucher links or tippingcards</p>
   <p>To generate voucher you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
- <ul>
-LNURLw are strings that represent a faucet-link to a wallet. By scanning it, everyone will be able to withdraw sats from it. A LNURLw can be either a QR that leads to a static link or to one that responds with new invoices every time it is scanned (click "no assmilking"). You can create these QR by adding the LNURLw extension and generate the vouchertype you need. <ul>
+  <p>LNURLw are strings that represent a faucet-link to a wallet. By scanning it, everyone will be able to withdraw sats from it. A LNURLw can be either a QR that leads to a static link or to one that responds with new invoices every time it is scanned (click "no assmilking"). You can create these QR by adding the LNURLw extension and generate the vouchertype you need.</p>
+  <ul>
     <li>Voucher can as well be printed directly from LNbits. After you created it, click the "eye" next to the link. By pressing the printer-button you print the plain QR but you could as well integrate it into a nice tippincard or voucher template by choosing "Advanced voucher" -> "Use custom voucher design". We collected some designs as well as templates to make your own ones under <a href="https://youtu.be/c5EV9UNgVqk">this LNbits voucher video-guide.</a>. You will be able to create and print as much voucher as you like with it. Happy orangepilling!</li>
-  <li> Note that your LNbits needs to be reachable in clearnet to offer vouchers to others. </li>
-   </details></p></ul>
+    <li> Note that your LNbits needs to be reachable in clearnet to offer vouchers to others.</li>
+  </ul>
 </details>
 
 <details><summary>NFC Cards, Badges, Rings etc.</summary>
-    <ul><p>
-       
-  <details><summary>Creating a NFC card for a wallet</summary>
- <p>To generate links for your cards you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
+  <p>Creating a NFC card for a wallet</p>
+  <p>To generate links for your cards you will need LNbits to be available in clearnet. Please consider running your own LNbits instance for this.</p>
+  <ul>
     <li>On top to just printing voucher for your wallet you can also <a href="https://youtu.be/CQz1ILcK0PY">write these LNURLw to a simple NFC card fromon NTAG216</a> by not clicking the printer but the NFC symbol on android/chrome and tapping your card against the device. This will enable the cardholder to directly spend those sats at a tpos, pos or wallet-app another one uses that can handle lightning payments via NFC. </li>
     <li>If you run an event and want to hand out bigger amounts of cards with simple voucher links on consider this <a hrel="nfc-brrr.com/">NFC-brrr batch tool</a> as well as using NTAG424 cards, so that your customers can rewrite them later with an own wallet and the boltcard service (see ff)</li>
-<li>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.
+    <li>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.</li>
+  </ul>
   </details>
-        </p></ul>
-      <p><b>Ressources</b>
- <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
-<li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
-<li><a href="https://www.lasereyes.cards">Lasercards</a></li>
-<li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
-<li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
-      </ul></ul></p>
-  </details></ul>
-</ui>
+
+<details><summary>Resources</summary>
+  <ul>
+     <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
+     <li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
+     <li><a href="https://www.lasereyes.cards">Lasercards</a></li>
+     <li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
+     <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
+  </ul>
+</details>
    
 ## Developing for LNbits
   <ul>
