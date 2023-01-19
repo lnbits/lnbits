@@ -103,7 +103,7 @@ allow_self_payment=1
 <p>text coming here...</p>
 </details>
 
-<details><summary><h3>Resources - Building hardware tools<h3></summary>
+<details><summary><b>Resources - Building hardware tools</b></summary>
   <ul>
   <li><a href="https://t.me/makerbits'">makerbits support Group</a></li>
   <li><a href="ereignishorizont.xyz/">Building Instructions by Axel</a></li>
