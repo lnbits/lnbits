@@ -59,17 +59,16 @@
                 >
                   <q-tooltip>Launch software Gerty</q-tooltip>
                 </q-btn>
+
                 <q-btn
-                  unelevated
+                  flat
                   dense
                   size="xs"
-                  icon="code"
-                  color="pink"
-                  type="a"
-                  :href="props.row.gertyJson"
-                  target="_blank"
+                  @click="openSettingsModal(props.row.gertyJson)"
+                  icon="perm_data_setting"
+                  color="primary"
                 >
-                  <q-tooltip>View Gerty API</q-tooltip>
+                  <q-tooltip> Gerty Settings </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
@@ -130,6 +129,35 @@
     </q-card>
   </div>
 
+  <q-dialog
+    v-model="settingsDialog.show"
+    deviceition="top"
+    @hide="closeFormDialog"
+  >
+    <q-card
+      style="width: 700px; max-width: 80vw"
+      class="q-pa-lg lnbits__dialog-card"
+    >
+      <div class="text-h6 text-center">Gerty API URL</div>
+      <center>
+        <q-btn
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(settingsDialog.apiUrl, 'Link copied to clipboard!')"
+          >{% raw %}{{settingsDialog.apiUrl}}{% endraw %}<q-tooltip>
+            Click to Copy URL
+          </q-tooltip>
+        </q-btn>
+      </center>
+      <div class="text-subtitle2">
+        <small> </small>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="sendFormDataGerty" class="q-gutter-md">
@@ -156,6 +184,13 @@
           v-model="formDialog.data.display_preferences.fun_exchange_market_rate"
           val="xs"
           label="Fiat to BTC price"
+        ></q-checkbox>
+        <q-checkbox
+          class="q-pl-md"
+          size="xs"
+          v-model="formDialog.data.display_preferences.onchain_block_height"
+          val="xs"
+          label="Block Height"
         ></q-checkbox>
         <q-checkbox
           class="q-pl-md"
@@ -232,7 +267,8 @@
           multiple
           hide-dropdown-icon
           new-value-mode="add-unique"
-          label="Urls to watch."
+          max-values="4"
+          label="URLs to watch."
         >
           <q-tooltip>Hit enter to add values</q-tooltip>
         </q-select>
@@ -300,7 +336,11 @@
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.gerty = ['/gerty/', obj.id].join('')
-    obj.gertyJson = ['/gerty/api/v1/gerty/pages/', obj.id, '/0'].join('')
+    obj.gertyJson = [
+      window.location.origin,
+      '/gerty/api/v1/gerty/pages/',
+      obj.id
+    ].join('')
     return obj
   }
 
@@ -514,6 +554,10 @@
             rowsPerPage: 10
           }
         },
+        settingsDialog: {
+          show: false,
+          data: {}
+        },
         formDialog: {
           show: false,
           data: {
@@ -609,6 +653,10 @@
               return mapGerty(obj)
             })
           })
+      },
+      openSettingsModal: function (apiUrl) {
+        this.settingsDialog.apiUrl = apiUrl
+        this.settingsDialog.show = true
       },
       updateformDialog: function (formId) {
         var gerty = _.findWhere(this.gertys, {id: formId})
@@ -762,29 +810,6 @@
             this.formDialog.data.display_preferences.url_checker = false
           }
         }
-      },
-      toggleStates: {
-        handler(toggleStatesValue) {
-          // Switch all the toggles in each section to the relevant state
-          for (const [toggleKey, toggleValue] of Object.entries(
-            toggleStatesValue
-          )) {
-            if (this.oldToggleStates[toggleKey] !== toggleValue) {
-              for (const [dpKey, dpValue] of Object.entries(
-                this.formDialog.data.display_preferences
-              )) {
-                if (dpKey.indexOf(toggleKey) === 0) {
-                  this.formDialog.data.display_preferences[dpKey] = toggleValue
-                }
-              }
-            }
-          }
-          // This is a weird hack we have to use to get VueJS to persist the previous toggle state between
-          // watches. VueJS passes the old and new values by reference so when comparing objects they
-          // will have the same values unless we do this
-          this.oldToggleStates = JSON.parse(JSON.stringify(toggleStatesValue))
-        },
-        deep: true
       }
     }
   })
