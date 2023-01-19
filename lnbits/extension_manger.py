@@ -239,6 +239,10 @@ class InstallableExtension(BaseModel):
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
             self.icon = config_json.get("icon")
+            if self.installed_release and config_json.get("tile"):
+                self.icon_url = icon_to_github_url(
+                    self.installed_release.source_repo, config_json.get("tile")
+                )
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
@@ -281,10 +285,10 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     async def from_repo(
-        cls, ext_id, org, repository
+        cls, ext_id, org, repo_name
     ) -> Optional["InstallableExtension"]:
         try:
-            repo, latest_release, config = await fetch_github_repo_info(org, repository)
+            repo, latest_release, config = await fetch_github_repo_info(org, repo_name)
 
             return InstallableExtension(
                 id=ext_id,
@@ -292,7 +296,7 @@ class InstallableExtension(BaseModel):
                 short_description=config.get("short_description"),
                 version="0",
                 stars=repo["stargazers_count"],
-                icon_url=icon_to_github_url(org, config.get("tile")),
+                icon_url=icon_to_github_url(f"{org}/{repo_name}", config.get("tile")),
                 latest_release=ExtensionRelease.from_github_release(
                     repo["html_url"], latest_release
                 ),
@@ -470,12 +474,12 @@ def file_hash(filename):
     return h.hexdigest()
 
 
-def icon_to_github_url(org: str, path: Optional[str]) -> str:
+def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
     if not path:
         return ""
-    _, repo, *rest = path.split("/")
+    _, _, *rest = path.split("/")
     tail = "/".join(rest)
-    return f"https://github.com/{org}/{repo}/raw/main/{tail}"
+    return f"https://github.com/{source_repo}/raw/main/{tail}"
 
 
 async def fetch_github_repo_info(org: str, repository: str):
