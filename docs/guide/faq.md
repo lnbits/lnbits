@@ -117,7 +117,7 @@ allow_self_payment=1
   <p>text coming here...</p>
 </details>
 
-<details>Swapping ⚡️LN btc to a btc hardware/wallet</summary>
+<details><summary>Swapping ⚡️LN btc to a btc hardware/wallet</summary>
   <p>Bolz, Deezy text coming here...</p>
 </details>
 
