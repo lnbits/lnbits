@@ -5,7 +5,6 @@
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-7 col-xs-6 mt-lg">
     <q-btn
-      v-if="g.user.admin"
       type="a"
       :href="['/install?usr=', g.user.id].join('')"
       color="primary unelevated mt-lg pt-lg"
@@ -66,6 +65,14 @@
       </q-card-section>
       <q-card-section>
         <div>
+          <q-rating
+            class="gt-sm"
+            v-model="maxStars"
+            disable
+            size="2em"
+            :max="5"
+            color="primary"
+          ></q-rating>
           <q-rating
             v-model="maxStars"
             class="lt-md"

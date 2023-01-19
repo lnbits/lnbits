@@ -83,20 +83,22 @@
       <q-separator></q-separator>
       <q-card-actions>
         <div class="col-10">
-          <div v-if="!extension.inProgress">
-            <q-btn @click="showUpgrade(extension)" flat color="primary">
-              Manage</q-btn
-            >
-            <q-toggle
-              v-if="extension.isAvailable"
-              :label="extension.isActive ? 'Activated':  'Deactivated' "
-              color="secodary"
-              v-model="extension.isActive"
-              @input="toggleExtension(extension)"
-            ></q-toggle>
-          </div>
-          <div v-else>
-            <q-spinner color="primary" size="2.55em"></q-spinner>
+          <div v-if="g.user.admin">
+            <div v-if="!extension.inProgress">
+              <q-btn @click="showUpgrade(extension)" flat color="primary">
+                Manage</q-btn
+              >
+              <q-toggle
+                v-if="extension.isAvailable"
+                :label="extension.isActive ? 'Activated':  'Deactivated' "
+                color="secodary"
+                v-model="extension.isActive"
+                @input="toggleExtension(extension)"
+              ></q-toggle>
+            </div>
+            <div v-else>
+              <q-spinner color="primary" size="2.55em"></q-spinner>
+            </div>
           </div>
         </div>
 

@@ -71,7 +71,7 @@ async def extensions(
 )
 async def extensions_install(
     request: Request,
-    user: User = Depends(check_admin),
+    user: User = Depends(check_user_exists),
     activate: str = Query(None),
     deactivate: str = Query(None),
 ):
@@ -101,15 +101,14 @@ async def extensions_install(
         installable_exts = []
 
     try:
-        if deactivate:
-            settings.lnbits_disabled_extensions += [deactivate]
-        elif activate:
-            settings.lnbits_disabled_extensions = list(
-                filter(lambda e: e != activate, settings.lnbits_disabled_extensions)
-            )
-
         ext_id = activate or deactivate
-        if ext_id:
+        if ext_id and user.admin:
+            if deactivate:
+                settings.lnbits_disabled_extensions += [deactivate]
+            elif activate:
+                settings.lnbits_disabled_extensions = list(
+                    filter(lambda e: e != activate, settings.lnbits_disabled_extensions)
+                )
             await update_installed_extension_state(
                 ext_id=ext_id, active=activate != None
             )
