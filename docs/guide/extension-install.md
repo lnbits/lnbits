@@ -46,6 +46,14 @@ Select the version to be installed (usually the last one) and click `Install`. O
 > For Explicit Release: the order of the releases is the one in the "extensions" object
 
 
+The extension has been installed but it cannot be accessed yet. In order to activate the extension toggle it in the `Activated` state.
+
+Go to `Manage Extensions` (as admin user or regular user). Search for the extension and enable it.
+
+
+## Uninstall Extension
+
+
 ## Manifest File
 The manifest file is just a `JSON` file that lists a collection of extensions that can be installed. This file is of the form:
 
