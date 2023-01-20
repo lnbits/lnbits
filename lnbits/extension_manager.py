@@ -326,23 +326,22 @@ class InstallableExtension(BaseModel):
             try:
                 error_msg = "Cannot fetch extensions manifest"
                 manifest = await gihub_api_get(url, error_msg)
-                if "repos" in manifest:
-                    for r in manifest["repos"]:
-                        if r["id"] in extension_id_list:
-                            continue
-                        ext = await InstallableExtension.from_repo(
-                            r["id"], r["organisation"], r["repository"]
-                        )
-                        if ext:
-                            extension_list += [ext]
-                            extension_id_list += [ext.id]
 
-                if "extensions" in manifest:
-                    for e in manifest["extensions"]:
-                        if e["id"] in extension_id_list:
-                            continue
-                        extension_list += [InstallableExtension.from_manifest(e)]
-                        extension_id_list += [e["id"]]
+                for r in manifest.get("repos", []):
+                    if r["id"] in extension_id_list:
+                        continue
+                    ext = await InstallableExtension.from_repo(
+                        r["id"], r["organisation"], r["repository"]
+                    )
+                    if ext:
+                        extension_list += [ext]
+                        extension_id_list += [ext.id]
+
+                for e in manifest.get("extensions", []):
+                    if e["id"] in extension_id_list:
+                        continue
+                    extension_list += [InstallableExtension.from_manifest(e)]
+                    extension_id_list += [e["id"]]
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
