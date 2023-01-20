@@ -11,11 +11,13 @@ Go to `Manage Server` > `Server` > `Extensions Manifests`
 ![image](https://user-images.githubusercontent.com/2951406/213494038-e8152d8e-61f2-4cb7-8b5f-361fc3f9a31f.png)
 
 
-An `Extension Manifest` is an link to a `JSON` file whitch contains information about various extensions that can be installed (repository of extensions).
-Multiple repositories can be configured.
+An `Extension Manifest` is a link to a `JSON` file whitch contains information about various extensions that can be installed (repository of extensions).
+Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/extension_install_02/docs/guide/extension-install.md#manifest-file) section.
 
 
-**LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). **Warning**: extensions can have bugs or mallicious code, be carefull what you install!!
+**LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). 
+> **Warning**
+> Extensions can have bugs or mallicious code, be carefull what you install!!
 
 ## Manifest File
 The manifest file is just a `JSON` file that lists a collection of extensions that can be installed. This file is of the form:
