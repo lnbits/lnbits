@@ -87,14 +87,14 @@ async def extensions_install(
         ]
 
         for e in installable_exts:
-            installed_ext = [ie for ie in installed_exts if e.id == ie.id]
-            if len(installed_ext) != 0:
-                e.installed_release = installed_ext[0].installed_release
+            installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
+            if installed_ext:
+                e.installed_release = installed_ext.installed_release
                 # use the installed extension values
-                e.name = installed_ext[0].name
-                e.short_description = installed_ext[0].short_description
-                e.icon = installed_ext[0].icon
-                e.icon_url = installed_ext[0].icon_url
+                e.name = installed_ext.name
+                e.short_description = installed_ext.short_description
+                e.icon = installed_ext.icon
+                e.icon_url = installed_ext.icon_url
 
     except Exception as ex:
         logger.warning(ex)
