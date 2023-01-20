@@ -174,7 +174,7 @@ allow_self_payment=1
   <li><a href="https://t.me/makerbits'">makerbits support Group</a></li>
   <li><a href="ereignishorizont.xyz/">Building Instructions by Axel</a></li>
   <li><a href="https://shop.lnbits.com/">LNbits shop</a></li>
-  <li><a href="https://github.com/cryptoteun/awesome-lnbits">Collection of awesome LNbits Projects</a></li>
+  <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware LNbits Projects</a></li>
   </ul>
 </details>
 
@@ -210,13 +210,14 @@ allow_self_payment=1
   </ul>
   </details>
 
-<details><summary>Resources</summary>
+<details><summary>Resources - Use cases of LNbits</summary>
   <ul>
      <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
      <li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
      <li><a href="https://www.lasereyes.cards">Lasercards</a></li>
      <li><a href="https://www.bitcoin-ring.com">Bitcoin Ring</a></li>
      <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
+     <li><a href="https://github.com/cryptoteun/awesome-lnbits#powered-by-lnbits">Powered by LNbits examples</a></li>
   </ul>
 </details>
    
