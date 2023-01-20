@@ -46,7 +46,7 @@
               style="font-size: 4rem"
             ></q-icon>
           </div>
-          <div class="col-9">
+          <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
               color="green"
@@ -54,24 +54,56 @@
             >
               <small>New Version</small>
             </q-badge>
+            {% raw %}
+            <div class="text-h5 gt-sm q-mt-sm q-mb-xs">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-subtitle2 gt-sm"
+              style="font-size: 11px; height: 34px"
+            >
+              {{ extension.shortDescription }}
+            </div>
+            <div class="text-subtitle1 lt-md q-mt-sm q-mb-xs">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-subtitle2 lt-md"
+              style="font-size: 9px; height: 34px"
+            >
+              {{ extension.shortDescription }}
+            </div>
+            {% endraw %}
           </div>
         </div>
-
-        {% raw %}
-        <h5 class="q-mt-lg q-mb-xs">{{ extension.name}}</h5>
-        <small>{{ extension.shortDescription }} </small>
-        <div>
-          <small v-if="extension.dependencies?.length">Depends on:</small>
-          <small v-else>&nbsp;</small>
-          <q-badge
-            v-for="dep in extension.dependencies"
-            :key="dep"
-            color="orange"
-          >
-            <small v-text="dep"></small>
-          </q-badge>
+        <div class="row q-pt-sm">
+          <div class="col">
+            <small v-if="extension.dependencies?.length">Depends on:</small>
+            <small v-else>&nbsp;</small>
+            <q-badge
+              v-for="dep in extension.dependencies"
+              :key="dep"
+              color="orange"
+            >
+              <small v-text="dep"></small>
+            </q-badge>
+          </div>
         </div>
-        {% endraw %}
+        <div class="row q-pt-sm">
+          <div class="col">
+            <q-rating
+              max="5"
+              v-model="maxStars"
+              size="1.5em"
+              color="yellow"
+              icon="star_border"
+              icon-selected="star"
+              readonly
+              no-dimming
+            >
+            </q-rating>
+          </div>
+        </div>
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
@@ -96,20 +128,7 @@
         </div>
 
         <div class="col-2">
-          <div class="float-right">
-            <small v-text="extension.stars"> </small>
-            <q-rating
-              max="1"
-              v-model="maxStars"
-              size="1.5em"
-              color="yellow"
-              icon="star"
-              icon-selected="star"
-              readonly
-              no-dimming
-            >
-            </q-rating>
-          </div>
+          <div class="float-right"></div>
         </div>
       </q-card-actions>
     </q-card>
