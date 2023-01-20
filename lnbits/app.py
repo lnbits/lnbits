@@ -84,6 +84,7 @@ def create_app() -> FastAPI:
     register_async_tasks(app)
     register_exception_handlers(app)
 
+    # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
 
     return app
@@ -184,6 +185,8 @@ def register_routes(app: FastAPI) -> None:
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
+    # Returns a function that registers new routes for an extension.
+    # The returned function encapsulates (creates a closure around) the `app` object but does expose it.
     def register_new_ext_routes_fn(ext: Extension):
         register_ext_routes(app, ext)
 
