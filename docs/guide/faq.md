@@ -169,45 +169,50 @@ allow-self-payment=1
 <ul>  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
-  <p>text coming here...</p>
+  <p>This is a do-it-yourself project consisting of a mini-computer (Raspberry Pi Zero), a coin acceptor, a display, a 3D printed case, and a Bitcoin Lightning wallet as a funding source. It exchanges fiat coins for valuable Bitcoin Lightning ⚡ Satoshis. The user can pick up the Satoshis via QR code (LNURL-withdraw) on a mobile phone wallet. It works based on BTCPayer server, LNTXBOT is not longer an option. You can get the components as individual parts and build the case yourself e.g. from <a href="https://www.Fulmo.org">Fulmo</a> who also made a <a href="https://blog.fulmo.org/the-lightningatm-pocket-edition/">guide</a> on it. The shop offers payments in Bitcoin and Lightning ⚡. The code can be found on <a href="https://github.com/21isenough/LightningATM">the ATM github project page></a>.</p>
 </details>
   
 <details><summary>POS Terminal - an offline terminal for merchants</summary>
-  <p>text coming here...</p>
+  <p>The LNpos is a self-sufficient point of sale terminal which allows offline onchain payments and an offline Lightning ATM for withdrawals. Free and open source software, free from intermediaries, with integrated battery, WLAN, DIY. It allows
+    <li>LNPoS Online interactive Lightning payments</li>
+    <li>LNURLPoS Offline Lightning Payments. Passive interaction, sharing a secret as evidence</li>
+    <li>OnChain For onchain payments. Generates an address and displays a link for verification</li>
+    <li>LNURLATM Offline Lightning Payouts. Generates LNURLw link to do withdrawals</li>
+</p>
 </details>
     
 <details><summary>Hardware Wallet- build your own, stack harder</summary>
-<p>text coming here...</p>
+<p>The hardwarewallet is a very cheap solution for builders. The projects´ <a hrel="https://github.com/lnbits/hardware-wallet">code and installation instructions for the LNbits hardware wallet can be found on github</a></p>
 </details>
     
 <details><summary>Bitcoin Switch - turn things on with bitcoin</summary>
-  <p>Candy dispenser, vending machines (online), grabbing machines, jukeboxes, bandits and <a href="https://github.com/cryptoteun/awesome-lnbits">all sorts of other things have already been build with LNbits´ tools</a>.</p>
+  <p>Candy dispenser, vending machines (online), grabbing machines, jukeboxes, bandits and <a href="https://github.com/cryptoteun/awesome-lnbits">all sorts of other things have already been build with LNbits´ tools</a>. Further info see 👇 Ressources.</p>
 </details>
     
 <details><summary>Vending machine (offline)</summary>
-<p>text coming here...</p>
+<p>This code works similar to the LNpos. Note that the <a href=" https://www.youtube.com/watch?v=Fg0UuuzsYXc&t=762s">setup-video for the vending machine</a> misses the new way of installing it via the new LNURLdevices extension. The <a href="https://github.com/arcbtc/LNURLVend">vending machine project code resides on github</a>.</p>
 </details>
 
 <details><summary><b>Resources - Building hardware tools</b></summary>
   <ul>
   <li><a href="https://t.me/makerbits'">MakerBits</a> - Telegram support group</li>
-  <li><a href="https://ereignishorizont.xyz/">Building Instructions by Axel</a> - guides in DE and EN</li>
-  <li><a href="https://shop.lnbits.com/">LNbits shop</a> - buy hardware tools for building with LNbits</li>
-  <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects with LNbits</a></li>
+  <li><a href="https://ereignishorizont.xyz/">Instructions for LNpos, Switch, ATM, BTCticker</a> - guides in DE & EN</li>
+  <li><a href="https://shop.lnbits.com/">LNbits shop</a> - eadymade hardware gimmicks from the community</li>
+  <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects using LNbits</a></li>
   </ul>
 </details>
   </ul>
 
 ## Use cases of LNbits
 <ul><details><summary>Merchant</summary>
-  <p>LNbits is a powerful solution for merchants, due to the easy setup with various extensions, that can be used in many use cases.</p>
-  <p><a href="https://darthcoin.substack.com/p/lnbits-for-small-merchants">Here is a use case scenario guide for a small restaurant and hotel</a></p>
+  <p>LNbits is a powerful solution for merchants, due to the easy setup with various extensions, that can be used for many uses.</p>
+  <p><a href="https://darthcoin.substack.com/p/lnbits-for-small-merchants">Here is a scenario overview for a small restaurant and hotel</a></p>
 </details>
 
-<details><summary>Swapping ⚡️LN BTC to a BTC wallet (hardware and/or software)</summary>
-  <p>LNbits already have integrated two swap extensions: <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/boltz">Boltz</a> and <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/deezy">Deezy</a>.</p>
-  <p>For a merchant that uses LNbits to receive BTC payments through LN, this is very handy to move the received sats from LN channels into onchain wallets, for holding and also is making more "space" in his LN node channels, ready to receive more sats.</p>
-  <p>Soon these extensions could have option to setup an automated swap, triggered by a certain amount received. For the moment all is done manually by the LNbits owner.</p>
+<details><summary>Swapping ⚡️LN BTC to a BTC address</summary>
+  <p>LNbits has two swap extensions integrated: <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/boltz">Boltz</a> and <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/deezy">Deezy</a>.</p>
+  <p>For a merchant that uses LNbits to receive BTC payments through LN, this is very handy to move the received sats from LN channels into onchain wallets. It not only helps you HODLing but is also freeing up "space in your channels" so you are ready to receive more sats.</p>
+  <p>Boltz has an option to setup an automated swap triggered by a certain amount received.</p>
 </details>
 
 <details><summary>Voucher</summary>
