@@ -402,6 +402,10 @@ class InstallableExtension(BaseModel):
 
 
 class InstalledExtensionMiddleware:
+    # This middleware class intercepts calls made to the extensions API and:
+    #  - it blocks the calls if the extension has been disabled or uninstalled.
+    #  - it redirects the calls to the latest version of the extension if the extension has been upgraded.
+    #  - otherwise it has no effect
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
