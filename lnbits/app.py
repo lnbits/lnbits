@@ -151,7 +151,7 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
     if ext.zip_path not in zip_files:
         ext.download_archive()
     ext.extract_archive()
-    
+
     return False
 
 

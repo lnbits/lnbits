@@ -138,10 +138,8 @@ async def get_installed_extension(ext_id: str, conn: Optional[Connection] = None
         "SELECT * FROM installed_extensions WHERE id = ?",
         (ext_id,),
     )
-    if not row:
-        return None
 
-    return dict(row)
+    return dict(row) if row else None
 
 
 async def get_installed_extensions(
@@ -159,9 +157,7 @@ async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[
         """SELECT id FROM installed_extensions WHERE NOT active""",
         (),
     )
-    return (
-        [ext[0] for ext in inactive_extensions] if len(inactive_extensions) != 0 else []
-    )
+    return [ext[0] for ext in inactive_extensions]
 
 
 async def update_user_extension(
