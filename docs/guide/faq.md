@@ -54,33 +54,49 @@ allow_self_payment=1
 
 ## Troubleshooting
 <details><summary>Message "https error" or network error" when scanning a QR made on LNbits</summary>
-  <p>Bad news, this is a routing error that might have quite a lot of reasons. Lets try a few of the most possible problems and their solutions.</p>
-  <p>A - LNbits is running behind Tor only, you can't open it on a public domain like lnbits.yourdomain.com:</p>
+<p>Bad news, this is a routing error that might have quite a lot of reasons. Lets try a few of the most possible problems and their solutions.</p>
   <ul>
-    <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. Do not generate that QR from a .local URI, because it will not be reachable via internet, only from within your home-LAN.</li>
-    <li>Open your LN wallet app that you used to scan that QR and this time by using tor (see wallet app settings). If the app doesn't offer tor, you can use Orbot (Android) instead. See as well section Installation->Clearnet</li>
-  </ul>
-  <p>B - If you run LNbits via Tor and want to offer public LN services consider to partially open it to a clearnet (domain/IP) access through a https SSL certificate.</p>
-  <ul>
-    <li>The easiest way is to use caddy. Follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">this LNbits caddy installation instruction</a> and your LNbits will be accesible through https clearnet.
-        You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance (eg. lnbits.mydomain.com). You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80).</li>
-    <li>You can also follow the apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
-    <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits.
-  </ul>
+    <li>
+      <details><summary>A - LNbits is running behind Tor only, you can't open it on a public domain like lnbits.yourdomain.com:</summary>
+        <ul>
+        <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. 
+          Do not generate that QR from a .local URI, because it will not be reachable via internet, only from within your home-LAN.</li>
+        <li>Open your LN wallet app that you used to scan that QR and this time by using tor (see wallet app settings). 
+          If the app doesn't offer tor, you can use Orbot (Android) instead. See as well section Installation->Clearnet</li>
+        </ul>
+      </details>
+    </li>
+    <li>
+      <details><summary>B - If you run LNbits via Tor and want to offer public LN services consider to partially open it to a clearnet (domain/IP) access through a https SSL certificate.</summary>
+       <ul>
+       <li>The easiest way is to use caddy. Follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">this LNbits caddy installation instruction</a> and your LNbits will be accesible through https clearnet.
+        You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance (eg. lnbits.mydomain.com). 
+        You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80).</li>
+       <li>You can also follow the apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
+       <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits.</li>
+       </ul>
+    </details>
+   </li>
+   </ul>
 </details>
 
-  <details><summary>Wallet-URL deleted, are funds safu ?</summary>
+<details><summary>Wallet-URL deleted, are funds safu ?</summary>
     <ul>
       <li>
         <details><summary>Wallet on demo server legend.lnbits</summary>
-          <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.</p>
-        </details></li>
+        <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.</p>
+        </details>
+      </li>
       <li>
         <details><summary>Wallet on your own funding source/node</summary>
-         <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits user and wallet-IDs in your LNbits user manager extension or sqlite database. To edit or read LNbits database, go to LNbits data folder and find the sqlite.db file. You can open it as a simple excel file with <a href="https://sqlitebrowser.org/">SQLite browser</a> and edit if you want.</p>
-        </details></li>
-     </ul>
-   </details>
+        <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. 
+           You can find all LNbits user and wallet-IDs in your LNbits user manager extension or sqlite database. 
+           To edit or read LNbits database, go to LNbits data folder and find the sqlite.db file. 
+           You can open it as a simple excel file with <a href="https://sqlitebrowser.org/">SQLite browser</a> and edit if you want.</p>
+        </details>
+      </li>
+    </ul>
+</details>
    
 <details><summary>Where can I see payment details?</summary>
   <p>When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
