@@ -29,6 +29,7 @@ class CreatePayLinkData(BaseModel):
 class PayLink(BaseModel):
     id: int
     wallet: str
+    wallet_key: str
     description: str
     min: float
     served_meta: int
@@ -72,8 +73,6 @@ class PayLink(BaseModel):
         else:
             return None
 
-    # this method is use for .well-known/lnurlp, must be kept for LN Addresses
-    # However - we have duplicate name above and above conflicts
     async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
         text = f"Payment to {self.lnaddress}"
         identifier = f"{self.lnaddress}@{domain}"

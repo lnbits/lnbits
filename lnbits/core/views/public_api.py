@@ -24,6 +24,7 @@ async def lnaddress(username: str, request: Request):
         return await lnurl_response(username, domain, request)
 
     elif "lnaddy" not in settings.lnbits_disabled_extensions:
+        logger.info("inside lnaddy core_app.get .well-known")
         from lnbits.extensions.lnaddy.lnurl import lnaddy_lnurl_response  # type: ignore
 
         domain = urlparse(str(request.url)).netloc

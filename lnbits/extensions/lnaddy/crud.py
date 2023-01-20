@@ -1,11 +1,9 @@
 import re
 from typing import List, Optional, Union
-
 from loguru import logger
-
 from lnbits.db import SQLITE
 
-from . import db
+from . import db, maindb
 from .models import CreatePayLinkData, PayLink
 
 
@@ -43,10 +41,19 @@ async def check_lnaddress_format(lnaddress: str) -> bool:
         return
     return True
 
+async def get_wallet_key(wallet_id: str) -> str:
+    row = await maindb.fetchone("SELECT inkey FROM wallets WHERE id = ?", (wallet_id,))
+    if row is not None:
+         return row[0]
+    else:
+         assert False, "Cannot locate wallet invoice key"
+         return
+
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     await check_lnaddress_format(data.lnaddress)
     await check_lnaddress_exists(data.lnaddress)
+    wallet_key = await get_wallet_key(wallet_id)
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
@@ -55,6 +62,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
         f"""
         INSERT INTO lnaddy.pay_links (
             wallet,
+            wallet_key,
             description,
             min,
             max,
@@ -70,11 +78,12 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             fiat_base_multiplier,
             lnaddress
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         {returning}
         """,
         (
             wallet_id,
+            wallet_key,
             data.description,
             data.min,
             data.max,

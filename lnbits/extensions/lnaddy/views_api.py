@@ -34,8 +34,9 @@ async def api_links(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        # trunk-ignore(mypy/union-attr)
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
+
 
     try:
         return [
@@ -136,7 +137,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    # trunk-ignore(mypy/union-attr)
+    assert link
     return {**link.dict(), "lnurl": link.lnurl(request)}
 
 

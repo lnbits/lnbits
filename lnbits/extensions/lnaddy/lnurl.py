@@ -1,25 +1,23 @@
-# import hashlib
-# from fastapi.params import Query
-# import math
-# from starlette.requests import Request
-
 import json
+from urllib.parse import urlparse
 from http import HTTPStatus
 
-from fastapi import Request
+import httpx
+from fastapi import Request, Query
 from lnurl import (  # type: ignore
     LnurlErrorResponse,
-    LnurlPayActionResponse,
     LnurlPayResponse,
+#    LnurlPayActionResponse,
 )
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-from lnbits.core.services import create_invoice
+#from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnaddy_ext
-from .crud import get_address_data, increment_pay_link
+from .crud import get_address_data, increment_pay_link, get_pay_link
+
 
 
 # for .well-known/lnurlp
@@ -42,7 +40,7 @@ async def lnaddy_lnurl_response(username: str, domain: str, request: Request):
     logger.debug("RESP", resp)
     return resp
 
-
+# for normal lnurlp api call
 @lnaddy_ext.get(
     "/api/v1/lnurl/{link_id}",
     status_code=HTTPStatus.OK,
@@ -77,68 +75,43 @@ async def api_lnurl_response(request: Request, link_id):
     except Exception as e:
         print(e)
 
-
+# for lnaddress callback
 @lnaddy_ext.get(
     "/api/v1/lnurl/cb/{link_id}",
     status_code=HTTPStatus.OK,
     name="lnaddy.api_lnurl_callback",
 )
-async def api_lnurl_callback(request: Request, link_id):
-    link = await increment_pay_link(link_id, served_pr=1)
-    if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="API Call: Pay link does not exist.",
-        )
-    min, max = link.min, link.max
-    rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
-    if link.currency:
-        # allow some fluctuation (as the fiat price may have changed between the calls)
-        min = rate * 995 * link.min
-        max = rate * 1010 * link.max
-    else:
-        min = link.min * 1000
-        max = link.max * 1000
+async def api_lnurl_callback(request: Request, link_id, amount: int = Query(...)):
+    address = await get_pay_link(link_id)
+    if not address:
+        return LnurlErrorResponse(reason=f'{"Address not found"}').dict()
 
-    # remove the *1000 after i find error on invalid int literal
-    amount_received = int(request.query_params.get("amount") or 0)
-    if amount_received < min:
-        return LnurlErrorResponse(
-            reason=f"Amount {amount_received} is smaller than minimum {min}."
-        ).dict()
+    domain = urlparse(str(request.url)).netloc
+    assert domain
 
-    elif amount_received > max:
-        return LnurlErrorResponse(
-            reason=f"Amount {amount_received} is greater than maximum {max}."
-        ).dict()
+    base_url = "https://" + domain
 
-    comment = request.query_params.get("comment")
-    if len(comment or "") > link.comment_chars:
-        return LnurlErrorResponse(
-            reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
-        ).dict()
+    async with httpx.AsyncClient() as client:
+        try:
+                call = await client.post(
+                    base_url + "/api/v1/payments",
+                    headers={
+                        "X-Api-Key": address.wallet_key,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "out": False,
+                        "amount": int(amount / 1000),
+                        "description_hash": (await address.lnurlpay_metadata(domain=domain)).h,
+                        "extra": {"tag": f"Payment to {address.lnaddress}@{domain}"},
+                    },
+                    timeout=40,
+                )
 
-    payment_hash, payment_request = await create_invoice(
-        wallet_id=link.wallet,
-        amount=int(amount_received / 1000),
-        memo=link.description,
-        # NEED TO FIX
-        # unhashed_description=link.lnurlpay_metadata.encode("utf-8"),
-        unhashed_description="lightning address payment".encode("utf-8"),
-        extra={
-            "tag": "lnurlp",
-            "link": link.id,
-            "comment": comment,
-            "extra": request.query_params.get("amount"),
-        },
-    )
+                r = call.json()
+        except Exception as e:
+            logger.error("Exception thrown: " + str(e))
+            return LnurlErrorResponse(reason="ERROR")
 
-    success_action = link.success_action(payment_hash)
-    if success_action:
-        resp = LnurlPayActionResponse(
-            pr=payment_request, success_action=success_action, routes=[]
-        )
-    else:
-        resp = LnurlPayActionResponse(pr=payment_request, routes=[])
-
-    return resp.dict()
+    resp = {"pr": r["payment_request"], "routes": []}
+    return resp
