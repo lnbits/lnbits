@@ -39,7 +39,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.extension_manger import (
+from lnbits.extension_manager import (
     CreateExtension,
     Extension,
     ExtensionRelease,

@@ -27,7 +27,7 @@ from .commands import db_versions, load_disabled_extension_list, migrate_databas
 from .core import core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
-from .extension_manger import (
+from .extension_manager import (
     Extension,
     InstallableExtension,
     InstalledExtensionMiddleware,

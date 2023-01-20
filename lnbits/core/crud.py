@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
-from lnbits.extension_manger import InstallableExtension
+from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
