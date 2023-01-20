@@ -1,5 +1,4 @@
 import asyncio
-from typing import Tuple
 
 import pytest_asyncio
 from httpx import AsyncClient

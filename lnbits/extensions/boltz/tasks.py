@@ -143,10 +143,10 @@ async def check_swap(swap: SubmarineSwap, client):
                         timeout_block_height=swap.timeout_block_height,
                     )
                     await update_swap_status(swap.id, "refunded")
-    except BoltzNotFoundException as exc:
+    except BoltzNotFoundException:
         logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
         await update_swap_status(swap.id, "failed")
-    except MempoolBlockHeightException as exc:
+    except MempoolBlockHeightException:
         logger.debug(
             f"Boltz - tried to refund swap: {swap.id}, but has not reached the timeout."
         )
@@ -171,7 +171,7 @@ async def check_reverse_swap(reverse_swap: ReverseSubmarineSwap, client):
         logger.debug(f"Boltz - swap_status: {str(exc)}")
         await update_swap_status(reverse_swap.id, "failed")
     # should only happen while development when regtest is reset
-    except BoltzNotFoundException as exc:
+    except BoltzNotFoundException:
         logger.debug(f"Boltz - reverse swap: {reverse_swap.boltz_id} does not exist.")
         await update_swap_status(reverse_swap.id, "failed")
     except Exception as exc:

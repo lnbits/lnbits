@@ -1,7 +1,4 @@
-from base64 import urlsafe_b64encode
 from http import HTTPStatus
-from typing import List, Union
-from uuid import uuid4
 
 from fastapi import Body, Depends, Query, Request
 from loguru import logger

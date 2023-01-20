@@ -4,9 +4,7 @@ except ImportError:  # pragma: nocover
     LightningRpc = None
 
 import asyncio
-import hashlib
 import random
-import time
 from functools import partial, wraps
 from typing import AsyncGenerator, Optional
 

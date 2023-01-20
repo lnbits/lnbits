@@ -2,7 +2,6 @@ import asyncio
 import base64
 import hashlib
 import json
-from pydoc import describe
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx

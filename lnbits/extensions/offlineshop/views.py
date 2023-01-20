@@ -1,7 +1,6 @@
 import time
 from datetime import datetime
 from http import HTTPStatus
-from typing import List
 
 from fastapi import Depends, HTTPException, Query, Request
 from starlette.responses import HTMLResponse

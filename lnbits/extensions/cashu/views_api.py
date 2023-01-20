@@ -1,6 +1,6 @@
 import math
 from http import HTTPStatus
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 # -------- cashu imports
 from cashu.core.base import (

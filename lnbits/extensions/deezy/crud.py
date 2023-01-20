@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from typing import List, Optional
 
 from . import db

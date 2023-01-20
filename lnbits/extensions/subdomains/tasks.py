@@ -55,4 +55,4 @@ async def on_invoice_paid(payment: Payment) -> None:
                     timeout=40,
                 )
             except AssertionError:
-                webhook = None
+                pass

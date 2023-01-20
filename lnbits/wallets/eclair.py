@@ -98,7 +98,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
 
             return InvoiceResponse(False, None, None, error_message)
 
@@ -120,7 +119,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
@@ -147,7 +145,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(None, checking_id, None, preimage, error_message)
 
         statuses = {

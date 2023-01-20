@@ -9,7 +9,7 @@ except ImportError:  # pragma: nocover
 import asyncio
 import base64
 import hashlib
-from os import environ, error
+from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
@@ -238,7 +238,7 @@ class LndWallet(Wallet):
             return PaymentStatus(None)
         try:
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        except RpcError as exc:
+        except RpcError:
             return PaymentStatus(None)
         if resp.settled:
             return PaymentStatus(True)

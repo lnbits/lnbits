@@ -702,7 +702,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         websocketManager.disconnect(websocket)
 

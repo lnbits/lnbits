@@ -1,6 +1,5 @@
 import json
 from http import HTTPStatus
-from typing import List
 
 from fastapi import (
     BackgroundTasks,

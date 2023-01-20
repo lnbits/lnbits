@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger

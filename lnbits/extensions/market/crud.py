@@ -1,6 +1,4 @@
-from base64 import urlsafe_b64encode
 from typing import List, Optional, Union
-from uuid import uuid4
 
 # from lnbits.db import open_ext_db
 from lnbits.db import SQLITE
