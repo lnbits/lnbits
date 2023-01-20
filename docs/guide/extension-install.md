@@ -19,6 +19,25 @@ Multiple repositories can be configured. For more information check the [Manifes
 > **Warning**
 > Extensions can have bugs or mallicious code, be carefull what you install!!
 
+## Install New Extension
+Only administrator users can install or upgrade extensions.
+
+Go to `Manage Extensions` > `Add Remove Extensions`
+![image](https://user-images.githubusercontent.com/2951406/213647560-67da4f8a-3315-436f-b690-3b3de536d2e6.png)
+
+A list of extensions that can be installed is displayed:
+![image](https://user-images.githubusercontent.com/2951406/213647904-d463775e-86b6-4354-a199-d50e08565092.png)
+
+> **Note**
+> If the extension is installed from a GitHub repo, then the GitHub star count will be shown.
+
+Click the `Manage` button in order to install a particular release of the extension.
+![image](https://user-images.githubusercontent.com/2951406/213648543-6c5c8cae-3bf4-447f-8499-344cac61c566.png)
+
+> **Note**
+> An extension can be listed in more that one repository. The admin user must select which repository it wants to installed from.
+
+
 ## Manifest File
 The manifest file is just a `JSON` file that lists a collection of extensions that can be installed. This file is of the form:
 
