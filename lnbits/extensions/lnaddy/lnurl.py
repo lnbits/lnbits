@@ -4,10 +4,7 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import Query, Request
-from lnurl import (
-    LnurlErrorResponse,
-    LnurlPayResponse,
-)
+from lnurl import LnurlErrorResponse, LnurlPayResponse
 from loguru import logger
 from starlette.exceptions import HTTPException
 
