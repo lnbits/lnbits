@@ -71,17 +71,16 @@ allow_self_payment=1
 
   <details><summary>Wallet-URL deleted, are funds safu ?</summary>
     <ul>
-        <p>
-            <details><summary>Wallet on demo server legend.lnbits</summary>
-                <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.
-            </details></p>
-        <p>
-            <details><summary>Wallet on your own funding source/node</summary>
-                <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits wallet-IDs in your LNbits database.</p>
-                </details></p>
-        </p>
-    </ul>
-    </details></ul>
+      <li>
+        <details><summary>Wallet on demo server legend.lnbits</summary>
+          <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.</p>
+        </details></li>
+      <li>
+        <details><summary>Wallet on your own funding source/node</summary>
+         <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. You can find all LNbits user and wallet-IDs in your LNbits user manager extension or sqlite database. To edit or read LNbits database, go to LNbits data folder and find the sqlite.db file. You can open it as a simple excel file with <a href="https://sqlitebrowser.org/">SQLite browser</a> and edit if you want.</p>
+        </details></li>
+     </ul>
+   </details>
 
 ## Building hardware tools
   <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
@@ -117,11 +116,14 @@ allow_self_payment=1
 
 ## Use cases of LNbits
 <details><summary>Merchant</summary>
-  <p>text coming here...</p>
+  <p>LNbits is a powerful solution for merchants, due to the easy setup with various extensions, that can be used in many use cases.</p>
+  <p><a href="https://darthcoin.substack.com/p/lnbits-for-small-merchants">Here is a use case scenario guide for a small restaurant and hotel</a></p>
 </details>
 
-<details><summary>Swapping ⚡️LN btc to a btc hardware/wallet</summary>
-  <p>Bolz, Deezy text coming here...</p>
+<details><summary>Swapping ⚡️LN BTC to a BTC wallet (hardware and/or software)</summary>
+  <p>LNbits already have integrated two swap extensions: <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/boltz">Boltz</a> and <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/deezy">Deezy</a>.</p>
+  <p>For a merchant that uses LNbits to receive BTC payments through LN, this is very handy to move the received sats from LN channels into onchain wallets, for holding and also is making more "space" in his LN node channels, ready to receive more sats.</p>
+  <p>Soon these extensions could have option to setup an automated swap, triggered by a certain amount received. For the moment all is done manually by the LNbits owner.</p>
 </details>
 
 <details><summary>Voucher</summary>
@@ -186,30 +188,41 @@ allow_self_payment=1
 
 <details><summary>Can i deposit onchain btc to LNbits ?</summary>
   <p>There are multiple ways to exchange sats from onchain btc to LN btc (resp. to LNbits).</p>
-  <p>A - Via a swap service like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
-  <p>This is useful if you provide only LNURL/LN invoices from your LNbits instance, but a payer only has onchain sats so 
-     they will have to the swap those sats first on their side.</p>
-  <p>The procedure is simple: user sends onchain btc to the swap service and provides the LNURL / LN invoice from LNbits as destination of the swap.</p>
-  <p>B - Using the Onchain LNbits extension</p>
-  <p>Keep in mind that this is a separate wallet, not the LN btc one that is represented by LNbits as "your wallet" upon your LN funding source. 
-     This onchain wallet can be used also to swap LN btc to (e.g. your hardwarewallet) by using the LNbits Boltz or Deezy extension. 
-     If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularily drain all the sats from LN into onchain. 
-     This leads to more space in your LN channels to be able to receive new fresh sats.</p>
-  <p>Procedure:</p>
   <ul>
-    <li>Use Electrum or Sparrow wallet to create a new onchain wallet and save the backup seed in a safe place</li>
-    <li>Go to wallet information and copy the xpub</li>
-    <li>Go to LNbits - Onchain extension and create a new watch-only wallet with that xpub</li>
-    <li>Go to LNbits - Tipjar extension and create a new Tipjar. Select also the onchain option besides the LN wallet.</li>
-    <li>Optional - Go to LNbits - SatsPay extension and create a new charge for onchain btc. You can choose between onchain and LN or both. It will then create an invoice that can be shared.</li>
-    <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create/link a watch-only wallet to your LN btc shop wallet, the customer will have both options to pay on the same screen.</li>
+    <li>
+      <details><summary>A - Via an external swap service</summary>
+        <p>If the user do not have full acceess of your LNbits, is just an external user, can use swap services like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
+        <p>This is useful if you provide only LNURL/LN invoices from your LNbits instance, but a payer only has onchain sats so 
+           they will have to the swap those sats first on their side.</p>
+        <p>The procedure is simple: user sends onchain btc to the swap service and provides the LNURL / LN invoice from LNbits as destination of the swap.</p>
+      </details>
+    </li>
+    <li>
+      <details><summary>B - Using the Onchain LNbits extension</summary>
+        <p>Keep in mind that this is a separate wallet, not the LN btc one that is represented by LNbits as "your wallet" upon your LN funding source. 
+           This onchain wallet can be used also to swap LN btc to (e.g. your hardwarewallet) by using the LNbits Boltz or Deezy extension. 
+           If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularily drain all the sats from LN into onchain. 
+           This leads to more space in your LN channels to be able to receive new fresh sats.</p>
+        <p>Procedure:</p>
+          <ul>
+          <li>Use Electrum or Sparrow wallet to create a new onchain wallet and save the backup seed in a safe place</li>
+          <li>Go to wallet information and copy the xpub</li>
+          <li>Go to LNbits - Onchain extension and create a new watch-only wallet with that xpub</li>
+          <li>Go to LNbits - Tipjar extension and create a new Tipjar. Select also the onchain option besides the LN wallet.</li>
+          <li>Optional - Go to LNbits - SatsPay extension and create a new charge for onchain btc. 
+              You can choose between onchain and LN or both. It will then create    an invoice that can be shared.</li>
+          <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create/link a watch-only wallet to your LN btc shop wallet, 
+              the customer will have both options to pay on the same screen.</li>
+          </ul>
+        </details>
+    </li>
+  </ul>
   </ul>
 </details>
 
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
   <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
   <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
-  <p>You can use Zeus or Bluewallet as wallet apps for a lndhub account.</p>
+  <p>You can use <a href="https://zeusln.app">Zeus</a> or <a href="https://bluewallet.io">Bluewallet</a> as wallet apps for a lndhub account.</p>
   <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
 </details>
-
