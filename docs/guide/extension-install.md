@@ -11,13 +11,13 @@ Go to `Manage Server` > `Server` > `Extensions Manifests`
 ![image](https://user-images.githubusercontent.com/2951406/213494038-e8152d8e-61f2-4cb7-8b5f-361fc3f9a31f.png)
 
 
-An `Extension Manifest` is a link to a `JSON` file whitch contains information about various extensions that can be installed (repository of extensions).
+An `Extension Manifest` is a link to a `JSON` file which contains information about various extensions that can be installed (repository of extensions).
 Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/extension_install_02/docs/guide/extension-install.md#manifest-file) section.
 
 
 **LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). 
 > **Warning**
-> Extensions can have bugs or mallicious code, be carefull what you install!!
+> Extensions can have bugs or malicious code, be careful what you install!!
 
 ## Install New Extension
 Only administrator users can install or upgrade extensions.
@@ -35,7 +35,7 @@ Click the `Manage` button in order to install a particular release of the extens
 ![image](https://user-images.githubusercontent.com/2951406/213648543-6c5c8cae-3bf4-447f-8499-344cac61c566.png)
 
 > **Note**
-> An extension can be listed in more that one repository. The admin user must select which repository it wants to install from.
+> An extension can be listed in more than one repository. The admin user must select which repository it wants to install from.
 
 Select the version to be installed (usually the last one) and click `Install`. One can also check the `Release Notes` first.
 
@@ -52,7 +52,17 @@ Go to `Manage Extensions` (as admin user or regular user). Search for the extens
 
 
 ## Uninstall Extension
+On the `Install` page click `Manage` for the extension you want to uninstall:
+![image](https://user-images.githubusercontent.com/2951406/213653194-32cbb1da-dcc8-43cf-8a82-1ec5d2d3dc16.png)
 
+The installed release is highlighted in green.
+
+Click the `Uninstall` button for the release or the one in the bottom.
+
+Users will no longer be able to access the extension.
+
+> **Note**
+> The database for the extension is not removed. If the extension is re-installed later, the data will be accessible.
 
 ## Manifest File
 The manifest file is just a `JSON` file that lists a collection of extensions that can be installed. This file is of the form:
@@ -87,7 +97,7 @@ It goes under the `extensions` object and it is of the form:
 
 | Field                | Type          |           | Description                                                                                                                                                          |
 |----------------------|---------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id                   | string        | mandatory | The ID of the extension. Must be unique for each extensions. It is also used as the path in the URL.                                                                          |
+| id                   | string        | mandatory | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                                                                          |
 | name                 | string        | mandatory | User friendly name for the extension. It will be displayed on the installation page.                                                                                 |
 | version              | string        | mandatory | Version of this release. [Semantic versoning](https://semver.org/) is recommended.                                                                                   |
 | shortDescription     | string        | optional  | A few words about the extension. It will be displayed on the installation page.                                                                                      |
@@ -116,7 +126,7 @@ It goes under the `repos` object and it is of the form:
 
 | Field        | Type   | Description                                           |
 |--------------|--------|-------------------------------------------------------|
-| id           | string | The ID of the extension. Must be unique for each extensions. It is also used as the path in the URL.                               |
+| id           | string | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                               |
 | organisation | string | The GitHub organisation (eg: `lnbits`)                |
 | repository   | string | The GitHub repository name (eg: `withdraw-extension`) |
 
