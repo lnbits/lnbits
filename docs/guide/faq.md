@@ -81,6 +81,70 @@ allow_self_payment=1
         </details></li>
      </ul>
    </details>
+   
+<details><summary>Where can I see payment details?</summary>
+  <p>When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
+
+![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)
+
+  <p>As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.<p>
+  <p>If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.</p>
+  <p>If the sender's LN wallet support <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) will also insert an alias/pseudonym preceeding the comment. 
+     This is optional and only if the sender want to send that name. It can be any name and not related to real names.</p>
+
+![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
+
+</details>
+
+<details><summary>Can I receive a comment/message to my LNURL-p QR?</summary>
+  <p>When you create a LNURL-p, by default the comment box is not filled. That means comments are not allowed to be attached to payments.<p>
+  <p>In order to allow comments, add the characters lenght of the box, from 1 to 250. Once you put a number there, 
+     the comment box will be displayed in the payment process. You can also edit a LNURL-p already created and add that number.</p>
+
+![lnbits-lnurl-comment.png](https://i.postimg.cc/HkJQ9xKr/lnbits-lnurl-comment.png)
+
+</details>
+
+<details><summary>Can i deposit onchain btc to LNbits ?</summary>
+  <p>There are multiple ways to exchange sats from onchain btc to LN btc (resp. to LNbits).</p>
+  <ul>
+    <li>
+      <details><summary>A - Via an external swap service</summary>
+        <p>If the user do not have full acceess of your LNbits, is just an external user, can use swap services like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
+        <p>This is useful if you provide only LNURL/LN invoices from your LNbits instance, but a payer only has onchain sats so 
+           they will have to the swap those sats first on their side.</p>
+        <p>The procedure is simple: user sends onchain btc to the swap service and provides the LNURL / LN invoice from LNbits as destination of the swap.</p>
+      </details>
+    </li>
+    <li>
+      <details><summary>B - Using the Onchain LNbits extension</summary>
+        <p>Keep in mind that this is a separate wallet, not the LN btc one that is represented by LNbits as "your wallet" upon your LN funding source. 
+           This onchain wallet can be used also to swap LN btc to (e.g. your hardwarewallet) by using the LNbits Boltz or Deezy extension. 
+           If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularily drain all the sats from LN into onchain. 
+           This leads to more space in your LN channels to be able to receive new fresh sats.</p>
+        <p>Procedure:</p>
+          <ul>
+          <li>Use Electrum or Sparrow wallet to create a new onchain wallet and save the backup seed in a safe place</li>
+          <li>Go to wallet information and copy the xpub</li>
+          <li>Go to LNbits - Onchain extension and create a new watch-only wallet with that xpub</li>
+          <li>Go to LNbits - Tipjar extension and create a new Tipjar. Select also the onchain option besides the LN wallet.</li>
+          <li>Optional - Go to LNbits - SatsPay extension and create a new charge for onchain btc. 
+              You can choose between onchain and LN or both. It will then create    an invoice that can be shared.</li>
+          <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create/link a watch-only wallet to your LN btc shop wallet, 
+              the customer will have both options to pay on the same screen.</li>
+          </ul>
+        </details>
+    </li>
+  </ul>
+  </ul>
+</details>
+
+<details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
+  <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
+  <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
+  <p>You can use <a href="https://zeusln.app">Zeus</a> or <a href="https://bluewallet.io">Bluewallet</a> as wallet apps for a lndhub account.</p>
+  <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
+</details>
 
 ## Building hardware tools
   <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
@@ -161,68 +225,3 @@ allow_self_payment=1
     <li><a href="http://docs.lnbits.org/devs/development.html">Making Estension / how to use Websockets / API reference</a></li>
     <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>
   </ul>
-
-## Did you know?
-<details><summary>Where can I see payment details?</summary>
-  <p>When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
-
-![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)
-
-  <p>As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.<p>
-  <p>If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.</p>
-  <p>If the sender's LN wallet support <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) will also insert an alias/pseudonym preceeding the comment. 
-     This is optional and only if the sender want to send that name. It can be any name and not related to real names.</p>
-
-![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
-
-</details>
-
-<details><summary>Can I receive a comment/message to my LNURL-p QR?</summary>
-  <p>When you create a LNURL-p, by default the comment box is not filled. That means comments are not allowed to be attached to payments.<p>
-  <p>In order to allow comments, add the characters lenght of the box, from 1 to 250. Once you put a number there, 
-     the comment box will be displayed in the payment process. You can also edit a LNURL-p already created and add that number.</p>
-
-![lnbits-lnurl-comment.png](https://i.postimg.cc/HkJQ9xKr/lnbits-lnurl-comment.png)
-
-</details>
-
-<details><summary>Can i deposit onchain btc to LNbits ?</summary>
-  <p>There are multiple ways to exchange sats from onchain btc to LN btc (resp. to LNbits).</p>
-  <ul>
-    <li>
-      <details><summary>A - Via an external swap service</summary>
-        <p>If the user do not have full acceess of your LNbits, is just an external user, can use swap services like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
-        <p>This is useful if you provide only LNURL/LN invoices from your LNbits instance, but a payer only has onchain sats so 
-           they will have to the swap those sats first on their side.</p>
-        <p>The procedure is simple: user sends onchain btc to the swap service and provides the LNURL / LN invoice from LNbits as destination of the swap.</p>
-      </details>
-    </li>
-    <li>
-      <details><summary>B - Using the Onchain LNbits extension</summary>
-        <p>Keep in mind that this is a separate wallet, not the LN btc one that is represented by LNbits as "your wallet" upon your LN funding source. 
-           This onchain wallet can be used also to swap LN btc to (e.g. your hardwarewallet) by using the LNbits Boltz or Deezy extension. 
-           If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularily drain all the sats from LN into onchain. 
-           This leads to more space in your LN channels to be able to receive new fresh sats.</p>
-        <p>Procedure:</p>
-          <ul>
-          <li>Use Electrum or Sparrow wallet to create a new onchain wallet and save the backup seed in a safe place</li>
-          <li>Go to wallet information and copy the xpub</li>
-          <li>Go to LNbits - Onchain extension and create a new watch-only wallet with that xpub</li>
-          <li>Go to LNbits - Tipjar extension and create a new Tipjar. Select also the onchain option besides the LN wallet.</li>
-          <li>Optional - Go to LNbits - SatsPay extension and create a new charge for onchain btc. 
-              You can choose between onchain and LN or both. It will then create    an invoice that can be shared.</li>
-          <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create/link a watch-only wallet to your LN btc shop wallet, 
-              the customer will have both options to pay on the same screen.</li>
-          </ul>
-        </details>
-    </li>
-  </ul>
-  </ul>
-</details>
-
-<details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
-  <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
-  <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
-  <p>You can use <a href="https://zeusln.app">Zeus</a> or <a href="https://bluewallet.io">Bluewallet</a> as wallet apps for a lndhub account.</p>
-  <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
-</details>
