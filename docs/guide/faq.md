@@ -11,7 +11,7 @@ nav_order: 5
 <p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
 
 <details><summary>Funding my LNbits wallet from my node it doesn't work.</summary>
-<p>If you want to send sats from the same node that is the funding source of your LNbits, you will need to edit the lnd.conf file for this. The parameters to be included are:</p>
+<p>If you want to send sats from the same node that is the funding source of your LNbits, you will need to edit the lnd.conf file. The parameters to be included are:</p>
 
 ```
 allow-circular-route=1
@@ -25,16 +25,16 @@ allow-self-payment=1
 </details>
     
 <details><summary>Funding source is in a cloud</summary>
-  <p>This means that you might not have access to some files which would allow certain administrative functions. E.g. on <a href="https://voltage.cloud/">Voltage</a> lnd.conf cannot be edited. Payments from your node to LNbits wallets can therefore not be configurated in this case atm so you will need to take an extra wallet to send from node->wallet x->LNbits wallet (only) for the initial funding of the wallet.</p>
+  <p>This means that you might not have access to some files which would allow certain administrative functions. E.g. on <a href="https://voltage.cloud/">Voltage</a> lnd.conf can not be edited. Payments from your node to LNbits wallets can therefore not be configurated in this case atm so you will need to take an extra wallet to send from funding source->wallet x->LNbits wallet (only) for the initial funding of the wallet.</p>
 </details>
     
 <details><summary>LNbits via clearnet domain</summary>
-  <p><a href="https://github.com/TrezorHannes/Dual-LND-Hybrid-VPS">Step by step guide how to convert your Tor only node</a> into a clearnet node for LNbits accessible over https.</p>
+  <p><a href="https://github.com/TrezorHannes/Dual-LND-Hybrid-VPS">Step by step guide how to convert your Tor only node</a> into a clearnet node to make apps like LNbits accessible via https.</p>
 </details>
     
-<details><summary>What funding sources are available for LNbits?</summary>
-  <p>There are several ways to run a LNbits instance funded from different sources. Important is to choose a source that have good liquidity and good connections if you plan to use that LNbits for public services, so your users payments would not fail.</p>
-  <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources you can use and how to configure each: CLN, LND, LNPay, Cliche, OpenNode.</p>
+<details><summary>Which funding sources can I use for LNbits?</summary>
+  <p>There are several ways to run a LNbits instance funded from different sources. It is importan to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions.</p>
+  <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources can be used and how to configure each: CLN, LND, LNPay, Cliche, OpenNode as well as bots.</p>
 </details>
     
 <!--Later to be added
@@ -46,41 +46,40 @@ allow-self-payment=1
 <details><summary>Can I prevent others from generating wallets on my node?</summary>
   <p>When you run your LNbits in clearnet basically everyone can generate a wallet on it. Since the funds of your node are bound to these wallets you might want to prevent that. There are two ways to do so:</p>
   <ul>
-   <li>configure the allowed users / extensions <a href="https://github.com/lnbits/lnbits/blob/main/.env.example">in the .env file</a></li>
-   <li>configure the allowed users / extensions <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/usermanager">via the Usermanager-Extension</a>. You can find <a href="http://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
+   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/lnbits/blob/main/.env.example">in the .env file</a></li>
+   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/usermanager">via the Usermanager-Extension</a>. You can find <a href="http://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
   </ul>
-  <p>Please not that all entries in the .env file will not be the taken into account anylonger after you activated the admin extension.</p>
+  <p>Please note that all entries in the .env file will not be the taken into account once you activated the admin extension.</p>
 </details>
 
 ## Troubleshooting
-<details><summary>Message "https error" or network error" when scanning a QR made on LNbits</summary>
-<p>Bad news, this is a routing error that might have quite a lot of reasons. Lets try a few of the most possible problems and their solutions.</p>
+<details><summary>Message "https error" or network error" when scanning a LNbits QR</summary>
+<p>Bad news, this is a routing error that might have quite a lot of reasons. Let´s try a few of the most possible problems and their solutions. First choose your setup</p>
   <ul>
     <li>
-      <details><summary>A - LNbits is running behind Tor only, you can't open it on a public domain like lnbits.yourdomain.com:</summary>
+      <details><summary>LNbits is running via Tor only, you can't open it on a public domain like lnbits.yourdomain.com</summary>
         <ul>
-        <li>Open your LNbits LNURL page using the .onion URI, so the QR is generated using an accessible .onion URI. 
-          Do not generate that QR from a .local URI, because it will not be reachable via internet, only from within your home-LAN.</li>
+        <li>Given that you want your setup to stay like this open your LNbits wallet using the .onion URI and create it again. In this way the QR is generated to be accessible via this .onion URI so via tor only. Do not generate that QR from a .local URI, because it will not be reachable via internet - only from within your home-LAN.</li>
         <li>Open your LN wallet app that you used to scan that QR and this time by using tor (see wallet app settings). 
-          If the app doesn't offer tor, you can use Orbot (Android) instead. See as well section Installation->Clearnet</li>
+          If the app doesn't offer tor, you can use Orbot (Android) instead. See section Installation->Clearnet for detailed instructions.</li>
         </ul>
       </details>
     </li>
     <li>
-      <details><summary>B - If you run LNbits via Tor and want to offer public LN services consider to partially open it to a clearnet (domain/IP) access through a https SSL certificate.</summary>
+      <details><summary>LNbits is running via Tor only, you want to offer public LN services via https</summary>
        <ul>
-       <li>The easiest way is to use caddy. Follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">this LNbits caddy installation instruction</a> and your LNbits will be accesible through https clearnet.
-        You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance (eg. lnbits.mydomain.com). 
-        You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80).</li>
-       <li>You can also follow the apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
-       <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits.</li>
+       <li>For this we need to partially open LNbits to a clearnet (domain/IP) through a https SSL certificate. Follow the instructions from <a href="https://docs.lnbits.org/guide/installation.html#reverse-proxy-with-automatic-https-using-caddy">this LNbits caddy installation instruction</a>.
+        You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance like eg. lnbits.yourdomain.com. 
+        You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80). The ports might depend on your node implementation if those ports do not work please ask for them in a help group of your node supplier.</li>
+       <li>You can also follow the Apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
+       <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits in the newest version.</li>
        </ul>
     </details>
    </li>
    </ul>
 </details>
 
-<details><summary>Wallet-URL deleted, are funds safu ?</summary>
+<details><summary>Wallet-URL deleted, are my funds safu ?</summary>
     <ul>
       <li>
         <details><summary>Wallet on demo server legend.lnbits</summary>
@@ -90,29 +89,15 @@ allow-self-payment=1
       <li>
         <details><summary>Wallet on your own funding source/node</summary>
         <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. 
-           You can find all LNbits user and wallet-IDs in your LNbits user manager extension or sqlite database. 
-           To edit or read LNbits database, go to LNbits data folder and find the data/database.sqlite3 file. 
-           You can open it as a simple excel file with <a href="https://sqlitebrowser.org/">SQLite browser</a> and edit if you want.</p>
+           You can find all LNbits users and wallet-IDs in your LNbits user manager extension or in your sqlite database. 
+           To edit or read the LNbits database, go to the LNbits /data folder and look for the file called sqlite.db. 
+           You can open and edit it with excel or with a dedicated SQL-Editor like <a href="https://sqlitebrowser.org/">SQLite browser</a>.</p>
         </details>
       </li>
     </ul>
 </details>
-   
-<details><summary>Where can I see payment details?</summary>
-  <p>When you receive a payment in Lnbits, the transaction log will display only a resumed type of the transaction. Like this:
 
-![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)
-
-  <p>As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.<p>
-  <p>If you click on that arrow, will popup a screen with more details about the transaction, including the message and the name attached to the payment.</p>
-  <p>If the sender's LN wallet support <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) will also insert an alias/pseudonym preceeding the comment. 
-     This is optional and only if the sender want to send that name. It can be any name and not related to real names.</p>
-
-![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
-
-</details>
-
-<details><summary>Can I receive a comment/message to my LNURL-p QR?</summary>
+<details><summary>Can I receive a comment/message to my LNURLp QR?</summary>
   <p>When you create a LNURL-p, by default the comment box is not filled. That means comments are not allowed to be attached to payments.<p>
   <p>In order to allow comments, add the characters lenght of the box, from 1 to 250. Once you put a number there, 
      the comment box will be displayed in the payment process. You can also edit a LNURL-p already created and add that number.</p>
@@ -154,6 +139,22 @@ allow-self-payment=1
   </ul>
   </ul>
 </details>
+   
+<details><summary>Where can I see payment details?</summary>
+  <p>When you receive a payment in LNbits, the transaction log will display only a resumed type of the transaction. 
+
+![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)
+
+  <p>As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.<p>
+  <p>If you click on that arrow, a details popup opens showing additional messages as well as a sender´s name if given.</p>
+  <p>If the sender's LN wallet supports <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) like e.g. <a href="https://darthcoin.substack.com/p/obw-open-bitcoin-wallet">Open Bitcion Wallet - OBW</a> does, you will also see an alias/pseudonym to those comments.
+     This is optional and only if the sender wants to send that name. It can be any name and might not related to the real sender´s name(!).</p>
+
+![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
+
+</details>
+
+
 
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
   <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
