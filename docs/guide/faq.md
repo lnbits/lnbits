@@ -29,16 +29,19 @@ allow_self_payment=1
 </details>
     
 <details><summary>LNbits via clearnet domain</summary>
-  <p>trezor hannes guide here</p>
+  <p><a href="https://github.com/TrezorHannes/Dual-LND-Hybrid-VPS">Step by step guide how to convert your Tor only node</a> into a clearnet node for LNbits accessible over https.</p>
 </details>
     
-<details><summary>Other funding sources (e.g bots)</summary>
-  <p>The <a href="http://docs.lnbits.org/guide/wallets.html">new LNbits manual</a> shows you which sources you can use and how to configure each here</a></p>
+<details><summary>What funding sources are available for LNbits?</summary>
+  <p>There are several ways to run a LNbits instance funded from different sources. Important is to choose a source that have good liquidity and good connections if you plan to use that LNbits for public services, so your users payments would not fail.</p>
+  <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources you can use and how to configure each: CLN, LND, LNPay, Cliche, OpenNode.</p>
 </details>
     
+<!--Later to be added
 <details><summary>Advanced setup options</summary>
   <p>more text coming soon...</p>
 </details>
+-->
 
 <details><summary>Can I prevent others from generating wallets on my node?</summary>
   <p>When you run your LNbits in clearnet basically everyone can generate a wallet on it. Since the funds of your node are bound to these wallets you might want to prevent that. There are two ways to do so:</p>
