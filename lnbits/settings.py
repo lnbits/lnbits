@@ -247,7 +247,8 @@ class TransientSettings(InstalledExtensionsSettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
     #  - are not read from a file or from the `setings` table
-    #  - are not persisted in the `settings` table when the setings are updated
+    #  - are not persisted in the `settings` table when the settings are updated
+    #  - are cleared on server restart
 
     @classmethod
     def readonly_fields(cls):
