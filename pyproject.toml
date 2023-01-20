@@ -75,6 +75,8 @@ pytest-asyncio = "^0.19.0"
 pytest-cov = "^3.0.0"
 mypy = "^0.971"
 types-protobuf = "^3.19.22"
+flake8 = { version = "^6.0.0", python = ">=3.8.1" }
+pylint = { version = "^2.15.10", python = ">=3.7.2" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "pyScss"]
@@ -126,3 +128,34 @@ addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
   "tests"
 ]
+
+[tool.pylint.'MESSAGES CONTROL']
+max-line-length = 300
+disable = "all"
+enable = [
+    "assignment-from-none",
+    "chained-comparison",
+    "consider-merging-isinstance",
+    "consider-using-dict-comprehension",
+    "consider-using-dict-items",
+    "consider-using-f-string",
+    "consider-using-in",
+    "dangerous-default-value",
+    "inconsistent-return-statements",
+    "lost-exception",
+    "pointless-string-statement",
+    "simplifiable-if-statement",
+    "super-init-not-called",
+    "superfluous-parens",
+    "unused-variable",
+    "use-list-literal",
+    "useless-else-on-loop",
+    "useless-object-inheritance",
+]
+
+[tool.pylint.MASTER]
+ignore-paths = [
+  "^lnbits/wallets/lnd_grpc_files/.*$",
+]
+fail-under = 10.0
+jobs = 0
