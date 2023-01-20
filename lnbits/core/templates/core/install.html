@@ -90,7 +90,7 @@
                 Manage</q-btn
               >
               <q-toggle
-                v-if="extension.isAvailable"
+                v-if="extension.isAvailable && extension.isInstalled"
                 :label="extension.isActive ? 'Activated':  'Deactivated' "
                 color="secodary"
                 v-model="extension.isActive"

@@ -53,9 +53,7 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
-        self._disabled: List[str] = (
-            [] if include_disabled_exts else settings.lnbits_disabled_extensions
-        )
+        self._disabled: List[str] = settings.lnbits_disabled_extensions
         self._admin_only: List[str] = settings.lnbits_admin_extensions
         self._extension_folders: List[str] = [
             x[1] for x in os.walk(os.path.join(settings.lnbits_path, "extensions"))
@@ -420,7 +418,7 @@ class InstalledExtensionMiddleware:
             path_type = None
 
         # block path for all users if the extension is disabled
-        if path_name in settings.lnbits_disabled_extensions:
+        if path_name in settings.lnbits_deactivated_extensions:
             response = JSONResponse(
                 status_code=HTTPStatus.NOT_FOUND,
                 content={"detail": f"Extension '{path_name}' disabled"},
@@ -450,11 +448,9 @@ class CreateExtension(BaseModel):
     source_repo: str
 
 
-def get_valid_extensions(include_disabled_exts=False) -> List[Extension]:
+def get_valid_extensions() -> List[Extension]:
     return [
-        extension
-        for extension in ExtensionManager(include_disabled_exts).extensions
-        if extension.is_valid
+        extension for extension in ExtensionManager().extensions if extension.is_valid
     ]
 
 

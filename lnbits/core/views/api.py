@@ -747,7 +747,8 @@ async def api_install_extension(
         await migrate_extension_database(extension, db_version)
 
         await add_installed_extension(ext_info)
-        settings.lnbits_disabled_extensions += [data.ext_id]
+        if data.ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [data.ext_id]
 
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
@@ -778,7 +779,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         )
 
     # check that other extensions do not depend on this one
-    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions(True))):
+    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
         installed_ext = next(
             (ext for ext in installable_extensions if ext.id == valid_ext_id), None
         )
@@ -789,7 +790,8 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
             )
 
     try:
-        settings.lnbits_disabled_extensions += [ext_id]
+        if ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [ext_id]
 
         for ext_info in extensions:
             ext_info.clean_extension_files()

@@ -103,17 +103,19 @@ async def extensions_install(
     try:
         ext_id = activate or deactivate
         if ext_id and user.admin:
-            if deactivate:
-                settings.lnbits_disabled_extensions += [deactivate]
+            if deactivate and deactivate not in settings.lnbits_deactivated_extensions:
+                settings.lnbits_deactivated_extensions += [deactivate]
             elif activate:
-                settings.lnbits_disabled_extensions = list(
-                    filter(lambda e: e != activate, settings.lnbits_disabled_extensions)
+                settings.lnbits_deactivated_extensions = list(
+                    filter(
+                        lambda e: e != activate, settings.lnbits_deactivated_extensions
+                    )
                 )
             await update_installed_extension_state(
                 ext_id=ext_id, active=activate != None
             )
 
-        all_extensions = list(map(lambda e: e.code, get_valid_extensions(True)))
+        all_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         inactive_extensions = await get_inactive_extensions()
         extensions = list(
             map(
@@ -402,7 +404,7 @@ async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
     # check if extension exists
     if extension_to_enable or extension_to_disable:
         ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions(True)]:
+        if ext not in [e.code for e in get_valid_extensions()]:
             raise HTTPException(
                 HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
             )

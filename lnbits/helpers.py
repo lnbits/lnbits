@@ -108,7 +108,11 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
     t.env.globals["LNBITS_VERSION"] = settings.lnbits_commit
-    t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    t.env.globals["EXTENSIONS"] = [
+        e
+        for e in get_valid_extensions()
+        if e.code not in settings.lnbits_deactivated_extensions
+    ]
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 

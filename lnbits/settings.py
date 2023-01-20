@@ -44,10 +44,16 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(default=[])
+
+    # required due to GitHUb rate-limit
+    lnbits_ext_github_token: str = Field(default="")
+
+
+class InstalledExtensionsSettings(LNbitsSettings):
+    # installed extensions that have been deactivated
+    lnbits_deactivated_extensions: List[str] = Field(default=[])
+    # upgraded extensions that require API redirects
     lnbits_upgraded_extensions: List[str] = Field(default=[])
-    lnbits_ext_github_token: str = Field(
-        default=""
-    )  # required due to GitHUb rate-limit
 
 
 class ThemesSettings(LNbitsSettings):
@@ -238,7 +244,11 @@ class SuperUserSettings(LNbitsSettings):
 
 
 class ReadOnlySettings(
-    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
+    EnvSettings,
+    SaaSSettings,
+    PersistenceSettings,
+    SuperUserSettings,
+    InstalledExtensionsSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
