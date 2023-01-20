@@ -130,7 +130,8 @@ It goes under the `repos` object and it is of the form:
 | organisation | string | The GitHub organisation (eg: `lnbits`)                |
 | repository   | string | The GitHub repository name (eg: `withdraw-extension`) |
 
-<details><summary>GitHub Releases Page</summary>
+The admin user will see all releases from the Github repository:
+
 ![image](https://user-images.githubusercontent.com/2951406/213508934-11de5ae5-2045-471c-854b-94b6acbf4434.png)
 
-</details>
+
