@@ -91,7 +91,7 @@ allow-self-payment=1
         <details><summary>Wallet on your own funding source/node</summary>
         <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. 
            You can find all LNbits user and wallet-IDs in your LNbits user manager extension or sqlite database. 
-           To edit or read LNbits database, go to LNbits data folder and find the <data/database.sqlite3> file. 
+           To edit or read LNbits database, go to LNbits data folder and find the data/database.sqlite3 file. 
            You can open it as a simple excel file with <a href="https://sqlitebrowser.org/">SQLite browser</a> and edit if you want.</p>
         </details>
       </li>
