@@ -1,13 +1,12 @@
 import json
-from urllib.parse import urlparse
 from http import HTTPStatus
+from urllib.parse import urlparse
 
 import httpx
-from fastapi import Request, Query
-from lnurl import (  # type: ignore
+from fastapi import Query, Request
+from lnurl import (  # type: ignore; LnurlPayActionResponse,
     LnurlErrorResponse,
     LnurlPayResponse,
-    #    LnurlPayActionResponse,
 )
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -16,7 +15,7 @@ from starlette.exceptions import HTTPException
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnaddy_ext
-from .crud import get_address_data, increment_pay_link, get_pay_link
+from .crud import get_address_data, get_pay_link, increment_pay_link
 
 
 # for .well-known/lnurlp
