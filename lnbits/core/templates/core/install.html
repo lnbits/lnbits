@@ -1,15 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-1 col-xs-4 mt-lg">
-    <q-btn
-      type="a"
-      :href="['/extensions?usr=', g.user.id].join('')"
-      color="primary unelevated mt-lg pt-lg"
-      >Back</q-btn
-    >
-  </div>
-  <div class="col-sm-6 col-xs-4 mt-lg">
+  <div class="col-sm-7 col-xs-4 mt-lg">
     <q-toggle
       label="Installed Only"
       color="secodary"
