@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import Query, Request
-from lnurl import (  # type: ignore; LnurlPayActionResponse,
+from lnurl import (
     LnurlErrorResponse,
     LnurlPayResponse,
 )

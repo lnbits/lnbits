@@ -1,0 +1,51 @@
+# fly.toml file generated for bk-lnbits on 2023-01-17T00:54:12-08:00
+
+app = "bk-lnbits"
+kill_signal = "SIGINT"
+kill_timeout = 30
+processes = []
+
+[env]
+  FORWARDED_ALLOW_IPS = "*"
+  HOST = "127.0.0.1"
+  LNBITS_BACKEND_WALLET_CLASS = "LnTipsWallet"
+  LNBITS_DATABASE_URL = "postgres://postgres:3Psbc1kKsJ8oJJzR!@db.mjvcjaxlcrufrhrnslfr.supabase.co:6543/postgres"
+  LNBITS_FORCE_HTTPS = true
+  LNBITS_SERVICE_FEE = "0.0"
+  LNBITS_SITE_TAGLINE = "free and open-source lightning wallet"
+  LNBITS_SITE_TITLE = "LNbits on Fly.io"
+  LNBITS_THEME_OPTIONS = "freedom, mint, autumn, monochrome, salvador, bitcoin, flamingo,"
+  LNTIPS_API_ENDPOINT = "https://ln.tips"
+  PORT = 5000
+  LNBITS_DISABLED_EXTENSIONS="amilk, lnaddress"
+
+
+[experimental]
+  allowed_public_ports = []
+  auto_rollback = true
+
+[[services]]
+  http_checks = []
+  internal_port = 5000
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "1s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "2s"
