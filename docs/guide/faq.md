@@ -187,10 +187,10 @@ allow_self_payment=1
 
 <details><summary><b>Resources - Building hardware tools</b></summary>
   <ul>
-  <li><a href="https://t.me/makerbits'">makerbits support Group</a></li>
-  <li><a href="https://ereignishorizont.xyz/">Building Instructions by Axel</a></li>
-  <li><a href="https://shop.lnbits.com/">LNbits shop</a></li>
-  <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware LNbits Projects</a></li>
+  <li><a href="https://t.me/makerbits'">MakerBits support group</a></li>
+  <li><a href="https://ereignishorizont.xyz/">Building Instructions by Axel</a> - guides in DE and EN</li>
+  <li><a href="https://shop.lnbits.com/">buy hardware tools from LNbits shop</a></li>
+  <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects with LNbits</a></li>
   </ul>
 </details>
 
