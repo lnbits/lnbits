@@ -37,7 +37,6 @@ async def api_links(
         user = await get_user(wallet.wallet.user)
         wallet_ids = user.wallet_ids if user else []
 
-
     try:
         return [
             {**link.dict(), "lnurl": link.lnurl(req)}

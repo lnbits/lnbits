@@ -41,13 +41,14 @@ async def check_lnaddress_format(lnaddress: str) -> bool:
         return
     return True
 
+
 async def get_wallet_key(wallet_id: str) -> str:
     row = await maindb.fetchone("SELECT inkey FROM wallets WHERE id = ?", (wallet_id,))
     if row is not None:
-         return row[0]
+        return row[0]
     else:
-         assert False, "Cannot locate wallet invoice key"
-         return
+        assert False, "Cannot locate wallet invoice key"
+        return
 
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:

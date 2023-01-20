@@ -7,17 +7,16 @@ from fastapi import Request, Query
 from lnurl import (  # type: ignore
     LnurlErrorResponse,
     LnurlPayResponse,
-#    LnurlPayActionResponse,
+    #    LnurlPayActionResponse,
 )
 from loguru import logger
 from starlette.exceptions import HTTPException
 
-#from lnbits.core.services import create_invoice
+# from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnaddy_ext
 from .crud import get_address_data, increment_pay_link, get_pay_link
-
 
 
 # for .well-known/lnurlp
@@ -39,6 +38,7 @@ async def lnaddy_lnurl_response(username: str, domain: str, request: Request):
 
     logger.debug("RESP", resp)
     return resp
+
 
 # for normal lnurlp api call
 @lnaddy_ext.get(
@@ -75,6 +75,7 @@ async def api_lnurl_response(request: Request, link_id):
     except Exception as e:
         print(e)
 
+
 # for lnaddress callback
 @lnaddy_ext.get(
     "/api/v1/lnurl/cb/{link_id}",
@@ -93,22 +94,24 @@ async def api_lnurl_callback(request: Request, link_id, amount: int = Query(...)
 
     async with httpx.AsyncClient() as client:
         try:
-                call = await client.post(
-                    base_url + "/api/v1/payments",
-                    headers={
-                        "X-Api-Key": address.wallet_key,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "out": False,
-                        "amount": int(amount / 1000),
-                        "description_hash": (await address.lnurlpay_metadata(domain=domain)).h,
-                        "extra": {"tag": f"Payment to {address.lnaddress}@{domain}"},
-                    },
-                    timeout=40,
-                )
+            call = await client.post(
+                base_url + "/api/v1/payments",
+                headers={
+                    "X-Api-Key": address.wallet_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "out": False,
+                    "amount": int(amount / 1000),
+                    "description_hash": (
+                        await address.lnurlpay_metadata(domain=domain)
+                    ).h,
+                    "extra": {"tag": f"Payment to {address.lnaddress}@{domain}"},
+                },
+                timeout=40,
+            )
 
-                r = call.json()
+            r = call.json()
         except Exception as e:
             logger.error("Exception thrown: " + str(e))
             return LnurlErrorResponse(reason="ERROR")
