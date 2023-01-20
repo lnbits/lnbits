@@ -27,7 +27,7 @@ async def run_migration(db, migrations_module, current_version):
     matcher = re.compile(r"^m(\d\d\d)_")
     db_name = migrations_module.__name__.split(".")[-2]
     for key, migrate in migrations_module.__dict__.items():
-        match = match = matcher.match(key)
+        match = matcher.match(key)
         if match:
             version = int(match.group(1))
             if version > current_version:
