@@ -8,7 +8,7 @@ nav_order: 5
 # FAQ - Frequently Asked Questions
 
 ## Install options
-<p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
+<ul><p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
 
 <details><summary>Funding my LNbits wallet from my node it doesn't work.</summary>
 <p>If you want to send sats from the same node that is the funding source of your LNbits, you will need to edit the lnd.conf file. The parameters to be included are:</p>
@@ -33,7 +33,7 @@ allow-self-payment=1
 </details>
     
 <details><summary>Which funding sources can I use for LNbits?</summary>
-  <p>There are several ways to run a LNbits instance funded from different sources. It is importan to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions.</p>
+  <p>There are several ways to run a LNbits instance funded from different sources. It is importan to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions. If you would like to fund your LNbits wallet via btc please see section Troubleshooting.</p>
   <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources can be used and how to configure each: CLN, LND, LNPay, Cliche, OpenNode as well as bots.</p>
 </details>
     
@@ -51,9 +51,10 @@ allow-self-payment=1
   </ul>
   <p>Please note that all entries in the .env file will not be the taken into account once you activated the admin extension.</p>
 </details>
+  </ul>
 
 ## Troubleshooting
-<details><summary>Message "https error" or network error" when scanning a LNbits QR</summary>
+<ul><details><summary>Message "https error" or network error" when scanning a LNbits QR</summary>
 <p>Bad news, this is a routing error that might have quite a lot of reasons. Let´s try a few of the most possible problems and their solutions. First choose your setup</p>
   <ul>
     <li>
@@ -137,7 +138,6 @@ allow-self-payment=1
         </details>
     </li>
   </ul>
-  </ul>
 </details>
    
 <details><summary>Where can I see payment details?</summary>
@@ -153,7 +153,7 @@ allow-self-payment=1
 ![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
 
 </details>
-
+ 
 
 
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
@@ -162,9 +162,11 @@ allow-self-payment=1
   <p>You can use <a href="https://zeusln.app">Zeus</a> or <a href="https://bluewallet.io">Bluewallet</a> as wallet apps for a lndhub account.</p>
   <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
 </details>
+</ul>
+  </ul>
 
 ## Building hardware tools
-  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
+<ul>  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
   <p>text coming here...</p>
@@ -194,9 +196,10 @@ allow-self-payment=1
   <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects with LNbits</a></li>
   </ul>
 </details>
+  </ul>
 
 ## Use cases of LNbits
-<details><summary>Merchant</summary>
+<ul><details><summary>Merchant</summary>
   <p>LNbits is a powerful solution for merchants, due to the easy setup with various extensions, that can be used in many use cases.</p>
   <p><a href="https://darthcoin.substack.com/p/lnbits-for-small-merchants">Here is a use case scenario guide for a small restaurant and hotel</a></p>
 </details>
@@ -224,10 +227,8 @@ allow-self-payment=1
     <li>On top to just printing voucher for your wallet you can also <a href="https://youtu.be/CQz1ILcK0PY">write these LNURLw to a simple NFC card fromon NTAG216</a> by not clicking the printer but the NFC symbol on android/chrome and tapping your card against the device. This will enable the cardholder to directly spend those sats at a tpos, pos or wallet-app another one uses that can handle lightning payments via NFC. </li>
     <li>If you run an event and want to hand out bigger amounts of cards with simple voucher links on consider this <a hrel="nfc-brrr.com/">NFC-brrr batch tool</a> as well as using NTAG424 cards, so that your customers can rewrite them later with an own wallet and the boltcard service (see ff)</li>
     <li>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.</li>
-  </ul>
-  </details>
-
-<details><summary>Resources - Use cases of LNbits</summary>
+  </ul><p>
+<ul><details><summary>Resources - NFC and LNbits</summary>
   <ul>
      <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
      <li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
@@ -236,10 +237,16 @@ allow-self-payment=1
      <li><a href="https://github.com/taxmeifyoucan/HCPP2021-Badge">Badge</a></li>
      <li><a href="https://github.com/cryptoteun/awesome-lnbits#powered-by-lnbits">Powered by LNbits examples</a></li>
   </ul>
+  </ul>
+  </p>
 </details>
-   
+  </details>
+
+</ul>
+
 ## Developing for LNbits
-  <ul>
+ <ul> <ul>
     <li><a href="http://docs.lnbits.org/devs/development.html">Making Estension / how to use Websockets / API reference</a></li>
     <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>
   </ul>
+</ul>
