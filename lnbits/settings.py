@@ -243,12 +243,19 @@ class SuperUserSettings(LNbitsSettings):
     )
 
 
+class TransientSettings(InstalledExtensionsSettings):
+    # Transient Settings:
+    #  - are initialized, updated and used at runtime
+    #  - are not read from a file or from the `setings` table
+    #  - are not persisted in the `settings` table when the setings are updated
+
+    @classmethod
+    def readonly_fields(cls):
+        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+
+
 class ReadOnlySettings(
-    EnvSettings,
-    SaaSSettings,
-    PersistenceSettings,
-    SuperUserSettings,
-    InstalledExtensionsSettings,
+    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
@@ -264,7 +271,7 @@ class ReadOnlySettings(
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings):
+class Settings(EditableSettings, ReadOnlySettings, TransientSettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
@@ -324,6 +331,7 @@ def send_admin_user_to_saas():
 ############### INIT #################
 
 readonly_variables = ReadOnlySettings.readonly_fields()
+transient_variables = TransientSettings.readonly_fields()
 
 settings = Settings()
 

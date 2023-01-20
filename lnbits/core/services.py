@@ -22,6 +22,7 @@ from lnbits.settings import (
     readonly_variables,
     send_admin_user_to_saas,
     settings,
+    transient_variables,
 )
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -449,7 +450,7 @@ async def check_admin_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if not key in readonly_variables:
+        if not key in readonly_variables + transient_variables:
             try:
                 setattr(settings, key, value)
             except:
