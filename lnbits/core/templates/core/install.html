@@ -166,13 +166,45 @@
           <q-expansion-item
             :key="repoName"
             group="repos"
-            label="Repository"
             :caption="repoName"
             :content-inset-level="0.5"
-            :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': ''"
-            :header-class="selectedExtensionRepos[repoName].isInstalled ? 'text-green' : ''"
             :default-opened="selectedExtensionRepos[repoName].isInstalled"
           >
+            <template v-slot:header>
+              <q-item-section avatar>
+                <q-avatar
+                  :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': 'download'"
+                  :text-color="selectedExtensionRepos[repoName].isInstalled ? 'green' : ''"
+                />
+              </q-item-section>
+
+              <q-item-section>
+                <div class="row">
+                  <div class="col-10">
+                    Repository
+                    <br />
+                    <small v-text="repoName"></small>
+                  </div>
+                  <div class="col-2">
+                    <div v-if="selectedExtension.stars" class="float-right">
+                      <small v-text="selectedExtension.stars"> </small>
+                      <q-rating
+                        max="1"
+                        v-model="maxStars"
+                        size="1.5em"
+                        color="yellow"
+                        icon="star"
+                        icon-selected="star"
+                        readonly
+                        no-dimming
+                      >
+                      </q-rating>
+                    </div>
+                  </div>
+                </div>
+              </q-item-section>
+            </template>
+
             <q-card-section class="q-pa-none">
               <q-separator></q-separator>
 
