@@ -185,10 +185,9 @@ allow-self-payment=1
 </details>
     
 <details><summary>Hardware Wallet- build your own, stack harder</summary>
-<p>The hardwarewallet is a very cheap solution for builders. The projects´ <a hrel="https://github.com/lnbits/hardware-wallet">code and installation instructions for the LNbits hardware wallet can be found on github</a>
+<p>The hardwarewallet is a very cheap solution for builders. The projects´ <a hrel="https://github.com/lnbits/hardware-wallet">code and installation instructions for the LNbits hardware wallet can be found on github</a></p>
   <p>
     <img width="546" alt="Bildschirm­foto 2023-01-20 um 18 08 37" src="https://user-images.githubusercontent.com/63317640/213760948-38fd77b0-9247-4505-9433-f5af1b223527.png">
-  </p>
   </p>
 </details>
     
@@ -196,7 +195,6 @@ allow-self-payment=1
   <p>Candy dispenser, vending machines (online), grabbing machines, jukeboxes, bandits and <a href="https://github.com/cryptoteun/awesome-lnbits">all sorts of other things have already been build with LNbits´ tools</a>. Further info see 👇 Ressources.</p>
 <p>
   <img width="549" alt="Bildschirm­foto 2023-01-20 um 18 11 55" src="https://user-images.githubusercontent.com/63317640/213761646-d25d4745-e50d-4389-98e5-f83237a8cf6b.png">
-
   </p>
 </details>
     
@@ -204,7 +202,6 @@ allow-self-payment=1
 <p>This code works similar to the LNpos. Note that the <a href=" https://www.youtube.com/watch?v=Fg0UuuzsYXc&t=762s">setup-video for the vending machine</a> misses the new way of installing it via the new LNURLdevices extension. The <a href="https://github.com/arcbtc/LNURLVend">vending machine project code resides on github</a>.</p>
   <p>
     <img width="753" alt="Bildschirm­foto 2023-01-20 um 18 13 22" src="https://user-images.githubusercontent.com/63317640/213761946-5025a7b8-c6d4-40cf-a6d3-d298593e79f6.png">
-
     </p>
 </details>
 
