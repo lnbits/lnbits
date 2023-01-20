@@ -98,7 +98,7 @@ allow-self-payment=1
     </ul>
 </details>
 
-<details><summary>Can I receive a comment/message to my LNURLp QR?</summary>
+<details><summary>Configure a comment that people see when paying to my LNURLp QR</summary>
   <p>When you create a LNURL-p, by default the comment box is not filled. That means comments are not allowed to be attached to payments.<p>
   <p>In order to allow comments, add the characters lenght of the box, from 1 to 250. Once you put a number there, 
      the comment box will be displayed in the payment process. You can also edit a LNURL-p already created and add that number.</p>
@@ -145,15 +145,15 @@ allow-self-payment=1
 
 ![lnbits-tx-log.png](https://i.postimg.cc/gk2FMFG9/lnbits-tx-log.png)
 
-  <p>As you can see on the left side, there's a little green arrow for receiveing or red arrow for sending.<p>
-  <p>If you click on that arrow, a details popup opens showing additional messages as well as a sender´s name if given.</p>
-  <p>If the sender's LN wallet supports <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) like e.g. <a href="https://darthcoin.substack.com/p/obw-open-bitcoin-wallet">Open Bitcion Wallet - OBW</a> does, you will also see an alias/pseudonym to those comments.
-     This is optional and only if the sender wants to send that name. It can be any name and might not related to the real sender´s name(!).</p>
-
-![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
-
+  <p>In your transaction overview you will find a little green arrow for received and a red arrow for sended funds.<p>
+  <p>If you click on those arrows, a details popup shows attached messages as well as the sender´s name if given.</p>
 </details>
  
+  <details><summary>Can I configure a name to the payments i make?</summary>
+  <p>In LNbits this is currently not possible to do - but to receive. This is only possible if the sender's LN wallet supports <a href="https://github.com/lnurl/luds">LUD-18</a> (nameDesc) like e.g. <a href="https://darthcoin.substack.com/p/obw-open-bitcoin-wallet">Open Bitcion Wallet - OBW</a> does. You will then see an alias/pseudonym in the details section of your LNbits transactions (click the arrows). Note that you can give any name there and it might not be related to the real sender´s name(!) if your receive such.</p>
+![lnbits-tx-details.png](https://i.postimg.cc/yYnvyK4w/lnbits-tx-details.png)
+  </p>
+  </details>
 
 
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
@@ -228,7 +228,7 @@ allow-self-payment=1
     <li>If you run an event and want to hand out bigger amounts of cards with simple voucher links on consider this <a hrel="nfc-brrr.com/">NFC-brrr batch tool</a> as well as using NTAG424 cards, so that your customers can rewrite them later with an own wallet and the boltcard service (see ff)</li>
     <li>For bigger amounts the Boltcard-Extension should be used. It will generate a link that sends a new invoice every time it is used for payments and keeps track too if the allowed card-ID is redeeming funds. Hence the setup of Boltcards is a bit safer but it needs some additional tools. You can find <a href="https://plebtag.com/write-tags/">further infos on creating or updating boltcards here</a>.</li>
   </ul><p>
-<ul><details><summary>Resources - NFC and LNbits</summary>
+<ul><details><summary>Resources - NFC & LNbits</summary>
   <ul>
      <li><a href="https://www.boltcard.org">Coincorner Boltcard</a></li>
      <li><a href="https://www.plebtag.com">PlebTag (infos, Lasercards, Badges)</a></li>
@@ -245,8 +245,7 @@ allow-self-payment=1
 </ul>
 
 ## Developing for LNbits
- <ul> <ul>
+ <ul> 
     <li><a href="http://docs.lnbits.org/devs/development.html">Making Estension / how to use Websockets / API reference</a></li>
     <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>
-  </ul>
 </ul>
