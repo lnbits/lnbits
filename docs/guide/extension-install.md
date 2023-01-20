@@ -35,7 +35,15 @@ Click the `Manage` button in order to install a particular release of the extens
 ![image](https://user-images.githubusercontent.com/2951406/213648543-6c5c8cae-3bf4-447f-8499-344cac61c566.png)
 
 > **Note**
-> An extension can be listed in more that one repository. The admin user must select which repository it wants to installed from.
+> An extension can be listed in more that one repository. The admin user must select which repository it wants to install from.
+
+Select the version to be installed (usually the last one) and click `Install`. One can also check the `Release Notes` first.
+
+> **Note**:
+> 
+> For Github repository: the order of the releases is the one in the GitHub releases page
+> 
+> For Explicit Release: the order of the releases is the one in the "extensions" object
 
 
 ## Manifest File
