@@ -147,11 +147,11 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
 
     if ext.has_installed_version:
         return True
-    if ext.zip_path in zip_files:
-        ext.extract_archive()
-    else:
+
+    if ext.zip_path not in zip_files:
         ext.download_archive()
-        ext.extract_archive()
+    ext.extract_archive()
+    
     return False
 
 
