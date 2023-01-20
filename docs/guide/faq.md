@@ -10,12 +10,12 @@ nav_order: 5
 ## Install options
 <p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
 
-<details><summary>Funding my LNbits wallet from my node doesnt work.</summary>
-<p>You will need to edit the lnd.conf file for this. The parameter to be included are:</p>
+<details><summary>Funding my LNbits wallet from my node it doesn't work.</summary>
+<p>If you want to send sats from the same node that is the funding source of your LNbits, you will need to edit the lnd.conf file for this. The parameters to be included are:</p>
 
 ```
 allow-circular-route=1
-allow_self_payment=1
+allow-self-payment=1
 ```
 
 </details>
@@ -121,7 +121,7 @@ allow_self_payment=1
 
 </details>
 
-<details><summary>Can i deposit onchain btc to LNbits ?</summary>
+<details><summary>Can I deposit onchain BTC to LNbits ?</summary>
   <p>There are multiple ways to exchange sats from onchain btc to LN btc (resp. to LNbits).</p>
   <ul>
     <li>
@@ -187,9 +187,9 @@ allow_self_payment=1
 
 <details><summary><b>Resources - Building hardware tools</b></summary>
   <ul>
-  <li><a href="https://t.me/makerbits'">MakerBits support group</a></li>
+  <li><a href="https://t.me/makerbits'">MakerBits</a> - Telegram support group</li>
   <li><a href="https://ereignishorizont.xyz/">Building Instructions by Axel</a> - guides in DE and EN</li>
-  <li><a href="https://shop.lnbits.com/">buy hardware tools from LNbits shop</a></li>
+  <li><a href="https://shop.lnbits.com/">LNbits shop</a> - buy hardware tools for building with LNbits</li>
   <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects with LNbits</a></li>
   </ul>
 </details>
