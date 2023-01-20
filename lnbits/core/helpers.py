@@ -1,8 +1,10 @@
 import importlib
 import re
+from typing import Any
 
 from loguru import logger
 
+from lnbits.db import Connection
 from lnbits.extension_manager import Extension
 
 from . import db as core_db
@@ -23,7 +25,7 @@ async def migrate_extension_database(ext: Extension, current_version):
         await run_migration(ext_conn, ext_migrations, current_version)
 
 
-async def run_migration(db, migrations_module, current_version):
+async def run_migration(db: Connection, migrations_module: Any, current_version: int):
     matcher = re.compile(r"^m(\d\d\d)_")
     db_name = migrations_module.__name__.split(".")[-2]
     for key, migrate in migrations_module.__dict__.items():
