@@ -137,7 +137,7 @@ async def extensions_install(
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_exts_ids,
                     "isAvailable": ext.id in all_extensions,
-                    "isActive": not ext.id in inactive_extensions,
+                    "isActive": ext.id not in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release
                     else None,

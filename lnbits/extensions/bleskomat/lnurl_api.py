@@ -42,7 +42,7 @@ async def api_bleskomat_lnurl(req: Request):
 
             # The API key ID, nonce, and tag should be present in the query string.
             for field in ["id", "nonce", "tag"]:
-                if not field in query:
+                if field not in query:
                     raise LnurlHttpError(
                         f'Failed API key signature check: Missing "{field}"',
                         HTTPStatus.BAD_REQUEST,
@@ -105,7 +105,7 @@ async def api_bleskomat_lnurl(req: Request):
         # No signature provided.
         # Treat as "action" callback.
 
-        if not "k1" in query:
+        if "k1" not in query:
             raise LnurlHttpError("Missing secret", HTTPStatus.BAD_REQUEST)
 
         secret = query["k1"]

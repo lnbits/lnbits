@@ -467,7 +467,7 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if not "path" in scope:
+        if "path" not in scope:
             await self.app(scope, receive, send)
             return
 

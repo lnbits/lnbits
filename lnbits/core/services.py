@@ -449,7 +449,7 @@ async def check_admin_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if not key in readonly_variables + transient_variables:
+        if key not in readonly_variables:
             try:
                 setattr(settings, key, value)
             except:
