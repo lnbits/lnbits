@@ -560,10 +560,10 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                 for [k, v] in metadata:
                     if k == "text/plain":
                         params.update(description=v)
-                    if k == "image/jpeg;base64" or k == "image/png;base64":
+                    if k in ("image/jpeg;base64", "image/png;base64"):
                         data_uri = "data:" + k + "," + v
                         params.update(image=data_uri)
-                    if k == "text/email" or k == "text/identifier":
+                    if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)
                 params.update(commentAllowed=data.get("commentAllowed", 0))
 
