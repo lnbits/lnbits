@@ -80,7 +80,7 @@ async def test_invoices_api_partial_pay_invoice(
         f"/invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash}"
     )
     assert response.status_code == 200
-    assert response.json()["paid"] == True
+    assert response.json()["paid"] is True
 
     # check invoice status
     response = await client.get(f"/invoices/api/v1/invoice/{invoice_id}")
@@ -124,7 +124,7 @@ async def test_invoices_api_partial_pay_invoice(
 #         f"/invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash}"
 #     )
 #     assert response.status_code == 200
-#     assert response.json()["paid"] == True
+#     assert response.json()["paid"] is True
 
 #     # check invoice status
 #     response = await client.get(f"/invoices/api/v1/invoice/{invoice_id}")

@@ -77,7 +77,7 @@ class Charges(BaseModel):
         return ChargeConfig(**charge_config)
 
     def must_call_webhook(self):
-        return self.webhook and self.paid and self.config.webhook_success == False
+        return self.webhook and self.paid and self.config.webhook_success is False
 
 
 class SatsPayThemes(BaseModel):

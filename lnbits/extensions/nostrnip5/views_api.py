@@ -270,7 +270,7 @@ async def api_get_nostr_json(
         if not local_part:
             continue
 
-        if address.get("active") == False:
+        if address.get("active") is False:
             continue
 
         if name and name.lower() != local_part.lower():

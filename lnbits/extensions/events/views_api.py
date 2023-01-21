@@ -188,7 +188,7 @@ async def api_event_register_ticket(ticket_id):
             status_code=HTTPStatus.FORBIDDEN, detail="Ticket not paid for."
         )
 
-    if ticket.registered == True:
+    if ticket.registered is True:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Ticket already registered"
         )

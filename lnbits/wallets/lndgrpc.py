@@ -216,11 +216,11 @@ class LndWallet(Wallet):
         error_message = None
         checking_id = None
 
-        if statuses[resp.status] == True:  # SUCCEEDED
+        if statuses[resp.status] is True:  # SUCCEEDED
             fee_msat = -resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
             checking_id = resp.payment_hash
-        elif statuses[resp.status] == False:
+        elif statuses[resp.status] is False:
             error_message = failure_reasons[resp.failure_reason]
 
         return PaymentResponse(

@@ -335,7 +335,7 @@ async def melt_coins(
             status: PaymentStatus = await check_transaction_status(
                 cashu.wallet, invoice_obj.payment_hash
             )
-            if status.paid == True:
+            if status.paid is True:
                 logger.debug(
                     f"Cashu: Payment successful, invalidating proofs for {invoice_obj.payment_hash}"
                 )

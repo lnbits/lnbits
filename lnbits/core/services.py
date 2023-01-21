@@ -214,20 +214,20 @@ async def pay_invoice(
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id and payment.ok != False:
+        if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
                 await update_payment_details(
                     checking_id=temp_id,
-                    pending=payment.ok != True,
+                    pending=payment.ok is not True,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
                 logger.debug(f"payment successful {payment.checking_id}")
-        elif payment.checking_id is None and payment.ok == False:
+        elif payment.checking_id is None and payment.ok is False:
             # payment failed
             logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:

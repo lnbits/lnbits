@@ -34,12 +34,12 @@ class PaymentStatus(NamedTuple):
 
     @property
     def failed(self) -> bool:
-        return self.paid == False
+        return self.paid is False
 
     def __str__(self) -> str:
-        if self.paid == True:
+        if self.paid is True:
             return "settled"
-        elif self.paid == False:
+        elif self.paid is False:
             return "failed"
         elif self.paid == None:
             return "still pending"
