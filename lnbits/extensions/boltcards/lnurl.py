@@ -124,7 +124,7 @@ async def lnurl_callback(
             wallet_id=card.wallet,
             payment_request=pr,
             max_sat=card.tx_limit,
-            extra={"tag": "boltcard", "tag": hit.id},
+            extra={"tag": "boltcard", "hit": hit.id},
         )
         return {"status": "OK"}
     except Exception as exc:
