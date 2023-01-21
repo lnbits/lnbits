@@ -16,7 +16,7 @@ except ImportError:  # pragma: nocover
 
 
 class Jinja2Templates(templating.Jinja2Templates):
-    def __init__(self, loader: jinja2.BaseLoader) -> None:
+    def __init__(self, loader: jinja2.BaseLoader) -> None:  # pylint: disable=W0231
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self.get_environment(loader)
 
