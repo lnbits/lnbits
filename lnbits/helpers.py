@@ -83,8 +83,8 @@ def url_for_vendored(abspath: str) -> str:
 def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
     base = g().base_url if external else ""
     url_params = "?"
-    for key in params:
-        url_params += f"{key}={params[key]}&"
+    for key, value in params.items():
+        url_params += f"{key}={value}&"
     url = f"{base}{endpoint}{url_params}"
     return url
 

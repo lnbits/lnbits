@@ -50,11 +50,13 @@ def check_db_versions(sqdb):
     postgres.execute("SELECT * FROM public.dbversions;")
     dbpost = dict(postgres.fetchall())
 
-    for key in dblite.keys():
-        if key in dblite and key in dbpost and dblite[key] != dbpost[key]:
-            raise Exception(
-                f"sqlite database version ({dblite[key]}) of {key} doesn't match postgres database version {dbpost[key]}"
-            )
+    for key, value in dblite.items():
+        if key in dblite and key in dbpost:
+            version = dbpost[key]
+            if value != version:
+                raise Exception(
+                    f"sqlite database version ({value}) of {key} doesn't match postgres database version {version}"
+                )
 
     connection = postgres.connection
     postgres.close()
