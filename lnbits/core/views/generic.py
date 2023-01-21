@@ -120,7 +120,7 @@ async def extensions_install(
                     )
                 )
             await update_installed_extension_state(
-                ext_id=ext_id, active=activate != None
+                ext_id=ext_id, active=activate is not None
             )
 
         all_extensions = list(map(lambda e: e.code, get_valid_extensions()))

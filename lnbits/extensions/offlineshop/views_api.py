@@ -78,7 +78,7 @@ async def api_add_or_update_item(
                 )
     if data.unit != "sat":
         data.price = data.price * 100
-    if item_id == None:
+    if item_id is None:
 
         await add_item(
             shop.id,

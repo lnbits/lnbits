@@ -358,7 +358,7 @@ async def get_payments(
     args: List[Any] = []
     clause: List[str] = []
 
-    if since != None:
+    if since is not None:
         if db.type == POSTGRES:
             clause.append("time > to_timestamp(?)")
         elif db.type == COCKROACH:

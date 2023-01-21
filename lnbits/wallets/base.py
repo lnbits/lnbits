@@ -41,7 +41,7 @@ class PaymentStatus(NamedTuple):
             return "settled"
         elif self.paid is False:
             return "failed"
-        elif self.paid == None:
+        elif self.paid is None:
             return "still pending"
         else:
             return "unknown (should never happen)"

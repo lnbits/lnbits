@@ -37,7 +37,7 @@ async def run_migration(db: Connection, migrations_module: Any, current_version:
                 print(f"running migration {db_name}.{version}")
                 await migrate(db)
 
-                if db.schema == None:
+                if db.schema is None:
                     await update_migration_version(db, db_name, version)
                 else:
                     async with core_db.connect() as conn:
