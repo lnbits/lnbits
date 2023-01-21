@@ -309,7 +309,7 @@ async def api_market_order_create(data: createOrder):
     payment_hash, payment_request = await create_invoice(
         wallet_id=data.wallet,
         amount=data.total,
-        memo=f"New order on Market",
+        memo="New order on Market",
         extra={
             "tag": "market",
             "reference": ref,

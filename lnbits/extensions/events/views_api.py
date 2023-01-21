@@ -50,12 +50,12 @@ async def api_event_create(
         event = await get_event(event_id)
         if not event:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail=f"Event does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
             )
 
         if event.wallet != wallet.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail=f"Not your event."
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your event."
             )
         event = await update_event(event_id, **data.dict())
     else:
@@ -69,11 +69,11 @@ async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_typ
     event = await get_event(event_id)
     if not event:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Event does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
 
     if event.wallet != wallet.wallet.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Not your event.")
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your event.")
 
     await delete_event(event_id)
     await delete_event_tickets(event_id)
@@ -101,7 +101,7 @@ async def api_ticket_make_ticket(event_id, name, email):
     event = await get_event(event_id)
     if not event:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Event does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
     try:
         payment_hash, payment_request = await create_invoice(
@@ -121,7 +121,7 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
     if not event:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Event could not be fetched.",
+            detail="Event could not be fetched.",
         )
 
     status = await api_payment(payment_hash)
@@ -141,7 +141,7 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
         if not ticket:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Event could not be fetched.",
+                detail="Event could not be fetched.",
             )
         return {"paid": True, "ticket_id": ticket.id}
     return {"paid": False}
@@ -152,13 +152,11 @@ async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Ticket does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Ticket does not exist."
         )
 
     if ticket.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail=f"Not your ticket."
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your ticket.")
 
     await delete_ticket(ticket_id)
     return "", HTTPStatus.NO_CONTENT

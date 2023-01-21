@@ -7,7 +7,7 @@ from .models import BtcToLnSwap, LnToBtcSwap, Token, UpdateLnToBtcSwap
 async def get_ln_to_btc() -> List[LnToBtcSwap]:
 
     rows = await db.fetchall(
-        f"SELECT * FROM deezy.ln_to_btc_swap ORDER BY created_at DESC",
+        "SELECT * FROM deezy.ln_to_btc_swap ORDER BY created_at DESC",
     )
 
     return [LnToBtcSwap(**row) for row in rows]
@@ -16,7 +16,7 @@ async def get_ln_to_btc() -> List[LnToBtcSwap]:
 async def get_btc_to_ln() -> List[BtcToLnSwap]:
 
     rows = await db.fetchall(
-        f"SELECT * FROM deezy.btc_to_ln_swap ORDER BY created_at DESC",
+        "SELECT * FROM deezy.btc_to_ln_swap ORDER BY created_at DESC",
     )
 
     return [BtcToLnSwap(**row) for row in rows]
@@ -25,7 +25,7 @@ async def get_btc_to_ln() -> List[BtcToLnSwap]:
 async def get_token() -> Optional[Token]:
 
     row = await db.fetchone(
-        f"SELECT * FROM deezy.token ORDER BY created_at DESC",
+        "SELECT * FROM deezy.token ORDER BY created_at DESC",
     )
 
     return Token(**row) if row else None

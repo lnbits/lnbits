@@ -229,7 +229,7 @@ async def pay_invoice(
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
-            logger.warning(f"backend sent payment failure")
+            logger.warning("backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_wallet_payment(temp_id, wallet_id, conn=conn)
@@ -431,7 +431,7 @@ async def check_admin_settings():
         update_cached_settings(settings_db.dict())
 
         # printing settings for debugging
-        logger.debug(f"Admin settings:")
+        logger.debug("Admin settings:")
         for key, value in settings.dict(exclude_none=True).items():
             logger.debug(f"{key}: {value}")
 

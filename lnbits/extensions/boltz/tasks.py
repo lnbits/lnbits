@@ -101,10 +101,10 @@ async def check_for_pending_swaps():
         swaps = await get_all_pending_submarine_swaps()
         reverse_swaps = await get_all_pending_reverse_submarine_swaps()
         if len(swaps) > 0 or len(reverse_swaps) > 0:
-            logger.debug(f"Boltz - startup swap check")
+            logger.debug("Boltz - startup swap check")
     except:
         logger.error(
-            f"Boltz - startup swap check, database is not created yet, do nothing"
+            "Boltz - startup swap check, database is not created yet, do nothing"
         )
         return
 

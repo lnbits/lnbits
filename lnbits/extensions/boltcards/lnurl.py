@@ -180,7 +180,7 @@ async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     card = await get_card(hit.card_id)
     assert card
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
+        return {"status": "ERROR", "reason": "LNURL-pay record not found."}
     if not card.enable:
         return {"status": "ERROR", "reason": "Card is disabled."}
     payResponse = {
@@ -204,7 +204,7 @@ async def lnurlp_callback(hit_id: str = Query(None), amount: str = Query(None)):
     card = await get_card(hit.card_id)
     assert card
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
+        return {"status": "ERROR", "reason": "LNURL-pay record not found."}
 
     _, payment_request = await create_invoice(
         wallet_id=card.wallet,

@@ -10,7 +10,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     link_id = urlsafe_short_hash()[:6]
 
     result = await db.execute(
-        f"""
+        """
         INSERT INTO lnurlp.pay_links (
             id,
             wallet,

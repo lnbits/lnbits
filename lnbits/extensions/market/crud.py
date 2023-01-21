@@ -31,7 +31,7 @@ from .models import (
 async def create_market_product(data: createProduct) -> Products:
     product_id = urlsafe_short_hash()
     await db.execute(
-        f"""
+        """
         INSERT INTO market.products (id, stall, product, categories, description, image, price, quantity)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -93,7 +93,7 @@ async def delete_market_product(product_id: str) -> None:
 async def create_market_zone(user, data: createZones) -> Zones:
     zone_id = urlsafe_short_hash()
     await db.execute(
-        f"""
+        """
         INSERT INTO market.zones (
             id,
             "user",
@@ -141,7 +141,7 @@ async def delete_market_zone(zone_id: str) -> None:
 async def create_market_stall(data: createStalls) -> Stalls:
     stall_id = urlsafe_short_hash()
     await db.execute(
-        f"""
+        """
         INSERT INTO market.stalls (
             id,
             wallet,
@@ -255,7 +255,7 @@ async def create_market_order_details(order_id: str, data: List[createOrderDetai
 
 async def get_market_order_details(order_id: str) -> List[OrderDetail]:
     rows = await db.fetchall(
-        f"SELECT * FROM market.order_details WHERE order_id = ?", (order_id,)
+        "SELECT * FROM market.order_details WHERE order_id = ?", (order_id,)
     )
 
     return [OrderDetail(**row) for row in rows]

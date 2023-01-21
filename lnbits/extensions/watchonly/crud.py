@@ -230,7 +230,7 @@ async def create_config(user: str) -> Config:
 
 async def update_config(config: Config, user: str) -> Optional[Config]:
     await db.execute(
-        f"""UPDATE watchonly.config SET json_data = ? WHERE "user" = ?""",
+        """UPDATE watchonly.config SET json_data = ? WHERE "user" = ?""",
         (json.dumps(config.dict()), user),
     )
     row = await db.fetchone(

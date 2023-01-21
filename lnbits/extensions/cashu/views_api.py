@@ -322,7 +322,7 @@ async def melt_coins(
             await pay_invoice(
                 wallet_id=cashu.wallet,
                 payment_request=invoice,
-                description=f"Pay cashu invoice",
+                description="Pay cashu invoice",
                 extra={"tag": "cashu", "cashu_name": cashu.name},
             )
         except Exception as e:
@@ -349,7 +349,7 @@ async def melt_coins(
             detail=f"Cashu: {str(e)}",
         )
     finally:
-        logger.debug(f"Cashu: Unset pending")
+        logger.debug("Cashu: Unset pending")
         # delete proofs from pending list
         await ledger._unset_proofs_pending(proofs)
 

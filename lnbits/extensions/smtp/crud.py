@@ -123,7 +123,7 @@ async def set_email_paid(payment_hash: str) -> bool:
     email = await get_email_by_payment_hash(payment_hash)
     if email and email.paid is False:
         await db.execute(
-            f"UPDATE smtp.email SET paid = true WHERE payment_hash = ?", (payment_hash,)
+            "UPDATE smtp.email SET paid = true WHERE payment_hash = ?", (payment_hash,)
         )
         return True
     return False
@@ -131,13 +131,13 @@ async def set_email_paid(payment_hash: str) -> bool:
 
 async def get_email_by_payment_hash(payment_hash: str) -> Optional[Email]:
     row = await db.fetchone(
-        f"SELECT * FROM smtp.email WHERE payment_hash = ?", (payment_hash,)
+        "SELECT * FROM smtp.email WHERE payment_hash = ?", (payment_hash,)
     )
     return Email(**row) if row else None
 
 
 async def get_email(id: str) -> Optional[Email]:
-    row = await db.fetchone(f"SELECT * FROM smtp.email WHERE id = ?", (id,))
+    row = await db.fetchone("SELECT * FROM smtp.email WHERE id = ?", (id,))
     return Email(**row) if row else None
 
 

@@ -160,7 +160,7 @@ async def update_card_otp(otp: str, id: str):
 
 
 async def get_hit(hit_id: str) -> Optional[Hit]:
-    row = await db.fetchone(f"SELECT * FROM boltcards.hits WHERE id = ?", (hit_id,))
+    row = await db.fetchone("SELECT * FROM boltcards.hits WHERE id = ?", (hit_id,))
     if not row:
         return None
 
@@ -183,7 +183,7 @@ async def get_hits(cards_ids: List[str]) -> List[Hit]:
 
 async def get_hits_today(card_id: str) -> List[Hit]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE card_id = ?",
+        "SELECT * FROM boltcards.hits WHERE card_id = ?",
         (card_id,),
     )
     updatedrow = []
@@ -258,7 +258,7 @@ async def create_refund(hit_id, refund_amount) -> Refund:
 
 async def get_refund(refund_id: str) -> Optional[Refund]:
     row = await db.fetchone(
-        f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id,)
+        "SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id,)
     )
     if not row:
         return None
