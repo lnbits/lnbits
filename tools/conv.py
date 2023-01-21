@@ -101,7 +101,7 @@ def insert_to_pg(query, data):
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: List[str] = []):
+def migrate_core(file: str, exclude_tables: List[str] = None):
     print(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
     print("✅ Migrated core")
@@ -115,7 +115,7 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
+def migrate_db(file: str, schema: str, exclude_tables: List[str] = None):
     # first we check if this file exists:
     assert os.path.isfile(file), f"{file} does not exist!"
 
@@ -133,7 +133,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
         # hard coded skip for dbversions (already produced during startup)
         if tableName == "dbversions":
             continue
-        if tableName in exclude_tables:
+        if exclude_tables and tableName in exclude_tables:
             continue
 
         columns = sq.execute(f"PRAGMA table_info({tableName})").fetchall()

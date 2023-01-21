@@ -89,13 +89,12 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def template_renderer(additional_folders: List = []) -> Jinja2Templates:
+def template_renderer(additional_folders: List = None) -> Jinja2Templates:
 
-    t = Jinja2Templates(
-        loader=jinja2.FileSystemLoader(
-            ["lnbits/templates", "lnbits/core/templates", *additional_folders]
-        )
-    )
+    folders = ["lnbits/templates", "lnbits/core/templates"]
+    if additional_folders:
+        folders.extend(additional_folders)
+    t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
 
     if settings.lnbits_ad_space_enabled:
         t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
