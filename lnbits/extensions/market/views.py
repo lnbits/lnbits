@@ -10,7 +10,6 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.templating import Jinja2Templates
-from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
@@ -19,7 +18,6 @@ from lnbits.decorators import check_user_exists
 
 from . import market_ext, market_renderer
 from .crud import (
-    create_chat_message,
     create_market_settings,
     get_market_market,
     get_market_market_stalls,
@@ -29,10 +27,8 @@ from .crud import (
     get_market_settings,
     get_market_stall,
     get_market_zone,
-    get_market_zones,
-    update_market_product_stock,
 )
-from .models import CreateChatMessage, SetSettings
+from .models import SetSettings
 from .notifier import Notifier
 
 templates = Jinja2Templates(directory="templates")

@@ -7,7 +7,6 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
 from . import db, ledger
-from .crud import get_cashu
 
 
 async def startup_cashu_mint():

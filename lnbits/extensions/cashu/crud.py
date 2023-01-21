@@ -1,15 +1,7 @@
 from typing import List, Optional, Union
 
-from cashu.core.base import MintKeyset
-from embit import bip32, bip39, ec, script
-from embit.networks import NETWORKS
-from loguru import logger
-
-from lnbits.db import Connection, Database
-from lnbits.helpers import urlsafe_short_hash
-
 from . import db
-from .models import Cashu, Pegs, Promises, Proof
+from .models import Cashu
 
 
 async def create_cashu(

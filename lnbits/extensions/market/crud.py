@@ -3,14 +3,12 @@ from typing import List, Optional, Union
 # from lnbits.db import open_ext_db
 from lnbits.db import SQLITE
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import WALLET
 
 from . import db
 from .models import (
     ChatMessage,
     CreateChatMessage,
     CreateMarket,
-    CreateMarketStalls,
     Market,
     MarketSettings,
     OrderDetail,

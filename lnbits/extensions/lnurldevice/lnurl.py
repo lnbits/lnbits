@@ -3,7 +3,6 @@ import hmac
 from http import HTTPStatus
 from io import BytesIO
 
-import shortuuid
 from embit import bech32, compact
 from fastapi import HTTPException, Query, Request
 
@@ -17,7 +16,6 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
-    get_lnurlpayload,
     update_lnurldevicepayment,
 )
 

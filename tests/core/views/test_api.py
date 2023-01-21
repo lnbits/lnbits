@@ -1,15 +1,9 @@
 import hashlib
 
 import pytest
-import pytest_asyncio
 
 from lnbits import bolt11
-from lnbits.core.crud import get_wallet
-from lnbits.core.views.api import (
-    CreateInvoiceData,
-    api_payment,
-    api_payments_create_invoice,
-)
+from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
 from ...helpers import get_random_invoice_data, is_regtest

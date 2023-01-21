@@ -24,8 +24,8 @@ def boltcards_renderer():
     return template_renderer(["lnbits/extensions/boltcards/templates"])
 
 
-from .lnurl import *  # noqa
-from .tasks import *  # noqa
+from .lnurl import *  # noqa: F401,F403
+from .tasks import *  # noqa: F401,F403
 
 
 def boltcards_start():
@@ -33,5 +33,5 @@ def boltcards_start():
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
 
 
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

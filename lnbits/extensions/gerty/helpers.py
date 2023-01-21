@@ -13,7 +13,7 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from .crud import get_mempool_info
-from .number_prefixer import *
+from .number_prefixer import *  # noqa: F403
 
 
 def get_percent_difference(current, previous, precision=3):

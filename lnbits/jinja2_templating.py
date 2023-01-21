@@ -7,8 +7,6 @@ from starlette import templating
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
 
-from lnbits.requestvars import g
-
 try:
     import jinja2
 except ImportError:  # pragma: nocover

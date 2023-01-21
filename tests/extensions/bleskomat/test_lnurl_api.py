@@ -1,7 +1,6 @@
 import secrets
 
 import pytest
-import pytest_asyncio
 
 from lnbits.core.crud import get_wallet
 from lnbits.extensions.bleskomat.crud import get_bleskomat_lnurl
@@ -10,8 +9,6 @@ from lnbits.extensions.bleskomat.helpers import (
     query_to_signing_payload,
 )
 from lnbits.settings import get_wallet_class, settings
-from tests.conftest import client
-from tests.extensions.bleskomat.conftest import bleskomat, lnurl
 from tests.helpers import credit_wallet, is_regtest
 
 WALLET = get_wallet_class()

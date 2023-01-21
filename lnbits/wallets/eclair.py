@@ -11,11 +11,6 @@ from loguru import logger
 # TODO: https://github.com/lnbits/lnbits/issues/764
 # mypy https://github.com/aaugustin/websockets/issues/940
 from websockets import connect  # type: ignore
-from websockets.exceptions import (
-    ConnectionClosed,
-    ConnectionClosedError,
-    ConnectionClosedOK,
-)
 
 from lnbits.settings import settings
 

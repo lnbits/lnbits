@@ -1,7 +1,6 @@
 imports_ok = True
 try:
     import grpc
-    from google import protobuf
     from grpc import RpcError
 except ImportError:  # pragma: nocover
     imports_ok = False

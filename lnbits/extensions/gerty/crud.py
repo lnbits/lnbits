@@ -8,7 +8,7 @@ from loguru import logger
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Gerty, Mempool, MempoolEndpoint
+from .models import Gerty, MempoolEndpoint
 
 
 async def create_gerty(wallet_id: str, data: Gerty) -> Gerty:

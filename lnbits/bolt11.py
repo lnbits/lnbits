@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
 import bitstring
-import embit
 import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
 from ecdsa import SECP256k1, VerifyingKey

@@ -37,8 +37,8 @@ def cashu_renderer():
 
 
 from .tasks import startup_cashu_mint, wait_for_paid_invoices
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403
 
 
 def cashu_start():

@@ -7,7 +7,6 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from .base import (

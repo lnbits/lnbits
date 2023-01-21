@@ -1,12 +1,15 @@
 import pytest
-import pytest_asyncio
-from loguru import logger
+import pytest_asyncio  # noqa: F401
+from loguru import logger  # noqa: F401
 
-from lnbits.core.crud import get_wallet
-from tests.conftest import adminkey_headers_from, client, invoice
-from tests.extensions.invoices.conftest import accounting_invoice, invoices_wallet
-from tests.helpers import credit_wallet
-from tests.mocks import WALLET
+from lnbits.core.crud import get_wallet  # noqa: F401
+from tests.conftest import adminkey_headers_from, client, invoice  # noqa: F401
+from tests.extensions.invoices.conftest import (  # noqa: F401
+    accounting_invoice,
+    invoices_wallet,
+)
+from tests.helpers import credit_wallet  # noqa: F401
+from tests.mocks import WALLET  # noqa: F401
 
 
 @pytest.mark.asyncio

@@ -14,7 +14,6 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.requestvars import g
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
@@ -22,7 +21,6 @@ from lnbits.settings import (
     readonly_variables,
     send_admin_user_to_saas,
     settings,
-    transient_variables,
 )
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
