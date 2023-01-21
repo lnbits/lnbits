@@ -16,6 +16,7 @@ from ...helpers import get_random_invoice_data, is_regtest
 
 WALLET = get_wallet_class()
 
+
 # check if the client is working
 @pytest.mark.asyncio
 async def test_core_views_generic(client):

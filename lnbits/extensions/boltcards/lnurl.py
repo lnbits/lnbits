@@ -28,6 +28,7 @@ from .nxp424 import decryptSUN, getSunMAC
 
 ###############LNURLWITHDRAW#################
 
+
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan/{external_id}")
 async def api_scan(p, c, request: Request, external_id: str = Query(None)):
