@@ -33,7 +33,7 @@ def load_macaroon(macaroon: str) -> str:
     return macaroon
 
 
-class AESCipher(object):
+class AESCipher:
     """This class is compatible with crypto-js/aes.js
 
     Encrypt and decrypt in Javascript using:

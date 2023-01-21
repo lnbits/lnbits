@@ -20,7 +20,7 @@ class Route(NamedTuple):
     cltv: int
 
 
-class Invoice(object):
+class Invoice:
     payment_hash: str
     amount_msat: int = 0
     description: Optional[str] = None
@@ -245,7 +245,7 @@ def lnencode(addr, privkey):
     return bech32_encode(hrp, bitarray_to_u5(data))
 
 
-class LnAddr(object):
+class LnAddr:
     def __init__(
         self, paymenthash=None, amount=None, currency="bc", tags=None, date=None
     ):
