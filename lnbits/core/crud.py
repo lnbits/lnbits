@@ -768,7 +768,7 @@ async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
 
 
 async def delete_tinyurl(tinyurl_id: str):
-    row = await db.execute(
+    await db.execute(
         f"DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )

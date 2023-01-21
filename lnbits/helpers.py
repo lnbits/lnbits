@@ -135,7 +135,7 @@ def get_current_extension_name() -> str:
     import os
 
     callee_filepath = inspect.stack()[1].filename
-    callee_dirname, callee_filename = os.path.split(callee_filepath)
+    callee_dirname, _ = os.path.split(callee_filepath)
 
     path = os.path.normpath(callee_dirname)
     extension_director_name = path.split(os.sep)[-1]

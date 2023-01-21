@@ -184,7 +184,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     async with db.connect() as conn:
         try:
-            payment_hash, payment_request = await create_invoice(
+            _, payment_request = await create_invoice(
                 wallet_id=wallet.id,
                 amount=amount,
                 memo=memo,
