@@ -113,7 +113,7 @@ class LndRestWallet(Wallet):
         async with httpx.AsyncClient(verify=self.cert) as client:
             # set the fee limit for the payment
             lnrpcFeeLimit = dict()
-            lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
+            lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",

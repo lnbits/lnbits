@@ -83,7 +83,7 @@ class CoreLightningWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = "lbl{}".format(random.random())
+        label = f"lbl{random.random()}"
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
@@ -126,7 +126,7 @@ class CoreLightningWallet(Wallet):
 
         payload = {
             "bolt11": bolt11,
-            "maxfeepercent": "{:.11}".format(fee_limit_percent),
+            "maxfeepercent": f"{fee_limit_percent:.11}",
             "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
         }
         try:

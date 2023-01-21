@@ -97,7 +97,7 @@ class SparkWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = "lbs{}".format(random.random())
+        label = f"lbs{random.random()}"
         checking_id = label
 
         try:

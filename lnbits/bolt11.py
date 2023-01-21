@@ -166,9 +166,7 @@ def lnencode(addr, privkey):
         amount = Decimal(str(addr.amount))
         # We can only send down to millisatoshi.
         if amount * 10**12 % 10:
-            raise ValueError(
-                "Cannot encode {}: too many decimal places".format(addr.amount)
-            )
+            raise ValueError(f"Cannot encode {addr.amount}: too many decimal places")
 
         amount = addr.currency + shorten_amount(amount)
     else:
@@ -190,7 +188,7 @@ def lnencode(addr, privkey):
         # A writer MUST NOT include more than one `d`, `h`, `n` or `x` fields,
         if k in ("d", "h", "n", "x"):
             if k in tags_set:
-                raise ValueError("Duplicate '{}' tag".format(k))
+                raise ValueError(f"Duplicate '{k}' tag")
 
         if k == "r":
             route = bitstring.BitArray()
@@ -220,7 +218,7 @@ def lnencode(addr, privkey):
             data += tagged_bytes("n", v)
         else:
             # FIXME: Support unknown tags?
-            raise ValueError("Unknown tag {}".format(k))
+            raise ValueError(f"Unknown tag {k}")
 
         tags_set.add(k)
 
@@ -259,12 +257,9 @@ class LnAddr:
         self.amount = amount
 
     def __str__(self):
-        return "LnAddr[{}, amount={}{} tags=[{}]]".format(
-            bytes.hex(self.pubkey.serialize()).decode(),
-            self.amount,
-            self.currency,
-            ", ".join([k + "=" + str(v) for k, v in self.tags]),
-        )
+        pubkey = bytes.hex(self.pubkey.serialize()).decode()
+        tags = ", ".join([k + "=" + str(v) for k, v in self.tags])
+        return f"LnAddr[{pubkey}, amount={self.amount}{self.currency} tags=[{tags}]]"
 
 
 def shorten_amount(amount):
@@ -296,7 +291,7 @@ def _unshorten_amount(amount: str) -> int:
     # A reader SHOULD fail if `amount` contains a non-digit, or is followed by
     # anything except a `multiplier` in the table above.
     if not re.fullmatch(r"\d+[pnum]?", str(amount)):
-        raise ValueError("Invalid amount '{}'".format(amount))
+        raise ValueError(f"Invalid amount '{amount}'")
 
     if unit in units:
         return int(int(amount[:-1]) * 100_000_000_000 / units[unit])
@@ -347,11 +342,10 @@ def _trim_to_bytes(barr):
 
 
 def _readable_scid(short_channel_id: int) -> str:
-    return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
-        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
-        outputindex=(short_channel_id & 0xFFFF),
-    )
+    blockheight = (short_channel_id >> 40) & 0xFFFFFF
+    transactionindex = (short_channel_id >> 16) & 0xFFFFFF
+    outputindex = short_channel_id & 0xFFFF
+    return f"{blockheight}x{transactionindex}x{outputindex}"
 
 
 def _u5_to_bitarray(arr: List[int]) -> bitstring.BitArray:

@@ -388,7 +388,7 @@ class Formatter:
             self.fmt: str = self.minimal_fmt
 
     def format(self, record):
-        function = "{function}".format(**record)
+        function = "{function}".format(**record)  # pylint: disable=C0209
         if function == "emit":  # uvicorn logs
             return self.minimal_fmt
         return self.fmt
