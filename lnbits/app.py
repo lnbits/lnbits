@@ -53,6 +53,7 @@ from .middleware import (
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
+    create_push_notification_keypair,
     internal_invoice_listener,
     invoice_listener,
     webhook_handler,
@@ -357,6 +358,8 @@ def register_startup(app: FastAPI):
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
+
+            create_push_notification_keypair()
 
         except Exception as e:
             logger.error(str(e))

@@ -1,9 +1,12 @@
 import json
+import os
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
+from cryptography.hazmat.primitives import serialization
+from py_vapid import Vapid, b64urlencode
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
@@ -65,6 +68,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
 
+    t.env.globals["PUSH_NOTIFICATION_PUBKEY"] = get_push_notification_pubkey()
+
     return t
 
 
@@ -123,3 +128,15 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
     return {
         "parameters": params,
     }
+
+
+def get_push_notification_pubkey():
+    push_notification_key_file = os.path.join(
+        settings.lnbits_data_folder, "push_notification_vapid.{}"
+    )
+
+    privkey = Vapid().from_file(push_notification_key_file.format("pem"))
+    pubkey = privkey.public_key.public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+    )
+    return b64urlencode(pubkey)

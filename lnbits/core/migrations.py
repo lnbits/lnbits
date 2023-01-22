@@ -321,7 +321,20 @@ async def m011_optimize_balances_view(db):
     )
 
 
-async def m012_add_currency_to_wallet(db):
+async def m012_create_push_notification_subscriptions_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS push_notification_subscriptions (
+            endpoint TEXT NOT NULL,
+            wallet TEXT NOT NULL,
+            data TEXT NOT NULL,
+            host TEXT NOT NULL,
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        );
+    """
+    )
+
+async def m013_add_currency_to_wallet(db):
     await db.execute(
         """
         ALTER TABLE wallets ADD COLUMN currency TEXT

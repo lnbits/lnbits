@@ -33,7 +33,9 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
+    CreatePushNotificationSubscription,
     DecodePayment,
+    DeletePushNotificationSubscription,
     Payment,
     PaymentFilters,
     User,
@@ -68,17 +70,21 @@ from lnbits.utils.exchange_rates import (
 from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
+    create_push_notification_subscription,
     create_tinyurl,
     delete_dbversion,
     delete_installed_extension,
+    delete_push_notification_subscriptions,
     delete_tinyurl,
     drop_extension_db,
     get_dbversions,
     get_payments,
     get_payments_paginated,
+    get_push_notification_subscriptions_for_endpoint,
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
+    get_user,
     get_wallet_for_key,
     save_balance_check,
     update_wallet,
@@ -707,6 +713,44 @@ async def img(data):
             "Expires": "0",
         },
     )
+
+
+@core_app.post("/api/v1/push_notification", status_code=HTTPStatus.CREATED)
+async def api_create_push_notification_subscription(
+    request: Request,
+    data: CreatePushNotificationSubscription,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    subscription = json.loads(data.subscription)
+    endpoint = subscription["endpoint"]
+    host = urlparse(str(request.url)).netloc
+    wallet_ids = [wallet.wallet.id]
+
+    user = await get_user(wallet.wallet.user)
+    if user:
+        wallet_ids = user.wallet_ids
+
+    for wallet_id in wallet_ids:
+        new_subscription = await create_push_notification_subscription(
+            endpoint, wallet_id, data.subscription, host
+        )
+        assert (
+            new_subscription
+        ), "Newly created push notification subscription couldn't be retrieved"
+
+    return ""
+
+
+@core_app.delete("/api/v1/push_notification", status_code=HTTPStatus.NO_CONTENT)
+async def api_delete_push_notification_subscriptions(
+    data: DeletePushNotificationSubscription,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    await delete_push_notification_subscriptions(data.endpoint)
+    return ""
+
+
+##################UNIVERSAL WEBSOCKET MANAGER########################
 
 
 @core_app.websocket("/api/v1/ws/{item_id}")

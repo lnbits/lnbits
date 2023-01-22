@@ -10,10 +10,15 @@ from lnbits.tasks import (
     create_permanent_task,
     create_task,
     register_invoice_listener,
+    send_push_notification,
 )
 
 from . import db
-from .crud import get_balance_notify, get_wallet
+from .crud import (
+    get_balance_notify,
+    get_push_notification_subscriptions_for_wallet,
+    get_wallet,
+)
 from .models import Payment
 from .services import get_balance_delta, send_payment_notification, switch_to_voidwallet
 
@@ -119,6 +124,8 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
 
+        await send_payment_push_notification(payment)
+
 
 async def dispatch_api_invoice_listeners(payment: Payment):
     """
@@ -159,3 +166,29 @@ async def mark_webhook_sent(payment: Payment, status: int) -> None:
         """,
         (status, payment.payment_hash),
     )
+
+
+async def send_payment_push_notification(payment: Payment):
+    wallet = await get_wallet(payment.wallet_id)
+
+    if wallet:
+        subscriptions = await get_push_notification_subscriptions_for_wallet(wallet.id)
+
+        amount = int(payment.amount / 1000)
+        comment = payment.extra.get("comment")
+
+        title = f"LNbits: {wallet.name}"
+        body = f"You just received {amount} sat{'s'[:amount^1]}!"
+
+        if payment.memo:
+            body += f"\r\n{payment.memo}"
+
+        if comment:
+            body += f"\r\n{comment}"
+
+        for subscription in subscriptions:
+            url = (
+                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+            )
+            await send_push_notification(subscription, title, body, url)
+    return

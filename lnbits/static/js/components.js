@@ -346,3 +346,183 @@ Vue.component('lnbits-lnurlpay-success-action', {
     )
   }
 })
+
+Vue.component('lnbits-notifications-btn', {
+  mixins: [windowMixin],
+  props: ['pubkey'],
+  data() {
+    return {
+      isSupported: false,
+      isSubscribed: false,
+      isPermissionGranted: false,
+      isPermissionDenied: false
+    }
+  },
+  template: `
+    <q-btn
+      v-if="g.user.wallets"
+      :disabled="!this.isSupported"
+      dense
+      flat
+      round
+      @click="toggleNotifications()"
+      :icon="this.isSubscribed ? 'notifications_active' : 'notifications_off'"
+      size="sm"
+      type="a"
+    >
+      <q-tooltip v-if="this.isSupported && !this.isSubscribed">Subscribe to notifications</q-tooltip>
+      <q-tooltip v-if="this.isSupported && this.isSubscribed">Unsubscribe from notifications</q-tooltip>
+      <q-tooltip v-if="this.isSupported && this.isPermissionDenied">
+          Notifications are disabled,<br/>please enable or reset permissions
+      </q-tooltip>
+      <q-tooltip v-if="!this.isSupported">Notifications are not supported</q-tooltip>
+    </q-btn>
+  `,
+  methods: {
+    // converts base64 to Array buffer
+    urlB64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+      const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/')
+      const rawData = atob(base64)
+      const outputArray = new Uint8Array(rawData.length)
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i)
+      }
+
+      return outputArray
+    },
+    toggleNotifications() {
+      this.isSubscribed ? this.unsubscribe() : this.subscribe()
+    },
+    subscribe() {
+      var self = this
+
+      // catch clicks from disabled type='a' button (https://github.com/quasarframework/quasar/issues/9258)
+      if (!this.isSupported || this.isPermissionDenied) {
+        return
+      }
+
+      // ask for notification permission
+      Notification.requestPermission()
+        .then(permission => {
+          this.isPermissionGranted = permission === 'granted'
+          this.isPermissionDenied = permission === 'denied'
+        })
+        .catch(function (e) {
+          console.log(e)
+        })
+
+      // create push subscription
+      navigator.serviceWorker.ready.then(registration => {
+        navigator.serviceWorker
+          .getRegistration('/service_worker.js')
+          .then(registration => {
+            registration.pushManager
+              .getSubscription()
+              .then(function (subscription) {
+                if (subscription === null) {
+                  const applicationServerKey = self.urlB64ToUint8Array(
+                    self.pubkey
+                  )
+                  const options = {applicationServerKey, userVisibleOnly: true}
+
+                  registration.pushManager
+                    .subscribe(options)
+                    .then(function (subscription) {
+                      LNbits.api
+                        .request(
+                          'POST',
+                          '/api/v1/push_notification',
+                          self.g.user.wallets[0].adminkey,
+                          {
+                            subscription: JSON.stringify(subscription)
+                          }
+                        )
+                        .catch(function (error) {
+                          LNbits.utils.notifyApiError(error)
+                        })
+
+                      self.updateSubscriptionStatus()
+                    })
+                }
+              })
+              .catch(function (e) {
+                console.log(e)
+              })
+          })
+      })
+    },
+    unsubscribe() {
+      var self = this
+
+      navigator.serviceWorker.ready
+        .then(registration => {
+          registration.pushManager.getSubscription().then(subscription => {
+            if (subscription) {
+              subscription.unsubscribe().then(() => {
+                LNbits.api
+                  .request(
+                    'DELETE',
+                    '/api/v1/push_notification',
+                    self.g.user.wallets[0].adminkey,
+                    {
+                      endpoint: subscription.endpoint
+                    }
+                  )
+                  .catch(function (error) {
+                    LNbits.utils.notifyApiError(error)
+                  })
+
+                self.updateSubscriptionStatus()
+              })
+            }
+          })
+        })
+        .catch(function (e) {
+          console.log(e)
+        })
+    },
+    checkSupported: function () {
+      let https = window.location.protocol === 'https:'
+      let serviceWorkerApi = 'serviceWorker' in navigator
+      let notificationApi = 'Notification' in window
+      let pushApi = 'PushManager' in window
+
+      this.isSupported = https && serviceWorkerApi && notificationApi && pushApi
+
+      if (!this.isSupported) {
+        console.log('Notifications disabled, requirements are not met:', {
+          HTTPS: https,
+          'Service Worker API': serviceWorkerApi,
+          'Notification API': notificationApi,
+          'Push API': pushApi
+        })
+      }
+    },
+    updateSubscriptionStatus: async function () {
+      var self = this
+
+      await navigator.serviceWorker.ready
+        .then(registration => {
+          registration.pushManager.getSubscription().then(subscription => {
+            self.isSubscribed = !!subscription
+          })
+        })
+        .catch(function (e) {
+          console.log(e)
+        })
+    }
+  },
+  created: function () {
+    this.isPermissionDenied = Notification.permission === 'denied'
+
+    this.checkSupported()
+
+    if (this.isSupported) {
+      this.updateSubscriptionStatus()
+    }
+  }
+})

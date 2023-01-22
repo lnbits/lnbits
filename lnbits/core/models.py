@@ -330,3 +330,18 @@ class CreateTopup(BaseModel):
 
 class CreateLnurlAuth(BaseModel):
     callback: str
+
+class CreatePushNotificationSubscription(BaseModel):
+    subscription: str
+
+
+class DeletePushNotificationSubscription(BaseModel):
+    endpoint: str
+
+
+class PushNotificationSubscription(BaseModel):
+    endpoint: str
+    wallet: str
+    data: str
+    host: str
+    timestamp: str

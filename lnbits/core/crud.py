@@ -13,7 +13,7 @@ from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
+from .models import BalanceCheck, Payment, PaymentFilters, PushNotificationSubscription, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -871,4 +871,68 @@ async def delete_tinyurl(tinyurl_id: str):
     await db.execute(
         "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
+    )
+
+
+# push_notification
+# -----------------
+
+
+async def get_push_notification_subscription(
+    endpoint: str, wallet: str
+) -> Optional[PushNotificationSubscription]:
+    row = await db.fetchone(
+        "SELECT * FROM push_notification_subscriptions WHERE endpoint = ? AND wallet = ?",
+        (
+            endpoint,
+            wallet,
+        ),
+    )
+    return PushNotificationSubscription(**dict(row)) if row else None
+
+
+async def get_push_notification_subscriptions_for_endpoint(
+    endpoint: str,
+) -> List[PushNotificationSubscription]:
+    rows = await db.fetchall(
+        "SELECT * FROM push_notification_subscriptions WHERE endpoint = ?", (endpoint,)
+    )
+    return [PushNotificationSubscription(**dict(row)) for row in rows]
+
+
+async def get_push_notification_subscriptions_for_wallet(
+    wallet: str,
+) -> List[PushNotificationSubscription]:
+    rows = await db.fetchall(
+        "SELECT * FROM push_notification_subscriptions WHERE wallet = ?", (wallet,)
+    )
+    return [PushNotificationSubscription(**dict(row)) for row in rows]
+
+
+async def create_push_notification_subscription(
+    endpoint: str, wallet: str, data: str, host: str
+) -> PushNotificationSubscription:
+    await db.execute(
+        """
+        INSERT INTO push_notification_subscriptions (endpoint, wallet, data, host)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            endpoint,
+            wallet,
+            data,
+            host,
+        ),
+    )
+    subscription = await get_push_notification_subscription(endpoint, wallet)
+    assert subscription, "Newly created notification subscription couldn't be retrieved"
+    return subscription
+
+
+async def delete_push_notification_subscriptions(endpoint: str) -> None:
+    """
+    Delete all push notification subscriptions of wallets subscribed to this endpoint.
+    """
+    await db.execute(
+        "DELETE FROM push_notification_subscriptions WHERE endpoint = ?", (endpoint,)
     )
