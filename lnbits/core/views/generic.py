@@ -43,6 +43,15 @@ async def home(request: Request, lightning: str = ""):
     )
 
 
+@core_html_routes.get("/robots.txt", response_class=HTMLResponse)
+async def robots():
+    data = """
+    User-agent: *
+    Disallow: /
+    """
+    return HTMLResponse(content=data, media_type="text/plain")
+
+
 @core_html_routes.get(
     "/extensions", name="core.extensions", response_class=HTMLResponse
 )
