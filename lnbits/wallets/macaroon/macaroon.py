@@ -7,7 +7,6 @@ from Cryptodome.Cipher import AES
 from loguru import logger
 
 BLOCK_SIZE = 16
-import getpass
 
 
 def load_macaroon(macaroon: str) -> str:
