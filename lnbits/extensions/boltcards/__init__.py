@@ -30,7 +30,7 @@ from .tasks import *  # noqa: F401,F403
 
 def boltcards_start():
     loop = asyncio.get_event_loop()
-    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))  # noqa: F405
 
 
 from .views import *  # noqa: F401,F403
