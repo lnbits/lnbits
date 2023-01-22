@@ -7,6 +7,13 @@ import httpx
 from loguru import logger
 from websocket import create_connection
 
+from websockets import connect  # type: ignore
+from websockets.exceptions import (
+    ConnectionClosed,
+    ConnectionClosedError,
+    ConnectionClosedOK,
+)
+
 from lnbits.settings import settings
 
 from .base import (
@@ -151,19 +158,22 @@ class ClicheWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                ws = await create_connection(self.endpoint)
-                while True:
-                    r = await ws.recv()
-                    data = json.loads(r)
-                    print(data)
-                    try:
-                        if data["result"]["status"]:
-                            yield data["result"]["payment_hash"]
-                    except:
-                        continue
+                async with connect(
+                    self.endpoint
+                ) as ws:
+                    while True:
+                        r = await ws.recv()
+                        data = json.loads(r)
+                        logger.info(data)
+                        try:
+                            if data["result"]["status"]:
+                                yield data["result"]["payment_hash"]
+                        except:
+                            continue
+    
+
             except Exception as exc:
                 logger.error(
-                    f"lost connection to cliche's invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to cliche invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
-                continue
