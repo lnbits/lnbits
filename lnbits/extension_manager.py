@@ -138,11 +138,9 @@ class ExtensionRelease(BaseModel):
             return []
 
 
-class GitHubRepoRelease(BaseModel):
-    name: str
-    tag_name: str
-    zipball_url: str
-    html_url: str
+class Manifest(BaseModel):
+    extensions: List["ExplicitRelease"] = []
+    repos: List["GitHubRelease"] = []
 
 
 class ExplicitRelease(BaseModel):
@@ -164,6 +162,25 @@ class GitHubRelease(BaseModel):
     id: str
     organisation: str
     repository: str
+
+
+class GitHubRepoRelease(BaseModel):
+    name: str
+    tag_name: str
+    zipball_url: str
+    html_url: str
+
+
+class GitHubRepo(BaseModel):
+    stargazers_count: str
+    html_url: str
+    default_branch: str
+
+
+class ExtensionConfig(BaseModel):
+    name: str
+    short_description: str
+    tile: str
 
 
 class InstallableExtension(BaseModel):
@@ -431,18 +448,6 @@ class InstallableExtension(BaseModel):
         return selected_release[0] if len(selected_release) != 0 else None
 
 
-class GitHubRepo(BaseModel):
-    stargazers_count: str
-    html_url: str
-    default_branch: str
-
-
-class ExtensionConfig(BaseModel):
-    name: str
-    short_description: str
-    tile: str
-
-
 class InstalledExtensionMiddleware:
     # This middleware class intercepts calls made to the extensions API and:
     #  - it blocks the calls if the extension has been disabled or uninstalled.
@@ -492,11 +497,6 @@ class CreateExtension(BaseModel):
     ext_id: str
     archive: str
     source_repo: str
-
-
-class Manifest(BaseModel):
-    extensions: List[ExplicitRelease] = []
-    repos: List[GitHubRelease] = []
 
 
 def get_valid_extensions() -> List[Extension]:
