@@ -138,11 +138,6 @@ class ExtensionRelease(BaseModel):
             return []
 
 
-class Manifest(BaseModel):
-    extensions: List["ExplicitRelease"] = []
-    repos: List["GitHubRelease"] = []
-
-
 class ExplicitRelease(BaseModel):
     id: str
     name: str
@@ -162,6 +157,11 @@ class GitHubRelease(BaseModel):
     id: str
     organisation: str
     repository: str
+
+
+class Manifest(BaseModel):
+    extensions: List["ExplicitRelease"] = []
+    repos: List["GitHubRelease"] = []
 
 
 class GitHubRepoRelease(BaseModel):
