@@ -5,6 +5,7 @@ import subprocess
 from os import path
 from sqlite3 import Row
 from typing import List, Optional
+from pydantic import Extra
 
 import httpx
 from loguru import logger
@@ -33,6 +34,7 @@ class LNbitsSettings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
+        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
