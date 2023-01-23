@@ -43,7 +43,11 @@ class UsersSettings(LNbitsSettings):
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
-    lnbits_extensions_manifests: List[str] = Field(default=[])
+    lnbits_extensions_manifests: List[str] = Field(
+        default=[
+            "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
+        ]
+    )
 
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
