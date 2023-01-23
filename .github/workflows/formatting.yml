@@ -24,7 +24,9 @@ jobs:
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install packages
-        run: poetry install
+        run: |
+          poetry config virtualenvs.create false
+          poetry install
       - name: Check black
         run: make checkblack
       - name: Check isort
