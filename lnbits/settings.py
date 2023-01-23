@@ -1,65 +1,46 @@
-from __future__ import annotations
-
 import importlib
-import importlib.metadata
 import inspect
 import json
 import subprocess
 from os import path
 from sqlite3 import Row
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 
-def list_parse_fallback(v: str):
-    v = v.replace(" ", "")
-    if len(v) > 0:
-        if v.startswith("[") or v.startswith("{"):
-            return json.loads(v)
+def list_parse_fallback(v):
+    try:
+        return json.loads(v)
+    except Exception:
+        replaced = v.replace(" ", "")
+        if replaced:
+            return replaced.split(",")
         else:
-            return v.split(",")
-    else:
-        return []
+            return []
 
 
-class LNbitsSettings(BaseModel):
-    @classmethod
-    def validate_list(cls, val):
-        if isinstance(val, str):
+class LNbitsSettings(BaseSettings):
+    def validate(cls, val):
+        if type(val) == str:
             val = val.split(",") if val else []
         return val
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
+        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
-
-
-class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
-    lnbits_extensions_manifests: List[str] = Field(
-        default=[
-            "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
-        ]
-    )
-
-
-class ExtensionsInstallSettings(LNbitsSettings):
-    lnbits_extensions_default_install: List[str] = Field(default=[])
-    # required due to GitHUb rate-limit
-    lnbits_ext_github_token: str = Field(default="")
-
-
-class InstalledExtensionsSettings(LNbitsSettings):
-    # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: List[str] = Field(default=[])
-    # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: List[str] = Field(default=[])
-    # list of redirects that extensions want to perform
-    lnbits_extensions_redirects: List[Any] = Field(default=[])
+    lnbits_disabled_extensions: List[str] = Field(default=[])
 
 
 class ThemesSettings(LNbitsSettings):
@@ -68,15 +49,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_description: str = Field(default=None)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
     lnbits_theme_options: List[str] = Field(
-        default=[
-            "classic",
-            "freedom",
-            "mint",
-            "salvador",
-            "monochrome",
-            "autumn",
-            "cyber",
-        ]
+        default=["classic", "flamingo", "mint", "salvador", "monochrome", "autumn"]
     )
     lnbits_custom_logo: str = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Supported by")
@@ -84,35 +57,15 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
-    lnbits_allowed_currencies: List[str] = Field(default=[])
-    lnbits_default_accounting_currency: Optional[str] = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
-    lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
+    lnbits_force_https: bool = Field(default=False)
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
-
-
-class SecuritySettings(LNbitsSettings):
-    lnbits_rate_limit_no: str = Field(default="200")
-    lnbits_rate_limit_unit: str = Field(default="minute")
-    lnbits_allowed_ips: List[str] = Field(default=[])
-    lnbits_blocked_ips: List[str] = Field(default=[])
-    lnbits_notifications: bool = Field(default=False)
-    lnbits_killswitch: bool = Field(default=False)
-    lnbits_killswitch_interval: int = Field(default=60)
-    lnbits_watchdog: bool = Field(default=False)
-    lnbits_watchdog_interval: int = Field(default=60)
-    lnbits_watchdog_delta: int = Field(default=1_000_000)
-    lnbits_status_manifest: str = Field(
-        default=(
-            "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
-        )
-    )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -122,8 +75,6 @@ class FakeWalletFundingSource(LNbitsSettings):
 class LNbitsFundingSource(LNbitsSettings):
     lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
-    lnbits_admin_key: Optional[str] = Field(default=None)
-    lnbits_invoice_key: Optional[str] = Field(default=None)
 
 
 class ClicheFundingSource(LNbitsSettings):
@@ -133,12 +84,6 @@ class ClicheFundingSource(LNbitsSettings):
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
     clightning_rpc: Optional[str] = Field(default=None)
-
-
-class CoreLightningRestFundingSource(LNbitsSettings):
-    corelightning_rest_url: Optional[str] = Field(default=None)
-    corelightning_rest_macaroon: Optional[str] = Field(default=None)
-    corelightning_rest_cert: Optional[str] = Field(default=None)
 
 
 class EclairFundingSource(LNbitsSettings):
@@ -172,14 +117,16 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)
     lnpay_wallet_key: Optional[str] = Field(default=None)
-    lnpay_admin_key: Optional[str] = Field(default=None)
+
+
+class LnTxtBotFundingSource(LNbitsSettings):
+    lntxbot_api_endpoint: Optional[str] = Field(default=None)
+    lntxbot_key: Optional[str] = Field(default=None)
 
 
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
-    opennode_admin_key: Optional[str] = Field(default=None)
-    opennode_invoice_key: Optional[str] = Field(default=None)
 
 
 class SparkFundingSource(LNbitsSettings):
@@ -202,20 +149,16 @@ class BoltzExtensionSettings(LNbitsSettings):
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
 
-class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=3600)
-
-
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
     ClicheFundingSource,
     CoreLightningFundingSource,
-    CoreLightningRestFundingSource,
     EclairFundingSource,
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
+    LnTxtBotFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -223,43 +166,23 @@ class FundingSourcesSettings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
 
-class WebPushSettings(LNbitsSettings):
-    lnbits_webpush_pubkey: str = Field(default=None)
-    lnbits_webpush_privkey: str = Field(default=None)
-
-
-class NodeUISettings(LNbitsSettings):
-    # on-off switch for node ui
-    lnbits_node_ui: bool = Field(default=False)
-    # whether to display the public node ui (only if lnbits_node_ui is True)
-    lnbits_public_node_ui: bool = Field(default=False)
-    # can be used to disable the transactions tab in the node ui
-    # (recommended for large cln nodes)
-    lnbits_node_ui_transactions: bool = Field(default=False)
-
-
 class EditableSettings(
     UsersSettings,
-    ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
-    SecuritySettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
-    LightningSettings,
-    WebPushSettings,
-    NodeUISettings,
 ):
     @validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
+        "lnbits_disabled_extensions",
         pre=True,
     )
-    @classmethod
     def validate_editable_settings(cls, val):
-        return super().validate_list(val)
+        return super().validate(cls, val)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -267,35 +190,16 @@ class EditableSettings(
             **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
         )
 
-    # fixes openapi.json validation, remove field env_names
-    class Config:
-        @staticmethod
-        def schema_extra(schema: dict[str, Any]) -> None:
-            for prop in schema.get("properties", {}).values():
-                prop.pop("env_names", None)
-
-
-class UpdateSettings(EditableSettings):
-    class Config:
-        extra = Extra.forbid
-
 
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
-    bundle_assets: bool = Field(default=True)
+    file_log: bool = Field(default=False)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
     forwarded_allow_ips: str = Field(default="*")
-    lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
-    lnbits_extensions_path: str = Field(default="lnbits")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
-    version: str = Field(default="0.0.0")
-
-    @property
-    def has_default_extension_path(self) -> bool:
-        return self.lnbits_extensions_path == "lnbits"
 
 
 class SaaSSettings(LNbitsSettings):
@@ -314,37 +218,20 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "VoidWallet",
             "FakeWallet",
-            "CoreLightningWallet",
-            "CoreLightningRestWallet",
+            "CLightningWallet",
             "LndRestWallet",
-            "EclairWallet",
             "LndWallet",
-            "LnTipsWallet",
+            "LntxbotWallet",
             "LNPayWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
+            "LnTipsWallet",
         ]
     )
 
 
-class TransientSettings(InstalledExtensionsSettings):
-    # Transient Settings:
-    #  - are initialized, updated and used at runtime
-    #  - are not read from a file or from the `settings` table
-    #  - are not persisted in the `settings` table when the settings are updated
-    #  - are cleared on server restart
-
-    @classmethod
-    def readonly_fields(cls):
-        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
-
-
 class ReadOnlySettings(
-    EnvSettings,
-    ExtensionsInstallSettings,
-    SaaSSettings,
-    PersistenceSettings,
-    SuperUserSettings,
+    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
@@ -352,26 +239,19 @@ class ReadOnlySettings(
         "lnbits_allowed_funding_sources",
         pre=True,
     )
-    @classmethod
     def validate_readonly_settings(cls, val):
-        return super().validate_list(val)
+        return super().validate(cls, val)
 
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
+class Settings(EditableSettings, ReadOnlySettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
         return cls(**data)
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
 
 
 class SuperSettings(EditableSettings):
@@ -379,13 +259,25 @@ class SuperSettings(EditableSettings):
 
 
 class AdminSettings(EditableSettings):
-    is_super_user: bool
+    super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
 
 
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
+
+
+# set wallet class after settings are loaded
+def set_wallet_class():
+    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+    global WALLET
+    WALLET = wallet_class()
+
+
+def get_wallet_class():
+    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+    return WALLET
 
 
 def send_admin_user_to_saas():
@@ -408,13 +300,13 @@ def send_admin_user_to_saas():
                 logger.success("sent super_user to saas application")
             except Exception as e:
                 logger.error(
-                    "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {str(e)}"
+                    f"error sending super_user to saas: {settings.lnbits_saas_callback}. Error: {str(e)}"
                 )
 
 
+############### INIT #################
+
 readonly_variables = ReadOnlySettings.readonly_fields()
-transient_variables = TransientSettings.readonly_fields()
 
 settings = Settings()
 
@@ -429,22 +321,19 @@ try:
         .strip()
         .decode("ascii")
     )
-except Exception:
+except:
     settings.lnbits_commit = "docker"
 
-settings.version = importlib.metadata.version("lnbits")
 
-# printing environment variable for debugging
+# printing enviroment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
+    logger.debug(f"Enviroment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
 
-def get_wallet_class():
-    """
-    Backwards compatibility
-    """
-    from lnbits.wallets import get_wallet_class
+wallets_module = importlib.import_module("lnbits.wallets")
+FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
-    return get_wallet_class()
+# initialize as fake wallet
+WALLET = FAKE_WALLET
