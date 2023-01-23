@@ -220,14 +220,14 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "VoidWallet",
             "FakeWallet",
-            "CLightningWallet",
+            "CoreLightningWallet",
             "LndRestWallet",
+            "EclairWallet",
             "LndWallet",
-            "LntxbotWallet",
+            "LnTipsWallet",
             "LNPayWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
-            "LnTipsWallet",
         ]
     )
 
