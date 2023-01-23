@@ -224,21 +224,17 @@ gertyname }}{% endraw %}{% endblock %}{% block page %} {% raw %}
             this.gertyname = this.gerty[i].settings.name
           }
           if (this.gerty[i].screen.group == 'fun_satoshi_quotes') {
-            this.fun_satoshi_quotes['quote'] = this.gerty[
-              i
-            ].screen.areas[0][0].value
-            this.fun_satoshi_quotes['date'] = this.gerty[
-              i
-            ].screen.areas[0][1].value
+            this.fun_satoshi_quotes['quote'] =
+              this.gerty[i].screen.areas[0][0].value
+            this.fun_satoshi_quotes['date'] =
+              this.gerty[i].screen.areas[0][1].value
             this.gertyname = this.gerty[i].settings.name
           }
           if (this.gerty[i].screen.group == 'fun_exchange_market_rate') {
-            this.fun_exchange_market_rate['unit'] = this.gerty[
-              i
-            ].screen.areas[0][0].value
-            this.fun_exchange_market_rate['amount'] = this.gerty[
-              i
-            ].screen.areas[0][1].value
+            this.fun_exchange_market_rate['unit'] =
+              this.gerty[i].screen.areas[0][0].value
+            this.fun_exchange_market_rate['amount'] =
+              this.gerty[i].screen.areas[0][1].value
             this.gertyname = this.gerty[i].settings.name
           }
         }

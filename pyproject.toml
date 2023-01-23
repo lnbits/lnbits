@@ -86,6 +86,14 @@ lnbits = "lnbits.server:main"
 [tool.isort]
 profile = "black"
 
+[tool.pyright]
+include = [
+  "lnbits"
+]
+exclude = [
+  "lnbits/wallets/lnd_grpc_files",
+]
+
 [tool.mypy]
 files = "lnbits"
 exclude = """(?x)(
