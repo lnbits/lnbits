@@ -3,14 +3,46 @@ name: integration-tests
 on: [push, pull_request]
 
 jobs:
-  XXX:
+  postgres:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         python-version: ["3.9"]
         poetry-version: ["1.2.1"]
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: setup-jmeter
+      - name: Start LNbits
+        run: |
+          poetry run lnbits > server.log
+          cat server.log
+          # cat server.log | grep "Access super user account at:" | awk -F= '{print $2}'
       - name: setup-jmeter
         run: |
           sudo apt-get update
