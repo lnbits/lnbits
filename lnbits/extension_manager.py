@@ -7,7 +7,7 @@ import urllib.request
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any, List, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional, Tuple
 
 import httpx
 from fastapi.exceptions import HTTPException
@@ -112,29 +112,58 @@ class ExtensionRelease(BaseModel):
     details_html: Optional[str] = None
 
     @classmethod
-    def from_github_release(cls, source_repo: str, r: dict) -> "ExtensionRelease":
+    def from_github_release(
+        cls, source_repo: str, r: "GitHubRepoRelease"
+    ) -> "ExtensionRelease":
         return ExtensionRelease(
-            name=r["name"],
-            description=r["name"],
-            version=r["tag_name"],
-            archive=r["zipball_url"],
+            name=r.name,
+            description=r.name,
+            version=r.tag_name,
+            archive=r.zipball_url,
             source_repo=source_repo,
-            # description=r["body"], # bad for JSON
-            html_url=r["html_url"],
+            # description=r.body, # bad for JSON
+            html_url=r.html_url,
         )
 
     @classmethod
-    async def all_releases(cls, org, repo) -> List["ExtensionRelease"]:
+    async def all_releases(cls, org: str, repo: str) -> List["ExtensionRelease"]:
         try:
-            releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
-            error_msg = "Cannot fetch extension releases"
-            releases = await gihub_api_get(releases_url, error_msg)
+            github_releases = await fetch_github_releases(org, repo)
             return [
                 ExtensionRelease.from_github_release(f"{org}/{repo}", r)
-                for r in releases
+                for r in github_releases
             ]
-        except:
+        except Exception as e:
+            logger.warning(e)
             return []
+
+
+class GitHubRepoRelease(BaseModel):
+    name: str
+    tag_name: str
+    zipball_url: str
+    html_url: str
+
+
+class ExplicitRelease(BaseModel):
+    id: str
+    name: str
+    version: str
+    archive: str
+    hash: str
+    dependencies: List[str] = []
+    icon: Optional[str]
+    short_description: Optional[str]
+    html_url: Optional[str]
+    details: Optional[str]
+    info_notification: Optional[str]
+    critical_notification: Optional[str]
+
+
+class GitHubRelease(BaseModel):
+    id: str
+    organisation: str
+    repository: str
 
 
 class InstallableExtension(BaseModel):
@@ -185,7 +214,10 @@ class InstallableExtension(BaseModel):
     def has_installed_version(self) -> bool:
         if not Path(self.ext_dir).is_dir():
             return False
-        with open(os.path.join(self.ext_dir, "config.json"), "r") as json_file:
+        config_file = os.path.join(self.ext_dir, "config.json")
+        if not Path(config_file).is_file():
+            return False
+        with open(config_file, "r") as json_file:
             config_json = json.load(json_file)
             return config_json.get("is_installed") == True
 
@@ -282,21 +314,26 @@ class InstallableExtension(BaseModel):
         return ext
 
     @classmethod
-    async def from_repo(
-        cls, ext_id, org, repo_name
+    async def from_github_release(
+        cls, github_release: GitHubRelease
     ) -> Optional["InstallableExtension"]:
         try:
-            repo, latest_release, config = await fetch_github_repo_info(org, repo_name)
+            repo, latest_release, config = await fetch_github_repo_info(
+                github_release.organisation, github_release.repository
+            )
 
             return InstallableExtension(
-                id=ext_id,
-                name=config.get("name"),
-                short_description=config.get("short_description"),
+                id=github_release.id,
+                name=config.name,
+                short_description=config.short_description,
                 version="0",
-                stars=repo["stargazers_count"],
-                icon_url=icon_to_github_url(f"{org}/{repo_name}", config.get("tile")),
+                stars=repo.stargazers_count,
+                icon_url=icon_to_github_url(
+                    f"{github_release.organisation}/{github_release.repository}",
+                    config.tile,
+                ),
                 latest_release=ExtensionRelease.from_github_release(
-                    repo["html_url"], latest_release
+                    repo.html_url, latest_release
                 ),
             )
         except Exception as e:
@@ -304,15 +341,15 @@ class InstallableExtension(BaseModel):
         return None
 
     @classmethod
-    def from_manifest(cls, e: dict) -> "InstallableExtension":
+    def from_explicit_release(cls, e: ExplicitRelease) -> "InstallableExtension":
         return InstallableExtension(
-            id=e["id"],
-            name=e["name"],
-            archive=e["archive"],
-            hash=e["hash"],
-            short_description=e["shortDescription"],
-            icon=e["icon"],
-            dependencies=e["dependencies"] if "dependencies" in e else [],
+            id=e.id,
+            name=e.name,
+            archive=e.archive,
+            hash=e.hash,
+            short_description=e.short_description,
+            icon=e.icon,
+            dependencies=e.dependencies,
         )
 
     @classmethod
@@ -324,24 +361,21 @@ class InstallableExtension(BaseModel):
 
         for url in settings.lnbits_extensions_manifests:
             try:
-                error_msg = "Cannot fetch extensions manifest"
-                manifest = await gihub_api_get(url, error_msg)
+                manifest = await fetch_manifest(url)
 
-                for r in manifest.get("repos", []):
-                    if r["id"] in extension_id_list:
+                for r in manifest.repos:
+                    if r.id in extension_id_list:
                         continue
-                    ext = await InstallableExtension.from_repo(
-                        r["id"], r["organisation"], r["repository"]
-                    )
+                    ext = await InstallableExtension.from_github_release(r)
                     if ext:
                         extension_list += [ext]
                         extension_id_list += [ext.id]
 
-                for e in manifest.get("extensions", []):
-                    if e["id"] in extension_id_list:
+                for e in manifest.extensions:
+                    if e.id in extension_id_list:
                         continue
-                    extension_list += [InstallableExtension.from_manifest(e)]
-                    extension_id_list += [e["id"]]
+                    extension_list += [InstallableExtension.from_explicit_release(e)]
+                    extension_id_list += [e.id]
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")
 
@@ -353,31 +387,28 @@ class InstallableExtension(BaseModel):
 
         for url in settings.lnbits_extensions_manifests:
             try:
-                error_msg = "Cannot fetch extensions manifest"
-                manifest = await gihub_api_get(url, error_msg)
-                if "repos" in manifest:
-                    for r in manifest["repos"]:
-                        if r["id"] == ext_id:
-                            repo_releases = await ExtensionRelease.all_releases(
-                                r["organisation"], r["repository"]
-                            )
-                            extension_releases += repo_releases
+                manifest = await fetch_manifest(url)
+                for r in manifest.repos:
+                    if r.id == ext_id:
+                        repo_releases = await ExtensionRelease.all_releases(
+                            r.organisation, r.repository
+                        )
+                        extension_releases += repo_releases
 
-                if "extensions" in manifest:
-                    for e in manifest["extensions"]:
-                        if e["id"] == ext_id:
-                            extension_releases += [
-                                ExtensionRelease(
-                                    name=e["name"],
-                                    version=e["version"],
-                                    archive=e["archive"],
-                                    hash=e["hash"],
-                                    source_repo=url,
-                                    description=e["shortDescription"],
-                                    details_html=e.get("details"),
-                                    html_url=e.get("htmlUrl"),
-                                )
-                            ]
+                for e in manifest.extensions:
+                    if e.id == ext_id:
+                        extension_releases += [
+                            ExtensionRelease(
+                                name=e.name,
+                                version=e.version,
+                                archive=e.archive,
+                                hash=e.hash,
+                                source_repo=url,
+                                description=e.short_description,
+                                details_html=e.details,
+                                html_url=e.html_url,
+                            )
+                        ]
 
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")
@@ -398,6 +429,18 @@ class InstallableExtension(BaseModel):
         ]
 
         return selected_release[0] if len(selected_release) != 0 else None
+
+
+class GitHubRepo(BaseModel):
+    stargazers_count: str
+    html_url: str
+    default_branch: str
+
+
+class ExtensionConfig(BaseModel):
+    name: str
+    short_description: str
+    tile: str
 
 
 class InstalledExtensionMiddleware:
@@ -451,6 +494,11 @@ class CreateExtension(BaseModel):
     source_repo: str
 
 
+class Manifest(BaseModel):
+    extensions: List[ExplicitRelease] = []
+    repos: List[GitHubRelease] = []
+
+
 def get_valid_extensions() -> List[Extension]:
     return [
         extension for extension in ExtensionManager().extensions if extension.is_valid
@@ -481,22 +529,42 @@ def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
     return f"https://github.com/{source_repo}/raw/main/{tail}"
 
 
-async def fetch_github_repo_info(org: str, repository: str):
+async def fetch_github_repo_info(
+    org: str, repository: str
+) -> Tuple[GitHubRepo, GitHubRepoRelease, ExtensionConfig]:
     repo_url = f"https://api.github.com/repos/{org}/{repository}"
     error_msg = "Cannot fetch extension repo"
     repo = await gihub_api_get(repo_url, error_msg)
+    github_repo = GitHubRepo.parse_obj(repo)
 
     lates_release_url = (
         f"https://api.github.com/repos/{org}/{repository}/releases/latest"
     )
     error_msg = "Cannot fetch extension releases"
-    latest_release = await gihub_api_get(lates_release_url, error_msg)
+    latest_release: Any = await gihub_api_get(lates_release_url, error_msg)
 
-    config_url = f"""https://raw.githubusercontent.com/{org}/{repository}/{repo["default_branch"]}/config.json"""
+    config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
     config = await gihub_api_get(config_url, error_msg)
 
-    return repo, latest_release, config
+    return (
+        github_repo,
+        GitHubRepoRelease.parse_obj(latest_release),
+        ExtensionConfig.parse_obj(config),
+    )
+
+
+async def fetch_manifest(url) -> Manifest:
+    error_msg = "Cannot fetch extensions manifest"
+    manifest = await gihub_api_get(url, error_msg)
+    return Manifest.parse_obj(manifest)
+
+
+async def fetch_github_releases(org: str, repo: str) -> List[GitHubRepoRelease]:
+    releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
+    error_msg = "Cannot fetch extension releases"
+    releases = await gihub_api_get(releases_url, error_msg)
+    return [GitHubRepoRelease.parse_obj(r) for r in releases]
 
 
 async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:
