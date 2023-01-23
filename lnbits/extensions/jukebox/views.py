@@ -31,6 +31,8 @@ async def connect_to_jukebox(request: Request, juke_id):
         )
     devices = await api_get_jukebox_device_check(juke_id)
     deviceConnected = False
+    assert jukebox.sp_device
+    assert jukebox.sp_playlists
     for device in devices["devices"]:
         if device["id"] == jukebox.sp_device.split("-")[1]:
             deviceConnected = True
