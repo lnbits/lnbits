@@ -79,7 +79,9 @@
         <li>Onchain lockup tx fee: whatever you choose when paying</li>
         <li>Onchain claim tx fee: ~500 sats</li>
         <li>Routing fees (paid by boltz): unknown</li>
-        <li>Boltz fees: 500 sats (0.5%)</li>
+        {% raw %}
+        <li>Boltz fees: 500 sats ({{ boltzConfig.fee_percentage }}%)</li>
+        {% endraw %}
         <li>Fees total: 1000 sats + lockup_fee</li>
         <li>You pay onchain: 101.000 sats + lockup_fee</li>
         <li>You receive lightning: 100.000 sats</li>
