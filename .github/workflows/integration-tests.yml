@@ -22,6 +22,6 @@ jobs:
           cd $GITHUB_WORKSPACE/apache-jmeter-5.3/lib/ext && sudo curl -O https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.6/jmeter-plugins-manager-1.6.jar
           cd $GITHUB_WORKSPACE/apache-jmeter-5.3/lib && sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install-all-except jpgc-hadoop,jpgc-oauth,ulp-jmeter-autocorrelator-plugin,ulp-jmeter-videostreaming-plugin,ulp-jmeter-gwt-plugin,tilln-iso8583
 
-      - name: run-jmeter-test
+      - name: run-jmeter-tests
         run: |
           $GITHUB_WORKSPACE/apache-jmeter-5.3/bin/./jmeter.sh -n -t tests/loadtests/watchonly-satspay-tipjar.jmx -l watchonly-satspay-tipjar-result.jtl
