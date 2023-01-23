@@ -137,7 +137,8 @@ async def check_installed_extensions(app: FastAPI):
             if not installed:
                 await restore_installed_extension(app, ext)
                 logger.info(f"✔️ Successfully re-installed extension: {ext.id}")
-        except:
+        except Exception as e:
+            logger.warning(e)
             logger.warning(f"Failed to re-install extension: {ext.id}")
 
 
