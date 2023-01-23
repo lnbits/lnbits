@@ -11,38 +11,17 @@ jobs:
         poetry-version: ["1.2.1"]
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Setup LNbits with DB
+      - name: setup-jmeter
         run: |
-          docker build -t lnbitsdocker/lnbits-legend .
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
-          chmod +x ./tests
-          ./tests
-          sudo chmod -R a+rwx .
-      - name: Install dependencies
+          sudo apt-get update
+          sudo apt install curl -y
+          sudo apt install -y default-jdk
+          sudo curl -O https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.5.tgz 
+          sudo tar -xvf apache-jmeter-5.3.tgz
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.3/lib && sudo curl -O https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.2.1/cmdrunner-2.2.1.jar
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.3/lib/ext && sudo curl -O https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.6/jmeter-plugins-manager-1.6.jar
+          cd $GITHUB_WORKSPACE/apache-jmeter-5.3/lib && sudo java -jar cmdrunner-2.2.1.jar --tool org.jmeterplugins.repository.PluginManagerCMD install-all-except jpgc-hadoop,jpgc-oauth,ulp-jmeter-autocorrelator-plugin,ulp-jmeter-videostreaming-plugin,ulp-jmeter-gwt-plugin,tilln-iso8583
+
+      - name: run-jmeter-test
         run: |
-          poetry install
-      - name: Run tests
-        env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
-          LND_REST_ENDPOINT: https://localhost:8081/
-          LND_REST_CERT: ./docker/data/lnd-1/tls.cert
-          LND_REST_MACAROON: ./docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
+          $GITHUB_WORKSPACE/apache-jmeter-5.3/bin/./jmeter.sh -n -t tests/loadtests/watchonly-satspay-tipjar.jmx -l watchonly-satspay-tipjar-result.jtl
