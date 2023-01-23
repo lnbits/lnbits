@@ -1,0 +1,48 @@
+name: regtest
+
+on: [push, pull_request]
+
+jobs:
+  XXX:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.2.1"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Setup LNbits with DB
+        run: |
+          docker build -t lnbitsdocker/lnbits-legend .
+          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
+          cd docker
+          chmod +x ./tests
+          ./tests
+          sudo chmod -R a+rwx .
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: Run tests
+        env:
+          PYTHONUNBUFFERED: 1
+          PORT: 5123
+          LNBITS_DATA_FOLDER: ./data
+          LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
+          LND_REST_ENDPOINT: https://localhost:8081/
+          LND_REST_CERT: ./docker/data/lnd-1/tls.cert
+          LND_REST_MACAROON: ./docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
+        run: |
+          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
+          make test-real-wallet
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml

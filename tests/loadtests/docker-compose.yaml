@@ -18,7 +18,7 @@ services:
       - lnbits-net
 
   postgres-db:
-    container_name: postgres_container
+    container_name: postgres_db_container
     image: postgres:14
     environment:
       POSTGRES_DB: lnbits_db
@@ -44,3 +44,5 @@ services:
     # environment:
     # volumes:
     #    - ./data/jmeter:/data/postgres
+
+# https://github.com/peter-evans/docker-compose-actions-workflow
