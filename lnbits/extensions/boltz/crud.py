@@ -15,7 +15,6 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-from .utils import create_boltz_client, execute_reverse_swap
 
 
 async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[SubmarineSwap]:

@@ -6,30 +6,88 @@
       style="padding: 5px 9px"
       alt=""
     />
+    <p><b>NON CUSTODIAL atomic swap service</b></p>
     <h5 class="text-subtitle1 q-my-none">
-      Boltz.exchange: Do onchain to offchain and vice-versa swaps
+      Providing trustless and account-free swap services since 2018. Move IN and
+      OUT of the lightning network and remain in control of your bitcoin, at all
+      time.
     </h5>
     <p>
-      Submarine and Reverse Submarine Swaps on LNbits via boltz.exchange API<br />
-    </p>
-    <p>
-      Link :
+      Link:
       <a target="_blank" href="https://boltz.exchange"
         >https://boltz.exchange
       </a>
-    </p>
-    <p>
+      <br />
+      README:
       <a
         target="_blank"
         href="https://github.com/lnbits/lnbits-legend/tree/main/lnbits/extensions/boltz"
-        >More details</a
+        >read more</a
       >
     </p>
     <p>
       <small
-        >Created by,
+        >Extension created by,
         <a target="_blank" href="https://github.com/dni">dni</a></small
       >
     </p>
   </q-card-section>
+</q-card>
+<q-card>
+  <q-card-section>
+    <h3 class="text-subtitle1 q-my-none">
+      <b>Fee Information</b>
+    </h3>
+    <span>
+      Every swap consists of 2 onchain transactions, lockup and claim / refund,
+      routing fees and a Boltz fee of <b>0.5%</b>.
+    </span>
+  </q-card-section>
+  <q-expansion-item
+    group="extras"
+    icon="swap_vertical_circle"
+    label="Fee example: Lightning -> Onchain"
+    :content-inset-level="0.5"
+  >
+    <q-card-section>
+      You want to swap out 100.000 sats, Lightning to Onchain:
+      <ul style="padding-left: 12px">
+        <li>Onchain lockup tx fee: ~500 sats</li>
+        <li>Onchain claim tx fee: 1000 sats (hardcoded)</li>
+        <li>Routing fees (paid by you): unknown</li>
+        <li>Boltz fees: 500 sats</li>
+        <li>Fees total: 2000 sats + routing fees</li>
+        <li>You receive: 98.000 sats</li>
+      </ul>
+      <p>
+        onchain_amount_received = amount - (amount * boltz_fee / 100) -
+        lockup_fee - claim_fee
+      </p>
+      <p>98.000 = 100.000 - 500 - 500 - 1000</p>
+    </q-card-section>
+  </q-expansion-item>
+  <q-expansion-item
+    group="extras"
+    icon="swap_vertical_circle"
+    label="Fee example: Onchain -> Lightning"
+    :content-inset-level="0.5"
+  >
+    <q-card-section>
+      You want to swap in 100.000 sats, Onchain to Lightning:
+      <ul style="padding-left: 12px">
+        <li>Onchain lockup tx fee: whatever you choose when paying</li>
+        <li>Onchain claim tx fee: ~500 sats</li>
+        <li>Routing fees (paid by boltz): unknown</li>
+        <li>Boltz fees: 500 sats (0.5%)</li>
+        <li>Fees total: 1000 sats + lockup_fee</li>
+        <li>You pay onchain: 101.000 sats + lockup_fee</li>
+        <li>You receive lightning: 100.000 sats</li>
+      </ul>
+      <p>
+        onchain_payment + lockup_fee = amount + (amount * boltz_fee / 100) +
+        claim_fee + lockup_fee
+      </p>
+      <p>101.000 + lockup_fee = 100.000 + 500 + 500 + lockup_fee</p>
+    </q-card-section>
+  </q-expansion-item>
 </q-card>
