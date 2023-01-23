@@ -39,8 +39,9 @@
       <b>Fee Information</b>
     </h3>
     <span>
-      Every swap consists of 2 onchain transactions, lockup and claim / refund,
-      routing fees and a Boltz fee of <b>0.5%</b>.
+      {% raw %} Every swap consists of 2 onchain transactions, lockup and claim
+      / refund, routing fees and a Boltz fee of
+      <b>{{ boltzConfig.fee_percentage }}%</b>. {% endraw %}
     </span>
   </q-card-section>
   <q-expansion-item
