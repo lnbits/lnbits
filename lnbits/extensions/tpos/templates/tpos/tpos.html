@@ -500,6 +500,7 @@
           .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
             params: {
               amount: this.sat,
+              memo: this.amountFormatted,
               tipAmount: this.tipAmountSat
             }
           })
