@@ -1,0 +1,335 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
+          >New Peg</q-btn
+        >
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Pegging</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="peggings"
+          row-key="id"
+          :columns="peggingsTable.columns"
+          :pagination.sync="peggingsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deletePeg(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Pegged Asset extension
+        </h6>
+      </q-card-section>
+      <q-card-section>
+        <p>
+          Pegs wallet value to a currency (or basket of assets *coming soon).<br />
+          Uses Kollider for keeping the peg.
+        </p>
+        <small
+          >Created by
+          <a
+            class="text-secondary"
+            href="https://github.com/evd0kim"
+            target="_blank"
+            >llya Evdokimov</a
+          >,
+          <a
+            class="text-secondary"
+            href="https://github.com/arcbtc"
+            target="_blank"
+            >benarc</a
+          ></small
+        >
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "pegging/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="createPeg" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.name"
+          label="Name"
+          placeholder="Bancor"
+        ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.currency"
+          :options="currencyOptions"
+          label="Currency *"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          type="number"
+          v-model.trim="formDialog.data.percent"
+          label="Parcentage (max 80%, 20% used as a float)"
+          :max="80"
+          :rules="[ val => val < 81 || 'Must be under 80']"
+          placeholder="Percentage (under 80%)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.base_url"
+          label="Base URL"
+          value="Base URL"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.api_key"
+          label="API Key"
+          placeholder="API Key"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.api_secret"
+          label="API Secret"
+          placeholder="API Secret"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.api_passphrase"
+          label="API Passphrase"
+          placeholder="API Passphrase"
+        ></q-input>
+        <div class="row">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="formDialog.data.currency == null || formDialog.data.name == null"
+            type="submit"
+            >Create Peg</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapPeg = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    return obj
+  }
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        peggings: [],
+        currencyOptions: ['USD', 'EUR', 'GBP'],
+        peggingsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'currency',
+              align: 'left',
+              label: 'Currency',
+              field: 'currency'
+            },
+            {
+              name: 'percent',
+              align: 'left',
+              label: 'Percentage',
+              field: 'percent'
+            },
+            {
+              name: 'base_url',
+              align: 'left',
+              label: 'Base URL',
+              field: 'base_url'
+            },
+            {
+              name: 'api_key',
+              align: 'left',
+              label: 'API Key',
+              field: 'api_key'
+            },
+            {
+              name: 'api_secret',
+              align: 'left',
+              label: 'API Secret',
+              field: 'api_secret'
+            },
+            {
+              name: 'api_passphrase',
+              align: 'left',
+              label: 'API Passphrase',
+              field: 'api_passphrase'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        formDialog: {
+          show: false,
+          data: {
+            base_url: 'https://api.kollider.xyz/v1/'
+          }
+        }
+      }
+    },
+    methods: {
+      closeFormDialog: function () {
+        this.formDialog.data = {}
+      },
+      getPegs: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/pegging/api/v1/peggings?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.peggings = response.data.map(function (obj) {
+              return mapPeg(obj)
+            })
+            console.log(self.peggings)
+          })
+      },
+      createPeg: function () {
+        var data = {
+          name: this.formDialog.data.name,
+          currency: this.formDialog.data.currency,
+          percent: this.formDialog.data.percent,
+          base_url: this.formDialog.data.base_url,
+          api_key: this.formDialog.data.api_key,
+          api_secret: this.formDialog.data.api_secret,
+          api_passphrase: this.formDialog.data.api_passphrase
+        }
+        var self = this
+        console.log(data)
+        LNbits.api
+          .request(
+            'POST',
+            '/pegging/api/v1/peggings',
+            _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
+              .inkey,
+            data
+          )
+          .then(function (response) {
+            self.peggings.push(mapPeg(response.data))
+            self.formDialog.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deletePeg: function (peggingId) {
+        var self = this
+        var pegging = _.findWhere(this.peggings, {id: peggingId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Pegging?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/pegging/api/v1/peggings/' + peggingId,
+                _.findWhere(self.g.user.wallets, {id: pegging.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.peggings = _.reject(self.peggings, function (obj) {
+                  return obj.id == peggingId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportCSV: function () {
+        LNbits.utils.exportCSV(this.peggingsTable.columns, this.peggings)
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getPegs()
+      }
+    }
+  })
+</script>
+{% endblock %}

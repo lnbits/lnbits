@@ -1,0 +1,6 @@
+{
+  "name": "Pegged Assets",
+  "short_description": "Keep a pegged balance in a wallet",
+	"tile": "/pegging/static/image/peg.png",
+  "contributors": ["arcbtc"]
+}
