@@ -40,9 +40,11 @@ jobs:
       - name: setup-jmeter
       - name: Start LNbits
         run: |
-          poetry run lnbits > server.log
+          poetry run lnbits &
+          seep 5s
           cat server.log
-          # cat server.log | grep "Access super user account at:" | awk -F= '{print $2}'
+          SUPER_USER_ID=$(cat server.log | grep "Access super user account at:" | awk -F= '{print $2}')
+          echo ${SUPER_USER_ID}
       - name: setup-jmeter
         run: |
           sudo apt-get update
