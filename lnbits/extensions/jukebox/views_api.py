@@ -114,6 +114,7 @@ async def api_get_jukebox_song(
     tracks = []
     async with httpx.AsyncClient() as client:
         try:
+            assert jukebox.sp_access_token
             r = await client.get(
                 "https://api.spotify.com/v1/playlists/" + sp_playlist + "/tracks",
                 timeout=40,
@@ -194,6 +195,7 @@ async def api_get_jukebox_device_check(
     if not jukebox:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No Jukeboxes")
     async with httpx.AsyncClient() as client:
+        assert jukebox.sp_access_token
         rDevice = await client.get(
             "https://api.spotify.com/v1/me/player/devices",
             timeout=40,
@@ -229,6 +231,7 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
 
+        assert jukebox.sp_device
         devices = await api_get_jukebox_device_check(juke_id)
         deviceConnected = False
         for device in devices["devices"]:
@@ -291,6 +294,7 @@ async def api_get_jukebox_invoice_paid(
     jukebox_payment = await get_jukebox_payment(pay_hash)
     if jukebox_payment and jukebox_payment.paid:
         async with httpx.AsyncClient() as client:
+            assert jukebox.sp_access_token
             r = await client.get(
                 "https://api.spotify.com/v1/me/player/currently-playing?market=ES",
                 timeout=40,
@@ -308,6 +312,7 @@ async def api_get_jukebox_invoice_paid(
             if r.status_code == 204 or isPlaying == False:
                 async with httpx.AsyncClient() as client:
                     uri = ["spotify:track:" + song_id]
+                    assert jukebox.sp_device
                     r = await client.put(
                         "https://api.spotify.com/v1/me/player/play?device_id="
                         + jukebox.sp_device.split("-")[1],
@@ -339,6 +344,8 @@ async def api_get_jukebox_invoice_paid(
                         )
             elif r.status_code == 200:
                 async with httpx.AsyncClient() as client:
+                    assert jukebox.sp_access_token
+                    assert jukebox.sp_device
                     r = await client.post(
                         "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
                         + song_id
@@ -399,6 +406,7 @@ async def api_get_jukebox_currently(
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     async with httpx.AsyncClient() as client:
         try:
+            assert jukebox.sp_access_token
             r = await client.get(
                 "https://api.spotify.com/v1/me/player/currently-playing?market=ES",
                 timeout=40,

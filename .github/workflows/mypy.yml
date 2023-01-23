@@ -21,6 +21,7 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
+          poetry config virtualenvs.create false
           poetry install
       - name: Run tests
         run: poetry run mypy

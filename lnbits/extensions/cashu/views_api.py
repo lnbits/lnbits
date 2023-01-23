@@ -12,7 +12,8 @@ from cashu.core.base import (
     GetMintResponse,
     Invoice,
     MeltRequest,
-    MintRequest,
+    PostMintRequest,
+    PostMintResponse,
     PostSplitResponse,
     SplitRequest,
 )
@@ -204,10 +205,10 @@ async def request_mint(cashu_id: str = Query(None), amount: int = 0) -> GetMintR
 
 @cashu_ext.post("/api/v1/{cashu_id}/mint")
 async def mint(
-    data: MintRequest,
+    data: PostMintRequest,
     cashu_id: str = Query(None),
     payment_hash: str = Query(None),
-) -> List[BlindedSignature]:
+) -> PostMintResponse:
     """
     Requests the minting of tokens belonging to a paid payment request.
     Call this endpoint after `GET /mint`.
@@ -245,7 +246,7 @@ async def mint(
         )
 
         try:
-            total_requested = sum([bm.amount for bm in data.blinded_messages])
+            total_requested = sum([bm.amount for bm in data.outputs])
             if total_requested > invoice.amount:
                 raise HTTPException(
                     status_code=HTTPStatus.PAYMENT_REQUIRED,
@@ -257,10 +258,8 @@ async def mint(
                     status_code=HTTPStatus.PAYMENT_REQUIRED, detail="Invoice not paid."
                 )
 
-            promises = await ledger._generate_promises(
-                B_s=data.blinded_messages, keyset=keyset
-            )
-            return promises
+            promises = await ledger._generate_promises(B_s=data.outputs, keyset=keyset)
+            return PostMintResponse(promises=promises)
         except (Exception, HTTPException) as e:
             logger.debug(f"Cashu: /melt {str(e) or getattr(e, 'detail')}")
             # unset issued flag because something went wrong
@@ -274,10 +273,8 @@ async def mint(
             )
     else:
         # only used for testing when LIGHTNING=false
-        promises = await ledger._generate_promises(
-            B_s=data.blinded_messages, keyset=keyset
-        )
-        return promises
+        promises = await ledger._generate_promises(B_s=data.outputs, keyset=keyset)
+        return PostMintResponse(promises=promises)
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/melt")
@@ -421,7 +418,7 @@ async def split(
         )
 
     amount = payload.amount
-    outputs = payload.outputs.blinded_messages
+    outputs = payload.outputs
     assert outputs, Exception("no outputs provided.")
     split_return = None
     try:

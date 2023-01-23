@@ -36,6 +36,7 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
+          poetry config virtualenvs.create false
           poetry install
           sudo apt install unzip
       - name: Run migrations
