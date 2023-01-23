@@ -37,6 +37,9 @@
               <q-input
                 type="number"
                 filled
+                min="10"
+                max="1209600"
+                step="1"
                 v-model="formData.lightning_invoice_expiry"
                 label="Invoice expiry (seconds)"
               >
