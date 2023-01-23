@@ -1,4 +1,4 @@
-name: regtest
+name: integration-tests
 
 on: [push, pull_request]
 
