@@ -29,6 +29,7 @@ jobs:
           sudo chmod -R a+rwx .
       - name: Install dependencies
         run: |
+          poetry config virtualenvs.create false
           poetry install
       - name: Run tests
         env:
@@ -72,6 +73,7 @@ jobs:
           sudo chmod -R a+rwx .
       - name: Install dependencies
         run: |
+          poetry config virtualenvs.create false
           poetry install
       - name: Run tests
         env:
@@ -116,6 +118,7 @@ jobs:
           sudo chmod -R a+rwx .
       - name: Install dependencies
         run: |
+          poetry config virtualenvs.create false
           poetry install
       - name: Run tests
         env:
