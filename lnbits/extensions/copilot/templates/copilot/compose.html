@@ -108,8 +108,9 @@
     },
     methods: {
       showNotif: function (userMessage) {
-        var colour =
-          this.colours[Math.floor(Math.random() * this.colours.length)]
+        var colour = this.colours[
+          Math.floor(Math.random() * this.colours.length)
+        ]
         this.$q.notify({
           color: colour,
           icon: 'chat_bubble_outline',
