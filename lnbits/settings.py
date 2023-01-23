@@ -5,11 +5,10 @@ import subprocess
 from os import path
 from sqlite3 import Row
 from typing import List, Optional
-from pydantic import Extra
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v):
