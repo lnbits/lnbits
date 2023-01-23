@@ -39,7 +39,7 @@
       <b>Fee Information</b>
     </h3>
     <span>
-      Every swap consists of 2 onchain transactions, lockup and redeem / refund,
+      Every swap consists of 2 onchain transactions, lockup and claim / refund,
       routing fees and a Boltz fee of <b>0.5%</b>.
     </span>
   </q-card-section>
@@ -52,18 +52,18 @@
     <q-card-section>
       You want to swap out 100.000 sats, Lightning to Onchain:
       <ul style="padding-left: 12px">
-        <li>Onchain lockup tx fee (included by boltz): ~500 sats</li>
-        <li>Onchain redeem tx fee: 1000 sats (hardcoded)</li>
+        <li>Onchain lockup tx fee: ~500 sats</li>
+        <li>Onchain claim tx fee: 1000 sats (hardcoded)</li>
         <li>Routing fees (paid by you): unknown</li>
         <li>Boltz fees: 500 sats</li>
         <li>Fees total: 2000 sats + routing fees</li>
-        <li>You receive: 98.000 sats - routing fees</li>
+        <li>You receive: 98.000 sats</li>
       </ul>
       <p>
-        amount - (amount * boltz_fee / 100) - lockup_fee - redeem_fee =
-        onchain_amount_received - routing_fees
+        onchain_amount_received = amount - (amount * boltz_fee / 100) -
+        lockup_fee - claim_fee
       </p>
-      <p>100.000 - 500 - 500 - 1000 = 98.000 - routing_fees</p>
+      <p>98.000 = 100.000 - 500 - 500 - 1000</p>
     </q-card-section>
   </q-expansion-item>
   <q-expansion-item
@@ -76,18 +76,18 @@
       You want to swap in 100.000 sats, Onchain to Lightning:
       <ul style="padding-left: 12px">
         <li>Onchain lockup tx fee: whatever you choose when paying</li>
-        <li>Onchain redeem tx fee (included by boltz): ~500 sats</li>
+        <li>Onchain claim tx fee: ~500 sats</li>
         <li>Routing fees (paid by boltz): unknown</li>
         <li>Boltz fees: 500 sats (0.5%)</li>
         <li>Fees total: 1000 sats + lockup_fee</li>
-        <li>You pay onchain: 102.000 sats</li>
+        <li>You pay onchain: 101.000 sats + lockup_fee</li>
         <li>You receive lightning: 100.000 sats</li>
       </ul>
       <p>
-        onchain_payment = amount + (amount * boltz_fee / 100) + lockup_fee +
-        redeem_fee
+        onchain_payment + lockup_fee = amount + (amount * boltz_fee / 100) +
+        claim_fee + lockup_fee
       </p>
-      <p>101.000 + lockup_fee = 100.000 + 500 + lockup_fee + 500</p>
+      <p>101.000 + lockup_fee = 100.000 + 500 + 500 + lockup_fee</p>
     </q-card-section>
   </q-expansion-item>
 </q-card>
