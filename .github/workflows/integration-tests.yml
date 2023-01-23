@@ -43,7 +43,7 @@ jobs:
           FILE_LOG: true
         run: |
           poetry run lnbits &
-          seep 7s
+          # seep 7s
           cat server.log
           SUPER_USER_ID=$(cat lnbits.log | grep "Access super user account at:" | awk -F= '{print $2}')
           echo ${SUPER_USER_ID}
