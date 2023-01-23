@@ -484,9 +484,8 @@
         var link = _.findWhere(this.domains, {id: formId})
         console.log(link.id)
         this.domainDialog.data = _.clone(link)
-        this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(
-          ', '
-        )
+        this.domainDialog.data.allowed_record_types =
+          link.allowed_record_types.split(', ')
         this.domainDialog.show = true
       },
       updateDomain: function (wallet, data) {

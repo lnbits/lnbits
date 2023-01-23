@@ -803,9 +803,8 @@
 
         self.productDialog.data = _.clone(link._data)
         if (self.productDialog.data.categories) {
-          self.productDialog.data.categories = self.productDialog.data.categories.split(
-            ','
-          )
+          self.productDialog.data.categories =
+            self.productDialog.data.categories.split(',')
         }
         if (self.productDialog.data.image.startsWith('data:')) {
           self.productDialog.url = false
