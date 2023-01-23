@@ -158,7 +158,7 @@ jobs:
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
-          docker exec -it lnbits-legend-lnbits-1 /bin/bash -c "poetry run python tools/create_fake_admin.py"
+          docker exec -it lnbits-legend-lnbits-1 /bin/bash -c 'poetry run python tools/create_fake_admin.py'
       - name: Install dependencies
         run: |
           poetry install
