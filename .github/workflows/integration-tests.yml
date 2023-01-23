@@ -37,7 +37,6 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
-      - name: setup-jmeter
       - name: Start LNbits
         run: |
           poetry run lnbits &
