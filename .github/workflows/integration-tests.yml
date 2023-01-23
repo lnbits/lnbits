@@ -44,7 +44,7 @@ jobs:
           LNBITS_ADMIN_UI: true
         run: |
           poetry run lnbits --host 0.0.0.0 --port 5000 &
-          # seep 7s
+          seep 10s
           cat server.log
           SUPER_USER_ID=$(cat lnbits.log | grep "Access super user account at:" | awk -F= '{print $2}')
           echo ${SUPER_USER_ID}
