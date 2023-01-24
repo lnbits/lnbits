@@ -38,3 +38,6 @@ docker
 
 # Nix
 *result*
+
+# fly.io
+*.toml
