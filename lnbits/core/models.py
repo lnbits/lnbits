@@ -223,4 +223,4 @@ class TinyURL(BaseModel):
 
     @classmethod
     def from_row(cls, row: Row):
-        return cls(id=row["id"], url=row["url"])
+        return cls(dict(row))

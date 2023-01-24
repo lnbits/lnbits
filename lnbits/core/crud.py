@@ -626,11 +626,11 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 # -------
 
 
-async def create_tinyurl(domain: str, conn: Optional[Connection] = None):
+async def create_tinyurl(domain: str, endless: bool, conn: Optional[Connection] = None):
     tinyurl_id = uuid4().hex[:8]
     await (conn or db).execute(
-        f"INSERT INTO tiny_url (id, url) VALUES (?, ?)",
-        (tinyurl_id, domain),
+        f"INSERT INTO tiny_url (id, url, endless) VALUES (?, ?, ?)",
+        (tinyurl_id, domain, endless,),
     )
     return await get_tinyurl(tinyurl_id)
 
