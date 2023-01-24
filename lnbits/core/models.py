@@ -219,6 +219,7 @@ class TinyURL(BaseModel):
     id: str
     url: str
     endless: bool
+    wallet: str
     time: float
 
     @classmethod

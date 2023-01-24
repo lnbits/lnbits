@@ -628,34 +628,38 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 # -------
 
 
-async def create_tinyurl(domain: str, endless: bool, conn: Optional[Connection] = None):
+async def create_tinyurl(domain: str, endless: bool, wallet: str):
     tinyurl_id = shortuuid.uuid()[:8]
-    await (conn or db).execute(
-        f"INSERT INTO tiny_url (id, url, endless) VALUES (?, ?, ?)",
+    await db.execute(
+        f"INSERT INTO tiny_url (id, url, endless, wallet) VALUES (?, ?, ?, ?)",
         (
             tinyurl_id,
             domain,
             endless,
+            wallet,
         ),
     )
     return await get_tinyurl(tinyurl_id)
 
 
-async def get_tinyurl(
-    tinyurl_id: str, conn: Optional[Connection] = None
-) -> Optional[TinyURL]:
-    row = await (conn or db).fetchone(
+async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
+    row = await db.fetchone(
         f"SELECT * FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )
     return TinyURL.from_row(row) if row else None
 
 
-async def get_tinyurl_by_url(
-    url: str, conn: Optional[Connection] = None
-) -> Optional[TinyURL]:
-    row = await (conn or db).fetchone(
+async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
+    rows = await db.fetchall(
         f"SELECT * FROM tiny_url WHERE url = ?",
         (url,),
     )
-    return TinyURL.from_row(row) if row else None
+    return [TinyURL.from_row(row) for row in rows]
+
+
+async def delete_tinyurl(tinyurl_id: str):
+    row = await db.execute(
+        f"DELETE FROM tiny_url WHERE id = ?",
+        (tinyurl_id,),
+    )

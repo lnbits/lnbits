@@ -278,6 +278,7 @@ async def m009_create_tinyurl_table(db):
           id TEXT PRIMARY KEY,
           url TEXT,
           endless BOOL NOT NULL DEFAULT false,
+          wallet TEXT,
           time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
     """
