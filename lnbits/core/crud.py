@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import shortuuid
+
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
@@ -627,7 +629,7 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 
 
 async def create_tinyurl(domain: str, endless: bool, conn: Optional[Connection] = None):
-    tinyurl_id = uuid4().hex[:8]
+    tinyurl_id = shortuuid.uuid()[:8]
     await (conn or db).execute(
         f"INSERT INTO tiny_url (id, url, endless) VALUES (?, ?, ?)",
         (
