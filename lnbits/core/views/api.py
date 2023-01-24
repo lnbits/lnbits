@@ -715,7 +715,7 @@ async def websocket_update_get(item_id: str, data: str):
 
 
 @core_app.post("/api/v1/tinyurl")
-async def api_create_tinyurl(url: str, endless: Optional[bool] = False):
+async def api_create_tinyurl(url: str, endless: bool = False):
     tinyurl = await get_tinyurl_by_url(url)
     if tinyurl:
         return tinyurl
