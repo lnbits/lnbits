@@ -148,6 +148,10 @@ class BoltzExtensionSettings(LNbitsSettings):
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
 
+class LightningSettings(LNbitsSettings):
+    lightning_invoice_expiry: int = Field(default=600)
+
+
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
@@ -171,6 +175,7 @@ class EditableSettings(
     OpsSettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
+    LightningSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -198,10 +203,6 @@ class EnvSettings(LNbitsSettings):
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
-
-
-class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=600)
 
 
 class SaaSSettings(LNbitsSettings):
@@ -237,7 +238,6 @@ class ReadOnlySettings(
     SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
-    LightningSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
