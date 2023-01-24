@@ -6,12 +6,10 @@ import sqlite3
 import sys
 import time
 from uuid import uuid4
-
-from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import settings
+import shortuuid
 
 adminkey = "d08a3313322a4514af75d488bcc27eee"
-sqfolder = settings.lnbits_data_folder
+sqfolder = "./data"
 
 if not sqfolder or not os.path.isdir(sqfolder):
     print("missing LNBITS_DATA_FOLDER")
@@ -50,7 +48,7 @@ expiration_date = time.time() + 420
 
 # 1 btc in sats
 amount = 100_000_000
-internal_id = f"internal_{urlsafe_short_hash()}"
+internal_id = f"internal_{shortuuid.uuid()}"
 
 cursor.execute(
     """
