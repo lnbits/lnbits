@@ -432,7 +432,6 @@ async def check_admin_settings():
         for key, value in settings.dict(exclude_none=True).items():
             logger.debug(f"{key}: {value}")
 
-        http = "https" if settings.lnbits_force_https else "http"
         admin_url = (
             f"http://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
         )
