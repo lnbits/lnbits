@@ -51,20 +51,29 @@
     :content-inset-level="0.5"
   >
     <q-card-section>
-      You want to swap out 100.000 sats, Lightning to Onchain:
+      {% raw %} You want to swap out {{ boltzExample.amount }} sats, Lightning
+      to Onchain:
       <ul style="padding-left: 12px">
-        <li>Onchain lockup tx fee: ~500 sats</li>
-        <li>Onchain claim tx fee: 1000 sats (hardcoded)</li>
+        <li>Onchain lockup tx fee: ~{{ boltzExample.onchain_boltz }} sats</li>
+        <li>
+          Onchain claim tx fee: {{ boltzExample.onchain_lnbits }} sats
+          (hardcoded)
+        </li>
         <li>Routing fees (paid by you): unknown</li>
-        <li>Boltz fees: 500 sats</li>
-        <li>Fees total: 2000 sats + routing fees</li>
-        <li>You receive: 98.000 sats</li>
+        <li>
+          Boltz fees: {{ boltzExample.boltz_fee }} sats ({{
+          boltzConfig.fee_percentage }}%)
+        </li>
+        <li>
+          Fees total: {{ boltzExample.reverse_fee_total }} sats + routing fees
+        </li>
+        <li>You receive: {{ boltzExample.reverse_receive }} sats</li>
       </ul>
       <p>
         onchain_amount_received = amount - (amount * boltz_fee / 100) -
         lockup_fee - claim_fee
       </p>
-      <p>98.000 = 100.000 - 500 - 500 - 1000</p>
+      {% endraw %}
     </q-card-section>
   </q-expansion-item>
   <q-expansion-item
@@ -74,23 +83,30 @@
     :content-inset-level="0.5"
   >
     <q-card-section>
-      You want to swap in 100.000 sats, Onchain to Lightning:
+      {% raw %} You want to swap in {{ boltzExample.amount }} sats, Onchain to
+      Lightning:
       <ul style="padding-left: 12px">
         <li>Onchain lockup tx fee: whatever you choose when paying</li>
-        <li>Onchain claim tx fee: ~500 sats</li>
+        <li>Onchain claim tx fee: ~{{ boltzExample.onchain_boltz }} sats</li>
         <li>Routing fees (paid by boltz): unknown</li>
-        {% raw %}
-        <li>Boltz fees: 500 sats ({{ boltzConfig.fee_percentage }}%)</li>
-        {% endraw %}
-        <li>Fees total: 1000 sats + lockup_fee</li>
-        <li>You pay onchain: 101.000 sats + lockup_fee</li>
-        <li>You receive lightning: 100.000 sats</li>
+        <li>
+          Boltz fees: {{ boltzExample.boltz_fee }} sats ({{
+          boltzConfig.fee_percentage }}%)
+        </li>
+        <li>
+          Fees total: {{ boltzExample.normal_fee_total }} sats + lockup_fee
+        </li>
+        <li>
+          You pay onchain: {{ boltzExample.normal_expected_amount }} sats +
+          lockup_fee
+        </li>
+        <li>You receive lightning: {{ boltzExample.amount }} sats</li>
       </ul>
       <p>
         onchain_payment + lockup_fee = amount + (amount * boltz_fee / 100) +
         claim_fee + lockup_fee
       </p>
-      <p>101.000 + lockup_fee = 100.000 + 500 + 500 + lockup_fee</p>
+      {% endraw %}
     </q-card-section>
   </q-expansion-item>
 </q-card>
