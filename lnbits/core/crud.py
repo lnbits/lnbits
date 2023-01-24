@@ -640,7 +640,7 @@ async def get_tinyurl(
 ) -> Optional[TinyURL]:
     row = await (conn or db).fetchone(
         f"SELECT * FROM tiny_url WHERE id = ?",
-        (tinyurl_id),
+        (tinyurl_id,),
     )
     return TinyURL.from_row(row) if row else None
 
@@ -650,6 +650,6 @@ async def get_tinyurl_by_url(
 ) -> Optional[TinyURL]:
     row = await (conn or db).fetchone(
         f"SELECT * FROM tiny_url WHERE url = ?",
-        (url),
+        (url,),
     )
     return TinyURL.from_row(row) if row else None
