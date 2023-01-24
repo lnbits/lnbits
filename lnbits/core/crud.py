@@ -630,7 +630,11 @@ async def create_tinyurl(domain: str, endless: bool, conn: Optional[Connection] 
     tinyurl_id = uuid4().hex[:8]
     await (conn or db).execute(
         f"INSERT INTO tiny_url (id, url, endless) VALUES (?, ?, ?)",
-        (tinyurl_id, domain, endless,),
+        (
+            tinyurl_id,
+            domain,
+            endless,
+        ),
     )
     return await get_tinyurl(tinyurl_id)
 
