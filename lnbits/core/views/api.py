@@ -738,8 +738,9 @@ async def api_get_tinyurl(
 ):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl.wallet == wallet.wallet.inkey:
-            return tinyurl
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                return tinyurl
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
@@ -755,9 +756,10 @@ async def api_delete_tinyurl(
 ):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl.wallet == wallet.wallet.inkey:
-            await delete_tinyurl(tinyurl_id)
-            return {"deleted": True}
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                await delete_tinyurl(tinyurl_id)
+                return {"deleted": True}
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
