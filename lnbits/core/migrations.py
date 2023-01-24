@@ -273,10 +273,12 @@ async def m008_create_admin_settings_table(db):
 
 async def m009_create_tinyurl_table(db):
     await db.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS tiny_url (
           id TEXT PRIMARY KEY,
-          url TEXT
+          url TEXT,
+          endless BOOL NOT NULL DEFAULT false,
+          time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
         );
     """
     )

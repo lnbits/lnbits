@@ -218,6 +218,8 @@ class BalanceCheck(BaseModel):
 class TinyURL(BaseModel):
     id: str
     url: str
+    endless: bool
+    time: float
 
     @classmethod
     def from_row(cls, row: Row):
