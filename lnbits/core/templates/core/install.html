@@ -2,7 +2,7 @@
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
-    <p class="text-h4">
+    <p class="text-h4 gt-sm">
       Add Extensions <small v-if="!g.user.admin">(admin only)</small>
     </p>
   </div>
@@ -58,22 +58,29 @@
     :key="extension.id + extension.hash"
   >
     <q-card>
-      <q-card-section>
+      <q-card-section style="min-height: 140px">
         <div class="row">
           <div class="col-3">
             <q-img
-              v-if="extension.iconUrl"
-              :src="extension.iconUrl"
+              v-if="extension.tile"
+              :src="extension.tile"
               spinner-color="white"
-              style="max-width: 64px"
-              class="rounded-borders"
+              style="max-width: 100%"
             ></q-img>
-            <q-icon
-              v-else
-              :name="extension.icon"
-              color="grey-5"
-              size="lg"
-            ></q-icon>
+            <div v-else>
+              <q-icon
+                class="gt-sm"
+                name="extension"
+                color="primary"
+                size="70px"
+              ></q-icon>
+              <q-icon
+                class="lt-md"
+                name="extension"
+                color="primary"
+                size="35px"
+              ></q-icon>
+            </div>
           </div>
           <div class="col-9 q-pl-sm">
             <q-badge
@@ -84,7 +91,13 @@
               <small>New Version</small>
             </q-badge>
             {% raw %}
-            <div class="text-h5 gt-sm q-mt-sm q-mb-xs">
+            <div class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-h5 gt-sm q-mt-sm q-mb-xs lt-md"
+              style="min-height: 60px"
+            >
               {{ extension.name }}
             </div>
             <div
@@ -118,21 +131,25 @@
             </q-badge>
           </div>
         </div>
-        <div class="row q-pt-sm">
-          <div class="col">
-            <q-rating
-              max="5"
-              disable
-              v-model="maxStars"
-              size="1.5em"
-              color="primary"
-              icon-selected="star"
-              readonly
-              no-dimming
-            >
-            </q-rating>
-            <q-tooltip>Ratings coming soon</q-tooltip>
-          </div>
+      </q-card-section>
+      <q-card-section>
+        <div>
+          <q-rating
+            class="gt-sm"
+            v-model="maxStars"
+            disable
+            size="1.5em"
+            :max="5"
+            color="primary"
+          ></q-rating>
+          <q-rating
+            v-model="maxStars"
+            class="lt-md"
+            size="1.5em"
+            :max="5"
+            color="primary"
+          ></q-rating
+          ><q-tooltip>Ratings coming soon</q-tooltip>
         </div>
       </q-card-section>
       <q-separator v-if="g.user.admin"></q-separator>
@@ -309,7 +326,7 @@
         showUpgradeDialog: false,
         selectedExtension: null,
         selectedExtensionRepos: null,
-        maxStars: 0
+        maxStars: 5
       }
     },
     watch: {
