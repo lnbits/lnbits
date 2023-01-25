@@ -390,7 +390,7 @@
         )
       },
       addExtensionsManifest() {
-        const addManifest = this.formAddExtensionsManifest
+        const addManifest = this.formAddExtensionsManifest.trim()
         const manifests = this.formData.lnbits_extensions_manifests
         if (addManifest && addManifest.length && !manifests.includes(addManifest)) {
           this.formData.lnbits_extensions_manifests = [...manifests, addManifest]
