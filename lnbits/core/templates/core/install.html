@@ -2,6 +2,23 @@
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
+    <p class="text-h4">Install Extesions</p>
+  </div>
+
+  <div class="col-sm-3 col-xs-12 q-ml-auto">
+    <q-input v-model="searchTerm" label="Search extensions">
+      <q-icon
+        v-if="searchTerm !== ''"
+        name="close"
+        @click="searchTerm = ''"
+        class="cursor-pointer"
+      />
+    </q-input>
+  </div>
+</div>
+
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
     <q-card>
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
@@ -31,19 +48,7 @@
       </div>
     </q-card>
   </div>
-
-  <div class="col-sm-3 col-xs-12 q-ml-auto">
-    <q-input v-model="searchTerm" label="Search extensions">
-      <q-icon
-        v-if="searchTerm !== ''"
-        name="close"
-        @click="searchTerm = ''"
-        class="cursor-pointer q-mt-lg"
-      />
-    </q-input>
-  </div>
 </div>
-
 <div class="row q-col-gutter-md">
   <div
     class="col-6 col-md-4 col-lg-3"
@@ -208,7 +213,7 @@
                     <small v-text="repoName"></small>
                   </div>
                   <div class="col-2">
-                    <div v-if="selectedExtension.stars" class="float-right">
+                    <!-- <div v-if="selectedExtension.stars" class="float-right">
                       <small v-text="selectedExtension.stars"> </small>
                       <q-rating
                         max="1"
@@ -221,7 +226,7 @@
                         no-dimming
                       >
                       </q-rating>
-                    </div>
+                    </div> -->
                   </div>
                 </div>
               </q-item-section>
