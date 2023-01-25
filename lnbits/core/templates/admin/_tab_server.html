@@ -97,13 +97,13 @@
       </div>
 
       <div>
-        <p>Extensions Manifests</p>
+        <p>Extension Sources</p>
         <q-input
           filled
           v-model="formAddExtensionsManifest"
           @keydown.enter="addExtensionsManifest"
           type="text"
-          label="Manifest URL"
+          label="Source URL (only use the official LNbits extension source, and sources you can trust)"
           hint="Repositories from where the extensions can be downloaded"
         >
           <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
