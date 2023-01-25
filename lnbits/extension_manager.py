@@ -37,7 +37,7 @@ class Extension(NamedTuple):
         return (
             f"lnbits.extensions.{self.code}"
             if self.upgrade_hash == ""
-            else f"lnbits.upgrades.{self.code}-{self.hash}.{self.code}"
+            else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
         )
 
     @classmethod

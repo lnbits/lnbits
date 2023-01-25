@@ -143,12 +143,12 @@ async def check_installed_extensions(app: FastAPI):
 
 
 def check_installed_extension(ext: InstallableExtension) -> bool:
+    if ext.has_installed_version:
+        return True
+
     zip_files = glob.glob(
         os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
     )
-
-    if ext.has_installed_version:
-        return True
 
     if ext.zip_path not in zip_files:
         ext.download_archive()
@@ -166,7 +166,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
-    if ext.module_installed:
+    if extension.upgrade_hash:
         ext.nofiy_upgrade()
 
 
