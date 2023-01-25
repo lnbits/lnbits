@@ -30,14 +30,14 @@
             active-color="primary"
             align="left"
           >
-            <q-tab
-              name="all"
-              label="All"
+          <q-tab
+              name="featured"
+              label="Featured"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
-              name="featured"
-              label="Featured"
+              name="all"
+              label="All"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
@@ -321,7 +321,7 @@
     data: function () {
       return {
         searchTerm: '',
-        tab: 'all',
+        tab: 'featured',
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
