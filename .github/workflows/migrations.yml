@@ -30,6 +30,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'poetry' # caching poetry dependencies
       - name: Set up Poetry ${{ matrix.poetry-version }}
         uses: abatilo/actions-poetry@v2
         with:
