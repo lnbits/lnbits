@@ -160,6 +160,7 @@ class GitHubRelease(BaseModel):
 
 
 class Manifest(BaseModel):
+    featured: List[str] = []
     extensions: List["ExplicitRelease"] = []
     repos: List["GitHubRelease"] = []
 
@@ -192,6 +193,7 @@ class InstallableExtension(BaseModel):
     dependencies: List[str] = []
     is_admin_only: bool = False
     stars: int = 0
+    featured = False
     latest_release: Optional[ExtensionRelease]
     installed_release: Optional[ExtensionRelease]
 
@@ -385,13 +387,16 @@ class InstallableExtension(BaseModel):
                         continue
                     ext = await InstallableExtension.from_github_release(r)
                     if ext:
+                        ext.featured = ext.id in manifest.featured
                         extension_list += [ext]
                         extension_id_list += [ext.id]
 
                 for e in manifest.extensions:
                     if e.id in extension_id_list:
                         continue
-                    extension_list += [InstallableExtension.from_explicit_release(e)]
+                    ext = InstallableExtension.from_explicit_release(e)
+                    ext.featured = ext.id in manifest.featured
+                    extension_list += [ext]
                     extension_id_list += [e.id]
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")

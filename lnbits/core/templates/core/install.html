@@ -1,13 +1,35 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-7 col-xs-4 mt-lg">
-    <q-toggle
-      label="Installed Only"
-      color="secodary"
-      class="float-left"
-      v-model="showOnlyInstalledExtensions"
-    ></q-toggle>
+  <div class="col-sm-9 col-xs-4">
+    <q-card>
+      <div class="q-pa-xs">
+        <div class="q-gutter-y-md">
+          <q-tabs
+            v-model="tab"
+            @input="handleTabChanged"
+            active-color="primary"
+            align="justify"
+          >
+            <q-tab
+              name="all"
+              label="All"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="featured"
+              label="Featured"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="installed"
+              label="Installed"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
+    </q-card>
   </div>
 
   <div class="col-sm-3 col-xs-4 q-ml-auto">
@@ -273,7 +295,7 @@
     data: function () {
       return {
         searchTerm: '',
-        showOnlyInstalledExtensions: false,
+        tab: 'all',
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
@@ -284,14 +306,14 @@
     },
     watch: {
       searchTerm(term) {
-        this.filterExtensions(term, this.onlyInstalled)
+        this.filterExtensions(term, this.tab)
       },
-      showOnlyInstalledExtensions(onlyInstalled) {
-        this.filterExtensions(this.searchTerm, onlyInstalled)
-      }
     },
     methods: {
-      filterExtensions: function (term, onlyInstalled) {
+      handleTabChanged: function (tab) {
+        this.filterExtensions(this.searchTerm, tab)
+      },
+      filterExtensions: function (term, tab) {
         // Filter the extensions list
         function extensionNameContains(searchTerm) {
           return function (extension) {
@@ -305,9 +327,8 @@
         }
 
         this.filteredExtensions = this.extensions
-          .filter(e =>
-            this.showOnlyInstalledExtensions ? e.isInstalled : true
-          )
+          .filter(e => (tab === 'installed' ? e.isInstalled : true))
+          .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
       },
       installExtension: async function (release) {
