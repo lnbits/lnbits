@@ -63,7 +63,7 @@
           <div class="col-3">
             <q-img
               v-if="extension.icon"
-              src="extension.icon"
+              :src="extension.icon"
               spinner-color="white"
               style="max-width: 100%"
             ></q-img>
@@ -116,7 +116,6 @@
               {{ extension.shortDescription }}
               
             </div>
-            {{ extension }}
             {% endraw %}
           </div>
         </div>
