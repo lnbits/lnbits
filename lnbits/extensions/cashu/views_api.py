@@ -302,7 +302,7 @@ async def melt_coins(
     await ledger._set_proofs_pending(proofs)
 
     try:
-        ledger._verify_proofs(proofs)
+        await ledger._verify_proofs(proofs)
 
         total_provided = sum([p["amount"] for p in proofs])
         invoice_obj = bolt11.decode(invoice)
