@@ -2,9 +2,7 @@
 %} {{ window_vars(user, extensions) }}{% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
-    <p class="text-h4 gt-sm">
-      Add Extensions<small v-if="!g.user.admin">(admin only)</small>
-    </p>
+    <p class="text-h4 gt-sm">Add Extensions</p>
   </div>
 
   <div class="col-sm-3 col-xs-12 q-ml-auto">
@@ -467,6 +465,13 @@
       }
     },
     created: function () {
+      if (!this.g.user.admin) {
+        this.$q.notify({
+          timeout: 3000,
+          message: 'Only Admins can install extensions',
+          icon: null
+        })
+      }
       this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
         ...e,
         inProgress: false
