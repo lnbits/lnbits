@@ -1,0 +1,44 @@
+Metadata-Version: 2.1
+Name: nostr_relay
+Version: 1.4.9
+Summary: nostr relay
+Home-page: https://code.pobblelabs.org/fossil/nostr_relay
+Author: Dave St.Germain
+Author-email: dave@st.germa.in
+License: BSD 3-Clause License
+Keywords: protocol
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: System Administrators
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Internet :: WWW/HTTP
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+
+This is a python3 implementation of a [nostr](https://github.com/nostr-protocol/nostr) relay.
+
+Note: this requires Python 3.9+, but is only tested on 3.11
+
+To intall:
+
+`pip install nostr-relay`
+
+To run:
+
+`nostr-relay serve`
+
+to change the location of the database and other settings, create a yaml config file that looks [like this](https://code.pobblelabs.org/fossil/nostr_relay/file?name=nostr_relay/config.yaml):
+
+and run with `nostr-relay -c /path/to/config.yaml serve`
+
+
+Then add `ws://127.0.0.1:6969` to your relay list.
+
+(obviously, in production you should use a TLS certificate)
+
+Visit [the nostr-relay fossil repository](https://code.pobblelabs.org/fossil/nostr_relay) for more information.

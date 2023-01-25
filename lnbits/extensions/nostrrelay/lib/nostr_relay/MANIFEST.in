@@ -1,0 +1,6 @@
+include config/*
+include docs/*
+include nostr_relay/config.yaml
+include nostr_relay/alembic.ini
+include nostr_relay/alembic/*
+include nostr_relay/alembic/versions/*

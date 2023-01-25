@@ -1,0 +1,43 @@
+DEBUG: false
+
+relay_name: python relay
+relay_description: relay written in python
+sysop_pubkey: 
+sysop_contact: 
+
+storage:
+  sqlalchemy.url: sqlite+aiosqlite:///nostr.sqlite3
+
+verification:
+  # options are disabled, passive, enabled
+  nip05_verification: disabled
+  expiration: 86400 * 30
+  update_frequency: 3600
+  #blacklist:
+  # - badhost.biz
+  #whitelist:
+  # - goodhost.com
+
+
+gunicorn:
+  bind: 127.0.0.1:6969
+  workers: 1
+  loglevel: info
+  reload: false
+
+
+# see docs/authentication.md
+authentication:
+  enabled: false
+  valid_urls: 
+    - ws://localhost:6969
+    - ws://127.0.0.1:6969
+  actions:
+    save: a
+    query: a
+
+# number of seconds to allow between client messages
+message_timeout: 1800
+
+# number of open subscriptions per connection
+subscription_limit: 32

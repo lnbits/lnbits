@@ -1,0 +1,31 @@
+{% extends "public.html" %} {% block toolbar_title %} {{ nostrrelay.name }}
+<q-btn
+  flat
+  dense
+  size="md"
+  @click.prevent="urlDialog.show = true"
+  icon="share"
+  color="white"
+></q-btn>
+{% endblock %} {% block footer %}{% endblock %} {% block page_container %}
+<q-page-container>
+  <q-page>
+    <h3>Shareable public page on relay to go here!</h3>
+  </q-page>
+</q-page-container>
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+      }
+    },
+    methods: {
+    }
+  })
+</script>
+{% endblock %}

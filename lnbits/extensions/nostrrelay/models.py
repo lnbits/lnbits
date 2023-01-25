@@ -12,7 +12,7 @@ class CreateTposData(BaseModel):
     tip_wallet: str = Query(None)
 
 
-class TPoS(BaseModel):
+class NostrRelay(BaseModel):
     id: str
     wallet: str
     name: str
@@ -21,7 +21,7 @@ class TPoS(BaseModel):
     tip_wallet: Optional[str]
 
     @classmethod
-    def from_row(cls, row: Row) -> "TPoS":
+    def from_row(cls, row: Row) -> "NostrRelay":
         return cls(**dict(row))
 
 
