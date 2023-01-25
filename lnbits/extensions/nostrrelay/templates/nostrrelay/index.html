@@ -5,7 +5,8 @@
     <q-card>
       <q-card-section>
         <q-btn unelevated color="primary" @click="enableRelay"
-          ><div v-if="enabled">Disable relay</div><div v-else>Enable relay</div></q-btn
+          ><div v-if="enabled">Disable relay</div>
+          <div v-else>Enable relay</div></q-btn
         >
       </q-card-section>
     </q-card>
@@ -14,14 +15,17 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} NostrRelay extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} NostrRelay extension
+        </h6>
       </q-card-section>
       <q-card-section>
         <p>
-          Thiago's Point of Sale is a secure, mobile-ready, instant and shareable
-          point of sale terminal (PoS) for merchants. The PoS is linked to your
-          LNbits wallet but completely air-gapped so users can ONLY create
-          invoices. To share the NostrRelay hit the hash on the terminal.
+          Thiago's Point of Sale is a secure, mobile-ready, instant and
+          shareable point of sale terminal (PoS) for merchants. The PoS is
+          linked to your LNbits wallet but completely air-gapped so users can
+          ONLY create invoices. To share the NostrRelay hit the hash on the
+          terminal.
         </p>
         <small
           >Created by
@@ -41,7 +45,6 @@
       </q-card-section>
     </q-card>
   </div>
-
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -55,19 +58,19 @@
     },
     methods: {
       enableRelay: function () {
-       // var self = this
-       // LNbits.api
-       //   .request(
-       //     'GET',
-       //     '/nostrrelay/api/v1/nostrrelays?all_wallets=true',
-       //     this.g.user.wallets[0].inkey
-       //   )
-       //   .then(function (response) {
-       //     self.nostrrelays = response.data.map(function (obj) {
-       //       return mapNostrRelay(obj)
-       //     })
-       //   })
-       this.enabled = !this.enabled
+        // var self = this
+        // LNbits.api
+        //   .request(
+        //     'GET',
+        //     '/nostrrelay/api/v1/nostrrelays?all_wallets=true',
+        //     this.g.user.wallets[0].inkey
+        //   )
+        //   .then(function (response) {
+        //     self.nostrrelays = response.data.map(function (obj) {
+        //       return mapNostrRelay(obj)
+        //     })
+        //   })
+        this.enabled = !this.enabled
       }
     }
   })

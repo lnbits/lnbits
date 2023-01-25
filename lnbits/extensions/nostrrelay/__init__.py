@@ -18,8 +18,10 @@ nostrrelay_static_files = [
     }
 ]
 
+
 def nostrrelay_renderer():
     return template_renderer(["lnbits/extensions/nostrrelay/templates"])
+
 
 from .views import *  # noqa
 from .views_api import *  # noqa

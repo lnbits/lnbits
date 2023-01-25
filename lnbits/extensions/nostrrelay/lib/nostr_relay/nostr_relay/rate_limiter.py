@@ -1,13 +1,14 @@
-import logging
 import collections
+import logging
 from ipaddress import ip_address
 from time import perf_counter
+
 from .util import call_from_path
 
 
 class BaseRateLimiter:
     def __init__(self, options=None):
-        self.log = logging.getLogger('nostr_relay.limiter')
+        self.log = logging.getLogger("nostr_relay.limiter")
 
     def cleanup(self):
         pass
@@ -16,7 +17,7 @@ class BaseRateLimiter:
 class RateLimiter(BaseRateLimiter):
     """
     A configurable rate limiter
-    
+
     The options dict looks like:
     {
         "global": {
@@ -27,11 +28,14 @@ class RateLimiter(BaseRateLimiter):
         }
     }
     """
+
     def __init__(self, options=None):
         super().__init__(options)
-        self.log = logging.getLogger('nostr_relay.limiter')
+        self.log = logging.getLogger("nostr_relay.limiter")
         self.rules = self.parse_options(options or {})
-        self.recent_commands = collections.defaultdict(lambda: collections.defaultdict(collections.deque))
+        self.recent_commands = collections.defaultdict(
+            lambda: collections.defaultdict(collections.deque)
+        )
         self._starttime = 0
         self._starttime = self._timestamp()
 
@@ -48,19 +52,19 @@ class RateLimiter(BaseRateLimiter):
 
     def parse_option(self, option):
         rules = []
-        for rule in option.split(','):
+        for rule in option.split(","):
             if not rule:
                 continue
             try:
-                freq, interval = rule.split('/')
+                freq, interval = rule.split("/")
             except ValueError:
                 continue
             interval = interval.lower()
-            if interval in ('s', 'second', 'sec'):
+            if interval in ("s", "second", "sec"):
                 interval = 1
-            elif interval in ('m', 'minute', 'min'):
+            elif interval in ("m", "minute", "min"):
                 interval = 60
-            elif interval in ('h', 'hour', 'hr'):
+            elif interval in ("h", "hour", "hr"):
                 interval = 3600
             else:
                 raise ValueError(interval)
@@ -93,16 +97,20 @@ class RateLimiter(BaseRateLimiter):
         if not self.rules:
             return False
         matches = []
-        for key in (client_address, 'global', 'ip'):
+        for key in (client_address, "global", "ip"):
             rules = self.rules.get(key, {})
             if rules:
                 if command in rules:
-                    recent_timestamps = self.recent_commands[key if key == 'global' else ip_address(client_address).packed][command]
+                    recent_timestamps = self.recent_commands[
+                        key if key == "global" else ip_address(client_address).packed
+                    ][command]
                     if self.evaluate_rules(rules[command], recent_timestamps):
-                        self.log.warning("Rate limiting for %s %s", command, rules[command])
+                        self.log.warning(
+                            "Rate limiting for %s %s", command, rules[command]
+                        )
                         return True
                     recent_timestamps.insert(0, self._timestamp())
-                    if '.' in key:
+                    if "." in key:
                         # specific ip address rules take precedence
                         # stop evaluating global and ip rules
                         return False
@@ -110,16 +118,16 @@ class RateLimiter(BaseRateLimiter):
 
     def cleanup(self):
         max_interval = 0
-        if not self.rules.get('ip'):
+        if not self.rules.get("ip"):
             return
-        for rules in self.rules['ip'].values():
+        for rules in self.rules["ip"].values():
             rule_res = max(rules)[0]
             max_interval = max(rule_res, max_interval)
 
         now = self._timestamp()
         to_del = []
         for ip, commands in self.recent_commands.items():
-            if ip == 'global':
+            if ip == "global":
                 continue
 
             cleared = []
@@ -140,6 +148,7 @@ class NullRateLimiter(BaseRateLimiter):
     """
     A rate limiter that does nothing
     """
+
     def is_limited(self, client_address, message):
         return False
 
@@ -153,8 +162,10 @@ def get_rate_limiter(options):
     If options["rate_limits"] is not set, return NullRateLimiter
     """
 
-    if 'rate_limits' in options:
-        classpath = options.get('rate_limiter_class', 'nostr_relay.rate_limiter.RateLimiter')
+    if "rate_limits" in options:
+        classpath = options.get(
+            "rate_limiter_class", "nostr_relay.rate_limiter.RateLimiter"
+        )
     else:
-        classpath = 'nostr_relay.rate_limiter.NullRateLimiter'
-    return call_from_path(classpath, options.get('rate_limits', {}))
+        classpath = "nostr_relay.rate_limiter.NullRateLimiter"
+    return call_from_path(classpath, options.get("rate_limits", {}))

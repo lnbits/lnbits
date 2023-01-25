@@ -1,14 +1,11 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from alembic import context
+from nostr_relay.config import Config
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
-
-from nostr_relay.config import Config
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -19,12 +16,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+from nostr_relay import auth, verification
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from nostr_relay.storage import get_metadata
-from nostr_relay import auth, verification
+
 target_metadata = get_metadata()
 
 # other values from the config, defined by the needs of env.py,
@@ -73,7 +72,7 @@ async def run_migrations_online() -> None:
     """
     connectable = AsyncEngine(
         engine_from_config(
-            Config.get('storage', {}),
+            Config.get("storage", {}),
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
             future=True,

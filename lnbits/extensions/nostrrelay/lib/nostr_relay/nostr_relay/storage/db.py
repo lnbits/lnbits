@@ -1,12 +1,11 @@
-import os
-import os.path
 import asyncio
-import sqlite3
 import collections
 import logging
+import os
+import os.path
 import secrets
+import sqlite3
 import threading
-
 from time import time
 
 import aiosqlite
@@ -14,30 +13,36 @@ import rapidjson
 import sqlalchemy as sa
 from sqlalchemy.engine.base import Engine
 
-from ..event import Event, EventKind
+from ..auth import Action, get_authenticator
 from ..config import Config
+from ..errors import AuthenticationError, StorageError
+from ..event import Event, EventKind
+from ..util import Periodic, call_from_path, catchtime
 from ..verification import Verifier
-from ..auth import get_authenticator, Action
-from ..errors import StorageError, AuthenticationError
-from ..util import call_from_path, catchtime, Periodic
 from . import get_metadata
 
+force_hex_translation = str.maketrans(
+    "abcdef0213456789",
+    "abcdef0213456789",
+    "ghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+)
 
-force_hex_translation = str.maketrans('abcdef0213456789','abcdef0213456789', 'ghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
 
 def validate_id(obj_id):
-    obj_id = str(obj_id or '').lower().strip()
+    obj_id = str(obj_id or "").lower().strip()
     if obj_id.isalnum():
         obj_id = obj_id.translate(force_hex_translation)
         return obj_id
-    return ''
+    return ""
 
 
 class BaseStorage:
     async def add_event(self, event_json: dict, auth_token=None):
         raise NotImplentedError()
 
-    async def subscribe(self, client_id, sub_id, filters, queue, auth_token=None, **kwargs):
+    async def subscribe(
+        self, client_id, sub_id, filters, queue, auth_token=None, **kwargs
+    ):
         raise NotImplementedError()
 
     async def unsubscribe(self, client_id, sub_id=None):
@@ -47,16 +52,14 @@ class BaseStorage:
         pass
 
 
-
 class DBStorage(BaseStorage):
-
     def __init__(self, options):
         self.options = options
-        self.db_url = options.get('sqlalchemy.url', 'sqlite+aiosqlite:///nostr.sqlite3')
+        self.db_url = options.get("sqlalchemy.url", "sqlite+aiosqlite:///nostr.sqlite3")
         self.clients = collections.defaultdict(dict)
         self.db = None
         self.garbage_collector_task = None
-        self.is_postgres = 'postgresql' in self.db_url
+        self.is_postgres = "postgresql" in self.db_url
         self._my_token = secrets.token_hex(4)
         self.log = logging.getLogger(__name__)
         if self.is_postgres:
@@ -68,15 +71,15 @@ class DBStorage(BaseStorage):
 
     def _set_sqlite_pragma(self, dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
-        pragma = '''
+        pragma = """
                 PRAGMA journal_mode = wal;
                 PRAGMA locking_mode = NORMAL;
                 PRAGMA synchronous = normal;
                 PRAGMA temp_store = memory;
                 PRAGMA mmap_size = 30000000000;
                 PRAGMA foreign_keys = ON;
-        '''
-        for stmt in pragma.split(';'):
+        """
+        for stmt in pragma.split(";"):
             stmt = stmt.strip()
             if stmt:
                 cursor.execute(stmt)
@@ -84,11 +87,16 @@ class DBStorage(BaseStorage):
 
     def _subscribe_to_channel(self, dbapi_connection, connection_record):
         def add_listener():
-            asyncio.create_task(dbapi_connection.driver_connection.add_listener('addevent', self._event_listener))
+            asyncio.create_task(
+                dbapi_connection.driver_connection.add_listener(
+                    "addevent", self._event_listener
+                )
+            )
+
         asyncio.get_event_loop().call_later(2.0, add_listener)
 
     async def _event_listener(self, connection, serverpid, channel, payload):
-        token, event_id = payload.split(':')
+        token, event_id = payload.split(":")
         if token != self._my_token:
             event_json = await self.get_event(event_id)
             self._notify_all(Event(**event_json))
@@ -109,9 +117,9 @@ class DBStorage(BaseStorage):
         # self.log.info("Database URL: '%s'", self.db_url)
         from sqlalchemy.ext.asyncio import create_async_engine
 
-        self.authenticator = get_authenticator(self, Config.get('authentication', {}))
+        self.authenticator = get_authenticator(self, Config.get("authentication", {}))
 
-        self.verifier = Verifier(self, Config.get('verification', {}))
+        self.verifier = Verifier(self, Config.get("verification", {}))
 
         self.db = create_async_engine(
             self.db_url,
@@ -124,16 +132,23 @@ class DBStorage(BaseStorage):
         await self.verifier.start(self.db)
 
         metadata = get_metadata()
-        self.EventTable = metadata.tables['events']
-        self.IdentTable = metadata.tables['identity']
-        TagTable = metadata.tables['tags']
+        self.EventTable = metadata.tables["events"]
+        self.IdentTable = metadata.tables["identity"]
+        TagTable = metadata.tables["tags"]
         if self.is_postgres:
             from sqlalchemy.dialects.postgresql import insert
-            self.tag_insert_query = insert(TagTable).on_conflict_do_nothing(index_elements=['id', 'name', 'value'])
-            self.event_insert_query = insert(self.EventTable).on_conflict_do_nothing(index_elements=['id'])
+
+            self.tag_insert_query = insert(TagTable).on_conflict_do_nothing(
+                index_elements=["id", "name", "value"]
+            )
+            self.event_insert_query = insert(self.EventTable).on_conflict_do_nothing(
+                index_elements=["id"]
+            )
         else:
-            self.tag_insert_query = sa.insert(TagTable).prefix_with('OR IGNORE')
-            self.event_insert_query = sa.insert(self.EventTable).prefix_with('OR IGNORE')
+            self.tag_insert_query = sa.insert(TagTable).prefix_with("OR IGNORE")
+            self.event_insert_query = sa.insert(self.EventTable).prefix_with(
+                "OR IGNORE"
+            )
 
         self.log.debug("done setting up")
 
@@ -142,7 +157,11 @@ class DBStorage(BaseStorage):
         Shortcut for retrieving an event by id
         """
         async with self.db.begin() as conn:
-            result = await conn.execute(sa.select(self.EventTable).where(self.EventTable.c.id == bytes.fromhex(event_id)))
+            result = await conn.execute(
+                sa.select(self.EventTable).where(
+                    self.EventTable.c.id == bytes.fromhex(event_id)
+                )
+            )
             row = result.first()
             if row:
                 return Event.from_tuple(row).to_json_object()
@@ -158,7 +177,9 @@ class DBStorage(BaseStorage):
             self.log.error("bad json")
             raise StorageError("invalid: Bad JSON")
 
-        await asyncio.get_running_loop().run_in_executor(None, self.validate_event, event)
+        await asyncio.get_running_loop().run_in_executor(
+            None, self.validate_event, event
+        )
         # check authentication
         if not await self.authenticator.can_do(auth_token, Action.save.value, event):
             raise AuthenticationError("restricted: permission denied")
@@ -167,15 +188,17 @@ class DBStorage(BaseStorage):
         async with self.db.begin() as conn:
             do_save = await self.pre_save(conn, event)
             if do_save:
-                result = await conn.execute(self.event_insert_query.values(
-                    id=event.id_bytes,
-                    created_at=event.created_at,
-                    pubkey=bytes.fromhex(event.pubkey),
-                    sig=bytes.fromhex(event.sig),
-                    content=event.content,
-                    kind=event.kind,
-                    tags=event.tags,
-                ))
+                result = await conn.execute(
+                    self.event_insert_query.values(
+                        id=event.id_bytes,
+                        created_at=event.created_at,
+                        pubkey=bytes.fromhex(event.pubkey),
+                        sig=bytes.fromhex(event.sig),
+                        content=event.content,
+                        kind=event.kind,
+                        tags=event.tags,
+                    )
+                )
                 changed = result.rowcount == 1
                 await self.post_save(conn, event, changed)
         if changed:
@@ -198,8 +221,12 @@ class DBStorage(BaseStorage):
         Validate basic format and signature
         """
         if Config.max_event_size and len(event.content) > Config.max_event_size:
-            self.log.error("Received large event %s from %s size:%d max_size:%d",
-                event.id, event.pubkey, len(event.content), Config.max_event_size
+            self.log.error(
+                "Received large event %s from %s size:%d max_size:%d",
+                event.id,
+                event.pubkey,
+                len(event.content),
+                Config.max_event_size,
             )
             raise StorageError("invalid: 280 characters should be enough for anybody")
         if not event.verify():
@@ -214,7 +241,11 @@ class DBStorage(BaseStorage):
         Pre-process the event to check permissions, duplicates, etc.
         Return None to skip adding the event.
         """
-        result = await conn.execute(sa.select(self.EventTable.c.id).where(self.EventTable.c.id == event.id_bytes))
+        result = await conn.execute(
+            sa.select(self.EventTable.c.id).where(
+                self.EventTable.c.id == event.id_bytes
+            )
+        )
         row = result.first()
         if row:
             # duplicate
@@ -225,28 +256,34 @@ class DBStorage(BaseStorage):
         if event.is_replaceable or event.is_paramaterized_replaceable:
             # check for older event from same pubkey
             query = sa.select(
-                        self.EventTable.c.id, self.EventTable.c.created_at, self.EventTable.c.tags
-                    ).where(
-                        (self.EventTable.c.pubkey == bytes.fromhex(event.pubkey)) & 
-                        (self.EventTable.c.kind == event.kind) & 
-                        (self.EventTable.c.created_at < event.created_at)
-                    )
+                self.EventTable.c.id,
+                self.EventTable.c.created_at,
+                self.EventTable.c.tags,
+            ).where(
+                (self.EventTable.c.pubkey == bytes.fromhex(event.pubkey))
+                & (self.EventTable.c.kind == event.kind)
+                & (self.EventTable.c.created_at < event.created_at)
+            )
             result = await conn.execute(query)
 
             delete_id = None
             if event.is_paramaterized_replaceable:
                 # according to nip-33, an event with a matching "d" tag will be replaced
                 # empty tags include [], [["d"]], and [["d", ""]]
-                d_tag = ''
+                d_tag = ""
                 for tag in event.tags:
-                    if tag[0] == 'd':
+                    if tag[0] == "d":
                         if len(tag) > 1:
                             d_tag = tag[1]
                         break
                 for old_id, created_at, tags in result:
-                    found_tag = [tag for tag in tags if tag[0] == 'd']
+                    found_tag = [tag for tag in tags if tag[0] == "d"]
                     if not d_tag:
-                        if not found_tag or len(found_tag[0]) == 1 or found_tag[0][1] == '':
+                        if (
+                            not found_tag
+                            or len(found_tag[0]) == 1
+                            or found_tag[0][1] == ""
+                        ):
                             delete_id = old_id
                             old_ts = created_at
                             break
@@ -263,8 +300,16 @@ class DBStorage(BaseStorage):
                     delete_id = row[0]
                     old_ts = row[1]
             if delete_id:
-                self.log.info("Replacing event %s from %s@%s with %s", delete_id, event.pubkey, old_ts, event.id)
-                await conn.execute(self.EventTable.delete().where(self.EventTable.c.id == delete_id))
+                self.log.info(
+                    "Replacing event %s from %s@%s with %s",
+                    delete_id,
+                    event.pubkey,
+                    old_ts,
+                    event.id,
+                )
+                await conn.execute(
+                    self.EventTable.delete().where(self.EventTable.c.id == delete_id)
+                )
         return True
 
     async def process_tags(self, conn, event):
@@ -275,24 +320,31 @@ class DBStorage(BaseStorage):
             # expiration tags are also added for the garbage collector
             tags = set()
             for tag in event.tags:
-                if tag[0] in ('delegation', 'expiration'):
+                if tag[0] in ("delegation", "expiration"):
                     tags.add((tag[0], tag[1]))
                 elif len(tag[0]) == 1:
-                    tags.add((tag[0], tag[1] if len(tag) > 1 else ''))
+                    tags.add((tag[0], tag[1] if len(tag) > 1 else ""))
             if tags:
-                result = await conn.execute(self.tag_insert_query,
-                    [{'id': event.id_bytes, 'name': tag[0], 'value': tag[1]} for tag in tags]
+                result = await conn.execute(
+                    self.tag_insert_query,
+                    [
+                        {"id": event.id_bytes, "name": tag[0], "value": tag[1]}
+                        for tag in tags
+                    ],
                 )
 
             if event.kind == EventKind.DELETE:
                 # delete the referenced events
                 for tag in event.tags:
                     name = tag[0]
-                    if name == 'e':
+                    if name == "e":
                         event_id = tag[1]
-                        query = sa.delete(self.EventTable).where((self.EventTable.c.pubkey == bytes.fromhex(event.pubkey)) & (self.EventTable.c.id == bytes.fromhex(event_id)))
+                        query = sa.delete(self.EventTable).where(
+                            (self.EventTable.c.pubkey == bytes.fromhex(event.pubkey))
+                            & (self.EventTable.c.id == bytes.fromhex(event_id))
+                        )
                         result = await conn.execute(query)
-                        self.log.info('Deleted event %s', event_id)
+                        self.log.info("Deleted event %s", event_id)
 
     async def post_save(self, conn, event, changed):
         """
@@ -303,10 +355,11 @@ class DBStorage(BaseStorage):
         if changed:
             if event.kind in (EventKind.SET_METADATA, EventKind.CONTACTS):
                 # older metadata events can be cleared
-                await conn.execute(self.EventTable.delete().where(
-                        (self.EventTable.c.pubkey == bytes.fromhex(event.pubkey)) & 
-                        (self.EventTable.c.kind == event.kind) & 
-                        (self.EventTable.c.created_at < event.created_at)
+                await conn.execute(
+                    self.EventTable.delete().where(
+                        (self.EventTable.c.pubkey == bytes.fromhex(event.pubkey))
+                        & (self.EventTable.c.kind == event.kind)
+                        & (self.EventTable.c.created_at < event.created_at)
                     )
                 )
             await self.process_tags(conn, event)
@@ -318,7 +371,9 @@ class DBStorage(BaseStorage):
         Run a single query, yielding json events
         """
         queue = asyncio.Queue()
-        sub = Subscription(self.db, '', query_filters, queue=queue, default_limit=600000, log=self.log)
+        sub = Subscription(
+            self.db, "", query_filters, queue=queue, default_limit=600000, log=self.log
+        )
         sub.prepare()
         await sub.run_query()
         while True:
@@ -327,22 +382,27 @@ class DBStorage(BaseStorage):
                 break
             yield event
 
-    async def subscribe(self, client_id, sub_id, filters, queue, auth_token=None, **kwargs):
-        self.log.debug('%s/%s filters: %s', client_id, sub_id, filters)
+    async def subscribe(
+        self, client_id, sub_id, filters, queue, auth_token=None, **kwargs
+    ):
+        self.log.debug("%s/%s filters: %s", client_id, sub_id, filters)
         if sub_id in self.clients[client_id]:
             await self.unsubscribe(client_id, sub_id)
 
-        if Config.subscription_limit and len(self.clients[client_id]) == Config.subscription_limit:
+        if (
+            Config.subscription_limit
+            and len(self.clients[client_id]) == Config.subscription_limit
+        ):
             raise StorageError("rejected: too many subscriptions")
         sub = Subscription(
-                self.db,
-                sub_id,
-                filters,
-                queue=queue,
-                client_id=client_id,
-                is_postgres=self.is_postgres,
-                log=self.log,
-                **kwargs
+            self.db,
+            sub_id,
+            filters,
+            queue=queue,
+            client_id=client_id,
+            is_postgres=self.is_postgres,
+            log=self.log,
+            **kwargs,
         )
         if sub.prepare():
             if not await self.authenticator.can_do(auth_token, Action.query.value, sub):
@@ -370,23 +430,29 @@ class DBStorage(BaseStorage):
         if byclient:
             return subs
         else:
-            return {'total': sum(subs.values())}
+            return {"total": sum(subs.values())}
 
     async def get_stats(self):
-        stats = {'total': 0}
+        stats = {"total": 0}
         async with self.db.begin() as conn:
-            result = await conn.stream(sa.text('SELECT kind, COUNT(*) FROM events GROUP BY kind order by 2 DESC'))
+            result = await conn.stream(
+                sa.text(
+                    "SELECT kind, COUNT(*) FROM events GROUP BY kind order by 2 DESC"
+                )
+            )
             kinds = {}
             async for kind, count in result:
                 kinds[kind] = count
-                stats['total'] += count
-            stats['kinds'] = kinds
+                stats["total"] += count
+            stats["kinds"] = kinds
 
-            result = await conn.execute(sa.text('SELECT COUNT(*) FROM verification'))
+            result = await conn.execute(sa.text("SELECT COUNT(*) FROM verification"))
             row = result.first()
-            stats['num_verified'] = row[0]
+            stats["num_verified"] = row[0]
             if self.is_postgres:
-                result = await conn.execute(sa.text("""
+                result = await conn.execute(
+                    sa.text(
+                        """
                         SELECT
                             SUM(pg_total_relation_size(table_name ::text))
                         FROM (
@@ -395,14 +461,20 @@ class DBStorage(BaseStorage):
                             FROM information_schema.tables
                             where table_schema = 'public' and table_type = 'BASE TABLE'
                         ) AS all_tables
-                """))
+                """
+                    )
+                )
                 row = result.first()
-                stats['db_size'] = int(row[0])
+                stats["db_size"] = int(row[0])
             else:
                 try:
-                    result = await conn.execute(sa.text('SELECT SUM("pgsize") FROM "dbstat" WHERE name in ("events", "tags")'))
+                    result = await conn.execute(
+                        sa.text(
+                            'SELECT SUM("pgsize") FROM "dbstat" WHERE name in ("events", "tags")'
+                        )
+                    )
                     row = result.first()
-                    stats['db_size'] = row[0]
+                    stats["db_size"] = row[0]
                 except (sa.exc.OperationalError, sa.exc.ProgrammingError):
                     pass
         subs = await self.num_subscriptions(True)
@@ -411,41 +483,52 @@ class DBStorage(BaseStorage):
         for k, v in subs.items():
             num_clients += 1
             num_subs += v
-        stats['active_subscriptions'] = num_subs
-        stats['active_clients'] = num_clients
+        stats["active_subscriptions"] = num_subs
+        stats["active_clients"] = num_clients
         return stats
 
-    async def get_identified_pubkey(self, identifier, domain=''):
-        query = sa.select(self.IdentTable.c.pubkey, self.IdentTable.c.identifier, self.IdentTable.c.relays)
+    async def get_identified_pubkey(self, identifier, domain=""):
+        query = sa.select(
+            self.IdentTable.c.pubkey,
+            self.IdentTable.c.identifier,
+            self.IdentTable.c.relays,
+        )
         pars = []
         if domain:
-            query = query.where(self.IdentTable.c.identifier.like(f'%@{domain}'))
+            query = query.where(self.IdentTable.c.identifier.like(f"%@{domain}"))
         if identifier:
             query = query.where(self.IdentTable.c.identifier == identifier)
-        data = {
-            'names': {},
-            'relays': {}
-        }
+        data = {"names": {}, "relays": {}}
         self.log.debug("Getting identity for %s %s", identifier, domain)
         async with self.db.begin() as conn:
             result = await conn.stream(query)
             async for pubkey, identifier, relays in result:
-                data['names'][identifier.split('@')[0]] = pubkey
+                data["names"][identifier.split("@")[0]] = pubkey
                 if relays:
-                    data['relays'][pubkey] = relays
+                    data["relays"][pubkey] = relays
 
         return data
 
     async def set_identified_pubkey(self, identifier, pubkey, relays=None):
         async with self.db.begin() as conn:
             if not pubkey:
-                await conn.execute(self.IdentTable.delete().where(self.IdentTable.c.identifier == identifier))
+                await conn.execute(
+                    self.IdentTable.delete().where(
+                        self.IdentTable.c.identifier == identifier
+                    )
+                )
             elif not (validate_id(pubkey) and len(pubkey) == 64):
                 raise StorageError("invalid public key")
             else:
                 pars = [identifier, pubkey, rapidjson.dumps(relays or [])]
-                await conn.execute(sa.delete(self.IdentTable).where(self.IdentTable.c.identifier == identifier))
-                stmt = sa.insert(self.IdentTable).values({'identifier': identifier, 'pubkey': pubkey, 'relays': relays})
+                await conn.execute(
+                    sa.delete(self.IdentTable).where(
+                        self.IdentTable.c.identifier == identifier
+                    )
+                )
+                stmt = sa.insert(self.IdentTable).values(
+                    {"identifier": identifier, "pubkey": pubkey, "relays": relays}
+                )
                 await conn.execute(stmt)
 
     async def __aenter__(self):
@@ -456,10 +539,19 @@ class DBStorage(BaseStorage):
         await self.close()
 
 
-
 class Subscription:
-    def __init__(self, db, sub_id, filters:list, queue=None, client_id=None, default_limit=6000, is_postgres=False, log=None):
-        self.db  = db
+    def __init__(
+        self,
+        db,
+        sub_id,
+        filters: list,
+        queue=None,
+        client_id=None,
+        default_limit=6000,
+        is_postgres=False,
+        log=None,
+    ):
+        self.db = db
         self.sub_id = sub_id
         self.client_id = client_id
         self.filters = filters
@@ -500,9 +592,21 @@ class Subscription:
                 await queue.put((sub_id, None))
 
             duration = t()
-            self.log.info('%s/%s query – events:%s duration:%dms', self.client_id, self.sub_id, count, duration)
+            self.log.info(
+                "%s/%s query – events:%s duration:%dms",
+                self.client_id,
+                self.sub_id,
+                count,
+                duration,
+            )
             if duration > 500:
-                self.log.warning("%s/%s Long query: '%s' took %dms", self.client_id, self.sub_id, rapidjson.dumps(self.filters), duration)
+                self.log.warning(
+                    "%s/%s Long query: '%s' took %dms",
+                    self.client_id,
+                    self.sub_id,
+                    rapidjson.dumps(self.filters),
+                    duration,
+                )
         except Exception:
             self.log.exception("subscription")
 
@@ -515,7 +619,14 @@ class Subscription:
         with catchtime() as t:
             matched = self.check_event(event, self.filters)
         duration = t()
-        self.log.debug('%s/%s notify match %s %s duration:%.2fms', self.client_id, self.sub_id, event.id, matched, duration)
+        self.log.debug(
+            "%s/%s notify match %s %s duration:%.2fms",
+            self.client_id,
+            self.sub_id,
+            event.id,
+            matched,
+            duration,
+        )
         if matched:
             await self.queue.put((self.sub_id, event))
 
@@ -523,20 +634,20 @@ class Subscription:
         for filter_obj in filters:
             matched = set()
             for key, value in filter_obj.items():
-                if key == 'ids':
+                if key == "ids":
                     matched.add(event.id in value)
-                elif key == 'authors':
+                elif key == "authors":
                     matched.add(event.pubkey in value)
                     for tag in event.tags:
-                        if tag[0] == 'delegation' and tag[1] in value:
+                        if tag[0] == "delegation" and tag[1] in value:
                             matched.add(True)
-                elif key == 'kinds':
+                elif key == "kinds":
                     matched.add(event.kind in value)
-                elif key == 'since':
+                elif key == "since":
                     matched.add(event.created_at >= value)
-                elif key == 'until':
+                elif key == "until":
                     matched.add(event.created_at < value)
-                elif key[0] == '#' and len(key) == 2:
+                elif key[0] == "#" and len(key) == 2:
                     for tag in event.tags:
                         if tag[0] == key[1]:
                             matched.add(tag[1] in value)
@@ -546,11 +657,11 @@ class Subscription:
 
     def evaluate_filter(self, filter_obj, subwhere):
         for key, value in filter_obj.items():
-            if key == 'ids':
+            if key == "ids":
                 if not isinstance(value, list):
                     value = [value]
                 ids = set(value)
-                if ids and len(ids) < 40: # pathological queries?
+                if ids and len(ids) < 40:  # pathological queries?
                     exact = []
                     for eid in ids:
                         eid = validate_id(eid)
@@ -566,12 +677,12 @@ class Subscription:
                                 else:
                                     subwhere.append(f"lower(hex(id)) LIKE '{eid}%'")
                     if exact:
-                        idstr = ','.join(exact)
-                        subwhere.append(f'events.id IN ({idstr})')
+                        idstr = ",".join(exact)
+                        subwhere.append(f"events.id IN ({idstr})")
                 else:
                     # invalid query
                     raise ValueError("ids")
-            elif key == 'authors' and isinstance(value, list):
+            elif key == "authors" and isinstance(value, list):
                 if value and len(value) < 40:
                     exact = set()
                     hexexact = set()
@@ -586,45 +697,51 @@ class Subscription:
                                 hexexact.add(f"'{pubkey}'")
                             # no prefix searches, for now
                     if exact:
-                        astr = ','.join(exact)
-                        subwhere.append(f"(pubkey IN ({astr}) OR id IN (SELECT id FROM tags WHERE name = 'delegation' AND value IN ({','.join(hexexact)})))")
+                        astr = ",".join(exact)
+                        subwhere.append(
+                            f"(pubkey IN ({astr}) OR id IN (SELECT id FROM tags WHERE name = 'delegation' AND value IN ({','.join(hexexact)})))"
+                        )
                     else:
                         raise ValueError("authors")
                 else:
                     # query with empty list should be invalid
                     raise ValueError("authors")
-            elif key == 'kinds':
+            elif key == "kinds":
                 if isinstance(value, list) and all(isinstance(k, int) for k in value):
-                    subwhere.append('kind IN ({})'.format(','.join(str(int(k)) for k in value)))
+                    subwhere.append(
+                        "kind IN ({})".format(",".join(str(int(k)) for k in value))
+                    )
                 else:
                     raise ValueError("kinds")
-            elif key == 'since':
+            elif key == "since":
                 if value:
-                    subwhere.append('created_at >= %d' % int(value))
+                    subwhere.append("created_at >= %d" % int(value))
                 else:
                     raise ValueError("since")
-            elif key == 'until':
+            elif key == "until":
                 if value:
-                    subwhere.append('created_at < %d' % int(value))
+                    subwhere.append("created_at < %d" % int(value))
                 else:
                     raise ValueError("until")
-            elif key == 'limit' and isinstance(value, int):
-                filter_obj['limit'] = min(max(value, 0), self.default_limit)
-            elif key[0] == '#' and len(key) == 2 and value:
+            elif key == "limit" and isinstance(value, int):
+                filter_obj["limit"] = min(max(value, 0), self.default_limit)
+            elif key[0] == "#" and len(key) == 2 and value:
                 pstr = []
                 for val in set(value):
                     if val:
                         val = val.replace("'", "''")
                         pstr.append(f"'{val}'")
                 if pstr:
-                    pstr = ','.join(pstr)
-                    subwhere.append(f"id IN (SELECT id FROM tags WHERE name = '{key[1]}' AND value IN ({pstr})) ")
+                    pstr = ",".join(pstr)
+                    subwhere.append(
+                        f"id IN (SELECT id FROM tags WHERE name = '{key[1]}' AND value IN ({pstr})) "
+                    )
         return filter_obj
 
     def build_query(self, filters):
-        select = '''
+        select = """
             SELECT id, created_at, kind, pubkey, tags, sig, content FROM events
-        '''
+        """
         where = set()
         limit = None
         new_filters = []
@@ -637,22 +754,22 @@ class Subscription:
                 filter_obj = {}
                 subwhere = []
             if subwhere:
-                subwhere = ' AND '.join(subwhere)
+                subwhere = " AND ".join(subwhere)
                 where.add(subwhere)
             else:
-                where.add('false')
-            if 'limit' in filter_obj:
-                limit = filter_obj['limit']
+                where.add("false")
+            if "limit" in filter_obj:
+                limit = filter_obj["limit"]
             new_filters.append(filter_obj)
         if where:
-            select += ' WHERE (\n\t'
-            select += '\n) OR (\n'.join(where)
-            select += ')'
+            select += " WHERE (\n\t"
+            select += "\n) OR (\n".join(where)
+            select += ")"
         if limit is None:
             limit = self.default_limit
-        select += f'''
+        select += f"""
             LIMIT {limit}
-        '''
+        """
         return select, new_filters
 
 
@@ -661,7 +778,7 @@ class BaseGarbageCollector(Periodic):
         self.log = logging.getLogger("nostr_relay.db:gc")
         self.db = db
         self.running = True
-        self.collect_interval = kwargs.get('collect_interval', 300)
+        self.collect_interval = kwargs.get("collect_interval", 300)
         super().__init__(self.collect_interval)
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -670,7 +787,11 @@ class BaseGarbageCollector(Periodic):
         pass
 
     async def start(self):
-        self.log.info("Starting garbage collector %s. Interval %s", self.__class__.__name__, self.collect_interval)
+        self.log.info(
+            "Starting garbage collector %s. Interval %s",
+            self.__class__.__name__,
+            self.collect_interval,
+        )
         await super().start()
 
     async def run_once(self):
@@ -688,7 +809,7 @@ class BaseGarbageCollector(Periodic):
 
 
 class QueryGarbageCollector(BaseGarbageCollector):
-    query = '''
+    query = """
         DELETE FROM events WHERE events.id IN
         (
             SELECT events.id FROM events
@@ -698,17 +819,21 @@ class QueryGarbageCollector(BaseGarbageCollector):
             OR
                 (tags.name = 'expiration' AND tags.value < '%NOW%')
         )
-    '''
+    """
 
     async def collect(self, conn):
-        result = await conn.execute(sa.text(self.query.replace('%NOW%', str(int(time())))))
+        result = await conn.execute(
+            sa.text(self.query.replace("%NOW%", str(int(time()))))
+        )
         return max(0, result.rowcount)
 
 
 def start_garbage_collector(db, options=None):
     options = options or Config.garbage_collector
     if options:
-        gc_obj = call_from_path(options.pop("class", "nostr_relay.storage.db.QueryGarbageCollector"), db, **options)
+        gc_obj = call_from_path(
+            options.pop("class", "nostr_relay.storage.db.QueryGarbageCollector"),
+            db,
+            **options,
+        )
         return asyncio.create_task(gc_obj.start())
-
-

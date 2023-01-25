@@ -19,6 +19,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "nostrrelay/index.html", {"request": request, "user": user.dict()}
     )
 
+
 @nostrrelay_ext.get("/public")
 async def nostrrelay(request: Request, nostrrelay_id):
     return nostrrelay_renderer().TemplateResponse(
