@@ -1,0 +1,35 @@
+<q-card>
+  <q-card-section>
+    <q-btn
+      label="Onchain -> Lightning"
+      unelevated
+      color="primary"
+      @click="submarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Send onchain funds offchain (BTC -> LN)
+      </q-tooltip>
+    </q-btn>
+    <q-btn
+      label="Lightning -> Onchain"
+      unelevated
+      color="primary"
+      @click="reverseSubmarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Send offchain funds to onchain address (LN -> BTC)
+      </q-tooltip>
+    </q-btn>
+    <q-btn
+      label="Auto (Lightning -> Onchain)"
+      unelevated
+      color="primary"
+      @click="autoReverseSubmarineSwapDialog.show = true"
+    >
+      <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+        Automatically send offchain funds to onchain address (LN -> BTC) with a
+        predefined threshold
+      </q-tooltip>
+    </q-btn>
+  </q-card-section>
+</q-card>

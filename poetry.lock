@@ -176,6 +176,24 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "boltz-client"
+version = "0.1.2"
+description = "python boltz client"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "boltz_client-0.1.2-py3-none-any.whl", hash = "sha256:2fb0814c7c3ea88d039e71088648df27db0c036b777b0618bd30638dd76ebe90"},
+    {file = "boltz_client-0.1.2.tar.gz", hash = "sha256:b360c0ff26f2dea62af6457de4d8c46e434cd24b607ed3aa71494409b57e082b"},
+]
+
+[package.dependencies]
+click = ">=8"
+embit = ">=0.4"
+httpx = ">=0.23"
+websockets = ">=10"
+
+[[package]]
 name = "cashu"
 version = "0.8.2"
 description = "Ecash wallet and mint for Bitcoin Lightning"
@@ -532,10 +550,10 @@ files = [
 cffi = ">=1.12"
 
 [package.extras]
-docs = ["sphinx (>=1.6.5,!=1.8.0,!=3.1.0,!=3.1.1)", "sphinx-rtd-theme"]
+docs = ["sphinx (>=1.6.5,!=1.8.0,!=3.1.0,!=3.1.1)", "sphinx_rtd_theme"]
 docstest = ["pyenchant (>=1.6.11)", "sphinxcontrib-spelling (>=4.0.1)", "twine (>=1.12.0)"]
 pep8test = ["black", "flake8", "flake8-import-order", "pep8-naming"]
-sdist = ["setuptools-rust (>=0.11.4)"]
+sdist = ["setuptools_rust (>=0.11.4)"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["hypothesis (>=1.11.4,!=3.79.2)", "iso8601", "pretend", "pytest (>=6.2.0)", "pytest-cov", "pytest-subtests", "pytest-xdist", "pytz"]
 
@@ -1784,7 +1802,7 @@ mssql = ["pyodbc"]
 mssql-pymssql = ["pymssql"]
 mssql-pyodbc = ["pyodbc"]
 mysql = ["mysqlclient"]
-oracle = ["cx-oracle"]
+oracle = ["cx_oracle"]
 postgresql = ["psycopg2"]
 postgresql-pg8000 = ["pg8000 (<1.16.6)"]
 postgresql-psycopg2binary = ["psycopg2-binary"]
@@ -2094,4 +2112,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "9daf94dd600a7e23dcefcc8752fae1694e0084e56553dc578a63272776a8fe53"
+content-hash = "b2d22a2a33b4c0a4491b5519b28772435c15747b407a150ffa591bcf6ccb56a6"

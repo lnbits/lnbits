@@ -4,13 +4,15 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import shortuuid
+
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, User, Wallet
+from .models import BalanceCheck, Payment, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -730,4 +732,43 @@ async def update_migration_version(conn, db_name, version):
         ON CONFLICT (db) DO UPDATE SET version = ?
         """,
         (db_name, version, version),
+=======
+# tinyurl
+# -------
+
+
+async def create_tinyurl(domain: str, endless: bool, wallet: str):
+    tinyurl_id = shortuuid.uuid()[:8]
+    await db.execute(
+        f"INSERT INTO tiny_url (id, url, endless, wallet) VALUES (?, ?, ?, ?)",
+        (
+            tinyurl_id,
+            domain,
+            endless,
+            wallet,
+        ),
+    )
+    return await get_tinyurl(tinyurl_id)
+
+
+async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
+    row = await db.fetchone(
+        f"SELECT * FROM tiny_url WHERE id = ?",
+        (tinyurl_id,),
+    )
+    return TinyURL.from_row(row) if row else None
+
+
+async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
+    rows = await db.fetchall(
+        f"SELECT * FROM tiny_url WHERE url = ?",
+        (url,),
+    )
+    return [TinyURL.from_row(row) for row in rows]
+
+
+async def delete_tinyurl(tinyurl_id: str):
+    row = await db.execute(
+        f"DELETE FROM tiny_url WHERE id = ?",
+        (tinyurl_id,),
     )

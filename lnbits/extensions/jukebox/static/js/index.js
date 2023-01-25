@@ -255,7 +255,8 @@ new Vue({
     },
     createJukebox() {
       self = this
-      self.jukeboxDialog.data.sp_playlists = self.jukeboxDialog.data.sp_playlists.join()
+      self.jukeboxDialog.data.sp_playlists =
+        self.jukeboxDialog.data.sp_playlists.join()
       self.updateDB()
       self.jukeboxDialog.show = false
       self.getJukeboxes()

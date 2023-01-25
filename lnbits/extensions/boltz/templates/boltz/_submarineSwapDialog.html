@@ -1,0 +1,58 @@
+<q-dialog v-model="submarineSwapDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form @submit="sendSubmarineSwapFormData" class="q-gutter-md">
+      <q-select
+        filled
+        dense
+        emit-value
+        v-model="submarineSwapDialog.data.wallet"
+        :options="g.user.walletOptions"
+        label="Wallet *"
+        :disable="submarineSwapDialog.data.id ? true : false"
+      >
+      </q-select>
+
+      <q-input
+        filled
+        dense
+        emit-value
+        v-model.trim="submarineSwapDialog.data.amount"
+        :label="amountLabel()"
+        type="number"
+      ></q-input>
+      <q-input
+        filled
+        dense
+        emit-value
+        v-model.trim="submarineSwapDialog.data.refund_address"
+        type="string"
+        label="Onchain address to receive funds if swap fails"
+      ></q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="submarineSwapDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          label="Update Swap"
+        ></q-btn>
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="disableSubmarineSwapDialog()"
+          type="submit"
+          label="Create Swap (IN)"
+        ></q-btn>
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          @click="resetSubmarineSwapDialog"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
