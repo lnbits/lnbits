@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-9 col-xs-4">
+  <div class="col-sm-9 col-xs-12">
     <q-card>
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
@@ -32,7 +32,7 @@
     </q-card>
   </div>
 
-  <div class="col-sm-3 col-xs-4 q-ml-auto">
+  <div class="col-sm-3 col-xs-12 q-ml-auto">
     <q-input v-model="searchTerm" label="Search extensions">
       <q-icon
         v-if="searchTerm !== ''"
