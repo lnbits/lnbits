@@ -103,7 +103,6 @@ async def extensions_install(
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
                 e.icon = installed_ext.icon
-                e.icon_url = installed_ext.icon_url
 
     except Exception as ex:
         logger.warning(ex)
@@ -132,7 +131,6 @@ async def extensions_install(
                     "id": ext.id,
                     "name": ext.name,
                     "icon": ext.icon,
-                    "iconUrl": ext.icon_url,
                     "shortDescription": ext.short_description,
                     "stars": ext.stars,
                     "isFeatured": ext.featured,
