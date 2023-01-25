@@ -763,7 +763,7 @@ async def api_install_extension(
         logger.warning(ex)
         ext_info.clean_extension_files()
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to install extension."
         )
 
 
