@@ -15,7 +15,7 @@ import websockets
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_user_exists, check_admin
 
 from .crud import get_nostrkeys, get_nostrrelay
 
@@ -23,7 +23,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @nostradmin_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(request: Request, user: User = Depends(check_admin)):
     return nostr_renderer().TemplateResponse(
         "nostradmin/index.html", {"request": request, "user": user.dict()}
     )

@@ -6,10 +6,11 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key, check_admin
 from lnbits.utils.exchange_rates import currencies
 
-from lnbits.settings import LNBITS_ADMIN_USERS
+from lnbits.settings import settings
+
 from . import nostradmin_ext
 from .crud import (
     create_nostrkeys,
@@ -48,7 +49,7 @@ async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @nostradmin_ext.get("/api/v1/relaylist")
 async def api_relaylist(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
+    if wallet.wallet.user not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
@@ -56,7 +57,7 @@ async def api_relaylist(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @nostradmin_ext.post("/api/v1/setlist")
 async def api_relayssetlist(data: nostrRelaySetList, wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
+    if wallet.wallet.user not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
