@@ -30,13 +30,13 @@ class Extension(NamedTuple):
     hidden: bool = False
     migration_module: Optional[str] = None
     db_name: Optional[str] = None
-    hash: Optional[str] = ""
+    upgrade_hash: Optional[str] = ""
 
     @property
     def module_name(self):
         return (
             f"lnbits.extensions.{self.code}"
-            if self.hash == ""
+            if self.upgrade_hash == ""
             else f"lnbits.upgrades.{self.code}-{self.hash}.{self.code}"
         )
 
@@ -47,7 +47,7 @@ class Extension(NamedTuple):
             is_valid=True,
             is_admin_only=False,  # todo: is admin only
             name=ext_info.name,
-            hash=ext_info.hash if ext_info.module_installed else "",
+            upgrade_hash=ext_info.hash if ext_info.module_installed else "",
         )
 
 
@@ -301,8 +301,6 @@ class InstallableExtension(BaseModel):
 
     def nofiy_upgrade(self) -> None:
         """Update the list of upgraded extensions. The middleware will perform redirects based on this"""
-        if not self.hash:
-            return
 
         clean_upgraded_exts = list(
             filter(

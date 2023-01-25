@@ -756,14 +756,15 @@ async def api_install_extension(
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
 
-        if ext_info.module_installed:
+        if extension.upgrade_hash:
             ext_info.nofiy_upgrade()
 
     except Exception as ex:
         logger.warning(ex)
         ext_info.clean_extension_files()
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to install extension."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Failed to install extension.",
         )
 
 
