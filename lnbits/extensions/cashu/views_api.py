@@ -302,7 +302,7 @@ async def melt_coins(
     await ledger._set_proofs_pending(proofs)
 
     try:
-        ledger._verify_proofs(proofs)
+        await ledger._verify_proofs(proofs)
 
         total_provided = sum([p["amount"] for p in proofs])
         invoice_obj = bolt11.decode(invoice)
@@ -343,13 +343,13 @@ async def melt_coins(
             else:
                 logger.debug(f"Cashu: Payment failed for {invoice_obj.payment_hash}")
     except Exception as e:
-        logger.debug(f"Cashu: Exception for {invoice_obj.payment_hash}: {str(e)}")
+        logger.debug(f"Cashu: Exception: {str(e)}")
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Cashu: {str(e)}",
         )
     finally:
-        logger.debug(f"Cashu: Unset pending for {invoice_obj.payment_hash}")
+        logger.debug(f"Cashu: Unset pending")
         # delete proofs from pending list
         await ledger._unset_proofs_pending(proofs)
 
