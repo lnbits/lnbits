@@ -217,6 +217,7 @@ class BalanceCheck(BaseModel):
 class CoreAppExtra:
     register_new_ext_routes: Callable
 
+
 class TinyURL(BaseModel):
     id: str
     url: str

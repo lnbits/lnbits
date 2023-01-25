@@ -56,10 +56,10 @@ from lnbits.utils.exchange_rates import (
 from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
-    delete_installed_extension,
-    get_dbversions,
     create_tinyurl,
+    delete_installed_extension,
     delete_tinyurl,
+    get_dbversions,
     get_payments,
     get_standalone_payment,
     get_tinyurl,
@@ -818,6 +818,8 @@ async def get_extension_releases(ext_id: str, user: User = Depends(check_admin))
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
 
 ############################TINYURL##################################
 

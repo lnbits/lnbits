@@ -732,7 +732,9 @@ async def update_migration_version(conn, db_name, version):
         ON CONFLICT (db) DO UPDATE SET version = ?
         """,
         (db_name, version, version),
-=======
+    )
+
+
 # tinyurl
 # -------
 

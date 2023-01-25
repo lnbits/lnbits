@@ -270,6 +270,7 @@ async def m008_create_admin_settings_table(db):
     """
     )
 
+
 async def m009_create_tinyurl_table(db):
     await db.execute(
         f"""
@@ -282,7 +283,8 @@ async def m009_create_tinyurl_table(db):
         );
     """
     )
-    
+
+
 async def m010_create_installed_extensions_table(db):
     await db.execute(
         """
