@@ -1,0 +1,303 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">NOSTR RELAYS ONLINE</h5>
+          </div>
+
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportlnurldeviceCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="nostrrelayLinks"
+          row-key="id"
+          :columns="nostrTable.columns"
+          :pagination.sync="nostrTable.pagination"
+          :filter="filter"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <!-- <q-th auto-width></q-th> -->
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>
+                  <div v-if="col.value == true" style="background-color: green">
+                    {{ col.value }}
+                  </div>
+                  <div v-else>{{ col.value }}</div>
+                </div>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-tabs
+        v-model="listSelection"
+        dense
+        class="text-grey"
+        active-color="primary"
+        indicator-color="primary"
+        align="justify"
+        narrow-indicator
+      >
+        <q-tab name="denylist" label="Deny List"></q-tab>
+        <q-tab name="allowlist" label="Allow List"></q-tab>
+      </q-tabs>
+
+      <q-separator></q-separator>
+
+      <q-tab-panels v-model="listSelection" animated>
+        <q-tab-panel name="denylist">
+          <div class="text-h6">Relays in this list will NOT be used</div>
+          <q-form class="q-gutter-md q-y-md" @submit="setRelayList">
+            <div class="row">
+              <div class="col q-mx-lg">
+                <q-input
+                  v-model="setList.denylist"
+                  dense
+                  filled
+                  autogrow
+                ></q-input>
+              </div>
+              <div
+                class="col q-mx-lg items-align flex items-center justify-center"
+              >
+                <q-btn unelevated color="primary" type="submit">
+                  Update Deny List
+                </q-btn>
+              </div>
+            </div>
+          </q-form>
+        </q-tab-panel>
+
+        <q-tab-panel name="allowlist">
+          <div class="text-h6">ONLY relays in this list will be used</div>
+          <q-form class="q-gutter-md q-y-md" @submit="setRelayList">
+            <div class="row">
+              <div class="col q-mx-lg">
+                <q-input
+                  v-model="setList.allowlist"
+                  dense
+                  filled
+                  autogrow
+                ></q-input>
+              </div>
+              <div
+                class="col q-mx-lg items-align flex items-center justify-center"
+              >
+                <q-btn unelevated color="primary" type="submit">
+                  Update Allow List
+                </q-btn>
+              </div>
+            </div>
+          </q-form>
+        </q-tab-panel>
+      </q-tab-panels>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Nostr Extension</h6>
+        <p>Only Admin users can manage this extension</p>
+
+        <q-card-section></q-card-section>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  var maplrelays = obj => {
+    obj._data = _.clone(obj)
+    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
+    obj.time = obj.time + 'mins'
+
+    if (obj.time_elapsed) {
+      obj.date = 'Time elapsed'
+    } else {
+      obj.date = Quasar.utils.date.formatDate(
+        new Date((obj.theTime - 3600) * 1000),
+        'HH:mm:ss'
+      )
+    }
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        listSelection: 'denylist',
+        setList: {
+          allowlist: '',
+          denylist: ''
+        },
+        nostrrelayLinks: [],
+        filter: '',
+        nostrTable: {
+          columns: [
+            {
+              name: 'wah',
+              align: 'left',
+              label: 'id',
+              field: 'id'
+            },
+            {
+              name: 'relay',
+              align: 'left',
+              label: 'relay',
+              field: 'relay'
+            },
+            {
+              name: 'status',
+              align: 'left',
+              label: 'status',
+              field: 'status'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }
+      }
+    },
+    methods: {
+      getRelays: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/nostradmin/api/v1/relays',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              console.log(response.data)
+              response.data.map(maplrelays)
+              self.nostrrelayLinks = response.data
+              console.log(self.nostrrelayLinks)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      setAllowList: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/nostradmin/api/v1/allowlist',
+            self.g.user.wallets[0].adminkey,
+            self.allowList
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.allowList = response.data
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      setRelayList: function () {
+        var self = this
+        console.log(self.setList)
+        LNbits.api
+          .request(
+            'POST',
+            '/nostradmin/api/v1/setlist',
+            self.g.user.wallets[0].adminkey,
+            self.setList
+          )
+          .then(function (response) {
+            if (response.data) {
+              console.log(response.data)
+              // self.denyList = response.data
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getLists: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/nostradmin/api/v1/relaylist',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              console.log(response.data)
+              self.setList.denylist = response.data.denylist
+              self.setList.allowlist = response.data.allowlist
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      exportlnurldeviceCSV: function () {
+        var self = this
+        LNbits.utils.exportCSV(self.nostrTable.columns, this.nostrLinks)
+      }
+    },
+    created: function () {
+      var self = this
+      this.getRelays()
+      this.getLists()
+    }
+  })
+</script>
+{% endblock %}

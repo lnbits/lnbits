@@ -1,0 +1,6 @@
+{
+  "name": "NostrAdmin",
+  "short_description": "Admin daemon for Nostr",
+  "icon": "swap_horizontal_circle",
+  "contributors": ["arcbtc"]
+}
