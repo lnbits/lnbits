@@ -2,7 +2,7 @@
 %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
-    <p class="text-h4">Install Extesions</p>
+    <p class="text-h4">Add Extensions <small v-if="!g.user.admin">(admin only)</small></p>
   </div>
 
   <div class="col-sm-3 col-xs-12 q-ml-auto">
@@ -132,7 +132,7 @@
           </div>
         </div>
       </q-card-section>
-      <q-separator></q-separator>
+      <q-separator v-if="g.user.admin"></q-separator>
       <q-card-actions>
         <div class="col-10">
           <div v-if="g.user.admin">
