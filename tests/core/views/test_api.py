@@ -1,18 +1,12 @@
 import hashlib
 
 import pytest
-import pytest_asyncio
 
 from lnbits import bolt11
-from lnbits.core.crud import get_wallet
-from lnbits.core.views.api import (
-    CreateInvoiceData,
-    api_payment,
-    api_payments_create_invoice,
-)
+from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_regtest
+from ...helpers import get_random_invoice_data, is_regtest, is_fake
 
 WALLET = get_wallet_class()
 
@@ -262,6 +256,7 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(client, real_invoice, adminkey_headers_from):
     # data = {"out": True, "bolt11": real_invoice["bolt11"]}
     response = await client.post(
