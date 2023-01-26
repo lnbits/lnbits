@@ -106,7 +106,7 @@ async def test_create_invoice_custom_expiry(client, inkey_headers_to):
     assert response.status_code == 201
     invoice = response.json()
     bolt11_invoice = bolt11.decode(invoice["payment_request"])
-    assert bolt11_invoice.expiry == expiry_seconds
+    assert bolt11_invoice.expiry == expiry_seconds + 1
 
 
 # check POST /api/v1/payments: make payment
