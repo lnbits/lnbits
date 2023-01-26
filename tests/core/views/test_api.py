@@ -259,3 +259,14 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
     return invoice
+
+
+@pytest.mark.asyncio
+async def test_pay_real_invoice(client, real_invoice, adminkey_headers_from):
+    # data = {"out": True, "bolt11": real_invoice["bolt11"]}
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+    assert len(response.json()["payment_hash"]) == 64
+    assert len(response.json()["checking_id"]) > 0
