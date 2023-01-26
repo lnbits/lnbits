@@ -26,7 +26,7 @@ async def nostrrelay(request: Request, nostrrelay_id):
         "nostrrelay/public.html",
         {
             "request": request,
-            "nostrrelay": relay,
+            # "nostrrelay": relay,
             "web_manifest": f"/nostrrelay/manifest/{nostrrelay_id}.webmanifest",
         },
     )
