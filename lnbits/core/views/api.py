@@ -26,7 +26,7 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import StreamingResponse
+from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
@@ -47,8 +47,12 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
+    create_tinyurl,
+    delete_tinyurl,
     get_payments,
     get_standalone_payment,
+    get_tinyurl,
+    get_tinyurl_by_url,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
@@ -708,3 +712,75 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
+
+############################TINYURL##################################
+
+
+@core_app.post("/api/v1/tinyurl")
+async def api_create_tinyurl(
+    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    tinyurls = await get_tinyurl_by_url(url)
+    try:
+        for tinyurl in tinyurls:
+            if tinyurl:
+                if tinyurl.wallet == wallet.wallet.inkey:
+                    return tinyurl
+        return await create_tinyurl(url, endless, wallet.wallet.inkey)
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
+        )
+
+
+@core_app.get("/api/v1/tinyurl/{tinyurl_id}")
+async def api_get_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                return tinyurl
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
+        )
+
+
+@core_app.delete("/api/v1/tinyurl/{tinyurl_id}")
+async def api_delete_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                await delete_tinyurl(tinyurl_id)
+                return {"deleted": True}
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
+        )
+
+
+@core_app.get("/t/{tinyurl_id}")
+async def api_tinyurl(tinyurl_id: str):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            response = RedirectResponse(url=tinyurl.url)
+            return response
+        else:
+            return
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
+        )

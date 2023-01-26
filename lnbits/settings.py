@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v):
@@ -33,6 +33,7 @@ class LNbitsSettings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
+        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
