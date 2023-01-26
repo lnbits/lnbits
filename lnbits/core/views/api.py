@@ -736,7 +736,7 @@ async def api_install_extension(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
     ext_info = InstallableExtension(
-        id=data.ext_id, name=data.ext_id, installed_release=release
+        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
 
     ext_info.download_archive()

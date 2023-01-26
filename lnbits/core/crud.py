@@ -88,9 +88,9 @@ async def add_installed_extension(
 
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, name, short_description, icon, icon_url, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO installed_extensions (id, version, name, short_description, icon, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (id) DO
-        UPDATE SET (version, name, active, short_description, icon, icon_url, stars, meta) = (?, ?, ?, ?, ?, ?, ?, ?)
+        UPDATE SET (version, name, active, short_description, icon, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ext.id,
@@ -98,7 +98,6 @@ async def add_installed_extension(
             ext.name,
             ext.short_description,
             ext.icon,
-            ext.icon_url,
             ext.stars,
             json.dumps(meta),
             version,
@@ -106,7 +105,6 @@ async def add_installed_extension(
             False,
             ext.short_description,
             ext.icon,
-            ext.icon_url,
             ext.stars,
             json.dumps(meta),
         ),

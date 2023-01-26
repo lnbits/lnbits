@@ -294,7 +294,6 @@ async def m010_create_installed_extensions_table(db):
             name TEXT NOT NULL,
             short_description TEXT,
             icon TEXT,
-            icon_url TEXT,
             stars INT NOT NULL DEFAULT 0,
             active BOOLEAN DEFAULT false,
             meta TEXT NOT NULL DEFAULT '{}'
