@@ -33,10 +33,10 @@ jobs:
         run: |
           poetry install
 
-  LndRestWallet:
-    runs-on: ubuntu-latest
-    needs: [regtest]
-    steps:
+  # LndRestWallet:
+  #   runs-on: ubuntu-latest
+  #   needs: [regtest]
+  #   steps:
       - name: Run LndRestWallet
         env:
           PYTHONUNBUFFERED: 1
@@ -50,10 +50,10 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  LndWallet:
-    runs-on: ubuntu-latest
-    needs: [regtest]
-    steps:
+  # LndWallet:
+  #   runs-on: ubuntu-latest
+  #   needs: [regtest]
+  #   steps:
       - name: Run LndWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -68,10 +68,10 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  CoreLightningWallet:
-    runs-on: ubuntu-latest
-    needs: [regtest]
-    steps:
+  # CoreLightningWallet:
+  #   runs-on: ubuntu-latest
+  #   needs: [regtest]
+  #   steps:
       - name: Run CoreLightningWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -83,10 +83,10 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  LNbitsWallet:
-    runs-on: ubuntu-latest
-    needs: [regtest]
-    steps:
+  # LNbitsWallet:
+  #   runs-on: ubuntu-latest
+  #   needs: [regtest]
+  #   steps:
       - name: Run LNbitsWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -99,10 +99,10 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  EclairWallet:
-    runs-on: ubuntu-latest
-    needs: ["regtest"]
-    steps:
+#   EclairWallet:
+#     runs-on: ubuntu-latest
+#     needs: ["regtest"]
+#     steps:
       - name: Run EclairWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -115,10 +115,10 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  coverage:
-    runs-on: ubuntu-latest
-    needs: ["CoreLightningWallet", "LndWallet", "LndRestWallet", "EclairWallet"]
-    steps:
+  # coverage:
+  #   runs-on: ubuntu-latest
+  #   needs: ["CoreLightningWallet", "LndWallet", "LndRestWallet", "EclairWallet"]
+  #   steps:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
