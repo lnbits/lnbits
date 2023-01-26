@@ -106,10 +106,12 @@ class ExtensionRelease(BaseModel):
     version: str
     archive: str
     source_repo: str
+    is_github_release = False
     hash: Optional[str]
     html_url: Optional[str]
     description: Optional[str]
     details_html: Optional[str] = None
+    icon: Optional[str]
 
     @classmethod
     def from_github_release(
@@ -121,6 +123,7 @@ class ExtensionRelease(BaseModel):
             version=r.tag_name,
             archive=r.zipball_url,
             source_repo=source_repo,
+            is_github_release=True,
             # description=r.body, # bad for JSON
             html_url=r.html_url,
         )
@@ -181,7 +184,7 @@ class GitHubRepo(BaseModel):
 class ExtensionConfig(BaseModel):
     name: str
     short_description: str
-    tile: str
+    tile: str = ""
 
 
 class InstallableExtension(BaseModel):
@@ -189,7 +192,6 @@ class InstallableExtension(BaseModel):
     name: str
     short_description: Optional[str] = None
     icon: Optional[str] = None
-    icon_url: Optional[str] = None
     dependencies: List[str] = []
     is_admin_only: bool = False
     stars: int = 0
@@ -287,9 +289,13 @@ class InstallableExtension(BaseModel):
 
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
-            self.icon = config_json.get("icon")
-            if self.installed_release and config_json.get("tile"):
-                self.icon_url = icon_to_github_url(
+
+            if (
+                self.installed_release
+                and self.installed_release.is_github_release
+                and config_json.get("tile")
+            ):
+                self.icon = icon_to_github_url(
                     self.installed_release.source_repo, config_json.get("tile")
                 )
 
@@ -345,7 +351,7 @@ class InstallableExtension(BaseModel):
                 short_description=config.short_description,
                 version="0",
                 stars=repo.stargazers_count,
-                icon_url=icon_to_github_url(
+                icon=icon_to_github_url(
                     f"{github_release.organisation}/{github_release.repository}",
                     config.tile,
                 ),
@@ -427,6 +433,7 @@ class InstallableExtension(BaseModel):
                                 description=e.short_description,
                                 details_html=e.details,
                                 html_url=e.html_url,
+                                icon=e.icon,
                             )
                         ]
 
