@@ -26,6 +26,7 @@ tests/data/*.sqlite3
 .venv
 venv
 
+data
 *.sqlite3
 .pyre*
 
@@ -38,3 +39,7 @@ docker
 
 # Nix
 *result*
+
+# Ignore extensions (post installable extension PR)
+extensions/
+upgrades/

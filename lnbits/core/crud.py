@@ -8,6 +8,7 @@ import shortuuid
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
@@ -66,6 +67,97 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
     )
+
+
+# extensions
+# -------
+
+
+async def add_installed_extension(
+    ext: InstallableExtension,
+    conn: Optional[Connection] = None,
+) -> None:
+    meta = {
+        "installed_release": dict(ext.installed_release)
+        if ext.installed_release
+        else None,
+        "dependencies": ext.dependencies,
+    }
+
+    version = ext.installed_release.version if ext.installed_release else ""
+
+    await (conn or db).execute(
+        """
+        INSERT INTO installed_extensions (id, version, name, short_description, icon, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (id) DO
+        UPDATE SET (version, name, active, short_description, icon, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            ext.id,
+            version,
+            ext.name,
+            ext.short_description,
+            ext.icon,
+            ext.stars,
+            json.dumps(meta),
+            version,
+            ext.name,
+            False,
+            ext.short_description,
+            ext.icon,
+            ext.stars,
+            json.dumps(meta),
+        ),
+    )
+
+
+async def update_installed_extension_state(
+    *, ext_id: str, active: bool, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        """
+        UPDATE installed_extensions SET active = ? WHERE id = ?
+        """,
+        (active, ext_id),
+    )
+
+
+async def delete_installed_extension(
+    *, ext_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        """
+        DELETE from installed_extensions  WHERE id = ?
+        """,
+        (ext_id,),
+    )
+
+
+async def get_installed_extension(ext_id: str, conn: Optional[Connection] = None):
+    row = await (conn or db).fetchone(
+        "SELECT * FROM installed_extensions WHERE id = ?",
+        (ext_id,),
+    )
+
+    return dict(row) if row else None
+
+
+async def get_installed_extensions(
+    conn: Optional[Connection] = None,
+) -> List["InstallableExtension"]:
+    rows = await (conn or db).fetchall(
+        "SELECT * FROM installed_extensions",
+        (),
+    )
+    return [InstallableExtension.from_row(row) for row in rows]
+
+
+async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
+    inactive_extensions = await (conn or db).fetchall(
+        """SELECT id FROM installed_extensions WHERE NOT active""",
+        (),
+    )
+    return [ext[0] for ext in inactive_extensions]
 
 
 async def update_user_extension(
@@ -622,6 +714,23 @@ async def create_admin_settings(super_user: str, new_settings: dict):
     sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
     return await get_super_settings()
+
+
+# db versions
+# --------------
+async def get_dbversions(conn: Optional[Connection] = None):
+    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
+    return {row["db"]: row["version"] for row in rows}
+
+
+async def update_migration_version(conn, db_name, version):
+    await (conn or db).execute(
+        """
+        INSERT INTO dbversions (db, version) VALUES (?, ?)
+        ON CONFLICT (db) DO UPDATE SET version = ?
+        """,
+        (db_name, version, version),
+    )
 
 
 # tinyurl
