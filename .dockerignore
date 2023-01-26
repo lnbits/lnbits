@@ -4,7 +4,6 @@ docker
 docs
 tests
 venv
-tools
 
 lnbits/static/css/*
 lnbits/static/bundle.js

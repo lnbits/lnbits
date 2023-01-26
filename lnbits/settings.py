@@ -167,6 +167,10 @@ class BoltzExtensionSettings(LNbitsSettings):
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
 
+class LightningSettings(LNbitsSettings):
+    lightning_invoice_expiry: int = Field(default=600)
+
+
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
@@ -191,6 +195,7 @@ class EditableSettings(
     OpsSettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
+    LightningSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -236,14 +241,14 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "VoidWallet",
             "FakeWallet",
-            "CLightningWallet",
+            "CoreLightningWallet",
             "LndRestWallet",
+            "EclairWallet",
             "LndWallet",
-            "LntxbotWallet",
+            "LnTipsWallet",
             "LNPayWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
-            "LnTipsWallet",
         ]
     )
 
@@ -261,7 +266,10 @@ class TransientSettings(InstalledExtensionsSettings):
 
 
 class ReadOnlySettings(
-    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
+    EnvSettings,
+    SaaSSettings,
+    PersistenceSettings,
+    SuperUserSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 

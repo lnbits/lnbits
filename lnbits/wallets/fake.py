@@ -41,6 +41,7 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {
             "out": False,
@@ -54,6 +55,7 @@ class FakeWallet(Wallet):
             "expires": None,
             "route": None,
         }
+        data["expires"] = kwargs.get("expiry")
         data["amount"] = amount * 1000
         data["timestamp"] = datetime.now().timestamp()
         if description_hash:

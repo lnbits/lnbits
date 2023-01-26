@@ -65,6 +65,7 @@ async def create_invoice(
     memo: str,
     description_hash: Optional[bytes] = None,
     unhashed_description: Optional[bytes] = None,
+    expiry: Optional[int] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
@@ -80,6 +81,7 @@ async def create_invoice(
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
+        expiry=expiry or settings.lightning_invoice_expiry,
     )
     if not ok:
         raise InvoiceFailure(error_message or "unexpected backend error.")
