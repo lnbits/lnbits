@@ -32,9 +32,9 @@ def get_text_item_dict(
     # Get line size by font size
     line_width = 20
     if font_size <= 12:
-        line_width = 60
+        line_width = 65
     elif font_size <= 15:
-        line_width = 45
+        line_width = 50
     elif font_size <= 20:
         line_width = 35
     elif font_size <= 40:
@@ -385,7 +385,7 @@ async def api_get_mining_stat(stat_slug: str, gerty):
 
 
 async def get_satoshi():
-    maxQuoteLength = 186
+    maxQuoteLength = 650
     with open(
         os.path.join(settings.lnbits_path, "extensions/gerty/static/satoshi.json")
     ) as fd:
