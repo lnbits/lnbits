@@ -83,6 +83,7 @@ class CoreLightningWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
         msat: int = int(amount * 1000)
@@ -103,6 +104,7 @@ class CoreLightningWallet(Wallet):
                 deschashonly=True
                 if unhashed_description
                 else False,  # we can't pass None here
+                expiry=kwargs.get("expiry"),
             )
 
             if r.get("code") and r.get("code") < 0:
