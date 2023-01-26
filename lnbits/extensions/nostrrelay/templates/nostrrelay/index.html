@@ -10,6 +10,20 @@
         >
       </q-card-section>
     </q-card>
+
+    <q-card>
+      <q-card-section>
+        <h6>WebSocket Chat</h6>
+
+        <input type="text" id="messageText" autocomplete="off" />
+
+        <q-btn unelevated color="primary" @click="sendMessage()"
+          ><div>Send</div>
+        </q-btn>
+
+        <ul id="messages"></ul>
+      </q-card-section>
+    </q-card>
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
@@ -53,7 +67,8 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        enabled: false
+        enabled: false,
+        ws: null
       }
     },
     methods: {
@@ -71,6 +86,21 @@
         //     })
         //   })
         this.enabled = !this.enabled
+      },
+      sendMessage: function (event) {
+        var input = document.getElementById('messageText')
+        this.ws.send(input.value)
+        input.value = ''
+      }
+    },
+    created: function () {
+      this.ws = new WebSocket('ws://localhost:5000/nostrrelay/client')
+      this.ws.onmessage = function (event) {
+        var messages = document.getElementById('messages')
+        var message = document.createElement('li')
+        var content = document.createTextNode(event.data)
+        message.appendChild(content)
+        messages.appendChild(message)
       }
     }
   })

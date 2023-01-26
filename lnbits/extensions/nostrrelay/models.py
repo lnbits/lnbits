@@ -1,15 +1,9 @@
+from enum import Enum
 from sqlite3 import Row
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Query
-from pydantic import BaseModel
-
-
-class CreateTposData(BaseModel):
-    name: str
-    currency: str
-    tip_options: str = Query(None)
-    tip_wallet: str = Query(None)
+from pydantic import BaseModel, Field
 
 
 class NostrRelay(BaseModel):
@@ -25,5 +19,28 @@ class NostrRelay(BaseModel):
         return cls(**dict(row))
 
 
-class PayLnurlWData(BaseModel):
-    lnurl: str
+class NostrEvent(BaseModel):
+    id: str
+    pubkey: str
+    created_at: int
+    kind: int
+    tags: List[List[str]] = []
+    content: str = ""
+    sig: str
+
+
+class NostrFilter(BaseModel):
+    ids: List[str] = []
+    authors: List[str] = []
+    kinds: List[int] = []
+    e: List[str] = Field([], alias="#e")
+    p: List[str] = Field([], alias="#p")
+    since: Optional[int]
+    until: Optional[int]
+    limit: Optional[int]
+
+
+class NostrEventType(str, Enum):
+    EVENT = "EVENT"
+    REQ = "REQ"
+    CLOSE = "CLOSE"
