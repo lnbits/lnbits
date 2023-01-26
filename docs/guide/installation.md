@@ -26,8 +26,8 @@ sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 # Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
-export PATH="/home/user/.local/bin:$PATH" 
-# Next command, you can exchange with python3.10 or newer versions. 
+export PATH="/home/user/.local/bin:$PATH"
+# Next command, you can exchange with python3.10 or newer versions.
 # Identify your version with python3 --version and specify in the next line
 # command is only needed when your default python is not ^3.9 or ^3.10
 poetry env use python3.9
@@ -36,7 +36,7 @@ poetry install --only main
 mkdir data
 cp .env.example .env
 # set funding source amongst other options
-nano .env 
+nano .env
 ```
 
 #### Running the server
@@ -45,7 +45,7 @@ nano .env
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
 # adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
-# Note that you have to add the line DEBUG=true in your .env file, too. 
+# Note that you have to add the line DEBUG=true in your .env file, too.
 ```
 #### Updating the server
 
@@ -58,7 +58,7 @@ poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
 
-## Option 2: Nix 
+## Option 2: Nix
 
 > note: currently not supported while we make some architectural changes on the path to leave beta
 
@@ -105,22 +105,30 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 
 ## Option 4: Docker
 
+use latest version from docker hub
+```sh
+docker pull lnbitsdocker/lnbits-legend
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/.env.example -O .env
+mkdir data
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
+```
+build the image yourself
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbits .
+docker build -t lnbitsdocker/lnbits-legend .
 cp .env.example .env
 mkdir data
-docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
 ```
 
 ## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
-First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required).
 
-Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/).
 
 After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
 
@@ -145,7 +153,7 @@ fly launch
 
 You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
 
-You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
 Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
 
@@ -169,7 +177,7 @@ kill_timeout = 30
   LNBITS_FORCE_HTTPS=true
   FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
-  
+
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
 ...
 
