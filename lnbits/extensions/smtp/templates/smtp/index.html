@@ -1,0 +1,604 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn
+          unelevated
+          color="primary"
+          @click="emailaddressDialog.show = true"
+          >New Emailaddress</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Emailaddresses</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportEmailaddressesCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="emailaddresses"
+          row-key="id"
+          :columns="emailaddressTable.columns"
+          :pagination.sync="emailaddressTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="email"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="showEmailDialog(props.row.id)"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateEmailaddressDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteEmailaddress(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Emails</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportEmailsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="emails"
+          row-key="id"
+          :columns="emailsTable.columns"
+          :pagination.sync="emailsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteEmail(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Sendmail extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "smtp/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="emailDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendEmail()" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.receiver"
+          type="text"
+          label="Receiver"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.subject"
+          type="text"
+          label="Subject"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailDialog.data.message"
+          type="textarea"
+          label="Message "
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="emailDialog.data.receiver == '' || emailDialog.data.subject == '' || emailDialog.data.message == ''"
+            type="submit"
+            >Submit</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="emailaddressDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="emailaddressDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="emailaddressDialog.data.email"
+          type="text"
+          label="Emailaddress "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="emailaddressDialog.data.testemail"
+          type="text"
+          label="Emailaddress to test the server"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailaddressDialog.data.smtp_server"
+          type="text"
+          label="SMTP Host"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailaddressDialog.data.smtp_user"
+          type="text"
+          label="SMTP User"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailaddressDialog.data.smtp_password"
+          type="password"
+          label="SMTP Password"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailaddressDialog.data.smtp_port"
+          type="text"
+          label="SMTP Port"
+        >
+        </q-input>
+        <div id="lolcheck">
+          <q-checkbox
+            name="anonymize"
+            v-model="emailaddressDialog.data.anonymize"
+            label="ANONYMIZE, don't save mails, no addresses in tx"
+          />
+        </div>
+        <q-input
+          filled
+          dense
+          v-model.trim="emailaddressDialog.data.description"
+          type="textarea"
+          label="Description "
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="emailaddressDialog.data.cost"
+          type="number"
+          label="Amount per email in satoshis"
+        >
+        </q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="emailaddressDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Form</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="enableButton()"
+            type="submit"
+            >Create Emailaddress</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var LNSendmail = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.displayUrl = ['/smtp/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        emailaddresses: [],
+        emails: [],
+        emailaddressTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {
+              name: 'anonymize',
+              align: 'left',
+              label: 'Anonymize',
+              field: 'anonymize'
+            },
+            {
+              name: 'email',
+              align: 'left',
+              label: 'Emailaddress',
+              field: 'email'
+            },
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {
+              name: 'description',
+              align: 'left',
+              label: 'Description',
+              field: 'description'
+            },
+            {
+              name: 'cost',
+              align: 'left',
+              label: 'Cost',
+              field: 'cost'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        emailsTable: {
+          columns: [
+            {
+              name: 'emailaddress_id',
+              align: 'left',
+              label: 'From',
+              field: 'emailaddress_id'
+            },
+            {
+              name: 'receiver',
+              align: 'left',
+              label: 'Receiver',
+              field: 'receiver'
+            },
+            {
+              name: 'subject',
+              align: 'left',
+              label: 'Subject',
+              field: 'subject'
+            },
+            {
+              name: 'message',
+              align: 'left',
+              label: 'Message',
+              field: 'message'
+            },
+            {
+              name: 'paid',
+              align: 'left',
+              label: 'Is paid',
+              field: 'paid'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        emailDialog: {
+          show: false,
+          data: {}
+        },
+        emailaddressDialog: {
+          show: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      enableButton: function () {
+        return (
+          this.emailaddressDialog.data.cost == null ||
+          this.emailaddressDialog.data.cost < 0 ||
+          this.emailaddressDialog.data.testemail == null ||
+          this.emailaddressDialog.data.smtp_user == null ||
+          this.emailaddressDialog.data.smtp_password == null ||
+          this.emailaddressDialog.data.smtp_server == null ||
+          this.emailaddressDialog.data.smtp_port == null ||
+          this.emailaddressDialog.data.email == null ||
+          this.emailaddressDialog.data.description == null
+        )
+      },
+      getEmails: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/smtp/api/v1/email?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.emails = response.data.map(function (obj) {
+              return LNSendmail(obj)
+            })
+          })
+      },
+      deleteEmail: function (emailId) {
+        var self = this
+        var email = _.findWhere(this.emails, {id: emailId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this email')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/smtp/api/v1/email/' + emailId,
+                _.findWhere(self.g.user.wallets, {id: email.wallet}).inkey
+              )
+              .then(function (response) {
+                self.emails = _.reject(self.emails, function (obj) {
+                  return obj.id == emailId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportEmailsCSV: function () {
+        LNbits.utils.exportCSV(this.emailsTable.columns, this.emails)
+      },
+
+      getEmailAddresses: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/smtp/api/v1/emailaddress?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.emailaddresses = response.data.map(function (obj) {
+              return LNSendmail(obj)
+            })
+          })
+      },
+      sendFormData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.emailaddressDialog.data.wallet
+        })
+        var data = this.emailaddressDialog.data
+        if (data.id) {
+          this.updateEmailaddress(wallet, data)
+        } else {
+          this.createEmailaddress(wallet, data)
+        }
+      },
+
+      createEmailaddress: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request('POST', '/smtp/api/v1/emailaddress', wallet.inkey, data)
+          .then(function (response) {
+            self.emailaddresses.push(LNSendmail(response.data))
+            self.emailaddressDialog.show = false
+            self.emailaddressDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      sendEmail: function () {
+        var self = this
+        var emailaddress = _.findWhere(this.emailaddresses, {
+          id: self.emailDialog.data.emailaddress_id
+        })
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: emailaddress.wallet
+        })
+        LNbits.api
+          .request(
+            'POST',
+            '/smtp/api/v1/email/' + emailaddress.id + '/send',
+            wallet.adminkey,
+            self.emailDialog.data
+          )
+          .then(function (response) {
+            self.emailDialog.show = false
+            self.emailDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      showEmailDialog: function (emailaddress_id) {
+        this.emailDialog.data.emailaddress_id = emailaddress_id
+        this.emailDialog.show = true
+      },
+      updateEmailaddressDialog: function (formId) {
+        var link = _.findWhere(this.emailaddresses, {id: formId})
+        this.emailaddressDialog.data = _.clone(link)
+        this.emailaddressDialog.show = true
+      },
+      updateEmailaddress: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/smtp/api/v1/emailaddress/' + data.id,
+            wallet.inkey,
+            data
+          )
+          .then(function (response) {
+            self.emailaddresses = _.reject(self.emailaddresses, function (obj) {
+              return obj.id == data.id
+            })
+            self.emailaddresses.push(LNSendmail(response.data))
+            self.emailaddressDialog.show = false
+            self.emailaddressDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteEmailaddress: function (emailaddressId) {
+        var self = this
+        var emailaddresses = _.findWhere(this.emailaddresses, {
+          id: emailaddressId
+        })
+
+        LNbits.utils
+          .confirmDialog(
+            'Are you sure you want to delete this emailaddress link?'
+          )
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/smtp/api/v1/emailaddress/' + emailaddressId,
+                _.findWhere(self.g.user.wallets, {id: emailaddresses.wallet})
+                  .inkey
+              )
+              .then(function (response) {
+                self.emailaddresses = _.reject(
+                  self.emailaddresses,
+                  function (obj) {
+                    return obj.id == emailaddressId
+                  }
+                )
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportEmailaddressesCSV: function () {
+        LNbits.utils.exportCSV(
+          this.emailaddressTable.columns,
+          this.emailaddresses
+        )
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getEmailAddresses()
+        this.getEmails()
+      }
+    }
+  })
+</script>
+{% endblock %}

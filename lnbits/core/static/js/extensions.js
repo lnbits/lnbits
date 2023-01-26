@@ -3,7 +3,9 @@ new Vue({
   data: function () {
     return {
       searchTerm: '',
-      filteredExtensions: null
+      filteredExtensions: null,
+      maxStars: 5,
+      user: null
     }
   },
   mounted() {
@@ -30,6 +32,11 @@ new Vue({
           extensionNameContains(term)
         )
       }
+    }
+  },
+  created() {
+    if (window.user) {
+      this.user = LNbits.map.user(window.user)
     }
   },
   mixins: [windowMixin]

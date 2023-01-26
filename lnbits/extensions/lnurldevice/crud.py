@@ -7,8 +7,6 @@ from lnbits.helpers import urlsafe_short_hash
 from . import db
 from .models import createLnurldevice, lnurldevicepayment, lnurldevices
 
-###############lnurldeviceS##########################
-
 
 async def create_lnurldevice(
     data: createLnurldevice,
@@ -69,10 +67,12 @@ async def create_lnurldevice(
             data.pin4,
         ),
     )
-    return await get_lnurldevice(lnurldevice_id)
+    device = await get_lnurldevice(lnurldevice_id)
+    assert device
+    return device
 
 
-async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> Optional[lnurldevices]:
+async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> lnurldevices:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE lnurldevice.lnurldevices SET {q} WHERE id = ?",
@@ -81,19 +81,18 @@ async def update_lnurldevice(lnurldevice_id: str, **kwargs) -> Optional[lnurldev
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
     )
-    return lnurldevices(**row) if row else None
+    return lnurldevices(**row)
 
 
-async def get_lnurldevice(lnurldevice_id: str) -> lnurldevices:
+async def get_lnurldevice(lnurldevice_id: str) -> Optional[lnurldevices]:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
     )
     return lnurldevices(**row) if row else None
 
 
-async def get_lnurldevices(wallet_ids: Union[str, List[str]]) -> List[lnurldevices]:
-    wallet_ids = [wallet_ids]
-    q = ",".join(["?"] * len(wallet_ids[0]))
+async def get_lnurldevices(wallet_ids: List[str]) -> List[lnurldevices]:
+    q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
         SELECT * FROM lnurldevice.lnurldevices WHERE wallet IN ({q})
@@ -102,15 +101,13 @@ async def get_lnurldevices(wallet_ids: Union[str, List[str]]) -> List[lnurldevic
         (*wallet_ids,),
     )
 
-    return [lnurldevices(**row) if row else None for row in rows]
+    return [lnurldevices(**row) for row in rows]
 
 
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
     await db.execute(
         "DELETE FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
     )
-
-    ########################lnuldevice payments###########################
 
 
 async def create_lnurldevicepayment(
@@ -120,7 +117,12 @@ async def create_lnurldevicepayment(
     payhash: Optional[str] = None,
     sats: Optional[int] = 0,
 ) -> lnurldevicepayment:
-    lnurldevicepayment_id = urlsafe_short_hash()
+    device = await get_lnurldevice(deviceid)
+    assert device
+    if device.device == "atm":
+        lnurldevicepayment_id = shortuuid.uuid(name=payload)
+    else:
+        lnurldevicepayment_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnurldevice.lnurldevicepayment (
@@ -135,7 +137,9 @@ async def create_lnurldevicepayment(
         """,
         (lnurldevicepayment_id, deviceid, payload, pin, payhash, sats),
     )
-    return await get_lnurldevicepayment(lnurldevicepayment_id)
+    dpayment = await get_lnurldevicepayment(lnurldevicepayment_id)
+    assert dpayment
+    return dpayment
 
 
 async def update_lnurldevicepayment(
@@ -153,7 +157,9 @@ async def update_lnurldevicepayment(
     return lnurldevicepayment(**row) if row else None
 
 
-async def get_lnurldevicepayment(lnurldevicepayment_id: str) -> lnurldevicepayment:
+async def get_lnurldevicepayment(
+    lnurldevicepayment_id: str,
+) -> Optional[lnurldevicepayment]:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?",
         (lnurldevicepayment_id,),
@@ -161,7 +167,9 @@ async def get_lnurldevicepayment(lnurldevicepayment_id: str) -> lnurldevicepayme
     return lnurldevicepayment(**row) if row else None
 
 
-async def get_lnurlpayload(lnurldevicepayment_payload: str) -> lnurldevicepayment:
+async def get_lnurlpayload(
+    lnurldevicepayment_payload: str,
+) -> Optional[lnurldevicepayment]:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ?",
         (lnurldevicepayment_payload,),

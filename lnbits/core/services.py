@@ -9,7 +9,7 @@ from hashlib import sha256
 import httpx
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
-from lnurl import decode as decode_lnurl  # type: ignore
+from lnurl import decode as decode_lnurl
 from loguru import logger
 
 from lnbits import bolt11
@@ -29,6 +29,7 @@ from lnbits.settings import (
     readonly_variables,
     send_admin_user_to_saas,
     settings,
+    transient_variables,
 )
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -51,7 +52,7 @@ from .crud import (
 from .models import Payment
 
 try:
-    from typing import TypedDict  # type: ignore
+    from typing import TypedDict
 except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
 
@@ -71,6 +72,7 @@ async def create_invoice(
     memo: str,
     description_hash: Optional[bytes] = None,
     unhashed_description: Optional[bytes] = None,
+    expiry: Optional[int] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
@@ -86,6 +88,7 @@ async def create_invoice(
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
+        expiry=expiry or settings.lightning_invoice_expiry,
     )
     if not ok:
         raise InvoiceFailure(error_message or "unexpected backend error.")
@@ -585,9 +588,8 @@ async def check_admin_settings():
         for key, value in settings.dict(exclude_none=True).items():
             logger.debug(f"{key}: {value}")
 
-        http = "https" if settings.lnbits_force_https else "http"
         admin_url = (
-            f"{http}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
+            f"http://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
         )
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
@@ -602,7 +604,7 @@ async def check_admin_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if not key in readonly_variables:
+        if not key in readonly_variables + transient_variables:
             try:
                 setattr(settings, key, value)
             except:

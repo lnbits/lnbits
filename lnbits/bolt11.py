@@ -4,12 +4,12 @@ import time
 from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
-import bitstring  # type: ignore
+import bitstring
 import embit
 import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
-from ecdsa import SECP256k1, VerifyingKey  # type: ignore
-from ecdsa.util import sigdecode_string  # type: ignore
+from ecdsa import SECP256k1, VerifyingKey
+from ecdsa.util import sigdecode_string
 
 
 class Route(NamedTuple):

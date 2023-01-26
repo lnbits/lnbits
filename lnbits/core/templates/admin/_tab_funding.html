@@ -16,7 +16,7 @@
         </div>
       </div>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
           <div class="row">
             <div class="col-12">
               <p>Active Funding<small> (Requires server restart)</small></p>
@@ -30,28 +30,40 @@
             </div>
           </div>
         </div>
-        <div class="col-12 col-md-6">
-          <div class="col-12">
-            <p>Fee reserve</p>
-            <div class="row q-col-gutter-md">
-              <div class="col-6">
-                <q-input
-                  type="number"
-                  filled
-                  v-model="formData.lnbits_reserve_fee_min"
-                  label="Reserve fee in msats"
-                >
-                </q-input>
-              </div>
-              <div class="col-6">
-                <q-input
-                  type="number"
-                  filled
-                  name="lnbits_reserve_fee_percent"
-                  v-model="formData.lnbits_reserve_fee_percent"
-                  label="Reserve fee in percent"
-                  step="0.1"
-                ></q-input>
+        <div class="col-12 col-md-8">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <p>Invoice Expiry</p>
+              <q-input
+                filled
+                v-model="formData.lightning_invoice_expiry"
+                label="Invoice expiry (seconds)"
+                mask="#######"            
+              >
+              </q-input>
+            </div>
+            <div class="col-12 col-md-8">
+              <p>Fee reserve</p>
+              <div class="row q-col-gutter-md">
+                <div class="col-6">
+                  <q-input
+                    type="number"
+                    filled
+                    v-model="formData.lnbits_reserve_fee_min"
+                    label="Reserve fee in msats"
+                  >
+                  </q-input>
+                </div>
+                <div class="col-6">
+                  <q-input
+                    type="number"
+                    filled
+                    name="lnbits_reserve_fee_percent"
+                    v-model="formData.lnbits_reserve_fee_percent"
+                    label="Reserve fee in percent"
+                    step="0.1"
+                  ></q-input>
+                </div>
               </div>
             </div>
           </div>

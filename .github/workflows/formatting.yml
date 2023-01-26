@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.2.1"]
+        poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -24,7 +24,9 @@ jobs:
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install packages
-        run: poetry install
+        run: |
+          poetry config virtualenvs.create false
+          poetry install
       - name: Check black
         run: make checkblack
       - name: Check isort

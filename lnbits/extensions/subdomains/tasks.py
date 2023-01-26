@@ -30,7 +30,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     ### Create subdomain
     cf_response = await cloudflare_create_subdomain(
-        domain=domain,
+        domain=domain,  # type: ignore
         subdomain=subdomain.subdomain,
         record_type=subdomain.record_type,
         ip=subdomain.ip,

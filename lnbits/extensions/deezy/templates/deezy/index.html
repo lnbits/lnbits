@@ -1,0 +1,588 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h5 class="text-subtitle1 q-mt-none q-mb-md">Deezy</h5>
+        <p class="text-subtitle2 q-mt-none q-mb-md">
+          An access token is required to use the swap service. Email
+          support@deezy.io or contact @dannydeezy on telegram to get one.
+        </p>
+        <div>
+          <div class="flex justify-between items-center">
+            <span>Deezy token </span>
+            <q-btn
+              type="button"
+              @click="showDeezyTokenForm = !showDeezyTokenForm"
+              >Add or Update token</q-btn
+            >
+          </div>
+          <p v-if="storedDeezyToken" v-text="storedDeezyToken"></p>
+        </div>
+        <q-form
+          v-if="showDeezyTokenForm"
+          @submit="storeDeezyToken"
+          class="q-gutter-md q-mt-lg"
+        >
+          <q-input
+            filled
+            dense
+            emit-value
+            :placeholder="storedDeezyToken"
+            v-model.trim="deezyToken"
+            label="Deezy Token"
+            type="text"
+          ></q-input>
+          <q-btn color="grey" type="submit" label="Store Deezy Token"></q-btn>
+        </q-form>
+        <q-separator class="q-my-lg"></q-separator>
+        <q-card>
+          <q-card-section>
+            <q-btn
+              label="SWAP (LIGHTNING -> BTC)"
+              unelevated
+              color="primary"
+              @click="showLnToBtcForm"
+              :disabled="!storedDeezyToken"
+            >
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send lightning btc and receive on-chain btc
+              </q-tooltip>
+            </q-btn>
+            <q-btn
+              label="SWAP (BTC -> LIGHTNING)"
+              unelevated
+              color="primary"
+              @click="swapBtcToLn.show = true; swapLnToBtc.show = false;"
+              :disabled="!storedDeezyToken"
+            >
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send on-chain btc and receive via lightning
+              </q-tooltip>
+            </q-btn>
+          </q-card-section>
+        </q-card>
+        <div
+          v-show="swapLnToBtc.show"
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+        >
+          <h6 class="q-mt-none">LIGHTNING BTC -> BTC</h6>
+          <q-form @submit="sendLnToBtc" class="q-gutter-md">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.amount"
+              label="Amount (sats)"
+              type="number"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.on_chain_address"
+              type="string"
+              label="Onchain address to receive funds"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapLnToBtc.data.on_chain_sats_per_vbyte"
+              label="On chain fee rate (sats/vbyte)"
+              min="1"
+              type="number"
+              :hint="swapLnToBtc.suggested_fees && `Economy Fee - ${swapLnToBtc.suggested_fees?.economyFee} | Half an hour fee - ${swapLnToBtc.suggested_fees?.halfHourFee} | Fastest fee - ${swapLnToBtc.suggested_fees?.fastestFee}`"
+            >
+            </q-input>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              label="Create Swap"
+            ></q-btn>
+            <q-btn flat color="grey" class="q-ml-auto" @click="resetSwapLnToBtc"
+              >Cancel</q-btn
+            >
+          </q-form>
+          <q-dialog v-model="swapLnToBtc.showInvoice" persistent>
+            <q-card flat bordered class="my-card">
+              <q-card-section>
+                <div class="flex justify-between">
+                  <div class="text-h6">Pay invoice to complete swap</div>
+                  <q-btn flat v-close-popup>
+                    <q-icon name="close" />
+                  </q-btn>
+                </div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                <qrcode
+                  :value="swapLnToBtc.response"
+                  :options="{width: 360}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-card-section>
+              <q-card-section>
+                <q-btn
+                  outline
+                  @click="copyLnInvoice"
+                  label="Copy"
+                  color="primary"
+                ></q-btn>
+                <q-input
+                  v-model="swapLnToBtc.response"
+                  type="textarea"
+                  readonly
+                  @click="$event.target.select()"
+                />
+              </q-card-section>
+            </q-card>
+          </q-dialog>
+        </div>
+        <div
+          v-show="swapBtcToLn.show"
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+        >
+          <h6 class="q-mt-none">BTC -> LIGHTNING BTC</h6>
+          <q-form @submit="sendBtcToLn" class="q-gutter-md">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="swapBtcToLn.data.lnurl_or_lnaddress"
+              label="Lnurl or Lightning Address"
+              type="string"
+            ></q-input>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              label="Generate Onchain Address"
+            ></q-btn>
+            <q-btn flat color="grey" class="q-ml-auto" @click="resetSwapBtcToLn"
+              >Cancel</q-btn
+            >
+          </q-form>
+          <q-dialog v-model="swapBtcToLn.showDetails" persistent>
+            <q-card flat bordered class="my-card">
+              <q-card-section>
+                <div class="flex justify-between">
+                  <div class="text-h6">Onchain Address</div>
+                  <q-btn flat v-close-popup>
+                    <q-icon name="close" />
+                  </q-btn>
+                </div>
+              </q-card-section>
+              <q-card-section>
+                <q-input
+                  v-model="swapBtcToLn.response.address"
+                  type="textarea"
+                  readonly
+                  @click="$event.target.select()"
+                />
+              </q-card-section>
+              <q-card-section>
+                <q-btn
+                  outline
+                  @click="copyBtcToLnBtcAddress"
+                  label="Copy Address"
+                  color="primary"
+                ></q-btn>
+              </q-card-section>
+              <q-card-section>
+                <q-input
+                  v-model="swapBtcToLn.response.commitment"
+                  type="textarea"
+                  readonly
+                  @click="$event.target.select()"
+                />
+              </q-card-section>
+            </q-card>
+          </q-dialog>
+        </div>
+      </q-card-section>
+    </q-card>
+    {% raw %}
+    <q-dialog v-model="swapLnToBtc.invoicePaid">
+      <q-card class="bg-teal text-white" style="width: 400px">
+        <q-card-section>
+          <div class="text-h6">Success Bitcoin is on its way</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          Onchain tx id {{ swapLnToBtc.onchainTxId }}
+        </q-card-section>
+
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn flat label="OK" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    {% endraw %}
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Deezy extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "deezy/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="q-pa-md full-width">
+    <q-table
+      title="Swaps Lightning -> BTC"
+      :data="rowsLnToBtc"
+      :columns="columnsLnToBtc"
+      row-key="name"
+    />
+  </div>
+  <div class="q-pa-md full-width">
+    <q-table
+      title="Swaps BTC -> Lightning"
+      :data="rowsBtcToLn"
+      :columns="columnsBtcToLn"
+      row-key="name"
+    />
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        columnsLnToBtc: [
+          {
+            name: 'amount_sats',
+            label: 'Amount Sats',
+            align: 'left',
+            field: 'amount_sats',
+            sortable: true
+          },
+          {
+            name: 'on_chain_address',
+            align: 'left',
+            label: 'On chain address',
+            field: 'on_chain_address'
+          },
+          {
+            name: 'on_chain_sats_per_vbyte',
+            align: 'left',
+            label: 'Onchin sats per vbyte',
+            field: 'on_chain_sats_per_vbyte',
+            sortable: true
+          },
+          {
+            name: 'fee_sats',
+            label: 'Fee sats',
+            align: 'left',
+            field: 'fee_sats'
+          },
+          {name: 'txid', label: 'Tx Id', align: 'left', field: 'txid'},
+          {name: 'tx_hex', label: 'Tx Hex', align: 'left', field: 'tx_hex'},
+          {
+            name: 'created_at',
+            label: 'Created at',
+            align: 'left',
+            field: 'created_at',
+            sortable: true,
+            sort: true
+          }
+        ],
+        rowsLnToBtc: [],
+        columnsBtcToLn: [
+          {
+            name: 'ln_address',
+            align: 'left',
+            label: 'Ln Address or Invoice',
+            field: 'ln_address'
+          },
+          {
+            name: 'on_chain_address',
+            align: 'left',
+            label: 'Onchain Address',
+            field: 'on_chain_address'
+          },
+          {
+            name: 'secret_access_key',
+            align: 'left',
+            label: 'Secret Access Key',
+            field: 'secret_access_key'
+          },
+          {
+            name: 'commitment',
+            align: 'left',
+            label: 'Commitment',
+            field: 'commitment'
+          },
+          {
+            name: 'signature',
+            align: 'left',
+            label: 'Signature',
+            field: 'signature'
+          },
+          {
+            name: 'created_at',
+            label: 'Created at',
+            field: 'created_at',
+            align: 'left',
+            sortable: true,
+            sort: true
+          }
+        ],
+        rowsBtcToLn: [],
+        showDeezyTokenForm: false,
+        storedDeezyToken: null,
+        deezyToken: null,
+        lightning_btc: '',
+        tools: [],
+        swapLnToBtc: {
+          show: false,
+          showInvoice: false,
+          data: {
+            on_chain_sats_per_vbyte: 1
+          },
+          suggested_fees: null,
+          response: null,
+          invoicePaid: false,
+          onchainTxId: null
+        },
+        swapBtcToLn: {
+          show: false,
+          showDetails: false,
+          data: {},
+          response: {}
+        }
+      }
+    },
+    created: async function () {
+      this.getToken()
+      this.getLnToBtc()
+      this.getBtcToLn()
+    },
+    methods: {
+      updateLnToBtc(payload) {
+        var self = this
+        return axios
+          .post('/deezy/api/v1/update-ln-to-btc', {
+            ...payload
+          })
+          .then(function (response) {
+            console.log('btc to ln is update', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      getToken() {
+        var self = this
+        axios({
+          method: 'GET',
+          url: '/deezy/api/v1/token'
+        }).then(function (response) {
+          self.storedDeezyToken = response.data.deezy_token
+          if (!self.storeDeezyToken) {
+            showDeezyTokenForm = true
+          }
+        })
+      },
+      getLnToBtc() {
+        var self = this
+        axios.get('/deezy/api/v1/ln-to-btc').then(function (response) {
+          if (response.data.length) {
+            self.rowsLnToBtc = response.data
+          }
+        })
+      },
+      getBtcToLn() {
+        var self = this
+        axios.get('/deezy/api/v1/btc-to-ln').then(function (response) {
+          if (response.data.length) {
+            self.rowsBtcToLn = response.data
+          }
+        })
+      },
+      showLnToBtcForm() {
+        if (!this.swapLnToBtc.show) {
+          this.getSuggestedOnChainFees()
+        }
+        this.swapLnToBtc.show = true
+        this.swapBtcToLn.show = false
+      },
+      getSuggestedOnChainFees() {
+        axios
+          .get('https://mempool.space/api/v1/fees/recommended')
+          .then(result => {
+            this.swapLnToBtc.suggested_fees = result.data
+          })
+      },
+      checkIfInvoiceIsPaid() {
+        if (this.swapLnToBtc.response && !this.swapLnToBtc.invoicePaid) {
+          var self = this
+          let interval = setInterval(() => {
+            axios
+              .get(
+                `https://api.deezy.io/v1/swap/lookup?bolt11_invoice=${self.swapLnToBtc.response}`
+              )
+              .then(async function (response) {
+                if (response.data.on_chain_txid) {
+                  self.swapLnToBtc = {
+                    ...self.swapLnToBtc,
+                    invoicePaid: true,
+                    onchainTxId: response.data.on_chain_txid
+                  }
+                  self
+                    .updateLnToBtc({
+                      txid: response.data.on_chain_txid,
+                      tx_hex: response.data.tx_hex,
+                      bolt11_invoice: self.swapLnToBtc.response
+                    })
+                    .then(() => {
+                      self.getLnToBtc()
+                    })
+                  clearInterval(interval)
+                }
+              })
+          }, 4000)
+        }
+      },
+      copyLnInvoice() {
+        Quasar.utils.copyToClipboard(this.swapLnToBtc.response)
+      },
+      copyBtcToLnBtcAddress() {
+        Quasar.utils.copyToClipboard(this.swapBtcToLn.response.address)
+      },
+      sendLnToBtc() {
+        var self = this
+        axios
+          .post(
+            'https://api.deezy.io/v1/swap',
+            {
+              amount_sats: parseInt(self.swapLnToBtc.data.amount),
+              on_chain_address: self.swapLnToBtc.data.on_chain_address,
+              on_chain_sats_per_vbyte: parseInt(
+                self.swapLnToBtc.data.on_chain_sats_per_vbyte
+              )
+            },
+            {
+              headers: {
+                'x-api-token': self.storedDeezyToken
+              }
+            }
+          )
+          .then(function (response) {
+            self.swapLnToBtc = {
+              ...self.swapLnToBtc,
+              showInvoice: true,
+              response: response.data.bolt11_invoice
+            }
+            const payload = {
+              amount_sats: parseInt(self.swapLnToBtc.data.amount),
+              on_chain_address: self.swapLnToBtc.data.on_chain_address,
+              on_chain_sats_per_vbyte:
+                self.swapLnToBtc.data.on_chain_sats_per_vbyte,
+              bolt11_invoice: response.data.bolt11_invoice,
+              fee_sats: response.data.fee_sats
+            }
+            self.storeLnToBtc(payload)
+            self.checkIfInvoiceIsPaid()
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      sendBtcToLn() {
+        var self = this
+        axios
+          .post(
+            'https://api.deezy.io/v1/source',
+            {
+              lnurl_or_lnaddress: self.swapBtcToLn.data.lnurl_or_lnaddress
+            },
+            {
+              headers: {
+                'x-api-token': self.storedDeezyToken
+              }
+            }
+          )
+          .then(function (response) {
+            self.swapBtcToLn = {
+              ...self.swapBtcToLn,
+              response: response.data,
+              showDetails: true
+            }
+            const payload = {
+              ln_address: self.swapBtcToLn.data.lnurl_or_lnaddress,
+              on_chain_address: response.data.address,
+              secret_access_key: response.data.secret_access_key,
+              commitment: response.data.commitment,
+              signature: response.data.signature
+            }
+            self.storeBtcToLn(payload)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeBtcToLn(payload) {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-btc-to-ln', {
+            ...payload
+          })
+          .then(function (response) {
+            console.log('btc to ln is stored', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeLnToBtc(payload) {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-ln-to-btc', {
+            ...payload
+          })
+          .then(function (response) {
+            console.log('ln to btc is stored', response)
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      storeDeezyToken() {
+        var self = this
+        axios
+          .post('/deezy/api/v1/store-token', {
+            deezy_token: self.deezyToken
+          })
+          .then(function (response) {
+            self.storedDeezyToken = response.data
+            self.showDeezyTokenForm = false
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      },
+      resetSwapBtcToLn() {
+        this.swapBtcToLn = {
+          ...this.swapBtcToLn,
+          data: {}
+        }
+      },
+      resetSwapLnToBtc() {
+        this.swapLnToBtc = {
+          ...this.swapLnToBtc,
+          data: {}
+        }
+      }
+    }
+  })
+</script>
+{% endblock %}

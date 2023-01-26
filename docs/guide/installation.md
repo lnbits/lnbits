@@ -15,8 +15,8 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 
 # for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
@@ -26,8 +26,8 @@ sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 # Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
-export PATH="/home/user/.local/bin:$PATH" 
-# Next command, you can exchange with python3.10 or newer versions. 
+export PATH="/home/user/.local/bin:$PATH"
+# Next command, you can exchange with python3.10 or newer versions.
 # Identify your version with python3 --version and specify in the next line
 # command is only needed when your default python is not ^3.9 or ^3.10
 poetry env use python3.9
@@ -36,7 +36,7 @@ poetry install --only main
 mkdir data
 cp .env.example .env
 # set funding source amongst other options
-nano .env 
+nano .env
 ```
 
 #### Running the server
@@ -45,25 +45,26 @@ nano .env
 poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
 # adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
-# Note that you have to add the line DEBUG=true in your .env file, too. 
+# Note that you have to add the line DEBUG=true in your .env file, too.
 ```
 #### Updating the server
 
 ```
-cd lnbits-legend/
+cd lnbits
 # Stop LNbits with `ctrl + x`
 git pull
+# Keep your poetry install up to date, this can be done with `poetry self update`
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
 
-## Option 2: Nix 
+## Option 2: Nix
 
 > note: currently not supported while we make some architectural changes on the path to leave beta
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 # Modern debian distros usually include Nix, however you can install with:
 # 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
 
@@ -82,8 +83,8 @@ LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT
 ## Option 3: venv
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 # ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
 python3.9 -m venv venv
 # If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
@@ -104,22 +105,30 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 
 ## Option 4: Docker
 
+use latest version from docker hub
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
-docker build -t lnbits-legend .
+docker pull lnbitsdocker/lnbits-legend
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/.env.example -O .env
+mkdir data
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
+```
+build the image yourself
+```sh
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+docker build -t lnbitsdocker/lnbits-legend .
 cp .env.example .env
 mkdir data
-docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
 ```
 
 ## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
-First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required).
 
-Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/).
 
 After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
 
@@ -135,8 +144,8 @@ You can either run those commands, then `source ~/.bash_profile` or, if you don'
 Once installed, run the following commands.
 
 ```
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 fly auth login
 [complete login process]
 fly launch
@@ -144,7 +153,7 @@ fly launch
 
 You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
 
-You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
 Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
 
@@ -168,7 +177,7 @@ kill_timeout = 30
   LNBITS_FORCE_HTTPS=true
   FORWARDED_ALLOW_IPS="*"
   LNBITS_DATA_FOLDER="/data"
-  
+
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
 ...
 
@@ -205,6 +214,10 @@ poetry add setuptools wheel
 # if you used venv
 ./venv/bin/pip install setuptools wheel
 ```
+
+#### Poetry
+
+If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
 ### Optional: PostgreSQL database
 
@@ -433,8 +446,8 @@ If you want to run LNbits on your Umbrel but want it to be reached through clear
 To install using docker you first need to build the docker image as:
 
 ```
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 docker build -t lnbits-legend .
 ```
 

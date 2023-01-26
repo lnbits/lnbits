@@ -5,7 +5,7 @@ from http import HTTPStatus
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse  # type: ignore
+from starlette.responses import HTMLResponse
 
 from lnbits.core.services import create_invoice, pay_invoice
 

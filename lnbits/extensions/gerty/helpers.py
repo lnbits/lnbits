@@ -40,19 +40,6 @@ def get_text_item_dict(
     elif font_size <= 40:
         line_width = 25
 
-    # Get font sizes for Gerty mini
-    if gerty_type.lower() == "mini gerty":
-        if font_size <= 12:
-            font_size = 1
-        if font_size <= 15:
-            font_size = 1
-        elif font_size <= 20:
-            font_size = 2
-        elif font_size <= 40:
-            font_size = 2
-        else:
-            font_size = 5
-
     #  wrap the text
     wrapper = textwrap.TextWrapper(width=line_width)
     word_list = wrapper.wrap(text=text)
@@ -118,7 +105,7 @@ async def get_mining_dashboard(gerty):
         text = []
         text.append(
             get_text_item_dict(
-                text="Current mining hashrate", font_size=12, gerty_type=gerty.type
+                text="Current hashrate", font_size=12, gerty_type=gerty.type
             )
         )
         text.append(
@@ -152,7 +139,7 @@ async def get_mining_dashboard(gerty):
             )
         )
         text.append(
-            get_text_item_dict(text=progress, font_size=60, gerty_type=gerty.type)
+            get_text_item_dict(text=progress, font_size=40, gerty_type=gerty.type)
         )
         areas.append(text)
 
@@ -190,7 +177,7 @@ async def get_mining_dashboard(gerty):
                 text="{0}{1}%".format(
                     "+" if difficultyChange > 0 else "", round(difficultyChange, 2)
                 ),
-                font_size=60,
+                font_size=40,
                 gerty_type=gerty.type,
             )
         )
@@ -315,7 +302,7 @@ def get_next_update_time(sleep_time_seconds: int = 0, utc_offset: int = 0):
     local_refresh_time = next_refresh_time + timedelta(hours=utc_offset)
     return "{0} {1}".format(
         "I'll wake up at" if gerty_should_sleep(utc_offset) else "Next update at",
-        local_refresh_time.strftime("%H:%M on %e %b %Y"),
+        local_refresh_time.strftime("%H:%M"),
     )
 
 
@@ -459,7 +446,7 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
                     response = await client.get(url)
                     text.append(
                         get_text_item_dict(
-                            text=url,
+                            text=make_url_readable(url),
                             font_size=20,
                             gerty_type=gerty.type,
                         )
@@ -475,7 +462,7 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
                     text = []
                     text.append(
                         get_text_item_dict(
-                            text=url,
+                            text=make_url_readable(url),
                             font_size=20,
                             gerty_type=gerty.type,
                         )
@@ -496,6 +483,13 @@ async def get_screen_data(screen_num: int, screens_list: list, gerty):
         areas.append(await get_onchain_stat(screen_slug, gerty))
     elif screen_slug == "onchain_block_height":
         text = []
+        text.append(
+            get_text_item_dict(
+                text="Block Height",
+                font_size=20,
+                gerty_type=gerty.type,
+            )
+        )
         text.append(
             get_text_item_dict(
                 text=format_number(await get_mempool_info("tip_height", gerty)),
@@ -697,123 +691,57 @@ async def get_onchain_stat(stat_slug: str, gerty):
         or stat_slug == "onchain_difficulty_blocks_remaining"
         or stat_slug == "onchain_difficulty_epoch_time_remaining"
     ):
-        async with httpx.AsyncClient() as client:
-            r = await get_mempool_info("difficulty_adjustment", gerty)
-            if stat_slug == "onchain_difficulty_epoch_progress":
-                stat = round(r["progressPercent"])
-                text.append(
-                    get_text_item_dict(
-                        text="Progress through current difficulty epoch",
-                        font_size=15,
-                        gerty_type=gerty.type,
-                    )
-                )
-                text.append(
-                    get_text_item_dict(
-                        text="{0}%".format(stat), font_size=80, gerty_type=gerty.type
-                    )
-                )
-            elif stat_slug == "onchain_difficulty_retarget_date":
-                stat = r["estimatedRetargetDate"]
-                dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
-                text.append(
-                    get_text_item_dict(
-                        text="Date of next difficulty adjustment",
-                        font_size=15,
-                        gerty_type=gerty.type,
-                    )
-                )
-                text.append(
-                    get_text_item_dict(text=dt, font_size=40, gerty_type=gerty.type)
-                )
-            elif stat_slug == "onchain_difficulty_blocks_remaining":
-                stat = r["remainingBlocks"]
-                text.append(
-                    get_text_item_dict(
-                        text="Blocks until next difficulty adjustment",
-                        font_size=15,
-                        gerty_type=gerty.type,
-                    )
-                )
-                text.append(
-                    get_text_item_dict(
-                        text="{0}".format(format_number(stat)),
-                        font_size=80,
-                        gerty_type=gerty.type,
-                    )
-                )
-            elif stat_slug == "onchain_difficulty_epoch_time_remaining":
-                stat = r["remainingTime"]
-                text.append(
-                    get_text_item_dict(
-                        text="Time until next difficulty adjustment",
-                        font_size=15,
-                        gerty_type=gerty.type,
-                    )
-                )
-                text.append(
-                    get_text_item_dict(
-                        text=get_time_remaining(stat / 1000, 4),
-                        font_size=20,
-                        gerty_type=gerty.type,
-                    )
-                )
-    return text
-
-
-async def get_onchain_dashboard(gerty):
-    areas = []
-    if isinstance(gerty.mempool_endpoint, str):
-        async with httpx.AsyncClient() as client:
-            r = await get_mempool_info("difficulty_adjustment", gerty)
-            text = []
+        r = await get_mempool_info("difficulty_adjustment", gerty)
+        if stat_slug == "onchain_difficulty_epoch_progress":
             stat = round(r["progressPercent"])
             text.append(
                 get_text_item_dict(
-                    text="Progress through epoch", font_size=12, gerty_type=gerty.type
+                    text="Progress through current difficulty epoch",
+                    font_size=15,
+                    gerty_type=gerty.type,
                 )
             )
             text.append(
                 get_text_item_dict(
-                    text="{0}%".format(stat), font_size=60, gerty_type=gerty.type
+                    text="{0}%".format(stat), font_size=80, gerty_type=gerty.type
                 )
             )
-            areas.append(text)
-
-            text = []
+        elif stat_slug == "onchain_difficulty_retarget_date":
             stat = r["estimatedRetargetDate"]
             dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
             text.append(
                 get_text_item_dict(
-                    text="Date of next adjustment", font_size=12, gerty_type=gerty.type
+                    text="Date of next difficulty adjustment",
+                    font_size=15,
+                    gerty_type=gerty.type,
                 )
             )
             text.append(
-                get_text_item_dict(text=dt, font_size=20, gerty_type=gerty.type)
+                get_text_item_dict(text=dt, font_size=40, gerty_type=gerty.type)
             )
-            areas.append(text)
-
-            text = []
+        elif stat_slug == "onchain_difficulty_blocks_remaining":
             stat = r["remainingBlocks"]
             text.append(
                 get_text_item_dict(
-                    text="Blocks until adjustment", font_size=12, gerty_type=gerty.type
+                    text="Blocks until next difficulty adjustment",
+                    font_size=15,
+                    gerty_type=gerty.type,
                 )
             )
             text.append(
                 get_text_item_dict(
                     text="{0}".format(format_number(stat)),
-                    font_size=60,
+                    font_size=80,
                     gerty_type=gerty.type,
                 )
             )
-            areas.append(text)
-
-            text = []
+        elif stat_slug == "onchain_difficulty_epoch_time_remaining":
             stat = r["remainingTime"]
             text.append(
                 get_text_item_dict(
-                    text="Time until adjustment", font_size=12, gerty_type=gerty.type
+                    text="Time until next difficulty adjustment",
+                    font_size=15,
+                    gerty_type=gerty.type,
                 )
             )
             text.append(
@@ -823,7 +751,67 @@ async def get_onchain_dashboard(gerty):
                     gerty_type=gerty.type,
                 )
             )
-            areas.append(text)
+    return text
+
+
+async def get_onchain_dashboard(gerty):
+    areas = []
+    if isinstance(gerty.mempool_endpoint, str):
+        text = []
+        stat = (format_number(await get_mempool_info("tip_height", gerty)),)
+        text.append(
+            get_text_item_dict(
+                text="Current block height", font_size=12, gerty_type=gerty.type
+            )
+        )
+        text.append(
+            get_text_item_dict(text=stat[0], font_size=40, gerty_type=gerty.type)
+        )
+        areas.append(text)
+
+        r = await get_mempool_info("difficulty_adjustment", gerty)
+        text = []
+        stat = round(r["progressPercent"])
+        text.append(
+            get_text_item_dict(
+                text="Progress through current epoch",
+                font_size=12,
+                gerty_type=gerty.type,
+            )
+        )
+        text.append(
+            get_text_item_dict(
+                text="{0}%".format(stat), font_size=40, gerty_type=gerty.type
+            )
+        )
+        areas.append(text)
+
+        text = []
+        stat = r["estimatedRetargetDate"]
+        dt = datetime.fromtimestamp(stat / 1000).strftime("%e %b %Y at %H:%M")
+        text.append(
+            get_text_item_dict(
+                text="Date of next adjustment", font_size=12, gerty_type=gerty.type
+            )
+        )
+        text.append(get_text_item_dict(text=dt, font_size=20, gerty_type=gerty.type))
+        areas.append(text)
+
+        text = []
+        stat = r["remainingBlocks"]
+        text.append(
+            get_text_item_dict(
+                text="Blocks until adjustment", font_size=12, gerty_type=gerty.type
+            )
+        )
+        text.append(
+            get_text_item_dict(
+                text="{0}".format(format_number(stat)),
+                font_size=40,
+                gerty_type=gerty.type,
+            )
+        )
+        areas.append(text)
 
     return areas
 
@@ -944,3 +932,7 @@ async def get_mempool_stat(stat_slug: str, gerty):
                 )
             )
     return text
+
+
+def make_url_readable(url: str):
+    return url.replace("https://", "").replace("http://", "").strip("/")

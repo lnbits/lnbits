@@ -1,9 +1,5 @@
-import json
-from typing import Dict, List, Optional
-
-from fastapi.params import Query
-from pydantic.main import BaseModel
-from sqlalchemy.engine import base  # type: ignore
+from fastapi import Query
+from pydantic import BaseModel
 
 
 class SubmarineSwap(BaseModel):
@@ -24,9 +20,9 @@ class SubmarineSwap(BaseModel):
 
 
 class CreateSubmarineSwap(BaseModel):
-    wallet: str = Query(...)  # type: ignore
-    refund_address: str = Query(...)  # type: ignore
-    amount: int = Query(...)  # type: ignore
+    wallet: str = Query(...)
+    refund_address: str = Query(...)
+    amount: int = Query(...)
 
 
 class ReverseSubmarineSwap(BaseModel):
@@ -48,28 +44,25 @@ class ReverseSubmarineSwap(BaseModel):
 
 
 class CreateReverseSubmarineSwap(BaseModel):
-    wallet: str = Query(...)  # type: ignore
-    amount: int = Query(...)  # type: ignore
-    instant_settlement: bool = Query(...)  # type: ignore
-    # validate on-address, bcrt1 for regtest addresses
-    onchain_address: str = Query(
-        ..., regex="^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$"
-    )  # type: ignore
+    wallet: str = Query(...)
+    amount: int = Query(...)
+    instant_settlement: bool = Query(...)
+    onchain_address: str = Query(...)
 
 
-class SwapStatus(BaseModel):
-    swap_id: str
+class AutoReverseSubmarineSwap(BaseModel):
+    id: str
     wallet: str
-    status: str = ""
-    message: str = ""
-    boltz: str = ""
-    mempool: str = ""
-    address: str = ""
-    block_height: int = 0
-    timeout_block_height: str = ""
-    lockup: Optional[dict] = {}
-    has_lockup: bool = False
-    hit_timeout: bool = False
-    confirmed: bool = True
-    exists: bool = True
-    reverse: bool = False
+    amount: int
+    balance: int
+    onchain_address: str
+    instant_settlement: bool
+    time: int
+
+
+class CreateAutoReverseSubmarineSwap(BaseModel):
+    wallet: str = Query(...)
+    amount: int = Query(...)
+    balance: int = Query(0)
+    instant_settlement: bool = Query(...)
+    onchain_address: str = Query(...)

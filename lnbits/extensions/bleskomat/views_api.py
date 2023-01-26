@@ -6,7 +6,6 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.extensions.bleskomat.models import CreateBleskomat
 
 from . import bleskomat_ext
 from .crud import (
@@ -17,6 +16,7 @@ from .crud import (
     update_bleskomat,
 )
 from .exchange_rates import fetch_fiat_exchange_rate
+from .models import CreateBleskomat
 
 
 @bleskomat_ext.get("/api/v1/bleskomats")
@@ -27,7 +27,8 @@ async def api_bleskomats(
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+        user = await get_user(wallet.wallet.user)
+        wallet_ids = user.wallet_ids if user else []
 
     return [bleskomat.dict() for bleskomat in await get_bleskomats(wallet_ids)]
 
@@ -54,9 +55,9 @@ async def api_bleskomat_create_or_update(
     wallet: WalletTypeInfo = Depends(require_admin_key),
     bleskomat_id=None,
 ):
+    fiat_currency = data.fiat_currency
+    exchange_rate_provider = data.exchange_rate_provider
     try:
-        fiat_currency = data.fiat_currency
-        exchange_rate_provider = data.exchange_rate_provider
         await fetch_fiat_exchange_rate(
             currency=fiat_currency, provider=exchange_rate_provider
         )
@@ -79,6 +80,7 @@ async def api_bleskomat_create_or_update(
     else:
         bleskomat = await create_bleskomat(wallet_id=wallet.wallet.id, data=data)
 
+    assert bleskomat
     return bleskomat.dict()
 
 

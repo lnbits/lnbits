@@ -1,4 +1,3 @@
-# type: ignore
 from os import getenv
 
 from fastapi import Depends, Request
@@ -36,5 +35,5 @@ ngrok_tunnel = ngrok.connect(port)
 @ngrok_ext.get("/")
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return ngrok_renderer().TemplateResponse(
-        "ngrok/index.html", {"request": request, "ngrok": string5, "user": user.dict()}
+        "ngrok/index.html", {"request": request, "ngrok": string5, "user": user.dict()}  # type: ignore
     )

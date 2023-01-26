@@ -1,7 +1,7 @@
 import datetime
 
 from loguru import logger
-from sqlalchemy.exc import OperationalError  # type: ignore
+from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
 
@@ -266,6 +266,37 @@ async def m008_create_admin_settings_table(db):
         CREATE TABLE IF NOT EXISTS settings (
             super_user TEXT,
             editable_settings TEXT NOT NULL DEFAULT '{}'
+        );
+    """
+    )
+
+
+async def m009_create_tinyurl_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS tiny_url (
+          id TEXT PRIMARY KEY,
+          url TEXT,
+          endless BOOL NOT NULL DEFAULT false,
+          wallet TEXT,
+          time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        );
+    """
+    )
+
+
+async def m010_create_installed_extensions_table(db):
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS installed_extensions (
+            id TEXT PRIMARY KEY,
+            version TEXT NOT NULL,
+            name TEXT NOT NULL,
+            short_description TEXT,
+            icon TEXT,
+            stars INT NOT NULL DEFAULT 0,
+            active BOOLEAN DEFAULT false,
+            meta TEXT NOT NULL DEFAULT '{}'
         );
     """
     )

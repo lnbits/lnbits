@@ -26,8 +26,14 @@ from .crud import (
     get_domain_by_name,
     get_domains,
     rotate_address,
+    update_domain_internal,
 )
-from .models import CreateAddressData, CreateDomainData, RotateAddressData
+from .models import (
+    CreateAddressData,
+    CreateDomainData,
+    EditDomainData,
+    RotateAddressData,
+)
 
 
 @nostrnip5_ext.get("/api/v1/domains", status_code=HTTPStatus.OK)
@@ -85,6 +91,16 @@ async def api_domain_create(
         )
 
     domain = await create_domain_internal(wallet_id=wallet.wallet.id, data=data)
+
+    return domain
+
+
+@nostrnip5_ext.put("/api/v1/domain", status_code=HTTPStatus.OK)
+async def api_domain_update(
+    data: EditDomainData, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+
+    domain = await update_domain_internal(wallet_id=wallet.wallet.id, data=data)
 
     return domain
 
@@ -196,7 +212,12 @@ async def api_address_create(
         )
 
     address = await create_address_internal(domain_id=domain_id, data=post_data)
-    price_in_sats = await fiat_amount_as_satoshis(domain.amount / 100, domain.currency)
+    if domain.currency == "Satoshis":
+        price_in_sats = domain.amount
+    else:
+        price_in_sats = await fiat_amount_as_satoshis(
+            domain.amount / 100, domain.currency
+        )
 
     try:
         payment_hash, payment_request = await create_invoice(

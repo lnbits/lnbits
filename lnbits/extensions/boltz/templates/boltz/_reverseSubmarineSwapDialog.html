@@ -1,0 +1,72 @@
+<q-dialog v-model="reverseSubmarineSwapDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form @submit="sendReverseSubmarineSwapFormData" class="q-gutter-md">
+      <q-select
+        filled
+        dense
+        emit-value
+        v-model="reverseSubmarineSwapDialog.data.wallet"
+        :options="g.user.walletOptions"
+        label="Wallet *"
+        :disable="reverseSubmarineSwapDialog.data.id ? true : false"
+      >
+      </q-select>
+
+      <q-input
+        filled
+        dense
+        emit-value
+        :label="amountLabel()"
+        v-model.trim="reverseSubmarineSwapDialog.data.amount"
+        type="number"
+      ></q-input>
+      <div class="row">
+        <div class="col">
+          <q-checkbox
+            v-model="reverseSubmarineSwapDialog.data.instant_settlement"
+            value="false"
+            label="Instant settlement"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+              Create Onchain TX when transaction is in mempool, but not
+              confirmed yet.
+            </q-tooltip>
+          </q-checkbox>
+        </div>
+      </div>
+      <q-input
+        filled
+        dense
+        emit-value
+        v-model.trim="reverseSubmarineSwapDialog.data.onchain_address"
+        type="string"
+        label="Onchain address to receive funds"
+      ></q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="reverseSubmarineSwapDialog.data.id"
+          unelevated
+          color="primary"
+          type="submit"
+          label="Update Swap"
+        ></q-btn>
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          :disable="disableReverseSubmarineSwapDialog()"
+          type="submit"
+          label="Create Reverse Swap (OUT)"
+        ></q-btn>
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          @click="resetReverseSubmarineSwapDialog"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>

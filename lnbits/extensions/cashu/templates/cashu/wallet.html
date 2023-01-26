@@ -1479,15 +1479,15 @@ page_container %}
       },
 
       constructOutputs: async function (amounts, secrets) {
-        const blindedMessages = []
+        const outputs = []
         const rs = []
         for (let i = 0; i < amounts.length; i++) {
           const {B_, r} = await step1Alice(secrets[i])
-          blindedMessages.push({amount: amounts[i], B_: B_})
+          outputs.push({amount: amounts[i], B_: B_})
           rs.push(r)
         }
         return {
-          blindedMessages,
+          outputs,
           rs
         }
       },
@@ -1581,25 +1581,26 @@ page_container %}
       mintApi: async function (amounts, payment_hash, verbose = true) {
         /*
         asks the mint to check whether the invoice with payment_hash has been paid
-        and requests signing of the attached outputs (blindedMessages)
+        and requests signing of the attached outputs.
         */
         console.log('### promises', payment_hash)
         try {
           let secrets = await this.generateSecrets(amounts)
-          let {blindedMessages, rs} = await this.constructOutputs(
-            amounts,
-            secrets
-          )
+          let {outputs, rs} = await this.constructOutputs(amounts, secrets)
           const promises = await LNbits.api.request(
             'POST',
             `/cashu/api/v1/${this.mintId}/mint?payment_hash=${payment_hash}`,
             '',
             {
-              blinded_messages: blindedMessages
+              outputs
             }
           )
-          console.log('### promises data', promises.data)
-          let proofs = await this.constructProofs(promises.data, secrets, rs)
+          console.log('### promises data', promises.data.promises)
+          let proofs = await this.constructProofs(
+            promises.data.promises,
+            secrets,
+            rs
+          )
           return proofs
         } catch (error) {
           console.error(error)
@@ -1682,16 +1683,11 @@ page_container %}
               'number of secrets does not match number of outputs.'
             )
           }
-          let {blindedMessages, rs} = await this.constructOutputs(
-            amounts,
-            secrets
-          )
+          let {outputs, rs} = await this.constructOutputs(amounts, secrets)
           const payload = {
             amount,
             proofs,
-            outputs: {
-              blinded_messages: blindedMessages
-            }
+            outputs
           }
 
           console.log('payload', JSON.stringify(payload))
@@ -1881,10 +1877,7 @@ page_container %}
           'amount with fees',
           amount
         )
-        // if (amount > balance()) {
-        //   LNbits.utils.notifyApiError('Balance too low')
-        //   return
-        // }
+
         let {fristProofs, scndProofs} = await this.splitToSend(
           this.proofs,
           amount
@@ -2132,6 +2125,19 @@ page_container %}
         return paid
       },
 
+      findTokenForAmount: function (amount) {
+        for (const token of this.proofs) {
+          const index = token.promises?.findIndex(p => p.amount === amount)
+          if (index >= 0) {
+            return {
+              promise: token.promises[index],
+              secret: token.secrets[index],
+              r: token.rs[index]
+            }
+          }
+        }
+      },
+
       ////////////// WORKERS //////////////
 
       clearAllWorkers: function () {
@@ -2219,76 +2225,6 @@ page_container %}
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      findTokenForAmount: function (amount) {
-        for (const token of this.proofs) {
-          const index = token.promises?.findIndex(p => p.amount === amount)
-          if (index >= 0) {
-            return {
-              promise: token.promises[index],
-              secret: token.secrets[index],
-              r: token.rs[index]
-            }
-          }
-        }
-      },
-
-      // checkInvoice: function () {
-      //   console.log('#### checkInvoice')
-      //   try {
-      //     const invoice = decode(this.payInvoiceData.data.request)
-
-      //     const cleanInvoice = {
-      //       msat: invoice.human_readable_part.amount,
-      //       sat: invoice.human_readable_part.amount / 1000,
-      //       fsat: LNbits.utils.formatSat(
-      //         invoice.human_readable_part.amount / 1000
-      //       )
-      //     }
-
-      //     _.each(invoice.data.tags, tag => {
-      //       if (_.isObject(tag) && _.has(tag, 'description')) {
-      //         if (tag.description === 'payment_hash') {
-      //           cleanInvoice.hash = tag.value
-      //         } else if (tag.description === 'description') {
-      //           cleanInvoice.description = tag.value
-      //         } else if (tag.description === 'expiry') {
-      //           var expireDate = new Date(
-      //             (invoice.data.time_stamp + tag.value) * 1000
-      //           )
-      //           cleanInvoice.expireDate = Quasar.utils.date.formatDate(
-      //             expireDate,
-      //             'YYYY-MM-DDTHH:mm:ss.SSSZ'
-      //           )
-      //           cleanInvoice.expired = false // TODO
-      //         }
-      //       }
-
-      //       this.payInvoiceData.invoice = cleanInvoice
-      //     })
-
-      //     console.log(
-      //       '#### this.payInvoiceData.invoice',
-      //       this.payInvoiceData.invoice
-      //     )
-      //   } catch (error) {
-      //     this.$q.notify({
-      //       timeout: 5000,
-      //       type: 'warning',
-      //       message: 'Could not decode invoice',
-      //       caption: error + '',
-      //       position: 'top',
-      //       actions: [
-      //         {
-      //           icon: 'close',
-      //           color: 'white',
-      //           handler: () => {}
-      //         }
-      //       ]
-      //     })
-      //     throw error
-      //   }
-      // },
 
       ////////////// STORAGE /////////////
 

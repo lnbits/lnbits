@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -66,9 +66,9 @@ async def update_card(card_id: str, **kwargs) -> Optional[Card]:
     return Card(**row) if row else None
 
 
-async def get_cards(wallet_ids: Union[str, List[str]]) -> List[Card]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
+async def get_cards(wallet_ids: List[str]) -> List[Card]:
+    if len(wallet_ids) == 0:
+        return []
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
@@ -130,7 +130,7 @@ async def delete_card(card_id: str) -> None:
     for hit in hits:
         await db.execute("DELETE FROM boltcards.hits WHERE id = ?", (hit.id,))
         # Delete refunds
-        refunds = await get_refunds([hit])
+        refunds = await get_refunds([hit.id])
         for refund in refunds:
             await db.execute(
                 "DELETE FROM boltcards.refunds WHERE id = ?", (refund.hit_id,)
@@ -169,7 +169,7 @@ async def get_hit(hit_id: str) -> Optional[Hit]:
     return Hit.parse_obj(hit)
 
 
-async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
+async def get_hits(cards_ids: List[str]) -> List[Hit]:
     if len(cards_ids) == 0:
         return []
 
@@ -266,7 +266,7 @@ async def get_refund(refund_id: str) -> Optional[Refund]:
     return Refund.parse_obj(refund)
 
 
-async def get_refunds(hits_ids: List[Hit]) -> List[Refund]:
+async def get_refunds(hits_ids: List[str]) -> List[Refund]:
     if len(hits_ids) == 0:
         return []
 

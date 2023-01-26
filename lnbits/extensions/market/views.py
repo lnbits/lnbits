@@ -16,11 +16,9 @@ from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
-from lnbits.decorators import check_user_exists  # type: ignore
-from lnbits.extensions.market import market_ext, market_renderer
-from lnbits.extensions.market.models import CreateChatMessage, SetSettings
-from lnbits.extensions.market.notifier import Notifier
+from lnbits.decorators import check_user_exists
 
+from . import market_ext, market_renderer
 from .crud import (
     create_chat_message,
     create_market_settings,
@@ -35,6 +33,8 @@ from .crud import (
     get_market_zones,
     update_market_product_stock,
 )
+from .models import CreateChatMessage, SetSettings
+from .notifier import Notifier
 
 templates = Jinja2Templates(directory="templates")
 

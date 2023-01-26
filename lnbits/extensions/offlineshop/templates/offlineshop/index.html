@@ -237,7 +237,7 @@
         <q-responsive v-if="itemDialog.data.id" :ratio="1">
           <qrcode
             :value="'lightning:' + itemDialog.data.lnurl"
-            :options="{width: 800}"
+            :options="{width: 300}"
             class="rounded-borders"
           ></qrcode>
         </q-responsive>
@@ -266,7 +266,16 @@
             type="text"
             label="Brief description"
           ></q-input>
+          <q-input
+            v-if="itemDialog.urlImg"
+            filled
+            dense
+            v-model.trim="itemDialog.data.image"
+            type="url"
+            label="Image URL"
+          ></q-input>
           <q-file
+            v-else
             filled
             dense
             capture="environment"
@@ -288,6 +297,10 @@
               />
             </template>
           </q-file>
+          <q-toggle
+            :label="`${itemDialog.urlImg ? 'Insert image URL' : 'Upload image file'}`"
+            v-model="itemDialog.urlImg"
+          ></q-toggle>
           <q-input
             filled
             dense
