@@ -6,7 +6,7 @@ from lnbits import bolt11
 from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_regtest, is_fake
+from ...helpers import get_random_invoice_data, is_fake, is_regtest
 
 WALLET = get_wallet_class()
 
@@ -258,7 +258,6 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(client, real_invoice, adminkey_headers_from):
-    # data = {"out": True, "bolt11": real_invoice["bolt11"]}
     response = await client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
     )
