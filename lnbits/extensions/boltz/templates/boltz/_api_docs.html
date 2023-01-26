@@ -102,10 +102,7 @@
         </li>
         <li>You receive lightning: {{ boltzExample.amount }} sats</li>
       </ul>
-      <p>
-        onchain_payment + lockup_fee = amount + (amount * boltz_fee / 100) +
-        claim_fee + lockup_fee
-      </p>
+      <p>onchain_payment = amount + (amount * boltz_fee / 100) + claim_fee</p>
       {% endraw %}
     </q-card-section>
   </q-expansion-item>
