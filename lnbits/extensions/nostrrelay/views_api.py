@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import nostrrelay_ext
+from .crud import create_event
 from .models import NostrEvent, NostrEventType, NostrFilter
 
 
@@ -19,22 +20,29 @@ async def websocket_endpoint(websocket: WebSocket):
         json_data = await websocket.receive_text()
         # print('### data', json_data)
         data = json.loads(json_data)
-        handle_message(data)
+        await handle_message(data)
 
 
-def handle_message(data: List):
-    message_type = data[0]
-    if message_type == NostrEventType.EVENT:
-        return handle_event(NostrEvent.parse_obj(data[1]))
-    if message_type == NostrEventType.REQ:
-        return handle_request(data[1], NostrFilter.parse_obj(data[2]))
-    if message_type == NostrEventType.CLOSE:
-        return handle_close(data[1])
+async def handle_message(data: List):
+    if len(data) < 2:
+        return
+
+    try:
+        message_type = data[0]
+        if message_type == NostrEventType.EVENT:
+            return await handle_event(NostrEvent.parse_obj(data[1]))
+        if message_type == NostrEventType.REQ:
+            return handle_request(data[1], NostrFilter.parse_obj(data[2]))
+        if message_type == NostrEventType.CLOSE:
+            return handle_close(data[1])
+    except Exception as e:
+        logger.warning(e)
 
 
-def handle_event(e: NostrEvent):
+async def handle_event(e: NostrEvent):
     print("### handle_event", e)
     e.check_signature()
+    await create_event("111", e)
 
 
 def handle_request(subscription_id: str, filters: NostrFilter):

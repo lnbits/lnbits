@@ -1,36 +1,38 @@
 async def m001_initial(db):
     """
-    Initial nostrrelays table.
+    Initial nostrrelays tables.
     """
     await db.execute(
         """
-        CREATE TABLE nostrrelay.nostrrelays (
+        CREATE TABLE nostrrelay.relays (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
-            name TEXT NOT NULL,
-            currency TEXT NOT NULL
+            name TEXT NOT NULL
         );
-    """
+        """
     )
 
-
-async def m002_addtip_wallet(db):
-    """
-    Add tips to nostrrelays table
-    """
     await db.execute(
+        f"""
+        CREATE TABLE nostrrelay.events (
+            relay_id TEXT NOT NULL,
+            id TEXT PRIMARY KEY,
+            pubkey TEXT NOT NULL,
+            created_at {db.big_int} NOT NULL,
+            kind INT NOT NULL,
+            content TEXT NOT NULL,
+            sig TEXT NOT NULL
+        );
         """
-        ALTER TABLE nostrrelay.nostrrelays ADD tip_wallet TEXT NULL;
-    """
     )
 
-
-async def m003_addtip_options(db):
-    """
-    Add tips to nostrrelays table
-    """
     await db.execute(
         """
-        ALTER TABLE nostrrelay.nostrrelays ADD tip_options TEXT NULL;
-    """
+        CREATE TABLE nostrrelay.event_tags (
+            relay_id TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            value TEXT NOT NULL
+        );
+        """
     )
