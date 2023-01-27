@@ -53,17 +53,17 @@ async def get_events(relay_id: str, filter: NostrFilter) -> List[NostrEvent]:
     if len(filter.authors) != 0:
         authors = ",".join(["?"] * len(filter.authors))
         query += f" AND pubkey IN ({authors})"
-        values+=filter.authors
+        values += filter.authors
     if len(filter.kinds) != 0:
         kinds = ",".join(["?"] * len(filter.kinds))
         query += f" AND kind IN ({kinds})"
-        values+=filter.kinds
+        values += filter.kinds
     if filter.since:
         query += f" AND created_at >= ?"
-        values +=[filter.since]
+        values += [filter.since]
     if filter.until:
         query += f" AND created_at <= ?"
-        values +=[filter.until]
+        values += [filter.until]
 
     query += " ORDER BY created_at DESC"
     if filter.limit and type(filter.limit) == int and filter.limit > 0:
