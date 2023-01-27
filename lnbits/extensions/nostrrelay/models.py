@@ -5,6 +5,7 @@ from sqlite3 import Row
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+from secp256k1 import PublicKey
 
 
 class NostrRelay(BaseModel):
@@ -48,6 +49,18 @@ class NostrEvent(BaseModel):
             raise ValueError(
                 f"Invalid event id. Expected: '{event_id}' got '{self.id}'"
             )
+        try:
+            pub_key = PublicKey(bytes.fromhex("02" + self.pubkey), True)
+        except Exception:
+            raise ValueError(
+                f"Invalid public key: '{self.pubkey}' for event '{self.id}'"
+            )
+
+        valid_signature = pub_key.schnorr_verify(
+            bytes.fromhex(event_id), bytes.fromhex(self.sig), None, raw=True
+        )
+        if not valid_signature:
+            raise ValueError(f"Invalid signature: '{self.sig}' for event '{self.id}'")
 
 
 class NostrFilter(BaseModel):
