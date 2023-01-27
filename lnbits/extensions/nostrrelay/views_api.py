@@ -32,6 +32,8 @@ async def handle_message(data: List):
         if message_type == NostrEventType.EVENT:
             return await handle_event(NostrEvent.parse_obj(data[1]))
         if message_type == NostrEventType.REQ:
+            if len(data) != 3:
+                return
             return handle_request(data[1], NostrFilter.parse_obj(data[2]))
         if message_type == NostrEventType.CLOSE:
             return handle_close(data[1])
