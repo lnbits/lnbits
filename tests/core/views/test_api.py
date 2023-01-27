@@ -257,7 +257,9 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-async def test_pay_real_invoice(client, real_invoice, adminkey_headers_from, inkey_headers_from):
+async def test_pay_real_invoice(
+    client, real_invoice, adminkey_headers_from, inkey_headers_from
+):
     response = await client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
     )
