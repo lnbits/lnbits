@@ -14,7 +14,6 @@ client_manager = NostrClientManager()
 
 @nostrrelay_ext.websocket("/client")
 async def websocket_endpoint(websocket: WebSocket):
-    print('### WS IN')
     client = NostrClientConnection(websocket=websocket)
     client_manager.add_client(client)
     try:
@@ -22,7 +21,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.warning(e)
         client_manager.remove_client(client)
-    print('### WS OUT')
 
 
 @nostrrelay_ext.get("/api/v1/enable", status_code=HTTPStatus.OK)

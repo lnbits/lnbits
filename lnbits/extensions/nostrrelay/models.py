@@ -68,6 +68,8 @@ class NostrEvent(BaseModel):
 
 
 class NostrFilter(BaseModel):
+    subscription_id: Optional[str]
+
     ids: List[str] = []
     authors: List[str] = []
     kinds: List[int] = []
@@ -76,6 +78,25 @@ class NostrFilter(BaseModel):
     since: Optional[int]
     until: Optional[int]
     limit: Optional[int]
+
+    def matches(self, e: NostrEvent) -> bool:
+        # todo: starts with
+        if len(self.ids) != 0 and e.id not in self.ids:
+            return False
+        if len(self.authors) != 0 and e.pubkey not in self.authors:
+            return False
+        if len(self.kinds) != 0 and e.kind not in self.kinds:
+            return False
+        # todo: e
+        # if len(e) != 0:
+        #     common_tags = [tag_e for tag_e in self.e if tag_e in e.]
+        # todo p
+        if self.since and e.created_at < self.since:
+            return False
+        if self.until and self.until > 0 and e.created_at > self.until:
+            return False
+
+        return True
 
 
 class NostrEventType(str, Enum):
