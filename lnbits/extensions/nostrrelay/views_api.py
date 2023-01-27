@@ -22,8 +22,8 @@ async def websocket_endpoint(websocket: WebSocket):
             data = json.loads(json_data)
             resp = await handle_message(data)
             if resp:
-                resp_dict = [r.dict() for r in resp]
-                await websocket.send_text(json.dumps(resp_dict))
+                for r in resp:
+                    await websocket.send_text(json.dumps(r))
         except Exception as e:
             logger.warning(e)
 
@@ -43,19 +43,21 @@ async def handle_message(data: List):
         return handle_close(data[1])
 
 
-async def handle_event(e: NostrEvent):
+async def handle_event(e: NostrEvent) -> None:
     print("### handle_event", e)
     e.check_signature()
     await create_event("111", e)
 
 
-async def handle_request(subscription_id: str, filter: NostrFilter):
+async def handle_request(subscription_id: str, filter: NostrFilter) -> List:
     # print("### handle_request 1", subscription_id)
     # print("### handle_request 2", filter)
-    return await get_events("111", filter)
+    events = await get_events("111", filter)
+    x = [[NostrEventType.EVENT, subscription_id, dict(event)] for event in events]
+    return x
 
 
-def handle_close(subscription_id: str):
+def handle_close(subscription_id: str) -> None:
     print("### handle_close", subscription_id)
 
 
