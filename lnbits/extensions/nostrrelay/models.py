@@ -1,8 +1,9 @@
+import hashlib
+import json
 from enum import Enum
 from sqlite3 import Row
 from typing import List, Optional
 
-from fastapi import Query
 from pydantic import BaseModel, Field
 
 
@@ -27,6 +28,26 @@ class NostrEvent(BaseModel):
     tags: List[List[str]] = []
     content: str = ""
     sig: str
+
+    def serialize(self) -> List:
+        return [0, self.pubkey, self.created_at, self.kind, self.tags, self.content]
+
+    def serialize_json(self) -> str:
+        e = self.serialize()
+        return json.dumps(e, separators=(",", ":"))
+
+    @property
+    def event_id(self) -> str:
+        data = self.serialize_json()
+        id = hashlib.sha256(data.encode()).hexdigest()
+        return id
+
+    def check_signature(self):
+        event_id = self.event_id
+        if self.id != event_id:
+            raise ValueError(
+                f"Invalid event id. Expected: '{event_id}' got '{self.id}'"
+            )
 
 
 class NostrFilter(BaseModel):

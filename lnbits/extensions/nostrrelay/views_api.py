@@ -34,6 +34,7 @@ def handle_message(data: List):
 
 def handle_event(e: NostrEvent):
     print("### handle_event", e)
+    e.check_signature()
 
 
 def handle_request(subscription_id: str, filters: NostrFilter):
