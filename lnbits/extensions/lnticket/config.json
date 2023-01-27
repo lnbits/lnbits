@@ -1,6 +1,0 @@
-{
-  "name": "Support Tickets",
-  "short_description": "LN support ticket system",
-	"tile": "/lnticket/static/image/lntickets.png",
-  "contributors": ["benarc"]
-}
