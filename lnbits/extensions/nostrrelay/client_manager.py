@@ -15,7 +15,7 @@ class NostrClientManager:
     def add_client(self, client: "NostrClientConnection"):
         setattr(client, "broadcast_event", self.broadcast_event)
         self.clients.append(client)
-        print('### client count:', len(self.clients))
+        print("### client count:", len(self.clients))
 
     def remove_client(self, client: "NostrClientConnection"):
         self.clients.remove(client)
@@ -40,9 +40,11 @@ class NostrClientConnection:
             json_data = await self.websocket.receive_text()
             try:
                 data = json.loads(json_data)
+                
                 resp = await self.__handle_message(data)
                 if resp:
                     for r in resp:
+                        print("### start send content: ", json.dumps(r))
                         await self.websocket.send_text(json.dumps(r))
             except Exception as e:
                 logger.warning(e)
@@ -51,7 +53,7 @@ class NostrClientConnection:
         for filter in self.filters:
             if filter.matches(event):
                 r = [NostrEventType.EVENT, filter.subscription_id, dict(event)]
-                print('### send content', event.content)
+                print("### notify send content: ", json.dumps(r))
                 await self.websocket.send_text(json.dumps(r))
                 return True
         return False
@@ -86,4 +88,6 @@ class NostrClientConnection:
         ]
 
     def __handle_close(self, subscription_id: str) -> None:
-        print("### __handle_close", subscription_id)
+        print("### __handle_close", len(self.filters), subscription_id)
+        self.filters = [f for f in self.filters if f.subscription_id != subscription_id]
+        print("### __handle_close", len(self.filters))
