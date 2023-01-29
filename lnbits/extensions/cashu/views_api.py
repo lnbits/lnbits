@@ -4,18 +4,18 @@ from typing import Dict, List, Union
 
 # -------- cashu imports
 from cashu.core.base import (
-    BlindedSignature,
-    CheckFeesRequest,
+    GetCheckFeesRequest,
     CheckFeesResponse,
-    CheckRequest,
+    GetCheckSpendableRequest,
+    GetCheckSpendableResponse,
     GetMeltResponse,
     GetMintResponse,
     Invoice,
-    MeltRequest,
+    PostMeltRequest,
     PostMintRequest,
     PostMintResponse,
     PostSplitResponse,
-    SplitRequest,
+    PostSplitRequest,
 )
 from fastapi import Depends, Query
 from loguru import logger
@@ -279,7 +279,7 @@ async def mint(
 
 @cashu_ext.post("/api/v1/{cashu_id}/melt")
 async def melt_coins(
-    payload: MeltRequest, cashu_id: str = Query(None)
+    payload: PostMeltRequest, cashu_id: str = Query(None)
 ) -> GetMeltResponse:
     """Invalidates proofs and pays a Lightning invoice."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
@@ -288,7 +288,7 @@ async def melt_coins(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     proofs = payload.proofs
-    invoice = payload.invoice
+    invoice = payload.pr
 
     # !!!!!!! MAKE SURE THAT PROOFS ARE ONLY FROM THIS CASHU KEYSET ID
     # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
@@ -356,9 +356,9 @@ async def melt_coins(
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
-@cashu_ext.post("/api/v1/{cashu_id}/check")
+@cashu_ext.get("/api/v1/{cashu_id}/check")
 async def check_spendable(
-    payload: CheckRequest, cashu_id: str = Query(None)
+    payload: GetCheckSpendableRequest, cashu_id: str = Query(None)
 ) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
@@ -366,12 +366,13 @@ async def check_spendable(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
-    return await ledger.check_spendable(payload.proofs)
+    spendableList = await ledger.check_spendable(payload.proofs)
+    return GetCheckSpendableResponse(spendable=spendableList)
 
 
-@cashu_ext.post("/api/v1/{cashu_id}/checkfees")
+@cashu_ext.get("/api/v1/{cashu_id}/checkfees")
 async def check_fees(
-    payload: CheckFeesRequest, cashu_id: str = Query(None)
+    payload: GetCheckFeesRequest, cashu_id: str = Query(None)
 ) -> CheckFeesResponse:
     """
     Responds with the fees necessary to pay a Lightning invoice.
@@ -395,7 +396,7 @@ async def check_fees(
 
 @cashu_ext.post("/api/v1/{cashu_id}/split")
 async def split(
-    payload: SplitRequest, cashu_id: str = Query(None)
+    payload: PostSplitRequest, cashu_id: str = Query(None)
 ) -> PostSplitResponse:
     """
     Requetst a set of tokens with amount "total" to be split into two

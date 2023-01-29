@@ -1690,8 +1690,6 @@ page_container %}
             outputs
           }
 
-          console.log('payload', JSON.stringify(payload))
-
           const {data} = await LNbits.api.request(
             'POST',
             `/cashu/api/v1/${this.mintId}/split`,
@@ -1885,7 +1883,7 @@ page_container %}
         const payload = {
           proofs: scndProofs.flat(),
           amount,
-          invoice: this.payInvoiceData.data.request
+          pr: this.payInvoiceData.data.request
         }
         console.log('#### payload', JSON.stringify(payload))
         try {
@@ -1965,7 +1963,7 @@ page_container %}
         console.log('#### payload', JSON.stringify(payload))
         try {
           const {data} = await LNbits.api.request(
-            'POST',
+            'GET',
             `/cashu/api/v1/${this.mintId}/check`,
             '',
             payload
@@ -2006,7 +2004,7 @@ page_container %}
         console.log('#### payload', JSON.stringify(payload))
         try {
           const {data} = await LNbits.api.request(
-            'POST',
+            'GET',
             `/cashu/api/v1/${this.mintId}/checkfees`,
             '',
             payload
@@ -2033,6 +2031,9 @@ page_container %}
           JSON.stringify(data)
         )
       },
+
+      ////////////// UI HELPERS //////////////
+
       setInvoicePaid: async function (payment_hash) {
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
         invoice.status = 'paid'
@@ -2077,15 +2078,12 @@ page_container %}
         */
         const tokenJson = atob(token)
         const proofs = JSON.parse(tokenJson)
-        let data = await this.checkProofsSpendable(proofs)
-
-        // iterate through response of form {0: true, 1: false, ...}
+        const data = await this.checkProofsSpendable(proofs)
         let paid = false
-        for (const [key, spendable] of Object.entries(data)) {
-          if (!spendable) {
-            this.setTokenPaid(token)
-            paid = true
-          }
+        // check response of form {"spendable" : [true, false, ...]}
+        if (data.spendable.includes(true)) {
+          this.setTokenPaid(token)
+          paid = true
         }
         if (paid) {
           console.log('### token paid')
@@ -2126,6 +2124,7 @@ page_container %}
       },
 
       findTokenForAmount: function (amount) {
+        // unused coin selection
         for (const token of this.proofs) {
           const index = token.promises?.findIndex(p => p.amount === amount)
           if (index >= 0) {
