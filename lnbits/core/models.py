@@ -331,17 +331,16 @@ class CreateTopup(BaseModel):
 class CreateLnurlAuth(BaseModel):
     callback: str
 
+class CreateWebPushSubscription(BaseModel):
+    subscription: str
+
 class CreatePushNotificationSubscription(BaseModel):
     subscription: str
 
 
-class DeletePushNotificationSubscription(BaseModel):
+class WebPushSubscription(BaseModel):
     endpoint: str
-
-
-class PushNotificationSubscription(BaseModel):
-    endpoint: str
-    wallet: str
+    user: str
     data: str
     host: str
     timestamp: str

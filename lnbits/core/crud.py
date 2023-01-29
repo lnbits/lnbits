@@ -27,6 +27,7 @@ from .models import (
     TinyURL,
     User,
     Wallet,
+    WebPushSubscription,
 )
 
 # accounts
@@ -964,61 +965,62 @@ async def create_webpush_settings(webpush_settings: dict):
     return await get_webpush_settings()
 
 
-async def get_push_notification_subscription(
-    endpoint: str, wallet: str
-) -> Optional[PushNotificationSubscription]:
+async def get_webpush_subscription(
+    endpoint: str, user: str
+) -> Optional[WebPushSubscription]:
     row = await db.fetchone(
-        "SELECT * FROM push_notification_subscriptions WHERE endpoint = ? AND wallet = ?",
+        "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
         (
             endpoint,
-            wallet,
+            user,
         ),
     )
-    return PushNotificationSubscription(**dict(row)) if row else None
+    return WebPushSubscription(**dict(row)) if row else None
 
 
-async def get_push_notification_subscriptions_for_endpoint(
+async def get_webpush_subscriptions_for_endpoint(
     endpoint: str,
-) -> List[PushNotificationSubscription]:
+) -> List[WebPushSubscription]:
     rows = await db.fetchall(
-        "SELECT * FROM push_notification_subscriptions WHERE endpoint = ?", (endpoint,)
+        "SELECT * FROM webpush_subscriptions WHERE endpoint = ?",
+        ( endpoint,),
     )
-    return [PushNotificationSubscription(**dict(row)) for row in rows]
+    return [WebPushSubscription(**dict(row)) for row in rows]
 
 
-async def get_push_notification_subscriptions_for_wallet(
-    wallet: str,
-) -> List[PushNotificationSubscription]:
+async def get_webpush_subscriptions_for_user(
+    user: str,
+) -> List[WebPushSubscription]:
     rows = await db.fetchall(
-        "SELECT * FROM push_notification_subscriptions WHERE wallet = ?", (wallet,)
+        "SELECT * FROM webpush_subscriptions WHERE user = ?", (user,)
     )
-    return [PushNotificationSubscription(**dict(row)) for row in rows]
+    return [WebPushSubscription(**dict(row)) for row in rows]
 
 
-async def create_push_notification_subscription(
-    endpoint: str, wallet: str, data: str, host: str
-) -> PushNotificationSubscription:
+async def create_webpush_subscription(
+    endpoint: str, user: str, data: str, host: str
+) -> WebPushSubscription:
     await db.execute(
         """
-        INSERT INTO push_notification_subscriptions (endpoint, wallet, data, host)
+        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
         VALUES (?, ?, ?, ?)
         """,
         (
             endpoint,
-            wallet,
+            user,
             data,
             host,
         ),
     )
-    subscription = await get_push_notification_subscription(endpoint, wallet)
-    assert subscription, "Newly created notification subscription couldn't be retrieved"
+    subscription = await get_webpush_subscription(endpoint, user)
+    assert subscription, "Newly created webpush subscription couldn't be retrieved"
     return subscription
 
 
-async def delete_push_notification_subscriptions(endpoint: str) -> None:
-    """
-    Delete all push notification subscriptions of wallets subscribed to this endpoint.
-    """
+async def delete_webpush_subscriptions(endpoint: str, user: str) -> None:
     await db.execute(
-        "DELETE FROM push_notification_subscriptions WHERE endpoint = ?", (endpoint,)
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?", (
+            endpoint,
+            user,
+        )
     )

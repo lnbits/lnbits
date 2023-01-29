@@ -175,7 +175,6 @@ async def send_payment_push_notification(payment: Payment):
         subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
 
         amount = int(payment.amount / 1000)
-        comment = payment.extra.get("comment")
 
         title = f"LNbits: {wallet.name}"
         body = f"You just received {amount} sat{'s'[:amount^1]}!"

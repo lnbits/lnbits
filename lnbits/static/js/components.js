@@ -355,7 +355,8 @@ Vue.component('lnbits-notifications-btn', {
       isSupported: false,
       isSubscribed: false,
       isPermissionGranted: false,
-      isPermissionDenied: false
+      isPermissionDenied: false,
+      subscribedUsers: []
     }
   },
   template: `
@@ -423,7 +424,7 @@ Vue.component('lnbits-notifications-btn', {
             registration.pushManager
               .getSubscription()
               .then(function (subscription) {
-                if (subscription === null) {
+                if (subscription === null || !self.subscribedUsers.includes(self.g.user.id)) {
                   const applicationServerKey = self.urlB64ToUint8Array(
                     self.pubkey
                   )
@@ -435,17 +436,19 @@ Vue.component('lnbits-notifications-btn', {
                       LNbits.api
                         .request(
                           'POST',
-                          '/api/v1/push_notification',
+                          '/api/v1/webpush',
                           self.g.user.wallets[0].adminkey,
                           {
                             subscription: JSON.stringify(subscription)
                           }
                         )
+                        .then(function(response){
+                          self.subscribedUsers.push(response.data.user)
+                          self.updateSubscriptionStatus()
+                        })
                         .catch(function (error) {
                           LNbits.utils.notifyApiError(error)
                         })
-
-                      self.updateSubscriptionStatus()
                     })
                 }
               })
@@ -462,22 +465,19 @@ Vue.component('lnbits-notifications-btn', {
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
             if (subscription) {
-              subscription.unsubscribe().then(() => {
-                LNbits.api
-                  .request(
-                    'DELETE',
-                    '/api/v1/push_notification',
-                    self.g.user.wallets[0].adminkey,
-                    {
-                      endpoint: subscription.endpoint
-                    }
-                  )
-                  .catch(function (error) {
-                    LNbits.utils.notifyApiError(error)
-                  })
-
-                self.updateSubscriptionStatus()
-              })
+              LNbits.api
+                .request(
+                  'DELETE',
+                  '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
+                  self.g.user.wallets[0].adminkey
+                )
+                .then(function() {
+                  self.subscribedUsers = []
+                  self.updateSubscriptionStatus()
+                })
+                .catch(function (error) {
+                  LNbits.utils.notifyApiError(error)
+                })
             }
           })
         })
@@ -494,7 +494,7 @@ Vue.component('lnbits-notifications-btn', {
       this.isSupported = https && serviceWorkerApi && notificationApi && pushApi
 
       if (!this.isSupported) {
-        console.log('Notifications disabled, requirements are not met:', {
+        console.log('Notifications disabled because requirements are not met:', {
           HTTPS: https,
           'Service Worker API': serviceWorkerApi,
           'Notification API': notificationApi,
@@ -509,6 +509,28 @@ Vue.component('lnbits-notifications-btn', {
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
             self.isSubscribed = !!subscription
+
+            if (!self.isSubscribed) {
+              return
+            }
+
+            // retrieve server side subscriptions to this PushAPI subscription
+            LNbits.api
+              .request(
+                'GET',
+                '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
+                self.g.user.wallets[0].adminkey
+              )
+              .then(response => {
+                response.data.forEach(function(subscription) {
+                  self.subscribedUsers.push(subscription.user)
+                })
+
+                this.isSubscribed = self.subscribedUsers.includes(self.g.user.id)
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
           })
         })
         .catch(function (e) {

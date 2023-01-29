@@ -326,11 +326,11 @@ async def m012_create_push_notification_subscriptions_table(db):
         f"""
         CREATE TABLE IF NOT EXISTS webpush_subscriptions (
             endpoint TEXT NOT NULL,
-            user TEXT NOT NULL,
+            "user" TEXT NOT NULL,
             data TEXT NOT NULL,
             host TEXT NOT NULL,
             timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
-            PRIMARY KEY (endpoint, user)
+            PRIMARY KEY (endpoint, "user")
         );
     """
     )
