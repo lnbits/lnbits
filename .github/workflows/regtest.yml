@@ -12,15 +12,22 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Poetry ${{ matrix.poetry-version }}
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: ${{ matrix.poetry-version }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
+
+      - name: Install python dependencies
+        run: |
+          poetry install
+
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
@@ -29,14 +36,7 @@ jobs:
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
-      - name: Install python dependencies
-        run: |
-          poetry install
 
-  # LndRestWallet:
-  #   runs-on: ubuntu-latest
-  #   needs: [regtest]
-  #   steps:
       - name: Run LndRestWallet
         env:
           PYTHONUNBUFFERED: 1
@@ -50,10 +50,6 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  # LndWallet:
-  #   runs-on: ubuntu-latest
-  #   needs: [regtest]
-  #   steps:
       - name: Run LndWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -68,10 +64,6 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  # CoreLightningWallet:
-  #   runs-on: ubuntu-latest
-  #   needs: [regtest]
-  #   steps:
       - name: Run CoreLightningWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -83,10 +75,6 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-  # LNbitsWallet:
-  #   runs-on: ubuntu-latest
-  #   needs: [regtest]
-  #   steps:
       - name: Run LNbitsWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -99,10 +87,6 @@ jobs:
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
 
-#   EclairWallet:
-#     runs-on: ubuntu-latest
-#     needs: ["regtest"]
-#     steps:
       - name: Run EclairWallet tests
         env:
           PYTHONUNBUFFERED: 1
@@ -114,12 +98,3 @@ jobs:
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
-
-  # coverage:
-  #   runs-on: ubuntu-latest
-  #   needs: ["CoreLightningWallet", "LndWallet", "LndRestWallet", "EclairWallet"]
-  #   steps:
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
