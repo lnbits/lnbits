@@ -11,15 +11,15 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
@@ -55,15 +55,15 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
@@ -100,15 +100,15 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
@@ -142,15 +142,15 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
@@ -186,15 +186,15 @@ jobs:
         poetry-version: ["1.3.1"]
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Poetry ${{ matrix.poetry-version }}
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbitsdocker/lnbits-legend .
