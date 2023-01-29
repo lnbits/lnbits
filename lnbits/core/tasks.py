@@ -16,7 +16,7 @@ from lnbits.tasks import (
 from . import db
 from .crud import (
     get_balance_notify,
-    get_push_notification_subscriptions_for_wallet,
+    get_webpush_subscriptions_for_user,
     get_wallet,
 )
 from .models import Payment
@@ -172,7 +172,7 @@ async def send_payment_push_notification(payment: Payment):
     wallet = await get_wallet(payment.wallet_id)
 
     if wallet:
-        subscriptions = await get_push_notification_subscriptions_for_wallet(wallet.id)
+        subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
 
         amount = int(payment.amount / 1000)
         comment = payment.extra.get("comment")
@@ -183,12 +183,8 @@ async def send_payment_push_notification(payment: Payment):
         if payment.memo:
             body += f"\r\n{payment.memo}"
 
-        if comment:
-            body += f"\r\n{comment}"
-
         for subscription in subscriptions:
             url = (
                 f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )
             await send_push_notification(subscription, title, body, url)
-    return
