@@ -287,6 +287,11 @@ class PersistenceSettings(LNbitsSettings):
     lnbits_database_url: str = Field(default=None)
 
 
+class WebPushSettings(LNbitsSettings):
+    lnbits_webpush_pubkey: str = Field(default=None)
+    lnbits_webpush_privkey: str = Field(default=None)
+
+
 class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: List[str] = Field(
         default=[
@@ -322,6 +327,7 @@ class ReadOnlySettings(
     ExtensionsInstallSettings,
     SaaSSettings,
     PersistenceSettings,
+    WebPushSettings,
     SuperUserSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)

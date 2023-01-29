@@ -10,13 +10,11 @@ from typing import Dict, List, Optional
 from cryptography.hazmat.primitives import serialization
 from fastapi.exceptions import HTTPException
 from loguru import logger
-from py_vapid import Vapid
-from py_vapid.utils import b64urlencode
+
 from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
     delete_expired_invoices,
-    delete_push_notification_subscriptions,
     get_balance_checks,
     get_payments,
     get_standalone_payment,
@@ -214,39 +212,14 @@ async def invoice_callback_dispatcher(checking_id: str):
             await send_chan.put(payment)
 
 
-push_notification_key_file = os.path.join(
-    settings.lnbits_data_folder, "push_notification_vapid.{}"
-)
-
-
-def create_push_notification_keypair():
-    """
-    Generates VAPID key pair if not already exist
-    """
-    privkey = Vapid().from_file(push_notification_key_file.format("pem"))
-
-    if not os.path.exists(push_notification_key_file.format("pub")):
-        pubkey = privkey.public_key.public_bytes(
-            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
-        )
-        f = open(push_notification_key_file.format("pub"), "w")
-        f.write(b64urlencode(pubkey))
-        logger.info("✔️ Generated VAPID key pair for push notifications.")
-
-
 async def send_push_notification(subscription, title, body, url=""):
     try:
         logger.debug(f"sending push notification")
         webpush(
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
-            Vapid().from_file(push_notification_key_file.format("pem")),
+            settings.lnbits_webpush_privkey,
             {"aud": "", "sub": "mailto:devnull@example.com"},
         )
     except WebPushException as e:
-        """
-        This should clean up the database over time from stale endpoints
-        """
         logger.error(f"failed sending push notification: {str(e)}")
-        await delete_push_notification_subscriptions(subscription.endpoint)
-        return

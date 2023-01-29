@@ -68,7 +68,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
 
-    t.env.globals["PUSH_NOTIFICATION_PUBKEY"] = get_push_notification_pubkey()
+    t.env.globals["WEBPUSH_PUBKEY"] = settings.lnbits_webpush_pubkey
 
     return t
 

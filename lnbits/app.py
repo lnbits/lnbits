@@ -39,7 +39,7 @@ from .core import (
     core_app_extra,
     update_installed_extension_state,
 )
-from .core.services import check_admin_settings
+from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
@@ -53,7 +53,6 @@ from .middleware import (
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
-    create_push_notification_keypair,
     internal_invoice_listener,
     invoice_listener,
     webhook_handler,
@@ -333,6 +332,7 @@ def register_startup(app: FastAPI):
 
             # setup admin settings
             await check_admin_settings()
+            await check_webpush_settings()
 
             log_server_info()
 
