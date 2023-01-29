@@ -3,16 +3,12 @@ from urllib.parse import urlencode
 
 import httpx
 
-from ..auth import auth_header
-from ..data_types import Order, Ticker
-
-BASE_URL = "http://127.0.0.1:8443"
-API_KEY = "<API_KEY>"
-API_SECRET = "<API_SECRET>"
-API_PASSPHRASE = "<API_SECRET>"
+from lnbits.extensions.pegging.kollider_rest_client.auth import auth_header
+from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Ticker
 
 
 class KolliderRestClient(object):
+
     def __init__(
         self,
         base_url,
@@ -28,6 +24,15 @@ class KolliderRestClient(object):
         self.passphrase = passphrase
         self.jwt = jwt
         self.jwt_refresh = jwt_refresh
+
+        # Restoring Hedge State
+        r = self.get_user_account()
+        if 'error' in r:
+            raise Exception('Cant connect to Kollider. Check credentials')
+        self._symbols = {'BTCUSD.PERP', 'BTCEUR.PERP'}
+        self._balance = 0
+        self._hedged = {}
+        self.update_state()
 
     def __authorization_header(self, method, path, body=None):
         if self.secret is None and self.api_key is None and self.passphrase is None:
@@ -334,10 +339,42 @@ class KolliderRestClient(object):
             print(e)
 
 
-if "__main__" in __name__:
-    from ..data_types import Order, Ticker
+    def update_state(self):
+        r = self.get_wallet_balances()
+        self._balance = r["cash"]["SAT"]
+        # r = self.get_open_orders()
+        r = self.get_positions()
+        for s in r.keys():
+            if r[s]['side'] == 'Ask':
+                self._hedged[s] = r[s]["quantity"]
+            else:
+                pass
 
-    cli = KolliderRestClient(BASE_URL, API_KEY, API_SECRET, API_PASSPHRASE)
-    order = Order()
-    order.symbol = "BTCUSD.PERP"
-    resp = cli.place_order(order)
+    # Convenience properies and methods for hedge
+    @property
+    def balance(self):
+        return self._balance
+
+    @property
+    def hedged(self):
+        return self._hedged
+
+    def add_hedge(self, amount: float, symbol: str):
+        return self.add_position(amount, symbol, "Ask")
+
+    def remove_hedge(self, amount: float, symbol:str):
+        return self.add_position(amount, symbol, "Bid")
+
+    def add_position(self, amount: float, symbol:str, side: str):
+        t = self.get_ticker(symbol)
+        order = Order(
+            symbol=symbol,
+            quantity=amount,
+            leverage=100,
+            side=side,
+            price=(t.best_ask if side == "Bid" else t.best_bid),
+        )
+        r = self.place_order(order)
+        if "error" not in r:
+            print("Order placed")
+

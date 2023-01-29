@@ -126,7 +126,7 @@
           dense
           type="number"
           v-model.trim="formDialog.data.percent"
-          label="Parcentage (max 80%, 20% used as a float)"
+          label="Percentage (max 80%, 20% used as a float)"
           :max="80"
           :rules="[ val => val < 81 || 'Must be under 80']"
           placeholder="Percentage (under 80%)"

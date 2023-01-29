@@ -7,6 +7,9 @@ from .models import CreatePeggingData, Pegging
 
 
 async def create_pegging(wallet_id: str, data: CreatePeggingData) -> Pegging:
+    row = await db.fetchone("SELECT * FROM pegging.pegs WHERE wallet = ?", (wallet_id,))
+    assert not row, "Register only one hedge per wallet"
+
     peg_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -33,6 +36,11 @@ async def create_pegging(wallet_id: str, data: CreatePeggingData) -> Pegging:
 
 async def get_pegging(peg_id: str) -> Optional[Pegging]:
     row = await db.fetchone("SELECT * FROM pegging.pegs WHERE id = ?", (peg_id,))
+    return Pegging(**row) if row else None
+
+
+async def get_wallets(currency: str) -> Optional[Pegging]:
+    row = await db.fetchone("SELECT * FROM pegging.pegs WHERE currency = ?", (currency,))
     return Pegging(**row) if row else None
 
 
