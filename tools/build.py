@@ -1,10 +1,10 @@
 import glob
 import os
 import warnings
+from pathlib import Path
 from typing import List
 
-LNBITS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/lnbits"
-
+LNBITS_PATH = Path("lnbits").absolute()
 
 def get_js_vendored(prefer_minified: bool = False) -> List[str]:
     paths = get_vendored(".js", prefer_minified)

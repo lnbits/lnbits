@@ -6,7 +6,7 @@ authors = ["Alan Bits <alan@lnbits.com>"]
 
 [tool.poetry.build]
 generate-setup-file = false
-script = "build.py"
+script = "tools/build.py"
 
 [tool.poetry.dependencies]
 python = "^3.10 | ^3.9 | ^3.8 | ^3.7"
