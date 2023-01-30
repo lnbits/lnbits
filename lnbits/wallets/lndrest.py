@@ -77,6 +77,8 @@ class LndRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"

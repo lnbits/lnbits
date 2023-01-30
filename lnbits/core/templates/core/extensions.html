@@ -3,7 +3,20 @@
 <script src="/core/static/js/extensions.js"></script>
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md q-mb-md">
-  <div class="col-sm-3 col-xs-8 q-ml-auto">
+  <div class="col-sm-9 gt-sm col-xs-12 mt-lg">
+    <p class="text-h4">
+      Extensions
+      <q-btn
+        flat
+        color="primary"
+        type="a"
+        :href="['/install?usr=', user.id].join('')"
+        >Add Extensions</q-btn
+      >
+    </p>
+  </div>
+
+  <div class="col-sm-3 col-xs-12 q-ml-auto">
     <q-input v-model="searchTerm" label="Search extensions">
       <q-icon
         v-if="searchTerm !== ''"
@@ -22,18 +35,39 @@
     :key="extension.code"
   >
     <q-card>
-      <q-card-section>
+      <q-card-section style="min-height: 140px">
         <div class="row">
           <div class="col-3">
             <q-img
+              v-if="extension.tile"
               :src="extension.tile"
               spinner-color="white"
               style="max-width: 100%"
             ></q-img>
+            <div v-else>
+              <q-icon
+                class="gt-sm"
+                name="extension"
+                color="primary"
+                size="70px"
+              ></q-icon>
+              <q-icon
+                class="lt-md"
+                name="extension"
+                color="primary"
+                size="35px"
+              ></q-icon>
+            </div>
           </div>
           <div class="col-9 q-pl-sm">
             {% raw %}
-            <div class="text-h5 gt-sm q-mt-sm q-mb-xs">
+            <div class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm">
+              {{ extension.name }}
+            </div>
+            <div
+              class="text-h5 gt-sm q-mt-sm q-mb-xs lt-md"
+              style="min-height: 60px"
+            >
               {{ extension.name }}
             </div>
             <div
@@ -59,12 +93,14 @@
         <div>
           <q-rating
             class="gt-sm"
+            v-model="maxStars"
             disable
-            size="2em"
+            size="1.5em"
             :max="5"
             color="primary"
-          ></q-rating
-          ><q-rating
+          ></q-rating>
+          <q-rating
+            v-model="maxStars"
             class="lt-md"
             size="1.5em"
             :max="5"
