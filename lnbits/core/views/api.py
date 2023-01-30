@@ -5,7 +5,7 @@ import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -26,16 +26,24 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import StreamingResponse
+from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.models import Payment, Wallet
+from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     get_key_type,
     require_admin_key,
     require_invoice_key,
+)
+from lnbits.extension_manager import (
+    CreateExtension,
+    Extension,
+    ExtensionRelease,
+    InstallableExtension,
+    get_valid_extensions,
 )
 from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
@@ -45,10 +53,17 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, db
+from .. import core_app, core_app_extra, db
 from ..crud import (
+    add_installed_extension,
+    create_tinyurl,
+    delete_installed_extension,
+    delete_tinyurl,
+    get_dbversions,
     get_payments,
     get_standalone_payment,
+    get_tinyurl,
+    get_tinyurl_by_url,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
@@ -129,6 +144,7 @@ class CreateInvoiceData(BaseModel):
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
+    expiry: Optional[int] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -174,6 +190,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 memo=memo,
                 description_hash=description_hash,
                 unhashed_description=unhashed_description,
+                expiry=data.expiry,
                 extra=data.extra,
                 webhook=data.webhook,
                 internal=data.internal,
@@ -706,3 +723,174 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
+
+@core_app.post("/api/v1/extension")
+async def api_install_extension(
+    data: CreateExtension, user: User = Depends(check_admin)
+):
+
+    release = await InstallableExtension.get_extension_release(
+        data.ext_id, data.source_repo, data.archive
+    )
+    if not release:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
+        )
+    ext_info = InstallableExtension(
+        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
+    )
+
+    ext_info.download_archive()
+
+    try:
+        ext_info.extract_archive()
+
+        extension = Extension.from_installable_ext(ext_info)
+
+        db_version = (await get_dbversions()).get(data.ext_id, 0)
+        await migrate_extension_database(extension, db_version)
+
+        await add_installed_extension(ext_info)
+        if data.ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [data.ext_id]
+
+        # mount routes for the new version
+        core_app_extra.register_new_ext_routes(extension)
+
+        if extension.upgrade_hash:
+            ext_info.nofiy_upgrade()
+
+    except Exception as ex:
+        logger.warning(ex)
+        ext_info.clean_extension_files()
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Failed to install extension.",
+        )
+
+
+@core_app.delete("/api/v1/extension/{ext_id}")
+async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
+
+    installable_extensions: List[
+        InstallableExtension
+    ] = await InstallableExtension.get_installable_extensions()
+
+    extensions = [e for e in installable_extensions if e.id == ext_id]
+    if len(extensions) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+
+    # check that other extensions do not depend on this one
+    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
+        installed_ext = next(
+            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+        )
+        if installed_ext and ext_id in installed_ext.dependencies:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot uninstall. Extension '{installed_ext.name}' depends on this one.",
+            )
+
+    try:
+        if ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [ext_id]
+
+        for ext_info in extensions:
+            ext_info.clean_extension_files()
+            await delete_installed_extension(ext_id=ext_info.id)
+
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.get("/api/v1/extension/{ext_id}/releases")
+async def get_extension_releases(ext_id: str, user: User = Depends(check_admin)):
+    try:
+        extension_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
+
+        return extension_releases
+
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+############################TINYURL##################################
+
+
+@core_app.post("/api/v1/tinyurl")
+async def api_create_tinyurl(
+    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    tinyurls = await get_tinyurl_by_url(url)
+    try:
+        for tinyurl in tinyurls:
+            if tinyurl:
+                if tinyurl.wallet == wallet.wallet.inkey:
+                    return tinyurl
+        return await create_tinyurl(url, endless, wallet.wallet.inkey)
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
+        )
+
+
+@core_app.get("/api/v1/tinyurl/{tinyurl_id}")
+async def api_get_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                return tinyurl
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
+        )
+
+
+@core_app.delete("/api/v1/tinyurl/{tinyurl_id}")
+async def api_delete_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                await delete_tinyurl(tinyurl_id)
+                return {"deleted": True}
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
+        )
+
+
+@core_app.get("/t/{tinyurl_id}")
+async def api_tinyurl(tinyurl_id: str):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            response = RedirectResponse(url=tinyurl.url)
+            return response
+        else:
+            return
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
+        )

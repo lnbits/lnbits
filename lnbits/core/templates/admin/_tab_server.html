@@ -69,6 +69,61 @@
           <br />
         </div>
       </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p>Admin Extensions</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_admin_extensions"
+            multiple
+            hint="Extensions only user with admin privileges can use"
+            label="Admin extensions"
+            :options="g.extensions.map(e => e.name)"
+          ></q-select>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Disabled Extensions</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_disabled_extensions"
+            :options="g.extensions.map(e => e.name)"
+            multiple
+            hint="Disable extensions *amilk disabled by default as resource heavy"
+            label="Disable extensions"
+          ></q-select>
+          <br />
+        </div>
+      </div>
+
+      <div>
+        <p>Extension Sources</p>
+        <q-input
+          filled
+          v-model="formAddExtensionsManifest"
+          @keydown.enter="addExtensionsManifest"
+          type="text"
+          label="Source URL (only use the official LNbits extension source, and sources you can trust)"
+          hint="Repositories from where the extensions can be downloaded"
+        >
+          <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          {%raw%}
+          <q-chip
+            v-for="manifestUrl in formData.lnbits_extensions_manifests"
+            :key="manifestUrl"
+            removable
+            @remove="removeExtensionsManifest(manifestUrl)"
+            color="primary"
+            text-color="white"
+          >
+            {{ manifestUrl }}
+          </q-chip>
+          {%endraw%}
+        </div>
+        <br />
+      </div>
     </div>
   </q-card-section>
 </q-tab-panel>

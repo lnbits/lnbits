@@ -325,4 +325,8 @@ async def api_swap_status(swap_id: str):
 )
 async def api_boltz_config():
     client = create_boltz_client()
-    return {"minimal": client.limit_minimal, "maximal": client.limit_maximal}
+    return {
+        "minimal": client.limit_minimal,
+        "maximal": client.limit_maximal,
+        "fee_percentage": client.fee_percentage,
+    }

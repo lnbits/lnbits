@@ -1,83 +1,15 @@
 import glob
-import json
 import os
-from typing import Any, List, NamedTuple, Optional
+from typing import Any, List, Optional
 
 import jinja2
-import shortuuid
+import shortuuid  # type: ignore
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
-
-class Extension(NamedTuple):
-    code: str
-    is_valid: bool
-    is_admin_only: bool
-    name: Optional[str] = None
-    short_description: Optional[str] = None
-    tile: Optional[str] = None
-    contributors: Optional[List[str]] = None
-    hidden: bool = False
-    migration_module: Optional[str] = None
-    db_name: Optional[str] = None
-
-
-class ExtensionManager:
-    def __init__(self):
-        self._disabled: List[str] = settings.lnbits_disabled_extensions
-        self._admin_only: List[str] = settings.lnbits_admin_extensions
-        self._extension_folders: List[str] = [
-            x[1] for x in os.walk(os.path.join(settings.lnbits_path, "extensions"))
-        ][0]
-
-    @property
-    def extensions(self) -> List[Extension]:
-        output: List[Extension] = []
-
-        if "all" in self._disabled:
-            return output
-
-        for extension in [
-            ext for ext in self._extension_folders if ext not in self._disabled
-        ]:
-            try:
-                with open(
-                    os.path.join(
-                        settings.lnbits_path, "extensions", extension, "config.json"
-                    )
-                ) as json_file:
-                    config = json.load(json_file)
-                is_valid = True
-                is_admin_only = True if extension in self._admin_only else False
-            except Exception:
-                config = {}
-                is_valid = False
-                is_admin_only = False
-
-            output.append(
-                Extension(
-                    extension,
-                    is_valid,
-                    is_admin_only,
-                    config.get("name"),
-                    config.get("short_description"),
-                    config.get("tile"),
-                    config.get("contributors"),
-                    config.get("hidden") or False,
-                    config.get("migration_module"),
-                    config.get("db_name"),
-                )
-            )
-
-        return output
-
-
-def get_valid_extensions() -> List[Extension]:
-    return [
-        extension for extension in ExtensionManager().extensions if extension.is_valid
-    ]
+from .extension_manager import get_valid_extensions
 
 
 def urlsafe_short_hash() -> str:
@@ -176,7 +108,11 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
     t.env.globals["LNBITS_VERSION"] = settings.lnbits_commit
-    t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    t.env.globals["EXTENSIONS"] = [
+        e
+        for e in get_valid_extensions()
+        if e.code not in settings.lnbits_deactivated_extensions
+    ]
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 

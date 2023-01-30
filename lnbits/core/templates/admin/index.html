@@ -9,6 +9,7 @@
       :disabled="!checkChanges"
     >
       <q-tooltip v-if="checkChanges"> Save your changes </q-tooltip>
+
       <q-badge
         v-if="checkChanges"
         color="red"
@@ -17,6 +18,7 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
+
     <q-btn
       v-if="isSuperUser"
       label="Restart server"
@@ -26,6 +28,7 @@
       <q-tooltip v-if="needsRestart">
         Restart the server for changes to take effect
       </q-tooltip>
+
       <q-badge
         v-if="needsRestart"
         color="red"
@@ -34,6 +37,7 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
+
     <q-btn
       v-if="isSuperUser"
       label="Topup"
@@ -42,11 +46,13 @@
     >
       <q-tooltip> Add funds to a wallet. </q-tooltip>
     </q-btn>
+
     <!-- <q-btn
       label="Download Database Backup"
       flat
       @click="downloadBackup"
       ></q-btn> -->
+
     <q-btn
       flat
       v-if="isSuperUser"
@@ -59,6 +65,7 @@
     </q-btn>
   </div>
 </div>
+
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
@@ -70,16 +77,19 @@
               label="Funding"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="users"
               label="Users"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="server"
               label="Server"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="theme"
               label="Theme"
@@ -88,6 +98,7 @@
           </q-tabs>
         </div>
       </div>
+
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
@@ -98,10 +109,12 @@
     </q-card>
   </div>
 </div>
+
 <q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <q-form class="q-gutter-md">
       <p>TopUp a wallet</p>
+
       <div class="row">
         <div class="col-12">
           <q-input
@@ -112,8 +125,10 @@
             label="Wallet ID"
             hint="Use the wallet ID to topup any wallet"
           ></q-input>
+
           <br />
         </div>
+
         <div class="col-12">
           <q-input
             dense
@@ -124,14 +139,15 @@
           ></q-input>
         </div>
       </div>
+
       <div class="row q-mt-lg">
         <q-btn label="Topup" color="primary" @click="topupWallet"></q-btn>
+
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </q-form>
   </q-card>
 </q-dialog>
-
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
@@ -153,6 +169,7 @@
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
+        formAddExtensionsManifest: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -173,7 +190,7 @@
             }
           ],
           [
-            'CLightningWallet',
+            'CoreLightningWallet',
             {
               corelightning_rpc: {
                 value: null,
@@ -244,15 +261,15 @@
             }
           ],
           [
-            'LntxbotWallet',
+            'LnTipsWallet',
             {
-              lntxbot_api_endpoint: {
+              lntips_api_endpoint: {
                 value: null,
                 label: 'Endpoint'
               },
-              lntxbot_key: {
+              lntips_api_key: {
                 value: null,
-                label: 'Key'
+                label: 'API Key'
               }
             }
           ],
@@ -278,7 +295,7 @@
             {
               eclair_url: {
                 value: null,
-                label: 'Endpoint'
+                label: 'URL'
               },
               eclair_pass: {
                 value: null,
@@ -333,19 +350,6 @@
                 label: 'Token'
               }
             }
-          ],
-          [
-            'LnTipsWallet',
-            {
-              lntips_api_endpoint: {
-                value: null,
-                label: 'Endpoint'
-              },
-              lntips_api_key: {
-                value: null,
-                label: 'API Key'
-              }
-            }
           ]
         ])
       }
@@ -387,6 +391,18 @@
         this.formData.lnbits_allowed_users = allowed_users.filter(
           u => u !== user
         )
+      },
+      addExtensionsManifest() {
+        const addManifest = this.formAddExtensionsManifest.trim()
+        const manifests = this.formData.lnbits_extensions_manifests
+        if (addManifest && addManifest.length && !manifests.includes(addManifest)) {
+          this.formData.lnbits_extensions_manifests = [...manifests, addManifest]
+          this.formAddExtensionsManifest = ''
+        }
+      },
+      removeExtensionsManifest(manifest) {
+        const manifests = this.formData.lnbits_extensions_manifests
+        this.formData.lnbits_extensions_manifests = manifests.filter(m => m !== manifest)
       },
       restartServer() {
         LNbits.api

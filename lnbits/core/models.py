@@ -4,11 +4,10 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
-from ecdsa import SECP256k1, SigningKey
-from fastapi import Query
-from lnurl import encode as lnurl_encode
+from ecdsa import SECP256k1, SigningKey  # type: ignore
+from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
 from pydantic import BaseModel
 
@@ -213,3 +212,19 @@ class BalanceCheck(BaseModel):
     @classmethod
     def from_row(cls, row: Row):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
+
+
+class CoreAppExtra:
+    register_new_ext_routes: Callable
+
+
+class TinyURL(BaseModel):
+    id: str
+    url: str
+    endless: bool
+    wallet: str
+    time: float
+
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(**dict(row))

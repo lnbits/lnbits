@@ -4,18 +4,18 @@ from typing import Dict, List, Union
 
 # -------- cashu imports
 from cashu.core.base import (
-    BlindedSignature,
     CheckFeesRequest,
     CheckFeesResponse,
-    CheckRequest,
+    CheckSpendableRequest,
+    CheckSpendableResponse,
     GetMeltResponse,
     GetMintResponse,
     Invoice,
-    MeltRequest,
+    PostMeltRequest,
     PostMintRequest,
     PostMintResponse,
+    PostSplitRequest,
     PostSplitResponse,
-    SplitRequest,
 )
 from fastapi import Depends, Query
 from loguru import logger
@@ -279,7 +279,7 @@ async def mint(
 
 @cashu_ext.post("/api/v1/{cashu_id}/melt")
 async def melt_coins(
-    payload: MeltRequest, cashu_id: str = Query(None)
+    payload: PostMeltRequest, cashu_id: str = Query(None)
 ) -> GetMeltResponse:
     """Invalidates proofs and pays a Lightning invoice."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
@@ -288,7 +288,7 @@ async def melt_coins(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     proofs = payload.proofs
-    invoice = payload.invoice
+    invoice = payload.pr
 
     # !!!!!!! MAKE SURE THAT PROOFS ARE ONLY FROM THIS CASHU KEYSET ID
     # THIS IS NECESSARY BECAUSE THE CASHU BACKEND WILL ACCEPT ANY VALID
@@ -302,7 +302,7 @@ async def melt_coins(
     await ledger._set_proofs_pending(proofs)
 
     try:
-        ledger._verify_proofs(proofs)
+        await ledger._verify_proofs(proofs)
 
         total_provided = sum([p["amount"] for p in proofs])
         invoice_obj = bolt11.decode(invoice)
@@ -343,13 +343,13 @@ async def melt_coins(
             else:
                 logger.debug(f"Cashu: Payment failed for {invoice_obj.payment_hash}")
     except Exception as e:
-        logger.debug(f"Cashu: Exception for {invoice_obj.payment_hash}: {str(e)}")
+        logger.debug(f"Cashu: Exception: {str(e)}")
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Cashu: {str(e)}",
         )
     finally:
-        logger.debug(f"Cashu: Unset pending for {invoice_obj.payment_hash}")
+        logger.debug(f"Cashu: Unset pending")
         # delete proofs from pending list
         await ledger._unset_proofs_pending(proofs)
 
@@ -358,7 +358,7 @@ async def melt_coins(
 
 @cashu_ext.post("/api/v1/{cashu_id}/check")
 async def check_spendable(
-    payload: CheckRequest, cashu_id: str = Query(None)
+    payload: CheckSpendableRequest, cashu_id: str = Query(None)
 ) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
@@ -366,7 +366,8 @@ async def check_spendable(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
-    return await ledger.check_spendable(payload.proofs)
+    spendableList = await ledger.check_spendable(payload.proofs)
+    return CheckSpendableResponse(spendable=spendableList)
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/checkfees")
@@ -395,7 +396,7 @@ async def check_fees(
 
 @cashu_ext.post("/api/v1/{cashu_id}/split")
 async def split(
-    payload: SplitRequest, cashu_id: str = Query(None)
+    payload: PostSplitRequest, cashu_id: str = Query(None)
 ) -> PostSplitResponse:
     """
     Requetst a set of tokens with amount "total" to be split into two
