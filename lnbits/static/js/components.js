@@ -398,6 +398,15 @@ Vue.component('lnbits-notifications-btn', {
     toggleNotifications() {
       this.isSubscribed ? this.unsubscribe() : this.subscribe()
     },
+    saveUserSubscribed(user) {
+      this.$q.localStorage.set('lnbits.webpushSubscribed_' + user, true)
+    },
+    removeUserSubscribed(user) {
+      this.$q.localStorage.remove('lnbits.webpushSubscribed_' + user)
+    },
+    isUserSubscribed(user) {
+      return !!this.$q.localStorage.getItem('lnbits.webpushSubscribed_' + user)
+    },
     subscribe() {
       var self = this
 
@@ -424,7 +433,7 @@ Vue.component('lnbits-notifications-btn', {
             registration.pushManager
               .getSubscription()
               .then(function (subscription) {
-                if (subscription === null || !self.subscribedUsers.includes(self.g.user.id)) {
+                if (subscription === null || !self.isUserSubscribed(self.g.user.id)) {
                   const applicationServerKey = self.urlB64ToUint8Array(
                     self.pubkey
                   )
@@ -443,8 +452,8 @@ Vue.component('lnbits-notifications-btn', {
                           }
                         )
                         .then(function(response){
-                          self.subscribedUsers.push(response.data.user)
-                          self.updateSubscriptionStatus()
+                          self.saveUserSubscribed(response.data.user)
+                          self.isSubscribed = true
                         })
                         .catch(function (error) {
                           LNbits.utils.notifyApiError(error)
@@ -472,8 +481,8 @@ Vue.component('lnbits-notifications-btn', {
                   self.g.user.wallets[0].adminkey
                 )
                 .then(function() {
-                  self.subscribedUsers = []
-                  self.updateSubscriptionStatus()
+                  self.removeUserSubscribed(self.g.user.id)
+                  self.isSubscribed = false
                 })
                 .catch(function (error) {
                   LNbits.utils.notifyApiError(error)
@@ -508,29 +517,11 @@ Vue.component('lnbits-notifications-btn', {
       await navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
-            self.isSubscribed = !!subscription
-
-            if (!self.isSubscribed) {
-              return
+            if (!!subscription && self.isUserSubscribed(self.g.user.id)) {
+              self.isSubscribed = true
+            } else {
+              self.isSubscribed = false
             }
-
-            // retrieve server side subscriptions to this PushAPI subscription
-            LNbits.api
-              .request(
-                'GET',
-                '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
-                self.g.user.wallets[0].adminkey
-              )
-              .then(response => {
-                response.data.forEach(function(subscription) {
-                  self.subscribedUsers.push(subscription.user)
-                })
-
-                this.isSubscribed = self.subscribedUsers.includes(self.g.user.id)
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
           })
         })
         .catch(function (e) {

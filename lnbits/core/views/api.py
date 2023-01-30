@@ -1045,3 +1045,30 @@ async def api_tinyurl(tinyurl_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
+
+
+############################WEBPUSH##################################
+
+
+@core_app.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
+async def api_create_webpush_subscription(
+    request: Request,
+    data: CreateWebPushSubscription,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> WebPushSubscription:
+    subscription = json.loads(data.subscription)
+    endpoint = subscription["endpoint"]
+    host = urlparse(str(request.url)).netloc
+
+    new_subscription = await create_webpush_subscription(endpoint, wallet.wallet.user, data.subscription, host)
+    return new_subscription
+
+
+@core_app.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
+async def api_delete_webpush_subscriptions(
+    request: Request,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    endpoint = unquote(base64.b64decode(request.query_params.get("endpoint")))
+    await delete_webpush_subscriptions(endpoint, wallet.wallet.user)
+
