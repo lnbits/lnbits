@@ -2083,10 +2083,9 @@ page_container %}
         */
         const tokenJson = atob(token)
         const proofs = JSON.parse(tokenJson)
-        const data = await this.checkProofsSpendable(proofs)
+        const spendable = await this.checkProofsSpendable(proofs)
         let paid = false
-        // check response of form {"spendable" : [true, false, ...]}
-        if (data.spendable.includes(true)) {
+        if (spendable.includes(true)) {
           this.setTokenPaid(token)
           paid = true
         }
