@@ -89,7 +89,7 @@ from ..crud import (
     create_webpush_subscription,
     delete_installed_extension,
     delete_tinyurl,
-    delete_webpush_subscriptions,
+    delete_webpush_subscription,
     get_dbversions,
     get_payments,
     get_standalone_payment,
@@ -1065,10 +1065,10 @@ async def api_create_webpush_subscription(
 
 
 @core_app.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
-async def api_delete_webpush_subscriptions(
+async def api_delete_webpush_subscription(
     request: Request,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     endpoint = unquote(base64.b64decode(request.query_params.get("endpoint")))
-    await delete_webpush_subscriptions(endpoint, wallet.wallet.user)
+    await delete_webpush_subscription(endpoint, wallet.wallet.user)
 
