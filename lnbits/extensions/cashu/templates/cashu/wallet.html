@@ -1975,7 +1975,7 @@ page_container %}
           )
 
           // delete proofs from database if it is spent
-          let spentProofs = proofs.filter((p, pidx) => !data[pidx])
+          let spentProofs = proofs.filter((p, pidx) => !data.spendable[pidx])
           if (spentProofs.length) {
             this.deleteProofs(spentProofs)
 
@@ -1993,7 +1993,7 @@ page_container %}
             }
           }
 
-          return data
+          return data.spendable
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
