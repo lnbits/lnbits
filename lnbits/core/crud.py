@@ -952,16 +952,18 @@ async def delete_tinyurl(tinyurl_id: str):
 
 
 async def get_webpush_settings() -> Optional[WebPushSettings]:
-   row = await db.fetchone("SELECT * FROM webpush_settings")
-   if not row:
-       return None
-   vapid_keypair = json.loads(row["vapid_keypair"])
-   return WebPushSettings(**vapid_keypair)
+    row = await db.fetchone("SELECT * FROM webpush_settings")
+    if not row:
+        return None
+    vapid_keypair = json.loads(row["vapid_keypair"])
+    return WebPushSettings(**vapid_keypair)
 
 
 async def create_webpush_settings(webpush_settings: dict):
-    sql = f"INSERT INTO webpush_settings (vapid_keypair) VALUES (?)"
-    await db.execute(sql, (json.dumps(webpush_settings)))
+    await db.execute(
+        "INSERT INTO webpush_settings (vapid_keypair) VALUES (?)",
+        (json.dumps(webpush_settings),),
+    )
     return await get_webpush_settings()
 
 
@@ -973,16 +975,6 @@ async def get_webpush_subscription(
         (endpoint, user,),
     )
     return WebPushSubscription(**dict(row)) if row else None
-
-
-async def get_webpush_subscriptions_for_endpoint(
-    endpoint: str,
-) -> List[WebPushSubscription]:
-    rows = await db.fetchall(
-        "SELECT * FROM webpush_subscriptions WHERE endpoint = ?",
-        (endpoint,),
-    )
-    return [WebPushSubscription(**dict(row)) for row in rows]
 
 
 async def get_webpush_subscriptions_for_user(
@@ -1019,4 +1011,11 @@ async def delete_webpush_subscription(endpoint: str, user: str) -> None:
     await db.execute(
         "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
         (endpoint, user,)
+    )
+
+
+async def delete_webpush_subscriptions(endpoint: str) -> None:
+    await db.execute(
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ?",
+        (endpoint,)
     )

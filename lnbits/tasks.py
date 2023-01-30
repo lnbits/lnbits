@@ -1,13 +1,11 @@
 import asyncio
 import json
-import os
 import time
 import traceback
 import uuid
 from http import HTTPStatus
 from typing import Dict, List, Optional
 
-from cryptography.hazmat.primitives import serialization
 from fastapi.exceptions import HTTPException
 from loguru import logger
 
@@ -15,6 +13,7 @@ from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
     delete_expired_invoices,
+    delete_webpush_subscriptions,
     get_balance_checks,
     get_payments,
     get_standalone_payment,
@@ -214,7 +213,7 @@ async def invoice_callback_dispatcher(checking_id: str):
 
 async def send_push_notification(subscription, title, body, url=""):
     try:
-        logger.debug(f"sending push notification")
+        logger.debug("sending push notification")
         webpush(
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
@@ -222,4 +221,8 @@ async def send_push_notification(subscription, title, body, url=""):
             {"aud": "", "sub": "mailto:devnull@example.com"},
         )
     except WebPushException as e:
-        logger.error(f"failed sending push notification: {str(e)}")
+        if e.response.status_code == HTTPStatus.GONE:
+            # cleanup unsubscribed or expired push subscriptions
+            await delete_webpush_subscriptions(subscription.endpoint)
+        else:
+            logger.error(f"failed sending push notification: {e.response.text}")

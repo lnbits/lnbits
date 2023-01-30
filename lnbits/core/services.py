@@ -557,26 +557,26 @@ async def check_admin_settings():
 
 
 async def check_webpush_settings():
-        vapid = Vapid()
-        webpush_settings = await get_webpush_settings()
+    vapid = Vapid()
+    webpush_settings = await get_webpush_settings()
 
-        if not webpush_settings:
-            vapid.generate_keys()
+    if not webpush_settings:
+        vapid.generate_keys()
 
-            privkey = vapid.private_pem()
-            pubkey = vapid.public_key.public_bytes(
-                serialization.Encoding.X962,
-                serialization.PublicFormat.UncompressedPoint
-            )
+        privkey = vapid.private_pem()
+        pubkey = vapid.public_key.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint
+        )
 
-            webpush_settings = await create_webpush_settings({
-                'lnbits_webpush_privkey': privkey.decode("utf-8"),
-                'lnbits_webpush_pubkey': b64urlencode(pubkey)
-            })
-            logger.info(f"Initialized webpush settings with generated VAPID key pair.")
+        webpush_settings = await create_webpush_settings({
+            'lnbits_webpush_privkey': privkey.decode("utf-8"),
+            'lnbits_webpush_pubkey': b64urlencode(pubkey)
+        })
+        logger.info("Initialized webpush settings with generated VAPID key pair.")
 
-        setattr(settings, 'lnbits_webpush_privkey', vapid.from_pem(bytes(webpush_settings.lnbits_webpush_privkey, "utf-8")))
-        setattr(settings, 'lnbits_webpush_pubkey', webpush_settings.lnbits_webpush_pubkey)
+    setattr(settings, 'lnbits_webpush_privkey', vapid.from_pem(bytes(webpush_settings.lnbits_webpush_privkey, "utf-8")))
+    setattr(settings, 'lnbits_webpush_pubkey', webpush_settings.lnbits_webpush_pubkey)
 
 
 def update_cached_settings(sets_dict: dict):
