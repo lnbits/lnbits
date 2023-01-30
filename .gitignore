@@ -40,6 +40,4 @@ docker
 # Nix
 *result*
 
-# Ignore extensions (post installable extension PR)
-extensions/
 upgrades/

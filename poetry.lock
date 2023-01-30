@@ -195,14 +195,14 @@ websockets = ">=10"
 
 [[package]]
 name = "cashu"
-version = "0.8.2"
+version = "0.9.0"
 description = "Ecash wallet and mint for Bitcoin Lightning"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cashu-0.8.2-py3-none-any.whl", hash = "sha256:53893911763c424255bc7112aaba356e0a265e850d770338c70b2d282f67bf99"},
-    {file = "cashu-0.8.2.tar.gz", hash = "sha256:4cdd34a50d14960d2dcc6f5b6120f462688090dd084387860f7a59d16aa102ff"},
+    {file = "cashu-0.9.0-py3-none-any.whl", hash = "sha256:73dde901c8ea75d223f0cb37ea214028c17b798f9189b88968884c4a9c2e32a8"},
+    {file = "cashu-0.9.0.tar.gz", hash = "sha256:5d5087b3b80ecd8350ea2b098605581a746fc377c0bf9f1e3a97fa5c6d06d9f2"},
 ]
 
 [package.dependencies]
@@ -2112,4 +2112,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "bbbe4d958160a1e5c596c09af3c402964a7e68d9da1491e787649cee278c5eac"
+content-hash = "e3ac1dcb6e10cc8fd7ee1ae88698ca6d2d412efe353578d9f2134adc512a523b"
