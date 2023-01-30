@@ -40,4 +40,4 @@ docker
 *result*
 
 # fly.io
-*.toml
+fly.toml
