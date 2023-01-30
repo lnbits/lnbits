@@ -6,6 +6,7 @@ from typing import List
 
 LNBITS_PATH = Path("lnbits").absolute()
 
+
 def get_js_vendored(prefer_minified: bool = False) -> List[str]:
     paths = get_vendored(".js", prefer_minified)
 
