@@ -4,18 +4,18 @@ from typing import Dict, List, Union
 
 # -------- cashu imports
 from cashu.core.base import (
-    GetCheckFeesRequest,
+    CheckFeesRequest,
     CheckFeesResponse,
-    GetCheckSpendableRequest,
-    GetCheckSpendableResponse,
+    CheckSpendableRequest,
+    CheckSpendableResponse,
     GetMeltResponse,
     GetMintResponse,
     Invoice,
     PostMeltRequest,
     PostMintRequest,
     PostMintResponse,
-    PostSplitResponse,
     PostSplitRequest,
+    PostSplitResponse,
 )
 from fastapi import Depends, Query
 from loguru import logger
@@ -358,7 +358,7 @@ async def melt_coins(
 
 @cashu_ext.post("/api/v1/{cashu_id}/check")
 async def check_spendable(
-    payload: GetCheckSpendableRequest, cashu_id: str = Query(None)
+    payload: CheckSpendableRequest, cashu_id: str = Query(None)
 ) -> Dict[int, bool]:
     """Check whether a secret has been spent already or not."""
     cashu: Union[None, Cashu] = await get_cashu(cashu_id)
@@ -367,12 +367,12 @@ async def check_spendable(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
     spendableList = await ledger.check_spendable(payload.proofs)
-    return GetCheckSpendableResponse(spendable=spendableList)
+    return CheckSpendableResponse(spendable=spendableList)
 
 
 @cashu_ext.post("/api/v1/{cashu_id}/checkfees")
 async def check_fees(
-    payload: GetCheckFeesRequest, cashu_id: str = Query(None)
+    payload: CheckFeesRequest, cashu_id: str = Query(None)
 ) -> CheckFeesResponse:
     """
     Responds with the fees necessary to pay a Lightning invoice.
