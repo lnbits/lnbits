@@ -356,7 +356,7 @@ async def melt_coins(
     return GetMeltResponse(paid=status.paid, preimage=status.preimage)
 
 
-@cashu_ext.get("/api/v1/{cashu_id}/check")
+@cashu_ext.post("/api/v1/{cashu_id}/check")
 async def check_spendable(
     payload: GetCheckSpendableRequest, cashu_id: str = Query(None)
 ) -> Dict[int, bool]:
@@ -370,7 +370,7 @@ async def check_spendable(
     return GetCheckSpendableResponse(spendable=spendableList)
 
 
-@cashu_ext.get("/api/v1/{cashu_id}/checkfees")
+@cashu_ext.post("/api/v1/{cashu_id}/checkfees")
 async def check_fees(
     payload: GetCheckFeesRequest, cashu_id: str = Query(None)
 ) -> CheckFeesResponse:

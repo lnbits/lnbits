@@ -1957,13 +1957,18 @@ page_container %}
         checks with the mint whether an array of proofs is still
         spendable or already invalidated
         */
+        if (proofs.length == 0) {
+          return
+        }
         const payload = {
-          proofs: proofs.flat()
+          proofs: proofs.map(p => {
+            return {secret: p.secret}
+          })
         }
         console.log('#### payload', JSON.stringify(payload))
         try {
           const {data} = await LNbits.api.request(
-            'GET',
+            'POST',
             `/cashu/api/v1/${this.mintId}/check`,
             '',
             payload
@@ -2004,7 +2009,7 @@ page_container %}
         console.log('#### payload', JSON.stringify(payload))
         try {
           const {data} = await LNbits.api.request(
-            'GET',
+            'POST',
             `/cashu/api/v1/${this.mintId}/checkfees`,
             '',
             payload
