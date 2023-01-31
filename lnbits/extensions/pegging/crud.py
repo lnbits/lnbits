@@ -40,8 +40,8 @@ async def get_pegging(peg_id: str) -> Optional[Pegging]:
 
 
 async def get_wallets(currency: str) -> Optional[Pegging]:
-    row = await db.fetchone("SELECT * FROM pegging.pegs WHERE currency = ?", (currency,))
-    return Pegging(**row) if row else None
+    rows = await db.fetchall("SELECT * FROM pegging.pegs WHERE currency = ?", (currency,))
+    return [Pegging(**row) for row in rows if row]
 
 
 async def get_peggings(wallet_ids: Union[str, List[str]]) -> List[Pegging]:

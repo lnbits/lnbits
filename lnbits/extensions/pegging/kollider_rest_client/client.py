@@ -1,6 +1,6 @@
 import time
 from urllib.parse import urlencode
-
+from asyncio import Lock
 import httpx
 
 from lnbits.extensions.pegging.kollider_rest_client.auth import auth_header
@@ -8,6 +8,7 @@ from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Tic
 
 
 class KolliderRestClient(object):
+    lock = Lock()
 
     def __init__(
         self,
@@ -26,13 +27,14 @@ class KolliderRestClient(object):
         self.jwt_refresh = jwt_refresh
 
         # Restoring Hedge State
-        r = self.get_user_account()
-        if 'error' in r:
-            raise Exception('Cant connect to Kollider. Check credentials')
-        self._symbols = {'BTCUSD.PERP', 'BTCEUR.PERP'}
-        self._balance = 0
-        self._hedged = {}
-        self.update_state()
+        with self.lock:
+            r = self.get_user_account()
+            if 'error' in r:
+                raise Exception('Cant connect to Kollider. Check credentials')
+            self._symbols = {'BTCUSD.PERP', 'BTCEUR.PERP'}
+            self._balance = 0
+            self._hedged = {}
+            self.update_state()
 
     def __authorization_header(self, method, path, body=None):
         if self.secret is None and self.api_key is None and self.passphrase is None:
