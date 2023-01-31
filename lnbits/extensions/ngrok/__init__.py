@@ -12,4 +12,4 @@ def ngrok_renderer():
     return template_renderer(["lnbits/extensions/ngrok/templates"])
 
 
-from .views import *
+from .views import *  # noqa: F401,F403

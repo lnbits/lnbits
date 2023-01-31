@@ -13,7 +13,7 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from .crud import get_mempool_info
-from .number_prefixer import *
+from .number_prefixer import *  # noqa: F403
 
 
 def get_percent_difference(current, previous, precision=3):
@@ -110,7 +110,9 @@ async def get_mining_dashboard(gerty):
         )
         text.append(
             get_text_item_dict(
-                text="{0}hash".format(si_format(hashrateNow, 6, True, " ")),
+                text="{0}hash".format(
+                    si_format(hashrateNow, 6, True, " ")  # noqa: F405
+                ),
                 font_size=20,
                 gerty_type=gerty.type,
             )
@@ -320,7 +322,9 @@ async def get_mining_stat(stat_slug: str, gerty):
     text = []
     if stat_slug == "mining_current_hash_rate":
         stat = await api_get_mining_stat(stat_slug, gerty)
-        current = "{0}hash".format(si_format(stat["current"], 6, True, " "))
+        current = "{0}hash".format(
+            si_format(stat["current"], 6, True, " ")  # noqa: F405
+        )
         text.append(
             get_text_item_dict(
                 text="Current Mining Hashrate", font_size=20, gerty_type=gerty.type

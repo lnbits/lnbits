@@ -83,19 +83,18 @@ def url_for_vendored(abspath: str) -> str:
 def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
     base = g().base_url if external else ""
     url_params = "?"
-    for key in params:
-        url_params += f"{key}={params[key]}&"
+    for key, value in params.items():
+        url_params += f"{key}={value}&"
     url = f"{base}{endpoint}{url_params}"
     return url
 
 
-def template_renderer(additional_folders: List = []) -> Jinja2Templates:
+def template_renderer(additional_folders: List = None) -> Jinja2Templates:
 
-    t = Jinja2Templates(
-        loader=jinja2.FileSystemLoader(
-            ["lnbits/templates", "lnbits/core/templates", *additional_folders]
-        )
-    )
+    folders = ["lnbits/templates", "lnbits/core/templates"]
+    if additional_folders:
+        folders.extend(additional_folders)
+    t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
 
     if settings.lnbits_ad_space_enabled:
         t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
@@ -135,7 +134,7 @@ def get_current_extension_name() -> str:
     import os
 
     callee_filepath = inspect.stack()[1].filename
-    callee_dirname, callee_filename = os.path.split(callee_filepath)
+    callee_dirname, _ = os.path.split(callee_filepath)
 
     path = os.path.normpath(callee_dirname)
     extension_director_name = path.split(os.sep)[-1]

@@ -25,8 +25,8 @@ def example_renderer():
 
 
 from .tasks import wait_for_paid_invoices
-from .views import *
-from .views_api import *
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403
 
 
 def tpos_start():

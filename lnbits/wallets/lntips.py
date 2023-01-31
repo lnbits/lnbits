@@ -77,7 +77,6 @@ class LnTipsWallet(Wallet):
                 error_message = data["message"]
             except:
                 error_message = r.text
-                pass
 
             return InvoiceResponse(False, None, None, error_message)
 
@@ -103,7 +102,6 @@ class LnTipsWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()["details"]
@@ -165,7 +163,7 @@ class LnTipsWallet(Wallet):
                             except:
                                 continue
                             yield inv["payment_hash"]
-            except Exception as e:
+            except Exception:
                 pass
 
             # do not sleep if the connection was active for more than 10s

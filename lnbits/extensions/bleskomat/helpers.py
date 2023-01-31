@@ -128,7 +128,7 @@ def unshorten_lnurl_query(query: dict) -> Dict[str, str]:
         long_tag = rules["tags"][tag]
         new_query["tag"] = long_tag
         tag = long_tag
-    if not tag in rules["params"]:
+    if tag not in rules["params"]:
         raise LnurlValidationError(f'Unknown tag: "{tag}"')
     for key in query:
         if key in rules["params"][str(tag)]:
@@ -142,7 +142,7 @@ def unshorten_lnurl_query(query: dict) -> Dict[str, str]:
             # Unshorten general keys:
             short_key = key
             long_key = rules["query"][short_key]
-            if not long_key in new_query:
+            if long_key not in new_query:
                 if short_key in query:
                     new_query[long_key] = query[short_key]
                 else:

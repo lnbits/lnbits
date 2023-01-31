@@ -358,7 +358,7 @@ async def get_payments(
     args: List[Any] = []
     clause: List[str] = []
 
-    if since != None:
+    if since is not None:
         if db.type == POSTGRES:
             clause.append("time > to_timestamp(?)")
         elif db.type == COCKROACH:
@@ -702,7 +702,7 @@ async def delete_admin_settings():
 
 
 async def update_admin_settings(data: EditableSettings):
-    await db.execute(f"UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+    await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
 async def update_super_user(super_user: str):
@@ -711,7 +711,7 @@ async def update_super_user(super_user: str):
 
 
 async def create_admin_settings(super_user: str, new_settings: dict):
-    sql = f"INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
+    sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
     return await get_super_settings()
 
@@ -740,7 +740,7 @@ async def update_migration_version(conn, db_name, version):
 async def create_tinyurl(domain: str, endless: bool, wallet: str):
     tinyurl_id = shortuuid.uuid()[:8]
     await db.execute(
-        f"INSERT INTO tiny_url (id, url, endless, wallet) VALUES (?, ?, ?, ?)",
+        "INSERT INTO tiny_url (id, url, endless, wallet) VALUES (?, ?, ?, ?)",
         (
             tinyurl_id,
             domain,
@@ -753,7 +753,7 @@ async def create_tinyurl(domain: str, endless: bool, wallet: str):
 
 async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
     row = await db.fetchone(
-        f"SELECT * FROM tiny_url WHERE id = ?",
+        "SELECT * FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )
     return TinyURL.from_row(row) if row else None
@@ -761,14 +761,14 @@ async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
 
 async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
     rows = await db.fetchall(
-        f"SELECT * FROM tiny_url WHERE url = ?",
+        "SELECT * FROM tiny_url WHERE url = ?",
         (url,),
     )
     return [TinyURL.from_row(row) for row in rows]
 
 
 async def delete_tinyurl(tinyurl_id: str):
-    row = await db.execute(
-        f"DELETE FROM tiny_url WHERE id = ?",
+    await db.execute(
+        "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )

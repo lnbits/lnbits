@@ -32,5 +32,5 @@ def nostrnip5_start():
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
 
 
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

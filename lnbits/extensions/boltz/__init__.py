@@ -25,8 +25,8 @@ boltz_static_files = [
 ]
 
 from .tasks import check_for_pending_swaps, wait_for_paid_invoices
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403
 
 
 def boltz_start():

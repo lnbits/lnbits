@@ -3,7 +3,6 @@ import hmac
 from http import HTTPStatus
 from io import BytesIO
 
-import shortuuid
 from embit import bech32, compact
 from fastapi import HTTPException, Query, Request
 
@@ -17,7 +16,6 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
-    get_lnurlpayload,
     update_lnurldevicepayment,
 )
 
@@ -116,7 +114,7 @@ async def lnurl_v1_params(
             if switch[0] == gpio and switch[1] == profit and switch[2] == amount:
                 check = True
         if not check:
-            return {"status": "ERROR", "reason": f"Switch params wrong"}
+            return {"status": "ERROR", "reason": "Switch params wrong"}
 
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
@@ -226,7 +224,7 @@ async def lnurl_callback(
         )
     if device.device == "atm":
         if lnurldevicepayment.payload == lnurldevicepayment.payhash:
-            return {"status": "ERROR", "reason": f"Payment already claimed"}
+            return {"status": "ERROR", "reason": "Payment already claimed"}
         if not pr:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
@@ -240,7 +238,7 @@ async def lnurl_callback(
             if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
             if lnurldevicepayment.payhash != "payment_hash":
-                return {"status": "ERROR", "reason": f"Payment already claimed"}
+                return {"status": "ERROR", "reason": "Payment already claimed"}
 
             lnurldevicepayment_updated = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload

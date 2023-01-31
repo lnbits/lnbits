@@ -37,7 +37,7 @@ from .utils import check_balance, create_boltz_client, execute_reverse_swap
 
 @boltz_ext.get(
     "/api/v1/swap/mempool",
-    name=f"boltz.get /swap/mempool",
+    name="boltz.get /swap/mempool",
     summary="get a the mempool url",
     description="""
         This endpoint gets the URL from mempool.space
@@ -52,7 +52,7 @@ async def api_mempool_url():
 # NORMAL SWAP
 @boltz_ext.get(
     "/api/v1/swap",
-    name=f"boltz.get /swap",
+    name="boltz.get /swap",
     summary="get a list of swaps a swap",
     description="""
         This endpoint gets a list of normal swaps.
@@ -74,7 +74,7 @@ async def api_submarineswap(
 
 @boltz_ext.post(
     "/api/v1/swap/refund",
-    name=f"boltz.swap_refund",
+    name="boltz.swap_refund",
     summary="refund of a swap",
     description="""
         This endpoint attempts to refund a normal swaps, creates onchain tx and sets swap status ro refunded.
@@ -122,7 +122,7 @@ async def api_submarineswap_refund(swap_id: str):
 @boltz_ext.post(
     "/api/v1/swap",
     status_code=status.HTTP_201_CREATED,
-    name=f"boltz.post /swap",
+    name="boltz.post /swap",
     summary="create a submarine swap",
     description="""
         This endpoint creates a submarine swap
@@ -164,7 +164,7 @@ async def api_submarineswap_create(data: CreateSubmarineSwap):
 # REVERSE SWAP
 @boltz_ext.get(
     "/api/v1/swap/reverse",
-    name=f"boltz.get /swap/reverse",
+    name="boltz.get /swap/reverse",
     summary="get a list of reverse swaps",
     description="""
         This endpoint gets a list of reverse swaps.
@@ -187,7 +187,7 @@ async def api_reverse_submarineswap(
 @boltz_ext.post(
     "/api/v1/swap/reverse",
     status_code=status.HTTP_201_CREATED,
-    name=f"boltz.post /swap/reverse",
+    name="boltz.post /swap/reverse",
     summary="create a reverse submarine swap",
     description="""
         This endpoint creates a reverse submarine swap
@@ -221,7 +221,7 @@ async def api_reverse_submarineswap_create(
 
 @boltz_ext.get(
     "/api/v1/swap/reverse/auto",
-    name=f"boltz.get /swap/reverse/auto",
+    name="boltz.get /swap/reverse/auto",
     summary="get a list of auto reverse swaps",
     description="""
         This endpoint gets a list of auto reverse swaps.
@@ -244,7 +244,7 @@ async def api_auto_reverse_submarineswap(
 @boltz_ext.post(
     "/api/v1/swap/reverse/auto",
     status_code=status.HTTP_201_CREATED,
-    name=f"boltz.post /swap/reverse/auto",
+    name="boltz.post /swap/reverse/auto",
     summary="create a auto reverse submarine swap",
     description="""
         This endpoint creates a auto reverse submarine swap
@@ -273,7 +273,7 @@ async def api_auto_reverse_submarineswap_create(data: CreateAutoReverseSubmarine
 
 @boltz_ext.delete(
     "/api/v1/swap/reverse/auto/{swap_id}",
-    name=f"boltz.delete /swap/reverse/auto",
+    name="boltz.delete /swap/reverse/auto",
     summary="delete a auto reverse submarine swap",
     description="""
         This endpoint deletes a auto reverse submarine swap
@@ -288,7 +288,7 @@ async def api_auto_reverse_submarineswap_delete(swap_id: str):
 
 @boltz_ext.post(
     "/api/v1/swap/status",
-    name=f"boltz.swap_status",
+    name="boltz.swap_status",
     summary="shows the status of a swap",
     description="""
         This endpoint attempts to get the status of the swap.
@@ -315,7 +315,7 @@ async def api_swap_status(swap_id: str):
 
 @boltz_ext.get(
     "/api/v1/swap/boltz",
-    name=f"boltz.get /swap/boltz",
+    name="boltz.get /swap/boltz",
     summary="get a boltz configuration",
     description="""
         This endpoint gets configuration for boltz. (limits, fees...)

@@ -97,7 +97,7 @@ class SparkWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = "lbs{}".format(random.random())
+        label = f"lbs{random.random()}"
         checking_id = label
 
         try:
@@ -161,7 +161,6 @@ class SparkWallet(Wallet):
                     # this may result in an error if it was paid previously
                     # our database won't allow the same payment_hash to be added twice
                     # this is good
-                    pass
 
         fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
         preimage = r["payment_preimage"]

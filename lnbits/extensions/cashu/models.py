@@ -1,5 +1,5 @@
 from sqlite3 import Row
-from typing import List, Union
+from typing import List
 
 from fastapi import Query
 from pydantic import BaseModel

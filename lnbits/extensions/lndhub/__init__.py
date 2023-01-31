@@ -21,7 +21,7 @@ def lndhub_renderer():
     return template_renderer(["lnbits/extensions/lndhub/templates"])
 
 
-from .decorators import *  # noqa
-from .utils import *  # noqa
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .decorators import *  # noqa: F401,F403
+from .utils import *  # noqa: F401,F403
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

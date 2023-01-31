@@ -3,7 +3,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Callable, Dict, List
+from typing import Dict
 
 from fastapi.exceptions import HTTPException
 from loguru import logger

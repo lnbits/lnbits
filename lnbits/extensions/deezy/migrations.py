@@ -15,7 +15,7 @@ async def m001_initial(db):
         """
     )
     await db.execute(
-        f"""
+        """
         CREATE TABLE deezy.btc_to_ln_swap (
             id TEXT PRIMARY KEY,
             ln_address TEXT NOT NULL,
@@ -28,7 +28,7 @@ async def m001_initial(db):
         """
     )
     await db.execute(
-        f"""
+        """
         CREATE TABLE deezy.token (
             deezy_token TEXT NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

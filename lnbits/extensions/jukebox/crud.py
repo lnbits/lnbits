@@ -58,7 +58,7 @@ async def get_jukebox_by_user(user: str) -> Optional[Jukebox]:
 async def get_jukeboxs(user: str) -> List[Jukebox]:
     rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
     for row in rows:
-        if row.sp_playlists == None:
+        if row.sp_playlists is None:
             await delete_jukebox(row.id)
     rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
 

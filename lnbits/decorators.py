@@ -245,7 +245,7 @@ async def check_user_exists(usr: UUID4) -> User:
 
 async def check_admin(usr: UUID4) -> User:
     user = await check_user_exists(usr)
-    if user.id != settings.super_user and not user.id in settings.lnbits_admin_users:
+    if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="User not authorized. No admin privileges.",

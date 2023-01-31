@@ -27,7 +27,7 @@ async def credit_wallet(wallet_id: str, amount: int):
 def get_random_string(N=10):
     return "".join(
         random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(10)
+        for _ in range(N)
     )
 
 

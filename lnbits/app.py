@@ -95,7 +95,7 @@ async def check_funding_source() -> None:
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
-        logger.debug(f"SIGINT received, terminating LNbits.")
+        logger.debug("SIGINT received, terminating LNbits.")
         sys.exit(1)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -388,7 +388,7 @@ class Formatter:
             self.fmt: str = self.minimal_fmt
 
     def format(self, record):
-        function = "{function}".format(**record)
+        function = "{function}".format(**record)  # pylint: disable=C0209
         if function == "emit":  # uvicorn logs
             return self.minimal_fmt
         return self.fmt

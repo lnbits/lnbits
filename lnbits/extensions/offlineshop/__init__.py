@@ -21,6 +21,6 @@ def offlineshop_renderer():
     return template_renderer(["lnbits/extensions/offlineshop/templates"])
 
 
-from .lnurl import *  # noqa
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .lnurl import *  # noqa: F401,F403
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

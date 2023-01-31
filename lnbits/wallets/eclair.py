@@ -11,11 +11,6 @@ from loguru import logger
 # TODO: https://github.com/lnbits/lnbits/issues/764
 # mypy https://github.com/aaugustin/websockets/issues/940
 from websockets import connect  # type: ignore
-from websockets.exceptions import (
-    ConnectionClosed,
-    ConnectionClosedError,
-    ConnectionClosedOK,
-)
 
 from lnbits.settings import settings
 
@@ -98,7 +93,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
 
             return InvoiceResponse(False, None, None, error_message)
 
@@ -120,7 +114,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
@@ -147,7 +140,6 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(None, checking_id, None, preimage, error_message)
 
         statuses = {
