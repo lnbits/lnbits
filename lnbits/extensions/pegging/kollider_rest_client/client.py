@@ -1,14 +1,13 @@
 import time
 from urllib.parse import urlencode
-from asyncio import Lock
 import httpx
 
+from loguru import logger
 from lnbits.extensions.pegging.kollider_rest_client.auth import auth_header
 from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Ticker
 
 
 class KolliderRestClient(object):
-    lock = Lock()
 
     def __init__(
         self,
@@ -26,15 +25,6 @@ class KolliderRestClient(object):
         self.jwt = jwt
         self.jwt_refresh = jwt_refresh
 
-        # Restoring Hedge State
-        with self.lock:
-            r = self.get_user_account()
-            if 'error' in r:
-                raise Exception('Cant connect to Kollider. Check credentials')
-            self._symbols = {'BTCUSD.PERP', 'BTCEUR.PERP'}
-            self._balance = 0
-            self._hedged = {}
-            self.update_state()
 
     def __authorization_header(self, method, path, body=None):
         if self.secret is None and self.api_key is None and self.passphrase is None:
@@ -69,23 +59,6 @@ class KolliderRestClient(object):
         except Exception as e:
             print(e)
 
-    def get_orderbook(self, symbol, level="Level2"):
-        """
-        Returns the orderbook for a specific symbol. NOTE: Don't long poll this. Use the
-        Websockets for any real time state keeping of the Orderbook.
-        params:
-                symbol: <Product Symbol>
-                level: Level2 | Level3
-        """
-        endpoint = self.base_url + "/market/orderbook?symbol={}&level={}".format(
-            symbol, level
-        )
-        try:
-            resp = httpx.get(endpoint)
-            return resp.json()
-        except Exception as e:
-            print(e)
-
     def get_ticker(self, symbol) -> Ticker:
         """
         Returns the ticker for a given symbol
@@ -99,23 +72,6 @@ class KolliderRestClient(object):
         except Exception as e:
             print(e)
 
-    def get_average_funding_rates(self, start=None, end=None):
-        """
-        Returns current funding rates for every perp.
-        """
-        endpoint = self.base_url + "/market/average_funding_rates"
-        if start is None:
-            start = int(time.time() * 1000) - 60 * 60
-        if end is None:
-            end = int(time.time() * 1000)
-        if end < start:
-            raise Exception
-        endpoint += "?start={}&end={}".format(start, end)
-        try:
-            resp = httpx.get(endpoint)
-            return resp.json()
-        except Exception as e:
-            print(e)
 
     ### PRIVATE API ENDPOINTS
 
@@ -339,44 +295,3 @@ class KolliderRestClient(object):
             return resp.json()
         except Exception as e:
             print(e)
-
-
-    def update_state(self):
-        r = self.get_wallet_balances()
-        self._balance = r["cash"]["SAT"]
-        # r = self.get_open_orders()
-        r = self.get_positions()
-        for s in r.keys():
-            if r[s]['side'] == 'Ask':
-                self._hedged[s] = r[s]["quantity"]
-            else:
-                pass
-
-    # Convenience properies and methods for hedge
-    @property
-    def balance(self):
-        return self._balance
-
-    @property
-    def hedged(self):
-        return self._hedged
-
-    def add_hedge(self, amount: float, symbol: str):
-        return self.add_position(amount, symbol, "Ask")
-
-    def remove_hedge(self, amount: float, symbol:str):
-        return self.add_position(amount, symbol, "Bid")
-
-    def add_position(self, amount: float, symbol:str, side: str):
-        t = self.get_ticker(symbol)
-        order = Order(
-            symbol=symbol,
-            quantity=amount,
-            leverage=100,
-            side=side,
-            price=(t.best_ask if side == "Bid" else t.best_bid),
-        )
-        r = self.place_order(order)
-        if "error" not in r:
-            print("Order placed")
-

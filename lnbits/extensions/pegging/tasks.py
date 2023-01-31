@@ -8,7 +8,7 @@ from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_pegging, get_wallets, get_peggings
-from .kollider_rest_client import KolliderRestClient
+from .kollider_rest_client import KolliderRestClient, Order
 from .models import Pegging
 
 log = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ async def wait_for_paid_invoices():
     while True:
         payment = await invoice_queue.get()
 
-        hedges = await get_peggings(wallet_id=payment.wallet_id)
+        hedges = await get_peggings(wallet_ids=payment.wallet_id)
         if not hedges:
             # no registered hedge settings
             continue
@@ -50,15 +50,44 @@ async def on_paid_invoice(payment: Payment) -> None:
     }
 
     await websocketUpdater(pegging_id, str(strippedPayment))
-    await update_position(pegging, payment.amount)
+    await update_position(pegging, payment.amount, "Ask")
 
 
 
-async def update_position(pegging: Pegging, delta_amount: int) -> None:
+async def update_position(pegging: Pegging, delta_amount: int, side: str) -> None:
     client = KolliderRestClient(pegging.base_url, pegging.api_key, pegging.api_secret, pegging.api_passphrase)
+    """
+    r = client.get_wallet_balances()
+    logger.debug(f"{r}")
+    r = client.get_positions()
+    logger.debug(f"{r}")
+    """
+    symbol = f"BTC{pegging.currency}.PERP"
+    t = client.get_ticker(symbol)
+    if not t:
+        logger.error(f"Couldn't obtain ticker {symbol} from Kollider")
+        return
+    logger.debug(f"ticker {t}")
 
+    price = t.best_ask if side == "Bid" else t.best_bid
+    fiat_amount = price*delta_amount/(1_000*100_000_000)
 
+    if fiat_amount == 0:
+        logger.error(f"Order amount {fiat_amount}. Too few sats?")
+        return
 
+    order = Order(
+        symbol=symbol,
+        quantity=fiat_amount,
+        leverage=100,
+        side=side,
+        price=price,
+    )
+    r = client.place_order(order)
+    if "error" in r:
+        logger.error(f"Couldn't place order for wallet {pegging.wallet}")
+    else:
+        logger.debug(f"{pegging.wallet} order placed for {fiat_amount} {symbol}")
 
 """
 

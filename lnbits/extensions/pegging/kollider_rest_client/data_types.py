@@ -1,5 +1,4 @@
-import uuid
-from typing import Mapping, NamedTuple
+from loguru import logger
 
 
 class Order(object):
@@ -45,9 +44,9 @@ class Order(object):
 
 
 class Ticker(object):
-    best_ask: int = 1
-    best_bid: int = 1
-    last_price: int = 0
+    best_ask: float = 1.
+    best_bid: float = 1.
+    last_price: float = 0.
     last_quantity: int = 0
     last_side: str = "Bid"
     symbol: str = "BTCEUR.PERP"
@@ -55,12 +54,12 @@ class Ticker(object):
     def __init__(
         self, best_ask, best_bid, last_price, last_quantity, last_side, symbol
     ):
-        self.symbol = symbol
-        self.best_ask = int(best_ask)
-        self.best_bid = int(best_bid)
-        self.last_price = int(last_price)
+        self.best_ask = float(best_ask)
+        self.best_bid = float(best_bid)
+        self.last_price = float(last_price)
         self.last_quantity = int(last_quantity)
         self.last_side = last_side
+        self.symbol = symbol
 
     @classmethod
     def from_dict(cls, source: dict):
@@ -73,9 +72,5 @@ class Ticker(object):
                 source["last_side"],
                 source["symbol"],
             )
-        except:
-            print("Error whire reading Ticker object")
-
-
-if __name__ in "__main__":
-    None
+        except Exception as e:
+            logger.error(f"{e} while reading Ticker object")
