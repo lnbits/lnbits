@@ -4,11 +4,14 @@ import httpx
 
 from loguru import logger
 from lnbits.extensions.pegging.kollider_rest_client.auth import auth_header
-from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Ticker, Positions
+from lnbits.extensions.pegging.kollider_rest_client.data_types import (
+    Order,
+    Ticker,
+    Positions,
+)
 
 
 class KolliderRestClient(object):
-
     def __init__(
         self,
         base_url,
@@ -24,7 +27,6 @@ class KolliderRestClient(object):
         self.passphrase = passphrase
         self.jwt = jwt
         self.jwt_refresh = jwt_refresh
-
 
     def __authorization_header(self, method, path, body=None):
         if self.secret is None and self.api_key is None and self.passphrase is None:
@@ -71,7 +73,6 @@ class KolliderRestClient(object):
             return Ticker.from_dict(resp.json())
         except Exception as e:
             logger.debug(e)
-
 
     ### PRIVATE API ENDPOINTS
 

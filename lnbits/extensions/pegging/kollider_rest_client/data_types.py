@@ -140,15 +140,17 @@ class Positions(object):
 
 
 class Ticker(object):
-    best_ask: float = 1.
-    best_bid: float = 1.
-    last_price: float = 0.
+    best_ask: float = 1.0
+    best_bid: float = 1.0
+    last_price: float = 0.0
     last_quantity: int = 0
     last_side: str = "Bid"
     symbol: str = "BTCEUR.PERP"
 
-    def __init__(self, best_ask, best_bid, last_price, last_quantity, last_side, symbol):
-        self.symbol= symbol
+    def __init__(
+        self, best_ask, best_bid, last_price, last_quantity, last_side, symbol
+    ):
+        self.symbol = symbol
         self.best_ask = float(best_ask)
         self.best_bid = float(best_bid)
         self.last_price = float(last_price)

@@ -40,7 +40,9 @@ async def get_pegging(peg_id: Union[str, List[str]]) -> Optional[Pegging]:
 
 
 async def get_pegged_currencies(currency: str) -> List[Pegging]:
-    rows = await db.fetchall("SELECT * FROM pegging.pegs WHERE currency = ?", (currency,))
+    rows = await db.fetchall(
+        "SELECT * FROM pegging.pegs WHERE currency = ?", (currency,)
+    )
     return [Pegging(**row) for row in rows]
 
 
