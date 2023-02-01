@@ -4,7 +4,7 @@ import httpx
 
 from loguru import logger
 from lnbits.extensions.pegging.kollider_rest_client.auth import auth_header
-from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Ticker
+from lnbits.extensions.pegging.kollider_rest_client.data_types import Order, Ticker, Positions
 
 
 class KolliderRestClient(object):
@@ -219,7 +219,7 @@ class KolliderRestClient(object):
         try:
             headers = self.__authorization_header("GET", route, None)
             resp = httpx.get(endpoint, headers=headers)
-            return resp.json()
+            return Positions.from_dict(resp.json())
         except Exception as e:
             print(e)
 

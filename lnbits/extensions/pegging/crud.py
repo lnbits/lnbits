@@ -34,14 +34,14 @@ async def create_pegging(wallet_id: str, data: CreatePeggingData) -> Pegging:
     return pegging
 
 
-async def get_pegging(peg_id: str) -> Optional[Pegging]:
+async def get_pegging(peg_id: Union[str, List[str]]) -> Optional[Pegging]:
     row = await db.fetchone("SELECT * FROM pegging.pegs WHERE id = ?", (peg_id,))
     return Pegging(**row) if row else None
 
 
-async def get_wallets(currency: str) -> Optional[Pegging]:
+async def get_pegged_currencies(currency: str) -> List[Pegging]:
     rows = await db.fetchall("SELECT * FROM pegging.pegs WHERE currency = ?", (currency,))
-    return [Pegging(**row) for row in rows if row]
+    return [Pegging(**row) for row in rows]
 
 
 async def get_peggings(wallet_ids: Union[str, List[str]]) -> List[Pegging]:
