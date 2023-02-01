@@ -89,7 +89,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def template_renderer(additional_folders: List = None) -> Jinja2Templates:
+def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
 
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
