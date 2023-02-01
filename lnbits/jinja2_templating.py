@@ -1,10 +1,9 @@
 import typing
 
+from jinja2 import BaseLoader, Environment, pass_context
 from starlette import templating
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
-
-from jinja2 import BaseLoader, Environment, pass_context
 
 
 class Jinja2Templates(templating.Jinja2Templates):

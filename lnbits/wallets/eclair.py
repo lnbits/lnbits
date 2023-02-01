@@ -7,7 +7,6 @@ from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
-
 from websockets.client import connect
 
 from lnbits.settings import settings
@@ -71,7 +70,11 @@ class EclairWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        data: Dict = {"amountMsat": amount * 1000, "description_hash": b"", "description": memo}
+        data: Dict = {
+            "amountMsat": amount * 1000,
+            "description_hash": b"",
+            "description": memo,
+        }
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
 

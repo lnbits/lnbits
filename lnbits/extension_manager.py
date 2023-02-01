@@ -1,15 +1,15 @@
-import httpx
 import hashlib
 import json
 import os
 import shutil
 import sys
 import zipfile
-from urllib import request
 from http import HTTPStatus
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Any
+from typing import Any, List, NamedTuple, Optional, Tuple
+from urllib import request
 
+import httpx
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -431,7 +431,10 @@ class InstallableExtension(BaseModel):
                 name=config.name,
                 short_description=config.short_description,
                 stars=int(repo.stargazers_count),
-                icon=icon_to_github_url(f"{github_release.organisation}/{github_release.repository}", config.tile),
+                icon=icon_to_github_url(
+                    f"{github_release.organisation}/{github_release.repository}",
+                    config.tile,
+                ),
                 latest_release=ExtensionRelease.from_github_release(
                     repo.html_url, latest_release
                 ),

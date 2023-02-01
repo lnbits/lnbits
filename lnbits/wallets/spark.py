@@ -173,10 +173,11 @@ class SparkWallet(Wallet):
                 # this is good
                 fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
                 preimage = r["payment_preimage"]
-                return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
+                return PaymentResponse(
+                    True, r["payment_hash"], fee_msat, preimage, None
+                )
             else:
                 return PaymentResponse(False, None, None, None, str(exc))
-
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

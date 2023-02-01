@@ -9,7 +9,6 @@ import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
 from ecdsa import SECP256k1, VerifyingKey
 from ecdsa.util import sigdecode_string
-
 from loguru import logger
 
 
@@ -264,7 +263,13 @@ def lnencode(addr, privkey):
 
 class LnAddr:
     def __init__(
-        self, paymenthash=None, amount=None, currency="bc", tags=None, date=None, fallback=None
+        self,
+        paymenthash=None,
+        amount=None,
+        currency="bc",
+        tags=None,
+        date=None,
+        fallback=None,
     ):
         self.date = int(time.time()) if not date else int(date)
         self.tags = [] if not tags else tags
