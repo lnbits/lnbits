@@ -20,7 +20,6 @@ jobs:
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
-        run: |
-          poetry install
+        run: npm install pyright
       - name: Run tests
-        run: poetry run pyright
+        run: make pyright

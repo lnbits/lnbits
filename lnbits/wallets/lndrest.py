@@ -76,6 +76,7 @@ class LndRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
         if kwargs.get("expiry"):

@@ -21,9 +21,6 @@ flake8:
 mypy:
 	poetry run mypy
 
-pyright:
-	poetry run pyright
-
 isort:
 	poetry run isort .
 
