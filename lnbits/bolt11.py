@@ -69,12 +69,11 @@ def decode(pr: str) -> Invoice:
 
     # pull out date
     date_bin = data.read(35)
-    assert date_bin
+    # assert date_bin
     invoice.date = date_bin.uint
 
     while data.pos != data.len:
         tag, tagdata, data = _pull_tagged(data)
-        assert tagdata
         data_length = len(tagdata) / 5
 
         if tag == "d":
@@ -95,15 +94,15 @@ def decode(pr: str) -> Invoice:
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
                 pubkey = s.read(264)
-                assert pubkey
+                # assert pubkey
                 short_channel_id = s.read(64)
-                assert short_channel_id
+                # assert short_channel_id
                 base_fee_msat = s.read(32)
-                assert base_fee_msat
+                # assert base_fee_msat
                 ppm_fee = s.read(32)
-                assert ppm_fee
+                # assert ppm_fee
                 cltv = s.read(16)
-                assert cltv
+                # assert cltv
                 route = Route(
                     pubkey=pubkey.tobytes().hex(),
                     short_channel_id=_readable_scid(short_channel_id.intbe),
@@ -380,6 +379,6 @@ def bitarray_to_u5(barr):
     s = bitstring.ConstBitStream(barr)
     while s.pos != s.len:
         bstream = s.read(5)
-        assert bstream
-        ret.append(bstream.uint)
+        if bstream:
+            ret.append(bstream.uint)
     return ret

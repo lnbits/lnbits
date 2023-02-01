@@ -1,13 +1,14 @@
 import typing
 
 from jinja2 import BaseLoader, Environment, pass_context
-from starlette import templating
+from starlette.templating import Jinja2Templates as SuperJinja2Templates
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
 
 
-class Jinja2Templates(templating.Jinja2Templates):
+class Jinja2Templates(SuperJinja2Templates):
     def __init__(self, loader: BaseLoader) -> None:
+        super().__init__("")
         self.env = self.get_environment(loader)
 
     def get_environment(self, loader: BaseLoader) -> Environment:
