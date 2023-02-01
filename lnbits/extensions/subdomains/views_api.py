@@ -128,7 +128,7 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
         record_type=data.record_type,
         ip=data.ip,
     )
-    if cf_response["success"] == True:
+    if cf_response["success"] is True:
         await cloudflare_deletesubdomain(
             domain=domain, domain_id=cf_response["result"]["id"]
         )

@@ -14,7 +14,6 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.requestvars import g
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
@@ -22,7 +21,6 @@ from lnbits.settings import (
     readonly_variables,
     send_admin_user_to_saas,
     settings,
-    transient_variables,
 )
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -214,22 +212,22 @@ async def pay_invoice(
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id and payment.ok != False:
+        if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
                 await update_payment_details(
                     checking_id=temp_id,
-                    pending=payment.ok != True,
+                    pending=payment.ok is not True,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
                 logger.debug(f"payment successful {payment.checking_id}")
-        elif payment.checking_id is None and payment.ok == False:
+        elif payment.checking_id is None and payment.ok is False:
             # payment failed
-            logger.warning(f"backend sent payment failure")
+            logger.warning("backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_wallet_payment(temp_id, wallet_id, conn=conn)
@@ -431,13 +429,11 @@ async def check_admin_settings():
         update_cached_settings(settings_db.dict())
 
         # printing settings for debugging
-        logger.debug(f"Admin settings:")
+        logger.debug("Admin settings:")
         for key, value in settings.dict(exclude_none=True).items():
             logger.debug(f"{key}: {value}")
 
-        admin_url = (
-            f"http://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
-        )
+        admin_url = f"{'https' if settings.lnbits_force_https else 'http'}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
         # callback for saas
@@ -451,7 +447,7 @@ async def check_admin_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if not key in readonly_variables + transient_variables:
+        if key not in readonly_variables:
             try:
                 setattr(settings, key, value)
             except:

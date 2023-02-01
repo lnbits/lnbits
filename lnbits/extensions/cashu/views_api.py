@@ -1,6 +1,6 @@
 import math
 from http import HTTPStatus
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 # -------- cashu imports
 from cashu.core.base import (
@@ -322,7 +322,7 @@ async def melt_coins(
             await pay_invoice(
                 wallet_id=cashu.wallet,
                 payment_request=invoice,
-                description=f"Pay cashu invoice",
+                description="Pay cashu invoice",
                 extra={"tag": "cashu", "cashu_name": cashu.name},
             )
         except Exception as e:
@@ -335,7 +335,7 @@ async def melt_coins(
             status: PaymentStatus = await check_transaction_status(
                 cashu.wallet, invoice_obj.payment_hash
             )
-            if status.paid == True:
+            if status.paid is True:
                 logger.debug(
                     f"Cashu: Payment successful, invalidating proofs for {invoice_obj.payment_hash}"
                 )
@@ -349,7 +349,7 @@ async def melt_coins(
             detail=f"Cashu: {str(e)}",
         )
     finally:
-        logger.debug(f"Cashu: Unset pending")
+        logger.debug("Cashu: Unset pending")
         # delete proofs from pending list
         await ledger._unset_proofs_pending(proofs)
 

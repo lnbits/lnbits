@@ -7,7 +7,6 @@ import httpx
 from fastapi.exceptions import HTTPException
 from loguru import logger
 
-from lnbits.helpers import url_for
 from lnbits.settings import settings
 
 from .base import (

@@ -24,7 +24,7 @@ async def m001_initial_invoices(db):
 
            local_part TEXT NOT NULL,
            pubkey TEXT NOT NULL,
-           
+
            active BOOLEAN NOT NULL DEFAULT false,
 
            time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},

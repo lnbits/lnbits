@@ -29,8 +29,8 @@
             align="left"
           >
             <q-tab
-              name="featured"
-              label="Featured"
+              name="installed"
+              label="Installed"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
@@ -39,8 +39,8 @@
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
-              name="installed"
-              label="Installed"
+              name="featured"
+              label="Featured"
               @update="val => tab = val.name"
             ></q-tab>
           </q-tabs>
@@ -318,7 +318,7 @@
     data: function () {
       return {
         searchTerm: '',
-        tab: 'featured',
+        tab: 'all',
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
@@ -356,10 +356,10 @@
       },
       installExtension: async function (release) {
         const extension = this.selectedExtension
-        try {
-          extension.inProgress = true
-          this.showUpgradeDialog = false
-          await LNbits.api.request(
+        extension.inProgress = true
+        this.showUpgradeDialog = false
+        LNbits.api
+          .request(
             'POST',
             `/api/v1/extension?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey,
@@ -369,46 +369,61 @@
               source_repo: release.source_repo
             }
           )
-          window.location.href = [
-            "{{ url_for('install.extensions') }}",
-            '?usr=',
-            this.g.user.id
-          ].join('')
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-          extension.inProgress = false
-        }
+          .then(response => {
+            extension.isAvailable = true
+            extension.isInstalled = true
+            this.toggleExtension(extension)
+            extension.inProgress = false
+            this.filteredExtensions = this.extensions.concat([])
+            this.handleTabChanged('installed')
+            this.tab = 'installed'
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
       },
       uninstallExtension: async function () {
         const extension = this.selectedExtension
         this.showUpgradeDialog = false
         this.showUninstallDialog = false
-        try {
-          extension.inProgress = true
-          await LNbits.api.request(
+        extension.inProgress = true
+        LNbits.api
+          .request(
             'DELETE',
             `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          window.location.href = [
-            "{{ url_for('install.extensions') }}",
-            '?usr=',
-            this.g.user.id
-          ].join('')
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-          extension.inProgress = false
-        }
+          .then(response => {
+            extension.isAvailable = false
+            extension.isInstalled = false
+            extension.inProgress = false
+            this.filteredExtensions = this.extensions.concat([])
+            this.handleTabChanged('installed')
+            this.tab = 'installed'
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
       },
       toggleExtension: function (extension) {
         const action = extension.isActive ? 'activate' : 'deactivate'
-        window.location.href = [
-          "{{ url_for('install.extensions') }}",
-          '?usr=',
-          this.g.user.id,
-          `&${action}=`,
-          extension.id
-        ].join('')
+        LNbits.api
+          .request(
+            'GET',
+            "{{ url_for('install.extensions') }}?usr=" +
+              this.g.user.id +
+              '&' +
+              action +
+              '=' +
+              extension.id
+          )
+          .then(response => {})
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
       },
 
       showUninstall: function () {
@@ -477,7 +492,12 @@
         inProgress: false
       }))
       this.filteredExtensions = this.extensions.concat([])
-      this.handleTabChanged('featured')
+      for (let i = 0; i < this.filteredExtensions.length; i++) {
+        if (this.filteredExtensions[i].isInstalled != false) {
+          this.handleTabChanged('installed')
+          this.tab = 'installed'
+        }
+      }
     },
     mixins: [windowMixin]
   })

@@ -21,5 +21,5 @@ def tipjar_renderer():
     return template_renderer(["lnbits/extensions/tipjar/templates"])
 
 
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

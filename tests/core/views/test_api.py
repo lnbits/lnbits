@@ -1,20 +1,15 @@
 import hashlib
 
 import pytest
-import pytest_asyncio
 
 from lnbits import bolt11
-from lnbits.core.crud import get_wallet
-from lnbits.core.views.api import (
-    CreateInvoiceData,
-    api_payment,
-    api_payments_create_invoice,
-)
+from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
 from ...helpers import get_random_invoice_data, is_regtest
 
 WALLET = get_wallet_class()
+
 
 # check if the client is working
 @pytest.mark.asyncio
@@ -127,7 +122,7 @@ async def test_check_payment_without_key(client, invoice):
     # check the payment status
     response = await client.get(f"/api/v1/payments/{invoice['payment_hash']}")
     assert response.status_code < 300
-    assert response.json()["paid"] == True
+    assert response.json()["paid"] is True
     assert invoice
     # not key, that's why no "details"
     assert "details" not in response.json()
@@ -145,7 +140,7 @@ async def test_check_payment_with_key(client, invoice, inkey_headers_from):
         f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
     )
     assert response.status_code < 300
-    assert response.json()["paid"] == True
+    assert response.json()["paid"] is True
     assert invoice
     # with key, that's why with "details"
     assert "details" in response.json()
@@ -205,7 +200,7 @@ async def test_api_payment_without_key(invoice):
     # check the payment status
     response = await api_payment(invoice["payment_hash"])
     assert type(response) == dict
-    assert response["paid"] == True
+    assert response["paid"] is True
     # no key, that's why no "details"
     assert "details" not in response
 
@@ -218,7 +213,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
     assert type(response) == dict
-    assert response["paid"] == True
+    assert response["paid"] is True
     assert "details" in response
 
 

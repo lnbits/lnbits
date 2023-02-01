@@ -50,11 +50,13 @@ def check_db_versions(sqdb):
     postgres.execute("SELECT * FROM public.dbversions;")
     dbpost = dict(postgres.fetchall())
 
-    for key in dblite.keys():
-        if key in dblite and key in dbpost and dblite[key] != dbpost[key]:
-            raise Exception(
-                f"sqlite database version ({dblite[key]}) of {key} doesn't match postgres database version {dbpost[key]}"
-            )
+    for key, value in dblite.items():
+        if key in dblite and key in dbpost:
+            version = dbpost[key]
+            if value != version:
+                raise Exception(
+                    f"sqlite database version ({value}) of {key} doesn't match postgres database version {version}"
+                )
 
     connection = postgres.connection
     postgres.close()
@@ -101,7 +103,7 @@ def insert_to_pg(query, data):
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: List[str] = []):
+def migrate_core(file: str, exclude_tables: List[str] = None):
     print(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
     print("✅ Migrated core")
@@ -115,7 +117,7 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
+def migrate_db(file: str, schema: str, exclude_tables: List[str] = None):
     # first we check if this file exists:
     assert os.path.isfile(file), f"{file} does not exist!"
 
@@ -133,7 +135,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
         # hard coded skip for dbversions (already produced during startup)
         if tableName == "dbversions":
             continue
-        if tableName in exclude_tables:
+        if exclude_tables and tableName in exclude_tables:
             continue
 
         columns = sq.execute(f"PRAGMA table_info({tableName})").fetchall()

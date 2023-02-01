@@ -366,7 +366,7 @@ except:
 
 # printing enviroment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug(f"Enviroment Settings:")
+    logger.debug("Enviroment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 

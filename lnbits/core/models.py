@@ -6,8 +6,8 @@ import time
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
-from ecdsa import SECP256k1, SigningKey  # type: ignore
-from lnurl import encode as lnurl_encode  # type: ignore
+from ecdsa import SECP256k1, SigningKey
+from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 

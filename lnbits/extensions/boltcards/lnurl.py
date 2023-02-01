@@ -28,6 +28,7 @@ from .nxp424 import decryptSUN, getSunMAC
 
 ###############LNURLWITHDRAW#################
 
+
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan/{external_id}")
 async def api_scan(p, c, request: Request, external_id: str = Query(None)):
@@ -123,7 +124,7 @@ async def lnurl_callback(
             wallet_id=card.wallet,
             payment_request=pr,
             max_sat=card.tx_limit,
-            extra={"tag": "boltcard", "tag": hit.id},
+            extra={"tag": "boltcard", "hit": hit.id},
         )
         return {"status": "OK"}
     except Exception as exc:
@@ -180,7 +181,7 @@ async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     card = await get_card(hit.card_id)
     assert card
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
+        return {"status": "ERROR", "reason": "LNURL-pay record not found."}
     if not card.enable:
         return {"status": "ERROR", "reason": "Card is disabled."}
     payResponse = {
@@ -204,7 +205,7 @@ async def lnurlp_callback(hit_id: str = Query(None), amount: str = Query(None)):
     card = await get_card(hit.card_id)
     assert card
     if not hit:
-        return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
+        return {"status": "ERROR", "reason": "LNURL-pay record not found."}
 
     _, payment_request = await create_invoice(
         wallet_id=card.wallet,

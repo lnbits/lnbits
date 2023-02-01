@@ -21,6 +21,6 @@ def bleskomat_renderer():
     return template_renderer(["lnbits/extensions/bleskomat/templates"])
 
 
-from .lnurl_api import *  # noqa
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .lnurl_api import *  # noqa: F401,F403
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

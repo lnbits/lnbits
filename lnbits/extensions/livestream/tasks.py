@@ -1,9 +1,7 @@
 import asyncio
-import json
 
 from loguru import logger
 
-from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.helpers import get_current_extension_name

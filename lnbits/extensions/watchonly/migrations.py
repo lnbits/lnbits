@@ -30,7 +30,7 @@ async def m001_initial(db):
         """
         CREATE TABLE watchonly.mempool (
             "user" TEXT NOT NULL,
-            endpoint TEXT NOT NULL 
+            endpoint TEXT NOT NULL
         );
     """
     )
