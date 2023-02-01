@@ -96,6 +96,7 @@ include = [
   "lnbits"
 ]
 exclude = [
+  "lnbits/extensions",
   "lnbits/wallets/lnd_grpc_files",
 ]
 
