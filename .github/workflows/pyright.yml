@@ -21,6 +21,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
       - name: Install dependencies
-        run: npm install
+        run: |
+          poetry install
+          npm install
       - name: Run tests
         run: make pyright
