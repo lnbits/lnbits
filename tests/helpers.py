@@ -45,7 +45,7 @@ is_regtest: bool = not is_fake
 
 docker_bitcoin_rpc = "lnbits"
 docker_prefix = "lnbits-legend"
-docker_cmd = f"docker exec"
+docker_cmd = "docker exec"
 
 docker_lightning = f"{docker_cmd} {docker_prefix}-clightning-2-1"
 docker_lightning_cli = f"{docker_lightning} lightning-cli --network regtest"
