@@ -761,6 +761,8 @@ async def api_install_extension(
         if extension.upgrade_hash:
             ext_info.nofiy_upgrade()
 
+        return extension
+
     except Exception as ex:
         logger.warning(ex)
         ext_info.clean_extension_files()
