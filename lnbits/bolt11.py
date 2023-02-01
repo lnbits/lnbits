@@ -378,7 +378,5 @@ def bitarray_to_u5(barr):
     ret = []
     s = bitstring.ConstBitStream(barr)
     while s.pos != s.len:
-        bstream = s.read(5)
-        if bstream:
-            ret.append(bstream.uint)
+        ret.append(s.read(5).uint)  # type: ignore
     return ret
