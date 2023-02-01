@@ -34,12 +34,7 @@ async def hedge_loop():
 
                 c = KolliderRestClient(peg.base_url, peg.api_key, peg.api_secret, peg.api_passphrase)
 
-                # cancel all orders
-                orders = c.get_open_orders()
-                if orders and symbol in orders:
-                    for o in orders[symbol]:
-                        logger.debug(f"cancelling order {o['order_id']} - {symbol}")
-                        c.cancel_order(order_id=o['order_id'], symbol=symbol)
+                c.cancel_all_orders(symbol)
 
                 ps = c.get_positions()
                 position_fiat = 0.
@@ -96,23 +91,12 @@ async def wait_for_paid_invoices():
         payment = await invoice_queue.get()
 
         hedges = await get_peggings(wallet_ids=payment.wallet_id)
-        if not hedges:
-            # no registered hedge settings
-            continue
 
-        payment.extra["peggingId"] = hedges[0].id
-
-        await on_paid_invoice(payment)
+        if hedges:
+            await on_paid_invoice(payment, hedges[0])
 
 
-async def on_paid_invoice(payment: Payment) -> None:
-    pegging_id = payment.extra.get("peggingId")
-    assert pegging_id
-
-    pegging = await get_pegging(pegging_id)
-    assert pegging
-
-
+async def on_paid_invoice(payment: Payment, pegging: Pegging) -> None:
     strippedPayment = {
         "amount": payment.amount,
         "fee": payment.fee,
@@ -120,10 +104,8 @@ async def on_paid_invoice(payment: Payment) -> None:
         "payment_hash": payment.payment_hash,
         "bolt11": payment.bolt11,
     }
-
-    await websocketUpdater(pegging_id, str(strippedPayment))
+    await websocketUpdater(pegging.id, str(strippedPayment)) # No idea why it is here
     await update_position(pegging, payment.amount, "Ask")
-
 
 
 async def update_position(pegging: Pegging, delta_amount: int, side: str) -> None:
@@ -148,7 +130,7 @@ async def update_position(pegging: Pegging, delta_amount: int, side: str) -> Non
     t = client.get_tradeable_symbols()
 
     mult = 1
-
+    # TODO: possible to hide into client state
     if t and symbol in t:
         mult = 10**int(t[symbol]["price_dp"])
     else:

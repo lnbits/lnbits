@@ -47,7 +47,7 @@ class KolliderRestClient(object):
             resp = httpx.post(endpoint, json=body)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     # Public Methods
     def get_tradeable_symbols(self):
@@ -57,7 +57,7 @@ class KolliderRestClient(object):
             resp = httpx.get(endpoint)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_ticker(self, symbol) -> Ticker:
         """
@@ -70,7 +70,7 @@ class KolliderRestClient(object):
             resp = httpx.get(endpoint)
             return Ticker.from_dict(resp.json())
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
 
     ### PRIVATE API ENDPOINTS
@@ -84,7 +84,7 @@ class KolliderRestClient(object):
             resp = httpx.get(route, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_user_account(self):
         """Returns meta data about the user account."""
@@ -95,7 +95,7 @@ class KolliderRestClient(object):
             resp = httpx.get(route, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_historical_funding_payments(self, symbol, start=None, end=None):
         """
@@ -124,7 +124,7 @@ class KolliderRestClient(object):
             resp = httpx.get(route, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_historical_deposits(self, network=None, limit=None, start=None, end=None):
         """
@@ -160,7 +160,7 @@ class KolliderRestClient(object):
             resp = httpx.get(route, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_historical_withdrawals(
         self, network=None, limit=None, start=None, end=None
@@ -198,7 +198,7 @@ class KolliderRestClient(object):
             resp = httpx.get(route, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     # Private Method (Need valid api key)
     def get_open_orders(self):
@@ -210,7 +210,7 @@ class KolliderRestClient(object):
             resp = httpx.get(endpoint, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def get_positions(self):
         """Returns all active positions of a user."""
@@ -221,7 +221,7 @@ class KolliderRestClient(object):
             resp = httpx.get(endpoint, headers=headers)
             return Positions.from_dict(resp.json())
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def make_deposit(self, amount, network="Ln"):
         """Requests a deposit"""
@@ -233,7 +233,7 @@ class KolliderRestClient(object):
             resp = httpx.post(endpoint, json=body, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def make_withdrawal(self, amount, network="Ln", payment_request=None):
         """Requests withdrawal"""
@@ -251,7 +251,7 @@ class KolliderRestClient(object):
             resp = httpx.post(endpoint, json=body, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def change_margin(self, action, symbol, amount):
         """Changes margin"""
@@ -267,7 +267,7 @@ class KolliderRestClient(object):
             resp = httpx.post(endpoint, json=body, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def place_order(self, order):
         route = "/orders"
@@ -278,7 +278,7 @@ class KolliderRestClient(object):
             resp = httpx.post(endpoint, json=body, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
     def cancel_order(self, order_id, symbol):
         route = "/orders"
@@ -294,4 +294,12 @@ class KolliderRestClient(object):
             resp = httpx.delete(endpoint, headers=headers)
             return resp.json()
         except Exception as e:
-            print(e)
+            logger.debug(e)
+
+    def cancel_all_orders(self, symbol: str):
+        # cancel all orders
+        orders = self.get_open_orders()
+        if orders and symbol in orders:
+            for o in orders[symbol]:
+                logger.debug(f"cancelling order {o['order_id']} - {symbol}")
+                self.cancel_order(order_id=o.order_id, symbol=symbol)
