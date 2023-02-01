@@ -717,7 +717,9 @@ async def update_super_user(super_user: str) -> SuperSettings:
 async def create_admin_settings(super_user: str, new_settings: dict):
     sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings
+    return settings
 
 
 # db versions

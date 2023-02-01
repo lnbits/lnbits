@@ -17,6 +17,7 @@ from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
+    SuperSettings,
     get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
@@ -452,7 +453,7 @@ def update_cached_settings(sets_dict: dict):
         setattr(settings, "super_user", sets_dict["super_user"])
 
 
-async def init_admin_settings(super_user: Optional[str] = None):
+async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
     account = None
     if super_user:
         account = await get_account(super_user)
