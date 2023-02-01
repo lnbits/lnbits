@@ -372,6 +372,7 @@
           .then(response => {
             extension.isAvailable = true
             extension.isInstalled = true
+            this.toggleExtension(extension)
             extension.inProgress = false
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
@@ -418,9 +419,7 @@
               '=' +
               extension.id
           )
-          .then(response => {
-            // this.filteredExtensions = this.extensions.concat([])
-          })
+          .then(response => {})
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
@@ -493,7 +492,6 @@
         inProgress: false
       }))
       this.filteredExtensions = this.extensions.concat([])
-      console.log(this.filteredExtensions)
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {
           this.handleTabChanged('installed')
