@@ -40,6 +40,8 @@ docker
 # Nix
 *result*
 
+# fly.io
+fly.toml
+
 # Ignore extensions (post installable extension PR)
-extensions/
 upgrades/
