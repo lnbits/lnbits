@@ -30,7 +30,7 @@ from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.models import Payment, User, Wallet
+from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
