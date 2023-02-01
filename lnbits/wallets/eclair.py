@@ -8,9 +8,7 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
-# TODO: https://github.com/lnbits/lnbits/issues/764
-# mypy https://github.com/aaugustin/websockets/issues/940
-from websockets import connect  # type: ignore
+from websockets.client import connect
 
 from lnbits.settings import settings
 
@@ -73,7 +71,7 @@ class EclairWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        data: Dict = {"amountMsat": amount * 1000}
+        data: Dict = {"amountMsat": amount * 1000, "description_hash": b"", "description": memo}
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
 
@@ -81,8 +79,6 @@ class EclairWallet(Wallet):
             data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
             data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["description"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -226,10 +222,10 @@ class EclairWallet(Wallet):
                 ) as ws:
                     while True:
                         message = await ws.recv()
-                        message = json.loads(message)
+                        message_json = json.loads(message)
 
-                        if message and message["type"] == "payment-received":
-                            yield message["paymentHash"]
+                        if message_json and message_json["type"] == "payment-received":
+                            yield message_json["paymentHash"]
 
             except Exception as exc:
                 logger.error(

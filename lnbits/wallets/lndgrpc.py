@@ -159,18 +159,18 @@ class LndWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        params: Dict = {"value": amount, "private": True}
+        data: Dict = {"description_hash": b"", "value": amount, "private": True, "memo": memo or ""}
         if kwargs.get("expiry"):
-            params["expiry"] = kwargs["expiry"]
+            data["expiry"] = kwargs["expiry"]
         if description_hash:
-            params["description_hash"] = description_hash
+            data["description_hash"] = description_hash
         elif unhashed_description:
-            params["description_hash"] = hashlib.sha256(
+            data["description_hash"] = hashlib.sha256(
                 unhashed_description
             ).digest()  # as bytes directly
 
         try:
-            req = ln.Invoice(**params)
+            req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
         except Exception as exc:
             error_message = str(exc)

@@ -17,7 +17,7 @@ from .base import (
 
 
 class LNbitsWallet(Wallet):
-    """https://github.com/lnbits/lnbits"""
+    """ https://github.com/lnbits/lnbits """
 
     def __init__(self):
         self.endpoint = settings.lnbits_endpoint
@@ -61,7 +61,7 @@ class LNbitsWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"out": False, "amount": amount}
+        data: Dict = {"out": False, "amount": amount, "memo": memo or ""}
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
         if description_hash:
