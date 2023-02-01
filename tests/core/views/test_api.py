@@ -274,4 +274,4 @@ async def test_pay_real_invoice(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
     assert type(response) == dict
-    assert response["paid"] == True
+    assert response["paid"] is True
