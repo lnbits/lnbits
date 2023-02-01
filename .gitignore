@@ -41,5 +41,5 @@ docker
 *result*
 
 # Ignore extensions (post installable extension PR)
-extensions/
+# extensions/
 upgrades/
