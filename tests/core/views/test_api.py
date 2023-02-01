@@ -6,7 +6,7 @@ from lnbits import bolt11
 from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_regtest
+from ...helpers import get_random_invoice_data, is_fake, is_regtest
 
 WALLET = get_wallet_class()
 
@@ -254,3 +254,24 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
     return invoice
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice(
+    client, real_invoice, adminkey_headers_from, inkey_headers_from
+):
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+    invoice = response.json()
+    assert len(invoice["payment_hash"]) == 64
+    assert len(invoice["checking_id"]) > 0
+
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert type(response) == dict
+    assert response["paid"] == True
