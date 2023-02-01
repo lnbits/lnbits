@@ -28,7 +28,7 @@
             active-color="primary"
             align="left"
           >
-          <q-tab
+            <q-tab
               name="installed"
               label="Installed"
               @update="val => tab = val.name"
@@ -356,10 +356,11 @@
       },
       installExtension: async function (release) {
         const extension = this.selectedExtension
-          extension.inProgress = true
-          this.showUpgradeDialog = false
-          LNbits.api
-          .request('POST',
+        extension.inProgress = true
+        this.showUpgradeDialog = false
+        LNbits.api
+          .request(
+            'POST',
             `/api/v1/extension?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey,
             {
@@ -387,8 +388,9 @@
         this.showUninstallDialog = false
         extension.inProgress = true
         LNbits.api
-        .request('DELETE',
-        `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
+          .request(
+            'DELETE',
+            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
@@ -407,16 +409,22 @@
       toggleExtension: function (extension) {
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
-          .request('GET',
-          "{{ url_for('install.extensions') }}?usr=" + this.g.user.id + "&" + action + "=" + extension.id
+          .request(
+            'GET',
+            "{{ url_for('install.extensions') }}?usr=" +
+              this.g.user.id +
+              '&' +
+              action +
+              '=' +
+              extension.id
           )
           .then(response => {
-           // this.filteredExtensions = this.extensions.concat([])
+            // this.filteredExtensions = this.extensions.concat([])
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
-          })          
+          })
       },
 
       showUninstall: function () {
@@ -487,7 +495,7 @@
       this.filteredExtensions = this.extensions.concat([])
       console.log(this.filteredExtensions)
       for (let i = 0; i < this.filteredExtensions.length; i++) {
-        if(this.filteredExtensions[i].isInstalled != false){
+        if (this.filteredExtensions[i].isInstalled != false) {
           this.handleTabChanged('installed')
           this.tab = 'installed'
         }
