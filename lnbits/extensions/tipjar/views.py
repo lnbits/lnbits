@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import Depends, Request
-from fastapi.param_functions import Query
+from fastapi import Depends, Query, Request
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 
