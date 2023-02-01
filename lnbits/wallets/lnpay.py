@@ -1,12 +1,8 @@
 import asyncio
 import hashlib
-import json
-from http import HTTPStatus
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
-from fastapi.exceptions import HTTPException
-from loguru import logger
 
 from lnbits.settings import settings
 
