@@ -68,10 +68,11 @@ class Proof(BaseModel):
     def from_dict(cls, d: dict):
         assert "secret" in d, "no secret in proof"
         assert "amount" in d, "no amount in proof"
+        assert "C" in d, "no C in proof"
         return cls(
-            amount=d.get("amount"),
-            C=d.get("C"),
-            secret=d.get("secret"),
+            amount=d["amount"],
+            C=d["C"],
+            secret=d["secret"],
             reserved=d.get("reserved") or False,
             send_id=d.get("send_id") or "",
             time_created=d.get("time_created") or "",

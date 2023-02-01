@@ -52,7 +52,7 @@ class ShopCounter:
         # cleanup confirmation words cache
         to_remove = len(self.fulfilled_payments) - 23
         if to_remove > 0:
-            for i in range(to_remove):
+            for _ in range(to_remove):
                 self.fulfilled_payments.popitem(False)
 
         return word
@@ -63,6 +63,10 @@ class Shop(BaseModel):
     wallet: str
     method: str
     wordlist: str
+
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(**dict(row))
 
     @property
     def otp_key(self) -> str:

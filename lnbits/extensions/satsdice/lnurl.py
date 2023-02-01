@@ -18,8 +18,6 @@ from .crud import (
 )
 from .models import CreateSatsDicePayment
 
-##############LNURLP STUFF
-
 
 @satsdice_ext.get(
     "/api/v1/lnurlp/{link_id}",
@@ -84,7 +82,7 @@ async def api_lnurlp_callback(
 
     data = CreateSatsDicePayment(
         satsdice_pay=link.id,
-        value=amount_received / 1000,
+        value=int(amount_received / 1000),
         payment_hash=payment_hash,
     )
 
