@@ -9,6 +9,7 @@ import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
 from ecdsa import SECP256k1, VerifyingKey
 from ecdsa.util import sigdecode_string
+from loguru import logger
 
 
 class Route(NamedTuple):
@@ -30,6 +31,7 @@ class Invoice:
     secret: Optional[str] = None
     route_hints: List[Route] = []
     min_final_cltv_expiry: int = 18
+    checking_id: Optional[str] = None
 
 
 def decode(pr: str) -> Invoice:
@@ -66,11 +68,13 @@ def decode(pr: str) -> Invoice:
             invoice.amount_msat = _unshorten_amount(amountstr)
 
     # pull out date
-    invoice.date = data.read(35).uint
+    date_bin = data.read(35)
+    assert date_bin
+    invoice.date = date_bin.uint
 
     while data.pos != data.len:
         tag, tagdata, data = _pull_tagged(data)
-        data_length = len(tagdata) / 5
+        data_length = len(tagdata or []) / 5
 
         if tag == "d":
             invoice.description = _trim_to_bytes(tagdata).decode()
@@ -89,12 +93,22 @@ def decode(pr: str) -> Invoice:
         elif tag == "r":
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
+                pubkey = s.read(264)
+                assert pubkey
+                short_channel_id = s.read(64)
+                assert short_channel_id
+                base_fee_msat = s.read(32)
+                assert base_fee_msat
+                ppm_fee = s.read(32)
+                assert ppm_fee
+                cltv = s.read(16)
+                assert cltv
                 route = Route(
-                    pubkey=s.read(264).tobytes().hex(),
-                    short_channel_id=_readable_scid(s.read(64).intbe),
-                    base_fee_msat=s.read(32).intbe,
-                    ppm_fee=s.read(32).intbe,
-                    cltv=s.read(16).intbe,
+                    pubkey=pubkey.tobytes().hex(),
+                    short_channel_id=_readable_scid(short_channel_id.intbe),
+                    base_fee_msat=base_fee_msat.intbe,
+                    ppm_fee=ppm_fee.intbe,
+                    cltv=cltv.intbe,
                 )
                 invoice.route_hints.append(route)
 
@@ -158,6 +172,10 @@ def encode(options):
             assert len(splits) == 0
             addr.tags.append(("r", route))
     return lnencode(addr, options["privkey"])
+
+
+def encode_fallback(v, currency):
+    logger.error(f"hit bolt11.py encode_fallback with v: {v} and currency: {currency}")
 
 
 def lnencode(addr, privkey):
@@ -244,7 +262,13 @@ def lnencode(addr, privkey):
 
 class LnAddr:
     def __init__(
-        self, paymenthash=None, amount=None, currency="bc", tags=None, date=None
+        self,
+        paymenthash=None,
+        amount=None,
+        currency="bc",
+        tags=None,
+        date=None,
+        fallback=None,
     ):
         self.date = int(time.time()) if not date else int(date)
         self.tags = [] if not tags else tags
@@ -252,11 +276,13 @@ class LnAddr:
         self.paymenthash = paymenthash
         self.signature = None
         self.pubkey = None
+        self.fallback = fallback
         self.currency = currency
         self.amount = amount
 
     def __str__(self):
-        pubkey = bytes.hex(self.pubkey.serialize()).decode()
+        assert self.pubkey
+        pubkey = bytes.hex(self.pubkey.serialize())
         tags = ", ".join([k + "=" + str(v) for k, v in self.tags])
         return f"LnAddr[{pubkey}, amount={self.amount}{self.currency} tags=[{tags}]]"
 
@@ -266,6 +292,7 @@ def shorten_amount(amount):
     # Convert to pico initially
     amount = int(amount * 10**12)
     units = ["p", "n", "u", "m", ""]
+    unit = ""
     for unit in units:
         if amount % 1000 == 0:
             amount //= 1000
@@ -302,14 +329,6 @@ def _pull_tagged(stream):
     tag = stream.read(5).uint
     length = stream.read(5).uint * 32 + stream.read(5).uint
     return (CHARSET[tag], stream.read(length * 5), stream)
-
-
-def is_p2pkh(currency, prefix):
-    return prefix == base58_prefix_map[currency][0]
-
-
-def is_p2sh(currency, prefix):
-    return prefix == base58_prefix_map[currency][1]
 
 
 # Tagged field containing BitArray
@@ -359,5 +378,5 @@ def bitarray_to_u5(barr):
     ret = []
     s = bitstring.ConstBitStream(barr)
     while s.pos != s.len:
-        ret.append(s.read(5).uint)
+        ret.append(s.read(5).uint)  # type: ignore
     return ret

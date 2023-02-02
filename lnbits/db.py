@@ -129,7 +129,7 @@ class Database(Compat):
             else:
                 self.type = POSTGRES
 
-            import psycopg2
+            from psycopg2.extensions import DECIMAL, new_type, register_type
 
             def _parse_timestamp(value, _):
                 if value is None:
@@ -139,15 +139,15 @@ class Database(Compat):
                     f = "%Y-%m-%d %H:%M:%S"
                 return time.mktime(datetime.datetime.strptime(value, f).timetuple())
 
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
-                    psycopg2.extensions.DECIMAL.values,
+            register_type(
+                new_type(
+                    DECIMAL.values,
                     "DEC2FLOAT",
                     lambda value, curs: float(value) if value is not None else None,
                 )
             )
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
+            register_type(
+                new_type(
                     (1082, 1083, 1266),
                     "DATE2INT",
                     lambda value, curs: time.mktime(value.timetuple())
@@ -156,11 +156,7 @@ class Database(Compat):
                 )
             )
 
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
-                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
-                )
-            )
+            register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
         else:
             if os.path.isdir(settings.lnbits_data_folder):
                 self.path = os.path.join(
