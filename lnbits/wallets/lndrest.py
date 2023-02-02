@@ -24,11 +24,6 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = (
-            "https://" + endpoint if not endpoint.startswith("http") else endpoint
-        )
-        self.endpoint = endpoint
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -43,6 +38,15 @@ class LndRestWallet(Wallet):
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
             )
+
+        if not endpoint or not macaroon or not settings.lnd_rest_cert:
+            raise Exception("cannot initialize lndrest")
+
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        endpoint = (
+            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+        )
+        self.endpoint = endpoint
         self.macaroon = load_macaroon(macaroon)
 
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
@@ -74,7 +78,7 @@ class LndRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"value": amount, "private": True}
+        data: Dict = {"value": amount, "private": True, "memo": memo or ""}
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
         if description_hash:
@@ -85,8 +89,6 @@ class LndRestWallet(Wallet):
             data["description_hash"] = base64.b64encode(
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
-        else:
-            data["memo"] = memo or ""
 
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.post(
