@@ -1,15 +1,8 @@
-import json
 from http import HTTPStatus
 
-from fastapi import (
-    BackgroundTasks,
-    Depends,
-    Query,
-    Request,
-    WebSocket,
-    WebSocketDisconnect,
-)
+from fastapi import Depends, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
@@ -147,24 +140,14 @@ notifier = Notifier()
 
 
 @market_ext.websocket("/ws/{room_name}")
-async def websocket_endpoint(
-    websocket: WebSocket, room_name: str, background_tasks: BackgroundTasks
-):
+async def websocket_endpoint(websocket: WebSocket, room_name: str):
     await notifier.connect(websocket, room_name)
     try:
         while True:
             data = await websocket.receive_text()
-            d = json.loads(data)
-            d["room_name"] = room_name
-
-            room_members = (
-                notifier.get_members(room_name)
-                if notifier.get_members(room_name) is not None
-                else []
-            )
-
+            room_members = notifier.get_members(room_name) or []
             if websocket not in room_members:
-                print("Sender not in room member: Reconnecting...")
+                logger.warning("Sender not in room member: Reconnecting...")
                 await notifier.connect(websocket, room_name)
             await notifier._notify(data, room_name)
 

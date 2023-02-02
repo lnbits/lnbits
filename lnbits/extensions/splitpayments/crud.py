@@ -10,7 +10,7 @@ async def get_targets(source_wallet: str) -> List[Target]:
     rows = await db.fetchall(
         "SELECT * FROM splitpayments.targets WHERE source = ?", (source_wallet,)
     )
-    return [Target(**dict(row)) for row in rows]
+    return [Target(**row) for row in rows]
 
 
 async def set_targets(source_wallet: str, targets: List[Target]):

@@ -147,14 +147,16 @@ async def create_service(data: CreateService) -> Service:
     if db.type == SQLITE:
         service_id = result._result_proxy.lastrowid
     else:
-        service_id = result[0]
+        service_id = result[0]  # type: ignore
 
     service = await get_service(service_id)
     assert service
     return service
 
 
-async def get_service(service_id: int, by_state: str = None) -> Optional[Service]:
+async def get_service(
+    service_id: int, by_state: Optional[str] = None
+) -> Optional[Service]:
     """Return a service either by ID or, available, by state
 
     Each Service's donation page is reached through its "state" hash
@@ -184,7 +186,9 @@ async def authenticate_service(service_id, code, redirect_uri):
     """Use authentication code from third party API to retreive access token"""
     # The API token is passed in the querystring as 'code'
     service = await get_service(service_id)
+    assert service
     wallet = await get_wallet(service.wallet)
+    assert wallet
     user = wallet.user
     url = "https://streamlabs.com/api/v1.0/token"
     data = {
@@ -208,8 +212,11 @@ async def service_add_token(service_id, token):
     is not overwritten.
     Tokens for Streamlabs never need to be refreshed.
     """
-    if (await get_service(service_id)).authenticated:
+    service = await get_service(service_id)
+    assert service
+    if service.authenticated:
         return False
+
     await db.execute(
         "UPDATE streamalerts.Services SET authenticated = 1, token = ? where id = ?",
         (token, service_id),

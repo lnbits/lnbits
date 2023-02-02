@@ -71,9 +71,7 @@ async def api_domain_create(
         if not cf_response or not cf_response["success"]:
             await delete_domain(domain.id)
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="Problem with cloudflare: "
-                + cf_response["errors"][0]["message"],
+                status_code=HTTPStatus.BAD_REQUEST, detail="Problem with cloudflare."
             )
 
     return domain.dict()

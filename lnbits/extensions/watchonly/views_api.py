@@ -73,7 +73,8 @@ async def api_wallet_create_or_update(
     data: CreateWallet, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
-        (descriptor, network) = parse_key(data.masterpub)
+        descriptor, network = parse_key(data.masterpub)
+        assert network
         if data.network != network["name"]:
             raise ValueError(
                 "Account network error.  This account is for '{}'".format(
@@ -308,12 +309,9 @@ async def api_psbt_utxos_tx(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
-@watchonly_ext.put("/api/v1/psbt/extract")
-async def api_psbt_extract_tx(
-    data: ExtractPsbt, w: WalletTypeInfo = Depends(require_admin_key)
-):
+@watchonly_ext.put("/api/v1/psbt/extract", dependencies=[Depends(require_admin_key)])
+async def api_psbt_extract_tx(data: ExtractPsbt):
     network = NETWORKS["main"] if data.network == "Mainnet" else NETWORKS["test"]
-    res = SignedTransaction()
     try:
         psbt = PSBT.from_base64(data.psbtBase64)
         for i, inp in enumerate(data.inputs):
@@ -322,9 +320,9 @@ async def api_psbt_extract_tx(
         final_psbt = finalizer.finalize_psbt(psbt)
         if not final_psbt:
             raise ValueError("PSBT cannot be finalized!")
-        res.tx_hex = final_psbt.to_string()
 
-        transaction = Transaction.from_string(res.tx_hex)
+        tx_hex = final_psbt.to_string()
+        transaction = Transaction.from_string(tx_hex)
         tx = {
             "locktime": transaction.locktime,
             "version": transaction.version,
@@ -336,10 +334,10 @@ async def api_psbt_extract_tx(
             tx["outputs"].append(
                 {"amount": out.value, "address": out.script_pubkey.address(network)}
             )
-        res.tx_json = json.dumps(tx)
+        signed_tx = SignedTransaction(tx_hex=tx_hex, tx_json=json.dumps(tx))
+        return signed_tx.dict()
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
-    return res.dict()
 
 
 @watchonly_ext.post("/api/v1/tx")

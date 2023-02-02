@@ -1,5 +1,3 @@
-import json
-
 import httpx
 
 from .models import Domains
@@ -20,25 +18,21 @@ async def cloudflare_create_subdomain(
         "Content-Type": "application/json",
     }
     aRecord = subdomain + "." + domain.domain
-    cf_response = ""
     async with httpx.AsyncClient() as client:
-        try:
-            r = await client.post(
-                url,
-                headers=header,
-                json={
-                    "type": record_type,
-                    "name": aRecord,
-                    "content": ip,
-                    "ttl": 0,
-                    "proxied": False,
-                },
-                timeout=40,
-            )
-            cf_response = json.loads(r.text)
-        except AssertionError:
-            cf_response = "Error occured"
-    return cf_response
+        r = await client.post(
+            url,
+            headers=header,
+            json={
+                "type": record_type,
+                "name": aRecord,
+                "content": ip,
+                "ttl": 0,
+                "proxied": False,
+            },
+            timeout=40,
+        )
+        r.raise_for_status()
+        return r.json()
 
 
 async def cloudflare_deletesubdomain(domain: Domains, domain_id: str):
@@ -52,8 +46,4 @@ async def cloudflare_deletesubdomain(domain: Domains, domain_id: str):
         "Content-Type": "application/json",
     }
     async with httpx.AsyncClient() as client:
-        try:
-            r = await client.delete(url + "/" + domain_id, headers=header, timeout=40)
-            r.text
-        except AssertionError:
-            pass
+        await client.delete(url + "/" + domain_id, headers=header, timeout=40)

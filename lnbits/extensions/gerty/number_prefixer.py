@@ -1,7 +1,8 @@
 import math
+from typing import Tuple
 
 
-def si_classifier(val):
+def si_classifier(val) -> dict:
     suffixes = {
         24: {"long_suffix": "yotta", "short_suffix": "Y", "scalar": 10**24},
         21: {"long_suffix": "zetta", "short_suffix": "Z", "scalar": 10**21},
@@ -22,24 +23,22 @@ def si_classifier(val):
         -24: {"long_suffix": "yocto", "short_suffix": "y", "scalar": 10**-24},
     }
     exponent = int(math.floor(math.log10(abs(val)) / 3.0) * 3)
-    return suffixes.get(exponent, None)
+    suffix = suffixes.get(exponent)
+    assert suffix, f"could not classify: {val}"
+    return suffix
 
 
-def si_formatter(value):
+def si_formatter(value) -> Tuple:
     """
     Return a triple of scaled value, short suffix, long suffix, or None if
     the value cannot be classified.
     """
     classifier = si_classifier(value)
-    if classifier is None:
-        # Don't know how to classify this value
-        return None
-
     scaled = value / classifier["scalar"]
-    return (scaled, classifier["short_suffix"], classifier["long_suffix"])
+    return scaled, classifier["short_suffix"], classifier["long_suffix"]
 
 
-def si_format(value, precision=4, long_form=False, separator=""):
+def si_format(value: float, precision=4, long_form=False, separator="") -> str:
     """
     "SI prefix" formatted string: return a string with the given precision
     and an appropriate order-of-3-magnitudes suffix, e.g.:
@@ -47,11 +46,6 @@ def si_format(value, precision=4, long_form=False, separator=""):
         si_format(0.00000000123, long_form=True, separator=' ') => '1.230 nano'
     """
     scaled, short_suffix, long_suffix = si_formatter(value)
-
-    if scaled is None:
-        # Don't know how to format this value
-        return value
-
     suffix = long_suffix if long_form else short_suffix
 
     if abs(scaled) < 10:

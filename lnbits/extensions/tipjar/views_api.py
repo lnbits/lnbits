@@ -3,7 +3,7 @@ from http import HTTPStatus
 from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_user, get_wallet
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 # todo: use the API, not direct import
@@ -22,7 +22,6 @@ from .crud import (
     update_tip,
     update_tipjar,
 )
-from .helpers import get_charge_details
 from .models import createTip, createTipJar, createTips
 
 
@@ -55,25 +54,32 @@ async def api_create_tip(data: createTips):
             status_code=HTTPStatus.NOT_FOUND, detail="Tipjar does not exist."
         )
 
-    webhook = tipjar.webhook
-    charge_details = await get_charge_details(tipjar.id)
+    wallet_id = tipjar.wallet
+    wallet = await get_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Tipjar wallet does not exist."
+        )
+
     name = data.name
+
     # Ensure that description string can be split reliably
     name = name.replace('"', "''")
     if not name:
         name = "Anonymous"
+
     description = f"{name}: {message}"
     charge = await create_charge(
-        user=charge_details["user"],
+        user=wallet.user,
         data=CreateCharge(
             amount=sats,
-            webhook=webhook or "",
+            webhook=tipjar.webhook or "",
             description=description,
-            onchainwallet=charge_details["onchainwallet"],
-            lnbitswallet=charge_details["lnbitswallet"],
-            completelink=charge_details["completelink"],
-            completelinktext=charge_details["completelinktext"],
-            time=charge_details["time"],
+            onchainwallet=tipjar.onchain or "",
+            lnbitswallet=tipjar.wallet,
+            completelink="/tipjar/" + str(tipjar_id),
+            completelinktext="Thanks for the tip!",
+            time=1440,
             custom_css="",
         ),
     )
