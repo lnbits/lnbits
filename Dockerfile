@@ -13,8 +13,8 @@ RUN mkdir -p lnbits/data
 COPY . .
 
 RUN poetry config virtualenvs.create false
-RUN poetry install --only main --no-root
-RUN poetry run python build.py
+RUN poetry install --only main
+RUN poetry run python tools/build.py
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"

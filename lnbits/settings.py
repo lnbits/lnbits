@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v):
@@ -33,13 +33,32 @@ class LNbitsSettings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
+        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: List[str] = Field(default=[])
     lnbits_allowed_users: List[str] = Field(default=[])
+
+
+class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_disabled_extensions: List[str] = Field(default=[])
+    lnbits_extensions_manifests: List[str] = Field(
+        default=[
+            "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
+        ]
+    )
+
+    # required due to GitHUb rate-limit
+    lnbits_ext_github_token: str = Field(default="")
+
+
+class InstalledExtensionsSettings(LNbitsSettings):
+    # installed extensions that have been deactivated
+    lnbits_deactivated_extensions: List[str] = Field(default=[])
+    # upgraded extensions that require API redirects
+    lnbits_upgraded_extensions: List[str] = Field(default=[])
 
 
 class ThemesSettings(LNbitsSettings):
@@ -148,6 +167,10 @@ class BoltzExtensionSettings(LNbitsSettings):
     boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
 
 
+class LightningSettings(LNbitsSettings):
+    lightning_invoice_expiry: int = Field(default=600)
+
+
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
@@ -167,10 +190,12 @@ class FundingSourcesSettings(
 
 class EditableSettings(
     UsersSettings,
+    ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
+    LightningSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -216,20 +241,35 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "VoidWallet",
             "FakeWallet",
-            "CLightningWallet",
+            "CoreLightningWallet",
             "LndRestWallet",
+            "EclairWallet",
             "LndWallet",
-            "LntxbotWallet",
+            "LnTipsWallet",
             "LNPayWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
-            "LnTipsWallet",
         ]
     )
 
 
+class TransientSettings(InstalledExtensionsSettings):
+    # Transient Settings:
+    #  - are initialized, updated and used at runtime
+    #  - are not read from a file or from the `setings` table
+    #  - are not persisted in the `settings` table when the settings are updated
+    #  - are cleared on server restart
+
+    @classmethod
+    def readonly_fields(cls):
+        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+
+
 class ReadOnlySettings(
-    EnvSettings, SaaSSettings, PersistenceSettings, SuperUserSettings
+    EnvSettings,
+    SaaSSettings,
+    PersistenceSettings,
+    SuperUserSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
@@ -245,7 +285,7 @@ class ReadOnlySettings(
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings):
+class Settings(EditableSettings, ReadOnlySettings, TransientSettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
@@ -305,6 +345,7 @@ def send_admin_user_to_saas():
 ############### INIT #################
 
 readonly_variables = ReadOnlySettings.readonly_fields()
+transient_variables = TransientSettings.readonly_fields()
 
 settings = Settings()
 
@@ -325,7 +366,7 @@ except:
 
 # printing enviroment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug(f"Enviroment Settings:")
+    logger.debug("Enviroment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 

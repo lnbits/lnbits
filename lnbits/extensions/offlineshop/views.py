@@ -1,19 +1,17 @@
 import time
 from datetime import datetime
 from http import HTTPStatus
-from typing import List
 
 from fastapi import Depends, HTTPException, Query, Request
 from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import get_standalone_payment
-from lnbits.core.models import Payment, User
+from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
 
 from . import offlineshop_ext, offlineshop_renderer
 from .crud import get_item, get_shop
-from .models import Item
 
 
 @offlineshop_ext.get("/", response_class=HTMLResponse)

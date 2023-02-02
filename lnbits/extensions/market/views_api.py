@@ -1,9 +1,6 @@
-from base64 import urlsafe_b64encode
 from http import HTTPStatus
-from typing import List, Union
-from uuid import uuid4
 
-from fastapi import Body, Depends, Query, Request
+from fastapi import Depends, Query
 from loguru import logger
 from starlette.exceptions import HTTPException
 
@@ -17,7 +14,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
+from lnbits.utils.exchange_rates import currencies
 
 from . import db, market_ext
 from .crud import (
@@ -48,7 +45,6 @@ from .crud import (
     get_market_settings,
     get_market_stall,
     get_market_stalls,
-    get_market_stalls_by_ids,
     get_market_zone,
     get_market_zones,
     set_market_order_pubkey,
@@ -60,12 +56,7 @@ from .crud import (
 )
 from .models import (
     CreateMarket,
-    CreateMarketStalls,
-    Orders,
-    Products,
     SetSettings,
-    Stalls,
-    Zones,
     createOrder,
     createProduct,
     createStalls,
@@ -312,7 +303,7 @@ async def api_market_order_create(data: createOrder):
     payment_hash, payment_request = await create_invoice(
         wallet_id=data.wallet,
         amount=data.total,
-        memo=f"New order on Market",
+        memo="New order on Market",
         extra={
             "tag": "market",
             "reference": ref,

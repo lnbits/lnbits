@@ -1,7 +1,6 @@
 imports_ok = True
 try:
     import grpc
-    from google import protobuf
     from grpc import RpcError
 except ImportError:  # pragma: nocover
     imports_ok = False
@@ -9,7 +8,7 @@ except ImportError:  # pragma: nocover
 import asyncio
 import base64
 import hashlib
-from os import environ, error
+from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
@@ -154,8 +153,11 @@ class LndWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
-        params: Dict = {"value": amount, "expiry": 600, "private": True}
+        params: Dict = {"value": amount, "private": True}
+        if kwargs.get("expiry"):
+            params["expiry"] = kwargs["expiry"]
         if description_hash:
             params["description_hash"] = description_hash
         elif unhashed_description:
@@ -213,11 +215,11 @@ class LndWallet(Wallet):
         error_message = None
         checking_id = None
 
-        if statuses[resp.status] == True:  # SUCCEEDED
+        if statuses[resp.status] is True:  # SUCCEEDED
             fee_msat = -resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
             checking_id = resp.payment_hash
-        elif statuses[resp.status] == False:
+        elif statuses[resp.status] is False:
             error_message = failure_reasons[resp.failure_reason]
 
         return PaymentResponse(
@@ -235,7 +237,7 @@ class LndWallet(Wallet):
             return PaymentStatus(None)
         try:
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        except RpcError as exc:
+        except RpcError:
             return PaymentStatus(None)
         if resp.settled:
             return PaymentStatus(True)

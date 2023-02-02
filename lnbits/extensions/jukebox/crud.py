@@ -58,7 +58,7 @@ async def get_jukebox_by_user(user: str) -> Optional[Jukebox]:
 async def get_jukeboxs(user: str) -> List[Jukebox]:
     rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
     for row in rows:
-        if row.sp_playlists == None:
+        if row.sp_playlists is None:
             await delete_jukebox(row.id)
     rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
 
@@ -77,7 +77,7 @@ async def delete_jukebox(juke_id: str):
 #####################################PAYMENTS
 
 
-async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
+async def create_jukebox_payment(data: CreateJukeboxPayment) -> CreateJukeboxPayment:
     await db.execute(
         """
         INSERT INTO jukebox.jukebox_payment (payment_hash, juke_id, song_id, paid)
@@ -87,7 +87,7 @@ async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
     )
     jukebox_payment = await get_jukebox_payment(data.payment_hash)
     assert jukebox_payment, "Newly created Jukebox Payment couldn't be retrieved"
-    return jukebox_payment
+    return data
 
 
 async def update_jukebox_payment(

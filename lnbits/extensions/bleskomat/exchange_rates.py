@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Callable, Dict, Union
+from typing import Callable, Union
 
 import httpx
 

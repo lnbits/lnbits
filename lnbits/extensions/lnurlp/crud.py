@@ -10,7 +10,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
     link_id = urlsafe_short_hash()[:6]
 
     result = await db.execute(
-        f"""
+        """
         INSERT INTO lnurlp.pay_links (
             id,
             wallet,
@@ -46,6 +46,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.fiat_base_multiplier,
         ),
     )
+    assert result
 
     link = await get_pay_link(link_id)
     assert link, "Newly created link couldn't be retrieved"

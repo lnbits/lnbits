@@ -574,11 +574,12 @@
                   .inkey
               )
               .then(function (response) {
-                self.emailaddresses = _.reject(self.emailaddresses, function (
-                  obj
-                ) {
-                  return obj.id == emailaddressId
-                })
+                self.emailaddresses = _.reject(
+                  self.emailaddresses,
+                  function (obj) {
+                    return obj.id == emailaddressId
+                  }
+                )
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)

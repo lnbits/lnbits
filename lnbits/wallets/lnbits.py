@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 from typing import AsyncGenerator, Dict, Optional
 
@@ -59,8 +58,11 @@ class LNbitsWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
         if description_hash:
             data["description_hash"] = description_hash.hex()
         if unhashed_description:
@@ -95,7 +97,7 @@ class LNbitsWallet(Wallet):
                 json={"out": True, "bolt11": bolt11},
                 timeout=None,
             )
-        ok, checking_id, fee_msat, preimage, error_message = (
+        ok, checking_id, _, _, error_message = (
             not r.is_error,
             None,
             None,

@@ -1,20 +1,15 @@
 import hashlib
 
 import pytest
-import pytest_asyncio
 
 from lnbits import bolt11
-from lnbits.core.crud import get_wallet
-from lnbits.core.views.api import (
-    CreateInvoiceData,
-    api_payment,
-    api_payments_create_invoice,
-)
+from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_regtest
+from ...helpers import get_random_invoice_data, is_fake, is_regtest
 
 WALLET = get_wallet_class()
+
 
 # check if the client is working
 @pytest.mark.asyncio
@@ -94,6 +89,21 @@ async def test_create_internal_invoice(client, inkey_headers_to):
     return invoice
 
 
+# check POST /api/v1/payments: invoice with custom expiry
+@pytest.mark.asyncio
+async def test_create_invoice_custom_expiry(client, inkey_headers_to):
+    data = await get_random_invoice_data()
+    expiry_seconds = 600 * 6 * 24 * 31  # 31 days in the future
+    data["expiry"] = expiry_seconds
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    assert response.status_code == 201
+    invoice = response.json()
+    bolt11_invoice = bolt11.decode(invoice["payment_request"])
+    assert bolt11_invoice.expiry == expiry_seconds
+
+
 # check POST /api/v1/payments: make payment
 @pytest.mark.asyncio
 async def test_pay_invoice(client, invoice, adminkey_headers_from):
@@ -112,7 +122,7 @@ async def test_check_payment_without_key(client, invoice):
     # check the payment status
     response = await client.get(f"/api/v1/payments/{invoice['payment_hash']}")
     assert response.status_code < 300
-    assert response.json()["paid"] == True
+    assert response.json()["paid"] is True
     assert invoice
     # not key, that's why no "details"
     assert "details" not in response.json()
@@ -130,7 +140,7 @@ async def test_check_payment_with_key(client, invoice, inkey_headers_from):
         f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
     )
     assert response.status_code < 300
-    assert response.json()["paid"] == True
+    assert response.json()["paid"] is True
     assert invoice
     # with key, that's why with "details"
     assert "details" in response.json()
@@ -190,7 +200,7 @@ async def test_api_payment_without_key(invoice):
     # check the payment status
     response = await api_payment(invoice["payment_hash"])
     assert type(response) == dict
-    assert response["paid"] == True
+    assert response["paid"] is True
     # no key, that's why no "details"
     assert "details" not in response
 
@@ -203,7 +213,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
     assert type(response) == dict
-    assert response["paid"] == True
+    assert response["paid"] is True
     assert "details" in response
 
 
@@ -244,3 +254,24 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
     return invoice
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice(
+    client, real_invoice, adminkey_headers_from, inkey_headers_from
+):
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+    invoice = response.json()
+    assert len(invoice["payment_hash"]) == 64
+    assert len(invoice["checking_id"]) > 0
+
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert type(response) == dict
+    assert response["paid"] is True

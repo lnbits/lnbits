@@ -12,7 +12,7 @@ def isValidDomain(str):
 
     # If the string is empty
     # return false
-    if str == None:
+    if str is None:
         return False
 
     # Return if the string

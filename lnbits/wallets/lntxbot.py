@@ -75,7 +75,6 @@ class LntxbotWallet(Wallet):
                 error_message = data["message"]
             except:
                 error_message = r.text
-                pass
 
             return InvoiceResponse(False, None, None, error_message)
 
@@ -97,7 +96,6 @@ class LntxbotWallet(Wallet):
                 error_message = data["message"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()

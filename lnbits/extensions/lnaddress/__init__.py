@@ -24,10 +24,10 @@ def lnaddress_renderer():
     return template_renderer(["lnbits/extensions/lnaddress/templates"])
 
 
-from .lnurl import *  # noqa
+from .lnurl import *  # noqa: F401,F403
 from .tasks import wait_for_paid_invoices
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403
 
 
 def lnaddress_start():

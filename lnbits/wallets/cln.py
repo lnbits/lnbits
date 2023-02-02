@@ -4,9 +4,7 @@ except ImportError:  # pragma: nocover
     LightningRpc = None
 
 import asyncio
-import hashlib
 import random
-import time
 from functools import partial, wraps
 from typing import AsyncGenerator, Optional
 
@@ -83,8 +81,9 @@ class CoreLightningWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
-        label = "lbl{}".format(random.random())
+        label = f"lbl{random.random()}"
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
@@ -103,6 +102,7 @@ class CoreLightningWallet(Wallet):
                 deschashonly=True
                 if unhashed_description
                 else False,  # we can't pass None here
+                expiry=kwargs.get("expiry"),
             )
 
             if r.get("code") and r.get("code") < 0:
@@ -126,7 +126,7 @@ class CoreLightningWallet(Wallet):
 
         payload = {
             "bolt11": bolt11,
-            "maxfeepercent": "{:.11}".format(fee_limit_percent),
+            "maxfeepercent": f"{fee_limit_percent:.11}",
             "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
         }
         try:

@@ -9,14 +9,23 @@ check: mypy checkprettier checkisort checkblack
 prettier: $(shell find lnbits -name "*.js" -o -name ".html")
 	./node_modules/.bin/prettier --write lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js  lnbits/extensions/*/static/components/*/*.html
 
+pyright:
+	./node_modules/.bin/pyright
+
 black:
 	poetry run black .
+
+flake8:
+	poetry run flake8
 
 mypy:
 	poetry run mypy
 
 isort:
 	poetry run isort .
+
+pylint:
+	poetry run pylint *.py lnbits/ tools/ tests/
 
 checkprettier: $(shell find lnbits -name "*.js" -o -name ".html")
 	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js lnbits/extensions/*/static/components/*/*.html

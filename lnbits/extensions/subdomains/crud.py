@@ -36,7 +36,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
         "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.id = ?",
         (payment_hash,),
     )
-    if row[8] == False:
+    if row[8] is False:
         await db.execute(
             """
             UPDATE subdomains.subdomain
