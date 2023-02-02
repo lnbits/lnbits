@@ -206,7 +206,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    return await (conn or db).execute(
+    await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?
@@ -214,6 +214,9 @@ async def update_wallet(
         """,
         (new_name, wallet_id),
     )
+    wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
+    assert wallet, "updated created wallet couldn't be retrieved"
+    return wallet
 
 
 async def delete_wallet(
@@ -393,13 +396,11 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
-    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
-    # combine limit and offset clauses
-    limit_offset_clause = (
-        f"{limit_clause} {offset_clause}"
-        if limit_clause and offset_clause
-        else limit_clause or offset_clause
+    limit_clause = (
+        f"LIMIT {limit}" if limit and type(limit) == int and limit > 0 else ""
+    )
+    offset_clause = (
+        f"OFFSET {offset}" if offset and type(offset) == int and offset > 0 else ""
     )
 
     where = ""
@@ -412,7 +413,8 @@ async def get_payments(
         FROM apipayments
         {where}
         ORDER BY time DESC
-        {limit_offset_clause}
+        {limit_clause}
+        {offset_clause}
         """,
         tuple(args),
     )
@@ -705,15 +707,19 @@ async def update_admin_settings(data: EditableSettings):
     await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
-async def update_super_user(super_user: str):
+async def update_super_user(super_user: str) -> SuperSettings:
     await db.execute("UPDATE settings SET super_user = ?", (super_user,))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings
+    return settings
 
 
 async def create_admin_settings(super_user: str, new_settings: dict):
     sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings
+    return settings
 
 
 # db versions
