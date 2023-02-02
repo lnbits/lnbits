@@ -6,6 +6,7 @@ and delivery to the specific person
 
 import json
 from collections import defaultdict
+from typing import AsyncGenerator
 
 from fastapi import WebSocket
 from loguru import logger
@@ -34,7 +35,7 @@ class Notifier:
         # Create notification generator:
         self.generator = self.get_notification_generator()
 
-    async def get_notification_generator(self):
+    async def get_notification_generator(self) -> AsyncGenerator:
         """Notification Generator"""
 
         while True:
@@ -54,9 +55,8 @@ class Notifier:
             logger.exception(f"There is no member in room: {room_name}")
             return None
 
-    async def push(self, message: str, room_name: str = None):
+    async def push(self, message: str, room_name: str):
         """Push a message"""
-
         message_body = {"message": message, "room_name": room_name}
         await self.generator.asend(message_body)
 

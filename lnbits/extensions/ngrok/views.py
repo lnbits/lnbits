@@ -2,7 +2,7 @@ from os import getenv
 
 from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
-from pyngrok import conf, ngrok
+from pyngrok import conf, ngrok  # type: ignore
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists

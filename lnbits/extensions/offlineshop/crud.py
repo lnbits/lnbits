@@ -22,12 +22,12 @@ async def create_shop(*, wallet_id: str) -> int:
     if db.type == SQLITE:
         return result._result_proxy.lastrowid
     else:
-        return result[0]
+        return result[0]  # type: ignore
 
 
 async def get_shop(id: int) -> Optional[Shop]:
     row = await db.fetchone("SELECT * FROM offlineshop.shops WHERE id = ?", (id,))
-    return Shop(**dict(row)) if row else None
+    return Shop(**row) if row else None
 
 
 async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
@@ -40,7 +40,7 @@ async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
         ls_id = await create_shop(wallet_id=wallet)
         return await get_shop(ls_id)
 
-    return Shop(**dict(row)) if row else None
+    return Shop(**row) if row else None
 
 
 async def set_method(shop: int, method: str, wordlist: str = "") -> Optional[Shop]:
