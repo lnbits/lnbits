@@ -1,12 +1,8 @@
 import asyncio
 import hashlib
-import json
-from http import HTTPStatus
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
-from fastapi.exceptions import HTTPException
-from loguru import logger
 
 from lnbits.settings import settings
 
@@ -24,8 +20,13 @@ class LNPayWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnpay_api_endpoint
+        wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
+
+        if not endpoint or not wallet_key or not settings.lnpay_api_key:
+            raise Exception("cannot initialize lnpay")
+
+        self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
         self.auth = {"X-Api-Key": settings.lnpay_api_key}
 
     async def status(self) -> StatusResponse:
@@ -54,7 +55,6 @@ class LNPayWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
@@ -133,27 +133,27 @@ class LNPayWallet(Wallet):
             value = await self.queue.get()
             yield value
 
-    async def webhook_listener(self):
-        text: str = await request.get_data()
-        try:
-            data = json.loads(text)
-        except json.decoder.JSONDecodeError:
-            logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
-            data = None
-        if (
-            type(data) is not dict
-            or "event" not in data
-            or data["event"].get("name") != "wallet_receive"
-        ):
-            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    # async def webhook_listener(self):
+    #     text: str = await request.get_data()
+    #     try:
+    #         data = json.loads(text)
+    #     except json.decoder.JSONDecodeError:
+    #         logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
+    #         data = None
+    #     if (
+    #         type(data) is not dict
+    #         or "event" not in data
+    #         or data["event"].get("name") != "wallet_receive"
+    #     ):
+    #         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-        lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{self.endpoint}/lntx/{lntx_id}?fields=settled", headers=self.auth
-            )
-            data = r.json()
-            if data["settled"]:
-                await self.queue.put(lntx_id)
+    #     lntx_id = data["data"]["wtx"]["lnTx"]["id"]
+    #     async with httpx.AsyncClient() as client:
+    #         r = await client.get(
+    #             f"{self.endpoint}/lntx/{lntx_id}?fields=settled", headers=self.auth
+    #         )
+    #         data = r.json()
+    #         if data["settled"]:
+    #             await self.queue.put(lntx_id)
 
-        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
