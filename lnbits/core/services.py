@@ -70,6 +70,7 @@ async def create_invoice(
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
+    fee:int=0
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
 
@@ -99,6 +100,7 @@ async def create_invoice(
         extra=extra,
         webhook=webhook,
         conn=conn,
+        fee=fee
     )
 
     return invoice.payment_hash, payment_request

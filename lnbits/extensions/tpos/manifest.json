@@ -1,0 +1,14 @@
+{
+    "extensions": [
+         {
+            "id": "tpos",
+            "repo": "https://github.com/lnbits/tpos-extension",
+            "name": "TPoS",
+            "version": "0.3",
+            "short_description": "Secure, mobile-ready, instant and shareable point of sale",
+            "icon": "https://raw.githubusercontent.com/lnbits/tpos-extension/main/static/image/tpos.png",
+            "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/extensions/lnticket/support-tickets-extension.zip",
+            "hash": "fc39e367474c6d1337004555c3625dbaef29fc5c0ee5e2ddeeb47d8f0a8bb4e1"
+        }
+    ]
+}
