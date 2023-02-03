@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
+from typing import Optional
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
@@ -25,18 +26,25 @@ async def index(
 
 
 @cashu_ext.get("/wallet")
-async def wallet(request: Request, mint_id: str):
-    cashu = await get_cashu(mint_id)
-    if not cashu:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
-        )
+async def wallet(request: Request, mint_id: Optional[str] = None):
+    if mint_id is not None:
+        cashu = await get_cashu(mint_id)
+        if not cashu:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
+            )
+        manifest_url = f"/cashu/manifest/{mint_id}.webmanifest"
+        mint_name = cashu.name
+    else:
+        manifest_url = "/cashu/cashu.webmanifest"
+        mint_name = "Cashu mint"
+
     return cashu_renderer().TemplateResponse(
         "cashu/wallet.html",
         {
             "request": request,
-            "web_manifest": f"/cashu/manifest/{mint_id}.webmanifest",
-            "mint_name": cashu.name,
+            "web_manifest": manifest_url,
+            "mint_name": mint_name,
         },
     )
 
@@ -55,16 +63,32 @@ async def cashu(request: Request, mintID):
 
 
 @cashu_ext.get("/manifest/{cashu_id}.webmanifest")
-async def manifest(cashu_id: str):
+async def manifest_lnbits(cashu_id: str):
     cashu = await get_cashu(cashu_id)
     if not cashu:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Mint does not exist."
         )
 
+    return get_manifest(cashu_id, cashu.name)
+
+
+@cashu_ext.get("/cashu.webmanifest")
+async def manifest():
+    return get_manifest()
+
+
+def get_manifest(mint_id: Optional[str] = None, mint_name: Optional[str] = None):
+    manifest_name = "Cashu"
+    if mint_name:
+        manifest_name += " - " + mint_name
+    manifest_url = "/cashu/wallet"
+    if mint_id:
+        manifest_url += "?mint_id=" + mint_id
+
     return {
         "short_name": "Cashu",
-        "name": "Cashu" + " - " + cashu.name,
+        "name": manifest_name,
         "icons": [
             {
                 "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/android/android-launchericon-512-512.png",
@@ -77,23 +101,23 @@ async def manifest(cashu_id: str):
                 "sizes": "96x96",
             },
         ],
-        "id": "/cashu/wallet?mint_id=" + cashu_id,
-        "start_url": "/cashu/wallet?mint_id=" + cashu_id,
+        "id": manifest_url,
+        "start_url": manifest_url,
         "background_color": "#1F2234",
         "description": "Cashu ecash wallet",
         "display": "standalone",
         "scope": "/cashu/",
         "theme_color": "#1F2234",
         "protocol_handlers": [
-            {"protocol": "cashu", "url": "&recv_token=%s"},
-            {"protocol": "lightning", "url": "&lightning=%s"},
+            {"protocol": "web+cashu", "url": "&recv_token=%s"},
+            {"protocol": "web+lightning", "url": "&lightning=%s"},
         ],
         "shortcuts": [
             {
-                "name": "Cashu" + " - " + cashu.name,
+                "name": manifest_name,
                 "short_name": "Cashu",
-                "description": "Cashu" + " - " + cashu.name,
-                "url": "/cashu/wallet?mint_id=" + cashu_id,
+                "description": manifest_name,
+                "url": manifest_url,
                 "icons": [
                     {
                         "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/android/android-launchericon-512-512.png",

@@ -4,7 +4,7 @@ page_container %}
 <q-page-container>
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-sm q-pb-md">
-      <div class="col-12 col-sm-8 col-md-9 col-lg-7 text-center q-gutter-y-md">
+      <div class="col-12 col-sm-11 col-md-8 text-center q-gutter-y-md">
         <q-card class="q-my-md q-py-sm">
           <q-card-section class="q-my-sm q-py-xs">
             <div class="gt-sm">
@@ -17,14 +17,14 @@ page_container %}
                     rectangle
                     color="primary"
                     @click="showInvoiceCreateDialog"
-                    ><strong>Get invoice</strong>
+                    ><strong>Create invoice</strong>
                   </q-btn>
                 </div>
                 <div class="col-6">
                   <h3 class="q-my-none q-py-none">
                     <center>
-                      <strong>{% raw %} {{getBalance()}} </strong>
-                      {{tickershort}}{% endraw %}
+                      <strong>{% raw %} {{ getBalance() }} </strong
+                      >{{tickerShort}} {% endraw %}
                     </center>
                   </h3>
                 </div>
@@ -47,8 +47,8 @@ page_container %}
                 <div class="col-12">
                   <h3 class="q-my-none q-py-none">
                     <center>
-                      <strong>{% raw %} {{getBalance()}} </strong>
-                      {{tickershort}}{% endraw %}
+                      <strong>{% raw %} {{ getBalance() }} </strong>
+                      {{tickerShort}} {% endraw %}
                     </center>
                   </h3>
                 </div>
@@ -95,8 +95,80 @@ page_container %}
               <q-tab name="invoices" label="Invoices"></q-tab>
               <q-tab name="tokens" label="Tokens"></q-tab>
               <q-tab name="history" label="History"></q-tab>
+              <q-tab name="settings" label="Settings"></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
+              <!-- ////////////////////// SETTINGS ////////////////// -->
+
+              <q-tab-panel name="settings">
+                <div class="q-pa-md bg-grey-10 text-white text-left" on-left>
+                  <q-list padding>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label overline>Cashu mints</q-item-label>
+                        <q-item-label>{{item}}</q-item-label>
+                        <q-item-label caption
+                          >You have to connect your wallet to one or more
+                          mints.</q-item-label
+                        >
+                      </q-item-section>
+                    </q-item>
+
+                    <q-item-label header>Your mints</q-item-label>
+                    <div v-for="(mint, index) in mints" :key="mint.url">
+                      {% raw %}
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon
+                            :color="mint.url == activeMintURL ? 'primary' : 'grey'"
+                            name="link"
+                            @click="activateMint(mint.url, verbose=false)"
+                          />
+                        </q-item-section>
+                        <q-item-section> {{mint.url}}</q-item-section>
+                        <q-item-section side>
+                          <q-badge
+                            :color="mint.url == activeMintURL ? 'primary' : 'grey'"
+                            :label="mint.balance + ' ' + tickerShort"
+                          />
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-icon name="cancel" @click="removeMint(mint.url)" />
+                        </q-item-section>
+                      </q-item>
+                      {% endraw %}
+                      <q-separator spaced inset="item" />
+                    </div>
+                  </q-list>
+                </div>
+                <div class="q-gutter-md q-pt-md">
+                  <div class="row-12">
+                    <q-input
+                      standout
+                      bottom-slots
+                      v-model="mintToAdd"
+                      label="Mint URL"
+                    >
+                      <template v-slot:before>
+                        <q-icon name="account_balance" />
+                      </template>
+
+                      <!-- <template v-slot:hint> Enter Mint URL</template> -->
+
+                      <template v-slot:append>
+                        <q-btn
+                          round
+                          dense
+                          flat
+                          icon="add"
+                          click
+                          @click="addMint(mintToAdd)"
+                        />
+                      </template>
+                    </q-input>
+                  </div>
+                </div>
+              </q-tab-panel>
               <!-- ////////////////// TOKEN LIST ///////////////// -->
 
               <q-tab-panel name="tokens">
@@ -304,29 +376,35 @@ page_container %}
         </div>
       </div>
 
-      <q-tabs
-        class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
-        align="center"
-        inline-label
-        indicator-color="transparent"
-      >
-        <q-tab
-          class="q-pa-none"
-          icon="bolt"
-          label="Get invoice"
-          @click="showInvoiceCreateDialog"
+      <div class="q-col-gutter" style="max-width: 600px">
+        <q-tabs
+          class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
+          indicator-color="transparent"
+          align="justify"
         >
-        </q-tab>
-        <q-tab icon="photo_camera" v-if="hasCamera" @click="showCamera">
-        </q-tab>
-        <q-tab
-          icon="bolt"
-          class="q-pa-none"
-          label="Pay invoice"
-          @click="showParseDialog"
-        >
-        </q-tab>
-      </q-tabs>
+          <q-tab
+            class="col-5"
+            label="Create Invoice"
+            icon="bolt"
+            @click="showInvoiceCreateDialog"
+          >
+          </q-tab>
+          <q-tab
+            class="col-2"
+            icon="photo_camera"
+            v-if="hasCamera"
+            @click="showCamera"
+          >
+          </q-tab>
+          <q-tab
+            class="col-5"
+            icon="bolt"
+            @click="showParseDialog"
+            label="Pay Invoice"
+          >
+          </q-tab>
+        </q-tabs>
+      </div>
 
       <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
@@ -684,7 +762,7 @@ page_container %}
               <!-- <a class="text-secondary" :href="'cashu:' + sendData.tokensBase64"> -->
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64"
+                  :value="walletURL + '&recv_token=' + sendData.tokensBase64"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -720,7 +798,7 @@ page_container %}
               >
               <q-btn
                 color="primary"
-                @click="copyText(disclaimerDialog.base_url + '?mint_id=' + mintId + '&recv_token=' + sendData.tokensBase64)"
+                @click="copyText(walletURL + '&recv_token=' + sendData.tokensBase64)"
                 >Copy link</q-btn
               >
             </div>
@@ -822,12 +900,17 @@ page_container %}
     mixins: [windowMixin],
     data: function () {
       return {
-        tickershort: '',
+        tickerShort: 'sats',
+        ticketLong: 'Satoshis',
         name: '',
-
         mintId: '',
         mintName: '',
+        mintToAdd: 'https://8333.space:3338',
+        activeMintURL: '',
+        mints: [],
         keys: '',
+        proofs: [],
+        activeProofs: [],
         invoicesCashu: [],
         historyTokens: [],
         invoiceData: {
@@ -844,12 +927,7 @@ page_container %}
         invoiceCheckListener: () => {},
         payInvoiceData: {
           blocking: false,
-          // invoice: '',
           bolt11: '',
-          // camera: {
-          //   show: false,
-          //   camera: 'auto'
-          // }
           show: false,
           invoice: null,
           lnurlpay: null,
@@ -881,7 +959,6 @@ page_container %}
         promises: [],
         tokens: [],
         tab: 'invoices',
-
         receive: {
           show: false,
           status: 'pending',
@@ -913,7 +990,6 @@ page_container %}
           }
         },
         payments: [],
-
         tokensTable: {
           columns: [
             {
@@ -1050,16 +1126,12 @@ page_container %}
           location: window.location,
           base_url: location.protocol + '//' + location.host + location.pathname
         },
-
+        baseURL: location.protocol + '//' + location.host + location.pathname,
         credit: 0,
         newName: ''
       }
     },
     computed: {
-      formattedBalance: function () {
-        return this.balance / 100
-      },
-
       canPay: function () {
         if (!this.payInvoiceData.invoice) return false
         return this.payInvoiceData.invoice.sat <= this.balance
@@ -1069,7 +1141,7 @@ page_container %}
       },
 
       balance: function () {
-        return this.proofs
+        return this.activeProofs
           .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
@@ -1081,14 +1153,50 @@ page_container %}
       }
     },
     methods: {
+      addMint: function (url) {
+        var verbose = false
+        if (this.mints.filter(m => m.url == url).length == 0) {
+          this.mints.push({url: url})
+          this.$q.localStorage.set('cashu.mints', this.mints)
+          verbose = true
+        }
+        this.activateMint(url, verbose)
+      },
+      removeMint: function (url) {
+        this.mints = this.mints.filter(m => m.url != url)
+        this.$q.localStorage.set('cashu.mints', this.mints)
+        this.activateMint(this.mints[0].url)
+        this.notifySuccess('Mint removed.')
+      },
       getBalance: function () {
-        return this.proofs
+        var balance = this.activeProofs
           .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
+        this.mints.filter(m => m.url == this.activeMintURL)[0].balance = balance
+        return balance
+      },
+      activateMint: async function (url, verbose = false) {
+        let presiouvURL = this.activeMintURL
+        try {
+          this.activeMintURL = url
+          keys = await this.fetchMintKeys()
+          // load proofs
+          this.activeProofs = this.proofs.filter(p =>
+            this.keysets.includes(p.id)
+          )
+
+          if (verbose) {
+            this.notifySuccess('Connected to mint.')
+          }
+        } catch (error) {
+          this.activeMintURL = presiouvURL
+          this.notifyError('Could not connect to mint.')
+          throw error
+        }
       },
       getTokenList: function () {
-        const amounts = this.proofs.map(t => t.amount)
+        const amounts = this.activeProofs.map(t => t.amount)
         const counts = {}
 
         for (const num of amounts) {
@@ -1536,6 +1644,21 @@ page_container %}
         return this.proofs
       },
 
+      serializeProofs: function (proofs) {
+        // unique keyset IDs of proofs
+        var uniqueIds = [...new Set(proofs.map(p => p.id))]
+        // mints that have any of the keyset IDs
+        var mints_keysets = this.mints.filter(m =>
+          m.keysets.some(r => uniqueIds.indexOf(r) >= 0)
+        )
+        // what we put into the JSON
+        var mints = mints_keysets.map(m => [{url: m.url, ids: m.keysets}][0])
+        var token = {
+          proofs: proofs,
+          mints
+        }
+        return btoa(JSON.stringify(token))
+      },
       //////////// API ///////////
 
       // MINT
@@ -1553,10 +1676,10 @@ page_container %}
         gets an invoice from the mint to get new tokens
         */
         try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            `/cashu/api/v1/${this.mintId}/mint?amount=${this.invoiceData.amount}`
+          const {data} = await axios.get(
+            `${this.activeMintURL}/mint?amount=${this.invoiceData.amount}`
           )
+          this.assertMintError(data)
           console.log('### data', data)
 
           this.invoiceData.bolt11 = data.pr
@@ -1583,19 +1706,20 @@ page_container %}
         asks the mint to check whether the invoice with payment_hash has been paid
         and requests signing of the attached outputs.
         */
-        console.log('### promises', payment_hash)
+
         try {
           let secrets = await this.generateSecrets(amounts)
           let {outputs, rs} = await this.constructOutputs(amounts, secrets)
-          const promises = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/mint?payment_hash=${payment_hash}`,
-            '',
+          const promises = await axios.post(
+            `${this.activeMintURL}/mint?payment_hash=${payment_hash}`,
             {
               outputs
             }
           )
-          console.log('### promises data', promises.data.promises)
+          this.assertMintError(promises.data)
+          if (promises.data.promises == null) {
+            return {}
+          }
           let proofs = await this.constructProofs(
             promises.data.promises,
             secrets,
@@ -1618,6 +1742,8 @@ page_container %}
             throw 'could not mint'
           }
           this.proofs = this.proofs.concat(proofs)
+          // hack to update balance
+          this.activeProofs = this.activeProofs.concat([])
           this.storeProofs()
 
           // update UI
@@ -1690,12 +1816,11 @@ page_container %}
             outputs
           }
 
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/split`,
-            '',
+          const {data} = await axios.post(
+            `${this.activeMintURL}/split`,
             payload
           )
+          this.assertMintError(data)
           const frst_rs = rs.slice(0, frst_amounts.length)
           const frst_secrets = secrets.slice(0, frst_amounts.length)
           const scnd_rs = rs.slice(frst_amounts.length)
@@ -1759,6 +1884,10 @@ page_container %}
               this.proofs[i].reserved = true
             }
           }
+
+          // hack: to make Vue JS update
+          this.proofs = this.proofs.concat([])
+
           if (invlalidate) {
             // delete scndProofs from db
             this.deleteProofs(scndProofs)
@@ -1782,15 +1911,32 @@ page_container %}
           if (this.receiveData.tokensBase64.length == 0) {
             throw new Error('no tokens provided.')
           }
-          const tokenJson = atob(this.receiveData.tokensBase64)
-          const proofs = JSON.parse(tokenJson)
+          const tokenJson = JSON.parse(atob(this.receiveData.tokensBase64))
+          const proofs = tokenJson.proofs
           const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+
+          // check if we have all mints
+          for (var i = 0; i < tokenJson.mints.length; i++) {
+            if (!this.mints.map(m => m.url).includes(tokenJson.mints[i].url)) {
+              this.addMint(tokenJson.mints[i].url)
+            }
+          }
+
+          // TODO: We assume here that all proofs are from one mint! This will fail if
+          // that's not the case!
+          if (!tokenJson.mints[0].url == this.activeMintURL) {
+            this.activateMint(tokenJson.mints[0].url)
+          }
+
+          // redeem
           let {fristProofs, scndProofs} = await this.split(proofs, amount)
 
           // update UI
 
           // HACK: we need to do this so the balance updates
           this.proofs = this.proofs.concat([])
+          this.activeProofs = this.activeProofs.concat([])
+          this.getBalance()
 
           this.historyTokens.push({
             status: 'paid',
@@ -1801,19 +1947,20 @@ page_container %}
           this.storehistoryTokens()
 
           if (window.navigator.vibrate) navigator.vibrate(200)
-          this.$q.notify({
-            timeout: 5000,
-            type: 'positive',
-            message: 'Tokens received',
-            position: 'top',
-            actions: [
-              {
-                icon: 'close',
-                color: 'white',
-                handler: () => {}
-              }
-            ]
-          })
+          this.notifySuccess('Tokens received.')
+          // this.$q.notify({
+          //   timeout: 5000,
+          //   type: 'positive',
+          //   message: 'Tokens received',
+          //   position: 'top',
+          //   actions: [
+          //     {
+          //       icon: 'close',
+          //       color: 'white',
+          //       handler: () => {}
+          //     }
+          //   ]
+          // })
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -1829,7 +1976,7 @@ page_container %}
         try {
           // keep firstProofs, send scndProofs and delete them (invalidate=true)
           let {fristProofs, scndProofs} = await this.splitToSend(
-            this.proofs,
+            this.activeProofs,
             this.sendData.amount,
             true
           )
@@ -1837,9 +1984,7 @@ page_container %}
           // update UI
           this.sendData.tokens = scndProofs
           console.log('### this.sendData.tokens', this.sendData.tokens)
-          this.sendData.tokensBase64 = btoa(
-            JSON.stringify(this.sendData.tokens)
-          )
+          this.sendData.tokensBase64 = this.serializeProofs(scndProofs)
 
           this.historyTokens.push({
             status: 'pending',
@@ -1877,7 +2022,7 @@ page_container %}
         )
 
         let {fristProofs, scndProofs} = await this.splitToSend(
-          this.proofs,
+          this.activeProofs,
           amount
         )
         const payload = {
@@ -1885,28 +2030,24 @@ page_container %}
           amount,
           pr: this.payInvoiceData.data.request
         }
-        console.log('#### payload', JSON.stringify(payload))
         try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/melt`,
-            '',
-            payload
-          )
+          const {data} = await axios.post(`${this.activeMintURL}/melt`, payload)
+          this.assertMintError(data)
           if (window.navigator.vibrate) navigator.vibrate(200)
-          this.$q.notify({
-            timeout: 5000,
-            type: 'positive',
-            message: 'Invoice paid',
-            position: 'top',
-            actions: [
-              {
-                icon: 'close',
-                color: 'white',
-                handler: () => {}
-              }
-            ]
-          })
+          this.notifySuccess('Token paid.')
+          // this.$q.notify({
+          //   timeout: 5000,
+          //   type: 'positive',
+          //   message: 'Invoice paid',
+          //   position: 'top',
+          //   actions: [
+          //     {
+          //       icon: 'close',
+          //       color: 'white',
+          //       handler: () => {}
+          //     }
+          //   ]
+          // })
           // delete spent tokens from db
           this.deleteProofs(scndProofs)
 
@@ -1965,15 +2106,12 @@ page_container %}
             return {secret: p.secret}
           })
         }
-        console.log('#### payload', JSON.stringify(payload))
         try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/check`,
-            '',
+          const {data} = await axios.post(
+            `${this.activeMintURL}/check`,
             payload
           )
-
+          this.assertMintError(data)
           // delete proofs from database if it is spent
           let spentProofs = proofs.filter((p, pidx) => !data.spendable[pidx])
           if (spentProofs.length) {
@@ -2006,14 +2144,12 @@ page_container %}
         const payload = {
           pr: payment_request
         }
-        console.log('#### payload', JSON.stringify(payload))
         try {
-          const {data} = await LNbits.api.request(
-            'POST',
-            `/cashu/api/v1/${this.mintId}/checkfees`,
-            '',
+          const {data} = await axios.post(
+            `${this.activeMintURL}/checkfees`,
             payload
           )
+          this.assertMintError(data)
           console.log('#### checkFees', payment_request, data.fee)
           return data.fee
         } catch (error) {
@@ -2026,15 +2162,48 @@ page_container %}
       // /keys
 
       fetchMintKeys: async function () {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/cashu/api/v1/${this.mintId}/keys`
-        )
-        this.keys = data
-        localStorage.setItem(
-          this.mintKey(this.mintId, 'keys'),
-          JSON.stringify(data)
-        )
+        try {
+          const {data} = await axios.get(`${this.activeMintURL}/keys`, {
+            timeout: 2000
+          })
+          var keys = data
+          this.assertMintError(keys)
+          this.keys = keys
+          localStorage.setItem('cashu.keys', JSON.stringify(keys))
+          keysets = await this.fetchMintKeysets()
+          // save keys to mints in local storage
+          if (this.mints.filter(m => m.url == this.activeMintURL).length) {
+            this.mints.filter(m => m.url == this.activeMintURL)[0].keys = keys
+            this.mints.filter(m => m.url == this.activeMintURL)[0].keysets =
+              keysets
+            this.$q.localStorage.set('cashu.activeMintURL', this.activeMintURL)
+            this.$q.localStorage.set('cashu.mints', this.mints)
+          }
+
+          return keys
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
+      },
+
+      // /keysets
+
+      fetchMintKeysets: async function () {
+        try {
+          const {data} = await axios.get(`${this.activeMintURL}/keysets`, {
+            timeout: 2000
+          })
+          this.assertMintError(data)
+          this.keysets = data.keysets
+          localStorage.setItem('cashu.keysets', JSON.stringify(data.keysets))
+          return data.keysets
+        } catch (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
       },
 
       ////////////// UI HELPERS //////////////
@@ -2058,7 +2227,12 @@ page_container %}
       checkPendingInvoices: async function () {
         for (const invoice of this.invoicesCashu) {
           if (invoice.status === 'pending' && invoice.amount > 0) {
-            this.checkInvoice(invoice.hash, false)
+            try {
+              await this.checkInvoice(invoice.hash, false)
+            } catch (error) {
+              console.log(`${invoice.hash} still pending`)
+              throw error
+            }
           }
         }
       },
@@ -2082,7 +2256,7 @@ page_container %}
         if it is spent, the appropraite entry in the history table is set to paid.
         */
         const tokenJson = atob(token)
-        const proofs = JSON.parse(tokenJson)
+        const proofs = JSON.parse(tokenJson).proofs
         const spendable = await this.checkProofsSpendable(proofs)
         let paid = false
         if (spendable.includes(false)) {
@@ -2090,37 +2264,38 @@ page_container %}
           paid = true
         }
         if (paid) {
-          console.log('### token paid')
           if (window.navigator.vibrate) navigator.vibrate(200)
-          this.$q.notify({
-            timeout: 5000,
-            type: 'positive',
-            message: 'Token paid',
-            position: 'top',
-            actions: [
-              {
-                icon: 'close',
-                color: 'white',
-                handler: () => {}
-              }
-            ]
-          })
+          this.notifySuccess('Token paid.')
+          // this.$q.notify({
+          //   timeout: 5000,
+          //   type: 'positive',
+          //   message: 'Token paid',
+          //   position: 'top',
+          //   actions: [
+          //     {
+          //       icon: 'close',
+          //       color: 'white',
+          //       handler: () => {}
+          //     }
+          //   ]
+          // })
         } else {
           console.log('### token not paid yet')
           if (verbose) {
-            this.$q.notify({
-              timeout: 5000,
-              color: 'grey',
-              message: 'Token still pending',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
+            this.notify('Token still pending', (color = 'grey'))
+            // this.$q.notify({
+            //   timeout: 5000,
+            //   color: 'grey',
+            //   message: 'Token still pending',
+            //   position: 'top',
+            //   actions: [
+            //     {
+            //       icon: 'close',
+            //       color: 'white',
+            //       handler: () => {}
+            //     }
+            //   ]
+            // })
           }
           this.sendData.tokens = token
         }
@@ -2129,7 +2304,7 @@ page_container %}
 
       findTokenForAmount: function (amount) {
         // unused coin selection
-        for (const token of this.proofs) {
+        for (const token of this.activeProofs) {
           const index = token.promises?.findIndex(p => p.amount === amount)
           if (index >= 0) {
             return {
@@ -2175,19 +2350,7 @@ page_container %}
             this.invoiceData.bolt11 = ''
             this.showInvoiceDetails = false
             if (window.navigator.vibrate) navigator.vibrate(200)
-            this.$q.notify({
-              timeout: 5000,
-              type: 'positive',
-              message: 'Payment received',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
+            this.notifySuccess('Payment received', 'top')
           } catch (error) {
             console.log('not paid yet')
           }
@@ -2229,6 +2392,67 @@ page_container %}
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+      ////////////// UI HELPERS /////////////
+      assertMintError: function (response) {
+        if (response.error != null) {
+          this.notifyError(`Mint error: ${response.error}`)
+          throw new Error(`Mint error: ${response.error}`)
+        }
+      },
+      notifyError: async function (message) {
+        this.$q.notify({
+          color: 'red',
+          message: message,
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      notify: async function (
+        message,
+        type = 'null',
+        position = 'top',
+        caption = null,
+        color = null
+      ) {
+        // failure
+        this.$q.notify({
+          timeout: 5000,
+          type: type,
+          color: color,
+          message: message,
+          caption: caption,
+          position: position,
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      notifySuccess: async function (message, position = 'top') {
+        this.$q.notify({
+          timeout: 5000,
+          type: 'positive',
+          message: message,
+          position: position,
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+
       ////////////// STORAGE /////////////
 
       getLocalstorageToFile: async function () {
@@ -2260,23 +2484,34 @@ page_container %}
 
       storeinvoicesCashu: function () {
         localStorage.setItem(
-          this.mintKey(this.mintId, 'invoicesCashu'),
+          'cashu.invoicesCashu',
           JSON.stringify(this.invoicesCashu)
         )
       },
       storehistoryTokens: function () {
         localStorage.setItem(
-          this.mintKey(this.mintId, 'historyTokens'),
+          'cashu.historyTokens',
           JSON.stringify(this.historyTokens)
         )
       },
       storeProofs: function () {
         localStorage.setItem(
-          this.mintKey(this.mintId, 'proofs'),
+          'cashu.proofs',
           JSON.stringify(this.proofs, bigIntStringify)
         )
       },
-
+      migrationLocalstorage: function () {
+        // migration from old db to multimint
+        const old_proofs = JSON.parse(
+          this.$q.localStorage.getItem(`cashu.${this.mintId}.proofs`)
+        )
+        if (old_proofs) {
+          this.proofs = this.proofs.concat(old_proofs)
+          this.storeProofs()
+          this.$q.localStorage.remove(`cashu.${this.mintId}.proofs`)
+          this.notifySuccess('Migration complete.')
+        }
+      },
       mintKey: function (mintId, key) {
         // returns a key for the local storage
         // depending on the current mint
@@ -2284,83 +2519,101 @@ page_container %}
       }
     },
     watch: {
-      payments: function () {
-        this.balance()
+      // payments: function () {
+      //   this.getBalance()
+      // },
+      proofs: function () {
+        if (this.keysets) {
+          this.activeProofs = this.proofs.filter(p =>
+            this.keysets.includes(p.id)
+          )
+        }
       }
     },
 
     mounted: function () {},
 
-    created: function () {
+    created: async function () {
       let params = new URL(document.location).searchParams
 
-      // get mint
+      // load mints
+      if (this.$q.localStorage.getItem('cashu.mints')) {
+        this.mints = this.$q.localStorage.getItem('cashu.mints')
+      }
+
+      // mint url
       if (params.get('mint_id')) {
         this.mintId = params.get('mint_id')
-        this.$q.localStorage.set('cashu.mint', params.get('mint_id'))
-      } else if (this.$q.localStorage.getItem('cashu.mint')) {
-        this.mintId = this.$q.localStorage.getItem('cashu.mint')
-      } else {
-        this.$q.notify({
-          color: 'red',
-          message: 'No mint set!',
-          position: 'center'
-        })
+        // works with only lnbits mints
+        activeMintURL =
+          location.protocol +
+          '//' +
+          location.host +
+          `/cashu/api/v1/${this.mintId}`
+        this.walletURL = this.baseURL + '?mint_id=' + this.mintId
+        this.addMint(activeMintURL)
       }
+      if (this.$q.localStorage.getItem('cashu.activeMintURL')) {
+        if (!this.activeMintURL) {
+          this.walletURL = this.baseURL
+        }
+        activeMintURL = this.$q.localStorage.getItem('cashu.activeMintURL')
+        this.addMint(activeMintURL)
+      }
+      if (!this.activeMintURL) {
+        this.walletURL = this.baseURL
+        this.notifyError('No mint set!')
+        this.tab = 'settings'
+      }
+
+      // todo: remove:
+      if (!this.mintId.length) {
+        this.mintId = 'dummy'
+      }
+
+      console.log('Mint URL ' + this.activeMintURL)
+      console.log('Wallet URL ' + this.walletURL)
 
       // get name
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
-        this.$q.localStorage.set(
-          this.mintKey(this.mintId, 'mintName'),
-          this.mintName
-        )
-      } else if (this.$q.localStorage.getItem('cashu.name')) {
-        this.mintName = this.$q.localStorage.getItem('cashu.name')
       }
 
-      // get ticker
-      if (
-        !params.get('tsh') &&
-        !this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
-      ) {
-        this.$q.localStorage.set(
-          this.mintKey(this.mintId, 'tickershort'),
-          'sats'
-        )
-        this.tickershort = 'sats'
-      } else if (params.get('tsh')) {
-        this.$q.localStorage.set(
-          this.mintKey(this.mintId, 'tickershort'),
-          params.get('tsh')
-        )
-        this.tickershort = params.get('tsh')
-      } else if (
-        this.$q.localStorage.getItem(this.mintKey(this.mintId, 'tickershort'))
-      ) {
-        this.tickershort = this.$q.localStorage.getItem(
-          this.mintKey(this.mintId, 'tickershort')
-        )
+      if (this.activeMintURL.length) {
+        await this.fetchMintKeys()
       }
 
-      const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
-      if (!keysJson) {
-        this.fetchMintKeys()
-      } else {
-        this.keys = JSON.parse(keysJson)
-      }
+      // const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
+      // if (!keysJson) {
+      //   if (this.activeMintURL.length) {
+      //     this.fetchMintKeys()
+      //   }
+      // } else {
+      //   this.keys = JSON.parse(keysJson)
+      // }
+
+      // this.invoicesCashu = JSON.parse(
+      //   localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
+      // )
+
+      // this.historyTokens = JSON.parse(
+      //   localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
+      // )
+      // this.proofs = JSON.parse(
+      //   localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
+      // )
 
       this.invoicesCashu = JSON.parse(
-        localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
+        localStorage.getItem('cashu.invoicesCashu') || '[]'
       )
 
       this.historyTokens = JSON.parse(
-        localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
+        localStorage.getItem('cashu.historyTokens') || '[]'
       )
+      this.proofs = JSON.parse(localStorage.getItem('cashu.proofs') || '[]')
 
-      this.proofs = JSON.parse(
-        localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
-      )
+      // run migrations
+      this.migrationLocalstorage()
 
       // get recv_token to receive tokens from a link
       if (params.get('recv_token')) {
@@ -2386,14 +2639,16 @@ page_container %}
         this.payInvoiceData.data.request = params.get('lightning')
       }
 
-      console.log('### invoicesCashu', this.invoicesCashu)
-      console.table('### tokens', this.proofs)
-      console.log('#### this.mintId', this.mintId)
-      console.log('#### this.mintName', this.mintName)
-
-      this.checkProofsSpendable(this.proofs, true)
-      this.checkPendingInvoices()
-      this.checkPendingTokens()
+      // startup tasks
+      this.checkProofsSpendable(this.activeProofs, true).catch(err => {
+        return
+      })
+      this.checkPendingInvoices().catch(err => {
+        return
+      })
+      this.checkPendingTokens().catch(err => {
+        return
+      })
     }
   })
 </script>
