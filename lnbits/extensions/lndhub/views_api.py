@@ -228,4 +228,3 @@ async def lndhub_decodeinvoice(invoice: str = Query(None)):
 @lndhub_ext.get("/ext/checkrouteinvoice")
 async def lndhub_checkrouteinvoice():
     "not implemented on canonical lndhub"
-    pass

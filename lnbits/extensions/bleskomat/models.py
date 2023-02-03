@@ -85,7 +85,7 @@ class BleskomatLnurl(BaseModel):
         # Perform tag-specific checks.
         if tag == "withdrawRequest":
             for field in ["pr"]:
-                if not field in query:
+                if field not in query:
                     raise LnurlValidationError(f'Missing required parameter: "{field}"')
             # Check the bolt11 invoice(s) provided.
             pr = query["pr"]

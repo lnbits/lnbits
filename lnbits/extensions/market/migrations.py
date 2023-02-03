@@ -139,7 +139,7 @@ async def m001_initial(db):
             id_conversation TEXT NOT NULL,
             timestamp TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
-        + """            
+        + """
         );
     """
     )

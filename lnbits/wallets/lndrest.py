@@ -2,13 +2,11 @@ import asyncio
 import base64
 import hashlib
 import json
-from pydoc import describe
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -114,7 +112,7 @@ class LndRestWallet(Wallet):
         async with httpx.AsyncClient(verify=self.cert) as client:
             # set the fee limit for the payment
             lnrpcFeeLimit = dict()
-            lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
+            lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",

@@ -32,7 +32,7 @@ async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[Submari
 
 async def get_all_pending_submarine_swaps() -> List[SubmarineSwap]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltz.submarineswap WHERE status='pending' order by time DESC",
+        "SELECT * FROM boltz.submarineswap WHERE status='pending' order by time DESC",
     )
     return [SubmarineSwap(**row) for row in rows]
 
@@ -107,7 +107,7 @@ async def get_reverse_submarine_swaps(
 
 async def get_all_pending_reverse_submarine_swaps() -> List[ReverseSubmarineSwap]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltz.reverse_submarineswap WHERE status='pending' order by time DESC"
+        "SELECT * FROM boltz.reverse_submarineswap WHERE status='pending' order by time DESC"
     )
 
     return [ReverseSubmarineSwap(**row) for row in rows]

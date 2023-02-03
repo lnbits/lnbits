@@ -68,7 +68,7 @@ async def m006_add_gerty_model_col(db):
     """
     await db.execute("ALTER TABLE gerty.mempool RENAME TO mempool_old")
     await db.execute(
-        f"""
+        """
         CREATE TABLE gerty.mempool (
             id TEXT PRIMARY KEY,
             mempool_endpoint TEXT NOT NULL,

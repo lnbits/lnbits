@@ -8,7 +8,6 @@ from lnurl import Lnurl
 from lnurl import encode as lnurl_encode
 from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel
-from pydantic.main import BaseModel
 
 
 class satsdiceLink(BaseModel):

@@ -1,7 +1,10 @@
 import hashlib
+import json
 import random
 import secrets
 import string
+import time
+from subprocess import PIPE, Popen, run
 
 from lnbits.core.crud import create_payment
 from lnbits.settings import get_wallet_class
@@ -24,10 +27,10 @@ async def credit_wallet(wallet_id: str, amount: int):
     )
 
 
-def get_random_string(N=10):
+def get_random_string(N: int = 10):
     return "".join(
         random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(10)
+        for _ in range(N)
     )
 
 
@@ -38,3 +41,48 @@ async def get_random_invoice_data():
 WALLET = get_wallet_class()
 is_fake: bool = WALLET.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
+
+
+docker_bitcoin_rpc = "lnbits"
+docker_prefix = "lnbits-legend"
+docker_cmd = "docker exec"
+
+docker_lightning = f"{docker_cmd} {docker_prefix}-clightning-2-1"
+docker_lightning_cli = f"{docker_lightning} lightning-cli --network regtest"
+
+docker_bitcoin = f"{docker_cmd} {docker_prefix}-bitcoind-1-1"
+docker_bitcoin_cli = f"{docker_bitcoin} bitcoin-cli -rpcuser={docker_bitcoin_rpc} -rpcpassword={docker_bitcoin_rpc} -regtest"
+
+
+def run_cmd(cmd: str) -> str:
+    return run(cmd, shell=True, capture_output=True).stdout.decode("UTF-8").strip()
+
+
+def run_cmd_json(cmd: str) -> dict:
+    return json.loads(run_cmd(cmd))
+
+
+def get_real_invoice(sats: int, prefix: str, description: str = "test") -> dict:
+    msats = sats * 1000
+    return run_cmd_json(
+        f"{docker_lightning_cli} invoice {msats} {prefix}-{time.time()} {description}"
+    )
+
+
+def pay_real_invoice(invoice: str) -> Popen:
+    return Popen(
+        f"{docker_lightning_cli} pay {invoice}", shell=True, stdin=PIPE, stdout=PIPE
+    )
+
+
+def mine_blocks(blocks: int = 1) -> str:
+    return run_cmd(f"{docker_bitcoin_cli} -generate {blocks}")
+
+
+def create_onchain_address(address_type: str = "bech32") -> str:
+    return run_cmd(f"{docker_bitcoin_cli} getnewaddress {address_type}")
+
+
+def pay_onchain(address: str, sats: int) -> str:
+    btc = sats * 0.00000001
+    return run_cmd(f"{docker_bitcoin_cli} sendtoaddress {address} {btc}")

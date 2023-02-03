@@ -130,7 +130,7 @@ async def set_address_paid(payment_hash: str) -> Addresses:
     address = await get_address(payment_hash)
     assert address
 
-    if address.paid == False:
+    if address.paid is False:
         await db.execute(
             """
             UPDATE lnaddress.address

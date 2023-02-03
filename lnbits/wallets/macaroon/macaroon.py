@@ -7,7 +7,6 @@ from Cryptodome.Cipher import AES
 from loguru import logger
 
 BLOCK_SIZE = 16
-import getpass
 
 
 def load_macaroon(macaroon: str) -> str:
@@ -33,7 +32,7 @@ def load_macaroon(macaroon: str) -> str:
     return macaroon
 
 
-class AESCipher(object):
+class AESCipher:
     """This class is compatible with crypto-js/aes.js
 
     Encrypt and decrypt in Javascript using:

@@ -1,5 +1,3 @@
-import asyncio
-
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
 
@@ -24,5 +22,5 @@ def gerty_renderer():
     return template_renderer(["lnbits/extensions/gerty/templates"])
 
 
-from .views import *  # noqa
-from .views_api import *  # noqa
+from .views import *  # noqa: F401,F403
+from .views_api import *  # noqa: F401,F403

@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 from typing import AsyncGenerator, Dict, Optional
 
@@ -98,7 +97,7 @@ class LNbitsWallet(Wallet):
                 json={"out": True, "bolt11": bolt11},
                 timeout=None,
             )
-        ok, checking_id, fee_msat, preimage, error_message = (
+        ok, checking_id, _, _, error_message = (
             not r.is_error,
             None,
             None,

@@ -1,7 +1,6 @@
 import secrets
 
 import pytest
-import pytest_asyncio
 
 from lnbits.core.crud import get_wallet
 from lnbits.extensions.bleskomat.crud import get_bleskomat_lnurl
@@ -10,8 +9,6 @@ from lnbits.extensions.bleskomat.helpers import (
     query_to_signing_payload,
 )
 from lnbits.settings import get_wallet_class, settings
-from tests.conftest import client
-from tests.extensions.bleskomat.conftest import bleskomat, lnurl
 from tests.helpers import credit_wallet, is_regtest
 
 WALLET = get_wallet_class()
@@ -115,7 +112,7 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
     assert wallet.balance_msat == 0
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl, not None
-    assert bleskomat_lnurl.has_uses_remaining() == True
+    assert bleskomat_lnurl.has_uses_remaining() is True
     WALLET.pay_invoice.assert_not_called()
 
 
@@ -140,5 +137,5 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     assert wallet.balance_msat == 50000
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl, not None
-    assert bleskomat_lnurl.has_uses_remaining() == False
+    assert bleskomat_lnurl.has_uses_remaining() is False
     WALLET.pay_invoice.assert_called_once_with(pr, 2000)

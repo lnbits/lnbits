@@ -83,7 +83,7 @@ async def api_link_create_or_update(
             detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST
         )
 
-    if data.currency == None and (
+    if data.currency is None and (
         round(data.min) != data.min or round(data.max) != data.max or data.min < 1
     ):
         raise HTTPException(

@@ -23,7 +23,7 @@ async def get_invoice(invoice_id: str) -> Optional[Invoice]:
 
 async def get_invoice_items(invoice_id: str) -> List[InvoiceItem]:
     rows = await db.fetchall(
-        f"SELECT * FROM invoices.invoice_items WHERE invoice_id = ?", (invoice_id,)
+        "SELECT * FROM invoices.invoice_items WHERE invoice_id = ?", (invoice_id,)
     )
 
     return [InvoiceItem.from_row(row) for row in rows]
@@ -54,7 +54,7 @@ async def get_invoices(wallet_ids: Union[str, List[str]]) -> List[Invoice]:
 
 async def get_invoice_payments(invoice_id: str) -> List[Payment]:
     rows = await db.fetchall(
-        f"SELECT * FROM invoices.payments WHERE invoice_id = ?", (invoice_id,)
+        "SELECT * FROM invoices.payments WHERE invoice_id = ?", (invoice_id,)
     )
 
     return [Payment.from_row(row) for row in rows]

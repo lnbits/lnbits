@@ -249,6 +249,26 @@
         }
       }
     },
+    computed: {
+      boltzExample() {
+        let amount = 100000
+        let onchain_lnbits = 1000
+        let onchain_boltz = 500
+        let boltz_fee = (amount * this.boltzConfig.fee_percentage) / 100
+        let normal_fee_total = onchain_boltz + boltz_fee
+        let reverse_fee_total = onchain_boltz + boltz_fee + onchain_lnbits
+        return {
+          amount: amount,
+          boltz_fee: boltz_fee,
+          reverse_fee_total: reverse_fee_total,
+          reverse_receive: amount - reverse_fee_total,
+          onchain_lnbits: onchain_lnbits,
+          onchain_boltz: onchain_boltz,
+          normal_fee_total: normal_fee_total,
+          normal_expected_amount: amount + normal_fee_total
+        }
+      }
+    },
     methods: {
       getLimits() {
         if (this.boltzConfig) {

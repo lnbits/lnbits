@@ -123,7 +123,7 @@ async def api_get_jukebox_song(
             if "items" not in r.json():
                 if r.status_code == 401:
                     token = await api_get_token(juke_id)
-                    if token == False:
+                    if token is False:
                         return False
                     elif retry:
                         raise HTTPException(
@@ -205,7 +205,7 @@ async def api_get_jukebox_device_check(
             return json.loads(rDevice.text)
         elif rDevice.status_code == 401 or rDevice.status_code == 403:
             token = await api_get_token(juke_id)
-            if token == False:
+            if token is False:
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, detail="No devices connected"
                 )
@@ -309,7 +309,7 @@ async def api_get_jukebox_invoice_paid(
             if rDevice.status_code == 200:
                 isPlaying = rDevice.json()["is_playing"]
 
-            if r.status_code == 204 or isPlaying == False:
+            if r.status_code == 204 or isPlaying is False:
                 async with httpx.AsyncClient() as client:
                     uri = ["spotify:track:" + song_id]
                     assert jukebox.sp_device
@@ -324,7 +324,7 @@ async def api_get_jukebox_invoice_paid(
                         return jukebox_payment
                     elif r.status_code == 401 or r.status_code == 403:
                         token = await api_get_token(juke_id)
-                        if token == False:
+                        if token is False:
                             raise HTTPException(
                                 status_code=HTTPStatus.FORBIDDEN,
                                 detail="Invoice not paid",
@@ -359,7 +359,7 @@ async def api_get_jukebox_invoice_paid(
 
                     elif r.status_code == 401 or r.status_code == 403:
                         token = await api_get_token(juke_id)
-                        if token == False:
+                        if token is False:
                             raise HTTPException(
                                 status_code=HTTPStatus.FORBIDDEN,
                                 detail="Invoice not paid",
@@ -379,7 +379,7 @@ async def api_get_jukebox_invoice_paid(
                         )
             elif r.status_code == 401 or r.status_code == 403:
                 token = await api_get_token(juke_id)
-                if token == False:
+                if token is False:
                     raise HTTPException(
                         status_code=HTTPStatus.OK, detail="Invoice not paid"
                     )
@@ -433,7 +433,7 @@ async def api_get_jukebox_currently(
 
             elif r.status_code == 401:
                 token = await api_get_token(juke_id)
-                if token == False:
+                if token is False:
                     raise HTTPException(
                         status_code=HTTPStatus.FORBIDDEN, detail="Invoice not paid"
                     )

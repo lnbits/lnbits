@@ -184,7 +184,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     async with db.connect() as conn:
         try:
-            payment_hash, payment_request = await create_invoice(
+            _, payment_request = await create_invoice(
                 wallet_id=wallet.id,
                 amount=amount,
                 memo=memo,
@@ -560,10 +560,10 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                 for [k, v] in metadata:
                     if k == "text/plain":
                         params.update(description=v)
-                    if k == "image/jpeg;base64" or k == "image/png;base64":
+                    if k in ("image/jpeg;base64", "image/png;base64"):
                         data_uri = "data:" + k + "," + v
                         params.update(image=data_uri)
-                    if k == "text/email" or k == "text/identifier":
+                    if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)
                 params.update(commentAllowed=data.get("commentAllowed", 0))
 
@@ -702,7 +702,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         websocketManager.disconnect(websocket)
 
@@ -760,6 +760,8 @@ async def api_install_extension(
 
         if extension.upgrade_hash:
             ext_info.nofiy_upgrade()
+
+        return extension
 
     except Exception as ex:
         logger.warning(ex)

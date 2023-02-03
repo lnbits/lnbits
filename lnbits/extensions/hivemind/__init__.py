@@ -21,4 +21,4 @@ hivemind_static_files = [
     }
 ]
 
-from .views import *  # noqa
+from .views import *  # noqa: F401,F403

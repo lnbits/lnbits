@@ -92,7 +92,7 @@ python3.9 -m venv venv
 # create the data folder and the .env file
 mkdir data && cp .env.example .env
 # build the static files
-./venv/bin/python build.py
+./venv/bin/python tools/build.py
 ```
 
 #### Running the server

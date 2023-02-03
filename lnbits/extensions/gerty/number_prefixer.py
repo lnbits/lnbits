@@ -31,7 +31,7 @@ def si_formatter(value):
     the value cannot be classified.
     """
     classifier = si_classifier(value)
-    if classifier == None:
+    if classifier is None:
         # Don't know how to classify this value
         return None
 
@@ -48,7 +48,7 @@ def si_format(value, precision=4, long_form=False, separator=""):
     """
     scaled, short_suffix, long_suffix = si_formatter(value)
 
-    if scaled == None:
+    if scaled is None:
         # Don't know how to format this value
         return value
 

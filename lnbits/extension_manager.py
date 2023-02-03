@@ -240,7 +240,7 @@ class InstallableExtension(BaseModel):
             return False
         with open(config_file, "r") as json_file:
             config_json = json.load(json_file)
-            return config_json.get("is_installed") == True
+            return config_json.get("is_installed") is True
 
     def download_archive(self):
         ext_zip_file = self.zip_path
@@ -467,7 +467,7 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if not "path" in scope:
+        if "path" not in scope:
             await self.app(scope, receive, send)
             return
 

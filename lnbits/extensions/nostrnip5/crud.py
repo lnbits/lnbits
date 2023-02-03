@@ -58,7 +58,7 @@ async def get_address_by_local_part(
 
 async def get_addresses(domain_id: str) -> List[Address]:
     rows = await db.fetchall(
-        f"SELECT * FROM nostrnip5.addresses WHERE domain_id = ?", (domain_id,)
+        "SELECT * FROM nostrnip5.addresses WHERE domain_id = ?", (domain_id,)
     )
 
     return [Address.from_row(row) for row in rows]
