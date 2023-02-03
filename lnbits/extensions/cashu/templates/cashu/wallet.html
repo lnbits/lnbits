@@ -2085,7 +2085,7 @@ page_container %}
         const proofs = JSON.parse(tokenJson)
         const spendable = await this.checkProofsSpendable(proofs)
         let paid = false
-        if (spendable.includes(true)) {
+        if (spendable.includes(false)) {
           this.setTokenPaid(token)
           paid = true
         }
