@@ -1701,7 +1701,7 @@ page_container %}
               outputs
             }
           )
-          this.assertMintError(promises.data)
+          this.assertMintError(promises.data, false)
           if (promises.data.promises == null) {
             return {}
           }
@@ -1733,13 +1733,12 @@ page_container %}
 
           // update UI
           await this.setInvoicePaid(payment_hash)
-          tokensBase64 = btoa(JSON.stringify(proofs))
 
           this.historyTokens.push({
             status: 'paid',
             amount: amount,
             date: currentDateStr(),
-            token: tokensBase64
+            token: this.serializeProofs(proofs)
           })
           this.storehistoryTokens()
 
@@ -1932,19 +1931,6 @@ page_container %}
 
           if (window.navigator.vibrate) navigator.vibrate(200)
           this.notifySuccess('Tokens received.')
-          // this.$q.notify({
-          //   timeout: 5000,
-          //   type: 'positive',
-          //   message: 'Tokens received',
-          //   position: 'top',
-          //   actions: [
-          //     {
-          //       icon: 'close',
-          //       color: 'white',
-          //       handler: () => {}
-          //     }
-          //   ]
-          // })
         } catch (error) {
           console.error(error)
           LNbits.utils.notifyApiError(error)
@@ -2018,31 +2004,17 @@ page_container %}
           this.assertMintError(data)
           if (window.navigator.vibrate) navigator.vibrate(200)
           this.notifySuccess('Token paid.')
-          // this.$q.notify({
-          //   timeout: 5000,
-          //   type: 'positive',
-          //   message: 'Invoice paid',
-          //   position: 'top',
-          //   actions: [
-          //     {
-          //       icon: 'close',
-          //       color: 'white',
-          //       handler: () => {}
-          //     }
-          //   ]
-          // })
+
           // delete spent tokens from db
           this.deleteProofs(scndProofs)
 
           // update UI
 
-          tokensBase64 = btoa(JSON.stringify(scndProofs))
-
           this.historyTokens.push({
             status: 'paid',
             amount: -amount,
             date: currentDateStr(),
-            token: tokensBase64
+            token: this.serializeProofs(scndProofs)
           })
           this.storehistoryTokens()
 
@@ -2102,13 +2074,11 @@ page_container %}
 
             // update UI
             if (update_history) {
-              tokensBase64 = btoa(JSON.stringify(spentProofs))
-
               this.historyTokens.push({
                 status: 'paid',
                 amount: -this.sumProofs(spentProofs),
                 date: currentDateStr(),
-                token: tokensBase64
+                token: this.serializeProofs(spentProofs)
               })
               this.storehistoryTokens()
             }
@@ -2376,9 +2346,11 @@ page_container %}
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
       ////////////// UI HELPERS /////////////
-      assertMintError: function (response) {
+      assertMintError: function (response, verbose = true) {
         if (response.error != null) {
-          this.notifyError(`Mint error: ${response.error}`)
+          if (verbose) {
+            this.notifyError(`Mint error: ${response.error}`)
+          }
           throw new Error(`Mint error: ${response.error}`)
         }
       },
