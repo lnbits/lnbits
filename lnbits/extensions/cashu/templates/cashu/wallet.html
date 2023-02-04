@@ -2547,7 +2547,7 @@ page_container %}
           this.proofs = this.proofs.concat(old_proofs)
           this.storeProofs()
           this.$q.localStorage.remove(`cashu.${this.mintId}.proofs`)
-          thiss.addMint(this.baseHost + `/cashu/api/v1/${this.mintId}`)
+          this.addMint(this.baseHost + `/cashu/api/v1/${this.mintId}`)
           this.notifySuccess('Migration complete.')
         }
       },
