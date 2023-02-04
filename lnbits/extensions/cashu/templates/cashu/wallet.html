@@ -1,48 +1,13 @@
-{% extends "public.html" %} {% block toolbar_title %} {% raw %} Cashu {% endraw
-%} - {{mint_name}} {% endblock %} {% block footer %}{% endblock %} {% block
+{% extends "public.html" %} {% block toolbar_title %} {% raw %} Cashu wallet {%
+endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
 page_container %}
 <q-page-container>
   <q-page>
     <div class="row q-col-gutter-md justify-center q-pt-sm q-pb-md">
       <div class="col-12 col-sm-11 col-md-8 text-center q-gutter-y-md">
         <q-card class="q-my-md q-py-sm">
-          <q-card-section class="q-my-sm q-py-xs">
-            <div class="gt-sm">
-              <div class="row">
-                <div class="col-3 q-pt-sm">
-                  <q-btn
-                    class="full-width"
-                    size="14px"
-                    icon="bolt"
-                    rectangle
-                    color="primary"
-                    @click="showInvoiceCreateDialog"
-                    ><strong>Create invoice</strong>
-                  </q-btn>
-                </div>
-                <div class="col-6">
-                  <h3 class="q-my-none q-py-none">
-                    <center>
-                      <strong>{% raw %} {{ getBalance() }} </strong
-                      >{{tickerShort}} {% endraw %}
-                    </center>
-                  </h3>
-                </div>
-                <div class="col-3 q-pt-sm">
-                  <q-btn
-                    class="full-width"
-                    @click="showParseDialog"
-                    size="14px"
-                    icon="bolt"
-                    rectangle
-                    color="primary"
-                    class="full-width"
-                    ><strong>Pay invoice</strong>
-                  </q-btn>
-                </div>
-              </div>
-            </div>
-            <div class="lt-md">
+          <q-card-section class="q-mt-sm q-py-xs">
+            <div>
               <div class="row">
                 <div class="col-12">
                   <h3 class="q-my-none q-py-none">
@@ -53,12 +18,20 @@ page_container %}
                   </h3>
                 </div>
               </div>
+              <div class="row q-mt-sm q-mb-none">
+                <div class="col-12">
+                  <a>
+                    All mints: {% raw %}{{ getTotalBalance }} {{tickerShort}} {%
+                    endraw %}</a
+                  >
+                </div>
+              </div>
             </div>
           </q-card-section>
         </q-card>
 
         <q-card class="q-mt-xs">
-          <q-card-section>
+          <q-card-section class="q-pt-sm">
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-6 col-sm-5 col-md-4 q-px-xs">
                 <q-btn
@@ -66,10 +39,12 @@ page_container %}
                   rectangle
                   unelevated
                   color="primary"
+                  align="between"
                   icon="file_download"
+                  icon-right="toll"
                   class="full-width"
                   @click="showReceiveTokensDialog"
-                  >Get Ecash</q-btn
+                  >Receive Ecash</q-btn
                 >
               </div>
               <div class="col-0 col-sm-2 col-md-4"></div>
@@ -78,12 +53,14 @@ page_container %}
                   size="12px"
                   rectangle
                   unelevated
+                  align="between"
                   color="primary"
                   icon="file_upload"
+                  icon-right="toll"
                   class="full-width"
                   @click="showSendTokensDialog"
                 >
-                  Pay Ecash</q-btn
+                  Send Ecash</q-btn
                 >
               </div>
             </div>
@@ -93,39 +70,48 @@ page_container %}
             /////////////////////////////////////////// -->
             <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
               <q-tab name="invoices" label="Invoices"></q-tab>
-              <q-tab name="tokens" label="Tokens"></q-tab>
+              <!-- <q-tab name="tokens" label="Tokens"></q-tab> -->
               <q-tab name="history" label="History"></q-tab>
               <q-tab name="settings" label="Settings"></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
               <!-- ////////////////////// SETTINGS ////////////////// -->
 
-              <q-tab-panel name="settings">
-                <div class="q-pa-md bg-grey-10 text-white text-left" on-left>
+              <q-tab-panel name="settings" class="q-px-sm">
+                <div
+                  class="q-py-md q-px-xs bg-grey-10 text-white text-left"
+                  on-left
+                >
                   <q-list padding>
                     <q-item>
                       <q-item-section>
                         <q-item-label overline>Cashu mints</q-item-label>
-                        <q-item-label>{{item}}</q-item-label>
                         <q-item-label caption
-                          >You have to connect your wallet to one or more
-                          mints.</q-item-label
+                          >You can use use multiple Cashu mints in this wallet.
+                          Add the mint URL and select the mint you want to
+                          use.</q-item-label
                         >
                       </q-item-section>
                     </q-item>
 
-                    <q-item-label header>Your mints</q-item-label>
+                    <!-- <q-item-label header>Your mints</q-item-label> -->
                     <div v-for="(mint, index) in mints" :key="mint.url">
                       {% raw %}
                       <q-item>
                         <q-item-section avatar>
                           <q-icon
                             :color="mint.url == activeMintURL ? 'primary' : 'grey'"
-                            name="link"
+                            :name="mint.url == activeMintURL ? 'check_circle' : 'radio_button_unchecked'"
                             @click="activateMint(mint.url, verbose=false)"
                           />
                         </q-item-section>
-                        <q-item-section> {{mint.url}}</q-item-section>
+                        <q-item-section>
+                          <q-item-label lines="1">{{mint.url}}</q-item-label>
+                          <!-- <q-item-label caption v-if="mint.url == activeMintURL"
+                            >This is your active mint.</q-item-label
+                          > -->
+                        </q-item-section>
+
                         <q-item-section side>
                           <q-badge
                             :color="mint.url == activeMintURL ? 'primary' : 'grey'"
@@ -133,7 +119,7 @@ page_container %}
                           />
                         </q-item-section>
                         <q-item-section side>
-                          <q-icon name="cancel" @click="removeMint(mint.url)" />
+                          <q-icon name="close" @click="removeMint(mint.url)" />
                         </q-item-section>
                       </q-item>
                       {% endraw %}
@@ -141,7 +127,7 @@ page_container %}
                     </div>
                   </q-list>
                 </div>
-                <div class="q-gutter-md q-pt-md">
+                <div class="q-gutter-md q-pt-md q-px-sm">
                   <div class="row-12">
                     <q-input
                       standout
@@ -353,30 +339,64 @@ page_container %}
           </q-card-section>
         </q-card>
 
-        <div class="q-pa-sd q-pt-xs" style="margin-bottom: 5rem" align="center">
-          <q-btn
-            class="q-mx-sm"
-            size="10px"
-            rectangle
-            color="warning"
-            outline
-            @click="showDisclaimerDialog"
-          >
-            Warning</q-btn
-          >
-          <q-btn
-            class="q-mx-sm"
-            size="10px"
-            outline
-            rectangle
-            color="warning"
-            @click="getLocalstorageToFile"
-            >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
-          >
+        <div style="margin-bottom: 7rem">
+          <div class="row q-pt-sm">
+            <div class="col-4 q-pt-none">
+              <q-btn
+                class="full-width gt-sm"
+                size="14px"
+                icon-right="bolt"
+                icon="file_download"
+                align="between"
+                rectangle
+                color="primary"
+                @click="showInvoiceCreateDialog"
+                ><strong>Create invoice</strong>
+              </q-btn>
+            </div>
+            <!-- <div class="col-4"></div> -->
+            <div class="col-4 q-pt-xs">
+              <div align="center">
+                <q-btn
+                  class="q-mx-sm"
+                  size="10px"
+                  rectangle
+                  color="warning"
+                  outline
+                  @click="showDisclaimerDialog"
+                >
+                  Warning</q-btn
+                >
+                <q-btn
+                  class="q-mx-sm"
+                  size="10px"
+                  outline
+                  rectangle
+                  color="warning"
+                  @click="getLocalstorageToFile"
+                  >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
+                >
+              </div>
+            </div>
+            <div class="col-4 q-pt-none">
+              <q-btn
+                class="full-width gt-sm"
+                @click="showParseDialog"
+                size="14px"
+                icon-right="bolt"
+                icon="file_upload"
+                align="between"
+                rectangle
+                color="primary"
+                class="full-width"
+                ><strong>Pay invoice</strong>
+              </q-btn>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="q-col-gutter" style="max-width: 600px">
+      <div class="q-col-gutter">
         <q-tabs
           class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
           indicator-color="transparent"
@@ -958,7 +978,7 @@ page_container %}
         showReceiveTokens: false,
         promises: [],
         tokens: [],
-        tab: 'invoices',
+        tab: 'settings',
         receive: {
           show: false,
           status: 'pending',
@@ -1126,6 +1146,7 @@ page_container %}
           location: window.location,
           base_url: location.protocol + '//' + location.host + location.pathname
         },
+        baseHost: location.protocol + '//' + location.host,
         baseURL: location.protocol + '//' + location.host + location.pathname,
         credit: 0,
         newName: ''
@@ -1145,6 +1166,12 @@ page_container %}
           .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
+      },
+      getTotalBalance: function () {
+        return this.proofs
+          .map(t => t)
+          .flat()
+          .reduce((sum, el) => (sum += el.amount), 0)
       }
     },
     filters: {
@@ -1156,7 +1183,7 @@ page_container %}
       addMint: function (url) {
         var verbose = false
         if (this.mints.filter(m => m.url == url).length == 0) {
-          this.mints.push({url: url})
+          this.mints.push({url: url, balance: 0})
           this.$q.localStorage.set('cashu.mints', this.mints)
           verbose = true
         }
@@ -1173,7 +1200,10 @@ page_container %}
           .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
-        this.mints.filter(m => m.url == this.activeMintURL)[0].balance = balance
+        if (this.mints.length > 0) {
+          this.mints.filter(m => m.url == this.activeMintURL)[0].balance =
+            balance
+        }
         return balance
       },
       activateMint: async function (url, verbose = false) {
@@ -1187,11 +1217,11 @@ page_container %}
           )
 
           if (verbose) {
-            this.notifySuccess('Connected to mint.')
+            this.notifySuccess('Mint added.')
           }
         } catch (error) {
           this.activeMintURL = presiouvURL
-          this.notifyError('Could not connect to mint.')
+          this.notifyError('Could not add mint.')
           throw error
         }
       },
@@ -1912,21 +1942,29 @@ page_container %}
             throw new Error('no tokens provided.')
           }
           const tokenJson = JSON.parse(atob(this.receiveData.tokensBase64))
-          const proofs = tokenJson.proofs
-          const amount = proofs.reduce((s, t) => (s += t.amount), 0)
+          // v1 tokens:
+          var proofs = ''
+          if (tokenJson.proofs == null) {
+            proofs = tokenJson
+          } else {
+            proofs = tokenJson.proofs
+            // check if we have all mints
+            for (var i = 0; i < tokenJson.mints.length; i++) {
+              if (
+                !this.mints.map(m => m.url).includes(tokenJson.mints[i].url)
+              ) {
+                this.addMint(tokenJson.mints[i].url)
+              }
+            }
 
-          // check if we have all mints
-          for (var i = 0; i < tokenJson.mints.length; i++) {
-            if (!this.mints.map(m => m.url).includes(tokenJson.mints[i].url)) {
-              this.addMint(tokenJson.mints[i].url)
+            // TODO: We assume here that all proofs are from one mint! This will fail if
+            // that's not the case!
+            if (!tokenJson.mints[0].url == this.activeMintURL) {
+              this.activateMint(tokenJson.mints[0].url)
             }
           }
 
-          // TODO: We assume here that all proofs are from one mint! This will fail if
-          // that's not the case!
-          if (!tokenJson.mints[0].url == this.activeMintURL) {
-            this.activateMint(tokenJson.mints[0].url)
-          }
+          const amount = proofs.reduce((s, t) => (s += t.amount), 0)
 
           // redeem
           let {fristProofs, scndProofs} = await this.split(proofs, amount)
@@ -2509,6 +2547,7 @@ page_container %}
           this.proofs = this.proofs.concat(old_proofs)
           this.storeProofs()
           this.$q.localStorage.remove(`cashu.${this.mintId}.proofs`)
+          thiss.addMint(this.baseHost + `/cashu/api/v1/${this.mintId}`)
           this.notifySuccess('Migration complete.')
         }
       },

@@ -44,5 +44,4 @@ docker
 fly.toml
 
 # Ignore extensions (post installable extension PR)
-extensions/
 upgrades/

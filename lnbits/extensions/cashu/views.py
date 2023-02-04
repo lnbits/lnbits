@@ -58,7 +58,7 @@ async def cashu(request: Request, mintID):
         )
     return cashu_renderer().TemplateResponse(
         "cashu/mint.html",
-        {"request": request, "mint_name": cashu.name, "mint_id": mintID},
+        {"request": request, "mint_id": mintID},
     )
 
 
