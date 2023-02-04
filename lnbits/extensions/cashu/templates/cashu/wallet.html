@@ -1904,7 +1904,7 @@ page_container %}
 
             // TODO: We assume here that all proofs are from one mint! This will fail if
             // that's not the case!
-            if (!tokenJson.mints[0].url == this.activeMintURL) {
+            if (tokenJson.mints[0].url != this.activeMintURL) {
               this.activateMint(tokenJson.mints[0].url)
             }
           }
@@ -2219,36 +2219,10 @@ page_container %}
         if (paid) {
           if (window.navigator.vibrate) navigator.vibrate(200)
           this.notifySuccess('Token paid.')
-          // this.$q.notify({
-          //   timeout: 5000,
-          //   type: 'positive',
-          //   message: 'Token paid',
-          //   position: 'top',
-          //   actions: [
-          //     {
-          //       icon: 'close',
-          //       color: 'white',
-          //       handler: () => {}
-          //     }
-          //   ]
-          // })
         } else {
           console.log('### token not paid yet')
           if (verbose) {
             this.notify('Token still pending', (color = 'grey'))
-            // this.$q.notify({
-            //   timeout: 5000,
-            //   color: 'grey',
-            //   message: 'Token still pending',
-            //   position: 'top',
-            //   actions: [
-            //     {
-            //       icon: 'close',
-            //       color: 'white',
-            //       handler: () => {}
-            //     }
-            //   ]
-            // })
           }
           this.sendData.tokens = token
         }
