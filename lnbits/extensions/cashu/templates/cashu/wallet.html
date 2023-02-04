@@ -1200,7 +1200,7 @@ page_container %}
           .map(t => t)
           .flat()
           .reduce((sum, el) => (sum += el.amount), 0)
-        if (this.mints.length > 0) {
+        if (this.mints.length > 0 && this.activeMintURL) {
           this.mints.filter(m => m.url == this.activeMintURL)[0].balance =
             balance
         }
@@ -2551,10 +2551,10 @@ page_container %}
             if (old_proofs) {
               this.proofs = this.proofs.concat(old_proofs)
               this.storeProofs()
-              localStorage.removeItem(`cashu.${mint_id}.proofs`)
               let mint_url = this.baseHost + `/cashu/api/v1/${mint_id}`
               console.log('Adding mint', mint_url)
               this.addMint(mint_url)
+              localStorage.removeItem(`cashu.${mint_id}.proofs`)
             }
           }
         }
