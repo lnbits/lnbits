@@ -1182,7 +1182,10 @@ page_container %}
     methods: {
       addMint: function (url) {
         var verbose = false
-        if (this.mints.filter(m => m.url == url).length == 0) {
+        if (
+          this.mints.length == 0 ||
+          this.mints.filter(m => m.url == url).length == 0
+        ) {
           this.mints.push({url: url, balance: 0})
           localStorage.setItem('cashu.mints', this.mints)
           verbose = true
