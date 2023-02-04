@@ -1181,20 +1181,22 @@ page_container %}
     },
     methods: {
       addMint: function (url) {
-        var verbose = false
-        if (
-          this.mints.length == 0 ||
-          this.mints.filter(m => m.url == url).length == 0
-        ) {
+        var verbose = true
+        // we have no mints at all
+        if (this.mints.length == 0) {
+          this.mints = [{url: url, balance: 0}]
+        } else if (this.mints.filter(m => m.url == url).length == 0) {
+          // we don't have this mint yet
           this.mints.push({url: url, balance: 0})
-          localStorage.setItem('cashu.mints', this.mints)
-          verbose = true
+        } else {
+          verbose = false
         }
+        localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
         this.activateMint(url, verbose)
       },
       removeMint: function (url) {
         this.mints = this.mints.filter(m => m.url != url)
-        localStorage.setItem('cashu.mints', this.mints)
+        localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
         this.activateMint(this.mints[0].url)
         this.notifySuccess('Mint removed.')
       },
