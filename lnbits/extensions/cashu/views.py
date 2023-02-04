@@ -91,12 +91,12 @@ def get_manifest(mint_id: Optional[str] = None, mint_name: Optional[str] = None)
         "name": manifest_name,
         "icons": [
             {
-                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/512-512.png",
+                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/512x512.png",
                 "type": "image/png",
                 "sizes": "512x512",
             },
             {
-                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/96-96.png",
+                "src": "https://github.com/cashubtc/cashu-ui/raw/main/ui/icons/circle/96x96.png",
                 "type": "image/png",
                 "sizes": "96x96",
             },
