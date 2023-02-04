@@ -358,23 +358,23 @@ page_container %}
             <div class="col-4 q-pt-xs">
               <div align="center">
                 <q-btn
-                  class="q-mx-sm"
+                  class="q-mx-xs q-px-none"
                   size="10px"
                   rectangle
                   color="warning"
+                  icon="warning"
                   outline
                   @click="showDisclaimerDialog"
-                >
-                  Warning</q-btn
-                >
+                ></q-btn>
                 <q-btn
-                  class="q-mx-sm"
+                  class="q-mx-xs q-px-none"
                   size="10px"
                   outline
                   rectangle
                   color="warning"
+                  icon="download_for_offline"
                   @click="getLocalstorageToFile"
-                  >Backup<q-tooltip>Download wallet backup</q-tooltip></q-btn
+                  ><q-tooltip>Download wallet backup</q-tooltip></q-btn
                 >
               </div>
             </div>
@@ -1349,64 +1349,6 @@ page_container %}
           clearInterval(this.receive.paymentChecker)
         }
       },
-      // createInvoice: function () {
-      //   this.receive.status = 'loading'
-      //   if (LNBITS_DENOMINATION != 'sats') {
-      //     this.receive.data.amount = this.receive.data.amount * 100
-      //   }
-      //   LNbits.api
-      //     .createInvoice(
-      //       this.receive.data.amount,
-      //       this.receive.data.memo,
-      //       this.receive.unit,
-      //       this.receive.lnurl && this.receive.lnurl.callback
-      //     )
-      //     .then(response => {
-      //       this.receive.status = 'success'
-      //       this.receive.paymentReq = response.data.payment_request
-      //       this.receive.paymentHash = response.data.payment_hash
-
-      //       if (response.data.lnurl_response !== null) {
-      //         if (response.data.lnurl_response === false) {
-      //           response.data.lnurl_response = `Unable to connect`
-      //         }
-
-      //         if (typeof response.data.lnurl_response === 'string') {
-      //           // failure
-      //           this.notifyWarning(
-      //             `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-      //             response.data.lnurl_response
-      //           )
-      //           return
-      //         } else if (response.data.lnurl_response === true) {
-      //           // success
-      //           this.
-      //           this.$q.notify({
-      //             timeout: 5000,
-      //             message: `Invoice sent to ${this.receive.lnurl.domain}!`,
-      //             spinner: true,
-      //             position: 'top',
-      //             actions: [
-      //               {
-      //                 icon: 'close',
-      //                 color: 'white',
-      //                 handler: () => {}
-      //               }
-      //             ]
-      //           })
-      //         }
-      //       }
-
-      //       clearInterval(this.receive.paymentChecker)
-      //       setTimeout(() => {
-      //         clearInterval(this.receive.paymentChecker)
-      //       }, 40000)
-      //     })
-      //     .catch(err => {
-      //       LNbits.utils.notifyApiError(err)
-      //       this.receive.status = 'pending'
-      //     })
-      // },
       decodeQR: function (res) {
         this.camera.data = res
         // this.payInvoiceData.data.request = res
