@@ -140,7 +140,7 @@ page_container %}
                       </template>
 
                       <!-- <template v-slot:hint> Enter Mint URL</template> -->
-
+                      <!-- "addMint(mintToAdd)" -->
                       <template v-slot:append>
                         <q-btn
                           round
@@ -148,7 +148,7 @@ page_container %}
                           flat
                           icon="add"
                           click
-                          @click="addMint(mintToAdd)"
+                          @click="showAddMintDialog"
                         />
                       </template>
                     </q-input>
@@ -870,6 +870,36 @@ page_container %}
           </div>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="addMintDialog.show">
+        <q-card class="q-pa-lg">
+          <h6 class="q-my-md text-primary">Do you trust this mint?</h6>
+          <p>
+            A Cashu mint does not know about your financial activity but it
+            controls your funds. Make sure that you trust the operator of this
+            mint.
+          </p>
+          <q-field outlined dense>
+            <template v-slot:control>
+              <div class="self-center full-width no-outline" tabindex="0">
+                {% raw %}{{ mintToAdd }} {% endraw %}
+              </div>
+            </template>
+          </q-field>
+          <div class="row q-mt-lg">
+            <q-btn
+              outline
+              v-close-popup
+              color="primary"
+              icon="check"
+              @click="addMint(mintToAdd)"
+              >Add mint</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </q-page-container>
@@ -1146,6 +1176,9 @@ page_container %}
           location: window.location,
           base_url: location.protocol + '//' + location.host + location.pathname
         },
+        addMintDialog: {
+          show: false
+        },
         baseHost: location.protocol + '//' + location.host,
         baseURL: location.protocol + '//' + location.host + location.pathname,
         credit: 0,
@@ -1305,6 +1338,7 @@ page_container %}
           clearInterval(this.payInvoiceData.paymentChecker)
         }, 10000)
       },
+
       onPaymentReceived: function (paymentHash) {
         this.fetchPayments()
         this.fetchBalance()
@@ -1556,14 +1590,6 @@ page_container %}
         this.invoiceCheckWorker()
       },
 
-      // showPayInvoiceDialog: function () {
-      //   console.log('### showPayInvoiceDialog')
-      //   this.payInvoiceData.invoice = ''
-      //   this.payInvoiceData.data.request = ''
-      //   this.showPayInvoice = true
-      //   this.camera.show = false
-      // },
-
       showTokenDialog: function (token) {
         console.log('##### showTokenDialog')
         // TODO: this must be decoded and desiarlized!
@@ -1586,6 +1612,10 @@ page_container %}
       showReceiveTokensDialog: function () {
         this.receiveData.tokensBase64 = ''
         this.showReceiveTokens = true
+      },
+
+      showAddMintDialog: function () {
+        this.addMintDialog.show = true
       },
 
       //////////////////////// MINT //////////////////////////////////////////
