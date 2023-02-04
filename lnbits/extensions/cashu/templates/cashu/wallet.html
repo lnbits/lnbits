@@ -1715,8 +1715,8 @@ page_container %}
           console.error(error)
           if (verbose) {
             LNbits.utils.notifyApiError(error)
-            throw error
           }
+          throw error
         }
       },
       mint: async function (amount, payment_hash, verbose = true) {
