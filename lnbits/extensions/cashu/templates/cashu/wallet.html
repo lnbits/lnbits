@@ -1184,14 +1184,14 @@ page_container %}
         var verbose = false
         if (this.mints.filter(m => m.url == url).length == 0) {
           this.mints.push({url: url, balance: 0})
-          this.$q.localStorage.set('cashu.mints', this.mints)
+          localStorage.set('cashu.mints', this.mints)
           verbose = true
         }
         this.activateMint(url, verbose)
       },
       removeMint: function (url) {
         this.mints = this.mints.filter(m => m.url != url)
-        this.$q.localStorage.set('cashu.mints', this.mints)
+        localStorage.set('cashu.mints', this.mints)
         this.activateMint(this.mints[0].url)
         this.notifySuccess('Mint removed.')
       },
@@ -2214,8 +2214,8 @@ page_container %}
             this.mints.filter(m => m.url == this.activeMintURL)[0].keys = keys
             this.mints.filter(m => m.url == this.activeMintURL)[0].keysets =
               keysets
-            this.$q.localStorage.set('cashu.activeMintURL', this.activeMintURL)
-            this.$q.localStorage.set('cashu.mints', this.mints)
+            localStorage.set('cashu.activeMintURL', this.activeMintURL)
+            localStorage.set('cashu.mints', this.mints)
           }
 
           return keys
@@ -2540,16 +2540,23 @@ page_container %}
       },
       migrationLocalstorage: function () {
         // migration from old db to multimint
-        const old_proofs = JSON.parse(
-          this.$q.localStorage.getItem(`cashu.${this.mintId}.proofs`)
-        )
-        if (old_proofs) {
-          this.proofs = this.proofs.concat(old_proofs)
-          this.storeProofs()
-          this.$q.localStorage.remove(`cashu.${this.mintId}.proofs`)
-          this.addMint(this.baseHost + `/cashu/api/v1/${this.mintId}`)
-          this.notifySuccess('Migration complete.')
+        for (var key in localStorage) {
+          match = key.match('cashu.(.+).proofs')
+          if (match != null) {
+            console.log('Migrating mint', match[1])
+            let mint_id = match[1]
+            const old_proofs = JSON.parse(
+              localStorage.getItem(`cashu.${mint_id}.proofs`)
+            )
+            if (old_proofs) {
+              this.proofs = this.proofs.concat(old_proofs)
+              this.storeProofs()
+              localStorage.remove(`cashu.${mint_id}.proofs`)
+              this.addMint(this.baseHost + `/cashu/api/v1/${mint_id}`)
+            }
+          }
         }
+        this.notifySuccess('Migration complete.')
       },
       mintKey: function (mintId, key) {
         // returns a key for the local storage
@@ -2576,8 +2583,8 @@ page_container %}
       let params = new URL(document.location).searchParams
 
       // load mints
-      if (this.$q.localStorage.getItem('cashu.mints')) {
-        this.mints = this.$q.localStorage.getItem('cashu.mints')
+      if (localStorage.getItem('cashu.mints')) {
+        this.mints = localStorage.getItem('cashu.mints')
       }
 
       // mint url
@@ -2592,11 +2599,11 @@ page_container %}
         this.walletURL = this.baseURL + '?mint_id=' + this.mintId
         this.addMint(activeMintURL)
       }
-      if (this.$q.localStorage.getItem('cashu.activeMintURL')) {
+      if (localStorage.getItem('cashu.activeMintURL')) {
         if (!this.activeMintURL) {
           this.walletURL = this.baseURL
         }
-        activeMintURL = this.$q.localStorage.getItem('cashu.activeMintURL')
+        activeMintURL = localStorage.getItem('cashu.activeMintURL')
         this.addMint(activeMintURL)
       }
       if (!this.activeMintURL) {
