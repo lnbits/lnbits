@@ -1,8 +1,8 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
-from typing import Optional
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
