@@ -1315,73 +1315,64 @@ page_container %}
           clearInterval(this.receive.paymentChecker)
         }
       },
-      createInvoice: function () {
-        this.receive.status = 'loading'
-        if (LNBITS_DENOMINATION != 'sats') {
-          this.receive.data.amount = this.receive.data.amount * 100
-        }
-        LNbits.api
-          .createInvoice(
-            this.receive.data.amount,
-            this.receive.data.memo,
-            this.receive.unit,
-            this.receive.lnurl && this.receive.lnurl.callback
-          )
-          .then(response => {
-            this.receive.status = 'success'
-            this.receive.paymentReq = response.data.payment_request
-            this.receive.paymentHash = response.data.payment_hash
+      // createInvoice: function () {
+      //   this.receive.status = 'loading'
+      //   if (LNBITS_DENOMINATION != 'sats') {
+      //     this.receive.data.amount = this.receive.data.amount * 100
+      //   }
+      //   LNbits.api
+      //     .createInvoice(
+      //       this.receive.data.amount,
+      //       this.receive.data.memo,
+      //       this.receive.unit,
+      //       this.receive.lnurl && this.receive.lnurl.callback
+      //     )
+      //     .then(response => {
+      //       this.receive.status = 'success'
+      //       this.receive.paymentReq = response.data.payment_request
+      //       this.receive.paymentHash = response.data.payment_hash
 
-            if (response.data.lnurl_response !== null) {
-              if (response.data.lnurl_response === false) {
-                response.data.lnurl_response = `Unable to connect`
-              }
+      //       if (response.data.lnurl_response !== null) {
+      //         if (response.data.lnurl_response === false) {
+      //           response.data.lnurl_response = `Unable to connect`
+      //         }
 
-              if (typeof response.data.lnurl_response === 'string') {
-                // failure
-                this.$q.notify({
-                  timeout: 5000,
-                  type: 'warning',
-                  message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                  caption: response.data.lnurl_response,
-                  position: 'top',
-                  actions: [
-                    {
-                      icon: 'close',
-                      color: 'white',
-                      handler: () => {}
-                    }
-                  ]
-                })
-                return
-              } else if (response.data.lnurl_response === true) {
-                // success
-                this.$q.notify({
-                  timeout: 5000,
-                  message: `Invoice sent to ${this.receive.lnurl.domain}!`,
-                  spinner: true,
-                  position: 'top',
-                  actions: [
-                    {
-                      icon: 'close',
-                      color: 'white',
-                      handler: () => {}
-                    }
-                  ]
-                })
-              }
-            }
+      //         if (typeof response.data.lnurl_response === 'string') {
+      //           // failure
+      //           this.notifyWarning(
+      //             `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
+      //             response.data.lnurl_response
+      //           )
+      //           return
+      //         } else if (response.data.lnurl_response === true) {
+      //           // success
+      //           this.
+      //           this.$q.notify({
+      //             timeout: 5000,
+      //             message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+      //             spinner: true,
+      //             position: 'top',
+      //             actions: [
+      //               {
+      //                 icon: 'close',
+      //                 color: 'white',
+      //                 handler: () => {}
+      //               }
+      //             ]
+      //           })
+      //         }
+      //       }
 
-            clearInterval(this.receive.paymentChecker)
-            setTimeout(() => {
-              clearInterval(this.receive.paymentChecker)
-            }, 40000)
-          })
-          .catch(err => {
-            LNbits.utils.notifyApiError(err)
-            this.receive.status = 'pending'
-          })
-      },
+      //       clearInterval(this.receive.paymentChecker)
+      //       setTimeout(() => {
+      //         clearInterval(this.receive.paymentChecker)
+      //       }, 40000)
+      //     })
+      //     .catch(err => {
+      //       LNbits.utils.notifyApiError(err)
+      //       this.receive.status = 'pending'
+      //     })
+      // },
       decodeQR: function (res) {
         this.camera.data = res
         // this.payInvoiceData.data.request = res
@@ -1437,20 +1428,7 @@ page_container %}
           try {
             invoice = decode(this.payInvoiceData.data.request)
           } catch (error) {
-            this.$q.notify({
-              timeout: 3000,
-              type: 'warning',
-              message: error + '.',
-              caption: 'Failed to decode invoice',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
+            this.notifyWarning('Failed to decode invoice', null, 3000)
             this.payInvoiceData.show = false
             throw error
             return
@@ -1890,19 +1868,10 @@ page_container %}
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
           if (this.sumProofs(spendableProofs) < amount) {
-            this.$q.notify({
-              timeout: 5000,
-              type: 'warning',
-              message: 'Balance too low',
-              position: 'top',
-              actions: [
-                {
-                  icon: 'close',
-                  color: 'white',
-                  handler: () => {}
-                }
-              ]
-            })
+            this.notifyWarning(
+              'Balance is too low.',
+              `Your balance is ${this.getBalance()} sat and you're tyring to pay ${amount} sats.`
+            )
             throw Error('balance too low.')
           }
 
@@ -2042,7 +2011,6 @@ page_container %}
           this.checkTokenSpendableWorker()
         } catch (error) {
           console.error(error)
-          throw error
         }
       },
 
@@ -2220,7 +2188,7 @@ page_container %}
             this.mints.filter(m => m.url == this.activeMintURL)[0].keysets =
               keysets
             localStorage.setItem('cashu.activeMintURL', this.activeMintURL)
-            localStorage.setItem('cashu.mints', this.mints)
+            localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
           }
 
           return keys
@@ -2442,10 +2410,42 @@ page_container %}
           throw new Error(`Mint error: ${response.error}`)
         }
       },
-      notifyError: async function (message) {
+      notifySuccess: async function (message, position = 'top') {
+        this.$q.notify({
+          timeout: 5000,
+          type: 'positive',
+          message: message,
+          position: position,
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      notifyError: async function (message, caption = null) {
         this.$q.notify({
           color: 'red',
           message: message,
+          caption: caption,
+          position: 'top',
+          actions: [
+            {
+              icon: 'close',
+              color: 'white',
+              handler: () => {}
+            }
+          ]
+        })
+      },
+      notifyWarning: async function (message, caption = null, timeout = 5000) {
+        this.$q.notify({
+          timeout: timeout,
+          type: 'warning',
+          message: message,
+          caption: caption,
           position: 'top',
           actions: [
             {
@@ -2470,21 +2470,6 @@ page_container %}
           color: color,
           message: message,
           caption: caption,
-          position: position,
-          actions: [
-            {
-              icon: 'close',
-              color: 'white',
-              handler: () => {}
-            }
-          ]
-        })
-      },
-      notifySuccess: async function (message, position = 'top') {
-        this.$q.notify({
-          timeout: 5000,
-          type: 'positive',
-          message: message,
           position: position,
           actions: [
             {
@@ -2590,7 +2575,7 @@ page_container %}
 
       // load mints
       if (localStorage.getItem('cashu.mints')) {
-        this.mints = localStorage.getItem('cashu.mints')
+        this.mints = JSON.parse(localStorage.getItem('cashu.mints'))
       }
 
       // mint url
@@ -2614,7 +2599,11 @@ page_container %}
       }
       if (!this.activeMintURL) {
         this.walletURL = this.baseURL
-        this.notifyError('No mint set!')
+        this.notifyWarning(
+          'You have no mints added.',
+          'Go to the settings to add a new mint.',
+          20000
+        )
         this.tab = 'settings'
       }
 
