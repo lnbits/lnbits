@@ -1889,7 +1889,6 @@ page_container %}
             mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
-          // this.tab = 'invoices'
           return data
         } catch (error) {
           console.error(error)
@@ -2263,7 +2262,6 @@ page_container %}
             mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
-          // this.tab = 'invoices'
 
           this.payInvoiceData.invoice = false
           this.payInvoiceData.show = false
@@ -2291,8 +2289,6 @@ page_container %}
         await this.decodeRequest()
         let invoiceAmount = this.payInvoiceData.invoice.sat
         await this.melt()
-
-        // this.tab = 'settings'
 
         // settle invoice on other side
         await this.activateMint(to_url)
@@ -2648,7 +2644,7 @@ page_container %}
               30000
             )
           }
-
+          // switch to settings tab
           this.tab = 'settings'
         }
       },
@@ -2859,10 +2855,6 @@ page_container %}
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
       }
-
-      // if (this.activeMintURL.length) {
-      //   await this.fetchMintKeys()
-      // }
 
       this.invoicesCashu = JSON.parse(
         localStorage.getItem('cashu.invoicesCashu') || '[]'
