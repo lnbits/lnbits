@@ -419,7 +419,7 @@ page_container %}
       </div>
 
       <!-- // BOTTOM BAR -->
-      <div class="q-col-gutter">
+      <div class="q-col-gutter" v-if="!welcomeDialog.show">
         <q-tabs
           class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
           indicator-color="transparent"
@@ -2475,6 +2475,19 @@ page_container %}
       },
 
       ////////////// UI HELPERS /////////////
+      registerPWAEventHook: function () {
+        // register event listener for PWA install prompt
+        window.addEventListener('beforeinstallprompt', e => {
+          // Prevent the mini-infobar from appearing on mobile
+          // e.preventDefault()
+          // Stash the event so it can be triggered later.
+          this.deferredPWAInstallPrompt = e
+          console.log(
+            `'beforeinstallprompt' event was fired.`,
+            this.getPWADisplayMode()
+          )
+        })
+      },
       getPWADisplayMode: function () {
         const isStandalone = window.matchMedia(
           '(display-mode: standalone)'
@@ -2779,20 +2792,11 @@ page_container %}
         this.activateMint(startupMintUrl)
       }
 
-      // Initialize deferredPWAInstallPrompt for use later to show browser install prompt.
-      this.showWelcomeDialog()
+      // PWA install hook
+      this.registerPWAEventHook()
 
-      // register event listener for PWA install prompt
-      window.addEventListener('beforeinstallprompt', e => {
-        // Prevent the mini-infobar from appearing on mobile
-        // e.preventDefault()
-        // Stash the event so it can be triggered later.
-        this.deferredPWAInstallPrompt = e
-        console.log(
-          `'beforeinstallprompt' event was fired.`,
-          this.getPWADisplayMode()
-        )
-      })
+      // show welcome dialog
+      this.showWelcomeDialog()
     }
   })
 </script>
