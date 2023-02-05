@@ -3,7 +3,7 @@ endraw %} {% endblock %} {% block footer %}{% endblock %} {% block
 page_container %}
 <q-page-container>
   <q-page>
-    <div class="row q-col-gutter-md justify-center q-pt-sm q-pb-md">
+    <div class="row q-col-gutter-y-md justify-center q-pt-sm q-pb-md">
       <div class="col-12 col-sm-11 col-md-8 text-center q-gutter-y-md">
         <q-card class="q-my-md q-py-sm">
           <q-card-section class="q-mt-sm q-py-xs">
@@ -43,7 +43,7 @@ page_container %}
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col-6 col-sm-5 col-md-4 q-px-xs">
                 <q-btn
-                  size="12px"
+                  size="0.75rem"
                   rectangle
                   unelevated
                   color="primary"
@@ -58,7 +58,7 @@ page_container %}
               <div class="col-0 col-sm-2 col-md-4"></div>
               <div class="col-6 col-sm-5 col-md-4 q-px-xs">
                 <q-btn
-                  size="12px"
+                  size="0.75rem"
                   rectangle
                   unelevated
                   align="between"
@@ -357,7 +357,7 @@ page_container %}
             <div class="col-4 q-pt-none">
               <q-btn
                 class="full-width gt-sm"
-                size="14px"
+                size="1.0rem"
                 icon-right="bolt"
                 icon="file_download"
                 align="between"
@@ -372,16 +372,17 @@ page_container %}
               <div align="center">
                 <q-btn
                   class="q-mx-xs q-px-none"
-                  size="10px"
+                  size="0.5rem"
                   rectangle
                   color="warning"
                   icon="warning"
                   outline
                   @click="showDisclaimerDialog"
-                ></q-btn>
+                  ><q-tooltip>Warning</q-tooltip></q-btn
+                >
                 <q-btn
                   class="q-mx-xs q-px-none"
-                  size="10px"
+                  size="0.5rem"
                   outline
                   rectangle
                   color="warning"
@@ -395,7 +396,7 @@ page_container %}
               <q-btn
                 class="full-width gt-sm"
                 @click="showParseDialog"
-                size="14px"
+                size="1.0rem"
                 icon-right="bolt"
                 icon="file_upload"
                 align="between"
@@ -662,6 +663,48 @@ page_container %}
         </q-card>
       </q-dialog>
 
+      <q-dialog v-model="welcomeDialog.show">
+        <q-card class="q-pa-lg">
+          <h6 class="q-my-md text-primary">This is a Cashu wallet</h6>
+          <p>Please take a moment to read the following information.</p>
+          <p>
+            <strong>Open this wallet on your device's native browser</strong>
+            Cashu stores your ecash on your device locally. For the best
+            experience, use this wallet with your device's native web browser
+            (for example Safari for iOS, Chrome for Android).
+          </p>
+          <p>
+            <strong>Add to home screen.</strong>
+            Add Cashu to your home screen as a progressive web app (PWA). On
+            Android Chrome, click the hamburger menu at the upper right. On iOS
+            Safari, click the share button. Now press the Add to Home screen
+            button.
+          </p>
+          <p>
+            <strong>This software is in BETA!</strong> We hold no responsibility
+            for people losing access to funds. Use at your own risk! Ecash is a
+            bearer asset, meaning losing access to this wallet will mean you
+            will lose the funds. This wallet stores ecash tokens in its
+            database. If you lose the link or delete your your data without
+            backing up, you will lose your tokens. Press the Backup button to
+            download a copy of your tokens.
+          </p>
+          <div class="row q-mt-lg">
+            <q-btn outline color="grey" @click="copyText(baseURL)"
+              >Copy wallet URL</q-btn
+            >
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="q-ml-auto"
+              @click="setWelcomeDialogSeen()"
+              >Continue</q-btn
+            >
+          </div>
+        </q-card>
+      </q-dialog>
+
       <q-dialog v-model="disclaimerDialog.show">
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
@@ -681,7 +724,7 @@ page_container %}
             Home screen button.
           </p>
           <p>
-            <strong>This service is in BETA!</strong> We hold no responsibility
+            <strong>This software is in BETA!</strong> We hold no responsibility
             for people losing access to funds. Use at your own risk!
           </p>
           <div class="row q-mt-lg">
@@ -1195,6 +1238,9 @@ page_container %}
         paymentsChart: {
           show: false
         },
+        welcomeDialog: {
+          show: false
+        },
         disclaimerDialog: {
           show: false,
           location: window.location,
@@ -1367,6 +1413,14 @@ page_container %}
         this.payInvoiceData.data.paymentChecker = null
         this.camera.show = false
         this.focusInput('pasteInput')
+      },
+      showWelcomeDialog: function () {
+        if (localStorage.getItem('cashu.welcomeDialogSeen') != 'seen') {
+          this.welcomeDialog.show = true
+        }
+      },
+      setWelcomeDialogSeen: function () {
+        localStorage.setItem('cashu.welcomeDialogSeen', 'seen')
       },
       showDisclaimerDialog: function () {
         this.disclaimerDialog.show = true
@@ -2669,6 +2723,8 @@ page_container %}
       if (startupMintUrl != null) {
         this.activateMint(startupMintUrl)
       }
+
+      this.showWelcomeDialog()
     }
   })
 </script>
