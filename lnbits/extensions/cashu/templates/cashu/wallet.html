@@ -143,7 +143,7 @@ page_container %}
                       bottom-slots
                       @keydown.enter.prevent="showAddMintDialog"
                       v-model="mintToAdd"
-                      label="Mint URL"
+                      label="Add new mint URL"
                     >
                       <template v-slot:before>
                         <q-icon name="account_balance" />
@@ -163,6 +163,68 @@ page_container %}
                       </template>
                     </q-input>
                   </div>
+                </div>
+                <div
+                  class="q-py-sm q-px-xs bg-grey-10 text-white text-left"
+                  on-left
+                >
+                  <q-list padding>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label overline>Multimint Swaps</q-item-label>
+                        <q-item-label caption
+                          >Swap funds from one mint to another via Lightning.
+                          Warning: this feature is still experimental and could
+                          behave in unexpected ways!</q-item-label
+                        >
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-select
+                        clearable
+                        filled
+                        dense
+                        color="primary"
+                        v-model="swapData.from_url"
+                        :options="swapDataOptions()"
+                        option-value="url"
+                        option-label="shorturl"
+                        label="Swap from"
+                        style="min-width: 200px"
+                      />
+                    </q-item>
+                    <q-item>
+                      <q-select
+                        clearable
+                        filled
+                        dense
+                        color="primary"
+                        v-model="swapData.to_url"
+                        :options="swapDataOptions()"
+                        option-value="url"
+                        option-label="shorturl"
+                        label="Swap to"
+                        style="min-width: 200px"
+                      />
+                    </q-item>
+                    <q-item>
+                      <q-input
+                        filled
+                        dense
+                        v-model.number="swapData.amount"
+                        type="number"
+                        label="Amount ({{LNBITS_DENOMINATION}})"
+                        style="min-width: 200px"
+                      ></q-input>
+                      <q-btn
+                        class="q-mx-md"
+                        color="primary"
+                        @click="mintSwap(swapData.from_url.url,swapData.to_url.url, swapData.amount)"
+                        :disable="!swapData.from_url || !swapData.to_url || !(swapData.amount>0)"
+                        >Swap</q-btn
+                      >
+                    </q-item>
+                  </q-list>
                 </div>
               </q-tab-panel>
               <!-- ////////////////// TOKEN LIST ///////////////// -->
@@ -1077,6 +1139,11 @@ page_container %}
         deferredPWAInstallPrompt: null,
         invoicesCashu: [],
         historyTokens: [],
+        swapData: {
+          from_url: '',
+          to_url: '',
+          amount: 0
+        },
         invoiceData: {
           amount: 0,
           memo: '',
@@ -1337,6 +1404,13 @@ page_container %}
       }
     },
     methods: {
+      swapDataOptions: function () {
+        let options = []
+        for (const [i, m] of Object.entries(this.mints)) {
+          options.push({url: m.url, shorturl: this.getShortUrl(m.url)})
+        }
+        return options
+      },
       addMint: async function (url, verbose = false) {
         try {
           await this.activateMint(url, verbose)
@@ -1365,6 +1439,7 @@ page_container %}
         let presiouvURL = this.activeMintURL
         try {
           this.activeMintURL = url
+          console.log('### this.activeMintURL', this.activeMintURL)
           keys = await this.fetchMintKeys()
           // load proofs
           this.activeProofs = this.proofs.filter(p =>
@@ -1402,9 +1477,8 @@ page_container %}
         }
         return balance
       },
-      getActiveMintUrlShort: function () {
-        url = this.activeMintURL.replace('https://', '')
-
+      getShortUrl: function (url) {
+        url = url.replace('https://', '')
         const cut_param = 46
         if (url.length > cut_param && url.indexOf('/') != -1) {
           url =
@@ -1413,6 +1487,9 @@ page_container %}
             url.substring(url.length - cut_param / 2, url.length)
         }
         return url
+      },
+      getActiveMintUrlShort: function () {
+        return this.getShortUrl(this.activeMintURL)
       },
       shortenString: function (s, length = 20, lastchars = 5) {
         if (s.length > length + lastchars) {
@@ -1812,7 +1889,6 @@ page_container %}
             mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
-          this.tab = 'invoices'
           return data
         } catch (error) {
           console.error(error)
@@ -2156,7 +2232,7 @@ page_container %}
           this.assertMintError(data)
           if (window.navigator.vibrate) navigator.vibrate(200)
           this.notifySuccess('Token paid.')
-
+          console.log('#### pay lightning: token paid')
           // delete spent tokens from db
           this.deleteProofs(scndProofs)
 
@@ -2186,7 +2262,6 @@ page_container %}
             mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
-          this.tab = 'invoices'
 
           this.payInvoiceData.invoice = false
           this.payInvoiceData.show = false
@@ -2199,6 +2274,25 @@ page_container %}
           } catch {}
           throw error
         }
+      },
+
+      //
+      mintSwap: async function (from_url, to_url, amount) {
+        // get invoice
+        await this.activateMint(to_url)
+        this.invoiceData.amount = amount
+        let invoice = await this.requestMint()
+
+        // pay invoice
+        await this.activateMint(from_url)
+        this.payInvoiceData.data.request = invoice.pr
+        await this.decodeRequest()
+        let invoiceAmount = this.payInvoiceData.invoice.sat
+        await this.melt()
+
+        // settle invoice on other side
+        await this.activateMint(to_url)
+        await this.invoiceCheckWorker()
       },
 
       // /check
@@ -2275,6 +2369,7 @@ page_container %}
 
       fetchMintKeys: async function () {
         try {
+          console.log('### GET', `${this.activeMintURL}/keys`)
           const {data} = await axios.get(`${this.activeMintURL}/keys`, {
             timeout: 2000
           })
@@ -2549,7 +2644,7 @@ page_container %}
               30000
             )
           }
-
+          // switch to settings tab
           this.tab = 'settings'
         }
       },
@@ -2759,10 +2854,6 @@ page_container %}
       // get name
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
-      }
-
-      if (this.activeMintURL.length) {
-        await this.fetchMintKeys()
       }
 
       this.invoicesCashu = JSON.parse(
