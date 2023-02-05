@@ -40,11 +40,12 @@ page_container %}
         <q-card class="q-mt-xs">
           <q-card-section class="q-pt-sm">
             <div class="row items-center no-wrap q-mb-sm">
-              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
+              <div class="col-6 col-sm-5 col-md-4 q-pr-xs">
                 <q-btn
                   size="0.75rem"
                   rectangle
                   unelevated
+                  dense
                   color="primary"
                   align="between"
                   icon="file_download"
@@ -55,11 +56,12 @@ page_container %}
                 >
               </div>
               <div class="col-0 col-sm-2 col-md-4"></div>
-              <div class="col-6 col-sm-5 col-md-4 q-px-xs">
+              <div class="col-6 col-sm-5 col-md-4 q-pl-xs">
                 <q-btn
                   size="0.75rem"
                   rectangle
                   unelevated
+                  dense
                   align="between"
                   color="primary"
                   icon="file_upload"
@@ -437,7 +439,7 @@ page_container %}
           >
           </q-tab>
           <q-tab
-            class="col-2 q-pb-md"
+            class="col-2"
             icon="photo_camera"
             v-if="hasCamera"
             @click="showCamera"
