@@ -18,11 +18,19 @@ page_container %}
                   </h3>
                 </div>
               </div>
-              <div class="row q-mt-sm q-mb-none">
+              <div class="row q-mt-sm q-mb-none" v-if="activeMintURL">
                 <div class="col-12">
                   <a>
-                    All mints: {% raw %}{{ getTotalBalance }} {{tickerShort}} {%
-                    endraw %}</a
+                    Mint:
+                    <b>{% raw %}{{ getActiveMintUrlShort()}} {% endraw %}</b></a
+                  >
+                </div>
+              </div>
+              <div class="row q-mt-none q-mb-none" v-if="mints.length > 0">
+                <div class="col-12">
+                  <a>
+                    Balance on all mints: {% raw %}
+                    <b>{{ getTotalBalance }} {{tickerShort}} </b>{% endraw %}</a
                   >
                 </div>
               </div>
@@ -213,14 +221,15 @@ page_container %}
                           >
                             <q-tooltip>Pending</q-tooltip>
                           </q-icon>
-                          <q-badge
-                            size="lg"
-                            color="secondary"
-                            class="q-mr-md cursor-pointer"
+                          <q-icon
+                            name="sync"
+                            size="xs"
+                            color="grey"
+                            class="q-mr-xs cursor-pointer"
                             @click="checkInvoice(props.row.hash)"
                           >
-                            Check
-                          </q-badge>
+                            <q-tooltip>Check status</q-tooltip>
+                          </q-icon>
                         </div>
                         <div v-if="props.row.status === 'paid'">
                           <q-icon
@@ -258,6 +267,9 @@ page_container %}
                       <q-td key="hash" :props="props">
                         <div>{{props.row.hash}}</div>
                       </q-td>
+                      <q-td key="mint" :props="props">
+                        <div>{{props.row.mint}}</div>
+                      </q-td>
                     </q-tr>
                   </template>
                   {% endraw %}
@@ -288,14 +300,15 @@ page_container %}
                           >
                             <q-tooltip>Pending</q-tooltip>
                           </q-icon>
-                          <q-badge
-                            size="lg"
-                            color="secondary"
-                            class="q-mr-md cursor-pointer"
+                          <q-icon
+                            name="sync"
+                            size="xs"
+                            color="grey"
+                            class="q-mr-xs cursor-pointer"
                             @click="checkTokenSpendable(props.row.token)"
                           >
-                            Check
-                          </q-badge>
+                            <q-tooltip>Check status</q-tooltip>
+                          </q-icon>
                         </div>
                         <div v-if="props.row.status === 'paid'">
                           <q-icon
@@ -706,12 +719,12 @@ page_container %}
               class="q-mb-lg"
               @keyup.enter="requestMintButton"
             ></q-input>
-            <q-input
+            <!-- <q-input
               filled
               dense
               v-model.trim="invoiceData.memo"
               label="Memo"
-            ></q-input>
+            ></q-input> -->
           </div>
           <div v-else class="text-center q-mb-lg">
             <a class="text-secondary" :href="'lightning:' + invoiceData.bolt11">
@@ -770,19 +783,19 @@ page_container %}
               class="q-mb-lg"
               @keyup.enter="sendTokens"
             ></q-input>
-            <q-input
+            <!-- <q-input
               filled
               dense
               v-model.trim="sendData.memo"
               label="Memo"
-            ></q-input>
+            ></q-input> -->
           </div>
           <div v-else class="text-center q-mb-lg">
-            <div class="text-center q-mb-lg">
+            <div class="text-center q-mb-lg" v-if="sendData.tokens.length < 2">
               <!-- <a class="text-secondary" :href="'cashu:' + sendData.tokensBase64"> -->
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="walletURL + '&recv_token=' + sendData.tokensBase64"
+                  :value="baseURL + '&recv_token=' + sendData.tokensBase64"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -818,7 +831,8 @@ page_container %}
               >
               <q-btn
                 color="primary"
-                @click="copyText(walletURL + '&recv_token=' + sendData.tokensBase64)"
+                outline
+                @click="copyText(baseURL + '&recv_token=' + sendData.tokensBase64)"
                 >Copy link</q-btn
               >
             </div>
@@ -853,12 +867,6 @@ page_container %}
             <q-btn @click="redeem" color="primary">Receive</q-btn>
             <q-btn
               unelevated
-              icon="content_copy"
-              class="q-mx-0"
-              @click="copyText(receiveData.tokensBase64)"
-            ></q-btn>
-            <q-btn
-              unelevated
               icon="photo_camera"
               class="q-mx-0"
               v-if="hasCamera"
@@ -878,13 +886,22 @@ page_container %}
             controls your funds. Make sure that you trust the operator of this
             mint.
           </p>
-          <q-field outlined dense>
+          <q-input
+            outlined
+            dense
+            readonly
+            v-model="mintToAdd"
+            label="Mint URL"
+            type="textarea"
+            class="q-mb-sm"
+          ></q-input>
+          <!-- <q-field outlined dense>
             <template v-slot:control>
               <div class="self-center full-width no-outline" tabindex="0">
                 {% raw %}{{ mintToAdd }} {% endraw %}
               </div>
             </template>
-          </q-field>
+          </q-field> -->
           <div class="row q-mt-lg">
             <q-btn
               outline
@@ -1112,6 +1129,13 @@ page_container %}
               label: 'Hash',
               field: 'hash',
               sortable: false
+            },
+            {
+              name: 'mint',
+              align: 'left',
+              label: 'Mint',
+              field: 'mint',
+              sortable: true
             }
           ],
           pagination: {
@@ -1230,6 +1254,7 @@ page_container %}
       removeMint: function (url) {
         this.mints = this.mints.filter(m => m.url != url)
         localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
+        // todo: we always reset to the first mint, improve this
         this.activateMint(this.mints[0].url)
         this.notifySuccess('Mint removed.')
       },
@@ -1244,7 +1269,26 @@ page_container %}
         }
         return balance
       },
-      activateMint: async function (url, verbose = false) {
+      getActiveMintUrlShort: function () {
+        url = this.activeMintURL.replace('https://', '')
+
+        const cut_param = 40
+        if (url.length > cut_param && url.indexOf('/') != -1) {
+          url =
+            url.substring(0, url.indexOf('/') + 1) +
+            '...' +
+            url.substring(url.length - cut_param / 2, url.length)
+        }
+        return url
+      },
+      activateMint: async function (url, verbose = false, stop_workers = true) {
+        if (url == this.activeMintURL) {
+          return
+        }
+        if (stop_workers) {
+          // we need to stop workers because they will reset the activeMint again
+          this.clearAllWorkers()
+        }
         let presiouvURL = this.activeMintURL
         try {
           this.activeMintURL = url
@@ -1253,13 +1297,13 @@ page_container %}
           this.activeProofs = this.proofs.filter(p =>
             this.keysets.includes(p.id)
           )
-
           if (verbose) {
             this.notifySuccess('Mint added.')
           }
+          console.log('### activateMint: Mint activated: ', this.activeMintURL)
         } catch (error) {
           this.activeMintURL = presiouvURL
-          this.notifyError('Could not add mint.')
+          this.notifyError('Could not connect to mint.')
           throw error
         }
       },
@@ -1391,9 +1435,9 @@ page_container %}
           // } else if (req.indexOf('cashu:') !== 1) {
           //   this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
           //   reqtype = 'cashu'
-        } else if (req.indexOf('W3siaWQ') !== 1) {
+        } else if (req.indexOf('eyJwcm') !== 1) {
           // very dirty way of parsing cashu tokens
-          this.receiveData.tokensBase64 = req.slice(req.indexOf('W3siaWQ'))
+          this.receiveData.tokensBase64 = req.slice(req.indexOf('eyJwcm'))
           reqtype = 'cashu'
         }
 
@@ -1532,11 +1576,10 @@ page_container %}
         this.invoiceCheckWorker()
       },
 
-      showTokenDialog: function (token) {
+      showTokenDialog: function (tokensBase64) {
         console.log('##### showTokenDialog')
-        // TODO: this must be decoded and desiarlized!
-        this.sendData.tokens = _.clone(token)
-        this.sendData.tokensBase64 = _.clone(token)
+        this.sendData.tokens = JSON.parse(atob(tokensBase64)).proofs
+        this.sendData.tokensBase64 = _.clone(tokensBase64)
         this.showSendTokens = true
         // kick off token check worker
         this.checkTokenSpendableWorker()
@@ -1672,7 +1715,8 @@ page_container %}
           this.invoicesCashu.push({
             ..._.clone(this.invoiceData),
             date: currentDateStr(),
-            status: 'pending'
+            status: 'pending',
+            mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
           this.tab = 'invoices'
@@ -2030,7 +2074,8 @@ page_container %}
             hash: this.payInvoiceData.data.hash,
             memo: this.payInvoiceData.data.memo,
             date: currentDateStr(),
-            status: 'paid'
+            status: 'paid',
+            mint: this.activeMintURL
           })
           this.storeinvoicesCashu()
           this.tab = 'invoices'
@@ -2170,10 +2215,13 @@ page_container %}
         console.log('### checkInvoice.hash', payment_hash)
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
         try {
+          if (invoice.mint != null) {
+            this.activateMint(invoice.mint, false, false)
+          }
           proofs = await this.mint(invoice.amount, invoice.hash, verbose)
           return proofs
         } catch (error) {
-          console.log('Invoice still pending')
+          console.log('Invoice still pending', invoice.hash)
           throw error
         }
       },
@@ -2208,8 +2256,14 @@ page_container %}
         checks whether a base64-encoded token (from the history table) has been spent already.
         if it is spent, the appropraite entry in the history table is set to paid.
         */
-        const tokenJson = atob(token)
-        const proofs = JSON.parse(tokenJson).proofs
+        const tokenJson = JSON.parse(atob(token))
+        const proofs = tokenJson.proofs
+
+        if (tokenJson.mints != null && tokenJson.mints[0].url != null) {
+          // todo: we activate only the first mint in the token
+          this.activateMint(tokenJson.mints[0].url)
+        }
+
         const spendable = await this.checkProofsSpendable(proofs)
         let paid = false
         if (spendable.includes(false)) {
@@ -2224,7 +2278,7 @@ page_container %}
           if (verbose) {
             this.notify('Token still pending', (color = 'grey'))
           }
-          this.sendData.tokens = token
+          // this.sendData.tokens = token
         }
         return paid
       },
@@ -2533,6 +2587,8 @@ page_container %}
       console.log('Mint URL ' + this.activeMintURL)
       console.log('Wallet URL ' + this.walletURL)
 
+      const startupMintUrl = this.activeMintURL
+
       // get name
       if (params.get('mint_name')) {
         this.mintName = params.get('mint_name')
@@ -2608,6 +2664,11 @@ page_container %}
       this.checkPendingTokens().catch(err => {
         return
       })
+
+      // reset to the mint from settings after workers have run
+      if (startupMintUrl != null) {
+        this.activateMint(startupMintUrl)
+      }
     }
   })
 </script>
