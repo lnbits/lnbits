@@ -370,7 +370,7 @@ page_container %}
             <div class="col-4 q-pt-xs">
               <div align="center">
                 <q-btn
-                  class="q-mx-xs q-px-none"
+                  class="q-mx-xs q-px-none q-my-sm"
                   size="0.5rem"
                   rectangle
                   color="warning"
@@ -380,7 +380,7 @@ page_container %}
                   ><q-tooltip>Warning</q-tooltip></q-btn
                 >
                 <q-btn
-                  class="q-mx-xs q-px-none"
+                  class="q-mx-xs q-px-none q-my-sm"
                   size="0.5rem"
                   outline
                   rectangle
@@ -388,6 +388,15 @@ page_container %}
                   icon="download_for_offline"
                   @click="getLocalstorageToFile"
                   ><q-tooltip>Download wallet backup</q-tooltip></q-btn
+                >
+                <q-btn
+                  class="q-mx-xs q-px-none q-my-sm"
+                  outline
+                  size="0.5rem"
+                  v-if="getPWADisplayMode()=='browser' && deferredPWAInstallPrompt != null"
+                  color="primary"
+                  @click="triggerPWAInstall()"
+                  ><b>Install</b><q-tooltip>Install Cashu</q-tooltip></q-btn
                 >
               </div>
             </div>
@@ -708,8 +717,20 @@ page_container %}
               Backup button to download a copy of your tokens.
             </p>
             <div class="row q-mt-lg">
-              <q-btn outline color="grey" @click="copyText(baseURL)"
-                >Copy wallet URL</q-btn
+              <q-btn
+                outline
+                class="q-mx-sm"
+                v-if="getPWADisplayMode()=='browser' && deferredPWAInstallPrompt != null"
+                color="primary"
+                @click="triggerPWAInstall()"
+                >Install Cashu</q-btn
+              >
+              <q-btn
+                outline
+                color="grey"
+                class="q-mx-sm"
+                @click="copyText(baseURL)"
+                >Copy URL</q-btn
               >
               <q-btn
                 v-close-popup
@@ -1033,6 +1054,7 @@ page_container %}
         keys: '',
         proofs: [],
         activeProofs: [],
+        deferredPWAInstallPrompt: null,
         invoicesCashu: [],
         historyTokens: [],
         invoiceData: {
@@ -1771,8 +1793,8 @@ page_container %}
 
       requestMint: async function () {
         /*
-        gets an invoice from the mint to get new tokens
-        */
+          gets an invoice from the mint to get new tokens
+          */
         try {
           const {data} = await axios.get(
             `${this.activeMintURL}/mint?amount=${this.invoiceData.amount}`
@@ -1802,9 +1824,9 @@ page_container %}
 
       mintApi: async function (amounts, payment_hash, verbose = true) {
         /*
-        asks the mint to check whether the invoice with payment_hash has been paid
-        and requests signing of the attached outputs.
-        */
+          asks the mint to check whether the invoice with payment_hash has been paid
+          and requests signing of the attached outputs.
+          */
 
         try {
           let secrets = await this.generateSecrets(amounts)
@@ -1870,9 +1892,9 @@ page_container %}
 
       split: async function (proofs, amount) {
         /*
-        supplies proofs and requests a split from the mint of these
-        proofs at a specific amount
-        */
+          supplies proofs and requests a split from the mint of these
+          proofs at a specific amount
+          */
         try {
           if (proofs.length == 0) {
             throw new Error('no proofs provided.')
@@ -1945,11 +1967,11 @@ page_container %}
 
       splitToSend: async function (proofs, amount, invlalidate = false) {
         /*
-        splits proofs so the user can keep firstProofs, send scndProofs.
-        then sets scndProofs as reserved.
+          splits proofs so the user can keep firstProofs, send scndProofs.
+          then sets scndProofs as reserved.
 
-        if invalidate, scndProofs (the one to send) are invalidated
-        */
+          if invalidate, scndProofs (the one to send) are invalidated
+          */
         try {
           const spendableProofs = proofs.filter(p => !p.reserved)
           if (this.sumProofs(spendableProofs) < amount) {
@@ -1992,8 +2014,8 @@ page_container %}
 
       redeem: async function () {
         /*
-        uses split to receive new tokens.
-        */
+          uses split to receive new tokens.
+          */
         this.showReceiveTokens = false
         console.log('### receive tokens', this.receiveData.tokensBase64)
         try {
@@ -2055,8 +2077,8 @@ page_container %}
 
       sendTokens: async function () {
         /*
-        calls splitToSend, displays token and kicks off the spendableWorker
-        */
+          calls splitToSend, displays token and kicks off the spendableWorker
+          */
         try {
           // keep firstProofs, send scndProofs and delete them (invalidate=true)
           let {fristProofs, scndProofs} = await this.splitToSend(
@@ -2165,9 +2187,9 @@ page_container %}
 
       checkProofsSpendable: async function (proofs, update_history = false) {
         /*
-        checks with the mint whether an array of proofs is still
-        spendable or already invalidated
-        */
+          checks with the mint whether an array of proofs is still
+          spendable or already invalidated
+          */
         if (proofs.length == 0) {
           return
         }
@@ -2323,9 +2345,9 @@ page_container %}
 
       checkTokenSpendable: async function (token, verbose = true) {
         /*
-        checks whether a base64-encoded token (from the history table) has been spent already.
-        if it is spent, the appropraite entry in the history table is set to paid.
-        */
+          checks whether a base64-encoded token (from the history table) has been spent already.
+          if it is spent, the appropraite entry in the history table is set to paid.
+          */
         const tokenJson = JSON.parse(atob(token))
         const proofs = tokenJson.proofs
 
@@ -2443,7 +2465,6 @@ page_container %}
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-      ////////////// UI HELPERS /////////////
       assertMintError: function (response, verbose = true) {
         if (response.error != null) {
           if (verbose) {
@@ -2451,6 +2472,32 @@ page_container %}
           }
           throw new Error(`Mint error: ${response.error}`)
         }
+      },
+
+      ////////////// UI HELPERS /////////////
+      getPWADisplayMode: function () {
+        const isStandalone = window.matchMedia(
+          '(display-mode: standalone)'
+        ).matches
+        if (document.referrer.startsWith('android-app://')) {
+          return 'twa'
+        } else if (navigator.standalone || isStandalone) {
+          return 'standalone'
+        }
+        return 'browser'
+      },
+      triggerPWAInstall: function () {
+        // Show the install prompt
+        this.deferredPWAInstallPrompt.prompt()
+        // Wait for the user to respond to the prompt
+        this.deferredPWAInstallPrompt.userChoice.then(choiceResult => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt')
+            this.setWelcomeDialogSeen()
+          } else {
+            console.log('User dismissed the install prompt')
+          }
+        })
       },
       showNoMintsWarning: function () {
         if (!this.activeMintURL) {
@@ -2680,26 +2727,6 @@ page_container %}
         await this.fetchMintKeys()
       }
 
-      // const keysJson = localStorage.getItem(this.mintKey(this.mintId, 'keys'))
-      // if (!keysJson) {
-      //   if (this.activeMintURL.length) {
-      //     this.fetchMintKeys()
-      //   }
-      // } else {
-      //   this.keys = JSON.parse(keysJson)
-      // }
-
-      // this.invoicesCashu = JSON.parse(
-      //   localStorage.getItem(this.mintKey(this.mintId, 'invoicesCashu')) || '[]'
-      // )
-
-      // this.historyTokens = JSON.parse(
-      //   localStorage.getItem(this.mintKey(this.mintId, 'historyTokens')) || '[]'
-      // )
-      // this.proofs = JSON.parse(
-      //   localStorage.getItem(this.mintKey(this.mintId, 'proofs')) || '[]'
-      // )
-
       this.invoicesCashu = JSON.parse(
         localStorage.getItem('cashu.invoicesCashu') || '[]'
       )
@@ -2752,7 +2779,20 @@ page_container %}
         this.activateMint(startupMintUrl)
       }
 
+      // Initialize deferredPWAInstallPrompt for use later to show browser install prompt.
       this.showWelcomeDialog()
+
+      // register event listener for PWA install prompt
+      window.addEventListener('beforeinstallprompt', e => {
+        // Prevent the mini-infobar from appearing on mobile
+        // e.preventDefault()
+        // Stash the event so it can be triggered later.
+        this.deferredPWAInstallPrompt = e
+        console.log(
+          `'beforeinstallprompt' event was fired.`,
+          this.getPWADisplayMode()
+        )
+      })
     }
   })
 </script>
