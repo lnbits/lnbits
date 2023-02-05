@@ -141,6 +141,7 @@ page_container %}
                     <q-input
                       standout
                       bottom-slots
+                      @keydown.enter.prevent="showAddMintDialog"
                       v-model="mintToAdd"
                       label="Mint URL"
                     >
@@ -977,7 +978,10 @@ page_container %}
           </div>
         </q-card>
       </q-dialog>
-      <q-dialog v-model="addMintDialog.show">
+      <q-dialog
+        v-model="addMintDialog.show"
+        @keydown.enter.prevent="addMint(mintToAdd)"
+      >
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Do you trust this mint?</h6>
           <p>
@@ -1333,25 +1337,61 @@ page_container %}
       }
     },
     methods: {
-      addMint: function (url) {
+      addMint: async function (url) {
         var verbose = true
-        // we have no mints at all
-        if (this.mints.length == 0) {
-          this.mints = [{url: url, balance: 0}]
-        } else if (this.mints.filter(m => m.url == url).length == 0) {
-          // we don't have this mint yet
-          this.mints.push({url: url, balance: 0})
-        } else {
-          verbose = false
+        try {
+          await this.activateMint(url, verbose)
+          // we have no mints at all
+          if (this.mints.length == 0) {
+            this.mints = [{url: url, balance: 0}]
+          } else if (this.mints.filter(m => m.url == url).length == 0) {
+            // we don't have this mint yet
+            this.mints.push({url: url, balance: 0})
+          } else {
+            verbose = false
+          }
+          localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
+        } catch (error) {
+          throw error
+        } finally {
+          this.addMintDialog.show = false
         }
-        localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
-        this.activateMint(url, verbose)
       },
-      removeMint: function (url) {
+      activateMint: async function (url, verbose = false, stop_workers = true) {
+        if (url == this.activeMintURL) {
+          return
+        }
+        if (stop_workers) {
+          // we need to stop workers because they will reset the activeMint again
+          this.clearAllWorkers()
+        }
+        let presiouvURL = this.activeMintURL
+        try {
+          this.activeMintURL = url
+          keys = await this.fetchMintKeys()
+          // load proofs
+          this.activeProofs = this.proofs.filter(p =>
+            this.keysets.includes(p.id)
+          )
+          if (verbose) {
+            this.notifySuccess('Mint added.')
+          }
+          console.log('### activateMint: Mint activated: ', this.activeMintURL)
+        } catch (error) {
+          this.activeMintURL = presiouvURL
+          let err_msg = 'Could not connect to mint.'
+          if (error.message.length) {
+            err_msg = err_msg + ` ${error.message}.`
+          }
+          this.notifyError(err_msg)
+          throw error
+        }
+      },
+      removeMint: async function (url) {
         this.mints = this.mints.filter(m => m.url != url)
         localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
         // todo: we always reset to the first mint, improve this
-        this.activateMint(this.mints[0].url)
+        await this.activateMint(this.mints[0].url)
         this.notifySuccess('Mint removed.')
       },
       getBalance: function () {
@@ -1384,32 +1424,6 @@ page_container %}
             '...' +
             s.substring(s.length - lastchars, s.length)
           )
-        }
-      },
-      activateMint: async function (url, verbose = false, stop_workers = true) {
-        if (url == this.activeMintURL) {
-          return
-        }
-        if (stop_workers) {
-          // we need to stop workers because they will reset the activeMint again
-          this.clearAllWorkers()
-        }
-        let presiouvURL = this.activeMintURL
-        try {
-          this.activeMintURL = url
-          keys = await this.fetchMintKeys()
-          // load proofs
-          this.activeProofs = this.proofs.filter(p =>
-            this.keysets.includes(p.id)
-          )
-          if (verbose) {
-            this.notifySuccess('Mint added.')
-          }
-          console.log('### activateMint: Mint activated: ', this.activeMintURL)
-        } catch (error) {
-          this.activeMintURL = presiouvURL
-          this.notifyError('Could not connect to mint.')
-          throw error
         }
       },
       getTokenList: function () {
@@ -1805,7 +1819,9 @@ page_container %}
           return data
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -1840,7 +1856,9 @@ page_container %}
         } catch (error) {
           console.error(error)
           if (verbose) {
-            LNbits.utils.notifyApiError(error)
+            try {
+              LNbits.utils.notifyApiError(error)
+            } catch {}
           }
           throw error
         }
@@ -1872,7 +1890,9 @@ page_container %}
         } catch (error) {
           console.error(error)
           if (verbose) {
-            LNbits.utils.notifyApiError(error)
+            try {
+              LNbits.utils.notifyApiError(error)
+            } catch {}
           }
           throw error
         }
@@ -1897,7 +1917,11 @@ page_container %}
           return {fristProofs, scndProofs}
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            try {
+              LNbits.utils.notifyApiError(error)
+            } catch {}
+          } catch {}
           throw error
         }
       },
@@ -1950,7 +1974,9 @@ page_container %}
         } catch (error) {
           this.payInvoiceData.blocking = false
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -1959,7 +1985,7 @@ page_container %}
         /*
             splits proofs so the user can keep firstProofs, send scndProofs.
             then sets scndProofs as reserved.
-  
+
             if invalidate, scndProofs (the one to send) are invalidated
             */
         try {
@@ -1997,7 +2023,9 @@ page_container %}
           return {fristProofs, scndProofs}
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2024,14 +2052,14 @@ page_container %}
               if (
                 !this.mints.map(m => m.url).includes(tokenJson.mints[i].url)
               ) {
-                this.addMint(tokenJson.mints[i].url)
+                await this.addMint(tokenJson.mints[i].url)
               }
             }
 
             // TODO: We assume here that all proofs are from one mint! This will fail if
             // that's not the case!
             if (tokenJson.mints[0].url != this.activeMintURL) {
-              this.activateMint(tokenJson.mints[0].url)
+              await this.activateMint(tokenJson.mints[0].url)
             }
           }
 
@@ -2059,7 +2087,9 @@ page_container %}
           this.notifySuccess('Tokens received.')
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
         // }
@@ -2167,7 +2197,9 @@ page_container %}
         } catch (error) {
           this.payInvoiceData.blocking = false
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2213,7 +2245,9 @@ page_container %}
           return data.spendable
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2233,7 +2267,9 @@ page_container %}
           return data.fee
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2262,7 +2298,9 @@ page_container %}
           return keys
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2280,7 +2318,9 @@ page_container %}
           return data.keysets
         } catch (error) {
           console.error(error)
-          LNbits.utils.notifyApiError(error)
+          try {
+            LNbits.utils.notifyApiError(error)
+          } catch {}
           throw error
         }
       },
@@ -2296,7 +2336,7 @@ page_container %}
         const invoice = this.invoicesCashu.find(i => i.hash === payment_hash)
         try {
           if (invoice.mint != null) {
-            this.activateMint(invoice.mint, false, false)
+            await this.activateMint(invoice.mint, false, false)
           }
           proofs = await this.mint(invoice.amount, invoice.hash, verbose)
           return proofs
@@ -2341,7 +2381,7 @@ page_container %}
 
         if (tokenJson.mints != null && tokenJson.mints[0].url != null) {
           // todo: we activate only the first mint in the token
-          this.activateMint(tokenJson.mints[0].url)
+          await this.activateMint(tokenJson.mints[0].url)
         }
 
         const spendable = await this.checkProofsSpendable(proofs)
@@ -2638,7 +2678,7 @@ page_container %}
           JSON.stringify(this.proofs, bigIntStringify)
         )
       },
-      migrationLocalstorage: function () {
+      migrationLocalstorage: async function () {
         // migration from old db to multimint
         for (var key in localStorage) {
           match = key.match('cashu.(.+).proofs')
@@ -2653,7 +2693,7 @@ page_container %}
               this.storeProofs()
               let mint_url = this.baseHost + `/cashu/api/v1/${mint_id}`
               console.log('Adding mint', mint_url)
-              this.addMint(mint_url)
+              await this.addMint(mint_url)
               localStorage.removeItem(`cashu.${mint_id}.proofs`)
             }
           }
@@ -2698,14 +2738,14 @@ page_container %}
           location.host +
           `/cashu/api/v1/${this.mintId}`
         this.walletURL = this.baseURL + '?mint_id=' + this.mintId
-        this.addMint(activeMintURL)
+        await this.addMint(activeMintURL)
       }
       if (localStorage.getItem('cashu.activeMintURL')) {
         if (!this.activeMintURL) {
           this.walletURL = this.baseURL
         }
         activeMintURL = localStorage.getItem('cashu.activeMintURL')
-        this.addMint(activeMintURL)
+        await this.addMint(activeMintURL)
       }
       this.showNoMintsWarning()
 
@@ -2738,7 +2778,7 @@ page_container %}
       this.proofs = JSON.parse(localStorage.getItem('cashu.proofs') || '[]')
 
       // run migrations
-      this.migrationLocalstorage()
+      await this.migrationLocalstorage()
 
       // get recv_token to receive tokens from a link
       if (params.get('recv_token')) {
@@ -2776,8 +2816,8 @@ page_container %}
       })
 
       // reset to the mint from settings after workers have run
-      if (startupMintUrl != null) {
-        this.activateMint(startupMintUrl)
+      if (startupMintUrl.length > 0) {
+        await this.activateMint(startupMintUrl)
       }
 
       // PWA install hook
