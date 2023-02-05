@@ -51,7 +51,7 @@ page_container %}
                   icon-right="toll"
                   class="full-width"
                   @click="showReceiveTokensDialog"
-                  >Receive Ecash</q-btn
+                  >Get Ecash</q-btn
                 >
               </div>
               <div class="col-0 col-sm-2 col-md-4"></div>
@@ -419,7 +419,11 @@ page_container %}
       </div>
 
       <!-- // BOTTOM BAR -->
-      <div class="q-col-gutter" v-if="!welcomeDialog.show">
+      <!-- disable bottom bar if dialogs are shown -->
+      <div
+        class="q-col-gutter"
+        v-if="!welcomeDialog.show && !showSendTokens && !showInvoiceDetails && !showReceiveTokens && !payInvoiceData.show && !disclaimerDialog.show"
+      >
         <q-tabs
           class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
           indicator-color="transparent"
@@ -449,7 +453,11 @@ page_container %}
         </q-tabs>
       </div>
 
-      <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
+      <q-dialog
+        v-model="payInvoiceData.show"
+        @hide="closeParseDialog"
+        position="top"
+      >
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="payInvoiceData.invoice">
             <!-- <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
