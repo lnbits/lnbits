@@ -980,7 +980,7 @@ page_container %}
       </q-dialog>
       <q-dialog
         v-model="addMintDialog.show"
-        @keydown.enter.prevent="addMint(mintToAdd)"
+        @keydown.enter.prevent="addMint(mintToAdd, verbose=true)"
       >
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Do you trust this mint?</h6>
@@ -1004,7 +1004,7 @@ page_container %}
               v-close-popup
               color="primary"
               icon="check"
-              @click="addMint(mintToAdd)"
+              @click="addMint(mintToAdd, verbose=true)"
               >Add mint</q-btn
             >
             <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -1337,8 +1337,7 @@ page_container %}
       }
     },
     methods: {
-      addMint: async function (url) {
-        var verbose = true
+      addMint: async function (url, verbose = false) {
         try {
           await this.activateMint(url, verbose)
           // we have no mints at all
@@ -1347,8 +1346,6 @@ page_container %}
           } else if (this.mints.filter(m => m.url == url).length == 0) {
             // we don't have this mint yet
             this.mints.push({url: url, balance: 0})
-          } else {
-            verbose = false
           }
           localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
         } catch (error) {
