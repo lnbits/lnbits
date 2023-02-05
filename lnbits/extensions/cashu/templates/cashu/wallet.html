@@ -471,8 +471,8 @@ page_container %}
           <div v-if="payInvoiceData.invoice">
             {% raw %}
             <h6 class="q-my-none">
-              {{ payInvoiceData.invoice.fsat }}{% endraw %}
-              {{LNBITS_DENOMINATION}} {% raw %} asdasdsd
+              Pay {{ payInvoiceData.invoice.fsat }}{% endraw %}
+              {{LNBITS_DENOMINATION}} {% raw %}
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
@@ -825,9 +825,9 @@ page_container %}
                 label="Memo"
               ></q-input> -->
           </div>
-          <div v-else class="text-center q-mb-lg">
+          <div v-else class="text-center q-mb-lg q-mt-none q-pt-none">
             <a class="text-secondary" :href="'lightning:' + invoiceData.bolt11">
-              <q-responsive :ratio="1" class="q-mx-xl">
+              <q-responsive :ratio="1" class="q-mx-md q-mt-none q-pt-none">
                 <qrcode
                   :value="'lightning:' + invoiceData.bolt11.toUpperCase()"
                   :options="{width: 340}"
@@ -955,7 +955,7 @@ page_container %}
               filled
               dense
               v-model="receiveData.tokensBase64"
-              label="Paste encoded tokens *"
+              label="Eneter Cashu token"
               type="textarea"
               autofocus
               class="q-mb-lg"
@@ -1541,7 +1541,7 @@ page_container %}
           // } else if (req.indexOf('cashu:') !== 1) {
           //   this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
           //   reqtype = 'cashu'
-        } else if (req.indexOf('eyJwcm') !== 1) {
+        } else if (req.indexOf('eyJwcm') == 0) {
           // very dirty way of parsing cashu tokens
           this.receiveData.tokensBase64 = req.slice(req.indexOf('eyJwcm'))
           reqtype = 'cashu'
@@ -1593,6 +1593,7 @@ page_container %}
           // not supported yet
         } else if (reqtype == 'cashu') {
           console.log('#### QR CODE: CASHU TOKEN')
+          this.payInvoiceData.show = false
           this.showReceiveTokens = true
         }
       },
