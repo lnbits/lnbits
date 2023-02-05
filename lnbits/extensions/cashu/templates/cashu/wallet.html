@@ -18,19 +18,18 @@ page_container %}
                   </h3>
                 </div>
               </div>
-              <div class="row q-mt-sm q-mb-none" v-if="activeMintURL">
+              <div class="row q-mt-xs q-mb-none" v-if="mints.length > 0">
                 <div class="col-12">
-                  <a>
-                    Mint:
-                    <b>{% raw %}{{ getActiveMintUrlShort()}} {% endraw %}</b></a
+                  <a class="text-weight-light">
+                    Balance on all mints: {% raw %}
+                    <b>{{ getTotalBalance }} {{tickerShort}} </b>{% endraw %}</a
                   >
                 </div>
               </div>
-              <div class="row q-mt-none q-mb-none" v-if="mints.length > 0">
+              <div class="row q-mt-none q-mb-none" v-if="activeMintURL">
                 <div class="col-12">
-                  <a>
-                    Balance on all mints: {% raw %}
-                    <b>{{ getTotalBalance }} {{tickerShort}} </b>{% endraw %}</a
+                  <a class="text-weight-light">
+                    Mint: {% raw %}{{ getActiveMintUrlShort()}} {% endraw %}</a
                   >
                 </div>
               </div>
@@ -424,7 +423,7 @@ page_container %}
           >
           </q-tab>
           <q-tab
-            class="col-2"
+            class="col-2 q-pb-md"
             icon="photo_camera"
             v-if="hasCamera"
             @click="showCamera"
@@ -663,10 +662,27 @@ page_container %}
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="welcomeDialog.show">
+      <q-dialog
+        class="z-max"
+        persistent
+        v-model="welcomeDialog.show"
+        position="top"
+      >
         <q-card class="q-pa-lg">
-          <h6 class="q-my-md text-primary">This is a Cashu wallet</h6>
-          <p>Please take a moment to read the following information.</p>
+          <q-toolbar>
+            <q-avatar>
+              <img
+                src="https://raw.githubusercontent.com/cashubtc/cashu-ui/main/ui/icons/circle/128x128.png"
+              />
+            </q-avatar>
+            <q-toolbar-title
+              ><span class="text-weight-bold">Cashu</span> ecash
+              wallet</q-toolbar-title
+            >
+          </q-toolbar>
+          <q-card-section>
+            <p>Please take a moment to read the following information.</p>
+          </q-card-section>
           <p>
             <strong>Open this wallet on your device's native browser</strong>
             Cashu stores your ecash on your device locally. For the best
@@ -696,7 +712,7 @@ page_container %}
             <q-btn
               v-close-popup
               flat
-              color="grey"
+              color="primary"
               class="q-ml-auto"
               @click="setWelcomeDialogSeen()"
               >Continue</q-btn
@@ -1421,6 +1437,10 @@ page_container %}
       },
       setWelcomeDialogSeen: function () {
         localStorage.setItem('cashu.welcomeDialogSeen', 'seen')
+        // kick of notification that no mints are present
+        // we have to do this because we disabled this notification since it
+        // covers the dialog
+        this.showNoMintsWarning()
       },
       showDisclaimerDialog: function () {
         this.disclaimerDialog.show = true
@@ -2436,12 +2456,30 @@ page_container %}
           throw new Error(`Mint error: ${response.error}`)
         }
       },
+      showNoMintsWarning: function () {
+        if (!this.activeMintURL) {
+          this.walletURL = this.baseURL
+          // we have to check whether the welcome dialog was pressed away because
+          // otherwise quasar falsely covers the welcome dialog with this notify
+          if (localStorage.getItem('cashu.welcomeDialogSeen') == 'seen') {
+            this.notifyWarning(
+              'You are not connected to any mints yet.',
+              'Add a new mint URL in the settings.',
+              30000
+            )
+          }
+
+          this.tab = 'settings'
+        }
+      },
+
       notifySuccess: async function (message, position = 'top') {
         this.$q.notify({
           timeout: 5000,
           type: 'positive',
           message: message,
           position: position,
+          progress: true,
           actions: [
             {
               icon: 'close',
@@ -2457,6 +2495,7 @@ page_container %}
           message: message,
           caption: caption,
           position: 'top',
+          progress: true,
           actions: [
             {
               icon: 'close',
@@ -2473,10 +2512,11 @@ page_container %}
           message: message,
           caption: caption,
           position: 'top',
+          progress: true,
           actions: [
             {
               icon: 'close',
-              color: 'white',
+              color: 'black',
               handler: () => {}
             }
           ]
@@ -2623,15 +2663,7 @@ page_container %}
         activeMintURL = localStorage.getItem('cashu.activeMintURL')
         this.addMint(activeMintURL)
       }
-      if (!this.activeMintURL) {
-        this.walletURL = this.baseURL
-        this.notifyWarning(
-          'You are not connected to any mints yet.',
-          'Add a new mint URL in the settings.',
-          20000
-        )
-        this.tab = 'settings'
-      }
+      this.showNoMintsWarning()
 
       // todo: remove:
       if (!this.mintId.length) {
