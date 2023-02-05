@@ -106,16 +106,36 @@ page_container %}
                     <!-- <q-item-label header>Your mints</q-item-label> -->
                     <div v-for="(mint, index) in mints" :key="mint.url">
                       {% raw %}
-                      <q-item>
+                      <q-item
+                        :active="mint.url == activeMintURL"
+                        active-class="text-weight-bold text-white"
+                      >
                         <q-item-section avatar>
                           <q-icon
                             :color="mint.url == activeMintURL ? 'primary' : 'grey'"
                             :name="mint.url == activeMintURL ? 'check_circle' : 'radio_button_unchecked'"
                             @click="activateMint(mint.url, verbose=false)"
+                            class="cursor-pointer"
+                          />
+                        </q-item-section>
+                        <q-item-section
+                          class="q-mx-none q-pl-none"
+                          style="max-width: 1.05em"
+                        >
+                          <q-icon
+                            name="content_copy"
+                            @click="copyText(mint.url)"
+                            size="1em"
+                            color="grey"
+                            class="q-mr-xs cursor-pointer"
                           />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label lines="1">{{mint.url}}</q-item-label>
+                          <q-item-label
+                            lines="1"
+                            @click="activateMint(mint.url, verbose=false)"
+                            >{{mint.url}}</q-item-label
+                          >
                           <!-- <q-item-label caption v-if="mint.url == activeMintURL"
                               >This is your active mint.</q-item-label
                             > -->
@@ -128,7 +148,11 @@ page_container %}
                           />
                         </q-item-section>
                         <q-item-section side>
-                          <q-icon name="close" @click="removeMint(mint.url)" />
+                          <q-icon
+                            name="close"
+                            @click="removeMint(mint.url)"
+                            class="cursor-pointer"
+                          />
                         </q-item-section>
                       </q-item>
                       {% endraw %}
@@ -156,6 +180,7 @@ page_container %}
                           round
                           dense
                           flat
+                          color="primary"
                           icon="add"
                           click
                           @click="showAddMintDialog"
