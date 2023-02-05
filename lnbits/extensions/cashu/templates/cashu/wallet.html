@@ -92,10 +92,10 @@ page_container %}
                   <q-list padding>
                     <q-item>
                       <q-item-section>
-                        <q-item-label overline>Cashu mints</q-item-label>
+                        <q-item-label overline>Mints</q-item-label>
                         <q-item-label caption
-                          >You can use use multiple Cashu mints in this wallet.
-                          Add the mint URL and select the mint you want to
+                          >You can connect your wallet to multiple Cashu mints.
+                          Enter a mint URL and select the mint your want to
                           use.</q-item-label
                         >
                       </q-item-section>
@@ -409,6 +409,7 @@ page_container %}
         </div>
       </div>
 
+      <!-- // BOTTOM BAR -->
       <div class="q-col-gutter">
         <q-tabs
           class="lt-md fixed-bottom q-px-none q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
@@ -442,14 +443,15 @@ page_container %}
       <q-dialog v-model="payInvoiceData.show" @hide="closeParseDialog">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="payInvoiceData.invoice">
-            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+            <!-- <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
               {% raw %} {{
               parseFloat(String(payInvoiceData.invoice.fsat).replaceAll(",",
-              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-            </h6>
-            <h6 v-else class="q-my-none">
+              "")) / 100 }} {% endraw %} asdasdasd {{LNBITS_DENOMINATION}} {%
+              raw %}
+            </h6> -->
+            <h6 class="q-my-none">
               {{ payInvoiceData.invoice.fsat }}{% endraw %}
-              {{LNBITS_DENOMINATION}} {% raw %}
+              {{LNBITS_DENOMINATION}} {% raw %} asdasdsd
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
@@ -663,12 +665,12 @@ page_container %}
       </q-dialog>
 
       <q-dialog
-        class="z-max"
+        class="z-top"
         persistent
         v-model="welcomeDialog.show"
         position="top"
       >
-        <q-card class="q-pa-lg">
+        <q-card class="q-pa-lg z-top">
           <q-toolbar>
             <q-avatar>
               <img
@@ -676,48 +678,49 @@ page_container %}
               />
             </q-avatar>
             <q-toolbar-title
-              ><span class="text-weight-bold">Cashu</span> ecash
+              ><span class="text-weight-bold">Cashu</span>
               wallet</q-toolbar-title
             >
           </q-toolbar>
           <q-card-section>
             <p>Please take a moment to read the following information.</p>
+
+            <p>
+              <strong>Open this wallet on your device's native browser</strong>
+              Cashu stores your ecash on your device locally. For the best
+              experience, use this wallet with your device's native web browser
+              (for example Safari for iOS, Chrome for Android).
+            </p>
+            <p>
+              <strong>Add to home screen.</strong>
+              Add Cashu to your home screen as a progressive web app (PWA). On
+              Android Chrome, click the hamburger menu at the upper right. On
+              iOS Safari, click the share button. Now press the Add to Home
+              screen button.
+            </p>
+            <p>
+              <strong>This software is in BETA!</strong> We hold no
+              responsibility for people losing access to funds. Use at your own
+              risk! Ecash is a bearer asset, meaning losing access to this
+              wallet will mean you will lose the funds. This wallet stores ecash
+              tokens in its database. If you lose the link or delete your your
+              data without backing up, you will lose your tokens. Press the
+              Backup button to download a copy of your tokens.
+            </p>
+            <div class="row q-mt-lg">
+              <q-btn outline color="grey" @click="copyText(baseURL)"
+                >Copy wallet URL</q-btn
+              >
+              <q-btn
+                v-close-popup
+                flat
+                color="primary"
+                class="q-ml-auto"
+                @click="setWelcomeDialogSeen()"
+                >Continue</q-btn
+              >
+            </div>
           </q-card-section>
-          <p>
-            <strong>Open this wallet on your device's native browser</strong>
-            Cashu stores your ecash on your device locally. For the best
-            experience, use this wallet with your device's native web browser
-            (for example Safari for iOS, Chrome for Android).
-          </p>
-          <p>
-            <strong>Add to home screen.</strong>
-            Add Cashu to your home screen as a progressive web app (PWA). On
-            Android Chrome, click the hamburger menu at the upper right. On iOS
-            Safari, click the share button. Now press the Add to Home screen
-            button.
-          </p>
-          <p>
-            <strong>This software is in BETA!</strong> We hold no responsibility
-            for people losing access to funds. Use at your own risk! Ecash is a
-            bearer asset, meaning losing access to this wallet will mean you
-            will lose the funds. This wallet stores ecash tokens in its
-            database. If you lose the link or delete your your data without
-            backing up, you will lose your tokens. Press the Backup button to
-            download a copy of your tokens.
-          </p>
-          <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText(baseURL)"
-              >Copy wallet URL</q-btn
-            >
-            <q-btn
-              v-close-popup
-              flat
-              color="primary"
-              class="q-ml-auto"
-              @click="setWelcomeDialogSeen()"
-              >Continue</q-btn
-            >
-          </div>
         </q-card>
       </q-dialog>
 
@@ -947,20 +950,13 @@ page_container %}
           </p>
           <q-input
             outlined
-            dense
             readonly
             v-model="mintToAdd"
             label="Mint URL"
             type="textarea"
-            class="q-mb-sm"
+            autogrow
+            class="q-mb-xs"
           ></q-input>
-          <!-- <q-field outlined dense>
-            <template v-slot:control>
-              <div class="self-center full-width no-outline" tabindex="0">
-                {% raw %}{{ mintToAdd }} {% endraw %}
-              </div>
-            </template>
-          </q-field> -->
           <div class="row q-mt-lg">
             <q-btn
               outline
