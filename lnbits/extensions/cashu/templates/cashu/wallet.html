@@ -555,7 +555,7 @@ page_container %}
         @hide="closeParseDialog"
         position="top"
       >
-        <q-card class="q-pa-lg q-pt-xl">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="payInvoiceData.invoice">
             {% raw %}
             <h6 class="q-my-none">
@@ -596,7 +596,7 @@ page_container %}
               >
             </div>
           </div>
-          <div v-else-if="payInvoiceData.lnurlauth">
+          <!-- <div v-else-if="payInvoiceData.lnurlauth">
             {% raw %}
             <q-form @submit="authLnurl" class="q-gutter-md">
               <p class="q-my-none text-h6">
@@ -626,8 +626,8 @@ page_container %}
               </div>
             </q-form>
             {% endraw %}
-          </div>
-          <div v-else-if="payInvoiceData.lnurlpay">
+          </div> -->
+          <!-- <div v-else-if="payInvoiceData.lnurlpay">
             {% raw %}
             <q-form @submit="payLnurl" class="q-gutter-md">
               <p v-if="payInvoiceData.lnurlpay.fixed" class="q-my-none text-h6">
@@ -707,12 +707,12 @@ page_container %}
               </div>
             </q-form>
             {% endraw %}
-          </div>
+          </div> -->
           <div v-else>
             <q-form
               v-if="!camera.show"
               @submit="decodeRequest"
-              class="q-gutter-md lnbits__dialog-card"
+              class="q-gutter-md"
             >
               <q-input
                 ref="pasteInput"
@@ -1438,7 +1438,6 @@ page_container %}
       },
       addMint: async function (url, verbose = false) {
         try {
-          await this.activateMint(url, verbose)
           // we have no mints at all
           if (this.mints.length == 0) {
             this.mints = [{url: url, balance: 0}]
@@ -1447,6 +1446,7 @@ page_container %}
             this.mints.push({url: url, balance: 0})
           }
           localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
+          await this.activateMint(url, verbose)
         } catch (error) {
           throw error
         } finally {
@@ -1473,6 +1473,7 @@ page_container %}
           if (verbose) {
             this.notifySuccess('Mint added.')
           }
+          localStorage.setItem('cashu.activeMintURL', this.activeMintURL)
           console.log('### activateMint: Mint activated: ', this.activeMintURL)
         } catch (error) {
           this.activeMintURL = presiouvURL
@@ -2408,7 +2409,6 @@ page_container %}
             this.mints.filter(m => m.url == this.activeMintURL)[0].keys = keys
             this.mints.filter(m => m.url == this.activeMintURL)[0].keysets =
               keysets
-            localStorage.setItem('cashu.activeMintURL', this.activeMintURL)
             localStorage.setItem('cashu.mints', JSON.stringify(this.mints))
           }
 
