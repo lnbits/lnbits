@@ -69,8 +69,7 @@ def decode(pr: str) -> Invoice:
 
     # pull out date
     date_bin = data.read(35)
-    assert date_bin
-    invoice.date = date_bin.uint
+    invoice.date = date_bin.uint #type: ignore
 
     while data.pos != data.len:
         tag, tagdata, data = _pull_tagged(data)
@@ -83,7 +82,7 @@ def decode(pr: str) -> Invoice:
         elif tag == "p" and data_length == 52:
             invoice.payment_hash = _trim_to_bytes(tagdata).hex()
         elif tag == "x":
-            invoice.expiry = tagdata.uint
+            invoice.expiry = tagdata.uint #type: ignore
         elif tag == "n":
             invoice.payee = _trim_to_bytes(tagdata).hex()
             # this won't work in most cases, we must extract the payee
@@ -93,16 +92,11 @@ def decode(pr: str) -> Invoice:
         elif tag == "r":
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
-                pubkey = s.read(264)
-                assert pubkey
-                short_channel_id = s.read(64)
-                assert short_channel_id
-                base_fee_msat = s.read(32)
-                assert base_fee_msat
-                ppm_fee = s.read(32)
-                assert ppm_fee
-                cltv = s.read(16)
-                assert cltv
+                pubkey = s.read(264) #type: ignore
+                short_channel_id = s.read(64) #type: ignore
+                base_fee_msat = s.read(32) #type: ignore
+                ppm_fee = s.read(32) #type: ignore
+                cltv = s.read(16) #type: ignore
                 route = Route(
                     pubkey=pubkey.tobytes().hex(),
                     short_channel_id=_readable_scid(short_channel_id.intbe),
