@@ -982,7 +982,7 @@ page_container %}
               <!-- <a class="text-secondary" :href="'cashu:' + sendData.tokensBase64"> -->
               <q-responsive :ratio="1" class="q-mx-xl">
                 <qrcode
-                  :value="baseURL + '&recv_token=' + sendData.tokensBase64"
+                  :value="baseURL + '?token=' + sendData.tokensBase64"
                   :options="{width: 340}"
                   class="rounded-borders"
                 >
@@ -1019,7 +1019,7 @@ page_container %}
               <q-btn
                 color="primary"
                 outline
-                @click="copyText(baseURL + '&recv_token=' + sendData.tokensBase64)"
+                @click="copyText(baseURL + '?token=' + sendData.tokensBase64)"
                 >Copy link</q-btn
               >
             </div>
@@ -2893,9 +2893,9 @@ page_container %}
       // run migrations
       await this.migrationLocalstorage()
 
-      // get recv_token to receive tokens from a link
-      if (params.get('recv_token')) {
-        tokenBase64 = params.get('recv_token')
+      // get token to receive tokens from a link
+      if (params.get('token')) {
+        tokenBase64 = params.get('token')
         // make sure to react only to tokens not in the users history
         let seen = false
         for (var i = 0; i < this.historyTokens.length; i++) {
@@ -2906,7 +2906,7 @@ page_container %}
         }
         if (!seen) {
           // show receive token dialog
-          this.receiveData.tokensBase64 = params.get('recv_token')
+          this.receiveData.tokensBase64 = params.get('token')
           this.showReceiveTokens = true
         }
       }
