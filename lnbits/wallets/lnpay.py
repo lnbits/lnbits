@@ -59,6 +59,7 @@ class LNPayWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
