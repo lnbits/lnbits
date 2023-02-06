@@ -1655,8 +1655,8 @@ page_container %}
           // } else if (req.indexOf('cashu:') !== 1) {
           //   this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
           //   reqtype = 'cashu'
-        } else if (req.indexOf('eyJwcm') == 0) {
-          // very dirty way of parsing cashu tokens
+        } else if (req.indexOf('eyJwcm')) {
+          // very dirty way of parsing cashu tokens from either a pasted token or a URL like https://host.com?token=eyJwcm
           this.receiveData.tokensBase64 = req.slice(req.indexOf('eyJwcm'))
           reqtype = 'cashu'
         }
