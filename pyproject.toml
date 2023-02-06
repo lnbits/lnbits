@@ -94,6 +94,9 @@ include = [
 ]
 exclude = [
   "lnbits/wallets/lnd_grpc_files",
+  "lnbits/wallets",
+  "lnbits/core",
+  "lnbits/*.py",
 ]
 
 [tool.mypy]
