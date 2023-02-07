@@ -36,13 +36,17 @@ async def get_livestream(ls_id: int) -> Optional[Livestream]:
 async def get_livestream_by_track(track_id: int) -> Optional[Livestream]:
     row = await db.fetchone(
         """
-        SELECT livestreams.* AS livestreams FROM livestream.livestreams
-        INNER JOIN livestream.tracks AS tracks ON tracks.livestream = livestreams.id
-        WHERE tracks.id = ?
+        SELECT * FROM livestream.tracks WHERE tracks.id = ?
         """,
         (track_id,),
     )
-    return Livestream(**row) if row else None
+    row2 = await db.fetchone(
+        """
+        SELECT * FROM livestream.livestreams WHERE livestreams.id = ?
+        """,
+        (row.livestream,),
+    )
+    return Livestream(**row2) if row2 else None
 
 
 async def get_or_create_livestream_by_wallet(wallet: str) -> Optional[Livestream]:
