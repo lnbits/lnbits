@@ -1,6 +1,6 @@
 import asyncio
-import httpx
 
+import httpx
 from loguru import logger
 
 from lnbits.core.models import Payment
@@ -41,8 +41,6 @@ async def on_invoice_paid(payment: Payment) -> None:
         logger.error(exc)
         logger.error("could not create subdomain on cloudflare")
         return
-
-
 
     ### Use webhook to notify about cloudflare registration
     if domain and domain.webhook:
