@@ -1,6 +1,7 @@
 import asyncio
-
 import httpx
+
+from loguru import logger
 
 from lnbits.core.models import Payment
 from lnbits.helpers import get_current_extension_name
@@ -21,7 +22,7 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("tag") != "lnsubdomain":
-        # not an lnurlp invoice
+        # not an lnsubdomain invoice
         return
 
     await payment.set_pending(False)
@@ -29,12 +30,19 @@ async def on_invoice_paid(payment: Payment) -> None:
     domain = await get_domain(subdomain.domain)
 
     ### Create subdomain
-    cf_response = await cloudflare_create_subdomain(
-        domain=domain,  # type: ignore
-        subdomain=subdomain.subdomain,
-        record_type=subdomain.record_type,
-        ip=subdomain.ip,
-    )
+    try:
+        cf_response = await cloudflare_create_subdomain(
+            domain=domain,  # type: ignore
+            subdomain=subdomain.subdomain,
+            record_type=subdomain.record_type,
+            ip=subdomain.ip,
+        )
+    except Exception as exc:
+        logger.error(exc)
+        logger.error("could not create subdomain on cloudflare")
+        return
+
+
 
     ### Use webhook to notify about cloudflare registration
     if domain and domain.webhook:
