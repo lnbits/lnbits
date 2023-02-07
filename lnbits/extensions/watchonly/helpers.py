@@ -19,6 +19,7 @@ def parse_key(masterpub: str) -> Tuple[Descriptor, Optional[dict]]:
     To create addresses use descriptor.derive(num).address(network=network)
     """
     network = None
+    desc = None
     # probably a single key
     if "(" not in masterpub:
         k = Key.from_string(masterpub)
@@ -36,7 +37,6 @@ def parse_key(masterpub: str) -> Tuple[Descriptor, Optional[dict]]:
             k.allowed_derivation = AllowedDerivation.default()
         # get version bytes
         version = k.key.version
-        desc = Descriptor()
         for network_name in NETWORKS:
             net = NETWORKS[network_name]
             # not found in this network
@@ -52,6 +52,8 @@ def parse_key(masterpub: str) -> Tuple[Descriptor, Optional[dict]]:
         # we didn't find correct version
         if not network:
             raise ValueError("Unknown master public key version")
+        if not desc:
+            raise ValueError("descriptor not found, because version did not match")
 
     else:
         desc = Descriptor.from_string(masterpub)
