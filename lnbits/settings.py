@@ -61,6 +61,10 @@ class InstalledExtensionsSettings(LNbitsSettings):
     lnbits_upgraded_extensions: List[str] = Field(default=[])
 
 
+class NostrRelaySettings(LNbitsSettings):
+    lnbits_relay_information: dict = Field(default={})
+
+
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
@@ -253,7 +257,7 @@ class SuperUserSettings(LNbitsSettings):
     )
 
 
-class TransientSettings(InstalledExtensionsSettings):
+class TransientSettings(InstalledExtensionsSettings, NostrRelaySettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
     #  - are not read from a file or from the `setings` table

@@ -41,6 +41,17 @@ async def favicon():
 
 @core_html_routes.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
+
+    if request.headers.get("accept") == "application/json+nostr":
+        return JSONResponse(
+            content=settings.lnbits_relay_information,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "GET",
+            },
+        )
+
     return template_renderer().TemplateResponse(
         "core/index.html", {"request": request, "lnurl": lightning}
     )
