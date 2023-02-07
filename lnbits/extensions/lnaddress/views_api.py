@@ -2,6 +2,7 @@ from http import HTTPStatus
 from urllib.parse import urlparse
 
 from fastapi import Depends, HTTPException, Query, Request
+from loguru import logger
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import check_transaction_status, create_invoice
@@ -70,6 +71,7 @@ async def api_domain_create(
 
         if not cf_response or not cf_response["success"]:
             await delete_domain(domain.id)
+            logger.error("Cloudflare failed with: " + cf_response["errors"][0]["message"])  # type: ignore
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Problem with cloudflare."
             )
