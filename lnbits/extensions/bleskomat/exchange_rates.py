@@ -80,5 +80,6 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
     else:
         data = {}
     getter = exchange_rate_providers[provider]["getter"]
-    assert callable(getter), "cannot call getter function"
+    if not callable(getter):
+        return None
     return float(getter(data, replacements))

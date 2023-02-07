@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi import Depends, Query
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -132,7 +133,8 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
         await cloudflare_deletesubdomain(
             domain=domain, domain_id=res_json["result"]["id"]
         )
-    except:
+    except Exception as exc:
+        logger.warning(exc)
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Problem with cloudflare.",
