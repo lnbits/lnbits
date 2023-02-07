@@ -26,11 +26,11 @@ async def get_charge_details(service_id):
     These might be different depending for services implemented in the future.
     """
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
 
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
-    assert wallet
+    assert wallet, f"Could not fetch wallet: {wallet_id}"
 
     user = wallet.user
     return {
@@ -150,7 +150,7 @@ async def create_service(data: CreateService) -> Service:
         service_id = result[0]  # type: ignore
 
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
     return service
 
 
@@ -186,9 +186,9 @@ async def authenticate_service(service_id, code, redirect_uri):
     """Use authentication code from third party API to retreive access token"""
     # The API token is passed in the querystring as 'code'
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
     wallet = await get_wallet(service.wallet)
-    assert wallet
+    assert wallet, f"Could not fetch wallet: {service.wallet}"
     user = wallet.user
     url = "https://streamlabs.com/api/v1.0/token"
     data = {
@@ -213,7 +213,7 @@ async def service_add_token(service_id, token):
     Tokens for Streamlabs never need to be refreshed.
     """
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
     if service.authenticated:
         return False
 
