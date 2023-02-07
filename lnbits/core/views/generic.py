@@ -42,7 +42,7 @@ async def favicon():
 @core_html_routes.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
 
-    if request.headers.get("accept") == "application/json+nostr":
+    if request.headers.get("accept") == "application/nostr+json":
         return JSONResponse(
             content=settings.lnbits_relay_information,
             headers={
