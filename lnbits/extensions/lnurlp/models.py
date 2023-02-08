@@ -1,7 +1,7 @@
 import json
 from sqlite3 import Row
 from typing import Dict, Optional
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 from fastapi.param_functions import Query
 from lnurl.types import LnurlPayMetadata
