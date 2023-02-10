@@ -1,5 +1,7 @@
 ## Nostr Diagon Alley protocol (for resilient marketplaces)
 
+`authur: Ben Arc`
+
 #### Original protocol https://github.com/lnbits/Diagon-Alley
 
 > The concepts around resilience in Diagon Alley helped influence the creation of the NOSTR protocol, now we get to build Diagon Alley on NOSTR!
