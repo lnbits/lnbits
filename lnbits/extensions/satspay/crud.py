@@ -13,7 +13,7 @@ from .helpers import fetch_onchain_balance
 from .models import Charges, CreateCharge, SatsPayThemes
 
 
-async def create_charge(user: str, data: CreateCharge) -> Optional[Charges]:
+async def create_charge(user: str, data: CreateCharge) -> Charges:
     data = CreateCharge(**data.dict())
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:
@@ -79,7 +79,9 @@ async def create_charge(user: str, data: CreateCharge) -> Optional[Charges]:
             data.custom_css,
         ),
     )
-    return await get_charge(charge_id)
+    charge = await get_charge(charge_id)
+    assert charge, "Newly created charge does not exist"
+    return charge
 
 
 async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:

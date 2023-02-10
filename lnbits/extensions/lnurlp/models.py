@@ -1,7 +1,7 @@
 import json
 from sqlite3 import Row
 from typing import Dict, Optional
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 from fastapi.param_functions import Query
 from lnurl.types import LnurlPayMetadata
@@ -61,9 +61,9 @@ class PayLink(BaseModel):
     def success_action(self, payment_hash: str) -> Optional[Dict]:
         if self.success_url:
             url: ParseResult = urlparse(self.success_url)
-            qs: Dict = parse_qs(url.query)
-            qs["payment_hash"] = payment_hash
-            url = url._replace(query=urlencode(qs, doseq=True))
+            #qs = parse_qs(url.query)
+            #setattr(qs, "payment_hash", payment_hash)
+            #url = url._replace(query=urlencode(qs, doseq=True))
             return {
                 "tag": "url",
                 "description": self.success_text or "~",

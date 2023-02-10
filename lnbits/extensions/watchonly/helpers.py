@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from embit.descriptor import Descriptor, Key
 from embit.descriptor.arguments import AllowedDerivation
 from embit.networks import NETWORKS
@@ -12,11 +14,12 @@ def detect_network(k):
             return net
 
 
-def parse_key(masterpub: str) -> Descriptor:
+def parse_key(masterpub: str) -> Tuple[Descriptor, Optional[dict]]:
     """Parses masterpub or descriptor and returns a tuple: (Descriptor, network)
     To create addresses use descriptor.derive(num).address(network=network)
     """
     network = None
+    desc = None
     # probably a single key
     if "(" not in masterpub:
         k = Key.from_string(masterpub)
@@ -47,8 +50,11 @@ def parse_key(masterpub: str) -> Descriptor:
                     desc = Descriptor.from_string("wpkh(%s)" % str(k))
                 break
         # we didn't find correct version
-        if network is None:
+        if not network:
             raise ValueError("Unknown master public key version")
+        if not desc:
+            raise ValueError("descriptor not found, because version did not match")
+
     else:
         desc = Descriptor.from_string(masterpub)
         if not desc.is_wildcard:
@@ -61,6 +67,7 @@ def parse_key(masterpub: str) -> Descriptor:
                 if network is not None and network != net:
                     raise ValueError("Keys from different networks")
                 network = net
+
     return desc, network
 
 

@@ -1,4 +1,4 @@
-name: mypy
+name: pyright
 
 on: [push, pull_request]
 
@@ -23,5 +23,6 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
+          npm install
       - name: Run tests
-        run: make mypy
+        run: make pyright

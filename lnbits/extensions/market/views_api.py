@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import Depends, Query
 from loguru import logger
@@ -224,7 +225,7 @@ async def api_market_stalls(
 @market_ext.put("/api/v1/stalls/{stall_id}")
 async def api_market_stall_create(
     data: createStalls,
-    stall_id: str = None,
+    stall_id: Optional[str] = None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
 
@@ -447,7 +448,7 @@ async def api_market_market_stalls(market_id: str):
 @market_ext.put("/api/v1/markets/{market_id}")
 async def api_market_market_create(
     data: CreateMarket,
-    market_id: str = None,
+    market_id: Optional[str] = None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
     if market_id:
@@ -506,7 +507,7 @@ async def api_get_settings(wallet: WalletTypeInfo = Depends(require_admin_key)):
 @market_ext.put("/api/v1/settings/{usr}")
 async def api_set_settings(
     data: SetSettings,
-    usr: str = None,
+    usr: Optional[str] = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     if usr:

@@ -80,7 +80,6 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
     else:
         data = {}
     getter = exchange_rate_providers[provider]["getter"]
-    print(getter)
-    if callable(getter):
-        rate = float(getter(data, replacements))
-    return rate
+    if not callable(getter):
+        return None
+    return float(getter(data, replacements))

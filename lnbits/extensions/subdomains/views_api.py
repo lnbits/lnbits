@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi import Depends, Query
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -121,21 +122,22 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
             detail=f"{data.subdomain}.{domain.domain} domain already taken.",
         )
 
-    ## Dry run cloudflare... (create and if create is sucessful delete it)
-    cf_response = await cloudflare_create_subdomain(
-        domain=domain,
-        subdomain=data.subdomain,
-        record_type=data.record_type,
-        ip=data.ip,
-    )
-    if cf_response["success"] is True:
-        await cloudflare_deletesubdomain(
-            domain=domain, domain_id=cf_response["result"]["id"]
+    ## Dry run cloudflare... (create and if create is successful delete it)
+    try:
+        res_json = await cloudflare_create_subdomain(
+            domain=domain,
+            subdomain=data.subdomain,
+            record_type=data.record_type,
+            ip=data.ip,
         )
-    else:
+        await cloudflare_deletesubdomain(
+            domain=domain, domain_id=res_json["result"]["id"]
+        )
+    except Exception as exc:
+        logger.warning(exc)
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail=f'Problem with cloudflare: {cf_response["errors"][0]["message"]}',
+            detail="Problem with cloudflare.",
         )
 
     ## ALL OK - create an invoice and return it to the user

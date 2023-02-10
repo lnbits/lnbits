@@ -26,11 +26,11 @@ async def get_charge_details(service_id):
     These might be different depending for services implemented in the future.
     """
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
 
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
-    assert wallet
+    assert wallet, f"Could not fetch wallet: {wallet_id}"
 
     user = wallet.user
     return {
@@ -147,14 +147,16 @@ async def create_service(data: CreateService) -> Service:
     if db.type == SQLITE:
         service_id = result._result_proxy.lastrowid
     else:
-        service_id = result[0]
+        service_id = result[0]  # type: ignore
 
     service = await get_service(service_id)
-    assert service
+    assert service, f"Could not fetch service: {service_id}"
     return service
 
 
-async def get_service(service_id: int, by_state: str = None) -> Optional[Service]:
+async def get_service(
+    service_id: int, by_state: Optional[str] = None
+) -> Optional[Service]:
     """Return a service either by ID or, available, by state
 
     Each Service's donation page is reached through its "state" hash
@@ -184,7 +186,9 @@ async def authenticate_service(service_id, code, redirect_uri):
     """Use authentication code from third party API to retreive access token"""
     # The API token is passed in the querystring as 'code'
     service = await get_service(service_id)
+    assert service, f"Could not fetch service: {service_id}"
     wallet = await get_wallet(service.wallet)
+    assert wallet, f"Could not fetch wallet: {service.wallet}"
     user = wallet.user
     url = "https://streamlabs.com/api/v1.0/token"
     data = {
@@ -208,8 +212,11 @@ async def service_add_token(service_id, token):
     is not overwritten.
     Tokens for Streamlabs never need to be refreshed.
     """
-    if (await get_service(service_id)).authenticated:
+    service = await get_service(service_id)
+    assert service, f"Could not fetch service: {service_id}"
+    if service.authenticated:
         return False
+
     await db.execute(
         "UPDATE streamalerts.Services SET authenticated = 1, token = ? where id = ?",
         (token, service_id),

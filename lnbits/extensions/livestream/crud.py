@@ -23,26 +23,30 @@ async def create_livestream(*, wallet_id: str) -> int:
     if db.type == SQLITE:
         return result._result_proxy.lastrowid
     else:
-        return result[0]
+        return result[0]  # type: ignore
 
 
 async def get_livestream(ls_id: int) -> Optional[Livestream]:
     row = await db.fetchone(
         "SELECT * FROM livestream.livestreams WHERE id = ?", (ls_id,)
     )
-    return Livestream(**dict(row)) if row else None
+    return Livestream(**row) if row else None
 
 
 async def get_livestream_by_track(track_id: int) -> Optional[Livestream]:
     row = await db.fetchone(
         """
-        SELECT livestreams.* AS livestreams FROM livestream.livestreams
-        INNER JOIN livestream.tracks AS tracks ON tracks.livestream = livestreams.id
-        WHERE tracks.id = ?
+        SELECT * FROM livestream.tracks WHERE tracks.id = ?
         """,
         (track_id,),
     )
-    return Livestream(**dict(row)) if row else None
+    row2 = await db.fetchone(
+        """
+        SELECT * FROM livestream.livestreams WHERE livestreams.id = ?
+        """,
+        (row.livestream,),
+    )
+    return Livestream(**row2) if row2 else None
 
 
 async def get_or_create_livestream_by_wallet(wallet: str) -> Optional[Livestream]:
@@ -55,7 +59,7 @@ async def get_or_create_livestream_by_wallet(wallet: str) -> Optional[Livestream
         ls_id = await create_livestream(wallet_id=wallet)
         return await get_livestream(ls_id)
 
-    return Livestream(**dict(row)) if row else None
+    return Livestream(**row) if row else None
 
 
 async def update_current_track(ls_id: int, track_id: Optional[int]):
@@ -121,7 +125,7 @@ async def get_track(track_id: Optional[int]) -> Optional[Track]:
         """,
         (track_id,),
     )
-    return Track(**dict(row)) if row else None
+    return Track(**row) if row else None
 
 
 async def get_tracks(livestream: int) -> List[Track]:
@@ -132,7 +136,7 @@ async def get_tracks(livestream: int) -> List[Track]:
         """,
         (livestream,),
     )
-    return [Track(**dict(row)) for row in rows]
+    return [Track(**row) for row in rows]
 
 
 async def delete_track_from_livestream(livestream: int, track_id: int):
@@ -174,7 +178,7 @@ async def add_producer(livestream: int, name: str) -> int:
     if db.type == SQLITE:
         return result._result_proxy.lastrowid
     else:
-        return result[0]
+        return result[0]  # type: ignore
 
 
 async def get_producer(producer_id: int) -> Optional[Producer]:
@@ -185,7 +189,7 @@ async def get_producer(producer_id: int) -> Optional[Producer]:
         """,
         (producer_id,),
     )
-    return Producer(**dict(row)) if row else None
+    return Producer(**row) if row else None
 
 
 async def get_producers(livestream: int) -> List[Producer]:
@@ -196,4 +200,4 @@ async def get_producers(livestream: int) -> List[Producer]:
         """,
         (livestream,),
     )
-    return [Producer(**dict(row)) for row in rows]
+    return [Producer(**row) for row in rows]
