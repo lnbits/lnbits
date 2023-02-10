@@ -1,6 +1,0 @@
-{
-  "name": "Gerty",
-  "short_description": "Desktop bitcoin Assistant",
-	"tile": "/gerty/static/gerty.png",
-  "contributors": ["arcbtc", "blackcoffeebtc"]
-}
