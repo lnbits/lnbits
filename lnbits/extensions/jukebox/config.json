@@ -1,6 +1,0 @@
-{
-  "name": "Spotify Jukebox",
-  "short_description": "Spotify jukebox middleware",
-	"tile": "/jukebox/static/image/jukebox.png",
-  "contributors": ["benarc"]
-}
