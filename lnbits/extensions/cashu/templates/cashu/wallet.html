@@ -627,22 +627,25 @@ page_container %}
             </q-form>
             {% endraw %}
           </div> -->
-          <!-- <div v-else-if="payInvoiceData.lnurlpay">
+          <div v-else-if="payInvoiceData.lnurlpay">
             {% raw %}
-            <q-form @submit="payLnurl" class="q-gutter-md">
-              <p v-if="payInvoiceData.lnurlpay.fixed" class="q-my-none text-h6">
-                <b>{{ payInvoiceData.lnurlpay.domain }}</b> is requesting {{
-                payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}
-                {{LNBITS_DENOMINATION}}
-                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
+            <q-form @submit="lnurlPaySecond" class="q-gutter-md">
+              <p
+                v-if="payInvoiceData.lnurlpay.maxSendable == payInvoiceData.lnurlpay.minSendable"
+                class="q-my-none text-h6 text-center"
+              >
+                <b>{{ payInvoiceData.domain }}</b> is requesting {{
+                payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }} {%
+                endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+                <!-- <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
                   <br />
                   and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
-                </span>
+                </span> -->
               </p>
               <p v-else class="q-my-none text-h6 text-center">
                 <b
                   >{{ payInvoiceData.lnurlpay.targetUser ||
-                  payInvoiceData.lnurlpay.domain }}</b
+                  payInvoiceData.domain }}</b
                 >
                 is requesting <br />
                 between
@@ -654,13 +657,13 @@ page_container %}
                   >{{ payInvoiceData.lnurlpay.maxSendable | msatoshiFormat }}</b
                 >
                 {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-                <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
+                <!-- <span v-if="payInvoiceData.lnurlpay.commentAllowed > 0">
                   <br />
                   and a {{payInvoiceData.lnurlpay.commentAllowed}}-char comment
-                </span>
+                </span> -->
               </p>
               <q-separator class="q-my-sm"></q-separator>
-              <div class="row">
+              <div class="row" v-if="payInvoiceData.lnurlpay.description">
                 <p class="col text-justify text-italic">
                   {{ payInvoiceData.lnurlpay.description }}
                 </p>
@@ -674,14 +677,14 @@ page_container %}
                   <q-input
                     filled
                     dense
+                    autofocus
                     v-model.number="payInvoiceData.data.amount"
                     type="number"
                     label="Amount ({{LNBITS_DENOMINATION}}) *"
                     :min="payInvoiceData.lnurlpay.minSendable / 1000"
                     :max="payInvoiceData.lnurlpay.maxSendable / 1000"
-                    :readonly="payInvoiceData.lnurlpay.fixed"
+                    :readonly="payInvoiceData.lnurlpay.maxSendable == payInvoiceData.lnurlpay.minSendable"
                   ></q-input>
-                  {% raw %}
                 </div>
                 <div
                   class="col-8 q-pl-md"
@@ -691,23 +694,20 @@ page_container %}
                     filled
                     dense
                     v-model="payInvoiceData.data.comment"
-                    :type="payInvoiceData.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    _type="payInvoiceData.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
                     label="Comment (optional)"
                     :maxlength="payInvoiceData.lnurlpay.commentAllowed"
                   ></q-input>
                 </div>
               </div>
               <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit"
-                  >Send {{LNBITS_DENOMINATION}}</q-btn
-                >
+                <q-btn unelevated color="primary" type="submit">Send</q-btn>
                 <q-btn v-close-popup flat color="grey" class="q-ml-auto"
                   >Cancel</q-btn
                 >
               </div>
             </q-form>
-            {% endraw %}
-          </div> -->
+          </div>
           <div v-else>
             <q-form
               v-if="!camera.show"
@@ -720,7 +720,7 @@ page_container %}
                 dense
                 v-model.trim="payInvoiceData.data.request"
                 type="textarea"
-                label="Enter a Lightning invoice"
+                label="Enter a Lightning invoice, an LNURL, or a Lightning address"
               >
               </q-input>
               <div class="row q-mt-lg">
@@ -1580,6 +1580,7 @@ page_container %}
         this.payInvoiceData.show = true
         this.payInvoiceData.invoice = null
         this.payInvoiceData.lnurlpay = null
+        this.payInvoiceData.domain = ''
         this.payInvoiceData.lnurlauth = null
         this.payInvoiceData.data.request = ''
         this.payInvoiceData.data.comment = ''
@@ -1651,10 +1652,6 @@ page_container %}
         ) {
           this.payInvoiceData.data.request = req
           reqtype = 'lnurl'
-          return
-          // } else if (req.indexOf('cashu:') !== 1) {
-          //   this.receiveData.tokensBase64 = req.slice(req.indexOf('cashu:'))
-          //   reqtype = 'cashu'
         } else if (req.indexOf('eyJwcm')) {
           // very dirty way of parsing cashu tokens from either a pasted token or a URL like https://host.com?token=eyJwcm
           this.receiveData.tokensBase64 = req.slice(req.indexOf('eyJwcm'))
@@ -1704,11 +1701,61 @@ page_container %}
           this.payInvoiceData.invoice = Object.freeze(cleanInvoice)
         } else if (reqtype == 'lnurl') {
           console.log('#### QR CODE: LNURL')
-          // not supported yet
+          this.lnurlPayFirst(this.payInvoiceData.data.request)
         } else if (reqtype == 'cashu') {
           console.log('#### QR CODE: CASHU TOKEN')
           this.payInvoiceData.show = false
           this.showReceiveTokens = true
+        }
+      },
+      lnurlPayFirst: async function (address) {
+        var host
+        if (address.split('@').length == 2) {
+          let [user, lnaddresshost] = address.split('@')
+          host = `https://${lnaddresshost}/.well-known/lnurlp/${user}`
+        } else if (address.toLowerCase().slice(0, 6) === 'lnurl1') {
+          // let host = Buffer.from(
+          //   bech32.fromWords(bech32.decode(address, 20000).words)
+          // ).toString()
+          // var {data} = await axios.get(host)
+          const {data} = await LNbits.api.request(
+            'POST',
+            '/api/v1/payments/decode',
+            '',
+            {
+              data: address
+            }
+          )
+          host = data.domain
+        }
+        var {data} = await axios.get(host)
+        if (data.tag == 'payRequest') {
+          this.payInvoiceData.domain = host.split('https://')[1].split('/')[0]
+          this.payInvoiceData.lnurlpay = data
+          if (
+            this.payInvoiceData.lnurlpay.maxSendable ==
+            this.payInvoiceData.lnurlpay.minSendable
+          ) {
+            this.payInvoiceData.data.amount =
+              this.payInvoiceData.lnurlpay.maxSendable / 1000
+          }
+          this.payInvoiceData.show = true
+        }
+      },
+      lnurlPaySecond: async function () {
+        let amount = this.payInvoiceData.data.amount
+        if (
+          this.payInvoiceData.lnurlpay.tag == 'payRequest' &&
+          this.payInvoiceData.lnurlpay.minSendable <=
+            amount * 1000 <=
+            this.payInvoiceData.lnurlpay.maxSendable
+        ) {
+          var {data} = await axios.get(
+            `${this.payInvoiceData.lnurlpay.callback}?amount=${amount * 1000}`
+          )
+          console.log(data.pr)
+          this.payInvoiceData.data.request = data.pr
+          this.decodeRequest()
         }
       },
       payInvoice: function () {
@@ -1725,34 +1772,35 @@ page_container %}
           ]
         })
       },
-      payLnurl: function () {
-        let dismissPaymentMsg = this.$q.notify({
-          timeout: 0,
-          message: 'Processing payment...',
-          position: 'top',
-          actions: [
-            {
-              icon: 'close',
-              color: 'white',
-              handler: () => {}
-            }
-          ]
-        })
-      },
-      authLnurl: function () {
-        let dismissAuthMsg = this.$q.notify({
-          timeout: 10,
-          message: 'Performing authentication...',
-          position: 'top',
-          actions: [
-            {
-              icon: 'close',
-              color: 'white',
-              handler: () => {}
-            }
-          ]
-        })
-      },
+      // payLnurl: function () {
+      //   let dismissPaymentMsg = this.$q.notify({
+      //     timeout: 0,
+      //     message: 'Processing payment...',
+      //     position: 'top',
+      //     actions: [
+      //       {
+      //         icon: 'close',
+      //         color: 'white',
+      //         handler: () => {}
+      //       }
+      //     ]
+      //   })
+      //   this.lnurlPaySecond()
+      // },
+      // authLnurl: function () {
+      //   let dismissAuthMsg = this.$q.notify({
+      //     timeout: 10,
+      //     message: 'Performing authentication...',
+      //     position: 'top',
+      //     actions: [
+      //       {
+      //         icon: 'close',
+      //         color: 'white',
+      //         handler: () => {}
+      //       }
+      //     ]
+      //   })
+      // },
 
       /////////////////////////////////// WALLET ///////////////////////////////////
       showInvoiceCreateDialog: async function () {
