@@ -1,0 +1,19 @@
+{
+  "description": "Cashu ecash wallet",
+  "icons": {"128": "128.png", "32": "32.png", "16": "16.png"},
+  "manifest_version": 3,
+  "name": "Cashu",
+  "version": "0.1",
+  "action": {
+    "default_icon": "32.png",
+    "default_popup": "embedder.html",
+    "default_title": "Cashu"
+  },
+  "permissions": [
+    "unlimitedStorage",
+    "storage"
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'"
+  }
+}
