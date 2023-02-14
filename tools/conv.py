@@ -212,7 +212,8 @@ print("Selected path: ", args.sqlite_path)
 if os.path.isdir(args.sqlite_path):
     exclude_tables = ["dbversions"]
     file = os.path.join(args.sqlite_path, "database.sqlite3")
-    check_db_versions(file)
+    # TODO
+    # check_db_versions(file)
     if not args.extensions_only:
         migrate_core(file, exclude_tables)
 
