@@ -64,6 +64,15 @@
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteInvoice(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+
             </q-tr>
           </template>
           {% endraw %}
@@ -534,26 +543,23 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteTPoS: function (tposId) {
-        var self = this
-        var tpos = _.findWhere(this.tposs, {id: tposId})
-
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this TPoS?')
-          .onOk(function () {
-            LNbits.api
+      deleteInvoice(invoice_id) {
+          LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Invoice?')
+          .onOk(() => {
+            console.log("Deleting invoice")
+              LNbits.api
               .request(
                 'DELETE',
-                '/tpos/api/v1/tposs/' + tposId,
-                _.findWhere(self.g.user.wallets, {id: tpos.wallet}).adminkey
-              )
-              .then(function (response) {
-                self.tposs = _.reject(self.tposs, function (obj) {
-                  return obj.id == tposId
-                })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
+                '/invoices/api/v1/invoice/' + {invoice_id} + '/delete',
+                _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
+                .adminkey,
+                ).then(response => { 
+                console.log(response)
+                this.invoices = _.reject(this.invoices, obj => obj.invoice_id === invoice_id)
+                // todo: handle this response to user properly       
+              }).catch(err => { 
+                LNbits.utils.notifyApiError(err)
               })
           })
       },

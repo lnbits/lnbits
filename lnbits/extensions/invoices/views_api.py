@@ -21,6 +21,7 @@ from .crud import (
     get_payments_total,
     update_invoice_internal,
     update_invoice_items,
+    delete_invoice,
 )
 from .models import CreateInvoiceData, UpdateInvoiceData
 
@@ -66,6 +67,15 @@ async def api_invoice_create(
     return invoice_dict
 
 
+@invoices_ext.delete("/api/v1/invoice/{invoice_id}/delete", status_code=HTTPStatus.OK)
+async def api_invoice_delete(invoice_id: str):
+    try: 
+        status = await delete_invoice(invoice_id=invoice_id)
+        return  {"status": status}
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @invoices_ext.post("/api/v1/invoice/{invoice_id}", status_code=HTTPStatus.OK)
 async def api_invoice_update(
     data: UpdateInvoiceData,
@@ -73,7 +83,7 @@ async def api_invoice_update(
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     invoice = await update_invoice_internal(wallet_id=wallet.wallet.id, data=data)
-    items = await update_invoice_items(invoice_id=invoice.id, data=data.items)
+    items = await update_invoice_items(invoice_id=invoice_id, data=data.items)
     invoice_dict = invoice.dict()
     invoice_dict["items"] = items
     return invoice_dict

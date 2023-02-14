@@ -150,4 +150,32 @@
       </q-card-section>
     </q-card>
   </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete Invoice"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">DELETE</span>
+          /invoices/api/v1/invoice/{invoice_id}/delete</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.base_url
+          }}invoices/api/v1/invoice/{invoice_id}/delete -H
+          "X-Api-Key: &lt;admin_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
 </q-expansion-item>

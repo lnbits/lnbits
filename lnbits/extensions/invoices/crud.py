@@ -146,6 +146,42 @@ async def update_invoice_internal(
     assert invoice, "Newly updated invoice couldn't be retrieved"
     return invoice
 
+async def delete_invoice(
+        invoice_id: str,
+) -> bool:
+    try:
+        await db.execute(
+            f"""
+            DELETE FROM invoices.payments
+            WHERE invoice_id = ?
+            """,
+            (
+                invoice_id,
+            ),
+        )
+        await db.execute(
+            f"""
+            DELETE FROM invoices.invoice_items
+            WHERE invoice_id = ?
+            """,
+            (
+                invoice_id,
+            ),
+        )
+        await db.execute(
+            f"""
+            DELETE FROM invoices.invoices
+            WHERE invoice_id = ?
+            """,
+            (
+                invoice_id,
+            ),
+        )
+        return True
+    except Exception as e:
+        print("Delete Exception: " + str(e))
+        return False
+
 
 async def update_invoice_items(
     invoice_id: str, data: List[UpdateInvoiceItemData]
