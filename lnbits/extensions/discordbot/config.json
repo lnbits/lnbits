@@ -1,6 +1,0 @@
-{
-    "name": "Discord Bot",
-    "short_description": "Generate users and wallets",
-    "tile": "/discordbot/static/image/discordbot.png",
-    "contributors": ["bitcoingamer21"]
-}
