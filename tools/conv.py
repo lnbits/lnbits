@@ -212,7 +212,7 @@ print("Selected path: ", args.sqlite_path)
 if os.path.isdir(args.sqlite_path):
     exclude_tables = ["dbversions"]
     file = os.path.join(args.sqlite_path, "database.sqlite3")
-    # TODO
+    # TODO, removed ext_ from mock_data.zip
     # check_db_versions(file)
     if not args.extensions_only:
         migrate_core(file, exclude_tables)
@@ -225,10 +225,8 @@ else:
     files = [args.sqlite_path]
 
 
-# TODO: think about testing extension migrations again,
-#       after we pulled them out from core
-# excluded_exts = ["ext_lnurlpos.sqlite3"]
-# for file in files:
-#     filename = os.path.basename(file)
-#     if filename.startswith("ext_") and filename not in excluded_exts:
-#         migrate_ext(file)
+excluded_exts = ["ext_lnurlpos.sqlite3"]
+for file in files:
+    filename = os.path.basename(file)
+    if filename.startswith("ext_") and filename not in excluded_exts:
+        migrate_ext(file)
