@@ -2,6 +2,7 @@ import importlib
 import re
 from typing import Any
 
+import httpx
 from loguru import logger
 
 from lnbits.db import Connection
@@ -42,3 +43,12 @@ async def run_migration(db: Connection, migrations_module: Any, current_version:
                 else:
                     async with core_db.connect() as conn:
                         await update_migration_version(conn, db_name, version)
+
+
+async def stop_extension_work(ext_id: str, user: str):
+    """Stop background workk for extension (like asyncio.Tasks, WebSockets, etc)"""
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.delete(url=f"/{ext_id}/api/v1?usr={user}")
+        except Exception as ex:
+            logger.warning(ex)
