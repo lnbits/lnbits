@@ -29,7 +29,10 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.helpers import migrate_extension_database, stop_extension_work
+from lnbits.core.helpers import (
+    migrate_extension_database,
+    stop_extension_background_work,
+)
 from lnbits.core.models import Payment, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -729,7 +732,6 @@ async def websocket_update_get(item_id: str, data: str):
 async def api_install_extension(
     data: CreateExtension, user: User = Depends(check_admin)
 ):
-
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
     )
@@ -752,11 +754,13 @@ async def api_install_extension(
         await migrate_extension_database(extension, db_version)
 
         await add_installed_extension(ext_info)
+
+        # call stop while the old routes are still active
+        await stop_extension_background_work(data.ext_id, user.id)
+
         if data.ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [data.ext_id]
 
-        # call stop while the old routes are still active
-        await stop_extension_work(data.ext_id, settings.super_user)
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
 
@@ -801,7 +805,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
 
     try:
         # call stop while the old routes are still active
-        await stop_extension_work(ext_id, settings.super_user)
+        await stop_extension_background_work(ext_id, user.id)
 
         if ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [ext_id]
