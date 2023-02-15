@@ -2721,7 +2721,23 @@ page_container %}
           this.tab = 'settings'
         }
       },
-
+      registerLocalStorageSyncHook: function () {
+        // makes sure that local storage stays up to date
+        // in multiple tabs of the same window
+        window.addEventListener('storage', e => {
+          console.log(`Key Changed: ${e.key}`)
+          console.log(`New Value: ${e.newValue}`)
+          localStorage.setItem(e.key, e.newValue)
+          // if these were the proofs, reload them
+          if (e.key == 'cashu.proofs') {
+            this.proofs = JSON.parse(localStorage.getItem('cashu.proofs'))
+          }
+          // if these were the activeMintUrl, reload
+          if (e.key == 'cashu.activeMintURL') {
+            this.activateMint(e.newValue)
+          }
+        })
+      },
       notifySuccess: async function (message, position = 'top') {
         this.$q.notify({
           timeout: 5000,
@@ -2980,6 +2996,9 @@ page_container %}
       if (startupMintUrl.length > 0) {
         await this.activateMint(startupMintUrl)
       }
+
+      // Local storage sync hook
+      this.registerLocalStorageSyncHook()
 
       // PWA install hook
       this.registerPWAEventHook()
