@@ -2725,12 +2725,11 @@ page_container %}
         // makes sure that local storage stays up to date
         // in multiple tabs of the same window
         window.addEventListener('storage', e => {
-          console.log(`Key Changed: ${e.key}`)
-          console.log(`New Value: ${e.newValue}`)
-          localStorage.setItem(e.key, e.newValue)
+          // console.log(`Key Changed: ${e.key}`)
+          // console.log(`New Value: ${e.newValue}`)
           // if these were the proofs, reload them
           if (e.key == 'cashu.proofs') {
-            this.proofs = JSON.parse(localStorage.getItem('cashu.proofs'))
+            this.proofs = JSON.parse(e.newValue)
           }
           // if these were the activeMintUrl, reload
           if (e.key == 'cashu.activeMintURL') {
