@@ -1,4 +1,5 @@
 import asyncio
+from typing import List
 
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,7 @@ lnurlp_static_files = [
         "name": "lnurlp_static",
     }
 ]
+scheduled_tasks: List[asyncio.Task] = []
 
 lnurlp_ext: APIRouter = APIRouter(prefix="/lnurlp", tags=["lnurlp"])
 
@@ -32,4 +34,5 @@ from .views_api import *  # noqa: F401,F403
 
 def lnurlp_start():
     loop = asyncio.get_event_loop()
-    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+    task = loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+    scheduled_tasks.append(task)

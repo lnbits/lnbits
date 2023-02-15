@@ -1,4 +1,5 @@
 import json
+from asyncio.log import logger
 from http import HTTPStatus
 
 from fastapi import Depends, Query, Request
@@ -6,10 +7,10 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, check_admin, get_key_type
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
-from . import lnurlp_ext
+from . import lnurlp_ext, scheduled_tasks
 from .crud import (
     create_pay_link,
     delete_pay_link,
@@ -166,3 +167,14 @@ async def api_check_fiat_rate(currency):
         rate = None
 
     return {"rate": rate}
+
+
+@lnurlp_ext.delete("/api/v1", status_code=HTTPStatus.OK)
+async def api_stop(wallet: WalletTypeInfo = Depends(check_admin)):
+    for t in scheduled_tasks:
+        try:
+            t.cancel()
+        except Exception as ex:
+            logger.warning(ex)
+
+    return {"success": True}
