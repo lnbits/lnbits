@@ -1,0 +1,10 @@
+
+{
+    "repos": [
+        {
+            "id": "cashu",
+            "organisation": "lnbits",
+            "repository": "cashu"
+        }
+    ]
+}
