@@ -2,10 +2,12 @@ import importlib
 import re
 from typing import Any
 
+import httpx
 from loguru import logger
 
 from lnbits.db import Connection
 from lnbits.extension_manager import Extension
+from lnbits.settings import settings
 
 from . import db as core_db
 from .crud import update_migration_version
@@ -42,3 +44,22 @@ async def run_migration(db: Connection, migrations_module: Any, current_version:
                 else:
                     async with core_db.connect() as conn:
                         await update_migration_version(conn, db_name, version)
+
+
+async def stop_extension_background_work(ext_id: str, user: str):
+    """
+    Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
+    Extensions SHOULD expose a DELETE enpoint at the root level of their API.
+    This function tries first to call the endpoint using `http` and if if fails it tries using `https`.
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
+            await client.delete(url)
+        except Exception as ex:
+            logger.warning(ex)
+            try:
+                # try https
+                url = f"https://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
+            except Exception as ex:
+                logger.warning(ex)
