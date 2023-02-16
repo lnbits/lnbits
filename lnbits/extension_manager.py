@@ -52,7 +52,7 @@ class Extension(NamedTuple):
 
 
 class ExtensionManager:
-    def __init__(self, include_disabled_exts=False):
+    def __init__(self):
         self._disabled: List[str] = settings.lnbits_disabled_extensions
         self._admin_only: List[str] = settings.lnbits_admin_extensions
         self._extension_folders: List[str] = [

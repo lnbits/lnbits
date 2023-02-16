@@ -775,9 +775,7 @@ async def api_install_extension(
 @core_app.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
 
-    installable_extensions: List[
-        InstallableExtension
-    ] = await InstallableExtension.get_installable_extensions()
+    installable_extensions = await InstallableExtension.get_installable_extensions()
 
     extensions = [e for e in installable_extensions if e.id == ext_id]
     if len(extensions) == 0:
