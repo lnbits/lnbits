@@ -8,7 +8,7 @@ import signal
 import sys
 import traceback
 from http import HTTPStatus
-from typing import Callable
+from typing import Callable, List
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
@@ -24,7 +24,7 @@ from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
-from .core import core_app, core_app_extra
+from .core import add_installed_extension, core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import (
@@ -129,7 +129,7 @@ async def check_installed_extensions(app: FastAPI):
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
     await load_disabled_extension_list()
-    installed_extensions = await get_installed_extensions()
+    installed_extensions = await build_all_installed_extensions_list()
 
     for ext in installed_extensions:
         try:
@@ -140,6 +140,31 @@ async def check_installed_extensions(app: FastAPI):
         except Exception as e:
             logger.warning(e)
             logger.warning(f"Failed to re-install extension: {ext.id}")
+
+
+async def build_all_installed_extensions_list() -> List[InstallableExtension]:
+    """
+    Returns a list of all the installed extensions plus the extensions that
+    MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
+    """
+    installed_extensions = await get_installed_extensions()
+
+    installed_extensions_ids = [e.id for e in installed_extensions]
+    for ext_id in settings.lnbits_extensions_default_install:
+        if ext_id in installed_extensions_ids:
+            continue
+
+        ext_releases = await InstallableExtension.get_extension_releases(ext_id)
+        release = ext_releases[0] if len(ext_releases) else None
+
+        if release:
+            ext_info = InstallableExtension(
+                id=ext_id, name=ext_id, installed_release=release, icon=release.icon
+            )
+            installed_extensions.append(ext_info)
+            await add_installed_extension(ext_info)
+
+    return installed_extensions
 
 
 def check_installed_extension(ext: InstallableExtension) -> bool:
