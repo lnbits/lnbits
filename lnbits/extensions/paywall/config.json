@@ -1,6 +1,0 @@
-{
-    "name": "Paywall",
-    "short_description": "Create paywalls for content",
-	"tile": "/paywall/static/image/paywall.png",
-    "contributors": ["eillarra"]
-}
