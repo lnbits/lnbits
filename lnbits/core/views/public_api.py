@@ -1,11 +1,9 @@
 import asyncio
 import datetime
 from http import HTTPStatus
-from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from loguru import logger
-from starlette.requests import Request
 
 from lnbits import bolt11
 
