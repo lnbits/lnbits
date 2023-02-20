@@ -1,0 +1,8 @@
+**/.git
+**/.svn
+**/.hg
+**/node_modules
+
+*.yml
+
+**/lnbits/static
