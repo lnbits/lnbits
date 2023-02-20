@@ -6,5 +6,4 @@
 *.yml
 
 **/lnbits/static/vendor
-**/lnbits/static/bundle.js
-
+**/lnbits/static/bundle.*
