@@ -10,7 +10,6 @@ from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
 from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
-from tests.mocks import WALLET  # noqa: F401
 
 
 @pytest_asyncio.fixture(scope="session")
