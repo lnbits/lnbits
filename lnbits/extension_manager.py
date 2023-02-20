@@ -51,13 +51,14 @@ class Extension(NamedTuple):
         )
 
 
+# All subdirectories in the current directory, not recursive.
+
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
         self._disabled: List[str] = settings.lnbits_disabled_extensions
         self._admin_only: List[str] = settings.lnbits_admin_extensions
-        self._extension_folders: List[str] = [
-            x[1] for x in os.walk(os.path.join(settings.lnbits_path, "extensions"))
-        ][0]
+        p = Path(settings.lnbits_path, "extensions")
+        self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
     @property
     def extensions(self) -> List[Extension]:
@@ -70,11 +71,7 @@ class ExtensionManager:
             ext for ext in self._extension_folders if ext not in self._disabled
         ]:
             try:
-                with open(
-                    os.path.join(
-                        settings.lnbits_path, "extensions", extension, "config.json"
-                    )
-                ) as json_file:
+                with open(extension / "config.json") as json_file:
                     config = json.load(json_file)
                 is_valid = True
                 is_admin_only = True if extension in self._admin_only else False
@@ -83,9 +80,10 @@ class ExtensionManager:
                 is_valid = False
                 is_admin_only = False
 
+            *_, extension_code = extension.parts
             output.append(
                 Extension(
-                    extension,
+                    extension_code,
                     is_valid,
                     is_admin_only,
                     config.get("name"),
