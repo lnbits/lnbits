@@ -59,8 +59,7 @@ class ExtensionManager:
         self._disabled: List[str] = settings.lnbits_disabled_extensions
         self._admin_only: List[str] = settings.lnbits_admin_extensions
         p = Path(settings.lnbits_path, "extensions")
-        if not p.exists():
-            os.makedirs(p)
+        os.makedirs(p, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
     @property
