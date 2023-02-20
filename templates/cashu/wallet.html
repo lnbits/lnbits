@@ -2861,7 +2861,7 @@ page_container %}
       migrationLocalstorage: async function () {
         // migration from old db to multimint
         for (var key in localStorage) {
-          match = key.match('cashu.(.+).proofs')
+          let match = key.match('cashu.(.+).proofs')
           if (match != null) {
             console.log('Migrating mint', match[1])
             let mint_id = match[1]
