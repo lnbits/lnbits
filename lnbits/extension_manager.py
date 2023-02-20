@@ -53,6 +53,7 @@ class Extension(NamedTuple):
 
 # All subdirectories in the current directory, not recursive.
 
+
 class ExtensionManager:
     def __init__(self, include_disabled_exts=False):
         self._disabled: List[str] = settings.lnbits_disabled_extensions
