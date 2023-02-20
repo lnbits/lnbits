@@ -14,14 +14,6 @@ from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
 
 
-@core_app.get("/.well-known/lnurlp/{username}")
-async def lnaddress(username: str, request: Request):
-    from lnbits.extensions.lnaddress.lnurl import lnurl_response  # type: ignore
-
-    domain = urlparse(str(request.url)).netloc
-    return await lnurl_response(username, domain, request)
-
-
 @core_app.get("/public/v1/payment/{payment_hash}")
 async def api_public_payment_longpolling(payment_hash):
     payment = await get_standalone_payment(payment_hash)
