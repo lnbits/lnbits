@@ -23,6 +23,14 @@ $themes: (
     marginal-bg: #2d293b,
     marginal-text: #fff
   ),
+  'cyber': (
+    primary: #ccff00,
+    secondary: #a4c910,
+    dark: #0a0a0a,
+    info: #1b1b1b,
+    marginal-bg: #2d293b,
+    marginal-text: #fff
+  ),
   'mint': (
     primary: #3ab77d,
     secondary: #27b065,
@@ -96,6 +104,14 @@ $themes: (
 
 [data-theme='freedom'] .q-header {
   background: #0a0a0a !important;
+}
+
+[data-theme='cyber'] .q-drawer--dark {
+  background: #ccff00 !important;
+}
+
+[data-theme='cyber'] .q-header {
+  background: #ccff00 !important;
 }
 
 [data-theme='salvador'] .q-drawer--dark {

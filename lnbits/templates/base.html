@@ -138,7 +138,17 @@
                 icon="format_color_fill"
                 color="pink-13"
                 size="md"
-                ><q-tooltip>Freedom</q-tooltip>
+                ><q-tooltip>freedom</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('cyber')"
+                dense
+                flat
+                @click="changeColor('cyber')"
+                icon="format_color_fill"
+                color="light-green-7"
+                size="md"
+                ><q-tooltip>cyber</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"
