@@ -1,6 +1,0 @@
-{
-    "name": "Tip Jar",
-    "short_description": "Accept Bitcoin donations, with messages attached!",
-	"tile": "/tipjar/static/image/tipjar.png",
-    "contributors": ["Fittiboy"]
-}
