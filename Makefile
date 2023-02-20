@@ -6,8 +6,8 @@ format: prettier isort black
 
 check: mypy pyright pylint flake8 checkisort checkblack checkprettier
 
-prettier: $(shell find lnbits -name "*.js" -o -name ".html")
-	./node_modules/.bin/prettier --write lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js  lnbits/extensions/*/static/components/*/*.html
+prettier:
+	poetry run ./node_modules/.bin/prettier --write lnbits
 
 pyright:
 	poetry run ./node_modules/.bin/pyright
@@ -27,8 +27,8 @@ isort:
 pylint:
 	poetry run pylint *.py lnbits/ tools/ tests/
 
-checkprettier: $(shell find lnbits -name "*.js" -o -name ".html")
-	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js lnbits/extensions/*/static/components/*/*.html
+checkprettier:
+	poetry run ./node_modules/.bin/prettier --check lnbits
 
 checkblack:
 	poetry run black --check .

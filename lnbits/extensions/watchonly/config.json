@@ -1,9 +1,0 @@
-{
-  "name": "Onchain Wallet",
-  "short_description": "Onchain watch only wallets",
-	"tile": "/watchonly/static/bitcoin-wallet.png",
-  "contributors": [
-    "arcbtc",
-    "motorina0"
-  ]
-}

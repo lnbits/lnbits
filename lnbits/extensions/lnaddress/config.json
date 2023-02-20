@@ -1,6 +1,0 @@
-{
-  "name": "Lightning Address",
-  "short_description": "Sell LN addresses for your domain",
-	"tile": "/lnaddress/static/image/lnaddress.png",
-  "contributors": ["talvasconcelos"]
-}
