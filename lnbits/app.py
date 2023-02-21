@@ -27,19 +27,14 @@ from .commands import db_versions, load_disabled_extension_list, migrate_databas
 from .core import add_installed_extension, core_app, core_app_extra
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
-from .extension_manager import (
-    Extension,
-    ExtensionsRedirectMiddleware,
-    InstallableExtension,
-    InstalledExtensionMiddleware,
-    get_valid_extensions,
-)
+from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import (
     get_css_vendored,
     get_js_vendored,
     template_renderer,
     url_for_vendored,
 )
+from .middleware import ExtensionsRedirectMiddleware, InstalledExtensionMiddleware
 from .requestvars import g
 from .tasks import (
     catch_everything_and_restart,
