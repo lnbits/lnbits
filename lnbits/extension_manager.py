@@ -472,6 +472,7 @@ class InstalledExtensionMiddleware:
             return
 
         path_elements = scope["path"].split("/")
+        print("### upgrade redirect", path_elements)
         if len(path_elements) > 2:
             _, path_name, path_type, *rest = path_elements
         else:
@@ -501,6 +502,56 @@ class InstalledExtensionMiddleware:
                 scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
 
         await self.app(scope, receive, send)
+
+
+class ExtensionsRedirectMiddleware:
+    # Extensions are allowed to specify redirect paths.
+    # A call to a path outside the scope of the extension can be redirected to one of the extensions endpoints.
+    # Eg: redirect `GET /.well-known` to `/lnurlp/api/v1/well-known`
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if "path" not in scope:
+            await self.app(scope, receive, send)
+            return
+
+        path = scope["path"]
+        redirect = next(
+            (
+                r
+                for r in settings.lnbits_extensions_redirects
+                if self._has_common_path(r["from_path"], path)
+            ),
+            None,
+        )
+        print("### redirect", redirect)
+        if redirect:
+            new_path = self._new_path(redirect, path)
+            scope["path"] = f"/{new_path}"
+            print("new path", scope["path"])
+
+        await self.app(scope, receive, send)
+
+    def _has_common_path(self, redirect_path: str, req_path: str) -> bool:
+        redirect_path_elements = redirect_path.split("/")
+        req_path_elements = req_path.split("/")
+        if len(redirect_path) > len(req_path):
+            return False
+        sub_path = req_path_elements[: len(redirect_path_elements)]
+        return redirect_path == "/".join(sub_path)
+
+    def _new_path(self, redirect: dict, req_path: str) -> str:
+        from_path = redirect["from_path"].split("/")
+        redirect_to = redirect["redirect_to_path"].split("/")
+        req_tail_path = req_path.split("/")[len(from_path) :]
+
+        elements = [
+            e for e in ([redirect["ext_id"]] + redirect_to + req_tail_path) if e != ""
+        ]
+
+        return "/".join(elements)
 
 
 class CreateExtension(BaseModel):

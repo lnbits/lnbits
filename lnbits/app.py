@@ -29,6 +29,7 @@ from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import (
     Extension,
+    ExtensionsRedirectMiddleware,
     InstallableExtension,
     InstalledExtensionMiddleware,
     get_valid_extensions,
@@ -76,7 +77,10 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
+    app.add_middleware(ExtensionsRedirectMiddleware)
 
     register_startup(app)
     register_assets(app)
@@ -233,6 +237,18 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
             app.mount(s["path"], s["app"], s["name"])
+
+    if hasattr(ext_module, f"{ext.code}_redirect_paths"):
+        ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
+        # todo: remove old extension redirects
+        for r in ext_redirects:
+            r["ext_id"] = ext.code
+            settings.lnbits_extensions_redirects.append(r)
+
+        print(
+            "### settings.lnbits_extensions_redirects",
+            settings.lnbits_extensions_redirects,
+        )
 
     logger.trace(f"adding route for extension {ext_module}")
 
