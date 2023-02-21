@@ -235,7 +235,9 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
-        # todo: remove old extension redirects
+        settings.lnbits_extensions_redirects = [
+            r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext.code
+        ]
         for r in ext_redirects:
             r["ext_id"] = ext.code
             settings.lnbits_extensions_redirects.append(r)
