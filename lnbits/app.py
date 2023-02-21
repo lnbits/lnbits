@@ -242,11 +242,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             r["ext_id"] = ext.code
             settings.lnbits_extensions_redirects.append(r)
 
-        print(
-            "### settings.lnbits_extensions_redirects",
-            settings.lnbits_extensions_redirects,
-        )
-
     logger.trace(f"adding route for extension {ext_module}")
 
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""

@@ -21,7 +21,6 @@ class InstalledExtensionMiddleware:
             return
 
         path_elements = scope["path"].split("/")
-        print("### upgrade redirect", path_elements)
         if len(path_elements) > 2:
             _, path_name, path_type, *rest = path_elements
         else:
@@ -68,10 +67,8 @@ class ExtensionsRedirectMiddleware:
 
         req_headers = scope["headers"] if "headers" in scope else []
         redirect = self._find_redirect(scope["path"], req_headers)
-        print("### redirect", redirect)
         if redirect:
             scope["path"] = self._new_path(redirect, scope["path"])
-            print("new path", scope["path"])
 
         await self.app(scope, receive, send)
 
