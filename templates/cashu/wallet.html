@@ -1631,12 +1631,13 @@ page_container %}
           // get request from pay invoice dialog
           req = this.payInvoiceData.data.request
         }
-
+        // strip off lightning: prefix
+        if (req.toLowerCase().startsWith('lightning:')) {
+          req = req.slice(10)
+        }
+        // determine request type
         if (req.toLowerCase().startsWith('lnbc')) {
           this.payInvoiceData.data.request = req
-          reqtype = 'bolt11'
-        } else if (req.toLowerCase().startsWith('lightning:')) {
-          this.payInvoiceData.data.request = req.slice(10)
           reqtype = 'bolt11'
         } else if (req.toLowerCase().startsWith('lnurl:')) {
           this.payInvoiceData.data.request = req.slice(6)
@@ -1652,8 +1653,12 @@ page_container %}
         ) {
           this.payInvoiceData.data.request = req
           reqtype = 'lnurl'
-        } else if (req.indexOf('eyJwcm')) {
-          // very dirty way of parsing cashu tokens from either a pasted token or a URL like https://host.com?token=eyJwcm
+        } else if (
+          req.toLowerCase().startsWith('cashu:') ||
+          req.indexOf('eyJwcm') != -1
+          ) {
+          // very dirty way of parsing cashu tokens from either a pasted token or a URL like https://host.com?token=eyJwcm...
+          // or cashu:eyJwcm...
           this.receiveData.tokensBase64 = req.slice(req.indexOf('eyJwcm'))
           reqtype = 'cashu'
         }
