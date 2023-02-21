@@ -243,6 +243,7 @@ class InstallableExtension(BaseModel):
             return config_json.get("is_installed") is True
 
     def download_archive(self):
+        logger.info(f"Downloading extension {self.name}.")
         ext_zip_file = self.zip_path
         if os.path.isfile(ext_zip_file):
             os.remove(ext_zip_file)
@@ -266,6 +267,7 @@ class InstallableExtension(BaseModel):
             )
 
     def extract_archive(self):
+        logger.info(f"Extracting extension {self.name}.")
         os.makedirs(os.path.join("lnbits", "upgrades"), exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
@@ -304,6 +306,7 @@ class InstallableExtension(BaseModel):
             os.path.join(self.ext_upgrade_dir, self.id),
             os.path.join("lnbits", "extensions", self.id),
         )
+        logger.success(f"Extension {self.name} installed.")
 
     def nofiy_upgrade(self) -> None:
         """Update the list of upgraded extensions. The middleware will perform redirects based on this"""
