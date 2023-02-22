@@ -24,7 +24,12 @@ from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
-from .core import add_installed_extension, core_app, core_app_extra
+from .core import (
+    add_installed_extension,
+    core_app,
+    core_app_extra,
+    update_installed_extension_state,
+)
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import (
@@ -163,6 +168,7 @@ async def build_all_installed_extensions_list() -> List[InstallableExtension]:
             )
             installed_extensions.append(ext_info)
             await add_installed_extension(ext_info)
+            await update_installed_extension_state(ext_id=ext_id, active=True)
 
     return installed_extensions
 
