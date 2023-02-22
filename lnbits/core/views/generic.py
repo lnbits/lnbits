@@ -389,6 +389,9 @@ async def manifest(usr: str):
 
 @core_html_routes.get("/admin", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
     WALLET = get_wallet_class()
     _, balance = await WALLET.status()
 
