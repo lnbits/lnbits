@@ -89,7 +89,8 @@ It goes under the `extensions` object and it is of the form:
             "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/new/lnurlp/1/lnurlp.zip",
             "hash": "a22d02de6bf306a7a504cd344e032cc6d48837a1d4aeb569a55a57507bf9a43a",
             "htmlUrl": "https://github.com/lnbits/lnbits-extensions/tree/main/new/lnurlp/1",
-            "infoNotification": "This is a very old version"
+            "infoNotification": "This is a very old version",
+            "dependencies": ["other-ext-id"]
         }
 ```
 
@@ -108,6 +109,7 @@ It goes under the `extensions` object and it is of the form:
 | htmlUrl              | string        | optional  | Link to the extension home page.                                                                                                                                     |
 | infoNotification     | string        | optional  | Users that have this release installed will see a info message for their extension. For example if the extension support will be terminated soon.                    |
 | criticalNotification | string        | optional  | Reserved for urgent notifications. The admin user will receive a message each time it visits the `Install` page. One example is if the extension has a critical bug. |
+| dependencies         | list          | optional  | A list of extension IDs. It signals that those extensions must be installed BEFORE the this one can be installed.   
 
 </details>
 
