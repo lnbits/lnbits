@@ -69,6 +69,10 @@ async def create_invoice(
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
+
+    if not amount > 0:
+        raise InvoiceFailure("Amountless invoices not supported.")
+
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
