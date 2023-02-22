@@ -11,10 +11,8 @@ from typing import Any, List, NamedTuple, Optional, Tuple
 
 import httpx
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.settings import settings
 
@@ -459,51 +457,6 @@ class InstallableExtension(BaseModel):
         ]
 
         return selected_release[0] if len(selected_release) != 0 else None
-
-
-class InstalledExtensionMiddleware:
-    # This middleware class intercepts calls made to the extensions API and:
-    #  - it blocks the calls if the extension has been disabled or uninstalled.
-    #  - it redirects the calls to the latest version of the extension if the extension has been upgraded.
-    #  - otherwise it has no effect
-    def __init__(self, app: ASGIApp) -> None:
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if "path" not in scope:
-            await self.app(scope, receive, send)
-            return
-
-        path_elements = scope["path"].split("/")
-        if len(path_elements) > 2:
-            _, path_name, path_type, *rest = path_elements
-        else:
-            _, path_name = path_elements
-            path_type = None
-
-        # block path for all users if the extension is disabled
-        if path_name in settings.lnbits_deactivated_extensions:
-            response = JSONResponse(
-                status_code=HTTPStatus.NOT_FOUND,
-                content={"detail": f"Extension '{path_name}' disabled"},
-            )
-            await response(scope, receive, send)
-            return
-
-        # re-route API trafic if the extension has been upgraded
-        if path_type == "api":
-            upgraded_extensions = list(
-                filter(
-                    lambda ext: ext.endswith(f"/{path_name}"),
-                    settings.lnbits_upgraded_extensions,
-                )
-            )
-            if len(upgraded_extensions) != 0:
-                upgrade_path = upgraded_extensions[0]
-                tail = "/".join(rest)
-                scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
-
-        await self.app(scope, receive, send)
 
 
 class CreateExtension(BaseModel):

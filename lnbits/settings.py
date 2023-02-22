@@ -4,7 +4,7 @@ import json
 import subprocess
 from os import path
 from sqlite3 import Row
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
@@ -59,6 +59,8 @@ class InstalledExtensionsSettings(LNbitsSettings):
     lnbits_deactivated_extensions: List[str] = Field(default=[])
     # upgraded extensions that require API redirects
     lnbits_upgraded_extensions: List[str] = Field(default=[])
+    # list of redirects that extensions want to perform
+    lnbits_extensions_redirects: List[Any] = Field(default=[])
 
 
 class ThemesSettings(LNbitsSettings):
@@ -264,7 +266,7 @@ class SuperUserSettings(LNbitsSettings):
 class TransientSettings(InstalledExtensionsSettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
-    #  - are not read from a file or from the `setings` table
+    #  - are not read from a file or from the `settings` table
     #  - are not persisted in the `settings` table when the settings are updated
     #  - are cleared on server restart
 

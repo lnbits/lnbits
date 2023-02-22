@@ -32,18 +32,14 @@ from .core import (
 )
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
-from .extension_manager import (
-    Extension,
-    InstallableExtension,
-    InstalledExtensionMiddleware,
-    get_valid_extensions,
-)
+from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import (
     get_css_vendored,
     get_js_vendored,
     template_renderer,
     url_for_vendored,
 )
+from .middleware import ExtensionsRedirectMiddleware, InstalledExtensionMiddleware
 from .requestvars import g
 from .tasks import (
     catch_everything_and_restart,
@@ -81,7 +77,10 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
+    app.add_middleware(ExtensionsRedirectMiddleware)
 
     register_startup(app)
     register_assets(app)
@@ -239,6 +238,15 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
             app.mount(s["path"], s["app"], s["name"])
+
+    if hasattr(ext_module, f"{ext.code}_redirect_paths"):
+        ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
+        settings.lnbits_extensions_redirects = [
+            r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext.code
+        ]
+        for r in ext_redirects:
+            r["ext_id"] = ext.code
+            settings.lnbits_extensions_redirects.append(r)
 
     logger.trace(f"adding route for extension {ext_module}")
 
