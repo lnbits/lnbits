@@ -23,7 +23,12 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
-from .commands import db_versions, load_disabled_extension_list, migrate_databases
+from .commands import (
+    db_versions,
+    load_disabled_extension_list,
+    migrate_databases,
+    check_extension_dependencies,
+)
 from .core import (
     add_installed_extension,
     core_app,
@@ -139,6 +144,7 @@ async def check_installed_extensions(app: FastAPI):
         try:
             installed = check_installed_extension(ext)
             if not installed:
+                await check_extension_dependencies()
                 await restore_installed_extension(app, ext)
                 logger.info(f"✔️ Successfully re-installed extension: {ext.id}")
         except Exception as e:
@@ -259,6 +265,8 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
+            await check_extension_dependencies()
+
             # wait till migration is done
             await migrate_databases()
 

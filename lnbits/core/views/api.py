@@ -29,6 +29,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
+from lnbits.commands import check_extension_dependencies
 from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
@@ -750,6 +751,8 @@ async def api_install_extension(
 
         extension = Extension.from_installable_ext(ext_info)
 
+        await check_extension_dependencies()
+
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
@@ -811,6 +814,8 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         for ext_info in extensions:
             ext_info.clean_extension_files()
             await delete_installed_extension(ext_id=ext_info.id)
+
+        await check_extension_dependencies()
 
     except Exception as ex:
         raise HTTPException(

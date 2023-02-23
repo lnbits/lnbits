@@ -1,8 +1,13 @@
 import asyncio
 import os
+import subprocess
+import sys
 import warnings
+from copy import deepcopy
+from pathlib import Path
 
 import click
+import toml
 from loguru import logger
 
 from lnbits.settings import settings
@@ -16,15 +21,25 @@ from .extension_manager import get_valid_extensions
 from .helpers import get_css_vendored, get_js_vendored, url_for_vendored
 
 
-@click.command("migrate")
+@click.group()
+def cli():
+    pass
+
+
+@cli.command("migrate")
 def db_migrate():
-    asyncio.create_task(migrate_databases())
+    asyncio.run(migrate_databases())
 
 
-@click.command("assets")
+@cli.command("assets")
 def handle_assets():
     transpile_scss()
     bundle_vendored()
+
+
+@cli.command("update")
+def update_extensions():
+    asyncio.run(check_extension_dependencies())
 
 
 def transpile_scss():
@@ -79,6 +94,58 @@ async def migrate_databases():
     logger.info("✔️ All migrations done.")
 
 
+async def run_process(*args, **kwargs):
+
+    process = await asyncio.create_subprocess_exec(*args, **kwargs, stdout=sys.stdout)
+    code = await process.wait()
+    if code != 0:
+        raise Exception(f"Non-zero exit code by {process}")
+
+
+async def check_extension_dependencies():
+    """Makes sure that dependencies of extensions are installed"""
+    ext_dir = os.path.join("lnbits", "extensions")
+
+    ext_pyproject_path = os.path.join(ext_dir, "pyproject.toml")
+
+    pyproject = toml.load(ext_pyproject_path)
+    pyproject_modified = deepcopy(pyproject)
+
+    modified_deps = pyproject_modified["tool"]["poetry"]["dependencies"] = {}
+
+    for ext in get_valid_extensions():
+        if Path(ext_dir, ext.code, "pyproject.toml").is_file():
+            modified_deps[ext.code] = {"path": ext.code, "develop": True}
+    try:
+        original = set(pyproject["tool"]["poetry"]["dependencies"].keys())
+    except KeyError:
+        original = set()
+    modified = set(modified_deps.keys())
+
+    additions = modified.difference(original)
+    removals = original.difference(modified)
+
+    if additions or removals:
+        logger.info(f"Detected changes in extensions")
+        if additions:
+            logger.info(f"Adding: {additions}")
+        if removals:
+            logger.info(f"Removing: {removals} ")
+        with open(ext_pyproject_path, "w") as toml_file:
+            toml.dump(pyproject_modified, toml_file)
+        try:
+            await run_process(settings.lnbits_poetry_path, "lock")
+            await run_process(settings.lnbits_poetry_path, "install", "--sync")
+        except Exception:
+            # When something goes wrong, backup
+            logger.exception("Could not update.")
+            with open(ext_pyproject_path, "w") as toml_file:
+                toml.dump(pyproject, toml_file)
+            raise
+
+    logger.info("✔️ All dependencies installed.")
+
+
 async def db_versions():
     async with core_db.connect() as conn:
         current_versions = await get_dbversions(conn)
@@ -89,3 +156,7 @@ async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions()
     settings.lnbits_deactivated_extensions += inactive_extensions
+
+
+if __name__ == "__main__":
+    cli()

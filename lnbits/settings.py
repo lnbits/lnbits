@@ -52,6 +52,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_default_install: List[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
+    lnbits_poetry_path: str = Field(default="poetry")
 
 
 class InstalledExtensionsSettings(LNbitsSettings):
