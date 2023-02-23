@@ -2,6 +2,8 @@
 name = "extensions"
 description = "Installed Extensions"
 version = "0.1.0"
-authors = [ "",]
+authors = [ "lnbits",]
 
-[tool.poetry.dependencies]
+[tool.poetry.dependencies.discordbot]
+path = "discordbot"
+develop = true

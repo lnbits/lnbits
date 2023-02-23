@@ -46,4 +46,5 @@ fly.toml
 # Ignore extensions (post installable extension PR)
 lnbits/extensions/*
 !lnbits/extensions/pyproject.toml
+!lnbits/extensions/extensions/
 lnbits/upgrades/
