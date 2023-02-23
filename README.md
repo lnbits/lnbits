@@ -25,7 +25,7 @@ LNbits is a Python server that sits on top of any funding source. It can be used
 
 LNbits can run on top of any Lightning funding source. It supports LND, CLN, Eclair, Spark, LNpay, OpenNode, lntxbot, LightningTipBot, and with more being added regularly.
 
-See [docs.lnbits.org](https://docs.lnbits.org) for more detailed documentation.
+See [LNbits Wiki](github.com/lnbits/lnbits/wiki/) for more detailed documentation.
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
@@ -33,7 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](docs/guide/installation.md) for details on installation and setup.
+See the [install guide](github.com/lnbits/lnbits/wiki/) for details on installation and setup.
 
 ## LNbits as an account system
 
@@ -69,7 +69,7 @@ Wallets can be easily generated and given out to people at events. "Go to this  
 If you like this project [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
 
-[docs]: https://docs.lnbits.org/
+[docs]: [https://docs.lnbits.org/](https://github.com/lnbits/lnbits/wiki)
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
 [github-mypy]: https://github.com/lnbits/lnbits/actions?query=workflow%3Amypy
 [github-mypy-badge]: https://github.com/lnbits/lnbits/workflows/mypy/badge.svg
