@@ -8,7 +8,7 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularly.
+LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
@@ -63,13 +63,6 @@ For the invoice listener to work you have a publicly accessible URL in your LNbi
 - `LNPAY_API_ENDPOINT`: https://api.lnpay.co/v1/
 - `LNPAY_API_KEY`: sak_apiKey
 - `LNPAY_WALLET_KEY`: waka_apiKey
-
-
-### lntxbot
-
-- `LNBITS_BACKEND_WALLET_CLASS`: **LntxbotWallet**
-- `LNTXBOT_API_ENDPOINT`: https://lntxbot.com/
-- `LNTXBOT_KEY`: lntxbotAdminApiKey
 
 
 ### OpenNode
