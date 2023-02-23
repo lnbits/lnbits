@@ -1,0 +1,7 @@
+[tool.poetry]
+name = "extensions"
+description = "Installed Extensions"
+version = "0.1.0"
+authors = [ "",]
+
+[tool.poetry.dependencies]
