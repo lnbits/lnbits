@@ -266,7 +266,7 @@ new Vue({
           this.g.user.wallets[0].adminkey,
           {
             amount: credit,
-            id: this.g.user.wallets[0].id
+            id: this.g.wallet.id
           }
         )
         .then(response => {
