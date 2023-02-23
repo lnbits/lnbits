@@ -11,7 +11,6 @@ from urllib import request
 
 import httpx
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel
 
