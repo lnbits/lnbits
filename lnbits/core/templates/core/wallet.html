@@ -285,7 +285,7 @@
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
-        <div class="col-12 col-md-5 q-gutter-y-md">
+        <div class="col-12 col-md-5 q-gutter-y-md" style="margin-bottom: 5rem">
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
@@ -734,22 +734,14 @@
         </q-card>
       </q-dialog>
       <q-tabs
-        class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
+        class="lt-md fixed-bottom q-py-md left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
         active-class="px-0"
         indicator-color="transparent"
+        align="justify"
       >
-        <q-tab
-          icon="account_balance_wallet"
-          label="Wallets"
-          @click="g.visibleDrawer = !g.visibleDrawer"
-        >
-        </q-tab>
-        <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
-        </q-tab>
-        <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
-        </q-tab>
-
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <q-tab icon="bolt" label="Receive" @click="showReceiveDialog"> </q-tab>
+        <q-tab icon="photo_camera" @click="showCamera"> </q-tab>
+        <q-tab icon="bolt" label="Send" @click="showParseDialog"> </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
