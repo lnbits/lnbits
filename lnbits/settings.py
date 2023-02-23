@@ -185,7 +185,6 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
-    LnTxtBotFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
