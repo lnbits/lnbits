@@ -640,7 +640,7 @@ test = ["pytest (>=6)"]
 name = "extensions"
 version = "0.1.0"
 description = "Installed Extensions"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = []
@@ -1928,7 +1928,7 @@ files = [
 name = "types-toml"
 version = "0.10.8.5"
 description = "Typing stubs for toml"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -2190,4 +2190,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8"
-content-hash = "efa1cc7ddbda7489cbcda6cf9749ded06c38a31b2ae671681d468d18f50a16c1"
+content-hash = "3352d92474e4f0fb5248d57777603fb46fd0b54fb0565459fbb3a2725f788211"
