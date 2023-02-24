@@ -69,7 +69,7 @@ Wallets can be easily generated and given out to people at events. "Go to this  
 If you like this project [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
 
-[docs]: [https://docs.lnbits.org/](https://github.com/lnbits/lnbits/wiki)
+[docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
 [github-mypy]: https://github.com/lnbits/lnbits/actions?query=workflow%3Amypy
 [github-mypy-badge]: https://github.com/lnbits/lnbits/workflows/mypy/badge.svg
