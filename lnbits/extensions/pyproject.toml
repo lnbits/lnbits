@@ -3,7 +3,7 @@ name = "extensions"
 description = "Installed Extensions"
 version = "0.1.0"
 authors = [ "lnbits",]
+[[tool.poetry.packages]]
+include = "../"
 
-[tool.poetry.dependencies.discordbot]
-path = "discordbot"
-develop = true
+[tool.poetry.dependencies]
