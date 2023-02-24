@@ -24,10 +24,10 @@ from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
 from .commands import (
+    check_extension_dependencies,
     db_versions,
     load_disabled_extension_list,
     migrate_databases,
-    check_extension_dependencies,
 )
 from .core import (
     add_installed_extension,

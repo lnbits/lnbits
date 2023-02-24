@@ -1,6 +1,5 @@
 import asyncio
 import os
-import subprocess
 import sys
 import warnings
 from copy import deepcopy
@@ -104,9 +103,8 @@ async def run_process(*args, **kwargs):
 
 async def check_extension_dependencies():
     """Makes sure that dependencies of extensions are installed"""
-    ext_dir = os.path.join("lnbits", "extensions")
 
-    ext_pyproject_path = os.path.join(ext_dir, "pyproject.toml")
+    ext_pyproject_path = os.path.join("lnbits", "extensions", "pyproject.toml")
 
     pyproject = toml.load(ext_pyproject_path)
     pyproject_modified = deepcopy(pyproject)
@@ -114,7 +112,8 @@ async def check_extension_dependencies():
     modified_deps = pyproject_modified["tool"]["poetry"]["dependencies"] = {}
 
     for ext in get_valid_extensions():
-        if Path(ext_dir, ext.code, "pyproject.toml").is_file():
+        ext_dir = os.path.join("lnbits", "extensions", ext.code)
+        if Path(ext_dir, "pyproject.toml").is_file():
             modified_deps[ext.code] = {"path": ext.code, "develop": True}
     try:
         original = set(pyproject["tool"]["poetry"]["dependencies"].keys())
@@ -126,7 +125,7 @@ async def check_extension_dependencies():
     removals = original.difference(modified)
 
     if additions or removals:
-        logger.info(f"Detected changes in extensions")
+        logger.info("Detected changes in extensions")
         if additions:
             logger.info(f"Adding: {additions}")
         if removals:

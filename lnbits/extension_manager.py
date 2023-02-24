@@ -67,9 +67,7 @@ class ExtensionManager:
         if "all" in self._disabled:
             return output
 
-        for extension in [
-            ext for ext in self._extension_folders if ext not in self._disabled
-        ]:
+        for extension in self._extension_folders:
             try:
                 with open(extension / "config.json") as json_file:
                     config = json.load(json_file)
@@ -81,20 +79,21 @@ class ExtensionManager:
                 is_admin_only = False
 
             *_, extension_code = extension.parts
-            output.append(
-                Extension(
-                    extension_code,
-                    is_valid,
-                    is_admin_only,
-                    config.get("name"),
-                    config.get("short_description"),
-                    config.get("tile"),
-                    config.get("contributors"),
-                    config.get("hidden") or False,
-                    config.get("migration_module"),
-                    config.get("db_name"),
+            if extension_code not in self._disabled:
+                output.append(
+                    Extension(
+                        extension_code,
+                        is_valid,
+                        is_admin_only,
+                        config.get("name"),
+                        config.get("short_description"),
+                        config.get("tile"),
+                        config.get("contributors"),
+                        config.get("hidden") or False,
+                        config.get("migration_module"),
+                        config.get("db_name"),
+                    )
                 )
-            )
 
         return output
 
