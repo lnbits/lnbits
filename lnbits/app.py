@@ -89,7 +89,6 @@ def create_app() -> FastAPI:
 
     register_startup(app)
     register_assets(app)
-    register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
 
@@ -129,7 +128,7 @@ async def check_funding_source() -> None:
     )
 
 
-async def check_installed_extensions(app: FastAPI):
+async def check_installed_extensions():
     """
     Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
     One reason might be a docker-container that was re-created.
@@ -144,8 +143,7 @@ async def check_installed_extensions(app: FastAPI):
         try:
             installed = check_installed_extension(ext)
             if not installed:
-                await check_extension_dependencies()
-                await restore_installed_extension(app, ext)
+                await restore_installed_extension(ext)
                 logger.info(f"✔️ Successfully re-installed extension: {ext.id}")
         except Exception as e:
             logger.warning(e)
@@ -193,9 +191,10 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
     return False
 
 
-async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
+async def restore_installed_extension(ext: InstallableExtension):
     extension = Extension.from_installable_ext(ext)
-    register_ext_routes(app, extension)
+
+    await check_extension_dependencies()
 
     current_version = (await db_versions()).get(ext.id, 0)
     await migrate_extension_database(extension, current_version)
@@ -265,6 +264,10 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
+            # check extensions after restart
+            await check_installed_extensions()
+
+            # make sure extension ependencies are installed
             await check_extension_dependencies()
 
             # wait till migration is done
@@ -281,9 +284,7 @@ def register_startup(app: FastAPI):
             # initialize funding source
             await check_funding_source()
 
-            # check extensions after restart
-            await check_installed_extensions(app)
-
+            register_routes(app)
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
