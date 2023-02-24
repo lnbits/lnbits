@@ -135,6 +135,12 @@ async def check_extension_dependencies():
         try:
             await run_process(settings.lnbits_poetry_path, "lock")
             await run_process(settings.lnbits_poetry_path, "install", "--sync")
+        except FileNotFoundError:
+            with open(ext_pyproject_path, "w") as toml_file:
+                toml.dump(pyproject, toml_file)
+            raise Exception(
+                "You must use poetry to install extensions with dependencies"
+            )
         except Exception:
             # When something goes wrong, backup
             logger.exception("Could not update.")
