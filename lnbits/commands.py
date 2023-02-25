@@ -26,7 +26,8 @@ def cli():
 
 @cli.command("migrate")
 def db_migrate():
-    asyncio.run(migrate_databases())
+    asyncio.run(migrate_core_databases())
+    asyncio.run(migrate_extensions_databases())
 
 
 @cli.command("assets")
@@ -65,7 +66,7 @@ def bundle_vendored():
             f.write(output)
 
 
-async def migrate_databases():
+async def migrate_core_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
     async with core_db.connect() as conn:
@@ -85,11 +86,18 @@ async def migrate_databases():
         core_version = current_versions.get("core", 0)
         await run_migration(conn, core_migrations, core_version)
 
+    logger.info("✔️ Core migrations done.")
+
+
+async def migrate_extensions_databases():
+    current_versions = await get_dbversions()
+
     for ext in get_valid_extensions():
         current_version = current_versions.get(ext.code, 0)
         await migrate_extension_database(ext, current_version)
 
-    logger.info("✔️ All migrations done.")
+    logger.info("✔️ Extensions migrations done.")
+
 
 
 async def check_extension_dependencies():

@@ -27,7 +27,7 @@ from .commands import (
     check_extension_dependencies,
     db_versions,
     load_disabled_extension_list,
-    migrate_databases,
+    migrate_core_databases, migrate_extensions_databases,
 )
 from .core import (
     add_installed_extension,
@@ -273,17 +273,19 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
-            # check if poetry is setup
             await check_poetry()
 
-            # check extensions after restart
+            # make sure core tables are setup before checking extensions
+            await migrate_core_databases()
+
+            # check extensions after restart, but before scanning dependencies
             await check_installed_extensions()
 
             # make sure extension ependencies are installed
             await check_extension_dependencies()
 
-            # wait till migration is done
-            await migrate_databases()
+            # after the extensions and their dependencies have been checked, migrations can be run
+            await migrate_extensions_databases()
 
             # setup admin settings
             await check_admin_settings()
