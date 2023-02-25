@@ -4,7 +4,7 @@ import pytest
 
 from lnbits import bolt11
 from lnbits.core.views.api import api_payment
-from lnbits.settings import get_wallet_class
+from lnbits.settings import get_wallet_class, settings
 
 from ...helpers import get_random_invoice_data, is_fake, is_regtest
 
@@ -275,3 +275,27 @@ async def test_pay_real_invoice(
     )
     assert type(response) == dict
     assert response["paid"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.extensions
+@pytest.mark.parametrize("installed_extension", ["example"], indirect=True)
+async def test_install_valid_extension(installed_extension):
+    assert installed_extension.status_code == 200
+
+
+@pytest.mark.asyncio
+@pytest.mark.extensions
+@pytest.mark.parametrize("installed_extension", ["dependencies"], indirect=True)
+async def test_install_valid_extension_with_dependencies(installed_extension):
+    if settings.lnbits_poetry_path:
+        assert installed_extension.status_code == 200
+    else:
+        assert installed_extension.status_code == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.extensions
+@pytest.mark.parametrize("installed_extension", ["invalid"], indirect=True)
+async def test_install_invalid_extension(installed_extension):
+    assert installed_extension.status_code == 400

@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.core.crud import get_installed_extensions
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import migrate_extension_database, run_process
 from lnbits.core.tasks import register_task_listeners
 from lnbits.settings import get_wallet_class, set_wallet_class, settings
 
@@ -87,6 +87,10 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
+    # include core routes
+    app.include_router(core_app)
+    app.include_router(core_html_routes)
+
     register_startup(app)
     register_assets(app)
     register_async_tasks(app)
@@ -96,6 +100,14 @@ def create_app() -> FastAPI:
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
 
     return app
+
+
+async def check_poetry():
+    try:
+        logger.info("Checking poetry installation")
+        await run_process(settings.lnbits_poetry_path, "--version")
+    except Exception:
+        settings.lnbits_poetry_path = None
 
 
 async def check_funding_source() -> None:
@@ -206,10 +218,7 @@ async def restore_installed_extension(ext: InstallableExtension):
 
 
 def register_routes(app: FastAPI) -> None:
-    """Register FastAPI routes / LNbits extensions."""
-    app.include_router(core_app)
-    app.include_router(core_html_routes)
-
+    """Register LNbits extensions."""
     for ext in get_valid_extensions():
         try:
             register_ext_routes(app, ext)
@@ -264,6 +273,9 @@ def register_startup(app: FastAPI):
     async def lnbits_startup():
 
         try:
+            # check if poetry is setup
+            await check_poetry()
+
             # check extensions after restart
             await check_installed_extensions()
 

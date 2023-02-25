@@ -17,6 +17,10 @@ from pydantic import BaseModel
 from lnbits.settings import settings
 
 
+class ExtensionInstallationException(Exception):
+    pass
+
+
 class Extension(NamedTuple):
     code: str
     is_valid: bool

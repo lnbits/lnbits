@@ -45,6 +45,7 @@ from lnbits.decorators import (
 from lnbits.extension_manager import (
     CreateExtension,
     Extension,
+    ExtensionInstallationException,
     ExtensionRelease,
     InstallableExtension,
     get_valid_extensions,
@@ -771,7 +772,12 @@ async def api_install_extension(
             ext_info.nofiy_upgrade()
 
         return extension
-
+    except ExtensionInstallationException as ex:
+        ext_info.clean_extension_files()
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(ex),
+        )
     except Exception as ex:
         logger.warning(ex)
         ext_info.clean_extension_files()

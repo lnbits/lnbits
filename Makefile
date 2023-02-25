@@ -46,7 +46,21 @@ test:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest
+	poetry run pytest -m "not extensions"
+
+# Due to being rather slow, these have their own command
+test-ext:
+	BOLTZ_NETWORK="regtest" \
+	BOLTZ_URL="http://127.0.0.1:9001" \
+	BOLTZ_MEMPOOL_SPACE_URL="http://127.0.0.1:8080" \
+	BOLTZ_MEMPOOL_SPACE_URL_WS="ws://127.0.0.1:8080" \
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
+	FAKE_WALLET_SECRET="ToTheMoon1" \
+	LNBITS_DATA_FOLDER="./tests/data" \
+	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
+	poetry run pytest -m "extensions"
+
 
 test-real-wallet:
 	BOLTZ_NETWORK="regtest" \

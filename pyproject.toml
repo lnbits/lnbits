@@ -111,6 +111,9 @@ addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
   "tests"
 ]
+markers = [
+  "extensions: extension test are rather slow (deselect with '-m \"not slow\"')",
+]
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 300

@@ -52,7 +52,10 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_default_install: List[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
-    lnbits_poetry_path: str = Field(default="poetry")
+    # Path to poetry installation, set to None if not installed
+    lnbits_poetry_path: Optional[str] = Field(default="poetry")
+    # Whether to strictly sync environment when extension dependencies change
+    lnbits_poetry_sync: bool = Field(default=True)
 
 
 class InstalledExtensionsSettings(LNbitsSettings):

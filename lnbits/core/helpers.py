@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import re
 from typing import Any
@@ -63,3 +64,19 @@ async def stop_extension_background_work(ext_id: str, user: str):
                 url = f"https://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
             except Exception as ex:
                 logger.warning(ex)
+
+
+async def run_process(*args, **kwargs):
+    """
+    Call a subprocess, waiting for it to finish. If it exits with a non-zero code, an exception is thrown.
+    """
+    process = await asyncio.create_subprocess_exec(*args, **kwargs)
+    # stdout, stderror = await process.communicate()
+    # if stdout:
+    #    logger.info(stdout)
+    #
+    # logger.error(stderror)
+    # code = process.returncode
+    code = await process.wait()
+    if code != 0:
+        raise Exception(f"Non-zero exit code by {process}")

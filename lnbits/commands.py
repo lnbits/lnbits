@@ -1,6 +1,5 @@
 import asyncio
 import os
-import sys
 import warnings
 from copy import deepcopy
 from pathlib import Path
@@ -14,9 +13,9 @@ from lnbits.settings import settings
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import get_dbversions, get_inactive_extensions
-from .core.helpers import migrate_extension_database, run_migration
+from .core.helpers import migrate_extension_database, run_migration, run_process
 from .db import COCKROACH, POSTGRES, SQLITE
-from .extension_manager import get_valid_extensions
+from .extension_manager import ExtensionInstallationException, get_valid_extensions
 from .helpers import get_css_vendored, get_js_vendored, url_for_vendored
 
 
@@ -93,14 +92,6 @@ async def migrate_databases():
     logger.info("✔️ All migrations done.")
 
 
-async def run_process(*args, **kwargs):
-
-    process = await asyncio.create_subprocess_exec(*args, **kwargs, stdout=sys.stdout)
-    code = await process.wait()
-    if code != 0:
-        raise Exception(f"Non-zero exit code by {process}")
-
-
 async def check_extension_dependencies():
     """Makes sure that dependencies of extensions are installed"""
 
@@ -125,6 +116,12 @@ async def check_extension_dependencies():
     removals = original.difference(modified)
 
     if additions or removals:
+
+        if not settings.lnbits_poetry_path:
+            raise ExtensionInstallationException(
+                "You must use poetry to install extensions with dependencies"
+            )
+
         logger.info("Detected changes in extensions")
         if additions:
             logger.info(f"Adding: {additions}")
@@ -134,19 +131,24 @@ async def check_extension_dependencies():
             toml.dump(pyproject_modified, toml_file)
         try:
             await run_process(settings.lnbits_poetry_path, "lock")
-            await run_process(settings.lnbits_poetry_path, "install", "--sync")
-        except FileNotFoundError:
-            with open(ext_pyproject_path, "w") as toml_file:
-                toml.dump(pyproject, toml_file)
-            raise Exception(
-                "You must use poetry to install extensions with dependencies"
-            )
-        except Exception:
+            # When lnbits_poetry_sync is set, install should always run, regardless
+            # of the actions done. Otherwise, only run install when new packages are added.
+            if settings.lnbits_poetry_sync:
+                await run_process(
+                    settings.lnbits_poetry_path, "install", "--no-root", "--sync"
+                )
+            elif additions:
+                await run_process(settings.lnbits_poetry_path, "install", "--no-root")
+        except (FileNotFoundError, Exception) as ex:
             # When something goes wrong, backup
-            logger.exception("Could not update.")
+            logger.error("Could not update.")
             with open(ext_pyproject_path, "w") as toml_file:
                 toml.dump(pyproject, toml_file)
-            raise
+            if isinstance(ex, FileNotFoundError):
+                msg = "You must use poetry to install extensions with dependencies"
+            else:
+                msg = "Dependencies could not be installed. Please check for any collisions"
+            raise ExtensionInstallationException(msg)
 
     logger.info("✔️ All dependencies installed.")
 

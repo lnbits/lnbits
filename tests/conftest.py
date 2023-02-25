@@ -3,7 +3,7 @@ import asyncio
 import pytest_asyncio
 from httpx import AsyncClient
 
-from lnbits.app import create_app
+from lnbits.app import check_poetry, create_app
 from lnbits.commands import migrate_databases
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
@@ -26,6 +26,7 @@ def app(event_loop):
     # use redefined version of the event loop for scope="session"
     # loop = asyncio.get_event_loop()
     loop = event_loop
+    loop.run_until_complete(check_poetry())
     loop.run_until_complete(migrate_databases())
     yield app
     # # get the current event loop and gracefully stop any running tasks
@@ -50,6 +51,15 @@ async def db():
 async def from_user():
     user = await create_account()
     yield user
+
+
+@pytest_asyncio.fixture
+def from_admin_user(from_user):
+    """Temporarily sets the created user as the super user"""
+    prev_super = settings.super_user
+    settings.super_user = from_user.id
+    yield from_user
+    settings.super_user = prev_super
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -130,3 +140,24 @@ async def real_invoice():
     invoice = get_real_invoice(100_000, "test-fixture")
     yield invoice
     del invoice
+
+
+@pytest_asyncio.fixture
+async def installed_extension(client, from_admin_user, request):
+    ext_id = request.param
+    params = "?usr=" + from_admin_user.id
+
+    response = await client.get(f"/api/v1/extension/{ext_id}/releases" + params)
+    releases = response.json()
+    assert len(releases) > 0
+
+    response = await client.post(
+        "/api/v1/extension" + params,
+        json={"ext_id": ext_id, **releases[0]},
+    )
+
+    yield response
+
+    if response.status_code == 200:
+        response = await client.delete(f"/api/v1/extension/{ext_id}" + params)
+        assert response.status_code == 200
