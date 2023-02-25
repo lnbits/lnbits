@@ -1,15 +1,31 @@
 import asyncio
 
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
 from lnbits.app import check_poetry, create_app
-from lnbits.commands import migrate_databases
+from lnbits.commands import migrate_core_databases
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
 from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
+
+
+def pytest_addoption(parser):
+    parser.addoption('--extensions', action='store_true', dest="extensions",
+                     default=False, help="enable extensions tests")
+
+
+def pytest_configure(config: pytest.Config):
+    # preserve existing markexpr
+    if config.option.markexpr:
+        config.option.markexpr += ' and '
+    if config.option.extensions:
+        config.option.markexpr += 'extensions'
+    else:
+        config.option.markexpr += 'not extensions'
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -27,7 +43,7 @@ def app(event_loop):
     # loop = asyncio.get_event_loop()
     loop = event_loop
     loop.run_until_complete(check_poetry())
-    loop.run_until_complete(migrate_databases())
+    loop.run_until_complete(migrate_core_databases())
     yield app
     # # get the current event loop and gracefully stop any running tasks
     # loop = event_loop
