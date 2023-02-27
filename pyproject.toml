@@ -48,6 +48,7 @@ types-protobuf = "^3.19.22"
 pylint = "^2.17.2"
 pre-commit = "^3.2.2"
 types-mock = "^5.0.0.6"
+openapi-spec-validator = "^0.5.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -69,6 +69,18 @@ test-migration:
 migration:
 	poetry run python tools/conv.py
 
+openapi:
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
+	FAKE_WALLET_SECRET="ToTheMoon1" \
+	LNBITS_DATA_FOLDER="./tests/data" \
+	PYTHONUNBUFFERED=1 \
+	HOST=0.0.0.0 \
+	PORT=5003 \
+	poetry run lnbits &
+	sleep 7
+	curl -s http://0.0.0.0:5003/openapi.json | poetry run openapi-spec-validator -
+	kill %1
+
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
 	#
