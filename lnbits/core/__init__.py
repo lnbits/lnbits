@@ -5,7 +5,7 @@ from lnbits.db import Database
 
 db = Database("database")
 
-core_app: APIRouter = APIRouter()
+core_app: APIRouter = APIRouter(tags=["Core"])
 
 core_app_extra: CoreAppExtra = CoreAppExtra()
 
