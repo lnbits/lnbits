@@ -1,3 +1,4 @@
+# type: ignore
 try:
     from pyln.client import LightningRpc, RpcError  # type: ignore
 except ImportError:  # pragma: nocover

@@ -185,7 +185,7 @@ class Database(Compat):
     async def connect(self):
         await self.lock.acquire()
         try:
-            async with self.engine.connect() as conn:
+            async with self.engine.connect() as conn:  # type: ignore
                 async with conn.begin() as txn:
                     wconn = Connection(conn, txn, self.type, self.name, self.schema)
 

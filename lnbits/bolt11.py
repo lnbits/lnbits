@@ -91,17 +91,12 @@ def decode(pr: str) -> Invoice:
         elif tag == "r":
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
-                pubkey = s.read(264)  # type: ignore
-                short_channel_id = s.read(64)  # type: ignore
-                base_fee_msat = s.read(32)  # type: ignore
-                ppm_fee = s.read(32)  # type: ignore
-                cltv = s.read(16)  # type: ignore
                 route = Route(
-                    pubkey=pubkey.tobytes().hex(),
-                    short_channel_id=_readable_scid(short_channel_id.intbe),
-                    base_fee_msat=base_fee_msat.intbe,
-                    ppm_fee=ppm_fee.intbe,
-                    cltv=cltv.intbe,
+                    pubkey=s.read(264).tobytes().hex(),  # type: ignore
+                    short_channel_id=_readable_scid(s.read(64).intbe),  # type: ignore
+                    base_fee_msat=s.read(32).intbe,  # type: ignore
+                    ppm_fee=s.read(32).intbe,  # type: ignore
+                    cltv=s.read(16).intbe,  # type: ignore
                 )
                 invoice.route_hints.append(route)
 
