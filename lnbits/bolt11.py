@@ -209,6 +209,7 @@ def lnencode(addr, privkey):
                 )
             data += tagged("r", route)
         elif k == "f":
+            # NOTE: there was an error fallback here that's now removed
             continue
         elif k == "d":
             data += tagged_bytes("d", v.encode())
