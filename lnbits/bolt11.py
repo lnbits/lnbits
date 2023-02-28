@@ -9,7 +9,6 @@ import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
 from ecdsa import SECP256k1, VerifyingKey
 from ecdsa.util import sigdecode_string
-from loguru import logger
 
 
 class Route(NamedTuple):
@@ -168,10 +167,6 @@ def encode(options):
     return lnencode(addr, options["privkey"])
 
 
-def encode_fallback(v, currency):
-    logger.error(f"hit bolt11.py encode_fallback with v: {v} and currency: {currency}")
-
-
 def lnencode(addr, privkey):
     if addr.amount:
         amount = Decimal(str(addr.amount))
@@ -214,7 +209,7 @@ def lnencode(addr, privkey):
                 )
             data += tagged("r", route)
         elif k == "f":
-            data += encode_fallback(v, addr.currency)
+            continue
         elif k == "d":
             data += tagged_bytes("d", v.encode())
         elif k == "x":
