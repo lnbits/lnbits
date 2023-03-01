@@ -437,7 +437,7 @@ async def check_admin_settings():
         for key, value in settings.dict(exclude_none=True).items():
             logger.debug(f"{key}: {value}")
 
-        admin_url = f"{'https' if settings.lnbits_force_https else 'http'}://{settings.host}:{settings.port}/wallet?usr={settings.super_user}"
+        admin_url = f"{settings.lnbits_baseurl}wallet?usr={settings.super_user}"
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
         # callback for saas

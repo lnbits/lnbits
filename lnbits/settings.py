@@ -88,7 +88,7 @@ class ThemesSettings(LNbitsSettings):
 
 
 class OpsSettings(LNbitsSettings):
-    lnbits_force_https: bool = Field(default=False)
+    lnbits_baseurl: str = Field(default="http://127.0.0.1/")
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)

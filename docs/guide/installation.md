@@ -174,8 +174,8 @@ kill_timeout = 30
 [env]
   HOST="127.0.0.1"
   PORT=5000
-  LNBITS_FORCE_HTTPS=true
   FORWARDED_ALLOW_IPS="*"
+  LNBITS_BASEURL="https://mylnbits.lnbits.org/"
   LNBITS_DATA_FOLDER="/data"
 
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}

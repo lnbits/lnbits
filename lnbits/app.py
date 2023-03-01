@@ -283,6 +283,7 @@ def register_startup(app: FastAPI):
 
 def log_server_info():
     logger.info("Starting LNbits")
+    logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")
     logger.info(f"Port: {settings.port}")
     logger.info(f"Debug: {settings.debug}")
