@@ -88,7 +88,7 @@ class ThemesSettings(LNbitsSettings):
 
 
 class OpsSettings(LNbitsSettings):
-    lnbits_baseurl: str = Field(default="http://127.0.0.1/")
+    lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
@@ -374,9 +374,9 @@ except:
     settings.lnbits_commit = "docker"
 
 
-# printing enviroment variable for debugging
+# printing environment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug("Enviroment Settings:")
+    logger.debug("Environment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
