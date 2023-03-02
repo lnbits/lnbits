@@ -45,6 +45,9 @@
             </q-btn>
           </q-toolbar-title>
           {% block beta %}
+          <q-badge color="red" text-color="black" class="q-mr-md">
+            <span>VoidWallet is active! Payments disabled</span>
+          </q-badge>
           <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
               ><span v-show="$q.screen.gt.sm"

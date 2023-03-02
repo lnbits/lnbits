@@ -72,12 +72,14 @@ exclude = [
   "lnbits/wallets",
   "lnbits/core",
   "lnbits/*.py",
+  "lnbits/extensions",
 ]
 
 [tool.mypy]
 files = "lnbits"
 exclude = """(?x)(
     ^lnbits/wallets/lnd_grpc_files.
+    | ^lnbits/extensions.
 )"""
 
 [[tool.mypy.overrides]]
@@ -90,7 +92,6 @@ module = [
   "websocket.*",
   "websockets.*",
   "pyqrcode.*",
-  "cashu.*",
   "shortuuid.*",
   "grpc.*",
   "lnurl.*",

@@ -317,8 +317,9 @@ def set_cli_settings(**kwargs):
 
 
 # set wallet class after settings are loaded
-def set_wallet_class():
-    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+def set_wallet_class(class_name: Optional[str] = None):
+    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
+    wallet_class = getattr(wallets_module, backend_wallet_class)
     global WALLET
     WALLET = wallet_class()
 
