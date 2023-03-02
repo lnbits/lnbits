@@ -127,7 +127,7 @@ async def check_funding_source() -> None:
         except:
             pass
 
-        if retry_counter == timeout:
+        if settings.lnbits_admin_ui and retry_counter == timeout:
             logger.warning(
                 f"Fallback to VoidWallet, because the backend for {WALLET.__class__.__name__} isn't working properly"
             )
