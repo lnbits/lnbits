@@ -34,10 +34,12 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import Payment, User, Wallet
+from lnbits.db import Filters
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     get_key_type,
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
@@ -116,16 +118,14 @@ async def api_update_wallet(
 
 @core_app.get("/api/v1/payments")
 async def api_payments(
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
     wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(Payment)),
 ):
     pendingPayments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
     for payment in pendingPayments:
         await check_transaction_status(
@@ -135,8 +135,7 @@ async def api_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
 
 

@@ -1,15 +1,18 @@
 from http import HTTPStatus
+from typing import Type
 
 from fastapi import Security, status
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
+from pydantic import BaseModel
 from pydantic.types import UUID4
 from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
+from lnbits.db import Filter
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -266,3 +269,30 @@ async def check_super_user(usr: UUID4) -> User:
             detail="User not authorized. No super user privileges.",
         )
     return user
+
+
+"""
+# example views_api.py from usermanager
+usermanager_ext.get("/api/v1/users")
+async def api_usermanager_users(
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    filters: list[Filter] = Depends(parse_filters(UserFilters))
+):
+    admin_id = wallet.wallet.user
+    return await get_usermanager_users(admin_id, filters)
+"""
+
+
+def parse_filters(model: Type[BaseModel]):
+    def dependency(request: Request):
+        filters = []
+        for key in request.query_params.keys():
+            try:
+                filters.append(
+                    Filter.parse_query(key, request.query_params.getlist(key), model)
+                )
+            except ValueError:
+                continue
+        return filters
+
+    return dependency
