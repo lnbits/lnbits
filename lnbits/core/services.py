@@ -332,7 +332,7 @@ async def perform_lnurlauth(
 
         return b
 
-    def encode_strict_der(r, s, order):
+    def encode_strict_der(r: int, s: int, order: int):
         # if s > order/2 verification will fail sometimes
         # so we must fix it here (see https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147)
         if s > order // 2:
