@@ -43,6 +43,8 @@ docker
 # fly.io
 fly.toml
 
+lnbits-backup.zip
+
 # Ignore extensions (post installable extension PR)
 extensions/
 upgrades/
