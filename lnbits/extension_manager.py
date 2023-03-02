@@ -235,7 +235,6 @@ class InstallableExtension(BaseModel):
             return False
         config_file = os.path.join(self.ext_dir, "config.json")
         return Path(config_file).is_file()
-        
 
     def download_archive(self):
         logger.info(f"Downloading extension {self.name}.")
