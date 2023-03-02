@@ -30,7 +30,6 @@ class Invoice:
     secret: Optional[str] = None
     route_hints: List[Route] = []
     min_final_cltv_expiry: int = 18
-    checking_id: Optional[str] = None
 
 
 def decode(pr: str) -> Invoice:

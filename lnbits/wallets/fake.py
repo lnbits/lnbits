@@ -80,7 +80,7 @@ class FakeWallet(Wallet):
     async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
         invoice = decode(bolt11)
 
-        if invoice.checking_id and invoice.checking_id[:6] == self.privkey[:6]:
+        if invoice.payment_hash[:6] == self.privkey[:6]:
             await self.queue.put(invoice)
             return PaymentResponse(True, invoice.payment_hash, 0)
         else:
