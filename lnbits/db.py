@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Any, List, Optional, Tuple, Type
 
+import fastapi
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import create_engine
@@ -286,11 +287,17 @@ class Filter(BaseModel):
                 # and the converted value is extracted afterwards
                 for name in reversed(nested):
                     raw_value = {name: raw_value}
+
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
-                    raise ValidationError(errors=errors, model=model)
+                    raise ValidationError(errors=[errors], model=model)
+
                 for name in nested:
-                    validated = validated[name]
+                    if isinstance(validated, dict):
+                        validated = validated[name]
+                    else:
+                        validated = getattr(validated, name)
+
                 values.append(validated)
         else:
             raise ValueError("Unknown filter field")
@@ -313,15 +320,24 @@ class Filter(BaseModel):
 
 class Filters(BaseModel):
     filters: List[Filter] = []
+    limit: Optional[int]
+    offset: Optional[int]
 
-    def limit(self) -> str:
-        return "LIMIT 10 OFFSET 1"
+    def pagination(self) -> str:
+        stmt = ""
+        if self.limit:
+            stmt += f"LIMIT {self.limit} "
+        if self.offset:
+            stmt += f"OFFSET {self.offset}"
+        return stmt
 
     def where(self, where_stmts: List[str]) -> str:
         if self.filters:
             for filter in self.filters:
                 where_stmts.append(filter.statement)
-        return " AND ".join(where_stmts)
+        if where_stmts:
+            return "WHERE " + " AND ".join(where_stmts)
+        return ""
 
     def values(self, values: List[str]) -> Tuple:
         if self.filters:

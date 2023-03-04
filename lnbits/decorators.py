@@ -12,7 +12,7 @@ from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
-from lnbits.db import Filter
+from lnbits.db import Filter, Filters
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -285,14 +285,20 @@ async def api_usermanager_users(
 
 def parse_filters(model: Type[BaseModel]):
     def dependency(request: Request):
+        params = request.query_params
         filters = []
-        for key in request.query_params.keys():
+        for key in params.keys():
             try:
                 filters.append(
-                    Filter.parse_query(key, request.query_params.getlist(key), model)
+                    Filter.parse_query(key, params.getlist(key), model)
                 )
             except ValueError:
                 continue
-        return filters
+
+        return Filters(
+            filters=filters,
+            limit=params.get("limit"),
+            offset=params.get("offset"),
+        )
 
     return dependency
