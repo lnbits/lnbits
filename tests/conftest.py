@@ -14,18 +14,23 @@ from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoi
 
 
 def pytest_addoption(parser):
-    parser.addoption('--extensions', action='store_true', dest="extensions",
-                     default=False, help="enable extensions tests")
+    parser.addoption(
+        "--extensions",
+        action="store_true",
+        dest="extensions",
+        default=False,
+        help="enable extensions tests",
+    )
 
 
 def pytest_configure(config: pytest.Config):
     # preserve existing markexpr
     if config.option.markexpr:
-        config.option.markexpr += ' and '
+        config.option.markexpr += " and "
     if config.option.extensions:
-        config.option.markexpr += 'extensions'
+        config.option.markexpr += "extensions"
     else:
-        config.option.markexpr += 'not extensions'
+        config.option.markexpr += "not extensions"
 
 
 @pytest_asyncio.fixture(scope="session")

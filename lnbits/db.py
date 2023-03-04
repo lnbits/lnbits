@@ -4,9 +4,10 @@ import os
 import re
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, Type
 
 from loguru import logger
+from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
@@ -97,18 +98,23 @@ class Connection(Compat):
         values = tuple([cleanhtml(l) for l in value_list])
         return values
 
-    async def fetchall(self, query: str, values: tuple = ()) -> list:
+    async def fetchall(self, query: str, values: tuple = (), model: Type[BaseModel] = None) -> list:
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
-        return await result.fetchall()
+        rows = await result.fetchall()
+        if model:
+            return [model(**row) for row in rows]
+        return rows
 
-    async def fetchone(self, query: str, values: tuple = ()):
+    async def fetchone(self, query: str, values: tuple = (), model: Type[BaseModel] = None):
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
         row = await result.fetchone()
         await result.close()
+        if row and model:
+            return model(**row)
         return row
 
     async def execute(self, query: str, values: tuple = ()):

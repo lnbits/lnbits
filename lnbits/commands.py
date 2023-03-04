@@ -99,7 +99,6 @@ async def migrate_extensions_databases():
     logger.info("✔️ Extensions migrations done.")
 
 
-
 async def check_extension_dependencies():
     """Makes sure that dependencies of extensions are installed"""
 

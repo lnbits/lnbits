@@ -27,7 +27,8 @@ from .commands import (
     check_extension_dependencies,
     db_versions,
     load_disabled_extension_list,
-    migrate_core_databases, migrate_extensions_databases,
+    migrate_core_databases,
+    migrate_extensions_databases,
 )
 from .core import (
     add_installed_extension,
