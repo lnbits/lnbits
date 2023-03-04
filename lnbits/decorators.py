@@ -289,9 +289,7 @@ def parse_filters(model: Type[BaseModel]):
         filters = []
         for key in params.keys():
             try:
-                filters.append(
-                    Filter.parse_query(key, params.getlist(key), model)
-                )
+                filters.append(Filter.parse_query(key, params.getlist(key), model))
             except ValueError:
                 continue
 
