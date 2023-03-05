@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Any, List, Optional, Tuple, Type
 
-import fastapi
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import create_engine
