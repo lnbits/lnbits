@@ -44,8 +44,7 @@
               endblock %}
             </q-btn>
           </q-toolbar-title>
-          {% block beta %}
-          {% if VOIDWALLET %}
+          {% block beta %} {% if VOIDWALLET %}
           <q-badge color="red" text-color="black" class="q-mr-md">
             <span>VoidWallet is active! Payments disabled</span>
           </q-badge>
