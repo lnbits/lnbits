@@ -11,7 +11,6 @@ from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
 from .lntips import LnTipsWallet
-from .lntxbot import LntxbotWallet
 from .opennode import OpenNodeWallet
 from .spark import SparkWallet
 from .void import VoidWallet

@@ -147,11 +147,6 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_wallet_key: Optional[str] = Field(default=None)
 
 
-class LnTxtBotFundingSource(LNbitsSettings):
-    lntxbot_api_endpoint: Optional[str] = Field(default=None)
-    lntxbot_key: Optional[str] = Field(default=None)
-
-
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
@@ -190,7 +185,6 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
-    LnTxtBotFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
