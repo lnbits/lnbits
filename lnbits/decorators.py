@@ -286,6 +286,7 @@ def parse_filters(model: Type[BaseModel]):
 
     :param model: model used for validation of filter values
     """
+
     def dependency(request: Request):
         params = request.query_params
         filters = []
