@@ -92,7 +92,7 @@ class ThemesSettings(LNbitsSettings):
 
 
 class OpsSettings(LNbitsSettings):
-    lnbits_force_https: bool = Field(default=False)
+    lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
@@ -151,11 +151,6 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_wallet_key: Optional[str] = Field(default=None)
 
 
-class LnTxtBotFundingSource(LNbitsSettings):
-    lntxbot_api_endpoint: Optional[str] = Field(default=None)
-    lntxbot_key: Optional[str] = Field(default=None)
-
-
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
@@ -194,7 +189,6 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
-    LnTxtBotFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -321,8 +315,9 @@ def set_cli_settings(**kwargs):
 
 
 # set wallet class after settings are loaded
-def set_wallet_class():
-    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+def set_wallet_class(class_name: Optional[str] = None):
+    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
+    wallet_class = getattr(wallets_module, backend_wallet_class)
     global WALLET
     WALLET = wallet_class()
 
@@ -378,9 +373,9 @@ except:
     settings.lnbits_commit = "docker"
 
 
-# printing enviroment variable for debugging
+# printing environment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug("Enviroment Settings:")
+    logger.debug("Environment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 

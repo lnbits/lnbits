@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.9.7"
+version = "0.10.0"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 
@@ -79,11 +79,15 @@ exclude = [
   "lnbits/wallets",
   "lnbits/core",
   "lnbits/*.py",
+  "lnbits/extensions",
 ]
 
 [tool.mypy]
 files = "lnbits"
-exclude = ["extensions", "lnd_grpc_files"]
+exclude = """(?x)(
+    ^lnbits/wallets/lnd_grpc_files.
+    | ^lnbits/extensions.
+)"""
 
 [[tool.mypy.overrides]]
 module = [
@@ -95,7 +99,6 @@ module = [
   "websocket.*",
   "websockets.*",
   "pyqrcode.*",
-  "cashu.*",
   "shortuuid.*",
   "grpc.*",
   "lnurl.*",

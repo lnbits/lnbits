@@ -33,7 +33,7 @@ allow-self-payment=1
 </details>
     
 <details><summary>Which funding sources can I use for LNbits?</summary>
-  <p>There are several ways to run a LNbits instance funded from different sources. It is importan to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions. If you would like to fund your LNbits wallet via btc please see section Troubleshooting.</p>
+  <p>There are several ways to run a LNbits instance funded from different sources. It is important to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions. If you would like to fund your LNbits wallet via btc please see section Troubleshooting.</p>
   <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources can be used and how to configure each: CLN, LND, LNPay, Cliche, OpenNode as well as bots.</p>
 </details>
     
@@ -47,7 +47,7 @@ allow-self-payment=1
   <p>When you run your LNbits in clearnet basically everyone can generate a wallet on it. Since the funds of your node are bound to these wallets you might want to prevent that. There are two ways to do so:</p>
   <ul>
    <li>Configure allowed users & extensions <a href="https://github.com/lnbits/lnbits/blob/main/.env.example">in the .env file</a></li>
-   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/usermanager">via the Usermanager-Extension</a>. You can find <a href="http://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
+   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/usermanager">via the Usermanager-Extension</a>. You can find <a href="http://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
   </ul>
   <p>Please note that all entries in the .env file will not be the taken into account once you activated the admin extension.</p>
 </details>
@@ -112,7 +112,7 @@ allow-self-payment=1
   <ul>
     <li>
       <details><summary>A - Via an external swap service</summary>
-        <p>If the user do not have full acceess of your LNbits, is just an external user, can use swap services like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
+        <p>If the user do not have full access of your LNbits, is just an external user, can use swap services like <a href="https://boltz.exchange/">Boltz</a>, <a href="https://fixedfloat.com/">FixedFloat</a>, <a href="https://swap.diamondhands.technology/">DiamondHands</a> or <a href="https://zigzag.io/">ZigZag</a>.</p>
         <p>This is useful if you provide only LNURL/LN invoices from your LNbits instance, but a payer only has onchain sats so 
            they will have to the swap those sats first on their side.</p>
         <p>The procedure is simple: user sends onchain btc to the swap service and provides the LNURL / LN invoice from LNbits as destination of the swap.</p>
@@ -122,7 +122,7 @@ allow-self-payment=1
       <details><summary>B - Using the Onchain LNbits extension</summary>
         <p>Keep in mind that this is a separate wallet, not the LN btc one that is represented by LNbits as "your wallet" upon your LN funding source. 
            This onchain wallet can be used also to swap LN btc to (e.g. your hardwarewallet) by using the LNbits Boltz or Deezy extension. 
-           If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularily drain all the sats from LN into onchain. 
+           If you run a webshop that is linked to your LNbits for LN payments, it is very handy to regularly drain all the sats from LN into onchain. 
            This leads to more space in your LN channels to be able to receive new fresh sats.</p>
         <p>Procedure:</p>
           <ul>
@@ -157,10 +157,10 @@ allow-self-payment=1
 
 
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
-  <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the LNDHUB extension.</p>
+  <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the <a href="https://github.com/lnbits/lndhub">LNDHUB extension</a>.</p>
   <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
   <p>You can use <a href="https://zeusln.app">Zeus</a> or <a href="https://bluewallet.io">Bluewallet</a> as wallet apps for a lndhub account.</p>
-  <p>Keep in mind: if your LNbits instance is Tor only, you must use also theose apps behind Tor and open the LNbits page through your Tor .onion address.</p>
+  <p>Keep in mind: if your LNbits instance is Tor only, you must use also those apps behind Tor and open the LNbits page through your Tor .onion address.</p>
 </details>
 </ul>
   </ul>
@@ -169,11 +169,11 @@ allow-self-payment=1
 <ul>  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
-  <p>This is a do-it-yourself project consisting of a mini-computer (Raspberry Pi Zero), a coin acceptor, a display, a 3D printed case, and a Bitcoin Lightning wallet as a funding source. It exchanges fiat coins for valuable Bitcoin Lightning ⚡ Satoshis. The user can pick up the Satoshis via QR code (LNURL-withdraw) on a mobile phone wallet. It works based on BTCPayer server, LNTXBOT is not longer an option. You can get the components as individual parts and build the case yourself e.g. from <a href="https://www.Fulmo.org">Fulmo</a> who also made a <a href="https://blog.fulmo.org/the-lightningatm-pocket-edition/">guide</a> on it. The shop offers payments in Bitcoin and Lightning ⚡. The code can be found on <a href="https://github.com/21isenough/LightningATM">the ATM github project page></a>.</p>
+  <p>This is a do-it-yourself project consisting of a mini-computer (Raspberry Pi Zero), a coin acceptor, a display, a 3D printed case, and a Bitcoin Lightning wallet as a funding source. It exchanges fiat coins for valuable Bitcoin Lightning ⚡ Satoshis. The user can pick up the Satoshis via QR code (LNURL-withdraw) on a mobile phone wallet. You can get the components as individual parts and build the case yourself e.g. from <a href="https://www.Fulmo.org">Fulmo</a> who also made a <a href="https://blog.fulmo.org/the-lightningatm-pocket-edition/">guide</a> on it. The shop offers payments in Bitcoin and Lightning ⚡. The code can be found on <a href="https://github.com/21isenough/LightningATM">the ATM github project page></a>.</p>
 </details>
   
 <details><summary>POS Terminal - an offline terminal for merchants</summary>
-  <p>The LNpos is a self-sufficient point of sale terminal which allows offline onchain payments and an offline Lightning ATM for withdrawals. Free and open source software, free from intermediaries, with integrated battery, WLAN, DIY. You can get the 3D print as well as the whole kit from the LNbits shop from 👇 Ressources. It allows
+  <p>The LNpos is a self-sufficient point of sale terminal which allows offline onchain payments and an offline Lightning ATM for withdrawals. Free and open source software, free from intermediaries, with integrated battery, WLAN, DIY. You can get the 3D print as well as the whole kit from the LNbits shop from 👇 Resources. It allows
     <li>LNPoS Online interactive Lightning payments</li>
     <li>LNURLPoS Offline Lightning Payments. Passive interaction, sharing a secret as evidence</li>
     <li>OnChain For onchain payments. Generates an address and displays a link for verification</li>
@@ -192,7 +192,7 @@ allow-self-payment=1
 </details>
     
 <details><summary>Bitcoin Switch - turn things on with bitcoin</summary>
-  <p>Candy dispenser, vending machines (online), grabbing machines, jukeboxes, bandits and <a href="https://github.com/cryptoteun/awesome-lnbits">all sorts of other things have already been build with LNbits´ tools</a>. Further info see 👇 Ressources.</p>
+  <p>Candy dispenser, vending machines (online), grabbing machines, jukeboxes, bandits and <a href="https://github.com/cryptoteun/awesome-lnbits">all sorts of other things have already been build with LNbits´ tools</a>. Further info see 👇 Resources.</p>
 <p>
   <img width="549" alt="Bildschirm­foto 2023-01-20 um 18 11 55" src="https://user-images.githubusercontent.com/63317640/213761646-d25d4745-e50d-4389-98e5-f83237a8cf6b.png">
   </p>
@@ -209,7 +209,7 @@ allow-self-payment=1
   <ul>
   <li><a href="https://t.me/makerbits'">MakerBits</a> - Telegram support group</li>
   <li><a href="https://ereignishorizont.xyz/">Instructions for LNpos, Switch, ATM, BTCticker</a> - guides in DE & EN</li>
-  <li><a href="https://shop.lnbits.com/">LNbits shop</a> - eadymade hardware gimmicks from the community</li>
+  <li><a href="https://shop.lnbits.com/">LNbits shop</a> - readymade hardware gimmicks from the community</li>
   <li><a href="https://github.com/cryptoteun/awesome-lnbits#hardware-projects-utilizing-lnbits">Collection of hardware projects using LNbits</a></li>
   </ul>
 </details>
@@ -222,7 +222,7 @@ allow-self-payment=1
 </details>
 
 <details><summary>Swapping ⚡️LN BTC to a BTC address</summary>
-  <p>LNbits has two swap extensions integrated: <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/boltz">Boltz</a> and <a href="https://github.com/lnbits/lnbits/tree/main/lnbits/extensions/deezy">Deezy</a>.</p>
+  <p>LNbits has two swap extensions integrated: <a href="https://github.com/lnbits/boltz-extension/">Boltz</a> and <a href="hhttps://github.com/lnbits/deezy">Deezy</a>.</p>
   <p>For a merchant that uses LNbits to receive BTC payments through LN, this is very handy to move the received sats from LN channels into onchain wallets. It not only helps you HODLing but is also freeing up "space in your channels" so you are ready to receive more sats.</p>
   <p>Boltz has an option to setup an automated swap triggered by a certain amount received.</p>
 </details>

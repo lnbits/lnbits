@@ -174,8 +174,8 @@ kill_timeout = 30
 [env]
   HOST="127.0.0.1"
   PORT=5000
-  LNBITS_FORCE_HTTPS=true
   FORWARDED_ALLOW_IPS="*"
+  LNBITS_BASEURL="https://mylnbits.lnbits.org/"
   LNBITS_DATA_FOLDER="/data"
 
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
@@ -405,7 +405,7 @@ service restart apache2
 ## Using https without reverse proxy
 The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network.
 
-We have to create a self-signed certificate using `mkcert`. Note that this certiciate is not "trusted" by most browsers but that's fine (since you know that you have created it) and encryption is always better than clear text.
+We have to create a self-signed certificate using `mkcert`. Note that this certificate is not "trusted" by most browsers but that's fine (since you know that you have created it) and encryption is always better than clear text.
 
 #### Install mkcert
 You can find the install instructions for `mkcert` [here](https://github.com/FiloSottile/mkcert).
