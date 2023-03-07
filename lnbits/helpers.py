@@ -100,6 +100,7 @@ def template_renderer(additional_folders: List = None) -> Jinja2Templates:
         t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
         t.env.globals["AD_SPACE_TITLE"] = settings.lnbits_ad_space_title
 
+    t.env.globals["VOIDWALLET"] = settings.lnbits_backend_wallet_class == "VoidWallet"
     t.env.globals["HIDE_API"] = settings.lnbits_hide_api
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
     t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
