@@ -105,20 +105,42 @@ async def check_funding_source() -> None:
     signal.signal(signal.SIGINT, signal_handler)
 
     WALLET = get_wallet_class()
+
+    # fallback to void after 30 seconds of failures
+    sleep_time = 5
+    timeout = int(30 / sleep_time)
+
+    balance = 0
+    retry_counter = 0
+
     while True:
         try:
             error_message, balance = await WALLET.status()
             if not error_message:
+                retry_counter = 0
                 break
+
             logger.error(
                 f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except:
             pass
-        logger.info("Retrying connection to backend in 5 seconds...")
-        await asyncio.sleep(5)
+
+        if settings.lnbits_admin_ui and retry_counter == timeout:
+            logger.warning(
+                f"Fallback to VoidWallet, because the backend for {WALLET.__class__.__name__} isn't working properly"
+            )
+            set_wallet_class("VoidWallet")
+            WALLET = get_wallet_class()
+            break
+        else:
+            logger.warning(f"Retrying connection to backend in {sleep_time} seconds...")
+            retry_counter += 1
+            await asyncio.sleep(sleep_time)
+
     signal.signal(signal.SIGINT, original_sigint_handler)
+
     logger.info(
         f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
     )
