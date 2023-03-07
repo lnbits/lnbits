@@ -43,7 +43,6 @@ class UsersSettings(LNbitsSettings):
 
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
-    lnbits_disabled_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
@@ -206,7 +205,6 @@ class EditableSettings(
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
-        "lnbits_disabled_extensions",
         pre=True,
     )
     def validate_editable_settings(cls, val):
