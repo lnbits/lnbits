@@ -3,15 +3,13 @@ import hashlib
 import hmac
 import json
 import time
-from enum import Enum
 from sqlite3 import Row
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
-from fastapi import Request
 from lnurl import encode as lnurl_encode
 from loguru import logger
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for

@@ -401,7 +401,7 @@ async def get_payments(
         FROM apipayments
         {filters.where(clause)}
         ORDER BY time DESC
-        {filters.limit()}
+        {filters.pagination()}
         """,
         filters.values(args),
     )
