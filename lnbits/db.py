@@ -5,7 +5,7 @@ import re
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError
@@ -254,14 +254,17 @@ class Operator(Enum):
             raise ValueError("Unknown SQL Operator")
 
 
-class Filter(BaseModel):
+TModel = TypeVar("TModel", bound=BaseModel)
+
+
+class Filter(BaseModel, Generic[TModel]):
     field: str
     nested: Optional[list[str]]
     op: Operator = Operator.EQ
     values: list[Any]
 
     @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: Type[BaseModel]):
+    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TModel]):
         # Key format:
         # key[operator]
         # e.g. name[eq]
@@ -317,8 +320,8 @@ class Filter(BaseModel):
         return " OR ".join(stmt)
 
 
-class Filters(BaseModel):
-    filters: List[Filter] = []
+class Filters(BaseModel, Generic[TModel]):
+    filters: List[Filter[TModel]] = []
     limit: Optional[int]
     offset: Optional[int]
 

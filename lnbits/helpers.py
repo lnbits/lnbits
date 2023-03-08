@@ -155,17 +155,34 @@ def get_current_extension_name() -> str:
     return ext_name
 
 
-def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
+def generate_filter_openapi(model: Type[BaseModel], keep_optional=False):
+    """
+    Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
+    :param model: Filter model
+    :param keep_optional: If false, all parameters will be optional, otherwise inferred from model
+    """
     fields = list(model.__fields__.values())
-    namemap = get_model_name_map(get_flat_models_from_fields(fields, set()))
+    models = get_flat_models_from_fields(fields, set())
+    namemap = get_model_name_map(models)
     params = []
     for field in fields:
+        schema, definitions, _ = field_schema(field, model_name_map=namemap)
+
+        # Support nested definition
+        if "$ref" in schema:
+            name = schema["$ref"].split("/")[-1]
+            schema = definitions[name]
+
+        description = "Supports Filtering"
+        if schema["type"] == "object":
+            description += f". Nested attributes can be filtered too, e.g. `{field.alias}.[additional].[attributes]`"
+
         parameter = {
             "name": field.alias,
             "in": "query",
             "required": field.required if keep_optional else False,
-            "schema": field_schema(field, model_name_map=namemap)[0],
-            "description": f"Filter by {field.name}",
+            "schema": schema,
+            "description": description,
         }
         params.append(parameter)
 

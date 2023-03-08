@@ -347,7 +347,7 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    filters: Optional[Filters] = None,
+    filters: Optional[Filters[Payment]] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """

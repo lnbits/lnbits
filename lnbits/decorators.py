@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Type
+from typing import Optional, Type
 
 from fastapi import Security, status
 from fastapi.exceptions import HTTPException
@@ -277,7 +277,9 @@ def parse_filters(model: Type[BaseModel]):
     :param model: model used for validation of filter values
     """
 
-    def dependency(request: Request):
+    def dependency(
+        request: Request, limit: Optional[int] = None, offset: Optional[int] = None
+    ):
         params = request.query_params
         filters = []
         for key in params.keys():
@@ -288,8 +290,8 @@ def parse_filters(model: Type[BaseModel]):
 
         return Filters(
             filters=filters,
-            limit=params.get("limit"),
-            offset=params.get("offset"),
+            limit=limit,
+            offset=offset,
         )
 
     return dependency
