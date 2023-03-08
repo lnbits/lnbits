@@ -155,7 +155,7 @@ def get_current_extension_name() -> str:
     return ext_name
 
 
-def generate_filter_openapi(model: Type[BaseModel], keep_optional=False):
+def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
     """
     Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
     :param model: Filter model
