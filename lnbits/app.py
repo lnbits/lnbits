@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import importlib
+import importlib.metadata
 import logging
 import os
 import shutil
@@ -49,6 +50,8 @@ from .tasks import (
     webhook_handler,
 )
 
+__version__ = importlib.metadata.version("lnbits")
+
 
 def create_app() -> FastAPI:
 
@@ -57,6 +60,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LNbits API",
         description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
+        version=__version__,
         license_info={
             "name": "MIT License",
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
@@ -305,6 +309,7 @@ def register_startup(app: FastAPI):
 
 def log_server_info():
     logger.info("Starting LNbits")
+    logger.info(f"Version: {__version__}")
     logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")
     logger.info(f"Port: {settings.port}")
