@@ -274,16 +274,6 @@ async def check_super_user(usr: UUID4) -> User:
 def parse_filters(model: Type[BaseModel]):
     """
     Parses the query params as filters.
-
-    example views_api.py from usermanager
-    usermanager_ext.get("/api/v1/users")
-    async def api_usermanager_users(
-        wallet: WalletTypeInfo = Depends(require_admin_key),
-        filters: Filters = Depends(parse_filters(UserFilters))
-    ):
-        admin_id = wallet.wallet.user
-        return await get_usermanager_users(admin_id, filters)
-
     :param model: model used for validation of filter values
     """
 
