@@ -1,9 +1,15 @@
 import glob
 import os
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type
 
 import jinja2
-import shortuuid  # type: ignore
+import shortuuid
+from pydantic import BaseModel
+from pydantic.schema import (
+    field_schema,
+    get_flat_models_from_fields,
+    get_model_name_map,
+)
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
@@ -89,7 +95,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def template_renderer(additional_folders: List = None) -> Jinja2Templates:
+def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
 
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
@@ -147,3 +153,22 @@ def get_current_extension_name() -> str:
     except:
         ext_name = extension_director_name
     return ext_name
+
+
+def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
+    fields = list(model.__fields__.values())
+    namemap = get_model_name_map(get_flat_models_from_fields(fields, set()))
+    params = []
+    for field in fields:
+        parameter = {
+            "name": field.alias,
+            "in": "query",
+            "required": field.required if keep_optional else False,
+            "schema": field_schema(field, model_name_map=namemap)[0],
+            "description": f"Filter by {field.name}",
+        }
+        params.append(parameter)
+
+    return {
+        "parameters": params,
+    }

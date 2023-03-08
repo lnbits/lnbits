@@ -50,7 +50,7 @@ from lnbits.extension_manager import (
     InstallableExtension,
     get_valid_extensions,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import generate_filter_params_openapi, url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -116,7 +116,14 @@ async def api_update_wallet(
     }
 
 
-@core_app.get("/api/v1/payments")
+@core_app.get(
+    "/api/v1/payments",
+    name="Payment List",
+    summary="get list of payments",
+    response_description="list of payments",
+    response_model=List[Payment],
+    openapi_extra=generate_filter_params_openapi(Payment),
+)
 async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(Payment)),
