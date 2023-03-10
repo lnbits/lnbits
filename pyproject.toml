@@ -54,7 +54,7 @@ flake8 = { version = "^6.0.0", python = ">=3.8.1" }
 pylint = { version = "^2.15.10", python = ">=3.7.2" }
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "pyScss"]
+requires = ["poetry-core>=1.0.0", "pyscss"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
