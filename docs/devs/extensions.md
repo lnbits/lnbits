@@ -9,11 +9,14 @@ nav_order: 2
 Making extensions
 =================
 
-Start off by copying the example extension in `lnbits/extensions/example` into your own:
+Start off by cloning the [example extension](https://github.com/lnbits/example) into your `lnbits/extensions` folder and renaming it to `mysuperplugin`:
 ```sh
-cp lnbits/extensions/example lnbits/extensions/mysuperplugin -r # Let's not use dashes or anything; it doesn't like those.
-cd lnbits/extensions/mysuperplugin
+cd lnbits/extensions
+git clone https://github.com/lnbits/example.git --depth=1 mysuperplugin # Let's not use dashes or anything; it doesn't like those.
+cd mysuperplugin
+rm -rf .git/
 find . -type f -print0 | xargs -0 sed -i 's/example/mysuperplugin/g' # Change all occurrences of 'example' to your plugin name 'mysuperplugin'.
+mv templates/example templates/mysuperplugin # Rename templates folder.
 ```
 - if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 
@@ -28,9 +31,9 @@ Going over the example extension's structure:
 Adding new dependencies
 -----------------------
 
-DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are availabe in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others. 
+DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are available in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others. 
 
-If for some reason your extensions must have a new python package to work, and its nees are not met in `pyproject.toml`, you can add a new package using `venv`, or `poerty`:
+If for some reason your extensions must have a new python package to work, and its needs are not met in `pyproject.toml`, you can add a new package using `venv`, or `poerty`:
 
 ```sh
 $ poetry add <package>
@@ -39,7 +42,7 @@ $ ./venv/bin/pip install <package>
 ```
 
 **But we need an extra step to make sure LNbits doesn't break in production.**
-Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
+Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry` compatibility can be tested with `nix build .#checks.x86_64-linux.vmTest`.
 
 
 SQLite to PostgreSQL migration
