@@ -4,10 +4,9 @@ import os
 import re
 import time
 from contextlib import asynccontextmanager
-from typing import Optional, Type
+from typing import Optional
 
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
@@ -89,7 +88,6 @@ class Connection(Compat):
         def cleanhtml(raw_html):
             if isinstance(raw_html, str):
                 cleantext = re.sub(CLEANR, "", raw_html)
-                return cleantext
             else:
                 return raw_html
 
