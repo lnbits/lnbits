@@ -88,6 +88,7 @@ class Connection(Compat):
         def cleanhtml(raw_html):
             if isinstance(raw_html, str):
                 cleantext = re.sub(CLEANR, "", raw_html)
+                return cleantext
             else:
                 return raw_html
 
