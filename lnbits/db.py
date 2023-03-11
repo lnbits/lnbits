@@ -98,23 +98,19 @@ class Connection(Compat):
         values = tuple([cleanhtml(l) for l in value_list])
         return values
 
-    async def fetchall(self, query: str, values: tuple = (), model: Type[BaseModel] = None) -> list:
+    async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
         rows = await result.fetchall()
-        if model:
-            return [model(**row) for row in rows]
         return rows
 
-    async def fetchone(self, query: str, values: tuple = (), model: Type[BaseModel] = None):
+    async def fetchone(self, query: str, values: tuple = ()):
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
         row = await result.fetchone()
         await result.close()
-        if row and model:
-            return model(**row)
         return row
 
     async def execute(self, query: str, values: tuple = ()):
