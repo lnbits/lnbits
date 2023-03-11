@@ -17,10 +17,6 @@ from pydantic import BaseModel
 from lnbits.settings import settings
 
 
-class ExtensionInstallationException(Exception):
-    pass
-
-
 class Extension(NamedTuple):
     code: str
     is_valid: bool
@@ -58,8 +54,6 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self):
-        self._disabled: List[str] = settings.lnbits_disabled_extensions
-        self._admin_only: List[str] = settings.lnbits_admin_extensions
         p = Path(settings.lnbits_path, "extensions")
         os.makedirs(p, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
@@ -68,36 +62,32 @@ class ExtensionManager:
     def extensions(self) -> List[Extension]:
         output: List[Extension] = []
 
-        if "all" in self._disabled:
-            return output
-
-        for extension in self._extension_folders:
+        for extension_folder in self._extension_folders:
+            extension_code = extension_folder.parts[-1]
             try:
-                with open(extension / "config.json") as json_file:
+                with open(extension_folder / "config.json") as json_file:
                     config = json.load(json_file)
                 is_valid = True
-                is_admin_only = True if extension in self._admin_only else False
+                is_admin_only = extension_code in settings.lnbits_admin_extensions
             except Exception:
                 config = {}
                 is_valid = False
                 is_admin_only = False
 
-            *_, extension_code = extension.parts
-            if extension_code not in self._disabled:
-                output.append(
-                    Extension(
-                        extension_code,
-                        is_valid,
-                        is_admin_only,
-                        config.get("name"),
-                        config.get("short_description"),
-                        config.get("tile"),
-                        config.get("contributors"),
-                        config.get("hidden") or False,
-                        config.get("migration_module"),
-                        config.get("db_name"),
-                    )
+            output.append(
+                Extension(
+                    extension_code,
+                    is_valid,
+                    is_admin_only,
+                    config.get("name"),
+                    config.get("short_description"),
+                    config.get("tile"),
+                    config.get("contributors"),
+                    config.get("hidden") or False,
+                    config.get("migration_module"),
+                    config.get("db_name"),
                 )
+            )
 
         return output
 
