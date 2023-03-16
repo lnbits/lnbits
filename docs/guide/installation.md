@@ -278,7 +278,7 @@ Description=LNbits
 
 [Service]
 # replace with the absolute path of your lnbits installation
-WorkingDirectory=/home/lnbits/lnbits-legend
+WorkingDirectory=/home/lnbits/lnbits
 # same here. run `which poetry` if you can't find the poetry binary
 ExecStart=/home/lnbits/.local/bin/poetry run lnbits
 # replace with the user that you're running lnbits on

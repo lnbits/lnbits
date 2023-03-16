@@ -25,7 +25,7 @@ LNbits is a Python server that sits on top of any funding source. It can be used
 
 LNbits can run on top of any Lightning funding source. It supports LND, CLN, Eclair, Spark, LNpay, OpenNode, LightningTipBot, and with more being added regularly.
 
-See [LNbits Wiki](github.com/lnbits/lnbits/wiki/) for more detailed documentation.
+See [LNbits Wiki](https://github.com/lnbits/lnbits/wiki/) for more detailed documentation.
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
@@ -33,7 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](github.com/lnbits/lnbits/wiki/) for details on installation and setup.
+See the [install guide](https://github.com/lnbits/lnbits/wiki/) for details on installation and setup.
 
 ## LNbits as an account system
 

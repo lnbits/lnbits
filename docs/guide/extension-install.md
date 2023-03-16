@@ -1,6 +1,6 @@
 # Extension Install
 
-Anyone can create an extension by following the [example extension](https://github.com/lnbits/lnbits/tree/extension_install_02/lnbits/extensions/example).
+Anyone can create an extension by following the [example extension](https://github.com/lnbits/example) and [making extensions](https://github.com/lnbits/lnbits/blob/main/docs/devs/extensions.md) dev guide.
 
 Extensions can be installed by an admin user after the **LNbits** instance has been started.
 
@@ -12,7 +12,7 @@ Go to `Manage Server` > `Server` > `Extensions Manifests`
 
 
 An `Extension Manifest` is a link to a `JSON` file which contains information about various extensions that can be installed (repository of extensions).
-Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/extension_install_02/docs/guide/extension-install.md#manifest-file) section.
+Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/main/docs/guide/extension-install.md#manifest-file) section.
 
 
 **LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). 

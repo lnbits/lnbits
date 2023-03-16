@@ -9,11 +9,14 @@ nav_order: 2
 Making extensions
 =================
 
-Start off by copying the example extension in `lnbits/extensions/example` into your own:
+Start off by cloning the [example extension](https://github.com/lnbits/example) into your `lnbits/extensions` folder and renaming it to `mysuperplugin`:
 ```sh
-cp lnbits/extensions/example lnbits/extensions/mysuperplugin -r # Let's not use dashes or anything; it doesn't like those.
-cd lnbits/extensions/mysuperplugin
+cd lnbits/extensions
+git clone https://github.com/lnbits/example.git --depth=1 mysuperplugin # Let's not use dashes or anything; it doesn't like those.
+cd mysuperplugin
+rm -rf .git/
 find . -type f -print0 | xargs -0 sed -i 's/example/mysuperplugin/g' # Change all occurrences of 'example' to your plugin name 'mysuperplugin'.
+mv templates/example templates/mysuperplugin # Rename templates folder.
 ```
 - if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 

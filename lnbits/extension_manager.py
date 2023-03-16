@@ -227,11 +227,7 @@ class InstallableExtension(BaseModel):
         if not Path(self.ext_dir).is_dir():
             return False
         config_file = os.path.join(self.ext_dir, "config.json")
-        if not Path(config_file).is_file():
-            return False
-        with open(config_file, "r") as json_file:
-            config_json = json.load(json_file)
-            return config_json.get("is_installed") is True
+        return Path(config_file).is_file()
 
     def download_archive(self):
         logger.info(f"Downloading extension {self.name}.")
@@ -275,10 +271,6 @@ class InstallableExtension(BaseModel):
             os.path.join(self.ext_upgrade_dir, self.id, "config.json"), "r+"
         ) as json_file:
             config_json = json.load(json_file)
-            config_json["is_installed"] = True
-            json_file.seek(0)
-            json.dump(config_json, json_file)
-            json_file.truncate()
 
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
