@@ -3,7 +3,6 @@ data
 docker
 docs
 tests
-venv
 
 lnbits/static/css/*
 lnbits/static/bundle.js

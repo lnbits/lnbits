@@ -6,7 +6,7 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between four package managers, `poetry`, `nix` and `venv`.
+You can choose between four package managers, `poetry` and `nix`
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
@@ -80,30 +80,8 @@ mkdir data
 LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
 ```
 
-## Option 3: venv
 
-```sh
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
-python3.9 -m venv venv
-# If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
-./venv/bin/pip install -r requirements.txt
-# create the data folder and the .env file
-mkdir data && cp .env.example .env
-# build the static files
-./venv/bin/python tools/build.py
-```
-
-#### Running the server
-
-```sh
-./venv/bin/uvicorn lnbits.__main__:app --port 5000
-```
-
-If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`.
-
-## Option 4: Docker
+## Option 3: Docker
 
 use latest version from docker hub
 ```sh
@@ -122,7 +100,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
 ```
 
-## Option 5: Fly.io
+## Option 4: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
@@ -210,9 +188,6 @@ sudo apt install python3.9-dev gcc build-essential
 # if the secp256k1 build fails:
 # if you used poetry
 poetry add setuptools wheel
-
-# if you used venv
-./venv/bin/pip install setuptools wheel
 ```
 
 #### Poetry
@@ -433,7 +408,7 @@ mkcert localhost 127.0.0.1 ::1
 You can then pass the certificate files to uvicorn when you start LNbits:
 
 ```sh
-./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
+poetry run uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
 
 
