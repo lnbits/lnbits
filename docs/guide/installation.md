@@ -298,7 +298,8 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
-## Reverse proxy with automatic https using Caddy
+
+## Reverse proxy with automatic HTTPS using Caddy
 
 Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
 
@@ -310,11 +311,15 @@ https://caddyserver.com/docs/install#debian-ubuntu-raspbian
 ```
 sudo caddy stop
 ```
+
 Create a Caddyfile
+
 ```
 sudo nano Caddyfile
 ```
+
 Assuming your LNbits is running on port `5000` add:
+
 ```
 yourdomain.com {
   handle /api/v1/payments/sse* {
@@ -331,22 +336,30 @@ yourdomain.com {
   }
 }
 ```
+
 Save and exit `CTRL + x`
+
 ```
 sudo caddy start
 ```
 
-## Running behind an apache2 reverse proxy over https
-Install apache2 and enable apache2 mods
+## Running behind an Apache2 reverse proxy over HTTPS
+
+Install Apache2 and enable Apache2 mods:
+
 ```sh
 apt-get install apache2 certbot
 a2enmod headers ssl proxy proxy-http
 ```
-create a ssl certificate with letsencrypt
+
+Create a SSL certificate with LetsEncrypt:
+
 ```sh
-certbot certonly --webroot --agree-tos --text --non-interactive --webroot-path /var/www/html -d lnbits.org
+certbot certonly --webroot --agree-tos --non-interactive --webroot-path /var/www/html -d lnbits.org
 ```
-create a apache2 vhost at: /etc/apache2/sites-enabled/lnbits.conf
+
+Create an Apache2 vhost at: `/etc/apache2/sites-enabled/lnbits.conf`:
+
 ```sh
 cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
 <VirtualHost *:443>
@@ -371,12 +384,14 @@ cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
 </VirtualHost>
 EOF
 ```
-restart apache2
+
+Restart Apache2:
+
 ```sh
 service restart apache2
 ```
 
-## Running behind an nginx reverse proxy over https
+## Running behind an Nginx reverse proxy over HTTPS
 
 Install nginx:
 
