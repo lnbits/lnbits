@@ -77,10 +77,10 @@ exclude = [
 
 [tool.mypy]
 files = "lnbits"
-exclude = """(?x)(
-    ^lnbits/wallets/lnd_grpc_files.
-    | ^lnbits/extensions.
-)"""
+exclude = [
+  "^lnbits/wallets/lnd_grpc_files",
+  "^lnbits/extensions",
+]
 
 [[tool.mypy.overrides]]
 module = [
