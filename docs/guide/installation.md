@@ -376,6 +376,50 @@ restart apache2
 service restart apache2
 ```
 
+## Running behind an nginx reverse proxy over https
+
+Install nginx:
+
+```sh
+apt-get install nginx certbot
+```
+
+Create a SSL certificate with LetsEncrypt:
+
+```sh
+certbot certonly --nginx --agree-tos -d lnbits.org
+```
+
+Create an nginx vhost at `/etc/nginx/sites-enabled/lnbits.org`:
+
+```sh
+cat <<EOF > /etc/nginx/sites-enabled/lnbits.org
+server {
+    server_name lnbits.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+    }
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    listen [::]:443 ssl;
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/lnbits.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lnbits.org/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+EOF
+```
+
+Restart nginx:
+
+```sh
+service restart nginx
+```
 
 ## Using https without reverse proxy
 The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network.
