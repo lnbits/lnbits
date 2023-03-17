@@ -1,7 +1,12 @@
 {
+  description = "LNbits, free and open-source Lightning wallet and accounts system";
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    poetry2nix.url = "github:nix-community/poetry2nix";
+    poetry2nix = {
+      url = "github:nix-community/poetry2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = { self, nixpkgs, poetry2nix }@inputs:
     let
@@ -17,6 +22,7 @@
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nodePackages.prettier
+            poetry
           ];
         };
       });
@@ -29,7 +35,6 @@
         default = self.packages.${system}.${projectName};
         ${projectName} = pkgs.poetry2nix.mkPoetryApplication {
           projectDir = ./.;
-          python = pkgs.python39;
         };
       });
       nixosModules = {
