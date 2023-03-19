@@ -146,7 +146,7 @@ async def check_extension_dependencies():
                 )
             elif additions:
                 await run_process(settings.lnbits_poetry_path, "install", "--no-root")
-        except (FileNotFoundError, Exception) as ex:
+        except (FileNotFoundError, ValueError) as ex:
             # When something goes wrong, backup
             logger.error("Could not update.")
             with open(ext_pyproject_path, "w") as toml_file:

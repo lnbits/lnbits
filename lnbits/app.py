@@ -107,7 +107,11 @@ async def check_poetry():
     try:
         logger.info("Checking poetry installation")
         await run_process(settings.lnbits_poetry_path, "--version")
-    except Exception:
+        if 'poetry' not in sys.executable:
+            logger.warning("It seems like poetry is installed, but not used to run lnbits")
+            settings.lnbits_poetry_path = None
+    except (FileNotFoundError, ValueError):
+        logger.info("No poetry installation found")
         settings.lnbits_poetry_path = None
 
 
