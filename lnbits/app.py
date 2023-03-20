@@ -202,7 +202,7 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
         os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
     )
 
-    if ext.zip_path not in zip_files:
+    if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
     ext.extract_archive()
 
