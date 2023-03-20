@@ -226,17 +226,12 @@ class InstallableExtension(BaseModel):
     def has_installed_version(self) -> bool:
         if not self.ext_dir.is_dir():
             return False
-        config_file = Path(self.ext_dir, "config.json")
-        if not config_file.is_file():
-            return False
-        with open(config_file, "r") as json_file:
-            config_json = json.load(json_file)
-            return config_json.get("is_installed") is True
+        return Path(self.ext_dir, "config.json").is_file()
 
     def download_archive(self):
         logger.info(f"Downloading extension {self.name}.")
         ext_zip_file = self.zip_path
-        if ext_zip_file.isfile():
+        if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
             download_url(self.installed_release.archive, ext_zip_file)
@@ -250,7 +245,7 @@ class InstallableExtension(BaseModel):
         archive_hash = file_hash(ext_zip_file)
         if self.installed_release.hash and self.installed_release.hash != archive_hash:
             # remove downloaded archive
-            if ext_zip_file.isfile():
+            if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
@@ -310,7 +305,7 @@ class InstallableExtension(BaseModel):
 
     def clean_extension_files(self):
         # remove downloaded archive
-        if self.zip_path.isfile():
+        if self.zip_path.is_file():
             os.remove(self.zip_path)
 
         # remove module from extensions
