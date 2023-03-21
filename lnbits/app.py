@@ -106,9 +106,13 @@ def create_app() -> FastAPI:
 async def check_poetry():
     try:
         logger.info("Checking poetry installation")
-        await run_process(settings.lnbits_poetry_path, "--version")
-        if 'poetry' not in sys.executable:
-            logger.warning("It seems like poetry is installed, but not used to run lnbits")
+        stdout, _ = await run_process(
+            settings.lnbits_poetry_path, "env info", return_output=True
+        )
+        if sys.executable not in stdout.decode():
+            logger.warning(
+                "It seems like poetry is installed, but not used to run lnbits"
+            )
             settings.lnbits_poetry_path = None
     except (FileNotFoundError, ValueError):
         logger.info("No poetry installation found")
@@ -116,7 +120,6 @@ async def check_poetry():
 
 
 async def check_funding_source() -> None:
-
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):

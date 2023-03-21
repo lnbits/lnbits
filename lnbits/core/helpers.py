@@ -66,11 +66,17 @@ async def stop_extension_background_work(ext_id: str, user: str):
                 logger.warning(ex)
 
 
-async def run_process(*args, **kwargs):
+async def run_process(*args, return_output=False, **kwargs):
     """
     Call a subprocess, waiting for it to finish. If it exits with a non-zero code, an exception is thrown.
     """
+    if return_output:
+        kwargs["stdout"] = kwargs["stderr"] = asyncio.subprocess.PIPE
     process = await asyncio.create_subprocess_exec(*args, **kwargs)
-    code = await process.wait()
+    stdout, stderr = await process.communicate()
+
+    code = process.returncode
     if code != 0:
         raise ValueError(f"Non-zero exit code by {process}")
+
+    return stdout, stderr
