@@ -5,6 +5,7 @@ from typing import AsyncGenerator, Optional
 
 from loguru import logger
 from websocket import create_connection
+from websockets import connect
 
 from lnbits.settings import settings
 
@@ -151,7 +152,7 @@ class ClicheWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                ws = await create_connection(self.endpoint)
+                ws = await connect(self.endpoint)
                 while True:
                     r = await ws.recv()
                     data = json.loads(r)
