@@ -13,7 +13,7 @@ from loguru import logger
 from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
