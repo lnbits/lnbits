@@ -1,4 +1,3 @@
-import glob
 import os
 import warnings
 from pathlib import Path
@@ -7,64 +6,28 @@ from typing import List
 LNBITS_PATH = Path("lnbits").absolute()
 
 
-def get_js_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".js", prefer_minified)
-
-    def sorter(key: str):
-        if "moment@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "vue-router@" in key:
-            return 3
-        if "polyfills" in key:
-            return 4
-        return 9
-
-    return sorted(paths, key=sorter)
-
-
-def get_css_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".css", prefer_minified)
-
-    def sorter(key: str):
-        if "quasar@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "chart.js@" in key:
-            return 100
-        return 9
-
-    return sorted(paths, key=sorter)
+def get_js_vendored() -> List[str]:
+    return [
+        "../node_modules/moment/min/moment.min.js",
+        '../node_modules/underscore/underscore-min.js',
+        '../node_modules/axios/dist/axios.min.js',
+        '../node_modules/vue/dist/vue.min.js',
+        '../node_modules/vue-router/dist/vue-router.min.js',
+        '../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.browser.js',
+        '../node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.min.js',
+        '../node_modules/vuex/dist/vuex.min.js',
+        '../node_modules/quasar/dist/quasar.ie.polyfills.umd.min.js',
+        '../node_modules/quasar/dist/quasar.umd.min.js',
+        '../node_modules/chart.js/dist/Chart.bundle.min.js',
+    ]
 
 
-def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
-    paths: List[str] = []
-    for path in glob.glob(
-        os.path.join(LNBITS_PATH, "static/vendor/**"), recursive=True
-    ):
-        if path.endswith(".min" + ext):
-            # path is minified
-            unminified = path.replace(".min" + ext, ext)
-            if prefer_minified:
-                paths.append(path)
-                if unminified in paths:
-                    paths.remove(unminified)
-            elif unminified not in paths:
-                paths.append(path)
-
-        elif path.endswith(ext):
-            # path is not minified
-            minified = path.replace(ext, ".min" + ext)
-            if not prefer_minified:
-                paths.append(path)
-                if minified in paths:
-                    paths.remove(minified)
-            elif minified not in paths:
-                paths.append(path)
-
-    return sorted(paths)
+def get_css_vendored() -> List[str]:
+    return [
+        '../node_modules/quasar/dist/quasar.min.css',
+        '../node_modules/chart.js/dist/Chart.min.css',
+        '../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css',
+    ]
 
 
 def url_for_vendored(abspath: str) -> str:
@@ -88,7 +51,7 @@ def bundle_vendored():
     ]:
         output = ""
         for path in getfiles():
-            with open(path) as f:
+            with open(f"{LNBITS_PATH}/{path}") as f:
                 output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
         with open(outputpath, "w") as f:
             f.write(output)
