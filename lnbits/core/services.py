@@ -169,12 +169,16 @@ async def pay_invoice(
             logger.debug(f"creating temporary payment with id {temp_id}")
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
-            await create_payment(
-                checking_id=temp_id,
-                fee=-fee_reserve_msat,
-                conn=conn,
-                **payment_kwargs,
-            )
+            try:
+                await create_payment(
+                    checking_id=temp_id,
+                    fee=-fee_reserve_msat,
+                    conn=conn,
+                    **payment_kwargs,
+                )
+            except:
+                # happens if the same wallet tries to pay an invoice twice
+                raise PaymentFailure(f"Can not create payment.")
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
