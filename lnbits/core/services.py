@@ -42,10 +42,7 @@ from .crud import (
 )
 from .models import Payment
 
-try:
-    from typing import TypedDict
-except ImportError:  # pragma: nocover
-    from typing_extensions import TypedDict
+from typing import TypedDict
 
 
 class PaymentFailure(Exception):
@@ -153,9 +150,12 @@ async def pay_invoice(
             extra=extra,
         )
 
-        # check_internal() returns the checking_id of the invoice we're waiting for
-        internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
-        if internal_checking_id:
+        internal_check = await check_internal(invoice.payment_hash, conn=conn)
+        if internal_check:
+
+            if not internal_check[1]:
+                raise PaymentFailure("Internal invoice already paid.")
+
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             await create_payment(
@@ -181,27 +181,27 @@ async def pay_invoice(
         assert wallet
         if wallet.balance_msat < 0:
             logger.debug("balance is too low, deleting temporary payment")
-            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+            if not internal_check and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
                     f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
-    if internal_checking_id:
-        logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
+    if internal_check:
+        logger.debug(f"marking temporary payment as not pending {internal_check[0]}")
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
         async with db.connect() as conn:
             await update_payment_status(
-                checking_id=internal_checking_id, pending=False, conn=conn
+                checking_id=internal_check[0], pending=False, conn=conn
             )
 
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
-        logger.debug(f"enqueuing internal invoice {internal_checking_id}")
-        await internal_invoice_queue.put(internal_checking_id)
+        logger.debug(f"enqueuing internal invoice {internal_check[0]}")
+        await internal_invoice_queue.put(internal_check[0])
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
