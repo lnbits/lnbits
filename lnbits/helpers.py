@@ -89,7 +89,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def template_renderer(additional_folders: List = None) -> Jinja2Templates:
+def template_renderer(additional_folders: List = []) -> Jinja2Templates:
 
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
@@ -117,12 +117,8 @@ def template_renderer(additional_folders: List = None) -> Jinja2Templates:
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
-    if settings.debug:
-        t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
-        t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
-    else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
-        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+    t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
+    t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
 
     return t
 
