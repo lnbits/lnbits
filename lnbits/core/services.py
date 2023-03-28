@@ -178,7 +178,7 @@ async def pay_invoice(
                 )
             except:
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentFailure(f"Can not create payment.")
+                raise PaymentFailure("Can not create payment.")
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
