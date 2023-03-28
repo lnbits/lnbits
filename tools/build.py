@@ -9,24 +9,24 @@ LNBITS_PATH = Path("lnbits").absolute()
 def get_js_vendored() -> List[str]:
     return [
         "../node_modules/moment/min/moment.min.js",
-        '../node_modules/underscore/underscore-min.js',
-        '../node_modules/axios/dist/axios.min.js',
-        '../node_modules/vue/dist/vue.min.js',
-        '../node_modules/vue-router/dist/vue-router.min.js',
-        '../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.browser.js',
-        '../node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.min.js',
-        '../node_modules/vuex/dist/vuex.min.js',
-        '../node_modules/quasar/dist/quasar.ie.polyfills.umd.min.js',
-        '../node_modules/quasar/dist/quasar.umd.min.js',
-        '../node_modules/chart.js/dist/Chart.bundle.min.js',
+        "../node_modules/underscore/underscore-min.js",
+        "../node_modules/axios/dist/axios.min.js",
+        "../node_modules/vue/dist/vue.min.js",
+        "../node_modules/vue-router/dist/vue-router.min.js",
+        "../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.browser.js",
+        "../node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.min.js",
+        "../node_modules/vuex/dist/vuex.min.js",
+        "../node_modules/quasar/dist/quasar.ie.polyfills.umd.min.js",
+        "../node_modules/quasar/dist/quasar.umd.min.js",
+        "../node_modules/chart.js/dist/Chart.bundle.min.js",
     ]
 
 
 def get_css_vendored() -> List[str]:
     return [
-        '../node_modules/quasar/dist/quasar.min.css',
-        '../node_modules/chart.js/dist/Chart.min.css',
-        '../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css',
+        "../node_modules/quasar/dist/quasar.min.css",
+        "../node_modules/chart.js/dist/Chart.min.css",
+        "../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css",
     ]
 
 
