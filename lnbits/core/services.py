@@ -1,7 +1,7 @@
 import asyncio
 import json
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -41,8 +41,6 @@ from .crud import (
     update_super_user,
 )
 from .models import Payment
-
-from typing import TypedDict
 
 
 class PaymentFailure(Exception):
