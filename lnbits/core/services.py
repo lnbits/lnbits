@@ -386,7 +386,7 @@ async def check_transaction_status(
         return PaymentStatus(None)
     if not payment.pending:
         # note: before, we still checked the status of the payment again
-        return PaymentStatus(True)
+        return PaymentStatus(True, fee_msat=payment.fee)
 
     status: PaymentStatus = await payment.check_status()
     return status
