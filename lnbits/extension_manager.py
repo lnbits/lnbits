@@ -520,7 +520,7 @@ async def fetch_github_releases(org: str, repo: str) -> List[GitHubRepoRelease]:
 async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:
     async with httpx.AsyncClient() as client:
         headers = (
-            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
+            {"Authorization": f"Bearer {settings.lnbits_ext_github_token}"}
             if settings.lnbits_ext_github_token
             else None
         )

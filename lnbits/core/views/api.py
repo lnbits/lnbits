@@ -564,7 +564,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     if k == "text/plain":
                         params.update(description=v)
                     if k in ("image/jpeg;base64", "image/png;base64"):
-                        data_uri = "data:" + k + "," + v
+                        data_uri = f"data:{k},{v}"
                         params.update(image=data_uri)
                     if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)

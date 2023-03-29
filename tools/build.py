@@ -44,9 +44,9 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
     for path in glob.glob(
         os.path.join(LNBITS_PATH, "static/vendor/**"), recursive=True
     ):
-        if path.endswith(".min" + ext):
+        if path.endswith(f".min{ext}"):
             # path is minified
-            unminified = path.replace(".min" + ext, ext)
+            unminified = path.replace(f".min{ext}", ext)
             if prefer_minified:
                 paths.append(path)
                 if unminified in paths:
@@ -56,7 +56,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 
         elif path.endswith(ext):
             # path is not minified
-            minified = path.replace(ext, ".min" + ext)
+            minified = path.replace(ext, f".min{ext}")
             if not prefer_minified:
                 paths.append(path)
                 if minified in paths:
@@ -68,7 +68,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 
 
 def url_for_vendored(abspath: str) -> str:
-    return "/" + os.path.relpath(abspath, LNBITS_PATH)
+    return f"/{os.path.relpath(abspath, LNBITS_PATH)}"
 
 
 def transpile_scss():
@@ -89,7 +89,7 @@ def bundle_vendored():
         output = ""
         for path in getfiles():
             with open(path) as f:
-                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
+                output += f"/* {url_for_vendored(path)} */\n{f.read()};\n"
         with open(outputpath, "w") as f:
             f.write(output)
 

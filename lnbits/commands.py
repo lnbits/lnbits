@@ -47,7 +47,7 @@ def bundle_vendored():
         output = ""
         for path in getfiles():
             with open(path) as f:
-                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
+                output += f"/* {url_for_vendored(path)} */\n{f.read()};\n"
         with open(outputpath, "w") as f:
             f.write(output)
 
