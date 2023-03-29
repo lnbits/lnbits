@@ -151,7 +151,8 @@ async def pay_invoice(
         internal_check = await check_internal(invoice.payment_hash, conn=conn)
         if internal_check:
 
-            if not internal_check[1]:
+            _, pending = internal_check
+            if not pending:
                 raise PaymentFailure("Internal invoice already paid.")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
@@ -186,20 +187,21 @@ async def pay_invoice(
             raise PermissionError("Insufficient balance.")
 
     if internal_check:
-        logger.debug(f"marking temporary payment as not pending {internal_check[0]}")
+        internal_checking_id, _ = internal_check
+        logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
         async with db.connect() as conn:
             await update_payment_status(
-                checking_id=internal_check[0], pending=False, conn=conn
+                checking_id=internal_checking_id, pending=False, conn=conn
             )
 
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
-        logger.debug(f"enqueuing internal invoice {internal_check[0]}")
-        await internal_invoice_queue.put(internal_check[0])
+        logger.debug(f"enqueuing internal invoice {internal_checking_id}")
+        await internal_invoice_queue.put(internal_checking_id)
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
