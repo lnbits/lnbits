@@ -1,7 +1,7 @@
 import asyncio
 import json
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, TypedDict
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -27,6 +27,7 @@ from lnbits.wallets.base import PaymentResponse, PaymentStatus
 from . import db
 from .crud import (
     check_internal,
+    check_internal_paid,
     create_account,
     create_admin_settings,
     create_payment,
@@ -41,6 +42,11 @@ from .crud import (
     update_super_user,
 )
 from .models import Payment
+
+try:
+    from typing import TypedDict
+except ImportError:  # pragma: nocover
+    from typing_extensions import TypedDict
 
 
 class PaymentFailure(Exception):
@@ -148,13 +154,12 @@ async def pay_invoice(
             extra=extra,
         )
 
-        internal_check = await check_internal(invoice.payment_hash, conn=conn)
-        if internal_check:
+        if await check_internal_paid(invoice.payment_hash, conn=conn):
+            raise PaymentFailure("Internal invoice already paid.")
 
-            _, pending = internal_check
-            if not pending:
-                raise PaymentFailure("Internal invoice already paid.")
-
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
+        if internal_checking_id:
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             await create_payment(
@@ -180,14 +185,13 @@ async def pay_invoice(
         assert wallet
         if wallet.balance_msat < 0:
             logger.debug("balance is too low, deleting temporary payment")
-            if not internal_check and wallet.balance_msat > -fee_reserve_msat:
+            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
                     f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
-    if internal_check:
-        internal_checking_id, _ = internal_check
+    if internal_checking_id:
         logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure

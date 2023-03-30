@@ -590,18 +590,34 @@ async def delete_wallet_payment(
 
 async def check_internal(
     payment_hash: str, conn: Optional[Connection] = None
-) -> Optional[tuple[str, bool]]:
+) -> Optional[str]:
     row = await (conn or db).fetchone(
         """
-        SELECT checking_id, pending FROM apipayments
-        WHERE hash = ? AND amount > 0
+        SELECT checking_id FROM apipayments
+        WHERE hash = ? AND pending AND amount > 0
         """,
         (payment_hash,),
     )
     if not row:
         return None
     else:
-        return row["checking_id"], row["pending"]
+        return row["checking_id"]
+
+
+async def check_internal_paid(
+    payment_hash: str, conn: Optional[Connection] = None
+) -> bool:
+    row = await (conn or db).fetchone(
+        """
+        SELECT pending FROM apipayments
+        WHERE hash = ? AND amount > 0
+        """,
+        (payment_hash,),
+    )
+    if not row:
+        return False
+    else:
+        return not row["pending"]
 
 
 # balance_check
