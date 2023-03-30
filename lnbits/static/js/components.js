@@ -214,6 +214,7 @@ Vue.component('lnbits-admin-ui', {
 
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
+  mixins: [windowMixin],
   data: function () {
     return {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
@@ -233,7 +234,7 @@ Vue.component('lnbits-payment-details', {
       <div class="row">
         <div class="col-3"><b>Expiry</b>:</div>
         <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
-      </div>      
+      </div>
       <div class="row">
         <div class="col-3"><b>Description</b>:</div>
         <div class="col-9">{{ payment.memo }}</div>
@@ -248,7 +249,10 @@ Vue.component('lnbits-payment-details', {
       </div>
       <div class="row">
         <div class="col-3"><b>Payment hash</b>:</div>
-        <div class="col-9 text-wrap mono">{{ payment.payment_hash }}</div>
+        <div class="col-9 text-wrap mono">
+            {{ payment.payment_hash }}
+            <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
+      </div>
       </div>
       <div class="row" v-if="payment.webhook">
         <div class="col-3"><b>Webhook</b>:</div>
