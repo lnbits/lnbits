@@ -13,7 +13,7 @@ from loguru import logger
 from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
@@ -400,21 +400,20 @@ def fee_reserve(amount_msat: int) -> int:
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):
-    internal_id = f"internal_{urlsafe_short_hash()}"
-    payment = await create_payment(
+    payment_hash, _ = await create_invoice(
         wallet_id=wallet_id,
-        checking_id=internal_id,
-        payment_request="admin_internal",
-        payment_hash="admin_internal",
-        amount=amount * 1000,
+        amount=amount,
         memo="Admin top up",
-        pending=False,
+        internal=True,
     )
-    # manually send this for now
-    from lnbits.tasks import internal_invoice_queue
+    async with db.connect() as conn:
+        checking_id = await check_internal(payment_hash, conn=conn)
+        assert checking_id, "newly created checking_id cannot be retrieved"
+        await update_payment_status(checking_id=checking_id, pending=False, conn=conn)
+        # notify receiver asynchronously
+        from lnbits.tasks import internal_invoice_queue
 
-    await internal_invoice_queue.put(internal_id)
-    return payment
+        await internal_invoice_queue.put(checking_id)
 
 
 async def check_admin_settings():
