@@ -71,3 +71,21 @@ migration:
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
+	#
+
+updatevendor:
+	npm install
+	cp ./node_modules/moment/dist/moment.js ./lnbits/static/vendor
+	cp ./node_modules/underscore/underscore.js ./lnbits/static/vendor
+	cp ./node_modules/axios/dist/axios.js ./lnbits/static/vendor
+	cp ./node_modules/vue/dist/vue.js ./lnbits/static/vendor
+	cp ./node_modules/vue-router/dist/vue-router.js ./lnbits/static/vendor
+	cp ./node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.browser.js ./lnbits/static/vendor
+	cp ./node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.js ./lnbits/static/vendor
+	cp ./node_modules/vuex/dist/vuex.js ./lnbits/static/vendor
+	cp ./node_modules/quasar/dist/quasar.ie.polyfills.umd.min.js ./lnbits/static/vendor
+	cp ./node_modules/quasar/dist/quasar.umd.js ./lnbits/static/vendor
+	cp ./node_modules/chart.js/dist/Chart.bundle.js ./lnbits/static/vendor
+	cp ./node_modules/quasar/dist/quasar.min.css ./lnbits/static/vendor
+	cp ./node_modules/chart.js/dist/Chart.min.css ./lnbits/static/vendor
+	cp ./node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css ./lnbits/static/vendor
