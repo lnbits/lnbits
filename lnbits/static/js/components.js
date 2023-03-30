@@ -251,9 +251,7 @@ Vue.component('lnbits-payment-details', {
         <div class="col-3"><b>Payment hash</b>:</div>
         <div class="col-9 text-wrap mono">
             {{ payment.payment_hash }}
-            <q-badge @click="copyText(payment.payment_hash)" style="cursor: pointer;" color="secondary" text-color="white">
-                <b>copy</b>
-            </q-badge>
+            <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
       </div>
       </div>
       <div class="row" v-if="payment.webhook">
