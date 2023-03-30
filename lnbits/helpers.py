@@ -51,6 +51,29 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
+    if settings.debug:
+        t.env.globals["VENDORED_JS"] = [
+            "/static/vendor/moment.js",
+            "/static/vendor/underscore.js",
+            "/static/vendor/axios.js",
+            "/static/vendor/vue.js",
+            "/static/vendor/vue-router.js",
+            "/static/vendor/vue-qrcode-reader.browser.js",
+            "/static/vendor/vue-qrcode.js",
+            "/static/vendor/vuex.js",
+            "/static/vendor/quasar.ie.polyfills.umd.min.js",
+            "/static/vendor/quasar.umd.js",
+            "/static/vendor/Chart.bundle.js",
+        ]
+        t.env.globals["VENDORED_CSS"] = [
+            "/static/vendor/quasar.css",
+            "/static/vendor/Chart.css",
+            "/static/vendor/vue-qrcode-reader.css",
+        ]
+    else:
+        t.env.globals["VENDORED_JS"] = ["/static/bundle.min.js"]
+        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+
     return t
 
 

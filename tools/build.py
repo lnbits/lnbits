@@ -2,31 +2,32 @@ import os
 import warnings
 from pathlib import Path
 from typing import List
+from jsmin import jsmin
 
 LNBITS_PATH = Path("lnbits").absolute()
 
 
 def get_js_vendored() -> List[str]:
     return [
-        "../node_modules/moment/min/moment.min.js",
-        "../node_modules/underscore/underscore-min.js",
-        "../node_modules/axios/dist/axios.min.js",
-        "../node_modules/vue/dist/vue.min.js",
-        "../node_modules/vue-router/dist/vue-router.min.js",
-        "../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.browser.js",
-        "../node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.min.js",
-        "../node_modules/vuex/dist/vuex.min.js",
-        "../node_modules/quasar/dist/quasar.ie.polyfills.umd.min.js",
-        "../node_modules/quasar/dist/quasar.umd.min.js",
-        "../node_modules/chart.js/dist/Chart.bundle.min.js",
+        "/static/vendor/moment.js",
+        "/static/vendor/underscore.js",
+        "/static/vendor/axios.js",
+        "/static/vendor/vue.js",
+        "/static/vendor/vue-router.js",
+        "/static/vendor/vue-qrcode-reader.browser.js",
+        "/static/vendor/vue-qrcode.js",
+        "/static/vendor/vuex.js",
+        "/static/vendor/quasar.ie.polyfills.umd.min.js",
+        "/static/vendor/quasar.umd.js",
+        "/static/vendor/Chart.bundle.js",
     ]
 
 
 def get_css_vendored() -> List[str]:
     return [
-        "../node_modules/quasar/dist/quasar.min.css",
-        "../node_modules/chart.js/dist/Chart.min.css",
-        "../node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css",
+        "/static/vendor/quasar.css",
+        "/static/vendor/Chart.css",
+        "/static/vendor/vue-qrcode-reader.css",
     ]
 
 
@@ -46,15 +47,15 @@ def transpile_scss():
 
 def bundle_vendored():
     for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
+        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.min.js")),
         (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
     ]:
         output = ""
         for path in getfiles():
-            with open(f"{LNBITS_PATH}/{path}") as f:
+            with open(f"{LNBITS_PATH}{path}") as f:
                 output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
         with open(outputpath, "w") as f:
-            f.write(output)
+            f.write(jsmin(output))
 
 
 def build():

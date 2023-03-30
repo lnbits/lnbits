@@ -2,7 +2,10 @@
 
 <html lang="en">
   <head>
-    <link rel="stylesheet" type="text/css" href="/static/bundle.css" />
+    {% for url in VENDORED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    {% endfor %}
+    <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
@@ -246,7 +249,10 @@
 
     {% block vue_templates %}{% endblock %}
     <!---->
-    <script src="/static/bundle.js"></script>
+    {% for url in VENDORED_JS %}
+    <script src="{{ url }}"></script>
+    {% endfor %}
+    <!---->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/bolt11-decoder.js"></script>
