@@ -880,17 +880,6 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
-name = "jsmin"
-version = "3.0.1"
-description = "JavaScript minifier."
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "jsmin-3.0.1.tar.gz", hash = "sha256:c0959a121ef94542e807a674142606f7e90214a2b3d1eb17300244bbb5cc2bfc"},
-]
-
-[[package]]
 name = "lazy-object-proxy"
 version = "1.9.0"
 description = "A fast and thorough lazy object proxy."
@@ -2216,4 +2205,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "720b652c2219616e88ddb1d579e7231175c09b6e77d949920a10b1635d4f483b"
+content-hash = "3ede9f1c735533b865009b69fefba2faefc3e4a836b4453af34c81dec29e0682"

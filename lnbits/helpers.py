@@ -71,7 +71,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
             "/static/vendor/vue-qrcode-reader.css",
         ]
     else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.min.js"]
+        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
         t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
 
     return t

@@ -75,7 +75,7 @@ bak:
 
 updatevendor:
 	npm install
-	cp ./node_modules/moment/dist/moment.js ./lnbits/static/vendor/
+	cp ./node_modules/moment/moment.js ./lnbits/static/vendor/
 	cp ./node_modules/underscore/underscore.js ./lnbits/static/vendor/
 	cp ./node_modules/axios/dist/axios.js ./lnbits/static/vendor/
 	cp ./node_modules/vue/dist/vue.js ./lnbits/static/vendor/

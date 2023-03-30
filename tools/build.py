@@ -2,7 +2,6 @@ import os
 import warnings
 from pathlib import Path
 from typing import List
-from jsmin import jsmin
 
 LNBITS_PATH = Path("lnbits").absolute()
 
@@ -47,15 +46,15 @@ def transpile_scss():
 
 def bundle_vendored():
     for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.min.js")),
+        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
         (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
     ]:
         output = ""
         for path in getfiles():
             with open(f"{LNBITS_PATH}{path}") as f:
-                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
+                output += f.read() + ";\n"
         with open(outputpath, "w") as f:
-            f.write(jsmin(output))
+            f.write(output)
 
 
 def build():
