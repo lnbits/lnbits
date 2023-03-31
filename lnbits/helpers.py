@@ -9,6 +9,25 @@ from lnbits.settings import settings
 
 from .extension_manager import get_valid_extensions
 
+vendored_js = [
+    "/static/vendor/moment.js",
+    "/static/vendor/underscore.js",
+    "/static/vendor/axios.js",
+    "/static/vendor/vue.js",
+    "/static/vendor/vue-router.js",
+    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vuex.js",
+    "/static/vendor/quasar.ie.polyfills.umd.min.js",
+    "/static/vendor/quasar.umd.js",
+    "/static/vendor/Chart.bundle.js",
+]
+
+vendored_css = [
+    "/static/vendor/quasar.css",
+    "/static/vendor/Chart.css",
+    "/static/vendor/vue-qrcode-reader.css",
+]
 
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
@@ -52,24 +71,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
     if settings.debug:
-        t.env.globals["VENDORED_JS"] = [
-            "/static/vendor/moment.js",
-            "/static/vendor/underscore.js",
-            "/static/vendor/axios.js",
-            "/static/vendor/vue.js",
-            "/static/vendor/vue-router.js",
-            "/static/vendor/vue-qrcode-reader.browser.js",
-            "/static/vendor/vue-qrcode.js",
-            "/static/vendor/vuex.js",
-            "/static/vendor/quasar.ie.polyfills.umd.min.js",
-            "/static/vendor/quasar.umd.js",
-            "/static/vendor/Chart.bundle.js",
-        ]
-        t.env.globals["VENDORED_CSS"] = [
-            "/static/vendor/quasar.css",
-            "/static/vendor/Chart.css",
-            "/static/vendor/vue-qrcode-reader.css",
-        ]
+        t.env.globals["VENDORED_JS"] = vendored_js
+        t.env.globals["VENDORED_CSS"] = vendored_css
     else:
         t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
         t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]

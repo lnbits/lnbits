@@ -1,13 +1,13 @@
 /*!
-  * vue-router v3.6.5
-  * (c) 2022 Evan You
+  * vue-router v3.4.3
+  * (c) 2020 Evan You
   * @license MIT
   */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.VueRouter = factory());
-})(this, (function () { 'use strict';
+  (global = global || self, global.VueRouter = factory());
+}(this, function () { 'use strict';
 
   /*  */
 
@@ -18,7 +18,7 @@
   }
 
   function warn (condition, message) {
-    if (!condition) {
+    if ( !condition) {
       typeof console !== 'undefined' && console.warn(("[vue-router] " + message));
     }
   }
@@ -28,6 +28,158 @@
       a[key] = b[key];
     }
     return a
+  }
+
+  var View = {
+    name: 'RouterView',
+    functional: true,
+    props: {
+      name: {
+        type: String,
+        default: 'default'
+      }
+    },
+    render: function render (_, ref) {
+      var props = ref.props;
+      var children = ref.children;
+      var parent = ref.parent;
+      var data = ref.data;
+
+      // used by devtools to display a router-view badge
+      data.routerView = true;
+
+      // directly use parent context's createElement() function
+      // so that components rendered by router-view can resolve named slots
+      var h = parent.$createElement;
+      var name = props.name;
+      var route = parent.$route;
+      var cache = parent._routerViewCache || (parent._routerViewCache = {});
+
+      // determine current view depth, also check to see if the tree
+      // has been toggled inactive but kept-alive.
+      var depth = 0;
+      var inactive = false;
+      while (parent && parent._routerRoot !== parent) {
+        var vnodeData = parent.$vnode ? parent.$vnode.data : {};
+        if (vnodeData.routerView) {
+          depth++;
+        }
+        if (vnodeData.keepAlive && parent._directInactive && parent._inactive) {
+          inactive = true;
+        }
+        parent = parent.$parent;
+      }
+      data.routerViewDepth = depth;
+
+      // render previous view if the tree is inactive and kept-alive
+      if (inactive) {
+        var cachedData = cache[name];
+        var cachedComponent = cachedData && cachedData.component;
+        if (cachedComponent) {
+          // #2301
+          // pass props
+          if (cachedData.configProps) {
+            fillPropsinData(cachedComponent, data, cachedData.route, cachedData.configProps);
+          }
+          return h(cachedComponent, data, children)
+        } else {
+          // render previous empty view
+          return h()
+        }
+      }
+
+      var matched = route.matched[depth];
+      var component = matched && matched.components[name];
+
+      // render empty node if no matched route or no config component
+      if (!matched || !component) {
+        cache[name] = null;
+        return h()
+      }
+
+      // cache component
+      cache[name] = { component: component };
+
+      // attach instance registration hook
+      // this will be called in the instance's injected lifecycle hooks
+      data.registerRouteInstance = function (vm, val) {
+        // val could be undefined for unregistration
+        var current = matched.instances[name];
+        if (
+          (val && current !== vm) ||
+          (!val && current === vm)
+        ) {
+          matched.instances[name] = val;
+        }
+      }
+
+      // also register instance in prepatch hook
+      // in case the same component instance is reused across different routes
+      ;(data.hook || (data.hook = {})).prepatch = function (_, vnode) {
+        matched.instances[name] = vnode.componentInstance;
+      };
+
+      // register instance in init hook
+      // in case kept-alive component be actived when routes changed
+      data.hook.init = function (vnode) {
+        if (vnode.data.keepAlive &&
+          vnode.componentInstance &&
+          vnode.componentInstance !== matched.instances[name]
+        ) {
+          matched.instances[name] = vnode.componentInstance;
+        }
+      };
+
+      var configProps = matched.props && matched.props[name];
+      // save route and configProps in cache
+      if (configProps) {
+        extend(cache[name], {
+          route: route,
+          configProps: configProps
+        });
+        fillPropsinData(component, data, route, configProps);
+      }
+
+      return h(component, data, children)
+    }
+  };
+
+  function fillPropsinData (component, data, route, configProps) {
+    // resolve props
+    var propsToPass = data.props = resolveProps(route, configProps);
+    if (propsToPass) {
+      // clone to prevent mutation
+      propsToPass = data.props = extend({}, propsToPass);
+      // pass non-declared props as attrs
+      var attrs = data.attrs = data.attrs || {};
+      for (var key in propsToPass) {
+        if (!component.props || !(key in component.props)) {
+          attrs[key] = propsToPass[key];
+          delete propsToPass[key];
+        }
+      }
+    }
+  }
+
+  function resolveProps (route, config) {
+    switch (typeof config) {
+      case 'undefined':
+        return
+      case 'object':
+        return config
+      case 'function':
+        return config(route)
+      case 'boolean':
+        return config ? route.params : undefined
+      default:
+        {
+          warn(
+            false,
+            "props in \"" + (route.path) + "\" is a " + (typeof config) + ", " +
+            "expecting an object, function or boolean."
+          );
+        }
+    }
   }
 
   /*  */
@@ -43,16 +195,7 @@
       .replace(encodeReserveRE, encodeReserveReplacer)
       .replace(commaRE, ','); };
 
-  function decode (str) {
-    try {
-      return decodeURIComponent(str)
-    } catch (err) {
-      {
-        warn(false, ("Error decoding \"" + str + "\". Leaving it intact."));
-      }
-    }
-    return str
-  }
+  var decode = decodeURIComponent;
 
   function resolveQuery (
     query,
@@ -66,7 +209,7 @@
     try {
       parsedQuery = parse(query || '');
     } catch (e) {
-      warn(false, e.message);
+       warn(false, e.message);
       parsedQuery = {};
     }
     for (var key in extraQuery) {
@@ -216,23 +359,23 @@
     return (path || '/') + stringify(query) + hash
   }
 
-  function isSameRoute (a, b, onlyPath) {
+  function isSameRoute (a, b) {
     if (b === START) {
       return a === b
     } else if (!b) {
       return false
     } else if (a.path && b.path) {
-      return a.path.replace(trailingSlashRE, '') === b.path.replace(trailingSlashRE, '') && (onlyPath ||
+      return (
+        a.path.replace(trailingSlashRE, '') === b.path.replace(trailingSlashRE, '') &&
         a.hash === b.hash &&
-        isObjectEqual(a.query, b.query))
+        isObjectEqual(a.query, b.query)
+      )
     } else if (a.name && b.name) {
       return (
         a.name === b.name &&
-        (onlyPath || (
-          a.hash === b.hash &&
+        a.hash === b.hash &&
         isObjectEqual(a.query, b.query) &&
-        isObjectEqual(a.params, b.params))
-        )
+        isObjectEqual(a.params, b.params)
       )
     } else {
       return false
@@ -245,15 +388,13 @@
 
     // handle null value #1566
     if (!a || !b) { return a === b }
-    var aKeys = Object.keys(a).sort();
-    var bKeys = Object.keys(b).sort();
+    var aKeys = Object.keys(a);
+    var bKeys = Object.keys(b);
     if (aKeys.length !== bKeys.length) {
       return false
     }
-    return aKeys.every(function (key, i) {
+    return aKeys.every(function (key) {
       var aVal = a[key];
-      var bKey = bKeys[i];
-      if (bKey !== key) { return false }
       var bVal = b[key];
       // query values can be null and undefined
       if (aVal == null || bVal == null) { return aVal === bVal }
@@ -282,178 +423,6 @@
       }
     }
     return true
-  }
-
-  function handleRouteEntered (route) {
-    for (var i = 0; i < route.matched.length; i++) {
-      var record = route.matched[i];
-      for (var name in record.instances) {
-        var instance = record.instances[name];
-        var cbs = record.enteredCbs[name];
-        if (!instance || !cbs) { continue }
-        delete record.enteredCbs[name];
-        for (var i$1 = 0; i$1 < cbs.length; i$1++) {
-          if (!instance._isBeingDestroyed) { cbs[i$1](instance); }
-        }
-      }
-    }
-  }
-
-  var View = {
-    name: 'RouterView',
-    functional: true,
-    props: {
-      name: {
-        type: String,
-        default: 'default'
-      }
-    },
-    render: function render (_, ref) {
-      var props = ref.props;
-      var children = ref.children;
-      var parent = ref.parent;
-      var data = ref.data;
-
-      // used by devtools to display a router-view badge
-      data.routerView = true;
-
-      // directly use parent context's createElement() function
-      // so that components rendered by router-view can resolve named slots
-      var h = parent.$createElement;
-      var name = props.name;
-      var route = parent.$route;
-      var cache = parent._routerViewCache || (parent._routerViewCache = {});
-
-      // determine current view depth, also check to see if the tree
-      // has been toggled inactive but kept-alive.
-      var depth = 0;
-      var inactive = false;
-      while (parent && parent._routerRoot !== parent) {
-        var vnodeData = parent.$vnode ? parent.$vnode.data : {};
-        if (vnodeData.routerView) {
-          depth++;
-        }
-        if (vnodeData.keepAlive && parent._directInactive && parent._inactive) {
-          inactive = true;
-        }
-        parent = parent.$parent;
-      }
-      data.routerViewDepth = depth;
-
-      // render previous view if the tree is inactive and kept-alive
-      if (inactive) {
-        var cachedData = cache[name];
-        var cachedComponent = cachedData && cachedData.component;
-        if (cachedComponent) {
-          // #2301
-          // pass props
-          if (cachedData.configProps) {
-            fillPropsinData(cachedComponent, data, cachedData.route, cachedData.configProps);
-          }
-          return h(cachedComponent, data, children)
-        } else {
-          // render previous empty view
-          return h()
-        }
-      }
-
-      var matched = route.matched[depth];
-      var component = matched && matched.components[name];
-
-      // render empty node if no matched route or no config component
-      if (!matched || !component) {
-        cache[name] = null;
-        return h()
-      }
-
-      // cache component
-      cache[name] = { component: component };
-
-      // attach instance registration hook
-      // this will be called in the instance's injected lifecycle hooks
-      data.registerRouteInstance = function (vm, val) {
-        // val could be undefined for unregistration
-        var current = matched.instances[name];
-        if (
-          (val && current !== vm) ||
-          (!val && current === vm)
-        ) {
-          matched.instances[name] = val;
-        }
-      }
-
-      // also register instance in prepatch hook
-      // in case the same component instance is reused across different routes
-      ;(data.hook || (data.hook = {})).prepatch = function (_, vnode) {
-        matched.instances[name] = vnode.componentInstance;
-      };
-
-      // register instance in init hook
-      // in case kept-alive component be actived when routes changed
-      data.hook.init = function (vnode) {
-        if (vnode.data.keepAlive &&
-          vnode.componentInstance &&
-          vnode.componentInstance !== matched.instances[name]
-        ) {
-          matched.instances[name] = vnode.componentInstance;
-        }
-
-        // if the route transition has already been confirmed then we weren't
-        // able to call the cbs during confirmation as the component was not
-        // registered yet, so we call it here.
-        handleRouteEntered(route);
-      };
-
-      var configProps = matched.props && matched.props[name];
-      // save route and configProps in cache
-      if (configProps) {
-        extend(cache[name], {
-          route: route,
-          configProps: configProps
-        });
-        fillPropsinData(component, data, route, configProps);
-      }
-
-      return h(component, data, children)
-    }
-  };
-
-  function fillPropsinData (component, data, route, configProps) {
-    // resolve props
-    var propsToPass = data.props = resolveProps(route, configProps);
-    if (propsToPass) {
-      // clone to prevent mutation
-      propsToPass = data.props = extend({}, propsToPass);
-      // pass non-declared props as attrs
-      var attrs = data.attrs = data.attrs || {};
-      for (var key in propsToPass) {
-        if (!component.props || !(key in component.props)) {
-          attrs[key] = propsToPass[key];
-          delete propsToPass[key];
-        }
-      }
-    }
-  }
-
-  function resolveProps (route, config) {
-    switch (typeof config) {
-      case 'undefined':
-        return
-      case 'object':
-        return config
-      case 'function':
-        return config(route)
-      case 'boolean':
-        return config ? route.params : undefined
-      default:
-        {
-          warn(
-            false,
-            "props in \"" + (route.path) + "\" is a " + (typeof config) + ", " +
-            "expecting an object, function or boolean."
-          );
-        }
-    }
   }
 
   /*  */
@@ -524,7 +493,7 @@
   }
 
   function cleanPath (path) {
-    return path.replace(/\/(?:\s*\/)+/g, '/')
+    return path.replace(/\/\//g, '/')
   }
 
   var isarray = Array.isArray || function (arr) {
@@ -1064,10 +1033,6 @@
 
   var noop = function () {};
 
-  var warnedCustomSlot;
-  var warnedTagProp;
-  var warnedEventProp;
-
   var Link = {
     name: 'RouterLink',
     props: {
@@ -1079,9 +1044,7 @@
         type: String,
         default: 'a'
       },
-      custom: Boolean,
       exact: Boolean,
-      exactPath: Boolean,
       append: Boolean,
       replace: Boolean,
       activeClass: String,
@@ -1096,7 +1059,7 @@
       }
     },
     render: function render (h) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var router = this.$router;
       var current = this.$route;
@@ -1130,8 +1093,8 @@
         ? createRoute(null, normalizeLocation(route.redirectedFrom), null, router)
         : route;
 
-      classes[exactActiveClass] = isSameRoute(current, compareTarget, this.exactPath);
-      classes[activeClass] = this.exact || this.exactPath
+      classes[exactActiveClass] = isSameRoute(current, compareTarget);
+      classes[activeClass] = this.exact
         ? classes[exactActiveClass]
         : isIncludedRoute(current, compareTarget);
 
@@ -1139,7 +1102,7 @@
 
       var handler = function (e) {
         if (guardEvent(e)) {
-          if (this$1$1.replace) {
+          if (this$1.replace) {
             router.replace(location, noop);
           } else {
             router.push(location, noop);
@@ -1170,37 +1133,16 @@
         });
 
       if (scopedSlot) {
-        if (!this.custom) {
-          !warnedCustomSlot && warn(false, 'In Vue Router 4, the v-slot API will by default wrap its content with an <a> element. Use the custom prop to remove this warning:\n<router-link v-slot="{ navigate, href }" custom></router-link>\n');
-          warnedCustomSlot = true;
-        }
         if (scopedSlot.length === 1) {
           return scopedSlot[0]
         } else if (scopedSlot.length > 1 || !scopedSlot.length) {
           {
             warn(
               false,
-              ("<router-link> with to=\"" + (this.to) + "\" is trying to use a scoped slot but it didn't provide exactly one child. Wrapping the content with a span element.")
+              ("RouterLink with to=\"" + (this.to) + "\" is trying to use a scoped slot but it didn't provide exactly one child. Wrapping the content with a span element.")
             );
           }
           return scopedSlot.length === 0 ? h() : h('span', {}, scopedSlot)
-        }
-      }
-
-      {
-        if ('tag' in this.$options.propsData && !warnedTagProp) {
-          warn(
-            false,
-            "<router-link>'s tag prop is deprecated and has been removed in Vue Router 4. Use the v-slot API to remove this warning: https://next.router.vuejs.org/guide/migration/#removal-of-event-and-tag-props-in-router-link."
-          );
-          warnedTagProp = true;
-        }
-        if ('event' in this.$options.propsData && !warnedEventProp) {
-          warn(
-            false,
-            "<router-link>'s event prop is deprecated and has been removed in Vue Router 4. Use the v-slot API to remove this warning: https://next.router.vuejs.org/guide/migration/#removal-of-event-and-tag-props-in-router-link."
-          );
-          warnedEventProp = true;
         }
       }
 
@@ -1339,8 +1281,7 @@
     routes,
     oldPathList,
     oldPathMap,
-    oldNameMap,
-    parentRoute
+    oldNameMap
   ) {
     // the path list is used to control path matching priority
     var pathList = oldPathList || [];
@@ -1350,7 +1291,7 @@
     var nameMap = oldNameMap || Object.create(null);
 
     routes.forEach(function (route) {
-      addRouteRecord(pathList, pathMap, nameMap, route, parentRoute);
+      addRouteRecord(pathList, pathMap, nameMap, route);
     });
 
     // ensure wildcard routes are always at the end
@@ -1399,14 +1340,6 @@
           path || name
         )) + " cannot be a " + "string id. Use an actual component instead."
       );
-
-      warn(
-        // eslint-disable-next-line no-control-regex
-        !/[^\u0000-\u007F]+/.test(path),
-        "Route with path \"" + path + "\" contains unencoded characters, make sure " +
-          "your path is correctly encoded before passing it to the router. Use " +
-          "encodeURI to encode static segments of your path."
-      );
     }
 
     var pathToRegexpOptions =
@@ -1421,13 +1354,7 @@
       path: normalizedPath,
       regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
       components: route.components || { default: route.component },
-      alias: route.alias
-        ? typeof route.alias === 'string'
-          ? [route.alias]
-          : route.alias
-        : [],
       instances: {},
-      enteredCbs: {},
       name: name,
       parent: parent,
       matchAs: matchAs,
@@ -1455,7 +1382,7 @@
           warn(
             false,
             "Named Route '" + (route.name) + "' has a default child route. " +
-              "When navigating to this named route (:to=\"{name: '" + (route.name) + "'}\"), " +
+              "When navigating to this named route (:to=\"{name: '" + (route.name) + "'\"), " +
               "the default child route will not be rendered. Remove the name from " +
               "this route and use the name of the default child route for named " +
               "links instead."
@@ -1479,7 +1406,7 @@
       var aliases = Array.isArray(route.alias) ? route.alias : [route.alias];
       for (var i = 0; i < aliases.length; ++i) {
         var alias = aliases[i];
-        if (alias === path) {
+        if ( alias === path) {
           warn(
             false,
             ("Found an alias with the same value as the path: \"" + path + "\". You have to remove that alias. It will be ignored in development.")
@@ -1506,7 +1433,7 @@
     if (name) {
       if (!nameMap[name]) {
         nameMap[name] = record;
-      } else if (!matchAs) {
+      } else if ( !matchAs) {
         warn(
           false,
           "Duplicate named routes definition: " +
@@ -1560,28 +1487,6 @@
 
     function addRoutes (routes) {
       createRouteMap(routes, pathList, pathMap, nameMap);
-    }
-
-    function addRoute (parentOrRoute, route) {
-      var parent = (typeof parentOrRoute !== 'object') ? nameMap[parentOrRoute] : undefined;
-      // $flow-disable-line
-      createRouteMap([route || parentOrRoute], pathList, pathMap, nameMap, parent);
-
-      // add aliases of parent
-      if (parent && parent.alias.length) {
-        createRouteMap(
-          // $flow-disable-line route is defined if parent is
-          parent.alias.map(function (alias) { return ({ path: alias, children: [route] }); }),
-          pathList,
-          pathMap,
-          nameMap,
-          parent
-        );
-      }
-    }
-
-    function getRoutes () {
-      return pathList.map(function (path) { return pathMap[path]; })
     }
 
     function match (
@@ -1730,8 +1635,6 @@
 
     return {
       match: match,
-      addRoute: addRoute,
-      getRoutes: getRoutes,
       addRoutes: addRoutes
     }
   }
@@ -1751,9 +1654,10 @@
 
     for (var i = 1, len = m.length; i < len; ++i) {
       var key = regex.keys[i - 1];
+      var val = typeof m[i] === 'string' ? decodeURIComponent(m[i]) : m[i];
       if (key) {
         // Fix #1994: using * with props: true generates a param named 0
-        params[key.name || 'pathMatch'] = typeof m[i] === 'string' ? decode(m[i]) : m[i];
+        params[key.name || 'pathMatch'] = val;
       }
     }
 
@@ -1943,17 +1847,7 @@
     }
 
     if (position) {
-      // $flow-disable-line
-      if ('scrollBehavior' in document.documentElement.style) {
-        window.scrollTo({
-          left: position.x,
-          top: position.y,
-          // $flow-disable-line
-          behavior: shouldScroll.behavior
-        });
-      } else {
-        window.scrollTo(position.x, position.y);
-      }
+      window.scrollTo(position.x, position.y);
     }
   }
 
@@ -1999,7 +1893,25 @@
     pushState(url, true);
   }
 
-  // When changing thing, also edit router.d.ts
+  /*  */
+
+  function runQueue (queue, fn, cb) {
+    var step = function (index) {
+      if (index >= queue.length) {
+        cb();
+      } else {
+        if (queue[index]) {
+          fn(queue[index], function () {
+            step(index + 1);
+          });
+        } else {
+          step(index + 1);
+        }
+      }
+    };
+    step(0);
+  }
+
   var NavigationFailureType = {
     redirected: 2,
     aborted: 4,
@@ -2084,25 +1996,6 @@
 
   /*  */
 
-  function runQueue (queue, fn, cb) {
-    var step = function (index) {
-      if (index >= queue.length) {
-        cb();
-      } else {
-        if (queue[index]) {
-          fn(queue[index], function () {
-            step(index + 1);
-          });
-        } else {
-          step(index + 1);
-        }
-      }
-    };
-    step(0);
-  }
-
-  /*  */
-
   function resolveAsyncComponents (matched) {
     return function (to, from, next) {
       var hasAsync = false;
@@ -2136,7 +2029,7 @@
 
           var reject = once(function (reason) {
             var msg = "Failed to resolve async component " + key + ": " + reason;
-            warn(false, msg);
+             warn(false, msg);
             if (!error) {
               error = isError(reason)
                 ? reason
@@ -2249,7 +2142,7 @@
     onComplete,
     onAbort
   ) {
-      var this$1$1 = this;
+      var this$1 = this;
 
     var route;
     // catch redirect option https://github.com/vuejs/vue-router/issues/3201
@@ -2262,21 +2155,21 @@
       // Exception should still be thrown
       throw e
     }
-    var prev = this.current;
     this.confirmTransition(
       route,
       function () {
-        this$1$1.updateRoute(route);
+        var prev = this$1.current;
+        this$1.updateRoute(route);
         onComplete && onComplete(route);
-        this$1$1.ensureURL();
-        this$1$1.router.afterHooks.forEach(function (hook) {
+        this$1.ensureURL();
+        this$1.router.afterHooks.forEach(function (hook) {
           hook && hook(route, prev);
         });
 
         // fire ready cbs once
-        if (!this$1$1.ready) {
-          this$1$1.ready = true;
-          this$1$1.readyCbs.forEach(function (cb) {
+        if (!this$1.ready) {
+          this$1.ready = true;
+          this$1.readyCbs.forEach(function (cb) {
             cb(route);
           });
         }
@@ -2285,15 +2178,17 @@
         if (onAbort) {
           onAbort(err);
         }
-        if (err && !this$1$1.ready) {
-          // Initial redirection should not mark the history as ready yet
-          // because it's triggered by the redirection instead
+        if (err && !this$1.ready) {
+          this$1.ready = true;
+          // Initial redirection should still trigger the onReady onSuccess
           // https://github.com/vuejs/vue-router/issues/3225
-          // https://github.com/vuejs/vue-router/issues/3331
-          if (!isNavigationFailure(err, NavigationFailureType.redirected) || prev !== START) {
-            this$1$1.ready = true;
-            this$1$1.readyErrorCbs.forEach(function (cb) {
+          if (!isNavigationFailure(err, NavigationFailureType.redirected)) {
+            this$1.readyErrorCbs.forEach(function (cb) {
               cb(err);
+            });
+          } else {
+            this$1.readyCbs.forEach(function (cb) {
+              cb(route);
             });
           }
         }
@@ -2302,23 +2197,20 @@
   };
 
   History.prototype.confirmTransition = function confirmTransition (route, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
     var current = this.current;
-    this.pending = route;
     var abort = function (err) {
       // changed after adding errors with
       // https://github.com/vuejs/vue-router/pull/3047 before that change,
       // redirect and aborted navigation would produce an err == null
       if (!isNavigationFailure(err) && isError(err)) {
-        if (this$1$1.errorCbs.length) {
-          this$1$1.errorCbs.forEach(function (cb) {
+        if (this$1.errorCbs.length) {
+          this$1.errorCbs.forEach(function (cb) {
             cb(err);
           });
         } else {
-          {
-            warn(false, 'uncaught error during route navigation:');
-          }
+          warn(false, 'uncaught error during route navigation:');
           console.error(err);
         }
       }
@@ -2333,9 +2225,6 @@
       route.matched[lastRouteIndex] === current.matched[lastCurrentIndex]
     ) {
       this.ensureURL();
-      if (route.hash) {
-        handleScroll(this.router, current, route, false);
-      }
       return abort(createNavigationDuplicatedError(current, route))
     }
 
@@ -2360,18 +2249,19 @@
       resolveAsyncComponents(activated)
     );
 
+    this.pending = route;
     var iterator = function (hook, next) {
-      if (this$1$1.pending !== route) {
+      if (this$1.pending !== route) {
         return abort(createNavigationCancelledError(current, route))
       }
       try {
         hook(route, current, function (to) {
           if (to === false) {
             // next(false) -> abort navigation, ensure current URL
-            this$1$1.ensureURL(true);
+            this$1.ensureURL(true);
             abort(createNavigationAbortedError(current, route));
           } else if (isError(to)) {
-            this$1$1.ensureURL(true);
+            this$1.ensureURL(true);
             abort(to);
           } else if (
             typeof to === 'string' ||
@@ -2381,9 +2271,9 @@
             // next('/') or next({ path: '/' }) -> redirect
             abort(createNavigationRedirectedError(current, route));
             if (typeof to === 'object' && to.replace) {
-              this$1$1.replace(to);
+              this$1.replace(to);
             } else {
-              this$1$1.push(to);
+              this$1.push(to);
             }
           } else {
             // confirm transition and pass on the value
@@ -2396,19 +2286,23 @@
     };
 
     runQueue(queue, iterator, function () {
+      var postEnterCbs = [];
+      var isValid = function () { return this$1.current === route; };
       // wait until async components are resolved before
       // extracting in-component enter guards
-      var enterGuards = extractEnterGuards(activated);
-      var queue = enterGuards.concat(this$1$1.router.resolveHooks);
+      var enterGuards = extractEnterGuards(activated, postEnterCbs, isValid);
+      var queue = enterGuards.concat(this$1.router.resolveHooks);
       runQueue(queue, iterator, function () {
-        if (this$1$1.pending !== route) {
+        if (this$1.pending !== route) {
           return abort(createNavigationCancelledError(current, route))
         }
-        this$1$1.pending = null;
+        this$1.pending = null;
         onComplete(route);
-        if (this$1$1.router.app) {
-          this$1$1.router.app.$nextTick(function () {
-            handleRouteEntered(route);
+        if (this$1.router.app) {
+          this$1.router.app.$nextTick(function () {
+            postEnterCbs.forEach(function (cb) {
+              cb();
+            });
           });
         }
       });
@@ -2424,18 +2318,11 @@
     // Default implementation is empty
   };
 
-  History.prototype.teardown = function teardown () {
-    // clean up event listeners
-    // https://github.com/vuejs/vue-router/issues/2341
+  History.prototype.teardownListeners = function teardownListeners () {
     this.listeners.forEach(function (cleanupListener) {
       cleanupListener();
     });
     this.listeners = [];
-
-    // reset current history route
-    // https://github.com/vuejs/vue-router/issues/3294
-    this.current = START;
-    this.pending = null;
   };
 
   function normalizeBase (base) {
@@ -2521,13 +2408,15 @@
   }
 
   function extractEnterGuards (
-    activated
+    activated,
+    cbs,
+    isValid
   ) {
     return extractGuards(
       activated,
       'beforeRouteEnter',
       function (guard, _, match, key) {
-        return bindEnterGuard(guard, match, key)
+        return bindEnterGuard(guard, match, key, cbs, isValid)
       }
     )
   }
@@ -2535,18 +2424,42 @@
   function bindEnterGuard (
     guard,
     match,
-    key
+    key,
+    cbs,
+    isValid
   ) {
     return function routeEnterGuard (to, from, next) {
       return guard(to, from, function (cb) {
         if (typeof cb === 'function') {
-          if (!match.enteredCbs[key]) {
-            match.enteredCbs[key] = [];
-          }
-          match.enteredCbs[key].push(cb);
+          cbs.push(function () {
+            // #750
+            // if a router-view is wrapped with an out-in transition,
+            // the instance may not have been registered at this time.
+            // we will need to poll for registration until current route
+            // is no longer valid.
+            poll(cb, match.instances, key, isValid);
+          });
         }
         next(cb);
       })
+    }
+  }
+
+  function poll (
+    cb, // somehow flow cannot infer this is a function
+    instances,
+    key,
+    isValid
+  ) {
+    if (
+      instances[key] &&
+      !instances[key]._isBeingDestroyed // do not reuse being destroyed instance
+    ) {
+      cb(instances[key]);
+    } else if (isValid()) {
+      setTimeout(function () {
+        poll(cb, instances, key, isValid);
+      }, 16);
     }
   }
 
@@ -2564,7 +2477,7 @@
     HTML5History.prototype.constructor = HTML5History;
 
     HTML5History.prototype.setupListeners = function setupListeners () {
-      var this$1$1 = this;
+      var this$1 = this;
 
       if (this.listeners.length > 0) {
         return
@@ -2579,16 +2492,16 @@
       }
 
       var handleRoutingEvent = function () {
-        var current = this$1$1.current;
+        var current = this$1.current;
 
         // Avoiding first `popstate` event dispatched in some browsers but first
         // history route not updated since async guard at the same time.
-        var location = getLocation(this$1$1.base);
-        if (this$1$1.current === START && location === this$1$1._startLocation) {
+        var location = getLocation(this$1.base);
+        if (this$1.current === START && location === this$1._startLocation) {
           return
         }
 
-        this$1$1.transitionTo(location, function (route) {
+        this$1.transitionTo(location, function (route) {
           if (supportsScroll) {
             handleScroll(router, route, current, true);
           }
@@ -2605,25 +2518,25 @@
     };
 
     HTML5History.prototype.push = function push (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var ref = this;
       var fromRoute = ref.current;
       this.transitionTo(location, function (route) {
-        pushState(cleanPath(this$1$1.base + route.fullPath));
-        handleScroll(this$1$1.router, route, fromRoute, false);
+        pushState(cleanPath(this$1.base + route.fullPath));
+        handleScroll(this$1.router, route, fromRoute, false);
         onComplete && onComplete(route);
       }, onAbort);
     };
 
     HTML5History.prototype.replace = function replace (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var ref = this;
       var fromRoute = ref.current;
       this.transitionTo(location, function (route) {
-        replaceState(cleanPath(this$1$1.base + route.fullPath));
-        handleScroll(this$1$1.router, route, fromRoute, false);
+        replaceState(cleanPath(this$1.base + route.fullPath));
+        handleScroll(this$1.router, route, fromRoute, false);
         onComplete && onComplete(route);
       }, onAbort);
     };
@@ -2643,14 +2556,8 @@
   }(History));
 
   function getLocation (base) {
-    var path = window.location.pathname;
-    var pathLowerCase = path.toLowerCase();
-    var baseLowerCase = base.toLowerCase();
-    // base="/a" shouldn't turn path="/app" into "/a/pp"
-    // https://github.com/vuejs/vue-router/issues/3555
-    // so we ensure the trailing slash in the base
-    if (base && ((pathLowerCase === baseLowerCase) ||
-      (pathLowerCase.indexOf(cleanPath(baseLowerCase + '/')) === 0))) {
+    var path = decodeURI(window.location.pathname);
+    if (base && path.toLowerCase().indexOf(base.toLowerCase()) === 0) {
       path = path.slice(base.length);
     }
     return (path || '/') + window.location.search + window.location.hash
@@ -2675,7 +2582,7 @@
     // this is delayed until the app mounts
     // to avoid the hashchange listener being fired too early
     HashHistory.prototype.setupListeners = function setupListeners () {
-      var this$1$1 = this;
+      var this$1 = this;
 
       if (this.listeners.length > 0) {
         return
@@ -2690,13 +2597,13 @@
       }
 
       var handleRoutingEvent = function () {
-        var current = this$1$1.current;
+        var current = this$1.current;
         if (!ensureSlash()) {
           return
         }
-        this$1$1.transitionTo(getHash(), function (route) {
+        this$1.transitionTo(getHash(), function (route) {
           if (supportsScroll) {
-            handleScroll(this$1$1.router, route, current, true);
+            handleScroll(this$1.router, route, current, true);
           }
           if (!supportsPushState) {
             replaceHash(route.fullPath);
@@ -2714,7 +2621,7 @@
     };
 
     HashHistory.prototype.push = function push (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var ref = this;
       var fromRoute = ref.current;
@@ -2722,7 +2629,7 @@
         location,
         function (route) {
           pushHash(route.fullPath);
-          handleScroll(this$1$1.router, route, fromRoute, false);
+          handleScroll(this$1.router, route, fromRoute, false);
           onComplete && onComplete(route);
         },
         onAbort
@@ -2730,7 +2637,7 @@
     };
 
     HashHistory.prototype.replace = function replace (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var ref = this;
       var fromRoute = ref.current;
@@ -2738,7 +2645,7 @@
         location,
         function (route) {
           replaceHash(route.fullPath);
-          handleScroll(this$1$1.router, route, fromRoute, false);
+          handleScroll(this$1.router, route, fromRoute, false);
           onComplete && onComplete(route);
         },
         onAbort
@@ -2789,6 +2696,18 @@
     if (index < 0) { return '' }
 
     href = href.slice(index + 1);
+    // decode the hash but not the search or hash
+    // as search(query) is already decoded
+    // https://github.com/vuejs/vue-router/issues/2708
+    var searchIndex = href.indexOf('?');
+    if (searchIndex < 0) {
+      var hashIndex = href.indexOf('#');
+      if (hashIndex > -1) {
+        href = decodeURI(href.slice(0, hashIndex)) + href.slice(hashIndex);
+      } else { href = decodeURI(href); }
+    } else {
+      href = decodeURI(href.slice(0, searchIndex)) + href.slice(searchIndex);
+    }
 
     return href
   }
@@ -2830,13 +2749,13 @@
     AbstractHistory.prototype.constructor = AbstractHistory;
 
     AbstractHistory.prototype.push = function push (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       this.transitionTo(
         location,
         function (route) {
-          this$1$1.stack = this$1$1.stack.slice(0, this$1$1.index + 1).concat(route);
-          this$1$1.index++;
+          this$1.stack = this$1.stack.slice(0, this$1.index + 1).concat(route);
+          this$1.index++;
           onComplete && onComplete(route);
         },
         onAbort
@@ -2844,12 +2763,12 @@
     };
 
     AbstractHistory.prototype.replace = function replace (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       this.transitionTo(
         location,
         function (route) {
-          this$1$1.stack = this$1$1.stack.slice(0, this$1$1.index).concat(route);
+          this$1.stack = this$1.stack.slice(0, this$1.index).concat(route);
           onComplete && onComplete(route);
         },
         onAbort
@@ -2857,7 +2776,7 @@
     };
 
     AbstractHistory.prototype.go = function go (n) {
-      var this$1$1 = this;
+      var this$1 = this;
 
       var targetIndex = this.index + n;
       if (targetIndex < 0 || targetIndex >= this.stack.length) {
@@ -2867,16 +2786,12 @@
       this.confirmTransition(
         route,
         function () {
-          var prev = this$1$1.current;
-          this$1$1.index = targetIndex;
-          this$1$1.updateRoute(route);
-          this$1$1.router.afterHooks.forEach(function (hook) {
-            hook && hook(route, prev);
-          });
+          this$1.index = targetIndex;
+          this$1.updateRoute(route);
         },
         function (err) {
           if (isNavigationFailure(err, NavigationFailureType.duplicated)) {
-            this$1$1.index = targetIndex;
+            this$1.index = targetIndex;
           }
         }
       );
@@ -2896,14 +2811,9 @@
 
   /*  */
 
-
-
   var VueRouter = function VueRouter (options) {
     if ( options === void 0 ) options = {};
 
-    {
-      warn(this instanceof VueRouter, "Router must be called with the new operator.");
-    }
     this.app = null;
     this.apps = [];
     this.options = options;
@@ -2951,9 +2861,10 @@
   };
 
   VueRouter.prototype.init = function init (app /* Vue component instance */) {
-      var this$1$1 = this;
+      var this$1 = this;
 
-    assert(
+    
+      assert(
         install.installed,
         "not installed. Make sure to call `Vue.use(VueRouter)` " +
           "before creating root instance."
@@ -2965,13 +2876,17 @@
     // https://github.com/vuejs/vue-router/issues/2639
     app.$once('hook:destroyed', function () {
       // clean out app from this.apps array once destroyed
-      var index = this$1$1.apps.indexOf(app);
-      if (index > -1) { this$1$1.apps.splice(index, 1); }
+      var index = this$1.apps.indexOf(app);
+      if (index > -1) { this$1.apps.splice(index, 1); }
       // ensure we still have a main app or null if no apps
       // we do not release the router so it can be reused
-      if (this$1$1.app === app) { this$1$1.app = this$1$1.apps[0] || null; }
+      if (this$1.app === app) { this$1.app = this$1.apps[0] || null; }
 
-      if (!this$1$1.app) { this$1$1.history.teardown(); }
+      if (!this$1.app) {
+        // clean up event listeners
+        // https://github.com/vuejs/vue-router/issues/2341
+        this$1.history.teardownListeners();
+      }
     });
 
     // main app previously initialized
@@ -2987,11 +2902,11 @@
     if (history instanceof HTML5History || history instanceof HashHistory) {
       var handleInitialScroll = function (routeOrError) {
         var from = history.current;
-        var expectScroll = this$1$1.options.scrollBehavior;
+        var expectScroll = this$1.options.scrollBehavior;
         var supportsScroll = supportsPushState && expectScroll;
 
         if (supportsScroll && 'fullPath' in routeOrError) {
-          handleScroll(this$1$1, routeOrError, from, false);
+          handleScroll(this$1, routeOrError, from, false);
         }
       };
       var setupListeners = function (routeOrError) {
@@ -3006,7 +2921,7 @@
     }
 
     history.listen(function (route) {
-      this$1$1.apps.forEach(function (app) {
+      this$1.apps.forEach(function (app) {
         app._route = route;
       });
     });
@@ -3033,12 +2948,12 @@
   };
 
   VueRouter.prototype.push = function push (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
     // $flow-disable-line
     if (!onComplete && !onAbort && typeof Promise !== 'undefined') {
       return new Promise(function (resolve, reject) {
-        this$1$1.history.push(location, resolve, reject);
+        this$1.history.push(location, resolve, reject);
       })
     } else {
       this.history.push(location, onComplete, onAbort);
@@ -3046,12 +2961,12 @@
   };
 
   VueRouter.prototype.replace = function replace (location, onComplete, onAbort) {
-      var this$1$1 = this;
+      var this$1 = this;
 
     // $flow-disable-line
     if (!onComplete && !onAbort && typeof Promise !== 'undefined') {
       return new Promise(function (resolve, reject) {
-        this$1$1.history.replace(location, resolve, reject);
+        this$1.history.replace(location, resolve, reject);
       })
     } else {
       this.history.replace(location, onComplete, onAbort);
@@ -3110,21 +3025,7 @@
     }
   };
 
-  VueRouter.prototype.getRoutes = function getRoutes () {
-    return this.matcher.getRoutes()
-  };
-
-  VueRouter.prototype.addRoute = function addRoute (parentOrRoute, route) {
-    this.matcher.addRoute(parentOrRoute, route);
-    if (this.history.current !== START) {
-      this.history.transitionTo(this.history.getCurrentLocation());
-    }
-  };
-
   VueRouter.prototype.addRoutes = function addRoutes (routes) {
-    {
-      warn(false, 'router.addRoutes() is deprecated and has been removed in Vue Router 4. Use router.addRoute() instead.');
-    }
     this.matcher.addRoutes(routes);
     if (this.history.current !== START) {
       this.history.transitionTo(this.history.getCurrentLocation());
@@ -3132,8 +3033,6 @@
   };
 
   Object.defineProperties( VueRouter.prototype, prototypeAccessors );
-
-  var VueRouter$1 = VueRouter;
 
   function registerHook (list, fn) {
     list.push(fn);
@@ -3148,17 +3047,15 @@
     return base ? cleanPath(base + '/' + path) : path
   }
 
-  // We cannot remove this as it would be a breaking change
   VueRouter.install = install;
-  VueRouter.version = '3.6.5';
+  VueRouter.version = '3.4.3';
   VueRouter.isNavigationFailure = isNavigationFailure;
   VueRouter.NavigationFailureType = NavigationFailureType;
-  VueRouter.START_LOCATION = START;
 
   if (inBrowser && window.Vue) {
     window.Vue.use(VueRouter);
   }
 
-  return VueRouter$1;
+  return VueRouter;
 
 }));

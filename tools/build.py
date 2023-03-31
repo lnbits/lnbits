@@ -1,33 +1,29 @@
 import os
 import warnings
 from pathlib import Path
-from typing import List
 
 LNBITS_PATH = Path("lnbits").absolute()
 
+# from ..lnbits.helpers import vendored_js, vendored_css
+vendored_js = [
+    "/static/vendor/moment.js",
+    "/static/vendor/underscore.js",
+    "/static/vendor/axios.js",
+    "/static/vendor/vue.js",
+    "/static/vendor/vue-router.js",
+    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vuex.js",
+    "/static/vendor/quasar.ie.polyfills.umd.min.js",
+    "/static/vendor/quasar.umd.js",
+    "/static/vendor/Chart.bundle.js",
+]
 
-def get_js_vendored() -> List[str]:
-    return [
-        "/static/vendor/moment.js",
-        "/static/vendor/underscore.js",
-        "/static/vendor/axios.js",
-        "/static/vendor/vue.js",
-        "/static/vendor/vue-router.js",
-        "/static/vendor/vue-qrcode-reader.browser.js",
-        "/static/vendor/vue-qrcode.js",
-        "/static/vendor/vuex.js",
-        "/static/vendor/quasar.ie.polyfills.umd.min.js",
-        "/static/vendor/quasar.umd.js",
-        "/static/vendor/Chart.bundle.js",
-    ]
-
-
-def get_css_vendored() -> List[str]:
-    return [
-        "/static/vendor/quasar.css",
-        "/static/vendor/Chart.css",
-        "/static/vendor/vue-qrcode-reader.css",
-    ]
+vendored_css = [
+    "/static/vendor/quasar.css",
+    "/static/vendor/Chart.css",
+    "/static/vendor/vue-qrcode-reader.css",
+]
 
 
 def url_for_vendored(abspath: str) -> str:
@@ -45,12 +41,12 @@ def transpile_scss():
 
 
 def bundle_vendored():
-    for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
-        (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
+    for files, outputpath in [
+        (vendored_js, os.path.join(LNBITS_PATH, "static/bundle.js")),
+        (vendored_css, os.path.join(LNBITS_PATH, "static/bundle.css")),
     ]:
         output = ""
-        for path in getfiles():
+        for path in files:
             with open(f"{LNBITS_PATH}{path}") as f:
                 output += f.read() + ";\n"
         with open(outputpath, "w") as f:
