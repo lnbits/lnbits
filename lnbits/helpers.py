@@ -1,5 +1,3 @@
-import glob
-import os
 from typing import Any, List, Optional
 
 import jinja2
@@ -11,73 +9,29 @@ from lnbits.settings import settings
 
 from .extension_manager import get_valid_extensions
 
+vendored_js = [
+    "/static/vendor/moment.js",
+    "/static/vendor/underscore.js",
+    "/static/vendor/axios.js",
+    "/static/vendor/vue.js",
+    "/static/vendor/vue-router.js",
+    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vuex.js",
+    "/static/vendor/quasar.ie.polyfills.umd.min.js",
+    "/static/vendor/quasar.umd.js",
+    "/static/vendor/Chart.bundle.js",
+]
+
+vendored_css = [
+    "/static/vendor/quasar.css",
+    "/static/vendor/Chart.css",
+    "/static/vendor/vue-qrcode-reader.css",
+]
+
 
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
-
-
-def get_js_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".js", prefer_minified)
-
-    def sorter(key: str):
-        if "moment@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "vue-router@" in key:
-            return 3
-        if "polyfills" in key:
-            return 4
-        return 9
-
-    return sorted(paths, key=sorter)
-
-
-def get_css_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".css", prefer_minified)
-
-    def sorter(key: str):
-        if "quasar@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "chart.js@" in key:
-            return 100
-        return 9
-
-    return sorted(paths, key=sorter)
-
-
-def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
-    paths: List[str] = []
-    for path in glob.glob(
-        os.path.join(settings.lnbits_path, "static/vendor/**"), recursive=True
-    ):
-        if path.endswith(".min" + ext):
-            # path is minified
-            unminified = path.replace(".min" + ext, ext)
-            if prefer_minified:
-                paths.append(path)
-                if unminified in paths:
-                    paths.remove(unminified)
-            elif unminified not in paths:
-                paths.append(path)
-
-        elif path.endswith(ext):
-            # path is not minified
-            minified = path.replace(ext, ".min" + ext)
-            if not prefer_minified:
-                paths.append(path)
-                if minified in paths:
-                    paths.remove(minified)
-            elif minified not in paths:
-                paths.append(path)
-
-    return sorted(paths)
-
-
-def url_for_vendored(abspath: str) -> str:
-    return "/" + os.path.relpath(abspath, settings.lnbits_path)
 
 
 def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
@@ -89,7 +43,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
-def template_renderer(additional_folders: List = None) -> Jinja2Templates:
+def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
 
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
@@ -118,8 +72,8 @@ def template_renderer(additional_folders: List = None) -> Jinja2Templates:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
     if settings.debug:
-        t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
-        t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
+        t.env.globals["VENDORED_JS"] = vendored_js
+        t.env.globals["VENDORED_CSS"] = vendored_css
     else:
         t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
         t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
