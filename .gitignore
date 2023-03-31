@@ -32,7 +32,8 @@ __bundle__
 
 coverage.xml
 node_modules
-lnbits/static/bundle.*
+lnbits/static/bundle.js
+lnbits/static/bundle.css
 docker
 
 # Nix
