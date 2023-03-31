@@ -29,6 +29,7 @@ vendored_css = [
     "/static/vendor/vue-qrcode-reader.css",
 ]
 
+
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
 
