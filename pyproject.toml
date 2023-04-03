@@ -33,6 +33,8 @@ Cerberus = "1.3.4"
 async-timeout = "4.0.2"
 pyln-client = "0.11.1"
 cashu = "0.9.0"
+fastapi-limiter = "^0.1.5"
+slowapi = "^0.1.7"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"

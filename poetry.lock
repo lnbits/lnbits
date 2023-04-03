@@ -942,6 +942,31 @@ files = [
 ]
 
 [[package]]
+name = "limits"
+version = "2.4.0"
+description = "Rate limiting utilities"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "limits-2.4.0-py3-none-any.whl", hash = "sha256:21b9d7ddebbe90ad23cce724c9f3e8ad62f132cef6051ec910249421679cb4db"},
+    {file = "limits-2.4.0.tar.gz", hash = "sha256:8e22b63df26310207a77b75bd474599f0a4613a7d9163650ed3a428e9cc7ae35"},
+]
+
+[package.dependencies]
+setuptools = "*"
+
+[package.extras]
+all = ["coredis[hiredis] (>=2.0.0,<3)", "emcache (>=0.6.1)", "motor (>=2.5,<3)", "pymemcache (>3,<4.0.0)", "pymongo (>3,<5)", "redis (>3,<5.0.0)", "redis-py-cluster (>=2.0.0,<3)"]
+async-memcached = ["emcache (>=0.6.1)"]
+async-mongodb = ["motor (>=2.5,<3)"]
+async-redis = ["coredis[hiredis] (>=2.0.0,<3)"]
+memcached = ["pymemcache (>3,<4.0.0)"]
+mongodb = ["pymongo (>3,<5)"]
+redis = ["redis (>3,<5.0.0)"]
+rediscluster = ["redis-py-cluster (>=2.0.0,<3)"]
+
+[[package]]
 name = "lnurl"
 version = "0.3.6"
 description = "LNURL implementation for Python."
@@ -1818,6 +1843,21 @@ files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
+
+[[package]]
+name = "slowapi"
+version = "0.1.7"
+description = "A rate limiting extension for Starlette and Fastapi"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "slowapi-0.1.7-py3-none-any.whl", hash = "sha256:94743ba5f68359455cfa1be214c086134c03f4e7072590682671fc65c744a615"},
+    {file = "slowapi-0.1.7.tar.gz", hash = "sha256:5a4a6f3e232d0465085392c1d92f6f8f6a6329ed2102a80062094fe86d7b1f36"},
+]
+
+[package.dependencies]
+limits = ">=2.3,<3.0"
 
 [[package]]
 name = "sniffio"

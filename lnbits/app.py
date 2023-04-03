@@ -16,6 +16,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi_limiter import FastAPILimiter
+
 from loguru import logger
 
 from lnbits.core.crud import get_installed_extensions
@@ -44,7 +49,6 @@ from .tasks import (
     webhook_handler,
 )
 
-
 def create_app() -> FastAPI:
     configure_logger()
 
@@ -57,6 +61,19 @@ def create_app() -> FastAPI:
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
         },
     )
+    
+    limiter = Limiter(key_func=lambda request: request.client.host, default_limits=["5/hour"])
+    app.state.limiter = limiter
+    app.add_exception_handler(429, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
+    @app.on_event("startup")
+    async def startup_event():
+        FastAPILimiter.init(app, limiter)
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await FastAPILimiter.shutdown()
 
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
