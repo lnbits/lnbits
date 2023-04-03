@@ -44,7 +44,11 @@
               endblock %}
             </q-btn>
           </q-toolbar-title>
-          {% block beta %}
+          {% block beta %} {% if VOIDWALLET %}
+          <q-badge color="red" text-color="black" class="q-mr-md">
+            <span>VoidWallet is active! Payments disabled</span>
+          </q-badge>
+          {%endif%}
           <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
               ><span v-show="$q.screen.gt.sm"
@@ -251,6 +255,7 @@
     <!---->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
+    <script src="/static/js/bolt11-decoder.js"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}

@@ -1,70 +1,29 @@
-import glob
 import os
 import warnings
 from pathlib import Path
-from typing import List
 
 LNBITS_PATH = Path("lnbits").absolute()
 
+# from ..lnbits.helpers import vendored_js, vendored_css
+vendored_js = [
+    "/static/vendor/moment.js",
+    "/static/vendor/underscore.js",
+    "/static/vendor/axios.js",
+    "/static/vendor/vue.js",
+    "/static/vendor/vue-router.js",
+    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vuex.js",
+    "/static/vendor/quasar.ie.polyfills.umd.min.js",
+    "/static/vendor/quasar.umd.js",
+    "/static/vendor/Chart.bundle.js",
+]
 
-def get_js_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".js", prefer_minified)
-
-    def sorter(key: str):
-        if "moment@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "vue-router@" in key:
-            return 3
-        if "polyfills" in key:
-            return 4
-        return 9
-
-    return sorted(paths, key=sorter)
-
-
-def get_css_vendored(prefer_minified: bool = False) -> List[str]:
-    paths = get_vendored(".css", prefer_minified)
-
-    def sorter(key: str):
-        if "quasar@" in key:
-            return 1
-        if "vue@" in key:
-            return 2
-        if "chart.js@" in key:
-            return 100
-        return 9
-
-    return sorted(paths, key=sorter)
-
-
-def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
-    paths: List[str] = []
-    for path in glob.glob(
-        os.path.join(LNBITS_PATH, "static/vendor/**"), recursive=True
-    ):
-        if path.endswith(".min" + ext):
-            # path is minified
-            unminified = path.replace(".min" + ext, ext)
-            if prefer_minified:
-                paths.append(path)
-                if unminified in paths:
-                    paths.remove(unminified)
-            elif unminified not in paths:
-                paths.append(path)
-
-        elif path.endswith(ext):
-            # path is not minified
-            minified = path.replace(ext, ".min" + ext)
-            if not prefer_minified:
-                paths.append(path)
-                if minified in paths:
-                    paths.remove(minified)
-            elif minified not in paths:
-                paths.append(path)
-
-    return sorted(paths)
+vendored_css = [
+    "/static/vendor/quasar.css",
+    "/static/vendor/Chart.css",
+    "/static/vendor/vue-qrcode-reader.css",
+]
 
 
 def url_for_vendored(abspath: str) -> str:
@@ -82,14 +41,14 @@ def transpile_scss():
 
 
 def bundle_vendored():
-    for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
-        (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
+    for files, outputpath in [
+        (vendored_js, os.path.join(LNBITS_PATH, "static/bundle.js")),
+        (vendored_css, os.path.join(LNBITS_PATH, "static/bundle.css")),
     ]:
         output = ""
-        for path in getfiles():
-            with open(path) as f:
-                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
+        for path in files:
+            with open(f"{LNBITS_PATH}{path}") as f:
+                output += f.read() + ";\n"
         with open(outputpath, "w") as f:
             f.write(output)
 

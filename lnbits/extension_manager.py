@@ -54,8 +54,6 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self):
-        self._disabled: List[str] = settings.lnbits_disabled_extensions
-        self._admin_only: List[str] = settings.lnbits_admin_extensions
         p = Path(settings.lnbits_path, "extensions")
         os.makedirs(p, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
@@ -64,23 +62,18 @@ class ExtensionManager:
     def extensions(self) -> List[Extension]:
         output: List[Extension] = []
 
-        if "all" in self._disabled:
-            return output
-
-        for extension in [
-            ext for ext in self._extension_folders if ext not in self._disabled
-        ]:
+        for extension_folder in self._extension_folders:
+            extension_code = extension_folder.parts[-1]
             try:
-                with open(extension / "config.json") as json_file:
+                with open(extension_folder / "config.json") as json_file:
                     config = json.load(json_file)
                 is_valid = True
-                is_admin_only = True if extension in self._admin_only else False
+                is_admin_only = extension_code in settings.lnbits_admin_extensions
             except Exception:
                 config = {}
                 is_valid = False
                 is_admin_only = False
 
-            *_, extension_code = extension.parts
             output.append(
                 Extension(
                     extension_code,
@@ -208,18 +201,18 @@ class InstallableExtension(BaseModel):
         return "not-installed"
 
     @property
-    def zip_path(self) -> str:
-        extensions_data_dir = os.path.join(settings.lnbits_data_folder, "extensions")
+    def zip_path(self) -> Path:
+        extensions_data_dir = Path(settings.lnbits_data_folder, "extensions")
         os.makedirs(extensions_data_dir, exist_ok=True)
-        return os.path.join(extensions_data_dir, f"{self.id}.zip")
+        return Path(extensions_data_dir, f"{self.id}.zip")
 
     @property
-    def ext_dir(self) -> str:
-        return os.path.join("lnbits", "extensions", self.id)
+    def ext_dir(self) -> Path:
+        return Path(settings.lnbits_path, "extensions", self.id)
 
     @property
-    def ext_upgrade_dir(self) -> str:
-        return os.path.join("lnbits", "upgrades", f"{self.id}-{self.hash}")
+    def ext_upgrade_dir(self) -> Path:
+        return Path("lnbits", "upgrades", f"{self.id}-{self.hash}")
 
     @property
     def module_name(self) -> str:
@@ -231,19 +224,14 @@ class InstallableExtension(BaseModel):
 
     @property
     def has_installed_version(self) -> bool:
-        if not Path(self.ext_dir).is_dir():
+        if not self.ext_dir.is_dir():
             return False
-        config_file = os.path.join(self.ext_dir, "config.json")
-        if not Path(config_file).is_file():
-            return False
-        with open(config_file, "r") as json_file:
-            config_json = json.load(json_file)
-            return config_json.get("is_installed") is True
+        return Path(self.ext_dir, "config.json").is_file()
 
     def download_archive(self):
         logger.info(f"Downloading extension {self.name}.")
         ext_zip_file = self.zip_path
-        if os.path.isfile(ext_zip_file):
+        if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
             download_url(self.installed_release.archive, ext_zip_file)
@@ -257,7 +245,7 @@ class InstallableExtension(BaseModel):
         archive_hash = file_hash(ext_zip_file)
         if self.installed_release.hash and self.installed_release.hash != archive_hash:
             # remove downloaded archive
-            if os.path.isfile(ext_zip_file):
+            if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
@@ -266,26 +254,22 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name}.")
-        os.makedirs(os.path.join("lnbits", "upgrades"), exist_ok=True)
+        os.makedirs(Path("lnbits", "upgrades"), exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(self.ext_upgrade_dir)
         generated_dir_name = os.listdir(self.ext_upgrade_dir)[0]
         os.rename(
-            os.path.join(self.ext_upgrade_dir, generated_dir_name),
-            os.path.join(self.ext_upgrade_dir, self.id),
+            Path(self.ext_upgrade_dir, generated_dir_name),
+            Path(self.ext_upgrade_dir, self.id),
         )
 
         # Pre-packed extensions can be upgraded
         # Mark the extension as installed so we know it is not the pre-packed version
         with open(
-            os.path.join(self.ext_upgrade_dir, self.id, "config.json"), "r+"
+            Path(self.ext_upgrade_dir, self.id, "config.json"), "r+"
         ) as json_file:
             config_json = json.load(json_file)
-            config_json["is_installed"] = True
-            json_file.seek(0)
-            json.dump(config_json, json_file)
-            json_file.truncate()
 
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
@@ -301,8 +285,8 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
-            os.path.join(self.ext_upgrade_dir, self.id),
-            os.path.join("lnbits", "extensions", self.id),
+            Path(self.ext_upgrade_dir, self.id),
+            Path(settings.lnbits_path, "extensions", self.id),
         )
         logger.success(f"Extension {self.name} installed.")
 
@@ -321,7 +305,7 @@ class InstallableExtension(BaseModel):
 
     def clean_extension_files(self):
         # remove downloaded archive
-        if os.path.isfile(self.zip_path):
+        if self.zip_path.is_file():
             os.remove(self.zip_path)
 
         # remove module from extensions
