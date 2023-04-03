@@ -597,6 +597,7 @@ async def check_internal(
 async def check_internal_pending(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
+    """Returns False if the internal payment is not pending anymore (and thus paid), otherwise True"""
     row = await (conn or db).fetchone(
         """
         SELECT pending FROM apipayments
@@ -605,7 +606,7 @@ async def check_internal_pending(
         (payment_hash,),
     )
     if not row:
-        return False
+        return True
     else:
         return row["pending"]
 
