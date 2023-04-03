@@ -109,9 +109,7 @@ async def test_get_extensions_no_user(client):
 #     response = await client.get(
 #         "extensions", params={"usr": to_user.id, "enable": "lnurlp"}
 #     )
-#     assert response.status_code == 200, (
-#         f"{response.url} {response.status_code}"
-#     )
+#     assert response.status_code == 200, f"{response.url} {response.status_code}"
 
 
 # check GET /extensions: enable and disable extensions, expect code 400 bad request
@@ -121,9 +119,7 @@ async def test_get_extensions_no_user(client):
 #         "extensions",
 #         params={"usr": to_user.id, "enable": "lnurlp", "disable": "lnurlp"},
 #     )
-#     assert response.status_code == 400, (
-#         f"{response.url} {response.status_code}"
-#     )
+#     assert response.status_code == 400, f"{response.url} {response.status_code}"
 
 
 # check GET /extensions: enable nonexistent extension, expect code 400 bad request
