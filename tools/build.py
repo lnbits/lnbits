@@ -4,6 +4,26 @@ from pathlib import Path
 
 LNBITS_PATH = Path("lnbits").absolute()
 
+# from ..lnbits.helpers import vendored_js, vendored_css
+vendored_js = [
+    "/static/vendor/moment.js",
+    "/static/vendor/underscore.js",
+    "/static/vendor/axios.js",
+    "/static/vendor/vue.js",
+    "/static/vendor/vue-router.js",
+    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vuex.js",
+    "/static/vendor/quasar.ie.polyfills.umd.min.js",
+    "/static/vendor/quasar.umd.js",
+    "/static/vendor/Chart.bundle.js",
+]
+
+vendored_css = [
+    "/static/vendor/quasar.css",
+    "/static/vendor/Chart.css",
+    "/static/vendor/vue-qrcode-reader.css",
+]
 
 
 def url_for_vendored(abspath: str) -> str:
