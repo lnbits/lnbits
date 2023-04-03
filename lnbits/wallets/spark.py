@@ -28,7 +28,7 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        assert settings.spark_url
+        assert settings.spark_url, "spark url does not exist"
         self.url = settings.spark_url.replace("/rpc", "")
         self.token = settings.spark_token
 
@@ -47,7 +47,7 @@ class SparkWallet(Wallet):
 
             try:
                 async with httpx.AsyncClient() as client:
-                    assert self.token
+                    assert self.token, "spark wallet token does not exist"
                     r = await client.post(
                         self.url + "/rpc",
                         headers={"X-Access": self.token},

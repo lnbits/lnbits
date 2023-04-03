@@ -184,7 +184,7 @@ async def pay_invoice(
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
-        assert wallet
+        assert wallet, "Wallet for balancecheck could not be fetched"
         if wallet.balance_msat < 0:
             logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
@@ -362,7 +362,7 @@ async def perform_lnurlauth(
     sig = key.sign_digest_deterministic(k1, sigencode=encode_strict_der)
 
     async with httpx.AsyncClient() as client:
-        assert key.verifying_key
+        assert key.verifying_key, "LNURLauth verifying_key does not exist"
         r = await client.get(
             callback,
             params={

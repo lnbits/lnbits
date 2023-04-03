@@ -718,7 +718,7 @@ async def update_admin_settings(data: EditableSettings):
 async def update_super_user(super_user: str) -> SuperSettings:
     await db.execute("UPDATE settings SET super_user = ?", (super_user,))
     settings = await get_super_settings()
-    assert settings
+    assert settings, "updated super_user settings could not be retrieved"
     return settings
 
 
@@ -726,7 +726,7 @@ async def create_admin_settings(super_user: str, new_settings: dict):
     sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
     settings = await get_super_settings()
-    assert settings
+    assert settings, "created admin settings could not be retrieved"
     return settings
 
 
