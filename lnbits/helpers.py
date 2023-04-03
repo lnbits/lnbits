@@ -1,5 +1,4 @@
-
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
