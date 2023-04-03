@@ -1,7 +1,13 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type
 
 import jinja2
-import shortuuid  # type: ignore
+import shortuuid
+from pydantic import BaseModel
+from pydantic.schema import (
+    field_schema,
+    get_flat_models_from_fields,
+    get_model_name_map,
+)
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
@@ -102,3 +108,39 @@ def get_current_extension_name() -> str:
     except:
         ext_name = extension_director_name
     return ext_name
+
+
+def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
+    """
+    Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
+    :param model: Filter model
+    :param keep_optional: If false, all parameters will be optional, otherwise inferred from model
+    """
+    fields = list(model.__fields__.values())
+    models = get_flat_models_from_fields(fields, set())
+    namemap = get_model_name_map(models)
+    params = []
+    for field in fields:
+        schema, definitions, _ = field_schema(field, model_name_map=namemap)
+
+        # Support nested definition
+        if "$ref" in schema:
+            name = schema["$ref"].split("/")[-1]
+            schema = definitions[name]
+
+        description = "Supports Filtering"
+        if schema["type"] == "object":
+            description += f". Nested attributes can be filtered too, e.g. `{field.alias}.[additional].[attributes]`"
+
+        parameter = {
+            "name": field.alias,
+            "in": "query",
+            "required": field.required if keep_optional else False,
+            "schema": schema,
+            "description": description,
+        }
+        params.append(parameter)
+
+    return {
+        "parameters": params,
+    }
