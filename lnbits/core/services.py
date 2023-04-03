@@ -176,9 +176,10 @@ async def pay_invoice(
                     conn=conn,
                     **payment_kwargs,
                 )
-            except:
+            except Exception as e:
+                logger.error(f"could not create temporary payment: {e}")
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentFailure("Can not create payment.")
+                raise PaymentFailure("Could not make payment.")
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
