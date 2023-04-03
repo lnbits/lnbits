@@ -7,7 +7,7 @@ from uuid import uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -347,8 +347,7 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    filters: Optional[Filters[Payment]] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -393,29 +392,20 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
-    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
-    # combine limit and offset clauses
-    limit_offset_clause = (
-        f"{limit_clause} {offset_clause}"
-        if limit_clause and offset_clause
-        else limit_clause or offset_clause
-    )
-
-    where = ""
-    if clause:
-        where = f"WHERE {' AND '.join(clause)}"
+    if not filters:
+        filters = Filters()
 
     rows = await (conn or db).fetchall(
         f"""
         SELECT *
         FROM apipayments
-        {where}
+        {filters.where(clause)}
         ORDER BY time DESC
-        {limit_offset_clause}
+        {filters.pagination()}
         """,
-        tuple(args),
+        filters.values(args),
     )
+
     return [Payment.from_row(row) for row in rows]
 
 
@@ -602,6 +592,23 @@ async def check_internal(
         return None
     else:
         return row["checking_id"]
+
+
+async def check_internal_pending(
+    payment_hash: str, conn: Optional[Connection] = None
+) -> bool:
+    """Returns False if the internal payment is not pending anymore (and thus paid), otherwise True"""
+    row = await (conn or db).fetchone(
+        """
+        SELECT pending FROM apipayments
+        WHERE hash = ? AND amount > 0
+        """,
+        (payment_hash,),
+    )
+    if not row:
+        return True
+    else:
+        return row["pending"]
 
 
 # balance_check

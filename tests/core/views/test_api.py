@@ -6,7 +6,7 @@ from lnbits import bolt11
 from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_fake, is_regtest
+from ...helpers import get_random_invoice_data, is_fake
 
 WALLET = get_wallet_class()
 
@@ -170,16 +170,15 @@ async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
     assert response.status_code >= 300  # should fail
 
 
-# check POST /api/v1/payments: payment with admin key [should pass]
+# check POST /api/v1/payments: payment with admin key, trying to pay twice [should fail]
 @pytest.mark.asyncio
-@pytest.mark.skipif(is_regtest, reason="this only works in fakewallet")
 async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     # try payment with admin key
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
-    assert response.status_code < 300  # should pass
+    assert response.status_code > 300  # should fail
 
 
 # check POST /api/v1/payments/decode
