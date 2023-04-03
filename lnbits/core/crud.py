@@ -604,7 +604,7 @@ async def check_internal(
         return row["checking_id"]
 
 
-async def check_internal_paid(
+async def check_internal_pending(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
     row = await (conn or db).fetchone(
@@ -617,7 +617,7 @@ async def check_internal_paid(
     if not row:
         return False
     else:
-        return not row["pending"]
+        return row["pending"]
 
 
 # balance_check
