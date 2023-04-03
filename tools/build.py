@@ -27,7 +27,7 @@ vendored_css = [
 
 
 def url_for_vendored(abspath: str) -> str:
-    return "/" + os.path.relpath(abspath, LNBITS_PATH)
+    return f"/{os.path.relpath(abspath, LNBITS_PATH)}"
 
 
 def transpile_scss():

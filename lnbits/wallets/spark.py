@@ -60,7 +60,7 @@ class SparkWallet(Wallet):
                 httpx.HTTPError,
                 httpx.TimeoutException,
             ) as exc:
-                raise UnknownError("error connecting to spark: " + str(exc))
+                raise UnknownError(f"error connecting to spark: {exc}")
 
             try:
                 data = r.json()

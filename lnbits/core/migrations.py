@@ -107,7 +107,7 @@ async def m002_add_fields_to_apipayments(db):
                 continue
 
             for ext in ["withdraw", "events", "lnticket", "paywall", "tpos"]:
-                prefix = "#" + ext + " "
+                prefix = f"#{ext} "
                 if row["memo"].startswith(prefix):
                     new = row["memo"][len(prefix) :]
                     await db.execute(

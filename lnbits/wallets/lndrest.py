@@ -26,7 +26,7 @@ class LndRestWallet(Wallet):
         endpoint = settings.lnd_rest_endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
-            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
         )
         self.endpoint = endpoint
 
