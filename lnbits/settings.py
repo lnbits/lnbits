@@ -99,6 +99,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+    lnbits_rate_limit: str = Field(default="10000")
 
 
 class FakeWalletFundingSource(LNbitsSettings):

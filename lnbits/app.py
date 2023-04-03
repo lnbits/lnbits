@@ -61,8 +61,7 @@ def create_app() -> FastAPI:
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
         },
     )
-    
-    limiter = Limiter(key_func=lambda request: request.client.host, default_limits=["5/hour"])
+    limiter = Limiter(key_func=lambda request: request.client.host, default_limits=[settings.lnbits_rate_limit + "/hour"])
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
