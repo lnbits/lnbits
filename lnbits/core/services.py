@@ -154,10 +154,11 @@ async def pay_invoice(
             extra=extra,
         )
 
+        # we check if an internal invoice exists that has already been paid (not pending anymore)
         if not await check_internal_pending(invoice.payment_hash, conn=conn):
             raise PaymentFailure("Internal invoice already paid.")
 
-        # check_internal() returns the checking_id of the invoice we're waiting for
+        # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
             logger.debug(f"creating temporary internal payment with id {internal_id}")
