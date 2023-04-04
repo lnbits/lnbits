@@ -6,7 +6,7 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between four package managers, `poetry`, `nix` and `venv`.
+You can choose between four package managers, `poetry` and `nix`
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
@@ -80,30 +80,8 @@ mkdir data
 LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
 ```
 
-## Option 3: venv
 
-```sh
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3.9-venv'
-python3.9 -m venv venv
-# If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
-./venv/bin/pip install -r requirements.txt
-# create the data folder and the .env file
-mkdir data && cp .env.example .env
-# build the static files
-./venv/bin/python tools/build.py
-```
-
-#### Running the server
-
-```sh
-./venv/bin/uvicorn lnbits.__main__:app --port 5000
-```
-
-If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`.
-
-## Option 4: Docker
+## Option 3: Docker
 
 use latest version from docker hub
 ```sh
@@ -122,7 +100,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
 ```
 
-## Option 5: Fly.io
+## Option 4: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
@@ -210,9 +188,6 @@ sudo apt install python3.9-dev gcc build-essential
 # if the secp256k1 build fails:
 # if you used poetry
 poetry add setuptools wheel
-
-# if you used venv
-./venv/bin/pip install setuptools wheel
 ```
 
 #### Poetry
@@ -323,7 +298,8 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
-## Reverse proxy with automatic https using Caddy
+
+## Reverse proxy with automatic HTTPS using Caddy
 
 Use Caddy to make your LNbits install accessible over clearnet with a domain and https cert.
 
@@ -335,11 +311,15 @@ https://caddyserver.com/docs/install#debian-ubuntu-raspbian
 ```
 sudo caddy stop
 ```
+
 Create a Caddyfile
+
 ```
 sudo nano Caddyfile
 ```
+
 Assuming your LNbits is running on port `5000` add:
+
 ```
 yourdomain.com {
   handle /api/v1/payments/sse* {
@@ -356,22 +336,30 @@ yourdomain.com {
   }
 }
 ```
+
 Save and exit `CTRL + x`
+
 ```
 sudo caddy start
 ```
 
-## Running behind an apache2 reverse proxy over https
-Install apache2 and enable apache2 mods
+## Running behind an Apache2 reverse proxy over HTTPS
+
+Install Apache2 and enable Apache2 mods:
+
 ```sh
 apt-get install apache2 certbot
 a2enmod headers ssl proxy proxy-http
 ```
-create a ssl certificate with letsencrypt
+
+Create a SSL certificate with LetsEncrypt:
+
 ```sh
-certbot certonly --webroot --agree-tos --text --non-interactive --webroot-path /var/www/html -d lnbits.org
+certbot certonly --webroot --agree-tos --non-interactive --webroot-path /var/www/html -d lnbits.org
 ```
-create a apache2 vhost at: /etc/apache2/sites-enabled/lnbits.conf
+
+Create an Apache2 vhost at: `/etc/apache2/sites-enabled/lnbits.conf`:
+
 ```sh
 cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
 <VirtualHost *:443>
@@ -396,11 +384,57 @@ cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
 </VirtualHost>
 EOF
 ```
-restart apache2
+
+Restart Apache2:
+
 ```sh
 service restart apache2
 ```
 
+## Running behind an Nginx reverse proxy over HTTPS
+
+Install nginx:
+
+```sh
+apt-get install nginx certbot
+```
+
+Create a SSL certificate with LetsEncrypt:
+
+```sh
+certbot certonly --nginx --agree-tos -d lnbits.org
+```
+
+Create an nginx vhost at `/etc/nginx/sites-enabled/lnbits.org`:
+
+```sh
+cat <<EOF > /etc/nginx/sites-enabled/lnbits.org
+server {
+    server_name lnbits.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+    }
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    listen [::]:443 ssl;
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/lnbits.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lnbits.org/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+EOF
+```
+
+Restart nginx:
+
+```sh
+service restart nginx
+```
 
 ## Using https without reverse proxy
 The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network.
@@ -433,7 +467,7 @@ mkcert localhost 127.0.0.1 ::1
 You can then pass the certificate files to uvicorn when you start LNbits:
 
 ```sh
-./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
+poetry run uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
 
 

@@ -47,7 +47,7 @@ You can also use an AES-encrypted macaroon (more info) instead by using
 
 - `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
-To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroon.py`.
+To encrypt your macaroon, run `poetry run python lnbits/wallets/macaroon/macaroon.py`.
 
 ### LNbits
 
@@ -57,7 +57,7 @@ To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroo
 
 ### LNPay
 
-For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret. For example, `https://mylnbits/wallet/webhook` will be the Endpoint Url that gets notified about the payment. 
+For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret. For example, `https://mylnbits/wallet/webhook` will be the Endpoint Url that gets notified about the payment.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNPayWallet**
 - `LNPAY_API_ENDPOINT`: https://api.lnpay.co/v1/

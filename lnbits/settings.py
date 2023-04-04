@@ -1,4 +1,5 @@
 import importlib
+import importlib.metadata
 import inspect
 import json
 import subprocess
@@ -229,6 +230,7 @@ class EnvSettings(LNbitsSettings):
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
+    version: str = Field(default="0.0.0")
 
 
 class SaaSSettings(LNbitsSettings):
@@ -370,6 +372,7 @@ try:
 except:
     settings.lnbits_commit = "docker"
 
+settings.version = importlib.metadata.version("lnbits")
 
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:

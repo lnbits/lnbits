@@ -35,10 +35,12 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import Payment, User, Wallet
+from lnbits.db import Filters
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     get_key_type,
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
@@ -50,7 +52,7 @@ from lnbits.extension_manager import (
     InstallableExtension,
     get_valid_extensions,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import generate_filter_params_openapi, url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -116,18 +118,23 @@ async def api_update_wallet(
     }
 
 
-@core_app.get("/api/v1/payments")
+@core_app.get(
+    "/api/v1/payments",
+    name="Payment List",
+    summary="get list of payments",
+    response_description="list of payments",
+    response_model=List[Payment],
+    openapi_extra=generate_filter_params_openapi(Payment),
+)
 async def api_payments(
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
     wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(Payment)),
 ):
     pendingPayments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
     for payment in pendingPayments:
         await check_transaction_status(
@@ -137,8 +144,7 @@ async def api_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
 
 
@@ -566,7 +572,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     if k == "text/plain":
                         params.update(description=v)
                     if k in ("image/jpeg;base64", "image/png;base64"):
-                        data_uri = "data:" + k + "," + v
+                        data_uri = f"data:{k},{v}"
                         params.update(image=data_uri)
                     if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)

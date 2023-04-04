@@ -23,8 +23,6 @@ tests/data/*.sqlite3
 *.pyc
 *.env
 .env
-.venv
-venv
 
 data
 *.sqlite3

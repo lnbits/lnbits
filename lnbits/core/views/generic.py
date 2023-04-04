@@ -369,7 +369,7 @@ async def manifest(usr: str):
                 "sizes": "900x900",
             }
         ],
-        "start_url": "/wallet?usr=" + usr + "&wal=" + user.wallets[0].id,
+        "start_url": f"/wallet?usr={usr}&wal={user.wallets[0].id}",
         "background_color": "#1F2234",
         "description": "Bitcoin Lightning Wallet",
         "display": "standalone",
@@ -380,7 +380,7 @@ async def manifest(usr: str):
                 "name": wallet.name,
                 "short_name": wallet.name,
                 "description": wallet.name,
-                "url": "/wallet?usr=" + usr + "&wal=" + wallet.id,
+                "url": f"/wallet?usr={usr}&wal={wallet.id}",
             }
             for wallet in user.wallets
         ],

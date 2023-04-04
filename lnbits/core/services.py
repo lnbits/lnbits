@@ -13,7 +13,7 @@ from loguru import logger
 from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.helpers import url_for
 from lnbits.settings import (
     FAKE_WALLET,
     EditableSettings,
@@ -27,6 +27,7 @@ from lnbits.wallets.base import PaymentResponse, PaymentStatus
 from . import db
 from .crud import (
     check_internal,
+    check_internal_pending,
     create_account,
     create_admin_settings,
     create_payment,
@@ -153,7 +154,11 @@ async def pay_invoice(
             extra=extra,
         )
 
-        # check_internal() returns the checking_id of the invoice we're waiting for
+        # we check if an internal invoice exists that has already been paid (not pending anymore)
+        if not await check_internal_pending(invoice.payment_hash, conn=conn):
+            raise PaymentFailure("Internal invoice already paid.")
+
+        # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
             logger.debug(f"creating temporary internal payment with id {internal_id}")
@@ -169,12 +174,17 @@ async def pay_invoice(
             logger.debug(f"creating temporary payment with id {temp_id}")
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
-            await create_payment(
-                checking_id=temp_id,
-                fee=-fee_reserve_msat,
-                conn=conn,
-                **payment_kwargs,
-            )
+            try:
+                await create_payment(
+                    checking_id=temp_id,
+                    fee=-fee_reserve_msat,
+                    conn=conn,
+                    **payment_kwargs,
+                )
+            except Exception as e:
+                logger.error(f"could not create temporary payment: {e}")
+                # happens if the same wallet tries to pay an invoice twice
+                raise PaymentFailure("Could not make payment.")
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
@@ -386,7 +396,7 @@ async def check_transaction_status(
         return PaymentStatus(None)
     if not payment.pending:
         # note: before, we still checked the status of the payment again
-        return PaymentStatus(True)
+        return PaymentStatus(True, fee_msat=payment.fee)
 
     status: PaymentStatus = await payment.check_status()
     return status
@@ -400,21 +410,20 @@ def fee_reserve(amount_msat: int) -> int:
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):
-    internal_id = f"internal_{urlsafe_short_hash()}"
-    payment = await create_payment(
+    payment_hash, _ = await create_invoice(
         wallet_id=wallet_id,
-        checking_id=internal_id,
-        payment_request="admin_internal",
-        payment_hash="admin_internal",
-        amount=amount * 1000,
+        amount=amount,
         memo="Admin top up",
-        pending=False,
+        internal=True,
     )
-    # manually send this for now
-    from lnbits.tasks import internal_invoice_queue
+    async with db.connect() as conn:
+        checking_id = await check_internal(payment_hash, conn=conn)
+        assert checking_id, "newly created checking_id cannot be retrieved"
+        await update_payment_status(checking_id=checking_id, pending=False, conn=conn)
+        # notify receiver asynchronously
+        from lnbits.tasks import internal_invoice_queue
 
-    await internal_invoice_queue.put(internal_id)
-    return payment
+        await internal_invoice_queue.put(checking_id)
 
 
 async def check_admin_settings():

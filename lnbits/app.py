@@ -39,12 +39,7 @@ from .core import (
 from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
-from .helpers import (
-    get_css_vendored,
-    get_js_vendored,
-    template_renderer,
-    url_for_vendored,
-)
+from .helpers import template_renderer
 from .middleware import ExtensionsRedirectMiddleware, InstalledExtensionMiddleware
 from .requestvars import g
 from .tasks import (
@@ -63,6 +58,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LNbits API",
         description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
+        version=settings.version,
         license_info={
             "name": "MIT License",
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
@@ -93,7 +89,6 @@ def create_app() -> FastAPI:
     app.include_router(core_html_routes)
 
     register_startup(app)
-    register_assets(app)
     register_async_tasks(app)
     register_exception_handlers(app)
 
@@ -120,6 +115,7 @@ async def check_poetry():
 
 
 async def check_funding_source() -> None:
+
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
@@ -226,7 +222,7 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
         os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
     )
 
-    if ext.zip_path not in zip_files:
+    if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
     ext.extract_archive()
 
@@ -336,6 +332,7 @@ def register_startup(app: FastAPI):
 
 def log_server_info():
     logger.info("Starting LNbits")
+    logger.info(f"Version: {settings.version}")
     logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")
     logger.info(f"Port: {settings.port}")
@@ -357,19 +354,6 @@ def get_db_vendor_name():
         if db_url and db_url.startswith("cockroachdb://")
         else "SQLite"
     )
-
-
-def register_assets(app: FastAPI):
-    """Serve each vendored asset separately or a bundle."""
-
-    @app.on_event("startup")
-    async def vendored_assets_variable():
-        if settings.debug:
-            g().VENDORED_JS = map(url_for_vendored, get_js_vendored())
-            g().VENDORED_CSS = map(url_for_vendored, get_css_vendored())
-        else:
-            g().VENDORED_JS = ["/static/bundle.js"]
-            g().VENDORED_CSS = ["/static/bundle.css"]
 
 
 def register_async_tasks(app):

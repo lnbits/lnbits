@@ -171,7 +171,7 @@ def lnencode(addr, privkey):
     else:
         amount = addr.currency if addr.currency else ""
 
-    hrp = "ln" + amount + "0n"
+    hrp = f"ln{amount}0n"
 
     # Start with the timestamp
     data = bitstring.pack("uint:35", addr.date)
@@ -257,7 +257,7 @@ class LnAddr:
 
     def __str__(self):
         pubkey = bytes.hex(self.pubkey.serialize()).decode()
-        tags = ", ".join([k + "=" + str(v) for k, v in self.tags])
+        tags = ", ".join([f"{k}={v}" for k, v in self.tags])
         return f"LnAddr[{pubkey}, amount={self.amount}{self.currency} tags=[{tags}]]"
 
 
