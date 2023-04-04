@@ -265,7 +265,8 @@ class LnAddr:
         self.amount = amount
 
     def __str__(self):
-        pubkey = bytes.hex(self.pubkey.serialize()).decode()
+        assert self.pubkey, "LnAddr, pubkey must be set"
+        pubkey = bytes.hex(self.pubkey.serialize())
         tags = ", ".join([f"{k}={v}" for k, v in self.tags])
         return f"LnAddr[{pubkey}, amount={self.amount}{self.currency} tags=[{tags}]]"
 

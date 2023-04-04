@@ -24,6 +24,7 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
+        assert endpoint, "lnd_rest_endpoint not set"
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
             f"https://{endpoint}" if not endpoint.startswith("http") else endpoint

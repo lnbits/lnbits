@@ -396,7 +396,7 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'internal_%'")
 
     if not filters:
-        filters = Filters()
+        filters = Filters(limit=None, offset=None)
 
     rows = await (conn or db).fetchall(
         f"""
