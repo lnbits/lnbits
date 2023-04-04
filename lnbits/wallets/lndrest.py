@@ -24,12 +24,6 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
-        assert endpoint, "lnd_rest_endpoint not set"
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = (
-            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
-        )
-        self.endpoint = endpoint
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -50,7 +44,7 @@ class LndRestWallet(Wallet):
 
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
-            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
         )
         self.endpoint = endpoint
         self.macaroon = load_macaroon(macaroon)
