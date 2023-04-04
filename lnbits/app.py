@@ -61,18 +61,6 @@ def create_app() -> FastAPI:
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
         },
     )
-    limiter = Limiter(key_func=lambda request: request.client.host, default_limits=[settings.lnbits_rate_limit + "/hour"])
-    app.state.limiter = limiter
-    app.add_exception_handler(429, _rate_limit_exceeded_handler)
-    app.add_middleware(SlowAPIMiddleware)
-
-    @app.on_event("startup")
-    async def startup_event():
-        FastAPILimiter.init(app, limiter)
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        await FastAPILimiter.shutdown()
 
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
@@ -99,6 +87,13 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     register_shutdown(app)
 
+    # Rate limiter
+    limiter = Limiter(key_func=lambda request: request.client.host, default_limits=[settings.lnbits_rate_limit + "/minute"])
+    app.state.limiter = limiter
+    app.add_exception_handler(429, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+    FastAPILimiter.init(app, limiter)
+    
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
 
