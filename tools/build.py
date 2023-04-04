@@ -13,6 +13,7 @@ vendored_js = [
     "/static/vendor/vue-router.js",
     "/static/vendor/vue-qrcode-reader.browser.js",
     "/static/vendor/vue-qrcode.js",
+    "/static/vendor/vue-i18n.js",
     "/static/vendor/vuex.js",
     "/static/vendor/quasar.ie.polyfills.umd.min.js",
     "/static/vendor/quasar.umd.js",
