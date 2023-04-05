@@ -45,7 +45,7 @@ class FakeWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {
             "out": False,
-            "amount": amount * 1000,
+            "amount": amount,
             "currency": "bc",
             "privkey": self.privkey,
             "memo": memo,
