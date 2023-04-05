@@ -314,7 +314,7 @@ class InstallableExtension(BaseModel):
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
-            assert self.installed_release
+            assert self.installed_release, "installed_release is none."
             download_url(self.installed_release.archive, ext_zip_file)
         except Exception as ex:
             logger.warning(ex)
