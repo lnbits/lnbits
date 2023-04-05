@@ -89,6 +89,12 @@
             ></q-tab>
 
             <q-tab
+            name="security"
+            label="Security"
+            @update="val => tab = val.name"
+          ></q-tab>
+
+            <q-tab
               name="theme"
               :label="$t('theme')"
               @update="val => tab = val.name"
@@ -99,9 +105,11 @@
 
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
-          {% include "admin/_tab_funding.html" %} {% include
-          "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
-          include "admin/_tab_theme.html" %}
+          {% include "admin/_tab_funding.html" %} 
+          {% include "admin/_tab_users.html" %} 
+          {% include "admin/_tab_server.html" %}  
+          {% include "admin/_tab_security.html" %} 
+          {% include "admin/_tab_theme.html" %}
         </q-tab-panels>
       </q-form>
     </q-card>
@@ -164,6 +172,7 @@
     data: function () {
       return {
         settings: {},
+        logs: [],
         lnbits_theme_options: [
           'classic',
           'bitcoin',
@@ -350,6 +359,31 @@
     created: function () {
       this.getSettings()
       this.balance = +'{{ balance|safe }}'
+      if (location.protocol !== 'http:') {
+          localUrl =
+          'wss://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/api/v1/ws/' +
+          this.g.user.id
+      } else {
+          localUrl =
+          'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/api/v1/ws/' +
+          this.g.user.id
+      }
+    this.ws = new WebSocket(localUrl)
+    this.ws.addEventListener('message', async ({data}) => {
+      this.logs.push(data.toString())
+      const scrollArea = this.$refs.logScroll
+      const scrollTarget = scrollArea.getScrollTarget()
+      const duration = 0
+      scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+    })
     },
     computed: {
       checkChanges() {

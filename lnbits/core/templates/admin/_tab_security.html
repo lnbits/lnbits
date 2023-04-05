@@ -1,0 +1,35 @@
+<q-tab-panel name="security">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none">Security tools</h6>
+    <br />
+    <div>
+      <div class="row">
+        <div class="column" style="width: 100%">
+        <div class="col bg-primary" style="padding-left: 5px; max-height: 20px; color: #fafafa;">
+          SERVER LOGS
+        </div>
+        <div class="col" style="background-color: #292929;">
+          <q-scroll-area ref="logScroll" style="padding: 10px; color: #fafafa; height: 320px">
+            
+            <small v-for="log in logs">{% raw %}{{ log }}{% endraw %}<br/></small>
+          </q-scroll-area>         
+        </div>
+      </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <br/>
+          <p>Rate Limit</p>
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_rate_limit"
+            label="Rate limit IP per hr"
+            hint="Rate limit IPs per hour to avoid spam attacks"
+          ></q-input>
+          <br />
+        </div>
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>
