@@ -7,10 +7,7 @@ from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
-
-# TODO: https://github.com/lnbits/lnbits/issues/764
-# mypy https://github.com/aaugustin/websockets/issues/940
-from websockets import connect  # type: ignore
+from websockets.client import connect
 
 from lnbits.settings import settings
 
@@ -34,11 +31,13 @@ class UnknownError(Exception):
 class EclairWallet(Wallet):
     def __init__(self):
         url = settings.eclair_url
-        self.url = url[:-1] if url.endswith("/") else url
+        passw = settings.eclair_pass
+        if not url or not passw:
+            raise Exception("cannot initialize eclair")
 
+        self.url = url[:-1] if url.endswith("/") else url
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
-        passw = settings.eclair_pass
         encodedAuth = base64.b64encode(f":{passw}".encode())
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}
@@ -71,7 +70,11 @@ class EclairWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        data: Dict = {"amountMsat": amount * 1000}
+        data: Dict = {
+            "amountMsat": amount * 1000,
+            "description_hash": b"",
+            "description": memo,
+        }
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
 
@@ -79,8 +82,6 @@ class EclairWallet(Wallet):
             data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
             data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["description"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -149,6 +150,7 @@ class EclairWallet(Wallet):
         }
 
         data = r.json()[-1]
+        fee_msat = 0
         if data["status"]["type"] == "sent":
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
@@ -223,10 +225,10 @@ class EclairWallet(Wallet):
                 ) as ws:
                     while True:
                         message = await ws.recv()
-                        message = json.loads(message)
+                        message_json = json.loads(message)
 
-                        if message and message["type"] == "payment-received":
-                            yield message["paymentHash"]
+                        if message_json and message_json["type"] == "payment-received":
+                            yield message_json["paymentHash"]
 
             except Exception as exc:
                 logger.error(

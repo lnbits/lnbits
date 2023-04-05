@@ -40,19 +40,18 @@ async def api_public_payment_longpolling(payment_hash):
 
     response = None
 
-    async def payment_info_receiver(cancel_scope):
-        async for payment in payment_queue.get():
+    async def payment_info_receiver():
+        for payment in await payment_queue.get():
             if payment.payment_hash == payment_hash:
                 nonlocal response
                 response = {"status": "paid"}
-                cancel_scope.cancel()
 
     async def timeouter(cancel_scope):
         await asyncio.sleep(45)
         cancel_scope.cancel()
 
-    asyncio.create_task(payment_info_receiver())
-    asyncio.create_task(timeouter())
+    cancel_scope = asyncio.create_task(payment_info_receiver())
+    asyncio.create_task(timeouter(cancel_scope))
 
     if response:
         return response

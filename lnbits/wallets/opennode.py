@@ -4,7 +4,7 @@ from http import HTTPStatus
 from typing import AsyncGenerator, Optional
 
 import httpx
-from fastapi.exceptions import HTTPException
+from fastapi import HTTPException
 from loguru import logger
 
 from lnbits.settings import settings
@@ -24,13 +24,15 @@ class OpenNodeWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.opennode_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-
         key = (
             settings.opennode_key
             or settings.opennode_admin_key
             or settings.opennode_invoice_key
         )
+        if not endpoint or not key:
+            raise Exception("cannot initialize opennode")
+
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": key}
 
     async def status(self) -> StatusResponse:
@@ -140,7 +142,9 @@ class OpenNodeWallet(Wallet):
             yield value
 
     async def webhook_listener(self):
-        data = await request.form
+        # TODO: request.form is undefined, was it something with Flask or quart?
+        # probably issue introduced when refactoring?
+        data = await request.form  # type: ignore
         if "status" not in data or data["status"] != "paid":
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
