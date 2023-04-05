@@ -68,11 +68,13 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         or user["id"] in settings.lnbits_admin_users,
     )
 
+
 async def get_all_users() -> List[User]:
     users = await db.fetchall("SELECT id FROM accounts")
     assert users
-    
+
     return [await get_user(user["id"]) for user in users]
+
 
 # extensions
 # -------

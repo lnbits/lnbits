@@ -119,9 +119,14 @@ async def api_download_backup() -> FileResponse:
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
     )
 
-@core_app.get("/admin/api/v1/users", status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)])
+
+@core_app.get(
+    "/admin/api/v1/users",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_super_user)],
+)
 async def api_get_users():
     users = await get_all_users()
-    return [{"user": user.id, "wallets": user.wallets} for user in users] if users else []
-    
+    return (
+        [{"user": user.id, "wallets": user.wallets} for user in users] if users else []
+    )
