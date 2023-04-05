@@ -62,7 +62,9 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     return User(
         id=user["id"],
         email=user["email"],
-        extensions=[e[0] for e in extensions],
+        extensions=[
+            e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
+        ],
         wallets=[Wallet(**w) for w in wallets],
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,

@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from lnbits.db import Connection
 from lnbits.helpers import url_for
-from lnbits.settings import get_wallet_class
+from lnbits.settings import get_wallet_class, settings
 from lnbits.wallets.base import PaymentStatus
 
 
@@ -74,6 +74,16 @@ class User(BaseModel):
     def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
+
+    @classmethod
+    def is_extension_for_user(cls, ext: str, user: str) -> bool:
+        if ext not in settings.lnbits_admin_extensions:
+            return True
+        if user == settings.super_user:
+            return True
+        if user in settings.lnbits_admin_users:
+            return True
+        return False
 
 
 class Payment(BaseModel):
