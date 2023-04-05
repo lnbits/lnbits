@@ -148,27 +148,27 @@ new Vue({
           {
             name: 'memo',
             align: 'left',
-            label: 'Memo',
+            label: this.$t('memo'),
             field: 'memo'
           },
           {
             name: 'date',
             align: 'left',
-            label: 'Date',
+            label: this.$t('date'),
             field: 'date',
             sortable: true
           },
           {
             name: 'sat',
             align: 'right',
-            label: 'Amount (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: 'Fee (m' + LNBITS_DENOMINATION + ')',
+            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
             field: 'fee'
           }
         ],
@@ -510,7 +510,7 @@ new Vue({
     payInvoice: function () {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
-        message: 'Processing payment...'
+        message: this.$t('processing_payment')
       })
 
       LNbits.api

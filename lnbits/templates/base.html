@@ -46,15 +46,14 @@
           </q-toolbar-title>
           {% block beta %} {% if VOIDWALLET %}
           <q-badge color="red" text-color="black" class="q-mr-md">
-            <span>VoidWallet is active! Payments disabled</span>
+            {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
           </q-badge>
           {%endif%}
           <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
-              ><span v-show="$q.screen.gt.sm"
-                >USE WITH CAUTION - {{SITE_TITLE}} wallet is still in </span
-              >BETA</span
-            >
+              v-show="$q.screen.gt.sm"
+              v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
+            ></span>
           </q-badge>
           {% endblock %}
           <q-badge
@@ -63,8 +62,39 @@
             text-color="white"
             class="q-mr-md"
           >
-            <span> OFFLINE </span>
+            <span>OFFLINE</span>
           </q-badge>
+          <q-btn-dropdown
+            dense
+            flat
+            round
+            size="sm"
+            icon="language"
+            class="q-pl-md"
+          >
+            <q-list>
+              <q-item clickable v-close-popup @click="changeLanguage('en')">
+                <q-item-section>
+                  <q-item-label>EN</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('de')">
+                <q-item-section>
+                  <q-item-label>DE</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('es')">
+                <q-item-section>
+                  <q-item-label>ES</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('jp')">
+                <q-item-section>
+                  <q-item-label>JP</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
@@ -175,7 +205,9 @@
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
             size="sm"
           >
-            <q-tooltip>Toggle Dark Mode</q-tooltip>
+            <q-tooltip
+              >{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip
+            >
           </q-btn>
         </q-toolbar>
       </q-header>
@@ -213,7 +245,8 @@
             <br />
 
             <small v-if="'{{SITE_TITLE}}' == 'LNbits'"
-              >Commit version: {{LNBITS_VERSION}}</small
+              >{% raw %}{{ $t('commit_version') }}{% endraw %}:
+              {{LNBITS_VERSION}}</small
             >
           </q-toolbar-title>
           <q-space></q-space>
@@ -226,8 +259,10 @@
             target="_blank"
             rel="noopener"
           >
-            API DOCS
-            <q-tooltip>View LNbits Swagger API docs</q-tooltip>
+            {% raw %}{{ $t('api_docs') }}{% endraw %}
+            <q-tooltip
+              >{% raw %}{{ $t('view_swagger_docs') }}{% endraw %}</q-tooltip
+            >
           </q-btn>
           <q-btn
             flat
@@ -239,7 +274,7 @@
             target="_blank"
             rel="noopener"
           >
-            <q-tooltip>View project in GitHub</q-tooltip>
+            <q-tooltip>{% raw %}{{ $t('view_github') }}{% endraw %}</q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-footer>
@@ -253,6 +288,11 @@
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->
+    <script src="/static/i18n/i18n.js"></script>
+    <script src="/static/i18n/en.js"></script>
+    <script src="/static/i18n/de.js"></script>
+    <script src="/static/i18n/es.js"></script>
+    <script src="/static/i18n/jp.js"></script>
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/bolt11-decoder.js"></script>
