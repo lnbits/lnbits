@@ -117,6 +117,21 @@
 
       <div class="row">
         <div class="col-12">
+          <q-select
+            dense
+            type="text"
+            filled
+            v-model="wallet.id"
+            :options="topUpUsers"
+            label="Select wallet from list (optional)"
+            hint="Format is 'userid : walletid'"
+            emit-value
+            map-options
+          ></q-select>
+
+          <br />
+        </div>
+        <div class="col-12">
           <q-input
             dense
             type="text"
@@ -177,6 +192,7 @@
         topUpDialog: {
           show: false
         },
+        topUpUsers: [],
         tab: 'funding',
         needsRestart: false,
         funding_sources: new Map([
@@ -358,6 +374,7 @@
     created: function () {
       this.getSettings()
       this.balance = +'{{ balance|safe }}'
+      this.getAllUsers()
     },
     computed: {
       checkChanges() {
@@ -424,6 +441,32 @@
               icon: null
             })
             this.needsRestart = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getAllUsers() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/users/?usr=' + this.g.user.id,
+            this.g.user.adminkey
+          )
+          .then(response => {
+            if (response.data && response.data.length > 0) {
+              response.data
+                .filter(u => u.wallets.length)
+                .map(u => {
+                  let user = `${u.user.slice(0, 5)}...${u.user.slice(-5)}`
+                  u.wallets.forEach(w => {
+                    this.topUpUsers.push({
+                      value: w.id,
+                      label: `${user} : ${w.name}`
+                    })
+                  })
+                })
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
