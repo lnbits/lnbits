@@ -68,7 +68,7 @@ class InstalledExtensionMiddleware:
             return True
 
         q = parse_qs(scope["query_string"].decode("UTF-8"))
-        user = q.get("usr", [None])[0]
+        user = q.get("usr", [""])[0]
         if not user:
             return True
 
