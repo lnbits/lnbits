@@ -1,9 +1,11 @@
 from http import HTTPStatus
 from typing import List, Tuple
+from urllib.parse import parse_qs
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
 
@@ -36,6 +38,18 @@ class InstalledExtensionMiddleware:
             await response(scope, receive, send)
             return
 
+        if not self._user_allowed_to_extension(path_name, scope):
+            response = HTMLResponse(
+                status_code=HTTPStatus.FORBIDDEN,
+                content=template_renderer()
+                .TemplateResponse(
+                    "error.html", {"request": {}, "err": "User not authorized."}
+                )
+                .body,
+            )
+            await response(scope, receive, send)
+            return
+
         # re-route API trafic if the extension has been upgraded
         if path_type == "api":
             upgraded_extensions = list(
@@ -50,6 +64,22 @@ class InstalledExtensionMiddleware:
                 scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
 
         await self.app(scope, receive, send)
+
+    def _user_allowed_to_extension(self, ext_name: str, scope) -> bool:
+        if ext_name not in settings.lnbits_admin_extensions:
+            return True
+        if "query_string" not in scope:
+            return True
+
+        q = parse_qs(scope["query_string"].decode("UTF-8"))
+        user = q.get("usr", [None])[0]
+        if not user:
+            return True
+
+        if user == settings.super_user or user in settings.lnbits_admin_users:
+            return True
+
+        return False
 
 
 class ExtensionsRedirectMiddleware:
