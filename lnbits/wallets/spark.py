@@ -160,10 +160,10 @@ class SparkWallet(Wallet):
             if pay["status"] == "failed":
                 return PaymentResponse(False, None, None, None, str(exc))
 
-            elif pay["status"] == "pending":
+            if pay["status"] == "pending":
                 return PaymentResponse(None, payment_hash, None, None, None)
 
-            elif pay["status"] == "complete":
+            if pay["status"] == "complete":
                 r = pay
                 r["payment_preimage"] = pay["preimage"]
                 r["msatoshi"] = int(pay["amount_msat"][0:-4])
@@ -218,7 +218,7 @@ class SparkWallet(Wallet):
                     - int(r["pays"][0]["amount_msat"][0:-4])
                 )
                 return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
-            elif status == "failed":
+            if status == "failed":
                 return PaymentStatus(False)
             return PaymentStatus(None)
         raise KeyError("supplied an invalid checking_id")
