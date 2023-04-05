@@ -10,7 +10,7 @@ from fastapi import Body, Depends
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_wallet
+from lnbits.core.crud import get_all_users, get_wallet
 from lnbits.core.models import User
 from lnbits.core.services import update_cached_settings, update_wallet_balance
 from lnbits.decorators import check_admin, check_super_user
@@ -118,3 +118,10 @@ async def api_download_backup() -> FileResponse:
     return FileResponse(
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
     )
+
+@core_app.get("/admin/api/v1/users", status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_super_user)])
+async def api_get_users():
+    users = await get_all_users()
+    return [{"user": user.id, "wallets": user.wallets} for user in users] if users else []
+    
