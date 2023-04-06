@@ -71,8 +71,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 
 async def get_all_users() -> List[User]:
     users = await db.fetchall("SELECT id FROM accounts")
-    assert users
-
+    
     return [await get_user(user["id"]) for user in users]
 
 
