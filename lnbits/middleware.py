@@ -67,6 +67,7 @@ class InstalledExtensionMiddleware:
         if "query_string" not in scope:
             return True
 
+        # parse the URL query string into a `dict`
         q = parse_qs(scope["query_string"].decode("UTF-8"))
         user = q.get("usr", [""])[0]
         if not user:
@@ -80,6 +81,11 @@ class InstalledExtensionMiddleware:
     def _response_by_accepted_type(
         self, headers: List[Any], msg: str, status_code: HTTPStatus
     ) -> Union[HTMLResponse, JSONResponse]:
+        """
+        Build an HTTP response containing the `msg` as HTTP body and the `status_code` as HTTP code.
+        If the `accept` HTTP header is present int the request and contains the value of `text/html`
+        then return an `HTMLResponse`, otherwise return an `JSONResponse`.
+        """
         accept_header: str = next(
             (
                 h[1].decode("UTF-8")
