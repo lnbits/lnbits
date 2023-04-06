@@ -11,7 +11,7 @@ from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.db import Connection, FromRowModel
+from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
@@ -76,7 +76,9 @@ class User(BaseModel):
         return w[0] if w else None
 
 
-class Payment(FromRowModel):
+class Payment(FromRowModel, FilterModel):
+    __search_fields__ = ["memo", "amount"]
+
     checking_id: str
     pending: bool
     amount: int

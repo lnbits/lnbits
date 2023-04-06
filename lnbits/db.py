@@ -6,7 +6,7 @@ import time
 from contextlib import asynccontextmanager
 from enum import Enum
 from sqlite3 import Row
-from typing import Any, Generic, List, Literal, Optional, Tuple, Type, TypeVar
+from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError
@@ -47,17 +47,20 @@ class Operator(Enum):
             raise ValueError("Unknown SQL Operator")
 
 
-T = TypeVar("T")
-TModel = TypeVar("TModel", bound=BaseModel)
-
-
 class FromRowModel(BaseModel):
     @classmethod
     def from_row(cls, row: Row) -> "FromRowModel":
         return cls(**dict(row))
 
 
+class FilterModel(BaseModel):
+    __search_fields__: list[str] = []
+
+
+T = TypeVar("T")
+TModel = TypeVar("TModel", bound=BaseModel)
 TRowModel = TypeVar("TRowModel", bound=FromRowModel)
+TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 
 
 class Page(BaseModel, Generic[T]):
@@ -67,14 +70,14 @@ class Page(BaseModel, Generic[T]):
     size: Optional[int]
 
 
-class Filter(BaseModel, Generic[TModel]):
+class Filter(BaseModel, Generic[TFilterModel]):
     field: str
     nested: Optional[list[str]]
     op: Operator = Operator.EQ
     values: list[Any]
 
     @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TModel]):
+    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
         # Key format:
         # key[operator]
         # e.g. name[eq]
@@ -130,13 +133,17 @@ class Filter(BaseModel, Generic[TModel]):
         return " OR ".join(stmt)
 
 
-class Filters(BaseModel, Generic[TModel]):
-    filters: List[Filter[TModel]] = []
+class Filters(BaseModel, Generic[TFilterModel]):
+    filters: List[Filter[TFilterModel]] = []
+    search: Optional[str]
+
     page: Optional[int]
     size: Optional[int]
 
     sortby: Optional[str]
     direction: Optional[Literal["asc", "desc"]]
+
+    model: Optional[Type[TFilterModel]]
 
     def pagination(self) -> str:
         stmt = ""
@@ -152,6 +159,10 @@ class Filters(BaseModel, Generic[TModel]):
         if self.filters:
             for filter in self.filters:
                 where_stmts.append(filter.statement)
+        if self.search and self.model:
+            where_stmts.append(
+                f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+            )
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""
@@ -167,6 +178,8 @@ class Filters(BaseModel, Generic[TModel]):
         if self.filters:
             for filter in self.filters:
                 values.extend(filter.values)
+        if self.search and self.model:
+            values.append(f"%{self.search}%")
         return tuple(values)
 
 

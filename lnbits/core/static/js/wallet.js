@@ -179,7 +179,8 @@ new Vue({
           descending: true,
           rowsNumber: 10
         },
-        filter: null
+        filter: null,
+        loading: false
       },
       paymentsChart: {
         show: false
@@ -690,28 +691,30 @@ new Vue({
         })
     },
     fetchPayments: function (props) {
-      if(props) {
+      if (props) {
         this.paymentsTable.pagination = props.pagination
       }
       let pagination = this.paymentsTable.pagination
-      return LNbits.api.getPayments(
-        this.g.wallet,
-        {
+      this.paymentsTable.loading = true
+      return LNbits.api
+        .getPayments(this.g.wallet, {
           size: pagination.rowsPerPage,
           page: pagination.page,
           sortby: pagination.sortBy,
-          direction: pagination.descending ? 'desc' : 'asc'
-        }
-      ).then(response => {
-        this.paymentsTable.pagination.rowsNumber = response.data.total
-        this.payments = response.data.data
-          .map(obj => {
-            return LNbits.map.payment(obj)
-          })
-          .sort((a, b) => {
-            return b.time - a.time
-          })
-      })
+          direction: pagination.descending ? 'desc' : 'asc',
+          search: this.paymentsTable.filter ?? ''
+        })
+        .then(response => {
+          this.paymentsTable.loading = false
+          this.paymentsTable.pagination.rowsNumber = response.data.total
+          this.payments = response.data.data
+            .map(obj => {
+              return LNbits.map.payment(obj)
+            })
+            .sort((a, b) => {
+              return b.time - a.time
+            })
+        })
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {

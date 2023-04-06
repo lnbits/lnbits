@@ -1,18 +1,17 @@
 from http import HTTPStatus
 from typing import Literal, Optional, Type
 
-from fastapi import Security, status
+from fastapi import Query, Security, status
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
-from pydantic import BaseModel
 from pydantic.types import UUID4
 from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
-from lnbits.db import Filter, Filters
+from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -269,7 +268,7 @@ async def check_super_user(usr: UUID4) -> User:
     return user
 
 
-def parse_filters(model: Type[BaseModel]):
+def parse_filters(model: Type[TFilterModel]):
     """
     Parses the query params as filters.
     :param model: model used for validation of filter values
@@ -281,6 +280,7 @@ def parse_filters(model: Type[BaseModel]):
         size: Optional[int] = None,
         sortby: Optional[str] = None,
         direction: Optional[Literal["asc", "desc"]] = None,
+        search: Optional[str] = Query(None, description="Text based search"),
     ):
         params = request.query_params
         filters = []
@@ -291,7 +291,13 @@ def parse_filters(model: Type[BaseModel]):
                 continue
 
         return Filters(
-            filters=filters, page=page, size=size, sortby=sortby, direction=direction
+            filters=filters,
+            page=page,
+            size=size,
+            sortby=sortby,
+            direction=direction,
+            search=search,
+            model=model,
         )
 
     return dependency

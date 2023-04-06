@@ -114,7 +114,6 @@
               </div>
             </div>
             <q-input
-              v-if="paymentsTable.pagination.rowsNumber > 10"
               filled
               dense
               clearable
@@ -133,7 +132,8 @@
               :pagination.sync="paymentsTable.pagination"
               no-data-label="No transactions made yet"
               :filter="paymentsTable.filter"
-              @request='fetchPayments'
+              :loading="paymentsTable.loading"
+              @request="fetchPayments"
             >
               {% raw %}
               <template v-slot:header="props">
