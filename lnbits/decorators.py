@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Optional, Type
+from typing import Literal, Optional, Type
 
 from fastapi import Security, status
 from fastapi.exceptions import HTTPException
@@ -177,7 +177,6 @@ async def require_admin_key(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ):
-
     token = api_key_header or api_key_query
 
     if not token:
@@ -203,7 +202,6 @@ async def require_invoice_key(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ):
-
     token = api_key_header or api_key_query
 
     if not token:
@@ -278,7 +276,11 @@ def parse_filters(model: Type[BaseModel]):
     """
 
     def dependency(
-        request: Request, limit: Optional[int] = None, offset: Optional[int] = None
+        request: Request,
+        page: Optional[int] = None,
+        size: Optional[int] = None,
+        orderby: Optional[str] = None,
+        direction: Optional[Literal["asc", "desc"]] = None,
     ):
         params = request.query_params
         filters = []
@@ -289,9 +291,7 @@ def parse_filters(model: Type[BaseModel]):
                 continue
 
         return Filters(
-            filters=filters,
-            limit=limit,
-            offset=offset,
+            filters=filters, page=page, size=size, orderby=orderby, direction=direction
         )
 
     return dependency

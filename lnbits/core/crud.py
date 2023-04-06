@@ -7,7 +7,7 @@ from uuid import uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
+from lnbits.db import COCKROACH, POSTGRES, Connection, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -349,7 +349,7 @@ async def get_payments(
     exclude_uncheckable: bool = False,
     filters: Optional[Filters[Payment]] = None,
     conn: Optional[Connection] = None,
-) -> List[Payment]:
+) -> Page[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
@@ -392,21 +392,13 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    if not filters:
-        filters = Filters()
-
-    rows = await (conn or db).fetchall(
-        f"""
-        SELECT *
-        FROM apipayments
-        {filters.where(clause)}
-        ORDER BY time DESC
-        {filters.pagination()}
-        """,
-        filters.values(args),
+    return await (conn or db).fetch_page(
+        "SELECT * FROM apipayments",
+        clause,
+        args,
+        filters=filters,
+        model=Payment,
     )
-
-    return [Payment.from_row(row) for row in rows]
 
 
 async def delete_expired_invoices(
@@ -449,7 +441,6 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
-
     # todo: add this when tests are fixed
     # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     # assert previous_payment is None, "Payment already exists"
@@ -509,7 +500,6 @@ async def update_payment_details(
     new_checking_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> None:
-
     set_clause: List[str] = []
     set_variables: List[Any] = []
 

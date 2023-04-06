@@ -139,11 +139,11 @@ async def check_pending_payments():
                 exclude_uncheckable=True,
                 conn=conn,
             )
-            for payment in pending_payments:
+            for payment in pending_payments.data:
                 await payment.check_status(conn=conn)
 
             logger.info(
-                f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
+                f"Task: pending check finished for {len(pending_payments.data)} payments (took {time.time() - start_time:0.3f} s)"
             )
             # we delete expired invoices once upon the first pending check
             if incoming:

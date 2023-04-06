@@ -34,7 +34,7 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import Payment, User, Wallet
-from lnbits.db import Filters
+from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
@@ -121,29 +121,30 @@ async def api_update_wallet(
     name="Payment List",
     summary="get list of payments",
     response_description="list of payments",
-    response_model=List[Payment],
+    response_model=Page[Payment],
     openapi_extra=generate_filter_params_openapi(Payment),
 )
 async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(Payment)),
 ):
-    pendingPayments = await get_payments(
+    pending_payments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
         filters=filters,
     )
-    for payment in pendingPayments:
+    for payment in pending_payments.data:
         await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
-    return await get_payments(
+    page = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
     )
+    return page
 
 
 class CreateInvoiceData(BaseModel):
@@ -786,7 +787,6 @@ async def api_install_extension(
 
 @core_app.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
-
     installable_extensions = await InstallableExtension.get_installable_extensions()
 
     extensions = [e for e in installable_extensions if e.id == ext_id]
