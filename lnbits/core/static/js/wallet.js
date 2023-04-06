@@ -152,14 +152,14 @@ new Vue({
             field: 'memo'
           },
           {
-            name: 'date',
+            name: 'time',
             align: 'left',
             label: 'Date',
             field: 'date',
             sortable: true
           },
           {
-            name: 'sat',
+            name: 'amount',
             align: 'right',
             label: 'Amount (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
@@ -173,7 +173,11 @@ new Vue({
           }
         ],
         pagination: {
-          rowsPerPage: 10
+          rowsPerPage: 10,
+          page: 1,
+          sortBy: 'time',
+          descending: true,
+          rowsNumber: 10
         },
         filter: null
       },
@@ -685,9 +689,22 @@ new Vue({
           LNbits.href.deleteWallet(walletId, user)
         })
     },
-    fetchPayments: function () {
-      return LNbits.api.getPayments(this.g.wallet).then(response => {
-        this.payments = response.data
+    fetchPayments: function (props) {
+      if(props) {
+        this.paymentsTable.pagination = props.pagination
+      }
+      let pagination = this.paymentsTable.pagination
+      return LNbits.api.getPayments(
+        this.g.wallet,
+        {
+          size: pagination.rowsPerPage,
+          page: pagination.page,
+          sortby: pagination.sortBy,
+          direction: pagination.descending ? 'desc' : 'asc'
+        }
+      ).then(response => {
+        this.paymentsTable.pagination.rowsNumber = response.data.total
+        this.payments = response.data.data
           .map(obj => {
             return LNbits.map.payment(obj)
           })

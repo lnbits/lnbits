@@ -132,13 +132,10 @@ class Filter(BaseModel, Generic[TModel]):
 
 class Filters(BaseModel, Generic[TModel]):
     filters: List[Filter[TModel]] = []
-    limit: Optional[int]
-    offset: Optional[int]
-
     page: Optional[int]
     size: Optional[int]
 
-    orderby: Optional[str]
+    sortby: Optional[str]
     direction: Optional[Literal["asc", "desc"]]
 
     def pagination(self) -> str:
@@ -160,8 +157,8 @@ class Filters(BaseModel, Generic[TModel]):
         return ""
 
     def order_by(self) -> str:
-        if self.orderby:
-            return f"ORDER BY {self.orderby} {self.direction or 'asc'}"
+        if self.sortby:
+            return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
 
     def values(self, values: list[str]) -> tuple:
@@ -292,8 +289,8 @@ class Connection(Compat):
             count = await self.fetchone(
                 f"""
                 SELECT COUNT(*) FROM (
+                    {query}
                     {clause}
-                    {where}
                 ) as count
                 """,
                 parsed_values,

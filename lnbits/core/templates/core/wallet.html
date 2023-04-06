@@ -114,7 +114,7 @@
               </div>
             </div>
             <q-input
-              v-if="payments.length > 10"
+              v-if="paymentsTable.pagination.rowsNumber > 10"
               filled
               dense
               clearable
@@ -133,6 +133,7 @@
               :pagination.sync="paymentsTable.pagination"
               no-data-label="No transactions made yet"
               :filter="paymentsTable.filter"
+              @request='fetchPayments'
             >
               {% raw %}
               <template v-slot:header="props">
@@ -181,14 +182,14 @@
                     </q-badge>
                     {{ props.row.memo }}
                   </q-td>
-                  <q-td auto-width key="date" :props="props">
+                  <q-td auto-width key="time" :props="props">
                     <q-tooltip>{{ props.row.date }}</q-tooltip>
                     {{ props.row.dateFrom }}
                   </q-td>
                   {% endraw %}
                   <q-td
                     auto-width
-                    key="sat"
+                    key="amount"
                     v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
                     :props="props"
                     >{% raw %} {{
@@ -196,7 +197,7 @@
                     }}
                   </q-td>
 
-                  <q-td auto-width key="sat" v-else :props="props">
+                  <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}
                   </q-td>
                   <q-td auto-width key="fee" :props="props">

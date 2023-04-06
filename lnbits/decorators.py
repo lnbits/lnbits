@@ -279,7 +279,7 @@ def parse_filters(model: Type[BaseModel]):
         request: Request,
         page: Optional[int] = None,
         size: Optional[int] = None,
-        orderby: Optional[str] = None,
+        sortby: Optional[str] = None,
         direction: Optional[Literal["asc", "desc"]] = None,
     ):
         params = request.query_params
@@ -291,7 +291,7 @@ def parse_filters(model: Type[BaseModel]):
                 continue
 
         return Filters(
-            filters=filters, page=page, size=size, orderby=orderby, direction=direction
+            filters=filters, page=page, size=size, sortby=sortby, direction=direction
         )
 
     return dependency
