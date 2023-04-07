@@ -1,9 +1,8 @@
 from http import HTTPStatus
 from typing import Literal, Optional, Type
 
-from fastapi import Query, Security, Request, status
+from fastapi import Query, Request, Security, status
 from fastapi.exceptions import HTTPException
-
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase

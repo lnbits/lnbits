@@ -49,7 +49,7 @@ class Operator(Enum):
 
 class FromRowModel(BaseModel):
     @classmethod
-    def from_row(cls, row: Row) -> "FromRowModel":
+    def from_row(cls, row: Row):
         return cls(**dict(row))
 
 
@@ -135,15 +135,15 @@ class Filter(BaseModel, Generic[TFilterModel]):
 
 class Filters(BaseModel, Generic[TFilterModel]):
     filters: List[Filter[TFilterModel]] = []
-    search: Optional[str]
+    search: Optional[str] = None
 
-    page: Optional[int]
-    size: Optional[int]
+    page: Optional[int] = None
+    size: Optional[int] = None
 
-    sortby: Optional[str]
-    direction: Optional[Literal["asc", "desc"]]
+    sortby: Optional[str] = None
+    direction: Optional[Literal["asc", "desc"]] = None
 
-    model: Optional[Type[TFilterModel]]
+    model: Optional[Type[TFilterModel]] = None
 
     def pagination(self) -> str:
         stmt = ""
@@ -153,7 +153,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
                 stmt += f"OFFSET {self.size * (self.page - 1)}"
         return stmt
 
-    def where(self, where_stmts: List[str]) -> str:
+    def where(self, where_stmts: Optional[list[str]] = None) -> str:
         if not where_stmts:
             where_stmts = []
         if self.filters:
@@ -172,7 +172,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
             return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
 
-    def values(self, values: list[str]) -> tuple:
+    def values(self, values: Optional[list[str]] = None) -> tuple:
         if not values:
             values = []
         if self.filters:
@@ -279,13 +279,13 @@ class Connection(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: list[str],
-        values: list[str],
-        filters: Filters = None,
-        model: Type[TRowModel] = None,
+        where: Optional[list[str]] = None,
+        values: Optional[list[str]] = None,
+        filters: Optional[Filters] = None,
+        model: Optional[Type[TRowModel]] = None,
     ) -> Page[TRowModel]:
         if not filters:
-            filters = Filters()
+            filters = Filters()  # trick to comfort pyright
         clause = filters.where(where)
         parsed_values = filters.values(values)
 
@@ -424,10 +424,10 @@ class Database(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: list[str] = None,
-        values: list[str] = None,
-        filters: Filters = None,
-        model: Type[TRowModel] = None,
+        where: Optional[list[str]] = None,
+        values: Optional[list[str]] = None,
+        filters: Optional[Filters] = None,
+        model: Optional[Type[TRowModel]] = None,
     ) -> Page[TRowModel]:
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model)
