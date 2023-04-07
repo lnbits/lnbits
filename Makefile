@@ -1,6 +1,6 @@
 .PHONY: test
 
-all: format check requirements.txt
+all: format check
 
 format: prettier isort black
 

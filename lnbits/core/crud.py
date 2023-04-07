@@ -206,7 +206,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    return await (conn or db).execute(
+    await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?
@@ -214,6 +214,9 @@ async def update_wallet(
         """,
         (new_name, wallet_id),
     )
+    wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
+    assert wallet, "updated created wallet couldn't be retrieved"
+    return wallet
 
 
 async def delete_wallet(
@@ -702,15 +705,19 @@ async def update_admin_settings(data: EditableSettings):
     await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
-async def update_super_user(super_user: str):
+async def update_super_user(super_user: str) -> SuperSettings:
     await db.execute("UPDATE settings SET super_user = ?", (super_user,))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings, "updated super_user settings could not be retrieved"
+    return settings
 
 
 async def create_admin_settings(super_user: str, new_settings: dict):
     sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings, "created admin settings could not be retrieved"
+    return settings
 
 
 # db versions

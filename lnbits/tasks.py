@@ -3,7 +3,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -42,7 +42,7 @@ class SseListenersDict(dict):
     A dict of sse listeners.
     """
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
 
     def __setitem__(self, key, value):
@@ -65,7 +65,7 @@ class SseListenersDict(dict):
 invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
 
 
-def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
+def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
     """
     A method intended for extensions (and core/tasks.py) to call when they want to be notified about
     new invoice payments incoming. Will emit all incoming payments.
@@ -164,7 +164,7 @@ async def check_pending_payments():
 async def perform_balance_checks():
     while True:
         for bc in await get_balance_checks():
-            redeem_lnurl_withdraw(bc.wallet, bc.url)
+            await redeem_lnurl_withdraw(bc.wallet, bc.url)
 
         await asyncio.sleep(60 * 60 * 6)  # every 6 hours
 
