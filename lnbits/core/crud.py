@@ -354,7 +354,7 @@ async def get_payments(
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    args: List[Any] = []
+    values: List[Any] = []
     clause: List[str] = []
 
     if since is not None:
@@ -364,11 +364,11 @@ async def get_payments(
             clause.append("time > cast(? AS timestamp)")
         else:
             clause.append("time > ?")
-        args.append(since)
+        values.append(since)
 
     if wallet_id:
         clause.append("wallet = ?")
-        args.append(wallet_id)
+        values.append(wallet_id)
 
     if complete and pending:
         pass
@@ -395,7 +395,7 @@ async def get_payments(
     return await (conn or db).fetch_page(
         "SELECT * FROM apipayments",
         clause,
-        args,
+        values,
         filters=filters,
         model=Payment,
     )

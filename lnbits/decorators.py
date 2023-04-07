@@ -1,13 +1,12 @@
 from http import HTTPStatus
 from typing import Literal, Optional, Type
 
-from fastapi import Query, Security, status
+from fastapi import Query, Security, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
 from pydantic.types import UUID4
-from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
