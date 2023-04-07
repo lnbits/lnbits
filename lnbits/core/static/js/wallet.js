@@ -690,7 +690,7 @@ new Vue({
           LNbits.href.deleteWallet(walletId, user)
         })
     },
-    fetchPayments: function(props) {
+    fetchPayments: function (props) {
       // Props are passed by qasar when pagination or sorting changes
       if (props) {
         this.paymentsTable.pagination = props.pagination
@@ -706,19 +706,17 @@ new Vue({
       if (this.paymentsTable.filter) {
         query.search = this.paymentsTable.filter
       }
-      return LNbits.api
-        .getPayments(this.g.wallet, query)
-        .then(response => {
-          this.paymentsTable.loading = false
-          this.paymentsTable.pagination.rowsNumber = response.data.total
-          this.payments = response.data.data
-            .map(obj => {
-              return LNbits.map.payment(obj)
-            })
-            .sort((a, b) => {
-              return b.time - a.time
-            })
-        })
+      return LNbits.api.getPayments(this.g.wallet, query).then(response => {
+        this.paymentsTable.loading = false
+        this.paymentsTable.pagination.rowsNumber = response.data.total
+        this.payments = response.data.data
+          .map(obj => {
+            return LNbits.map.payment(obj)
+          })
+          .sort((a, b) => {
+            return b.time - a.time
+          })
+      })
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
