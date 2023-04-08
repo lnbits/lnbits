@@ -99,17 +99,12 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def block_allow_ip_middleware(request: Request, call_next):
-        if settings.lnbits_allowed_ips == [] and request.client.host in settings.lnbits_blocked_ips:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED,
-                detail="Invalid key or expired key.",
-            )
-        if settings.lnbits_allowed_ips != [] and request.client.host not in settings.lnbits_allowed_ips:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED,
-                detail="Invalid key or expired key.",
-            )
         response = await call_next(request)
+        logger.debug(response)
+        if settings.lnbits_allowed_ips == [] and request.client.host in settings.lnbits_blocked_ips:
+            response.status_code=400
+        if settings.lnbits_allowed_ips != [] and request.client.host not in settings.lnbits_allowed_ips:
+            response.status_code=400
         return response
     app.middleware("http")(block_allow_ip_middleware)
 
