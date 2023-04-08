@@ -5,61 +5,74 @@
     <div>
       <div class="row">
         <div class="column" style="width: 100%">
-        <div class="col bg-primary" style="padding-left: 5px; max-height: 20px; color: #fafafa;">
-          SERVER LOGS
+          <div
+            class="col bg-primary"
+            style="padding-left: 5px; max-height: 20px; color: #fafafa"
+          >
+            SERVER LOGS
+          </div>
+          <div class="col" style="background-color: #292929">
+            <q-scroll-area
+              ref="logScroll"
+              style="padding: 10px; color: #fafafa; height: 320px"
+            >
+              <small v-for="log in logs"
+                >{% raw %}{{ log }}{% endraw %}<br
+              /></small>
+            </q-scroll-area>
+          </div>
         </div>
-        <div class="col" style="background-color: #292929;">
-          <q-scroll-area ref="logScroll" style="padding: 10px; color: #fafafa; height: 320px">
-            
-            <small v-for="log in logs">{% raw %}{{ log }}{% endraw %}<br/></small>
-          </q-scroll-area>         
-        </div>
-      </div>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <div>
+            <br />
             <p>Blocked IPs</p>
             <q-input
               filled
               v-model="formBlockedIPs"
               @keydown.enter="addBlockedIPs"
               type="text"
-              label="Block IP addresses. Block access by IP "
-              hint="Enter IP and hit enter"
+              label="Enter IP and hit enter"
+              hint="Block access by IP"
             >
-              <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+              <q-btn
+                @click="addExtensionsManifest"
+                dense
+                flat
+                icon="add"
+              ></q-btn>
             </q-input>
-          <div>
-            {%raw%}
-            <q-chip
-              v-for="blocked_ip in formData.lnbits_blocked_ips"
-              :key="blocked_ip"
-              removable
-              @remove="removeBlockedIPs(blocked_ip)"
-              color="primary"
-              text-color="white"
-            >
-              {{ blocked_ip }}
-            </q-chip>
-            {%endraw%}
+            <div>
+              {%raw%}
+              <q-chip
+                v-for="blocked_ip in formData.lnbits_blocked_ips"
+                :key="blocked_ip"
+                removable
+                @remove="removeBlockedIPs(blocked_ip)"
+                color="primary"
+                text-color="white"
+              >
+                {{ blocked_ip }}
+              </q-chip>
+              {%endraw%}
+            </div>
+            <br />
           </div>
-          <br />
-        </div>
         </div>
         <div class="col-12 col-md-6">
-          <br/>
+          <br />
           <p>Allowed IPs</p>
           <q-input
-          filled
-          v-model="formAllowedIPs"
-          @keydown.enter="addAllowedIPs"
-          type="text"
-          label="Allow IP addresses. Allow access by IP (will override blocked IPs)."
-          hint="Enter IP and hit enter"
-        >
-          <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
-        </q-input>
+            filled
+            v-model="formAllowedIPs"
+            @keydown.enter="addAllowedIPs"
+            type="text"
+            label="Enter IP and hit enter"
+            hint="Allow access by IP (will override blocked IPs)"
+          >
+            <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+          </q-input>
           <div>
             {%raw%}
             <q-chip
@@ -79,7 +92,7 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <br/>
+          <br />
           <p>Rate Limit</p>
           <q-input
             filled
