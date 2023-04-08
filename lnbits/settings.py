@@ -99,6 +99,8 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+
+class SecuritySettings(LNbitsSettings):
     lnbits_rate_limit: str = Field(default="10000")
     lnbits_allowed_ips: List[str] = Field(default=[])
     lnbits_blocked_ips: List[str] = Field(default=[])
@@ -210,6 +212,7 @@ class EditableSettings(
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
+    SecuritySettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
