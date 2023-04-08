@@ -77,7 +77,7 @@
             {%raw%}
             <q-chip
               v-for="allowed_ip in formData.lnbits_allowed_ips"
-              :key="manifestUrl"
+              :key="allowed_ip"
               removable
               @remove="removeAllowedIPs(allowed_ip)"
               color="primary"

@@ -381,9 +381,11 @@
       this.ws.addEventListener('message', async ({data}) => {
         this.logs.push(data.toString())
         const scrollArea = this.$refs.logScroll
-        const scrollTarget = scrollArea.getScrollTarget()
-        const duration = 0
-        scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+        if (scrollArea) {
+          const scrollTarget = scrollArea.getScrollTarget()
+          const duration = 0
+          scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+        }
       })
     },
     computed: {
@@ -520,7 +522,6 @@
         this.settings.lnbits_allowed_funding_sources.map(f => {
           let opts = this.funding_sources.get(f)
           if (!opts) return
-
           Object.keys(opts).forEach(e => {
             opts[e].value = this.settings[e]
           })
