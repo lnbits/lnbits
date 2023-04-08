@@ -33,7 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](https://github.com/lnbits/lnbits/wiki/) for details on installation and setup.
+See the [install guide](https://github.com/lnbits/lnbits/wiki/LNbits-Documentation#install-options) for details on installation and setup.
 
 ## LNbits as an account system
 
