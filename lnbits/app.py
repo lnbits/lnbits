@@ -107,7 +107,7 @@ def create_app() -> FastAPI:
         return response
 
     # Add the middleware to the FastAPI app
-    app.middleware_stack = Middleware([
+    app.add_middleware = Middleware([
         TrustedHostMiddleware, # Use the TrustedHostMiddleware to get the client's IP address
         block_allow_ip_middleware
     ])
