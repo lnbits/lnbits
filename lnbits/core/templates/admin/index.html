@@ -188,6 +188,8 @@
         formAddAdmin: '',
         formAddUser: '',
         formAddExtensionsManifest: '',
+        formAllowedIPs: '',
+        formBlockedIPs: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -440,11 +442,41 @@
           m => m !== manifest
         )
       },
+      addAllowedIPs() {
+        const allowedIPs = this.formAllowedIPs.trim()
+        const allowed_ips = this.formData.lnbits_allowed_ips
+        if (
+          allowedIPs &&
+          allowedIPs.length &&
+          !allowed_ips.includes(allowedIPs)
+        ) {
+          this.formData.lnbits_allowed_ips = [
+            ...allowed_ips,
+            allowedIPs
+          ]
+          this.formAllowedIPs = ''
+        }
+      },
       removeAllowedIPs(allowed_ips) {
         const manifests = this.formData.lnbits_allowed_ips
         this.formData.lnbits_allowed_ips = allowed_ips.filter(
           a => a !== allowed_ips
         )
+      },
+      addBlockedIPs() {
+        const blockedIPs = this.formBlockedIPs.trim()
+        const blocked_ips = this.formData.lnbits_blocked_ips
+        if (
+          blockedIPs &&
+          blockedIPs.length &&
+          !blocked_ips.includes(blockedIPs)
+        ) {
+          this.formData.lnbits_blocked_ips = [
+            ...blocked_ips,
+            blockedIPs
+          ]
+          this.formBlockedIPs = ''
+        }
       },
       removeBlockedIPs(blocked_ips) {
         const manifests = this.formData.lnbits_blocked_ips

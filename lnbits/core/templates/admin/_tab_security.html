@@ -18,8 +18,18 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <br/>
-          <p>Blocked IPs</p>
+          <div>
+            <p>Blocked IPs</p>
+            <q-input
+              filled
+              v-model="formBlockedIPs"
+              @keydown.enter="addBlockedIPs"
+              type="text"
+              label="Block IP addresses. Block access by IP "
+              hint="Enter IP and hit enter"
+            >
+              <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+            </q-input>
           <div>
             {%raw%}
             <q-chip
@@ -36,9 +46,20 @@
           </div>
           <br />
         </div>
+        </div>
         <div class="col-12 col-md-6">
           <br/>
           <p>Allowed IPs</p>
+          <q-input
+          filled
+          v-model="formAllowedIPs"
+          @keydown.enter="addAllowedIPs"
+          type="text"
+          label="Allow IP addresses. Allow access by IP (will override blocked IPs)."
+          hint="Enter IP and hit enter"
+        >
+          <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+        </q-input>
           <div>
             {%raw%}
             <q-chip
