@@ -455,10 +455,10 @@
           this.formAllowedIPs = ''
         }
       },
-      removeAllowedIPs(allowed_ips) {
-        const manifests = this.formData.lnbits_allowed_ips
+      removeAllowedIPs(allowed_ip) {
+        const allowed_ips = this.formData.lnbits_allowed_ips
         this.formData.lnbits_allowed_ips = allowed_ips.filter(
-          a => a !== allowed_ips
+          a => a !== allowed_ip
         )
       },
       addBlockedIPs() {
@@ -473,10 +473,10 @@
           this.formBlockedIPs = ''
         }
       },
-      removeBlockedIPs(blocked_ips) {
-        const manifests = this.formData.lnbits_blocked_ips
+      removeBlockedIPs(blocked_ip) {
+        const blocked_ips = this.formData.lnbits_blocked_ips
         this.formData.lnbits_blocked_ips = blocked_ips.filter(
-          b => b !== blocked_ips
+          b => b !== blocked_ip
         )
       },
       restartServer() {

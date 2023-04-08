@@ -11,7 +11,6 @@ from http import HTTPStatus
 from typing import Callable, List
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware import Middleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -97,20 +96,22 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     FastAPILimiter.init(app, limiter)
 
-    # IP allow/blocking function
-    async def block_allow_ip_middleware(request, call_next):
-        if settings.lnbits_allowed_ips != [] and request.client.host not in settings.lnbits_allowed_ips:
-            raise HTTPException(status_code=403, detail="Forbidden")
+
+    @app.middleware("http")
+    async def block_allow_ip_middleware(request: Request, call_next):
         if settings.lnbits_allowed_ips == [] and request.client.host in settings.lnbits_blocked_ips:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="Invalid key or expired key.",
+            )
+        if settings.lnbits_allowed_ips != [] and request.client.host not in settings.lnbits_allowed_ips:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="Invalid key or expired key.",
+            )
         response = await call_next(request)
         return response
-
-    # Add the middleware to the FastAPI app
-    app.add_middleware = Middleware([
-        TrustedHostMiddleware, # Use the TrustedHostMiddleware to get the client's IP address
-        block_allow_ip_middleware
-    ])
+    app.middleware("http")(block_allow_ip_middleware)
 
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))

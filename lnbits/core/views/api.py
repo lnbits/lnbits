@@ -11,7 +11,10 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 import async_timeout
 import httpx
 import pyqrcode
+
+
 from fastapi import (
+    FastAPI,
     Body,
     Depends,
     Header,
@@ -90,11 +93,9 @@ from ..services import (
 )
 from ..tasks import api_invoice_listeners
 
-
 @core_app.get("/api/v1/health", status_code=HTTPStatus.OK)
 async def health():
     return
-
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
