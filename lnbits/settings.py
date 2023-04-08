@@ -100,6 +100,8 @@ class OpsSettings(LNbitsSettings):
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
     lnbits_rate_limit: str = Field(default="10000")
+    lnbits_allowed_ips: List[str] = Field(default=[])
+    lnbits_blocked_ips: List[str] = Field(default=[])
 
 
 class FakeWalletFundingSource(LNbitsSettings):

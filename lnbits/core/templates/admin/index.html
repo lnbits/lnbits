@@ -440,6 +440,18 @@
           m => m !== manifest
         )
       },
+      removeAllowedIPs(allowed_ips) {
+        const manifests = this.formData.lnbits_allowed_ips
+        this.formData.lnbits_allowed_ips = allowed_ips.filter(
+          a => a !== allowed_ips
+        )
+      },
+      removeBlockedIPs(blocked_ips) {
+        const manifests = this.formData.lnbits_blocked_ips
+        this.formData.lnbits_blocked_ips = blocked_ips.filter(
+          b => b !== blocked_ips
+        )
+      },
       restartServer() {
         LNbits.api
           .request('GET', '/admin/api/v1/restart/?usr=' + this.g.user.id)

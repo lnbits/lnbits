@@ -19,6 +19,46 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <br/>
+          <p>Blocked IPs</p>
+          <div>
+            {%raw%}
+            <q-chip
+              v-for="blocked_ip in formData.lnbits_blocked_ips"
+              :key="blocked_ip"
+              removable
+              @remove="removeBlockedIPs(blocked_ip)"
+              color="primary"
+              text-color="white"
+            >
+              {{ blocked_ip }}
+            </q-chip>
+            {%endraw%}
+          </div>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <br/>
+          <p>Allowed IPs</p>
+          <div>
+            {%raw%}
+            <q-chip
+              v-for="allowed_ip in formData.lnbits_allowed_ips"
+              :key="manifestUrl"
+              removable
+              @remove="removeAllowedIPs(allowed_ip)"
+              color="primary"
+              text-color="white"
+            >
+              {{ allowed_ip }}
+            </q-chip>
+            {%endraw%}
+          </div>
+          <br />
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <br/>
           <p>Rate Limit</p>
           <q-input
             filled

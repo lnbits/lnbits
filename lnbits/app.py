@@ -10,7 +10,9 @@ import traceback
 from http import HTTPStatus
 from typing import Callable, List
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware import Middleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -94,7 +96,22 @@ def create_app() -> FastAPI:
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
     FastAPILimiter.init(app, limiter)
-    
+
+    # IP allow/blocking function
+    async def block_allow_ip_middleware(request, call_next):
+        if settings.lnbits_allowed_ips != [] and request.client.host not in settings.lnbits_allowed_ips:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if settings.lnbits_allowed_ips == [] and request.client.host in settings.lnbits_blocked_ips:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        response = await call_next(request)
+        return response
+
+    # Add the middleware to the FastAPI app
+    app.middleware_stack = Middleware([
+        TrustedHostMiddleware, # Use the TrustedHostMiddleware to get the client's IP address
+        block_allow_ip_middleware
+    ])
+
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
 
