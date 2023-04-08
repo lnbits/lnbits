@@ -20,6 +20,51 @@ POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
 
+if settings.lnbits_database_url:
+    database_uri = settings.lnbits_database_url
+
+    if database_uri.startswith("cockroachdb://"):
+        DB_TYPE = COCKROACH
+    else:
+        DB_TYPE = POSTGRES
+
+    from psycopg2.extensions import DECIMAL, new_type, register_type
+
+    def _parse_timestamp(value, _):
+        if value is None:
+            return None
+        f = "%Y-%m-%d %H:%M:%S.%f"
+        if "." not in value:
+            f = "%Y-%m-%d %H:%M:%S"
+        return time.mktime(datetime.datetime.strptime(value, f).timetuple())
+
+    register_type(
+        new_type(
+            DECIMAL.values,
+            "DEC2FLOAT",
+            lambda value, curs: float(value) if value is not None else None,
+        )
+    )
+    register_type(
+        new_type(
+            (1082, 1083, 1266),
+            "DATE2INT",
+            lambda value, curs: time.mktime(value.timetuple())
+            if value is not None
+            else None,
+        )
+    )
+
+    register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
+else:
+    if os.path.isdir(settings.lnbits_data_folder):
+        DB_TYPE = SQLITE
+    else:
+        raise NotADirectoryError(
+            f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
+            f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
+        )
+
 
 class Operator(Enum):
     GT = "gt"
@@ -328,57 +373,17 @@ class Connection(Compat):
 class Database(Compat):
     def __init__(self, db_name: str):
         self.name = db_name
+        self.schema = self.name
+        self.type = DB_TYPE
 
-        if settings.lnbits_database_url:
+        if DB_TYPE == SQLITE:
+            self.path = os.path.join(
+                settings.lnbits_data_folder, f"{self.name}.sqlite3"
+            )
+            database_uri = f"sqlite:///{self.path}"
+        else:
             database_uri = settings.lnbits_database_url
 
-            if database_uri.startswith("cockroachdb://"):
-                self.type = COCKROACH
-            else:
-                self.type = POSTGRES
-
-            from psycopg2.extensions import DECIMAL, new_type, register_type
-
-            def _parse_timestamp(value, _):
-                if value is None:
-                    return None
-                f = "%Y-%m-%d %H:%M:%S.%f"
-                if "." not in value:
-                    f = "%Y-%m-%d %H:%M:%S"
-                return time.mktime(datetime.datetime.strptime(value, f).timetuple())
-
-            register_type(
-                new_type(
-                    DECIMAL.values,
-                    "DEC2FLOAT",
-                    lambda value, curs: float(value) if value is not None else None,
-                )
-            )
-            register_type(
-                new_type(
-                    (1082, 1083, 1266),
-                    "DATE2INT",
-                    lambda value, curs: time.mktime(value.timetuple())
-                    if value is not None
-                    else None,
-                )
-            )
-
-            register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
-        else:
-            if os.path.isdir(settings.lnbits_data_folder):
-                self.path = os.path.join(
-                    settings.lnbits_data_folder, f"{self.name}.sqlite3"
-                )
-                database_uri = f"sqlite:///{self.path}"
-                self.type = SQLITE
-            else:
-                raise NotADirectoryError(
-                    f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
-                    f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
-                )
-        logger.trace(f"database {self.type} added for {self.name}")
-        self.schema = self.name
         if self.name.startswith("ext_"):
             self.schema = self.name[4:]
         else:
@@ -386,6 +391,8 @@ class Database(Compat):
 
         self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
         self.lock = asyncio.Lock()
+
+        logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
     async def connect(self):
