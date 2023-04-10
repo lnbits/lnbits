@@ -6,6 +6,7 @@ from typing import AsyncGenerator, Optional
 from loguru import logger
 from websocket import create_connection
 
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -26,9 +27,10 @@ class ClicheWallet(Wallet):
             raise Exception("cannot initialize cliche")
 
     async def status(self) -> StatusResponse:
+        id = urlsafe_short_hash()
         try:
             ws = create_connection(self.endpoint)
-            ws.send("get-info")
+            ws.send({"id":id,"method":"get-info"})
             r = ws.recv()
         except Exception as exc:
             return StatusResponse(
@@ -51,6 +53,7 @@ class ClicheWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
+        id = urlsafe_short_hash()
         if unhashed_description or description_hash:
             description_hash_str = (
                 description_hash.hex()
@@ -62,14 +65,18 @@ class ClicheWallet(Wallet):
                 )
             )
             ws = create_connection(self.endpoint)
-            ws.send(
-                f"create-invoice --msatoshi {amount*1000} --description_hash"
-                f" {description_hash_str}"
-            )
+            ws.send({
+                "id": id,
+                "method": "create-invoice",
+                "params": {
+                    "msatoshi": amount*1000,
+                    "description_hash": description_hash_str
+                }
+            })
             r = ws.recv()
         else:
             ws = create_connection(self.endpoint)
-            ws.send(f"create-invoice --msatoshi {amount*1000} --description {memo}")
+            ws.send({"id":id,"method":"create-invoice","params":{"msatoshi":amount*1000,"description":memo}})
             r = ws.recv()
         data = json.loads(r)
         checking_id = None
@@ -92,8 +99,9 @@ class ClicheWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        id = urlsafe_short_hash()
         ws = create_connection(self.endpoint)
-        ws.send(f"pay-invoice --invoice {bolt11}")
+        ws.send({"id":id,"method":"pay-invoice","params":{"invoice":bolt11}})
         checking_id, fee_msat, preimage, error_message, payment_ok = (
             None,
             None,
@@ -131,8 +139,9 @@ class ClicheWallet(Wallet):
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        id = urlsafe_short_hash()
         ws = create_connection(self.endpoint)
-        ws.send(f"check-payment --hash {checking_id}")
+        ws.send({"id":id,"method":"check-payment","params":{"hash":checking_id}})
         r = ws.recv()
         data = json.loads(r)
 
@@ -144,8 +153,9 @@ class ClicheWallet(Wallet):
         return PaymentStatus(statuses[data["result"]["status"]])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        id = urlsafe_short_hash()
         ws = create_connection(self.endpoint)
-        ws.send(f"check-payment --hash {checking_id}")
+        ws.send({"id":id,"method":"check-payment","params":{"hash":checking_id}})
         r = ws.recv()
         data = json.loads(r)
 
