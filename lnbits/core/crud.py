@@ -352,6 +352,7 @@ async def get_payments(
     exclude_uncheckable: bool = False,
     filters: Optional[Filters[Payment]] = None,
     conn: Optional[Connection] = None,
+    **kwargs,
 ) -> List[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
