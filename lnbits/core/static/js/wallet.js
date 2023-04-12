@@ -698,8 +698,8 @@ new Vue({
       let pagination = this.paymentsTable.pagination
       this.paymentsTable.loading = true
       const query = {
-        size: pagination.rowsPerPage,
-        page: pagination.page,
+        limit: pagination.rowsPerPage,
+        offset: (pagination.page - 1) * pagination.rowsPerPage,
         sortby: pagination.sortBy,
         direction: pagination.descending ? 'desc' : 'asc'
       }

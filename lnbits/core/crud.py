@@ -439,7 +439,7 @@ async def get_payments(
         since=since,
         exclude_uncheckable=exclude_uncheckable,
         filters=filters,
-        conn=conn
+        conn=conn,
     )
 
     return page.data

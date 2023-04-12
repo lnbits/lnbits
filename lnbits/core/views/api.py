@@ -135,7 +135,7 @@ async def api_payments(
         exclude_uncheckable=True,
         filters=filters,
     )
-    for payment in pending_payments.data:
+    for payment in pending_payments:
         await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
@@ -155,7 +155,7 @@ async def api_payments(
     response_model=Page[Payment],
     openapi_extra=generate_filter_params_openapi(Payment),
 )
-async def api_payments(
+async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(Payment)),
 ):
@@ -308,8 +308,8 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-        wallet: WalletTypeInfo = Depends(require_invoice_key),
-        invoiceData: CreateInvoiceData = Body(...),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    invoiceData: CreateInvoiceData = Body(...),
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -340,7 +340,7 @@ class CreateLNURLData(BaseModel):
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
-        data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     domain = urlparse(data.callback).netloc
 
@@ -453,7 +453,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
 @core_app.get("/api/v1/payments/sse")
 async def api_payments_sse(
-        request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
         subscribe_wallet_invoices(request, wallet.wallet),
@@ -518,10 +518,10 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
             name, domain = name_domain
             url = (
-                    ("http://" if domain.endswith(".onion") else "https://")
-                    + domain
-                    + "/.well-known/lnurlp/"
-                    + name
+                ("http://" if domain.endswith(".onion") else "https://")
+                + domain
+                + "/.well-known/lnurlp/"
+                + name
             )
             # will proceed with these values
         else:
@@ -657,7 +657,7 @@ class Callback(BaseModel):
 
 @core_app.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
-        callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     err = await perform_lnurlauth(callback.callback, wallet=wallet)
     if err:
@@ -769,7 +769,7 @@ async def websocket_update_get(item_id: str, data: str):
 
 @core_app.post("/api/v1/extension")
 async def api_install_extension(
-        data: CreateExtension, user: User = Depends(check_admin)
+    data: CreateExtension, user: User = Depends(check_admin)
 ):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
@@ -879,7 +879,7 @@ async def get_extension_releases(ext_id: str):
 
 @core_app.post("/api/v1/tinyurl")
 async def api_create_tinyurl(
-        url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
+    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     tinyurls = await get_tinyurl_by_url(url)
     try:
@@ -896,7 +896,7 @@ async def api_create_tinyurl(
 
 @core_app.get("/api/v1/tinyurl/{tinyurl_id}")
 async def api_get_tinyurl(
-        tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
@@ -914,7 +914,7 @@ async def api_get_tinyurl(
 
 @core_app.delete("/api/v1/tinyurl/{tinyurl_id}")
 async def api_delete_tinyurl(
-        tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
