@@ -5,6 +5,7 @@ from asyncio import Future
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
+from websocket import WebSocketApp
 from websockets.client import connect
 
 from lnbits.settings import settings
@@ -27,7 +28,15 @@ class ClicheWallet(Wallet):
             raise Exception("cannot initialize cliche")
         self.next_id = 0
         self.futures = {}
-        self.ws = None
+        self.ws: WebSocketApp = None
+
+    async def connect(self):
+        self.ws = WebSocketApp(
+            self.endpoint,
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+        )
 
     async def send_command(self, method: str, params: Optional[dict] = None):
         self.next_id += 1
@@ -188,13 +197,18 @@ class ClicheWallet(Wallet):
                 yield data["result"]["payment_hash"]
         except Exception as exc:
             logger.exception(f"Error processing message: {exc}")
+    
+    def on_error(self, error):
+        logger.warning(f"Error from websocket: {error}")
+    
+    def on_close(self):
+        logger.error("Websocket closed")
+        self.ws.close()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                async with connect(self.endpoint) as ws:
-                    ws.on_message = self.on_message
-                    self.ws = ws
+                await self.connect()
 
             except Exception as exc:
                 logger.error(
