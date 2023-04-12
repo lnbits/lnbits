@@ -341,7 +341,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     return rows
 
 
-async def get_payments(
+async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
     complete: bool = False,
@@ -402,6 +402,47 @@ async def get_payments(
         filters=filters,
         model=Payment,
     )
+
+
+async def get_payments(
+    *,
+    wallet_id: Optional[str] = None,
+    complete: bool = False,
+    pending: bool = False,
+    outgoing: bool = False,
+    incoming: bool = False,
+    since: Optional[int] = None,
+    exclude_uncheckable: bool = False,
+    filters: Optional[Filters[Payment]] = None,
+    conn: Optional[Connection] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+) -> list[Payment]:
+    """
+    Filters payments to be returned by complete | pending | outgoing | incoming.
+    """
+
+    if not filters:
+        filters = Filters()
+
+    if limit:
+        filters.limit = limit
+    if offset:
+        filters.offset = offset
+
+    page = await get_payments_paginated(
+        wallet_id=wallet_id,
+        complete=complete,
+        pending=pending,
+        outgoing=outgoing,
+        incoming=incoming,
+        since=since,
+        exclude_uncheckable=exclude_uncheckable,
+        filters=filters,
+        conn=conn
+    )
+
+    return page.data
 
 
 async def delete_expired_invoices(

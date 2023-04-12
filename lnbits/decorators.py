@@ -285,8 +285,8 @@ def parse_filters(model: Type[TFilterModel]):
 
     def dependency(
         request: Request,
-        page: Optional[int] = None,
-        size: Optional[int] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
         sortby: Optional[str] = None,
         direction: Optional[Literal["asc", "desc"]] = None,
         search: Optional[str] = Query(None, description="Text based search"),
@@ -301,8 +301,8 @@ def parse_filters(model: Type[TFilterModel]):
 
         return Filters(
             filters=filters,
-            page=page,
-            size=size,
+            limit=limit,
+            offset=offset,
             sortby=sortby,
             direction=direction,
             search=search,

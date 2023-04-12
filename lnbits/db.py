@@ -111,8 +111,6 @@ TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 class Page(BaseModel, Generic[T]):
     data: list[T]
     total: int
-    page: Optional[int]
-    size: Optional[int]
 
 
 class Filter(BaseModel, Generic[TFilterModel]):
@@ -182,8 +180,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
     filters: List[Filter[TFilterModel]] = []
     search: Optional[str] = None
 
-    page: Optional[int] = None
-    size: Optional[int] = None
+    offset: Optional[int] = None
+    limit: Optional[int] = None
 
     sortby: Optional[str] = None
     direction: Optional[Literal["asc", "desc"]] = None
@@ -192,10 +190,10 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     def pagination(self) -> str:
         stmt = ""
-        if self.size:
-            stmt += f"LIMIT {self.size} "
-            if self.page:
-                stmt += f"OFFSET {self.size * (self.page - 1)}"
+        if self.limit:
+            stmt += f"LIMIT {self.limit} "
+        if self.offset:
+            stmt += f"OFFSET {self.offset}"
         return stmt
 
     def where(self, where_stmts: Optional[list[str]] = None) -> str:
@@ -330,7 +328,7 @@ class Connection(Compat):
         model: Optional[Type[TRowModel]] = None,
     ) -> Page[TRowModel]:
         if not filters:
-            filters = Filters()  # trick to comfort pyright
+            filters = Filters()
         clause = filters.where(where)
         parsed_values = filters.values(values)
 
@@ -360,8 +358,6 @@ class Connection(Compat):
         return Page(
             data=[model.from_row(row) for row in rows] if model else rows,
             total=count,
-            size=filters.size,
-            page=filters.page,
         )
 
     async def execute(self, query: str, values: tuple = ()):

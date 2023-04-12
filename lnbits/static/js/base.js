@@ -61,7 +61,7 @@ window.LNbits = {
     },
     getPayments: function (wallet, query) {
       const params = new URLSearchParams(query)
-      return this.request('get', '/api/v1/payments?' + params, wallet.inkey)
+      return this.request('get', '/api/v1/payments/paginated?' + params, wallet.inkey)
     },
     getPayment: function (wallet, paymentHash) {
       return this.request(
