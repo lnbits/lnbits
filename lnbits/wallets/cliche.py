@@ -1,12 +1,12 @@
 import asyncio
 import hashlib
 import json
+from asyncio import Future
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
-from websocket import create_connection
+from websockets.client import connect
 
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -25,17 +25,25 @@ class ClicheWallet(Wallet):
         self.endpoint = settings.cliche_endpoint
         if not self.endpoint:
             raise Exception("cannot initialize cliche")
+        self.next_id = 0
+        self.futures = {}
+        self.ws = None
+
+    async def send_command(self, method: str, params: Optional[dict] = None):
+        self.next_id += 1
+        command = {"id": self.next_id, "method": method}
+        if params is not None:
+            command["params"] = params
+
+        self.ws.send(json.dumps(command))
+        future = Future()
+        self.futures[self.next_id] = future
+        data = await future
+        return data
 
     async def status(self) -> StatusResponse:
-        id = urlsafe_short_hash()
-        try:
-            ws = create_connection(self.endpoint)
-            ws.send({"id":id,"method":"get-info"})
-            r = ws.recv()
-        except Exception as exc:
-            return StatusResponse(
-                f"Failed to connect to {self.endpoint} due to: {exc}", 0
-            )
+        r = await self.send_command(method="get-info")
+
         try:
             data = json.loads(r)
         except Exception:
@@ -53,7 +61,6 @@ class ClicheWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        id = urlsafe_short_hash()
         if unhashed_description or description_hash:
             description_hash_str = (
                 description_hash.hex()
@@ -64,20 +71,21 @@ class ClicheWallet(Wallet):
                     else None
                 )
             )
-            ws = create_connection(self.endpoint)
-            ws.send({
-                "id": id,
-                "method": "create-invoice",
-                "params": {
-                    "msatoshi": amount*1000,
-                    "description_hash": description_hash_str
-                }
-            })
-            r = ws.recv()
+
+            r = await self.send_command(
+                method="create-invoice",
+                params={
+                    "msatoshi": amount * 1000,
+                    "description_hash": description_hash_str,
+                },
+            )
         else:
-            ws = create_connection(self.endpoint)
-            ws.send({"id":id,"method":"create-invoice","params":{"msatoshi":amount*1000,"description":memo}})
-            r = ws.recv()
+
+            r = await self.send_command(
+                method="create-invoice",
+                params={"msatoshi": amount * 1000, "description": memo},
+            )
+
         data = json.loads(r)
         checking_id = None
         payment_request = None
@@ -99,9 +107,7 @@ class ClicheWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        id = urlsafe_short_hash()
-        ws = create_connection(self.endpoint)
-        ws.send({"id":id,"method":"pay-invoice","params":{"invoice":bolt11}})
+
         checking_id, fee_msat, preimage, error_message, payment_ok = (
             None,
             None,
@@ -110,7 +116,9 @@ class ClicheWallet(Wallet):
             None,
         )
         for _ in range(2):
-            r = ws.recv()
+            r = await self.send_command(
+                method="pay-invoice", params={"invoice": bolt11}
+            )
             data = json.loads(r)
             checking_id, fee_msat, preimage, error_message, payment_ok = (
                 None,
@@ -139,10 +147,9 @@ class ClicheWallet(Wallet):
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        id = urlsafe_short_hash()
-        ws = create_connection(self.endpoint)
-        ws.send({"id":id,"method":"check-payment","params":{"hash":checking_id}})
-        r = ws.recv()
+        r = await self.send_command(
+            method="check-payment", params={"hash": checking_id}
+        )
         data = json.loads(r)
 
         if data.get("error") is not None and data["error"].get("message"):
@@ -153,10 +160,10 @@ class ClicheWallet(Wallet):
         return PaymentStatus(statuses[data["result"]["status"]])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        id = urlsafe_short_hash()
-        ws = create_connection(self.endpoint)
-        ws.send({"id":id,"method":"check-payment","params":{"hash":checking_id}})
-        r = ws.recv()
+
+        r = await self.send_command(
+            method="check-payment", params={"hash": checking_id}
+        )
         data = json.loads(r)
 
         if data.get("error") is not None and data["error"].get("message"):
@@ -170,19 +177,25 @@ class ClicheWallet(Wallet):
             payment.get("preimage"),
         )
 
+    async def on_message(self, message: str):
+        try:
+            data = json.loads(message)
+            msg_id = data.get("id")
+            if msg_id is not None and msg_id in self.futures:
+                future = self.futures.pop(msg_id)
+                future.set_result(data)
+            elif data.get("result", {}).get("status"):
+                yield data["result"]["payment_hash"]
+        except Exception as exc:
+            logger.exception(f"Error processing message: {exc}")
+
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                ws = create_connection(self.endpoint)
-                while True:
-                    r = ws.recv()
-                    data = json.loads(r)
-                    print(data)
-                    try:
-                        if data["result"]["status"]:
-                            yield data["result"]["payment_hash"]
-                    except Exception:
-                        continue
+                async with connect(self.endpoint) as ws:
+                    ws.on_message = self.on_message
+                    self.ws = ws
+
             except Exception as exc:
                 logger.error(
                     f"lost connection to cliche's invoices stream: '{exc}', retrying in"
