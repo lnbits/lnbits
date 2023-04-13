@@ -342,16 +342,20 @@ class Connection(Compat):
             parsed_values,
         )
         if rows:
-            count = await self.fetchone(
-                f"""
-                SELECT COUNT(*) FROM (
-                    {query}
-                    {clause}
-                ) as count
-                """,
-                parsed_values,
-            )
-            count = int(count[0])
+            # no need for extra query if no pagination is specified
+            if filters.offset or filters.limit:
+                count = await self.fetchone(
+                    f"""
+                    SELECT COUNT(*) FROM (
+                        {query}
+                        {clause}
+                    ) as count
+                    """,
+                    parsed_values,
+                )
+                count = int(count[0])
+            else:
+                count = len(rows)
         else:
             count = 0
 
