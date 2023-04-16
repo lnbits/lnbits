@@ -3,6 +3,13 @@ name = "lnbits"
 version = "0.12.6"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
+readme = "README.md"
+repository = "https://github.com/lnbits/lnbits"
+homepage = "https://lnbits.com"
+packages = [
+  {include = "lnbits"},
+  {include = "lnbits/py.typed"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.10 | ^3.9"
