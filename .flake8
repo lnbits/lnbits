@@ -4,8 +4,6 @@ exclude = lnbits/wallets/lnd_grpc_files/, lnbits/extensions/
 ignore =
     # E402: module level import not at top of file
     E402,
-    # E741 ambiguous variable name
-    E741,
     # W503: line break before binary operator
     W503,
     # F821: undefined name - should be addressed in future PR

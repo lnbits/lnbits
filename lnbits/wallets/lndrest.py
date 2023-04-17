@@ -173,9 +173,9 @@ class LndRestWallet(Wallet):
             timeout=None, headers=self.auth, verify=self.cert
         ) as client:
             async with client.stream("GET", url) as r:
-                async for l in r.aiter_lines():
+                async for json_line in r.aiter_lines():
                     try:
-                        line = json.loads(l)
+                        line = json.loads(json_line)
                         if line.get("error"):
                             logger.error(
                                 line["error"]["message"]
