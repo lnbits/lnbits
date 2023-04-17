@@ -164,7 +164,7 @@ class LNbitsWallet(Wallet):
                                 sse_trigger = True
                                 continue
                             elif sse_trigger and line.startswith("data:"):
-                                data = json.loads(line[len("data:") :])
+                                data = json.loads(line[len("data:"):])
                                 sse_trigger = False
                                 yield data["payment_hash"]
                             else:

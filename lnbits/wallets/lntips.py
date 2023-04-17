@@ -155,7 +155,7 @@ class LnTipsWallet(Wallet):
                                 prefix = "data: "
                                 if not line.startswith(prefix):
                                     continue
-                                data = line[len(prefix) :]  # sse parsing
+                                data = line[len(prefix):]  # sse parsing
                                 inv = json.loads(data)
                                 if not inv.get("payment_hash"):
                                     continue

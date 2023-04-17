@@ -50,7 +50,7 @@ def decode(pr: str) -> Invoice:
         raise ValueError("Too short to contain signature")
 
     # extract the signature
-    signature = bitarray[-65 * 8 :].tobytes()
+    signature = bitarray[-65 * 8:].tobytes()
 
     # the tagged fields as a bitstream
     data = bitstring.ConstBitStream(bitarray[: -65 * 8])
@@ -61,7 +61,7 @@ def decode(pr: str) -> Invoice:
     # decode the amount from the hrp
     m = re.search(r"[^\d]+", hrp[2:])
     if m:
-        amountstr = hrp[2 + m.end() :]
+        amountstr = hrp[2 + m.end():]
         if amountstr != "":
             invoice.amount_msat = _unshorten_amount(amountstr)
 
