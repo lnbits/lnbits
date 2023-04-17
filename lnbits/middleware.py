@@ -125,7 +125,7 @@ class ExtensionsRedirectMiddleware:
     def _new_path(self, redirect: dict, req_path: str) -> str:
         from_path = redirect["from_path"].split("/")
         redirect_to = redirect["redirect_to_path"].split("/")
-        req_tail_path = req_path.split("/")[len(from_path):]
+        req_tail_path = req_path.split("/")[len(from_path) :]
 
         elements = [
             e for e in ([redirect["ext_id"]] + redirect_to + req_tail_path) if e != ""
