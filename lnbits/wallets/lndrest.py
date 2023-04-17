@@ -58,8 +58,9 @@ class LndRestWallet(Wallet):
                 r = await client.get(
                     f"{self.endpoint}/v1/balance/channels", headers=self.auth
                 )
-        except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
+                r.raise_for_status()
+        except (httpx.ConnectError, httpx.RequestError) as exc:
+            return StatusResponse(f"Unable to connect to {self.endpoint}. {exc}", 0)
 
         try:
             data = r.json()
