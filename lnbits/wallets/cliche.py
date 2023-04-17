@@ -195,6 +195,8 @@ class ClicheWallet(Wallet):
                 future.set_result(data)
             elif data.get("result", {}).get("status"):
                 yield data["result"]["payment_hash"]
+            else:
+                logger.debug(f"Got message: {data}")
         except Exception as exc:
             logger.exception(f"Error processing message: {exc}")
     
