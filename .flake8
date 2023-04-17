@@ -1,5 +1,5 @@
 [flake8]
-max-line-length = 300
+max-line-length = 150
 exclude = lnbits/wallets/lnd_grpc_files/, lnbits/extensions/
 ignore =
     # E402: module level import not at top of file
