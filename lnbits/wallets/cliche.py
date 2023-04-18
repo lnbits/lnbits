@@ -6,7 +6,6 @@ from typing import AsyncGenerator, Optional
 
 from loguru import logger
 from websocket import WebSocketApp
-from websockets.client import connect
 
 from lnbits.settings import settings
 
@@ -199,10 +198,10 @@ class ClicheWallet(Wallet):
                 logger.debug(f"Got message: {data}")
         except Exception as exc:
             logger.exception(f"Error processing message: {exc}")
-    
+
     def on_error(self, error):
         logger.warning(f"Error from websocket: {error}")
-    
+
     def on_close(self):
         logger.error("Websocket closed")
         self.ws.close()
