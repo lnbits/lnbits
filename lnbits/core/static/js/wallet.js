@@ -466,6 +466,16 @@ new Vue({
         return
       }
 
+      // BIP-21 support 
+      if(this.parse.data.request.toLowerCase().includes('lightning')){
+        this.parse.data.request = this.parse.data.request.split('lightning=')[1]
+        
+        // fail safe to check there's nothing after the lightning= part
+        if(this.parse.data.request.includes('&')){
+          this.parse.data.request = this.parse.data.request.split('&')[0]
+        }
+      }
+
       let invoice
       try {
         invoice = decode(this.parse.data.request)
