@@ -700,7 +700,7 @@ new Vue({
       const query = {
         limit: pagination.rowsPerPage,
         offset: (pagination.page - 1) * pagination.rowsPerPage,
-        sortby: pagination.sortBy,
+        sortby: pagination.sortBy ?? 'time',
         direction: pagination.descending ? 'desc' : 'asc'
       }
       if (this.paymentsTable.filter) {
@@ -713,9 +713,9 @@ new Vue({
           .map(obj => {
             return LNbits.map.payment(obj)
           })
-          .sort((a, b) => {
-            return b.time - a.time
-          })
+      }).catch(err => {
+        this.paymentsTable.loading = false
+        LNbits.utils.notifyApiError(err)
       })
     },
     fetchBalance: function () {
