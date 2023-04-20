@@ -168,7 +168,8 @@ async def m004_ensure_fees_are_always_negative(db):
 
 async def m005_balance_check_balance_notify(db):
     """
-    Keep track of balanceCheck-enabled lnurl-withdrawals to be consumed by an LNbits wallet and of balanceNotify URLs supplied by users to empty their wallets.
+    Keep track of balanceCheck-enabled lnurl-withdrawals to be consumed by an
+    LNbits wallet and of balanceNotify URLs supplied by users to empty their wallets.
     """
 
     await db.execute(
