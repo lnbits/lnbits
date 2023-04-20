@@ -12,6 +12,7 @@
     "quasar": "1.13.2",
     "underscore": "^1.13.6",
     "vue": "2.6.12",
+    "vue-i18n": "^8.28.2",
     "vue-qrcode-reader": "2.2",
     "vue-router": "3.4.3",
     "vuex": "3.5.1"

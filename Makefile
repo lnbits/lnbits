@@ -89,3 +89,4 @@ updatevendor:
 	cp ./node_modules/quasar/dist/quasar.css ./lnbits/static/vendor/
 	cp ./node_modules/chart.js/dist/Chart.css ./lnbits/static/vendor/
 	cp ./node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.css ./lnbits/static/vendor/
+	cp ./node_modules/vue-i18n/dist/vue-i18n.js ./lnbits/static/vendor/
