@@ -706,17 +706,19 @@ new Vue({
       if (this.paymentsTable.filter) {
         query.search = this.paymentsTable.filter
       }
-      return LNbits.api.getPayments(this.g.wallet, query).then(response => {
-        this.paymentsTable.loading = false
-        this.paymentsTable.pagination.rowsNumber = response.data.total
-        this.payments = response.data.data
-          .map(obj => {
+      return LNbits.api
+        .getPayments(this.g.wallet, query)
+        .then(response => {
+          this.paymentsTable.loading = false
+          this.paymentsTable.pagination.rowsNumber = response.data.total
+          this.payments = response.data.data.map(obj => {
             return LNbits.map.payment(obj)
           })
-      }).catch(err => {
-        this.paymentsTable.loading = false
-        LNbits.utils.notifyApiError(err)
-      })
+        })
+        .catch(err => {
+          this.paymentsTable.loading = false
+          LNbits.utils.notifyApiError(err)
+        })
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
