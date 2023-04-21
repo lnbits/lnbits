@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
@@ -14,27 +16,6 @@ from lnbits.requestvars import g
 from lnbits.settings import settings
 
 from .extension_manager import get_valid_extensions
-
-vendored_js = [
-    "/static/vendor/moment.js",
-    "/static/vendor/underscore.js",
-    "/static/vendor/axios.js",
-    "/static/vendor/vue.js",
-    "/static/vendor/vue-router.js",
-    "/static/vendor/vue-qrcode-reader.browser.js",
-    "/static/vendor/vue-qrcode.js",
-    "/static/vendor/vue-i18n.js",
-    "/static/vendor/vuex.js",
-    "/static/vendor/quasar.ie.polyfills.umd.min.js",
-    "/static/vendor/quasar.umd.js",
-    "/static/vendor/Chart.bundle.js",
-]
-
-vendored_css = [
-    "/static/vendor/quasar.css",
-    "/static/vendor/Chart.css",
-    "/static/vendor/vue-qrcode-reader.css",
-]
 
 
 def urlsafe_short_hash() -> str:
@@ -79,11 +60,14 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
     if settings.debug:
-        t.env.globals["VENDORED_JS"] = vendored_js
-        t.env.globals["VENDORED_CSS"] = vendored_css
+        vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
+        with open(vendor_filepath) as vendor_file:
+            vendor_files = json.loads(vendor_file.read())
+            t.env.globals["INCLUDED_JS"] = vendor_files["js"]
+            t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
     else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
-        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
+        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
 
     return t
 

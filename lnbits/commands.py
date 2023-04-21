@@ -1,6 +1,4 @@
 import asyncio
-import os
-import warnings
 
 import click
 from loguru import logger
@@ -18,23 +16,6 @@ from .extension_manager import get_valid_extensions
 @click.command("migrate")
 def db_migrate():
     asyncio.create_task(migrate_databases())
-
-
-@click.command("assets")
-def handle_assets():
-    transpile_scss()
-
-
-def transpile_scss():
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        from scss.compiler import compile_string  # type: ignore
-
-        with open(os.path.join(settings.lnbits_path, "static/scss/base.scss")) as scss:
-            with open(
-                os.path.join(settings.lnbits_path, "static/css/base.css"), "w"
-            ) as css:
-                css.write(compile_string(scss.read()))
 
 
 async def migrate_databases():
