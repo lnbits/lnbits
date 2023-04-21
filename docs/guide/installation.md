@@ -194,6 +194,10 @@ poetry add setuptools wheel
 
 If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
+If you are on OSX, running ``` poetry env use python3.9``` may give errors, in pyproject.toml 
+remove the "[tool.poetry.group.dev.dependencies]" line before running ```poetry install```
+
+
 ### Optional: PostgreSQL database
 
 If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
