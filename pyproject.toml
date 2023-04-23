@@ -36,7 +36,7 @@ cashu = "0.9.0"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
-isort = "^5.10.1"
+isort = "^5.12.0"
 pytest = "^7.1.2"
 mock = "^4.0.3"
 black = "^22.6.0"
@@ -45,6 +45,8 @@ pytest-cov = "^3.0.0"
 mypy = "^0.971"
 types-protobuf = "^3.19.22"
 pylint = "^2.17.2"
+pre-commit = "^3.2.2"
+types-mock = "^5.0.0.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -89,3 +89,11 @@ bundle:
 	# increment serviceworker version
 	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/core/static/js/service-worker.js)/" \
 		lnbits/core/static/js/service-worker.js
+
+install-pre-commit-hook:
+	@echo "Installing pre-commit hook to git"
+	@echo "Uninstall the hook with poetry run pre-commit uninstall"
+	poetry run pre-commit install
+
+pre-commit:
+	poetry run pre-commit run --all-files
