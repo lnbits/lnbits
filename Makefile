@@ -86,3 +86,6 @@ bundle:
 	npm run vendor_minify_css
 	npm run vendor_bundle_js
 	npm run vendor_minify_js
+	# increment serviceworker version
+	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/core/static/js/service-worker.js)/" \
+		lnbits/core/static/js/service-worker.js
