@@ -200,7 +200,7 @@ window.LNbits = {
       newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
         newWallet.sat
       )
-      newWallet.url = ['/wallet?usr=', data.user, '&wal=', data.id].join('')
+      newWallet.url = `/wallet?&wal=${data.id}`
       return newWallet
     },
     payment: function (data) {
@@ -386,6 +386,31 @@ window.windowMixin = {
   },
 
   methods: {
+    login: function (usr) {
+      let that = this
+      axios({
+        method: 'POST',
+        url: '/api/v1/login',
+        data: {usr: usr, username: 'unknown', password: 'unknown'}
+      }).then(function (response) {
+        that.$q.localStorage.set('lnbits.token', response.data.access_token)
+        that.$q.cookies.set('access-token', response.data.access_token, {
+          path: '/',
+          sameSite: 'Lax'
+        })
+      })
+    },
+    logout: function () {
+      let that = this
+      axios({
+        method: 'POST',
+        url: '/api/v1/logout'
+      }).then(function () {
+        that.$q.localStorage.set('lnbits.token', null)
+        that.$q.cookies.set('access-token', null)
+        window.location = '/'
+      })
+    },
     activeLanguage: function (lang) {
       return window.i18n.locale === lang
     },
@@ -412,6 +437,15 @@ window.windowMixin = {
     }
   },
   created: function () {
+    // crop usr from url and login that user in the background
+    if (window.location.href.search('usr=') !== -1) {
+      // get usr from params
+      let usr = window.location.href.split('usr=')[1].split('&')[0]
+      this.login(usr)
+      // replace all query params in current url
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false

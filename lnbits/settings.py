@@ -301,6 +301,9 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
+    login_secret: str = Field(
+        default="xxxxx33497535c9d8f344cd5e0d85df82d7ccd6a4dbyyyyy"
+    )
 
     @property
     def has_default_extension_path(self) -> bool:

@@ -184,10 +184,7 @@
                       color="yellow"
                       text-color="black"
                     >
-                      <a
-                        class="inherit"
-                        :href="['/', props.row.tag, '/?usr=', user.id].join('')"
-                      >
+                      <a class="inherit" :href="['/', props.row.tag].join('')">
                         #{{ props.row.tag }}
                       </a>
                     </q-badge>
@@ -348,7 +345,8 @@
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
                       <qrcode
-                        :value="'{{request.base_url}}' +'wallet?usr={{user.id}}&wal={{wallet.id}}'"
+                        :value="'{{request.base_url}}' +'wallet?wal={{wallet.id}}'"
+                        :options="{width:240}"
                       ></qrcode>
                     </q-card-section>
                   </q-card>

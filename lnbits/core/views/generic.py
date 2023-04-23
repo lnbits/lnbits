@@ -73,7 +73,6 @@ async def extensions_install(
     disable: str = Query(None),
 ):
     await toggle_extension(enable, disable, user.id)
-
     # Update user as his extensions have been updated
     if enable or disable:
         user = await get_user(user.id)  # type: ignore
@@ -165,22 +164,52 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
-    usr: UUID4 = Query(...),
-    wal: Optional[UUID4] = Query(None),
+    user: User = Depends(check_user_exists),
+    wal: Optional[UUID4] = None,
 ):
-    user_id = usr.hex
-    user = await get_user(user_id)
+    user_id = user.id
 
-    if not user:
+    if (
+        len(settings.lnbits_allowed_users) > 0
+        and user_id not in settings.lnbits_allowed_users
+        and user_id not in settings.lnbits_admin_users
+        and user_id != settings.super_user
+    ):
         return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User does not exist."}
+            "error.html", {"request": request, "err": "User not authorized."}
+        )
+
+    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
+        user.admin = True
+    if user_id == settings.super_user:
+        user.super_user = True
+
+    if wal:
+        wallet = user.get_wallet(wal.hex)
+        if not wallet:
+            return template_renderer().TemplateResponse(
+                "error.html", {"request": request, "err": "Wallet not found"}
+            )
+    else:
+        if len(user.wallets) > 0:
+            wallet = user.wallets[0]
+        else:
+            wallet = await create_wallet(
+                user_id=user.id,
+                wallet_name=settings.lnbits_default_wallet_name,
+            )
+            logger.info(f"Created new wallet for user {user.id}")
+
+        return RedirectResponse(
+            f"/wallet?wal={wallet.id}",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
     if not wal:
         if len(user.wallets) == 0:
             wallet = await create_wallet(user_id=user.id)
-            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
-        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
+            return RedirectResponse(url=f"/wallet?wal={wallet.id}")
+        return RedirectResponse(url=f"/wallet?wal={user.wallets[0].id}")
     else:
         wallet_id = wal.hex
 
@@ -212,7 +241,7 @@ async def wallet(
         {
             "request": request,
             "user": user.dict(),
-            "wallet": userwallet.dict(),
+            "wallet": wallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
@@ -323,7 +352,7 @@ async def lnurlwallet(request: Request):
     )
 
     return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",
+        f"/wallet?wal={wallet.id}",
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 

@@ -341,7 +341,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/admin/api/v1/topup/?usr=' + this.g.user.id,
+          '/admin/api/v1/topup/',
           this.g.user.wallets[0].adminkey,
           {
             amount: credit,

@@ -8,6 +8,7 @@ from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
+from bcrypt import checkpw
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from lnurl import encode as lnurl_encode
@@ -79,6 +80,17 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
+class createUser(BaseModel):
+    email: str = Query(
+        default=...,
+        min_length=3,
+        max_length=50,
+        # regex=r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+    )
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None
@@ -87,6 +99,14 @@ class User(BaseModel):
     password: Optional[str] = None
     admin: bool = False
     super_user: bool = False
+
+    def login(self, password: str) -> bool:
+        pwd_bytes: bytes = password.encode("utf-8")
+        if not self.password:
+            raise Exception("User does not have a password.")
+        if not checkpw(pwd_bytes, self.password.encode("utf-8")):
+            raise Exception("Incorrect login.")
+        return True
 
     @property
     def wallet_ids(self) -> List[str]:

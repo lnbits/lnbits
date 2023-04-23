@@ -74,26 +74,6 @@ def get_super_user() -> Optional[str]:
         return file.readline()
 
 
-@lnbits_cli.command("superuser")
-def superuser():
-    """Prints the superuser"""
-    try:
-        click.echo(get_super_user())
-    except ValueError as e:
-        click.echo(str(e))
-
-
-@lnbits_cli.command("superuser-url")
-def superuser_url():
-    """Prints the superuser"""
-    try:
-        click.echo(
-            f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}"
-        )
-    except ValueError as e:
-        click.echo(str(e))
-
-
 @lnbits_cli.command("delete-settings")
 @coro
 async def delete_settings():

@@ -11,6 +11,7 @@ from bolt11 import Bolt11
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
+from fastapi_login import LoginManager
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl
 from loguru import logger
@@ -53,6 +54,16 @@ from .crud import (
 )
 from .helpers import to_valid_user_id
 from .models import Payment, Wallet
+
+login_manager = LoginManager(
+    settings.login_secret, token_url="/api/v1/login", use_cookie=True
+)
+
+
+@login_manager.user_loader()
+async def load_user(user_id: str):
+    user = await get_account(user_id)
+    return user
 
 
 class PaymentFailure(Exception):

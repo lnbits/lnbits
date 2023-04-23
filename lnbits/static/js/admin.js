@@ -175,7 +175,7 @@ new Vue({
     },
     restartServer() {
       LNbits.api
-        .request('GET', '/admin/api/v1/restart/?usr=' + this.g.user.id)
+        .request('GET', '/admin/api/v1/restart/')
         .then(response => {
           this.$q.notify({
             type: 'positive',
@@ -192,7 +192,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/admin/api/v1/topup/?usr=' + this.g.user.id,
+          '/admin/api/v1/topup/',
           this.g.user.wallets[0].adminkey,
           this.wallet
         )
@@ -231,7 +231,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/admin/api/v1/audit/?usr=' + this.g.user.id,
+          '/admin/api/v1/audit/',
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
@@ -245,7 +245,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/admin/api/v1/settings/?usr=' + this.g.user.id,
+          '/admin/api/v1/settings/',
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
@@ -266,7 +266,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/admin/api/v1/settings/?usr=' + this.g.user.id,
+          '/admin/api/v1/settings/',
           this.g.user.wallets[0].adminkey,
           data
         )
@@ -294,7 +294,7 @@ new Vue({
         .confirmDialog('Are you sure you want to restore settings to default?')
         .onOk(() => {
           LNbits.api
-            .request('DELETE', '/admin/api/v1/settings/?usr=' + this.g.user.id)
+            .request('DELETE', '/admin/api/v1/settings/')
             .then(response => {
               this.$q.notify({
                 type: 'positive',
@@ -310,7 +310,7 @@ new Vue({
         })
     },
     downloadBackup() {
-      window.open('/admin/api/v1/backup/?usr=' + this.g.user.id, '_blank')
+      window.open('/admin/api/v1/backup/', '_blank')
     }
   }
 })

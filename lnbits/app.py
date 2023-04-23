@@ -36,7 +36,7 @@ from lnbits.wallets import get_wallet_class, set_wallet_class
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
-from .core.services import check_admin_settings, check_webpush_settings
+from .core.services import check_admin_settings, check_webpush_settings, login_manager
 from .core.views.api import add_installed_extension
 from .core.views.generic import update_installed_extension_state
 from .extension_manager import (
@@ -85,6 +85,8 @@ def create_app() -> FastAPI:
     static_path = Path("lnbits", "static")
     static = StaticFiles(directory=static_path)
     app.mount("/static", static, name="static")
+
+    login_manager.useRequest(app)
 
     g().base_url = f"http://{settings.host}:{settings.port}"
 
