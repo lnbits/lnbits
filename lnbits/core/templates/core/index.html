@@ -3,7 +3,6 @@
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-    {% if lnurl or LNBITS_NEW_ACCOUNTS_ALLOWED %}
     <q-card>
       <q-card-section>
         {% if lnurl %}
@@ -35,7 +34,6 @@
       </q-card-section>
     </q-card>
     {% endif %}
-
     <q-card>
       <q-card-section>
         <h3 class="q-my-none">{{SITE_TITLE}}</h3>
@@ -66,6 +64,78 @@
         <div v-else>
           <div v-html="formatDescription"></div>
         </div>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <b>Login with usr</b><br /><br />
+        <q-form @submit="login_usr" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model="usr"
+            label="usr"
+            type="password"
+          ></q-input>
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="usr == ''"
+            type="submit"
+            label="Login"
+          ></q-btn>
+        </q-form>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <b>Login</b><br /><br />
+        <q-form @submit="login" class="q-gutter-md">
+          <q-input filled dense v-model="username" label="Username"></q-input>
+          <q-input
+            filled
+            dense
+            v-model="password"
+            label="Password"
+            type="password"
+          ></q-input>
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="password == '' || username == ''"
+            type="submit"
+            label="Login"
+          ></q-btn>
+        </q-form>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <b>Create account</b><br /><br />
+        <q-form @submit="register" class="q-gutter-md">
+          <q-input filled dense v-model="username" label="Username"></q-input>
+          <q-input
+            filled
+            dense
+            v-model="password"
+            label="Password"
+            type="password"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model="password_repeat"
+            label="Password repeat"
+            type="password"
+          ></q-input>
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="password == '' || password_repeat == '' || username == '' || password != password_repeat"
+            type="submit"
+            label="Create Account"
+          ></q-btn>
+        </q-form>
       </q-card-section>
     </q-card>
   </div>

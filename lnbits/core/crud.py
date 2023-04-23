@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
+from bcrypt import gensalt, hashpw
 
 from lnbits.core.db import db
 from lnbits.core.models import WalletType
@@ -27,10 +28,43 @@ from .models import (
     User,
     Wallet,
     WebPushSubscription,
+    createUser,
 )
 
 # accounts
 # --------
+
+
+async def create_user(data: createUser) -> User:
+    if await get_account_by_email(data.email):
+        raise Exception("user exists")
+
+    pwd_bytes = data.password.encode("utf-8")
+    salt = gensalt()
+    password = hashpw(pwd_bytes, salt)
+
+    user_id = uuid4().hex
+    await db.execute(
+        "INSERT INTO accounts (id, email, pass) VALUES (?, ?, ?)",
+        (
+            user_id,
+            data.email,
+            password,
+        ),
+    )
+    new_account = await get_account(user_id=user_id)
+    assert new_account, "Newly created account couldn't be retrieved"
+    return new_account
+
+
+async def get_account_by_email(
+    email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id, email, pass as password FROM accounts WHERE email = ?", (email,)
+    )
+
+    return User(**row) if row else None
 
 
 async def create_account(

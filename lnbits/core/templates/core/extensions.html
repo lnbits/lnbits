@@ -185,7 +185,7 @@
               flat
               color="primary"
               type="a"
-              :href="[extension.id, '/?usr=', g.user.id].join('')"
+              :href="extension.id"
               >{%raw%}{{ $t('open') }}{%endraw%}</q-btn
             >
             <q-btn
@@ -511,7 +511,7 @@
         LNbits.api
           .request(
             'POST',
-            `/api/v1/extension?usr=${this.g.user.id}`,
+            `/api/v1/extension`,
             this.g.user.wallets[0].adminkey,
             {
               ext_id: extension.id,
@@ -542,7 +542,7 @@
         LNbits.api
           .request(
             'DELETE',
-            `/api/v1/extension/${extension.id}?usr=${this.g.user.id}`,
+            `/api/v1/extension/${extension.id}`,
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
@@ -598,9 +598,8 @@
         LNbits.api
           .request(
             'GET',
-            "{{ url_for('install.extensions') }}?usr=" +
-              this.g.user.id +
-              '&' +
+            "{{ url_for('install.extensions') }}" +
+              '?' +
               action +
               '=' +
               extension.id
@@ -629,7 +628,7 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
+            `/api/v1/extension/${extension.id}/releases`,
             this.g.user.wallets[0].adminkey
           )
 
@@ -694,7 +693,7 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/api/v1/extension/release/${org}/${repo}/${release.version}?usr=${this.g.user.id}`,
+            `/api/v1/extension/release/${org}/${repo}/${release.version}`,
             this.g.user.wallets[0].adminkey
           )
           release.loaded = true
