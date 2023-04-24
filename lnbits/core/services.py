@@ -449,7 +449,7 @@ async def check_admin_settings():
 
         # saving it to .super_user file
         with open(".super_user", "w") as file:
-            file.write(admin_url)
+            file.write(settings.super_user)
 
         # callback for saas
         if (
