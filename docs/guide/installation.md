@@ -192,10 +192,9 @@ poetry add setuptools wheel
 
 #### Poetry
 
-If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
+If you are on OSX, try make sure your version of poetry is at least 1.4 or poetry will not install properly.
 
-If you are on OSX, running ``` poetry env use python3.9``` may give errors, in pyproject.toml 
-remove the "[tool.poetry.group.dev.dependencies]" line before running ```poetry install```
+If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
 
 
 ### Optional: PostgreSQL database
