@@ -447,6 +447,10 @@ async def check_admin_settings():
         admin_url = f"{settings.lnbits_baseurl}wallet?usr={settings.super_user}"
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
+        # saving it to .super_user file
+        with open(".super_user", "w") as file:
+            file.write(settings.super_user)
+
         # callback for saas
         if (
             settings.lnbits_saas_callback

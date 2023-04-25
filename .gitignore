@@ -23,6 +23,7 @@ tests/data/*.sqlite3
 *.pyc
 *.env
 .env
+.super_user
 
 data
 *.sqlite3
