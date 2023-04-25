@@ -71,6 +71,8 @@ class Operator(Enum):
     LT = "lt"
     EQ = "eq"
     NE = "ne"
+    GE = "ge"
+    LE = "le"
     INCLUDE = "in"
     EXCLUDE = "ex"
 
@@ -88,6 +90,10 @@ class Operator(Enum):
             return ">"
         elif self == Operator.LT:
             return "<"
+        elif self == Operator.GE:
+            return ">="
+        elif self == Operator.LE:
+            return "<="
         else:
             raise ValueError("Unknown SQL Operator")
 
@@ -209,9 +215,14 @@ class Filters(BaseModel, Generic[TFilterModel]):
             for filter in self.filters:
                 where_stmts.append(filter.statement)
         if self.search and self.model:
-            where_stmts.append(
-                f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
-            )
+            if DB_TYPE == POSTGRES:
+                where_stmts.append(
+                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+                )
+            elif DB_TYPE == SQLITE:
+                where_stmts.append(
+                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
+                )
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""
@@ -317,11 +328,10 @@ class Connection(Compat):
             if isinstance(raw_value, str):
                 values.append(re.sub(CLEANR, "", raw_value))
             elif isinstance(raw_value, datetime.datetime):
-                values.append(raw_value.timestamp())
+                values.append(int(raw_value.timestamp()))
             else:
                 values.append(raw_value)
         return tuple(values)
-
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(

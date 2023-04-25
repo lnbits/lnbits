@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 from time import time
 
@@ -187,19 +188,22 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 @pytest.mark.asyncio
 async def test_get_payments_paginated(client, from_wallet, adminkey_headers_from):
+    # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
+    # a different timestamp than previous invoices
+    await asyncio.sleep(1)
     ts = time()
 
     fake_data = [
-        CreateInvoiceData(out=False, amount=10, memo="aaaa"),
-        CreateInvoiceData(out=False, amount=100, memo="bbbb"),
-        CreateInvoiceData(out=False, amount=1000, memo="aabb"),
+        CreateInvoiceData(amount=10, memo="aaaa"),
+        CreateInvoiceData(amount=100, memo="bbbb"),
+        CreateInvoiceData(amount=1000, memo="aabb"),
     ]
 
     for invoice in fake_data:
         await api_payments_create_invoice(invoice, from_wallet)
 
     async def get_payments(**params):
-        params["time[gt]"] = ts
+        params["time[ge]"] = ts
         response = await client.get(
             "/api/v1/payments/paginated",
             params=params,
@@ -212,6 +216,7 @@ async def test_get_payments_paginated(client, from_wallet, adminkey_headers_from
         )
 
     payments = await get_payments(sortby="amount", direction="desc", offset=0, limit=2)
+    assert payments.data
     assert payments.data[-1].amount < payments.data[0].amount
     assert len(payments.data) == 2
     assert payments.total == len(fake_data)
