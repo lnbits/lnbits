@@ -14,6 +14,8 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 
 If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
 
+Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. (including OSX)
+
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
@@ -189,13 +191,6 @@ sudo apt install python3.9-dev gcc build-essential
 # if you used poetry
 poetry add setuptools wheel
 ```
-
-#### Poetry
-
-If you are on OSX, try make sure your version of poetry is at least 1.4 or poetry will not install properly.
-
-If your Poetry version is older than 1.2, for `poetry install`, ignore the `--only main` flag.
-
 
 ### Optional: PostgreSQL database
 
