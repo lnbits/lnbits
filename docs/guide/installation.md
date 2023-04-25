@@ -12,8 +12,6 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 
 ## Option 1 (recommended): poetry
 
-If you have problems installing LNbits using these instructions, please have a look at the [Troubleshooting](#troubleshooting) section.
-
 Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. (including OSX)
 
 ```sh
