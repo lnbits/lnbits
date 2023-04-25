@@ -355,8 +355,6 @@ def send_admin_user_to_saas():
                 )
 
 
-############### INIT #################
-
 readonly_variables = ReadOnlySettings.readonly_fields()
 transient_variables = TransientSettings.readonly_fields()
 

@@ -736,7 +736,7 @@ async def api_auditor():
     }
 
 
-##################UNIVERSAL WEBSOCKET MANAGER########################
+# UNIVERSAL WEBSOCKET MANAGER
 
 
 @core_app.websocket("/api/v1/ws/{item_id}")
@@ -874,7 +874,7 @@ async def get_extension_releases(ext_id: str):
         )
 
 
-############################TINYURL##################################
+# TINYURL
 
 
 @core_app.post("/api/v1/tinyurl")

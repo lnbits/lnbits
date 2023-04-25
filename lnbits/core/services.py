@@ -334,7 +334,8 @@ async def perform_lnurlauth(
 
     def encode_strict_der(r: int, s: int, order: int):
         # if s > order/2 verification will fail sometimes
-        # so we must fix it here (see https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147)
+        # so we must fix it here see:
+        # https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147
         if s > order // 2:
             s = order - s
 
@@ -445,6 +446,10 @@ async def check_admin_settings():
 
         admin_url = f"{settings.lnbits_baseurl}wallet?usr={settings.super_user}"
         logger.success(f"✔️ Access super user account at: {admin_url}")
+
+        # saving it to .super_user file
+        with open(".super_user", "w") as file:
+            file.write(settings.super_user)
 
         # callback for saas
         if (

@@ -322,6 +322,7 @@ class Connection(Compat):
                 values.append(raw_value)
         return tuple(values)
 
+
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
