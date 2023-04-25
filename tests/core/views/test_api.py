@@ -1,10 +1,14 @@
 import hashlib
+from time import time
 
 import pytest
 
 from lnbits import bolt11
+from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
+from lnbits.db import Page
 from lnbits.settings import get_wallet_class
+from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
 from ...helpers import get_random_invoice_data, is_fake
 
@@ -179,6 +183,50 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
     assert response.status_code > 300  # should fail
+
+
+@pytest.mark.asyncio
+async def test_get_payments_paginated(client, from_wallet, adminkey_headers_from):
+    ts = time()
+
+    fake_data = [
+        CreateInvoiceData(out=False, amount=10, memo="aaaa"),
+        CreateInvoiceData(out=False, amount=100, memo="bbbb"),
+        CreateInvoiceData(out=False, amount=1000, memo="aabb"),
+    ]
+
+    for invoice in fake_data:
+        await api_payments_create_invoice(invoice, from_wallet)
+
+    async def get_payments(**params):
+        params["time[gt]"] = ts
+        response = await client.get(
+            "/api/v1/payments/paginated",
+            params=params,
+            headers=adminkey_headers_from,
+        )
+        assert response.status_code == 200
+        raw = response.json()
+        return Page[Payment](
+            total=raw["total"], data=[Payment(**payment) for payment in raw["data"]]
+        )
+
+    payments = await get_payments(sortby="amount", direction="desc", offset=0, limit=2)
+    assert payments.data[-1].amount < payments.data[0].amount
+    assert len(payments.data) == 2
+    assert payments.total == len(fake_data)
+
+    payments = await get_payments(sortby="amount", drection="asc")
+    assert payments.data[-1].amount > payments.data[0].amount
+
+    payments = await get_payments(search="aaa")
+    assert len(payments.data) == 1
+
+    payments = await get_payments(search="bbb")
+    assert len(payments.data) == 1
+
+    payments = await get_payments(search="aa")
+    assert len(payments.data) == 2
 
 
 # check POST /api/v1/payments/decode
