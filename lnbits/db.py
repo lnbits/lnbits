@@ -99,7 +99,7 @@ class FromRowModel(BaseModel):
 
 
 class FilterModel(BaseModel):
-    __search_fields__: list[str] = []
+    __search_fields__: List[str] = []
 
 
 T = TypeVar("T")
@@ -115,9 +115,11 @@ class Page(BaseModel, Generic[T]):
 
 class Filter(BaseModel, Generic[TFilterModel]):
     field: str
-    nested: Optional[list[str]]
+    nested: Optional[List[str]]
     op: Operator = Operator.EQ
     values: list[Any]
+
+    model: Optional[Type[TFilterModel]]
 
     @classmethod
     def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
@@ -160,7 +162,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         else:
             raise ValueError("Unknown filter field")
 
-        return cls(field=field, op=op, nested=nested, values=values)
+        return cls(field=field, op=op, nested=nested, values=values, model=model)
 
     @property
     def statement(self):
@@ -168,11 +170,15 @@ class Filter(BaseModel, Generic[TFilterModel]):
         if self.nested:
             for name in self.nested:
                 accessor = f"({accessor} ->> '{name}')"
+        if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
+            placeholder = Compat.timestamp_placeholder
+        else:
+            placeholder = "?"
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join(["?"] * len(self.values))
+            placeholders = ", ".join([placeholder] * len(self.values))
             stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
         else:
-            stmt = [f"{accessor} {self.op.as_sql} ?"] * len(self.values)
+            stmt = [f"{accessor} {self.op.as_sql} {placeholder}"] * len(self.values)
         return " OR ".join(stmt)
 
 
@@ -196,7 +202,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
             stmt += f"OFFSET {self.offset}"
         return stmt
 
-    def where(self, where_stmts: Optional[list[str]] = None) -> str:
+    def where(self, where_stmts: Optional[List[str]] = None) -> str:
         if not where_stmts:
             where_stmts = []
         if self.filters:
@@ -215,7 +221,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
             return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
 
-    def values(self, values: Optional[list[str]] = None) -> tuple:
+    def values(self, values: Optional[List[str]] = None) -> tuple:
         if not values:
             values = []
         if self.filters:
@@ -237,10 +243,11 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
-    def datetime_to_timestamp(self, date: datetime.datetime):
-        if self.type in {POSTGRES, COCKROACH}:
+    @classmethod
+    def datetime_to_timestamp(cls, date: datetime.datetime):
+        if DB_TYPE in {POSTGRES, COCKROACH}:
             return date.strftime("%Y-%m-%d %H:%M:%S")
-        elif self.type == SQLITE:
+        elif DB_TYPE == SQLITE:
             return time.mktime(date.timetuple())
         return "<nothing>"
 
@@ -274,6 +281,16 @@ class Compat:
             return "BIGINT"
         return "INT"
 
+    @classmethod
+    @property
+    def timestamp_placeholder(cls):
+        if DB_TYPE == POSTGRES:
+            return "to_timestamp(?)"
+        elif DB_TYPE == COCKROACH:
+            return "cast(? AS timestamp)"
+        else:
+            return "?"
+
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
@@ -293,17 +310,17 @@ class Connection(Compat):
         # strip html
         CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
 
-        def cleanhtml(raw_html):
-            if isinstance(raw_html, str):
-                cleantext = re.sub(CLEANR, "", raw_html)
-                return cleantext
-            else:
-                return raw_html
-
         # tuple to list and back to tuple
-        value_list = [values] if isinstance(values, str) else list(values)
-        values = tuple([cleanhtml(l) for l in value_list])
-        return values
+        raw_values = [values] if isinstance(values, str) else list(values)
+        values = []
+        for raw_value in raw_values:
+            if isinstance(raw_value, str):
+                values.append(re.sub(CLEANR, "", raw_value))
+            elif isinstance(raw_value, datetime.datetime):
+                values.append(raw_value.timestamp())
+            else:
+                values.append(raw_value)
+        return tuple(values)
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(
@@ -322,8 +339,8 @@ class Connection(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: Optional[list[str]] = None,
-        values: Optional[list[str]] = None,
+        where: Optional[List[str]] = None,
+        values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
     ) -> Page[TRowModel]:
@@ -431,8 +448,8 @@ class Database(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: Optional[list[str]] = None,
-        values: Optional[list[str]] = None,
+        where: Optional[List[str]] = None,
+        values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
     ) -> Page[TRowModel]:

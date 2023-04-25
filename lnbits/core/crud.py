@@ -7,12 +7,12 @@ from uuid import uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection, Filters, Page
+from lnbits.db import Connection, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, TinyURL, User, Wallet
+from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -350,7 +350,7 @@ async def get_payments_paginated(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    filters: Optional[Filters[Payment]] = None,
+    filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> Page[Payment]:
     """
@@ -361,12 +361,7 @@ async def get_payments_paginated(
     clause: List[str] = []
 
     if since is not None:
-        if db.type == POSTGRES:
-            clause.append("time > to_timestamp(?)")
-        elif db.type == COCKROACH:
-            clause.append("time > cast(? AS timestamp)")
-        else:
-            clause.append("time > ?")
+        clause.append(f"time > {db.timestamp_placeholder}")
         values.append(since)
 
     if wallet_id:
@@ -413,7 +408,7 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    filters: Optional[Filters[Payment]] = None,
+    filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,

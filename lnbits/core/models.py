@@ -76,9 +76,7 @@ class User(BaseModel):
         return w[0] if w else None
 
 
-class Payment(FromRowModel, FilterModel):
-    __search_fields__ = ["memo", "amount"]
-
+class Payment(FromRowModel):
     checking_id: str
     pending: bool
     amount: int
@@ -204,6 +202,24 @@ class Payment(FromRowModel, FilterModel):
         from .crud import delete_payment
 
         await delete_payment(self.checking_id, conn=conn)
+
+
+class PaymentFilters(FilterModel):
+    __search_fields__ = ["memo", "amount"]
+
+    checking_id: str
+    amount: int
+    fee: int
+    memo: Optional[str]
+    time: datetime.datetime
+    bolt11: str
+    preimage: str
+    payment_hash: str
+    expiry: Optional[datetime.datetime]
+    extra: Dict = {}
+    wallet_id: str
+    webhook: Optional[str]
+    webhook_status: Optional[int]
 
 
 class BalanceCheck(BaseModel):

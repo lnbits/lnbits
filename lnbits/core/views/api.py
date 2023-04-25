@@ -33,7 +33,7 @@ from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
 )
-from lnbits.core.models import Payment, User, Wallet
+from lnbits.core.models import Payment, PaymentFilters, User, Wallet
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -123,11 +123,11 @@ async def api_update_wallet(
     summary="get list of payments",
     response_description="list of payments",
     response_model=List[Payment],
-    openapi_extra=generate_filter_params_openapi(Payment),
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
-    filters: Filters = Depends(parse_filters(Payment)),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
     pending_payments = await get_payments(
         wallet_id=wallet.wallet.id,
@@ -153,11 +153,11 @@ async def api_payments(
     summary="get paginated list of payments",
     response_description="list of payments",
     response_model=Page[Payment],
-    openapi_extra=generate_filter_params_openapi(Payment),
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
-    filters: Filters = Depends(parse_filters(Payment)),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
     pending = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
