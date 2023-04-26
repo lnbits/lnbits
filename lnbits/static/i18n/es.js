@@ -72,7 +72,6 @@ window.localisation.es = {
   disclaimer_dialog:
     'La funcionalidad de inicio de sesión se lanzará en una actualización futura, por ahora, asegúrese de guardar esta página como marcador para acceder a su billetera en el futuro. Este servicio está en BETA y no asumimos ninguna responsabilidad por personas que pierdan el acceso a sus fondos.',
   no_transactions: 'No hay transacciones todavía',
-  manage_extensions: 'Administrar extensiones',
   manage_server: 'Administrar servidor',
   extensions: 'Extensiones',
   no_extensions: 'No tienes extensiones instaladas :(',
