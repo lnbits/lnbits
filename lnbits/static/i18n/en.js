@@ -71,7 +71,6 @@ window.localisation.en = {
   disclaimer_dialog:
     'Login functionality to be released in a future update, for now, make sure you bookmark this page for future access to your wallet! This service is in BETA, and we hold no responsibility for people losing access to funds.',
   no_transactions: 'No transactions made yet',
-  manage_extensions: 'Manage Extensions',
   manage_server: 'Manage Server',
   extensions: 'Extensions',
   no_extensions: "You don't have any extensions installed :(",
