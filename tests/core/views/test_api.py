@@ -7,7 +7,6 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
-from lnbits.db import Page
 from lnbits.settings import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
@@ -187,9 +186,11 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 
 @pytest.mark.asyncio
-async def test_get_payments_paginated(client, from_wallet, adminkey_headers_from):
+async def test_get_payments(client, from_wallet, adminkey_headers_from):
     # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
     # a different timestamp than previous invoices
+    # due to this limitation both payments (normal and paginated) are tested at the same time as they are almost
+    # identical anyways
     await asyncio.sleep(1)
     ts = time()
 
@@ -202,36 +203,45 @@ async def test_get_payments_paginated(client, from_wallet, adminkey_headers_from
     for invoice in fake_data:
         await api_payments_create_invoice(invoice, from_wallet)
 
-    async def get_payments(**params):
+    async def get_payments(params: dict):
         params["time[ge]"] = ts
         response = await client.get(
-            "/api/v1/payments/paginated",
+            "/api/v1/payments",
             params=params,
             headers=adminkey_headers_from,
         )
         assert response.status_code == 200
-        raw = response.json()
-        return Page[Payment](
-            total=raw["total"], data=[Payment(**payment) for payment in raw["data"]]
-        )
+        return [Payment(**payment) for payment in response.json()]
 
-    payments = await get_payments(sortby="amount", direction="desc", offset=0, limit=2)
-    assert payments.data
-    assert payments.data[-1].amount < payments.data[0].amount
-    assert len(payments.data) == 2
-    assert payments.total == len(fake_data)
+    payments = await get_payments({"sortby": "amount", "direction": "desc", "limit": 2})
+    assert payments[-1].amount < payments[0].amount
+    assert len(payments) == 2
 
-    payments = await get_payments(sortby="amount", drection="asc")
-    assert payments.data[-1].amount > payments.data[0].amount
+    payments = await get_payments({"offset": 2, "limit": 2})
+    assert len(payments) == 1
 
-    payments = await get_payments(search="aaa")
-    assert len(payments.data) == 1
+    payments = await get_payments({"sortby": "amount", "direction": "asc"})
+    assert payments[-1].amount > payments[0].amount
 
-    payments = await get_payments(search="bbb")
-    assert len(payments.data) == 1
+    payments = await get_payments({"search": "aaa"})
+    assert len(payments) == 1
 
-    payments = await get_payments(search="aa")
-    assert len(payments.data) == 2
+    payments = await get_payments({"search": "aa"})
+    assert len(payments) == 2
+
+    # amount is in msat
+    payments = await get_payments({"amount[gt]": 10000})
+    assert len(payments) == 2
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"limit": 2, "time[ge]": ts},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code == 200
+    paginated = response.json()
+    assert len(paginated["data"]) == 2
+    assert paginated["total"] == len(fake_data)
 
 
 # check POST /api/v1/payments/decode
