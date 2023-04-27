@@ -404,7 +404,7 @@ async def check_transaction_status(
 def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
-    return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+    return max(int(reserve_min), int(amount_msat * float(reserve_percent) / 100.0))
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):
