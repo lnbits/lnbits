@@ -59,15 +59,15 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
-    if settings.debug:
+    if settings.bundle_assets:
+        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
+        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
+    else:
         vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
         with open(vendor_filepath) as vendor_file:
             vendor_files = json.loads(vendor_file.read())
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
-    else:
-        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
-        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
 
     return t
 
