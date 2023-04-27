@@ -216,7 +216,7 @@
         </div>
 
         <div class="col-2">
-          <div v-if="extension.isInstalled" class="float-right">
+          <div v-if="extension.isInstalled && extension.installedRelease" class="float-right">
             {% raw %}{{ extension.installedRelease.version }}{% endraw
             %}<q-tooltip>Installed version</q-tooltip>
           </div>
@@ -420,6 +420,7 @@
           .then(response => {
             extension.isAvailable = true
             extension.isInstalled = true
+            extension.installedRelease = true
             this.toggleExtension(extension)
             extension.inProgress = false
             this.filteredExtensions = this.extensions.concat([])
