@@ -216,7 +216,10 @@
         </div>
 
         <div class="col-2">
-          <div v-if="extension.isInstalled && extension.installedRelease" class="float-right">
+          <div
+            v-if="extension.isInstalled && extension.installedRelease"
+            class="float-right"
+          >
             {% raw %}{{ extension.installedRelease.version }}{% endraw
             %}<q-tooltip>Installed version</q-tooltip>
           </div>
@@ -304,14 +307,14 @@
                   v-for="release of selectedExtensionRepos[repoName].releases"
                   :key="release.version"
                   group="releases"
-                  :icon="release.isInstalled ? 'download_done' : 'download'"
+                  :icon="getReleaseIcon(release)"
                   :label="release.description"
                   :caption="release.version"
                   :content-inset-level="0.5"
-                  :header-class="release.isInstalled ? 'text-green' : ''"
+                  :header-class="getReleaseIconColor(release)"
                 >
                   <q-card>
-                    <q-card-section>
+                    <q-card-section v-if="release.is_version_compatible">
                       <q-btn
                         v-if="!release.isInstalled"
                         @click="installExtension(release)"
@@ -329,6 +332,13 @@
                         style="color: inherit"
                         >Release Notes</a
                       >
+                    </q-card-section>
+                    <q-card-section v-else>
+                      This release requires LNbits version
+                      <strong>
+                        <span v-text="release.min_lnbits_version"></span>
+                      </strong>
+                      or above.
                     </q-card-section>
 
                     <div
@@ -490,6 +500,7 @@
             `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
+          console.log('### showUpgrade.data', data)
 
           this.selectedExtensionRepos = data.reduce((repos, release) => {
             repos[release.source_repo] = repos[release.source_repo] || {
@@ -526,6 +537,18 @@
             extension.installedRelease.version === release.version
           )
         }
+      },
+      getReleaseIcon: function (release) {
+        if (!release.is_version_compatible) return 'block'
+        if (release.isInstalled) return 'download_done'
+
+        return 'download'
+      },
+      getReleaseIconColor: function (release) {
+        if (!release.is_version_compatible) return 'text-red'
+        if (release.isInstalled) return 'text-green'
+
+        return ''
       }
     },
     created: function () {

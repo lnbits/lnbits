@@ -12,6 +12,7 @@ from urllib import request
 import httpx
 from fastapi import HTTPException
 from loguru import logger
+from packaging import version
 from pydantic import BaseModel
 
 from lnbits.settings import settings
@@ -26,10 +27,16 @@ class ExplicitRelease(BaseModel):
     dependencies: List[str] = []
     icon: Optional[str]
     short_description: Optional[str]
+    min_lnbits_version: Optional[str]
     html_url: Optional[str]
     details: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+
+    def is_version_compatible(self):
+        if not self.min_lnbits_version:
+            return True
+        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
 
 
 class GitHubRelease(BaseModel):
@@ -224,6 +231,8 @@ class ExtensionRelease(BaseModel):
     source_repo: str
     is_github_release: bool = False
     hash: Optional[str] = None
+    min_lnbits_version: Optional[str] = None
+    is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
     description: Optional[str] = None
     details_html: Optional[str] = None
@@ -495,6 +504,8 @@ class InstallableExtension(BaseModel):
                                 hash=e.hash,
                                 source_repo=url,
                                 description=e.short_description,
+                                min_lnbits_version=e.min_lnbits_version,
+                                is_version_compatible=e.is_version_compatible(),
                                 details_html=e.details,
                                 html_url=e.html_url,
                                 icon=e.icon,
