@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import os
@@ -64,183 +66,6 @@ else:
             f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
             f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
         )
-
-
-class Operator(Enum):
-    GT = "gt"
-    LT = "lt"
-    EQ = "eq"
-    NE = "ne"
-    GE = "ge"
-    LE = "le"
-    INCLUDE = "in"
-    EXCLUDE = "ex"
-
-    @property
-    def as_sql(self):
-        if self == Operator.EQ:
-            return "="
-        elif self == Operator.NE:
-            return "!="
-        elif self == Operator.INCLUDE:
-            return "IN"
-        elif self == Operator.EXCLUDE:
-            return "NOT IN"
-        elif self == Operator.GT:
-            return ">"
-        elif self == Operator.LT:
-            return "<"
-        elif self == Operator.GE:
-            return ">="
-        elif self == Operator.LE:
-            return "<="
-        else:
-            raise ValueError("Unknown SQL Operator")
-
-
-class FromRowModel(BaseModel):
-    @classmethod
-    def from_row(cls, row: Row):
-        return cls(**dict(row))
-
-
-class FilterModel(BaseModel):
-    __search_fields__: List[str] = []
-
-
-T = TypeVar("T")
-TModel = TypeVar("TModel", bound=BaseModel)
-TRowModel = TypeVar("TRowModel", bound=FromRowModel)
-TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
-
-
-class Page(BaseModel, Generic[T]):
-    data: list[T]
-    total: int
-
-
-class Filter(BaseModel, Generic[TFilterModel]):
-    field: str
-    nested: Optional[List[str]]
-    op: Operator = Operator.EQ
-    values: list[Any]
-
-    model: Optional[Type[TFilterModel]]
-
-    @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
-        # Key format:
-        # key[operator]
-        # e.g. name[eq]
-        if key.endswith("]"):
-            split = key[:-1].split("[")
-            if len(split) != 2:
-                raise ValueError("Invalid key")
-            field_names = split[0].split(".")
-            op = Operator(split[1])
-        else:
-            field_names = key.split(".")
-            op = Operator("eq")
-
-        field = field_names[0]
-        nested = field_names[1:]
-
-        if field in model.__fields__:
-            compare_field = model.__fields__[field]
-            values = []
-            for raw_value in raw_values:
-                # If there is a nested field, pydantic expects a dict, so the raw value is turned into a dict before
-                # and the converted value is extracted afterwards
-                for name in reversed(nested):
-                    raw_value = {name: raw_value}
-
-                validated, errors = compare_field.validate(raw_value, {}, loc="none")
-                if errors:
-                    raise ValidationError(errors=[errors], model=model)
-
-                for name in nested:
-                    if isinstance(validated, dict):
-                        validated = validated[name]
-                    else:
-                        validated = getattr(validated, name)
-
-                values.append(validated)
-        else:
-            raise ValueError("Unknown filter field")
-
-        return cls(field=field, op=op, nested=nested, values=values, model=model)
-
-    @property
-    def statement(self):
-        accessor = self.field
-        if self.nested:
-            for name in self.nested:
-                accessor = f"({accessor} ->> '{name}')"
-        if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
-            placeholder = Compat.timestamp_placeholder
-        else:
-            placeholder = "?"
-        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join([placeholder] * len(self.values))
-            stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
-        else:
-            stmt = [f"{accessor} {self.op.as_sql} {placeholder}"] * len(self.values)
-        return " OR ".join(stmt)
-
-
-class Filters(BaseModel, Generic[TFilterModel]):
-    filters: List[Filter[TFilterModel]] = []
-    search: Optional[str] = None
-
-    offset: Optional[int] = None
-    limit: Optional[int] = None
-
-    sortby: Optional[str] = None
-    direction: Optional[Literal["asc", "desc"]] = None
-
-    model: Optional[Type[TFilterModel]] = None
-
-    def pagination(self) -> str:
-        stmt = ""
-        if self.limit:
-            stmt += f"LIMIT {self.limit} "
-        if self.offset:
-            stmt += f"OFFSET {self.offset}"
-        return stmt
-
-    def where(self, where_stmts: Optional[List[str]] = None) -> str:
-        if not where_stmts:
-            where_stmts = []
-        if self.filters:
-            for filter in self.filters:
-                where_stmts.append(filter.statement)
-        if self.search and self.model:
-            if DB_TYPE == POSTGRES:
-                where_stmts.append(
-                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
-                )
-            elif DB_TYPE == SQLITE:
-                where_stmts.append(
-                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
-                )
-        if where_stmts:
-            return "WHERE " + " AND ".join(where_stmts)
-        return ""
-
-    def order_by(self) -> str:
-        if self.sortby:
-            return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
-        return ""
-
-    def values(self, values: Optional[List[str]] = None) -> tuple:
-        if not values:
-            values = []
-        if self.filters:
-            for filter in self.filters:
-                values.extend(filter.values)
-        if self.search and self.model:
-            values.append(f"%{self.search}%")
-        return tuple(values)
 
 
 class Compat:
@@ -474,3 +299,180 @@ class Database(Compat):
     @asynccontextmanager
     async def reuse_conn(self, conn: Connection):
         yield conn
+
+
+class Operator(Enum):
+    GT = "gt"
+    LT = "lt"
+    EQ = "eq"
+    NE = "ne"
+    GE = "ge"
+    LE = "le"
+    INCLUDE = "in"
+    EXCLUDE = "ex"
+
+    @property
+    def as_sql(self):
+        if self == Operator.EQ:
+            return "="
+        elif self == Operator.NE:
+            return "!="
+        elif self == Operator.INCLUDE:
+            return "IN"
+        elif self == Operator.EXCLUDE:
+            return "NOT IN"
+        elif self == Operator.GT:
+            return ">"
+        elif self == Operator.LT:
+            return "<"
+        elif self == Operator.GE:
+            return ">="
+        elif self == Operator.LE:
+            return "<="
+        else:
+            raise ValueError("Unknown SQL Operator")
+
+
+class FromRowModel(BaseModel):
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(**dict(row))
+
+
+class FilterModel(BaseModel):
+    __search_fields__: List[str] = []
+
+
+T = TypeVar("T")
+TModel = TypeVar("TModel", bound=BaseModel)
+TRowModel = TypeVar("TRowModel", bound=FromRowModel)
+TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
+
+
+class Page(BaseModel, Generic[T]):
+    data: list[T]
+    total: int
+
+
+class Filter(BaseModel, Generic[TFilterModel]):
+    field: str
+    nested: Optional[List[str]]
+    op: Operator = Operator.EQ
+    values: list[Any]
+
+    model: Optional[Type[TFilterModel]]
+
+    @classmethod
+    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
+        # Key format:
+        # key[operator]
+        # e.g. name[eq]
+        if key.endswith("]"):
+            split = key[:-1].split("[")
+            if len(split) != 2:
+                raise ValueError("Invalid key")
+            field_names = split[0].split(".")
+            op = Operator(split[1])
+        else:
+            field_names = key.split(".")
+            op = Operator("eq")
+
+        field = field_names[0]
+        nested = field_names[1:]
+
+        if field in model.__fields__:
+            compare_field = model.__fields__[field]
+            values = []
+            for raw_value in raw_values:
+                # If there is a nested field, pydantic expects a dict, so the raw value is turned into a dict before
+                # and the converted value is extracted afterwards
+                for name in reversed(nested):
+                    raw_value = {name: raw_value}
+
+                validated, errors = compare_field.validate(raw_value, {}, loc="none")
+                if errors:
+                    raise ValidationError(errors=[errors], model=model)
+
+                for name in nested:
+                    if isinstance(validated, dict):
+                        validated = validated[name]
+                    else:
+                        validated = getattr(validated, name)
+
+                values.append(validated)
+        else:
+            raise ValueError("Unknown filter field")
+
+        return cls(field=field, op=op, nested=nested, values=values, model=model)
+
+    @property
+    def statement(self):
+        accessor = self.field
+        if self.nested:
+            for name in self.nested:
+                accessor = f"({accessor} ->> '{name}')"
+        if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
+            placeholder = Compat.timestamp_placeholder
+        else:
+            placeholder = "?"
+        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
+            placeholders = ", ".join([placeholder] * len(self.values))
+            stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
+        else:
+            stmt = [f"{accessor} {self.op.as_sql} {placeholder}"] * len(self.values)
+        return " OR ".join(stmt)
+
+
+class Filters(BaseModel, Generic[TFilterModel]):
+    filters: List[Filter[TFilterModel]] = []
+    search: Optional[str] = None
+
+    offset: Optional[int] = None
+    limit: Optional[int] = None
+
+    sortby: Optional[str] = None
+    direction: Optional[Literal["asc", "desc"]] = None
+
+    model: Optional[Type[TFilterModel]] = None
+
+    def pagination(self) -> str:
+        stmt = ""
+        if self.limit:
+            stmt += f"LIMIT {self.limit} "
+        if self.offset:
+            stmt += f"OFFSET {self.offset}"
+        return stmt
+
+    def where(self, where_stmts: Optional[List[str]] = None) -> str:
+        if not where_stmts:
+            where_stmts = []
+        if self.filters:
+            for filter in self.filters:
+                where_stmts.append(filter.statement)
+        if self.search and self.model:
+            if DB_TYPE == POSTGRES:
+                where_stmts.append(
+                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+                )
+            elif DB_TYPE == SQLITE:
+                where_stmts.append(
+                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
+                )
+        if where_stmts:
+            return "WHERE " + " AND ".join(where_stmts)
+        return ""
+
+    def order_by(self) -> str:
+        if self.sortby:
+            return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
+        return ""
+
+    def values(self, values: Optional[List[str]] = None) -> tuple:
+        if not values:
+            values = []
+        if self.filters:
+            for filter in self.filters:
+                values.extend(filter.values)
+        if self.search and self.model:
+            values.append(f"%{self.search}%")
+        return tuple(values)
