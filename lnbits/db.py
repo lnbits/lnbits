@@ -79,11 +79,10 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
-    @classmethod
-    def datetime_to_timestamp(cls, date: datetime.datetime):
-        if DB_TYPE in {POSTGRES, COCKROACH}:
+    def datetime_to_timestamp(self, date: datetime.datetime):
+        if self.type in {POSTGRES, COCKROACH}:
             return date.strftime("%Y-%m-%d %H:%M:%S")
-        elif DB_TYPE == SQLITE:
+        elif self.type == SQLITE:
             return time.mktime(date.timetuple())
         return "<nothing>"
 
