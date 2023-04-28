@@ -7,6 +7,7 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
+from lnbits.db import DB_TYPE, SQLITE
 from lnbits.settings import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
@@ -191,7 +192,8 @@ async def test_get_payments(client, from_wallet, adminkey_headers_from):
     # a different timestamp than previous invoices
     # due to this limitation both payments (normal and paginated) are tested at the same time as they are almost
     # identical anyways
-    await asyncio.sleep(1)
+    if DB_TYPE == SQLITE:
+        await asyncio.sleep(1)
     ts = time()
 
     fake_data = [

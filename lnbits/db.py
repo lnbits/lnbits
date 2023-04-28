@@ -153,7 +153,11 @@ class Connection(Compat):
             if isinstance(raw_value, str):
                 values.append(re.sub(CLEANR, "", raw_value))
             elif isinstance(raw_value, datetime.datetime):
-                values.append(int(raw_value.timestamp()))
+                ts = raw_value.timestamp()
+                if self.type == SQLITE:
+                    values.append(int(ts))
+                else:
+                    values.append(ts)
             else:
                 values.append(raw_value)
         return tuple(values)
