@@ -47,7 +47,7 @@ window.localisation.de = {
   paste_request: 'Anfrage einfügen',
   create_invoice: 'Rechnung erstellen',
   camera_tooltip:
-    'Verwenden Sie die Kamera, um eine Rechnung oder einen QR-Code zu scannen',
+  'Verwenden Sie die Kamera, um eine Rechnung oder einen QR-Code zu scannen',
   export_csv: 'Exportieren als CSV',
   transactions: 'Transaktionen',
   chart_tooltip: 'Diagramm anzeigen',
