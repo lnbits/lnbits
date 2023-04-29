@@ -69,7 +69,7 @@ window.localisation.de = {
   outgoing_payment_pending: 'Ausgehende Zahlung wartend',
   drain_funds: 'Sats abziehen',
   drain_funds_desc:
-    'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass deine Brieftasche die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
+  'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass deine Brieftasche die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
   i_understand: 'Ich verstehe',
   copy_wallet_url: 'Wallet-URL kopieren',
   disclaimer_dialog:
