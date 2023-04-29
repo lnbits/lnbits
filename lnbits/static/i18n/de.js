@@ -28,7 +28,7 @@ window.localisation.de = {
   add_wallet: 'Wallet hinzufügen',
   delete_wallet: 'Wallet löschen',
   delete_wallet_desc:
-    'Die Wallet wird gelöscht, die hierin beinhalteten Daten hierin oder innerhalb einer Erweiterung sind UNWIEDERBRINGLICH.',
+  'Die Wallet wird gelöscht, die hierin beinhalteten Daten hierin oder innerhalb einer Erweiterung sind UNWIEDERBRINGLICH.',
   rename_wallet: 'Wallet umbenennen',
   update_name: 'Namen aktualisieren',
   press_to_claim: 'Klicken, um Bitcoin einzufordern.',
