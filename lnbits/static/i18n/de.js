@@ -36,7 +36,7 @@ window.localisation.de = {
   view_github: 'Auf GitHub anzeigen',
   voidwallet_active: 'VoidWallet ist aktiv! Zahlungen deaktiviert',
   use_with_caution:
-    'BITTE MIT VORSICHT BENUTZEN- %{name} Wallet ist noch BETA',
+  'BITTE MIT VORSICHT BENUTZEN- %{name} Wallet ist noch BETA',
   toggle_darkmode: 'Auf Dark Mode umschalten',
   view_swagger_docs: 'LNbits Swagger API-Dokumente',
   api_docs: 'API docs',
