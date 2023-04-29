@@ -14,7 +14,7 @@ window.localisation.de = {
   add_funds_tooltip: 'Füge Geld zu einer Wallet hinzu.',
   reset_defaults: 'Zurücksetzen',
   reset_defaults_tooltip:
-    'Alle Einstellungen zurücksetzen auf die Standardeinstellungen.',
+  'Alle Einstellungen zurücksetzen auf die Standardeinstellungen.',
   download_backup: 'Datenbank-Backup herunterladen',
   name_your_wallet: 'Vergib deiner %{name} Wallet einen Namen',
   paste_invoice_label:
