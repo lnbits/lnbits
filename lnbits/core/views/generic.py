@@ -68,7 +68,9 @@ async def extensions(
 
     # Update user as his extensions have been updated
     if enable or disable:
-        user = await get_user(user.id)  # type: ignore
+        updated_user = await get_user(user.id)
+        assert updated_user, "User does not exist."
+        user = updated_user
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
@@ -186,8 +188,10 @@ async def wallet(
     wallet_name = nme
 
     if not user_id:
-        user = await get_user((await create_account()).id)
-        logger.info(f"Create user {user.id}")  # type: ignore
+        new_user = await create_account()
+        user = await get_user(new_user.id)
+        assert user, "Newly created user has to exist."
+        logger.info(f"Create user {user.id}")
     else:
         user = await get_user(user_id)
         if not user:
@@ -209,23 +213,23 @@ async def wallet(
             user.super_user = True
 
     if not wallet_id:
-        if user.wallets and not wallet_name:  # type: ignore
-            wallet = user.wallets[0]  # type: ignore
+        if user.wallets and not wallet_name:
+            wallet = user.wallets[0]
         else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)  # type: ignore
+            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
             logger.info(
-                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"  # type: ignore
+                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"
             )
 
         return RedirectResponse(
-            f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
+            f"/wallet?usr={user.id}&wal={wallet.id}",
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
     logger.debug(
         f"Access {'user '+ user.id + ' ' if user else ''} {'wallet ' + wallet_name if wallet_name else ''}"
     )
-    userwallet = user.get_wallet(wallet_id)  # type: ignore
+    userwallet = user.get_wallet(wallet_id)
     if not userwallet:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
@@ -235,10 +239,10 @@ async def wallet(
         "core/wallet.html",
         {
             "request": request,
-            "user": user.dict(),  # type: ignore
+            "user": user.dict(),
             "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
-            "web_manifest": f"/manifest/{user.id}.webmanifest",  # type: ignore
+            "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
 
@@ -294,18 +298,21 @@ async def lnurl_full_withdraw_callback(request: Request):
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
 async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
-    user_wallet_ids = [u.id for u in user.wallets]  # type: ignore
+    if not user:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User not found.")
+
+    user_wallet_ids = [u.id for u in user.wallets]
 
     if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
-        await delete_wallet(user_id=user.id, wallet_id=wal)  # type: ignore
+        await delete_wallet(user_id=user.id, wallet_id=wal)
         user_wallet_ids.remove(wal)
         logger.debug("Deleted wallet {wal} of user {user.id}")
 
     if user_wallet_ids:
         return RedirectResponse(
-            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),  # type: ignore
+            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
@@ -328,7 +335,8 @@ async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
         user = await get_user(account.id, conn=conn)
-        wallet = await create_wallet(user_id=user.id, conn=conn)  # type: ignore
+        assert user, "Newly created user not found."
+        wallet = await create_wallet(user_id=user.id, conn=conn)
 
     asyncio.create_task(
         redeem_lnurl_withdraw(
@@ -341,7 +349,7 @@ async def lnurlwallet(request: Request):
     )
 
     return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
+        f"/wallet?usr={user.id}&wal={wallet.id}",
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
