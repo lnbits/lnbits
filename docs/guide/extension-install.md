@@ -1,6 +1,6 @@
 # Extension Install
 
-Anyone can create an extension by following the [example extension](https://github.com/lnbits/lnbits/tree/extension_install_02/lnbits/extensions/example).
+Anyone can create an extension by following the [example extension](https://github.com/lnbits/example) and [making extensions](https://github.com/lnbits/lnbits/blob/main/docs/devs/extensions.md) dev guide.
 
 Extensions can be installed by an admin user after the **LNbits** instance has been started.
 
@@ -12,7 +12,7 @@ Go to `Manage Server` > `Server` > `Extensions Manifests`
 
 
 An `Extension Manifest` is a link to a `JSON` file which contains information about various extensions that can be installed (repository of extensions).
-Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/extension_install_02/docs/guide/extension-install.md#manifest-file) section.
+Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/main/docs/guide/extension-install.md#manifest-file) section.
 
 
 **LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). 
@@ -100,7 +100,7 @@ It goes under the `extensions` object and it is of the form:
 |----------------------|---------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | id                   | string        | mandatory | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                                                                          |
 | name                 | string        | mandatory | User friendly name for the extension. It will be displayed on the installation page.                                                                                 |
-| version              | string        | mandatory | Version of this release. [Semantic versoning](https://semver.org/) is recommended.                                                                                   |
+| version              | string        | mandatory | Version of this release. [Semantic versioning](https://semver.org/) is recommended.                                                                                   |
 | shortDescription     | string        | optional  | A few words about the extension. It will be displayed on the installation page.                                                                                      |
 | icon                 | string        | optional  | quasar valid icon name                                                                                                                                               |
 | details              | string (html) | optional  | Details about this particular release                                                                                                                                |

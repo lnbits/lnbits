@@ -34,10 +34,12 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import Payment, User, Wallet
+from lnbits.db import Filters
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     get_key_type,
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
@@ -48,7 +50,7 @@ from lnbits.extension_manager import (
     InstallableExtension,
     get_valid_extensions,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import generate_filter_params_openapi, url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -114,18 +116,23 @@ async def api_update_wallet(
     }
 
 
-@core_app.get("/api/v1/payments")
+@core_app.get(
+    "/api/v1/payments",
+    name="Payment List",
+    summary="get list of payments",
+    response_description="list of payments",
+    response_model=List[Payment],
+    openapi_extra=generate_filter_params_openapi(Payment),
+)
 async def api_payments(
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
     wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(Payment)),
 ):
     pendingPayments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
     for payment in pendingPayments:
         await check_transaction_status(
@@ -135,8 +142,7 @@ async def api_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
 
 
@@ -405,8 +411,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
             typ, data = await send_queue.get()
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
-
-            yield dict(data=jdata, event=typ)
+                yield dict(data=jdata, event=typ)
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
@@ -425,11 +430,12 @@ async def api_payments_sse(
     )
 
 
+# TODO: refactor this route into a public and admin one
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None
+    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None  # type: ignore
 
     # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
     # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
@@ -499,6 +505,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
+        assert lnurlauth_key.verifying_key
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
@@ -564,7 +571,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     if k == "text/plain":
                         params.update(description=v)
                     if k in ("image/jpeg;base64", "image/png;base64"):
-                        data_uri = "data:" + k + "," + v
+                        data_uri = f"data:{k},{v}"
                         params.update(image=data_uri)
                     if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)
@@ -687,7 +694,7 @@ async def api_auditor():
     if not error_message:
         delta = node_balance - total_balance
     else:
-        node_balance, delta = None, None
+        node_balance, delta = 0, 0
 
     return {
         "node_balance_msats": int(node_balance),
@@ -739,6 +746,7 @@ async def api_install_extension(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
+
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
@@ -818,8 +826,10 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         )
 
 
-@core_app.get("/api/v1/extension/{ext_id}/releases")
-async def get_extension_releases(ext_id: str, user: User = Depends(check_admin)):
+@core_app.get(
+    "/api/v1/extension/{ext_id}/releases", dependencies=[Depends(check_admin)]
+)
+async def get_extension_releases(ext_id: str):
     try:
         extension_releases: List[
             ExtensionRelease

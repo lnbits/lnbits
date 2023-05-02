@@ -4,9 +4,11 @@ import os
 import re
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
+from enum import Enum
+from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
 
 from loguru import logger
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
@@ -129,7 +131,7 @@ class Database(Compat):
             else:
                 self.type = POSTGRES
 
-            import psycopg2
+            from psycopg2.extensions import DECIMAL, new_type, register_type
 
             def _parse_timestamp(value, _):
                 if value is None:
@@ -139,15 +141,15 @@ class Database(Compat):
                     f = "%Y-%m-%d %H:%M:%S"
                 return time.mktime(datetime.datetime.strptime(value, f).timetuple())
 
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
-                    psycopg2.extensions.DECIMAL.values,
+            register_type(
+                new_type(
+                    DECIMAL.values,
                     "DEC2FLOAT",
                     lambda value, curs: float(value) if value is not None else None,
                 )
             )
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
+            register_type(
+                new_type(
                     (1082, 1083, 1266),
                     "DATE2INT",
                     lambda value, curs: time.mktime(value.timetuple())
@@ -156,11 +158,7 @@ class Database(Compat):
                 )
             )
 
-            psycopg2.extensions.register_type(
-                psycopg2.extensions.new_type(
-                    (1184, 1114), "TIMESTAMP2INT", _parse_timestamp
-                )
-            )
+            register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
         else:
             if os.path.isdir(settings.lnbits_data_folder):
                 self.path = os.path.join(
@@ -187,7 +185,7 @@ class Database(Compat):
     async def connect(self):
         await self.lock.acquire()
         try:
-            async with self.engine.connect() as conn:
+            async with self.engine.connect() as conn:  # type: ignore
                 async with conn.begin() as txn:
                     wconn = Connection(conn, txn, self.type, self.name, self.schema)
 
@@ -224,3 +222,123 @@ class Database(Compat):
     @asynccontextmanager
     async def reuse_conn(self, conn: Connection):
         yield conn
+
+
+class Operator(Enum):
+    GT = "gt"
+    LT = "lt"
+    EQ = "eq"
+    NE = "ne"
+    INCLUDE = "in"
+    EXCLUDE = "ex"
+
+    @property
+    def as_sql(self):
+        if self == Operator.EQ:
+            return "="
+        elif self == Operator.NE:
+            return "!="
+        elif self == Operator.INCLUDE:
+            return "IN"
+        elif self == Operator.EXCLUDE:
+            return "NOT IN"
+        elif self == Operator.GT:
+            return ">"
+        elif self == Operator.LT:
+            return "<"
+        else:
+            raise ValueError("Unknown SQL Operator")
+
+
+TModel = TypeVar("TModel", bound=BaseModel)
+
+
+class Filter(BaseModel, Generic[TModel]):
+    field: str
+    nested: Optional[list[str]]
+    op: Operator = Operator.EQ
+    values: list[Any]
+
+    @classmethod
+    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TModel]):
+        # Key format:
+        # key[operator]
+        # e.g. name[eq]
+        if key.endswith("]"):
+            split = key[:-1].split("[")
+            if len(split) != 2:
+                raise ValueError("Invalid key")
+            field_names = split[0].split(".")
+            op = Operator(split[1])
+        else:
+            field_names = key.split(".")
+            op = Operator("eq")
+
+        field = field_names[0]
+        nested = field_names[1:]
+
+        if field in model.__fields__:
+            compare_field = model.__fields__[field]
+            values = []
+            for raw_value in raw_values:
+                # If there is a nested field, pydantic expects a dict, so the raw value is turned into a dict before
+                # and the converted value is extracted afterwards
+                for name in reversed(nested):
+                    raw_value = {name: raw_value}
+
+                validated, errors = compare_field.validate(raw_value, {}, loc="none")
+                if errors:
+                    raise ValidationError(errors=[errors], model=model)
+
+                for name in nested:
+                    if isinstance(validated, dict):
+                        validated = validated[name]
+                    else:
+                        validated = getattr(validated, name)
+
+                values.append(validated)
+        else:
+            raise ValueError("Unknown filter field")
+
+        return cls(field=field, op=op, nested=nested, values=values)
+
+    @property
+    def statement(self):
+        accessor = self.field
+        if self.nested:
+            for name in self.nested:
+                accessor = f"({accessor} ->> '{name}')"
+        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
+            placeholders = ", ".join(["?"] * len(self.values))
+            stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
+        else:
+            stmt = [f"{accessor} {self.op.as_sql} ?"] * len(self.values)
+        return " OR ".join(stmt)
+
+
+class Filters(BaseModel, Generic[TModel]):
+    filters: List[Filter[TModel]] = []
+    limit: Optional[int]
+    offset: Optional[int]
+
+    def pagination(self) -> str:
+        stmt = ""
+        if self.limit:
+            stmt += f"LIMIT {self.limit} "
+        if self.offset:
+            stmt += f"OFFSET {self.offset}"
+        return stmt
+
+    def where(self, where_stmts: List[str]) -> str:
+        if self.filters:
+            for filter in self.filters:
+                where_stmts.append(filter.statement)
+        if where_stmts:
+            return "WHERE " + " AND ".join(where_stmts)
+        return ""
+
+    def values(self, values: List[str]) -> Tuple:
+        if self.filters:
+            for filter in self.filters:
+                values.extend(filter.values)
+        return tuple(values)

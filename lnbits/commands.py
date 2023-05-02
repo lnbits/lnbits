@@ -13,7 +13,6 @@ from .core.crud import get_dbversions, get_inactive_extensions
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import get_valid_extensions
-from .helpers import get_css_vendored, get_js_vendored, url_for_vendored
 
 
 @click.command("migrate")
@@ -24,7 +23,6 @@ def db_migrate():
 @click.command("assets")
 def handle_assets():
     transpile_scss()
-    bundle_vendored()
 
 
 def transpile_scss():
@@ -39,23 +37,11 @@ def transpile_scss():
                 css.write(compile_string(scss.read()))
 
 
-def bundle_vendored():
-    for getfiles, outputpath in [
-        (get_js_vendored, os.path.join(settings.lnbits_path, "static/bundle.js")),
-        (get_css_vendored, os.path.join(settings.lnbits_path, "static/bundle.css")),
-    ]:
-        output = ""
-        for path in getfiles():
-            with open(path) as f:
-                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
-        with open(outputpath, "w") as f:
-            f.write(output)
-
-
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
     async with core_db.connect() as conn:
+        exists = False
         if conn.type == SQLITE:
             exists = await conn.fetchone(
                 "SELECT * FROM sqlite_master WHERE type='table' AND name='dbversions'"

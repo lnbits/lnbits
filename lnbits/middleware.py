@@ -26,6 +26,7 @@ class InstalledExtensionMiddleware:
         else:
             _, path_name = path_elements
             path_type = None
+            rest = []
 
         # block path for all users if the extension is disabled
         if path_name in settings.lnbits_deactivated_extensions:
@@ -88,7 +89,7 @@ class ExtensionsRedirectMiddleware:
         if "from_path" not in redirect:
             return False
         header_filters = (
-            redirect["header_filters"] if "header_filters" in redirect else []
+            redirect["header_filters"] if "header_filters" in redirect else {}
         )
         return self._has_common_path(redirect["from_path"], path) and self._has_headers(
             header_filters, req_headers

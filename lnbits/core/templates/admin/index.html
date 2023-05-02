@@ -47,11 +47,11 @@
       <q-tooltip> Add funds to a wallet. </q-tooltip>
     </q-btn>
 
-    <!-- <q-btn
+    <q-btn
       label="Download Database Backup"
       flat
       @click="downloadBackup"
-      ></q-btn> -->
+    ></q-btn>
 
     <q-btn
       flat
@@ -535,19 +535,7 @@
           })
       },
       downloadBackup() {
-        LNbits.api
-          .request('GET', '/admin/api/v1/backup/?usr=' + this.g.user.id)
-          .then(response => {
-            this.$q.notify({
-              type: 'positive',
-              message:
-                'Success! Database backup request, download starts soon!',
-              icon: null
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        window.open('/admin/api/v1/backup/?usr=' + this.g.user.id, '_blank')
       }
     }
   })

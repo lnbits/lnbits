@@ -66,11 +66,12 @@ def decode(pr: str) -> Invoice:
             invoice.amount_msat = _unshorten_amount(amountstr)
 
     # pull out date
-    invoice.date = data.read(35).uint
+    date_bin = data.read(35)
+    invoice.date = date_bin.uint  # type: ignore
 
     while data.pos != data.len:
         tag, tagdata, data = _pull_tagged(data)
-        data_length = len(tagdata) / 5
+        data_length = len(tagdata or []) / 5
 
         if tag == "d":
             invoice.description = _trim_to_bytes(tagdata).decode()
@@ -79,7 +80,7 @@ def decode(pr: str) -> Invoice:
         elif tag == "p" and data_length == 52:
             invoice.payment_hash = _trim_to_bytes(tagdata).hex()
         elif tag == "x":
-            invoice.expiry = tagdata.uint
+            invoice.expiry = tagdata.uint  # type: ignore
         elif tag == "n":
             invoice.payee = _trim_to_bytes(tagdata).hex()
             # this won't work in most cases, we must extract the payee
@@ -90,11 +91,11 @@ def decode(pr: str) -> Invoice:
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
                 route = Route(
-                    pubkey=s.read(264).tobytes().hex(),
-                    short_channel_id=_readable_scid(s.read(64).intbe),
-                    base_fee_msat=s.read(32).intbe,
-                    ppm_fee=s.read(32).intbe,
-                    cltv=s.read(16).intbe,
+                    pubkey=s.read(264).tobytes().hex(),  # type: ignore
+                    short_channel_id=_readable_scid(s.read(64).intbe),  # type: ignore
+                    base_fee_msat=s.read(32).intbe,  # type: ignore
+                    ppm_fee=s.read(32).intbe,  # type: ignore
+                    cltv=s.read(16).intbe,  # type: ignore
                 )
                 invoice.route_hints.append(route)
 
@@ -171,7 +172,7 @@ def lnencode(addr, privkey):
     else:
         amount = addr.currency if addr.currency else ""
 
-    hrp = "ln" + amount + "0n"
+    hrp = f"ln{amount}0n"
 
     # Start with the timestamp
     data = bitstring.pack("uint:35", addr.date)
@@ -202,7 +203,8 @@ def lnencode(addr, privkey):
                 )
             data += tagged("r", route)
         elif k == "f":
-            data += encode_fallback(v, addr.currency)
+            # NOTE: there was an error fallback here that's now removed
+            continue
         elif k == "d":
             data += tagged_bytes("d", v.encode())
         elif k == "x":
@@ -244,7 +246,13 @@ def lnencode(addr, privkey):
 
 class LnAddr:
     def __init__(
-        self, paymenthash=None, amount=None, currency="bc", tags=None, date=None
+        self,
+        paymenthash=None,
+        amount=None,
+        currency="bc",
+        tags=None,
+        date=None,
+        fallback=None,
     ):
         self.date = int(time.time()) if not date else int(date)
         self.tags = [] if not tags else tags
@@ -252,12 +260,14 @@ class LnAddr:
         self.paymenthash = paymenthash
         self.signature = None
         self.pubkey = None
+        self.fallback = fallback
         self.currency = currency
         self.amount = amount
 
     def __str__(self):
-        pubkey = bytes.hex(self.pubkey.serialize()).decode()
-        tags = ", ".join([k + "=" + str(v) for k, v in self.tags])
+        assert self.pubkey, "LnAddr, pubkey must be set"
+        pubkey = bytes.hex(self.pubkey.serialize())
+        tags = ", ".join([f"{k}={v}" for k, v in self.tags])
         return f"LnAddr[{pubkey}, amount={self.amount}{self.currency} tags=[{tags}]]"
 
 
@@ -266,6 +276,7 @@ def shorten_amount(amount):
     # Convert to pico initially
     amount = int(amount * 10**12)
     units = ["p", "n", "u", "m", ""]
+    unit = ""
     for unit in units:
         if amount % 1000 == 0:
             amount //= 1000
@@ -302,14 +313,6 @@ def _pull_tagged(stream):
     tag = stream.read(5).uint
     length = stream.read(5).uint * 32 + stream.read(5).uint
     return (CHARSET[tag], stream.read(length * 5), stream)
-
-
-def is_p2pkh(currency, prefix):
-    return prefix == base58_prefix_map[currency][0]
-
-
-def is_p2sh(currency, prefix):
-    return prefix == base58_prefix_map[currency][1]
 
 
 # Tagged field containing BitArray
@@ -359,5 +362,5 @@ def bitarray_to_u5(barr):
     ret = []
     s = bitstring.ConstBitStream(barr)
     while s.pos != s.len:
-        ret.append(s.read(5).uint)
+        ret.append(s.read(5).uint)  # type: ignore
     return ret

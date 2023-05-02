@@ -7,7 +7,7 @@ from uuid import uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -206,7 +206,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    return await (conn or db).execute(
+    await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?
@@ -214,6 +214,9 @@ async def update_wallet(
         """,
         (new_name, wallet_id),
     )
+    wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
+    assert wallet, "updated created wallet couldn't be retrieved"
+    return wallet
 
 
 async def delete_wallet(
@@ -347,8 +350,7 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    filters: Optional[Filters[Payment]] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -393,29 +395,20 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
-    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
-    # combine limit and offset clauses
-    limit_offset_clause = (
-        f"{limit_clause} {offset_clause}"
-        if limit_clause and offset_clause
-        else limit_clause or offset_clause
-    )
-
-    where = ""
-    if clause:
-        where = f"WHERE {' AND '.join(clause)}"
+    if not filters:
+        filters = Filters(limit=None, offset=None)
 
     rows = await (conn or db).fetchall(
         f"""
         SELECT *
         FROM apipayments
-        {where}
+        {filters.where(clause)}
         ORDER BY time DESC
-        {limit_offset_clause}
+        {filters.pagination()}
         """,
-        tuple(args),
+        filters.values(args),
     )
+
     return [Payment.from_row(row) for row in rows]
 
 
@@ -604,6 +597,23 @@ async def check_internal(
         return row["checking_id"]
 
 
+async def check_internal_pending(
+    payment_hash: str, conn: Optional[Connection] = None
+) -> bool:
+    """Returns False if the internal payment is not pending anymore (and thus paid), otherwise True"""
+    row = await (conn or db).fetchone(
+        """
+        SELECT pending FROM apipayments
+        WHERE hash = ? AND amount > 0
+        """,
+        (payment_hash,),
+    )
+    if not row:
+        return True
+    else:
+        return row["pending"]
+
+
 # balance_check
 # -------------
 
@@ -705,15 +715,19 @@ async def update_admin_settings(data: EditableSettings):
     await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
 
 
-async def update_super_user(super_user: str):
+async def update_super_user(super_user: str) -> SuperSettings:
     await db.execute("UPDATE settings SET super_user = ?", (super_user,))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings, "updated super_user settings could not be retrieved"
+    return settings
 
 
 async def create_admin_settings(super_user: str, new_settings: dict):
     sql = "INSERT INTO settings (super_user, editable_settings) VALUES (?, ?)"
     await db.execute(sql, (super_user, json.dumps(new_settings)))
-    return await get_super_settings()
+    settings = await get_super_settings()
+    assert settings, "created admin settings could not be retrieved"
+    return settings
 
 
 # db versions

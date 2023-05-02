@@ -3,7 +3,7 @@ new Vue({
   data: function () {
     return {
       searchTerm: '',
-      filteredExtensions: null,
+      filteredExtensions: [],
       maxStars: 5,
       user: null
     }

@@ -1,4 +1,5 @@
 import importlib
+import importlib.metadata
 import inspect
 import json
 import subprocess
@@ -23,6 +24,7 @@ def list_parse_fallback(v):
 
 
 class LNbitsSettings(BaseSettings):
+    @classmethod
     def validate(cls, val):
         if type(val) == str:
             val = val.split(",") if val else []
@@ -43,7 +45,6 @@ class UsersSettings(LNbitsSettings):
 
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
-    lnbits_disabled_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
@@ -88,7 +89,7 @@ class ThemesSettings(LNbitsSettings):
 
 
 class OpsSettings(LNbitsSettings):
-    lnbits_force_https: bool = Field(default=False)
+    lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
@@ -103,6 +104,8 @@ class FakeWalletFundingSource(LNbitsSettings):
 class LNbitsFundingSource(LNbitsSettings):
     lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
+    lnbits_admin_key: Optional[str] = Field(default=None)
+    lnbits_invoice_key: Optional[str] = Field(default=None)
 
 
 class ClicheFundingSource(LNbitsSettings):
@@ -145,16 +148,14 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)
     lnpay_wallet_key: Optional[str] = Field(default=None)
-
-
-class LnTxtBotFundingSource(LNbitsSettings):
-    lntxbot_api_endpoint: Optional[str] = Field(default=None)
-    lntxbot_key: Optional[str] = Field(default=None)
+    lnpay_admin_key: Optional[str] = Field(default=None)
 
 
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
+    opennode_admin_key: Optional[str] = Field(default=None)
+    opennode_invoice_key: Optional[str] = Field(default=None)
 
 
 class SparkFundingSource(LNbitsSettings):
@@ -190,7 +191,6 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
-    LnTxtBotFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -212,11 +212,11 @@ class EditableSettings(
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
-        "lnbits_disabled_extensions",
         pre=True,
     )
+    @classmethod
     def validate_editable_settings(cls, val):
-        return super().validate(cls, val)
+        return super().validate(val)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -233,6 +233,7 @@ class EnvSettings(LNbitsSettings):
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
+    version: str = Field(default="0.0.0")
 
 
 class SaaSSettings(LNbitsSettings):
@@ -287,8 +288,9 @@ class ReadOnlySettings(
         "lnbits_allowed_funding_sources",
         pre=True,
     )
+    @classmethod
     def validate_readonly_settings(cls, val):
-        return super().validate(cls, val)
+        return super().validate(val)
 
     @classmethod
     def readonly_fields(cls):
@@ -317,8 +319,9 @@ def set_cli_settings(**kwargs):
 
 
 # set wallet class after settings are loaded
-def set_wallet_class():
-    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+def set_wallet_class(class_name: Optional[str] = None):
+    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
+    wallet_class = getattr(wallets_module, backend_wallet_class)
     global WALLET
     WALLET = wallet_class()
 
@@ -373,10 +376,11 @@ try:
 except:
     settings.lnbits_commit = "docker"
 
+settings.version = importlib.metadata.version("lnbits")
 
-# printing enviroment variable for debugging
+# printing environment variable for debugging
 if not settings.lnbits_admin_ui:
-    logger.debug("Enviroment Settings:")
+    logger.debug("Environment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
