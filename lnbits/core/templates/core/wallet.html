@@ -734,14 +734,22 @@
         </q-card>
       </q-dialog>
       <q-tabs
-        class="lt-dm fixed-bottom q-py-xs left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
+        class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top q-px-0"
         active-class="px-0"
         indicator-color="transparent"
         align="justify"
       >
-        <q-tab icon="bolt" label="Receive" @click="showReceiveDialog"> </q-tab>
-        <q-tab icon="photo_camera" @click="showCamera"> </q-tab>
-        <q-tab icon="bolt" label="Send" @click="showParseDialog"> </q-tab>
+        <q-tab
+          class="col-5"
+          icon="bolt"
+          label="Receive"
+          @click="showReceiveDialog"
+        >
+        </q-tab>
+        <q-tab class="col-2 q-pb-md" icon="photo_camera" @click="showCamera">
+        </q-tab>
+        <q-tab class="col-5" icon="bolt" label="Send" @click="showParseDialog">
+        </q-tab>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">
