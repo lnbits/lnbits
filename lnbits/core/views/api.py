@@ -856,6 +856,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
             ext_info.clean_extension_files()
             await delete_installed_extension(ext_id=ext_info.id)
 
+        logger.success(f"Extension '{ext_id}' uninstalled.")
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
