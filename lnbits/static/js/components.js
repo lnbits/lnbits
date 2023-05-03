@@ -202,6 +202,14 @@ Vue.component('lnbits-admin-ui', {
           <q-item-label lines="1" class="text-caption" v-text="$t('manage_server')"></q-item-label>
         </q-item-section>
       </q-item>
+      <q-item clickable tag="a" :href="['/node?usr=', user.id].join('')">
+      <q-item-section side>
+        <q-icon name="developer_board" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" class="text-caption" v-text="$t('manage_node')"></q-item-label>
+      </q-item-section>
+    </q-item>
     </q-list>
   `,
 

@@ -331,6 +331,7 @@ window.windowMixin = {
   i18n: window.i18n,
   data: function () {
     return {
+      toggleSubs: true,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,

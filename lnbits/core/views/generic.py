@@ -394,6 +394,27 @@ async def manifest(usr: str):
         ],
     }
 
+####################### NODE ###########################
+
+@core_html_routes.get("/node", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "node/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
+            "balance": balance,
+            "wallets": user.wallets[0].dict(),
+        },
+    )
+
 
 @core_html_routes.get("/admin", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
