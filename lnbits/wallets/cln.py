@@ -69,7 +69,7 @@ class CoreLightningWallet(Wallet):
         try:
             funds = self.ln.listfunds()
             return StatusResponse(
-                None, sum([int(ch["amount_msat"]) for ch in funds["channels"]])
+                None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
