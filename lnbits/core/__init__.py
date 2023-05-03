@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from .db import core_app_extra, db
+from .views.node_api import node_router
 from .views.admin_api import admin_router
 from .views.api import api_router
 
@@ -17,4 +18,5 @@ def init_core_routers(app):
     app.include_router(generic_router)
     app.include_router(public_router)
     app.include_router(api_router)
+    app.include_router(node_router)
     app.include_router(admin_router)

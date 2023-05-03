@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Coroutine, NamedTuple, Optional
+from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+
+if TYPE_CHECKING:
+    from lnbits.nodes.base import Node
 
 
 class StatusResponse(NamedTuple):
@@ -51,6 +56,8 @@ class Wallet(ABC):
     async def cleanup(self):
         pass
 
+    __node_cls__: Optional[Type[Node]] = None
+
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
         pass
@@ -61,6 +68,7 @@ class Wallet(ABC):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> Coroutine[None, None, InvoiceResponse]:
         pass
