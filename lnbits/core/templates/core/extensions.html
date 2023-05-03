@@ -153,7 +153,7 @@
             ><q-tooltip>Ratings coming soon</q-tooltip></q-rating
           >
           <q-toggle
-            v-if="extension.isAvailable && extension.isInstalled"
+            v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
             :label="extension.isActive ? 'Activated':  'Deactivated' "
             color="secodary"
             style="max-height: 21px"
