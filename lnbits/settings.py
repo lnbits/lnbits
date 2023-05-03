@@ -117,6 +117,12 @@ class CoreLightningFundingSource(LNbitsSettings):
     clightning_rpc: Optional[str] = Field(default=None)
 
 
+class CLNRestFundingSource(LNbitsSettings):
+    cln_rest_url: Optional[str] = Field(default=None)
+    cln_rest_macaroon: Optional[str] = Field(default=None)
+    cln_rest_cert: Optional[str] = Field(default=None)
+
+
 class EclairFundingSource(LNbitsSettings):
     eclair_url: Optional[str] = Field(default=None)
     eclair_pass: Optional[str] = Field(default=None)
@@ -187,6 +193,7 @@ class FundingSourcesSettings(
     LNbitsFundingSource,
     ClicheFundingSource,
     CoreLightningFundingSource,
+    CLNRestFundingSource,
     EclairFundingSource,
     LndRestFundingSource,
     LndGrpcFundingSource,

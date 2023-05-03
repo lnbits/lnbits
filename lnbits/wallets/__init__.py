@@ -12,3 +12,4 @@ from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
 from .spark import SparkWallet
 from .void import VoidWallet
+from .clnrest import CLNRestWallet
