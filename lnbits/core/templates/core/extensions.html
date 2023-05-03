@@ -2,11 +2,11 @@
 %} {{ window_vars(user, extensions) }}{% block page %}
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
-    <p class="text-h4 gt-sm">Extensions</p>
+    <p class="text-h4 gt-sm">{%raw%}{{ $t('extensions') }}{%endraw%}</p>
   </div>
 
   <div class="col-sm-3 col-xs-12 q-ml-auto">
-    <q-input v-model="searchTerm" label="Search extensions">
+    <q-input v-model="searchTerm" :label="$t('search_extensions')">
       <q-icon
         v-if="searchTerm !== ''"
         name="close"
@@ -30,21 +30,21 @@
           >
             <q-tab
               name="installed"
-              label="Installed"
+              :label="$t('installed')"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
               name="all"
-              label="All"
+              :label="$t('all')"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
               name="featured"
-              label="Featured"
+              :label="$t('featured')"
               @update="val => tab = val.name"
             ></q-tab>
             <i v-if="!g.user.admin && tab != 'installed'"
-              >(Only admin accounts can install extensions)</i
+              >{%raw%}{{ $t('only_admins_can_install') }}{%endraw%}</i
             >
           </q-tabs>
         </div>
@@ -89,7 +89,7 @@
               color="green"
               class="float-right"
             >
-              <small>New Version</small>
+              <small>{%raw%}{{ $t('new_version') }}{%endraw%}</small>
             </q-badge>
             {% raw %}
             <div class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm">
@@ -121,7 +121,9 @@
         </div>
         <div class="row q-pt-sm">
           <div class="col">
-            <small v-if="extension.dependencies?.length">Depends on:</small>
+            <small v-if="extension.dependencies?.length"
+              >{%raw%}{{ $t('extension_depends_on') }}{%endraw%}</small
+            >
             <small v-else>&nbsp;</small>
             <q-badge
               v-for="dep in extension.dependencies"
@@ -142,7 +144,9 @@
             size="1.5em"
             :max="5"
             color="primary"
-            ><q-tooltip>Ratings coming soon</q-tooltip></q-rating
+            ><q-tooltip
+              >{%raw%}{{ $t('extension_rating_soon') }}{%endraw%}</q-tooltip
+            ></q-rating
           >
           <q-rating
             v-model="maxStars"
@@ -150,17 +154,20 @@
             size="1.5em"
             :max="5"
             color="primary"
-            ><q-tooltip>Ratings coming soon</q-tooltip></q-rating
+            ><q-tooltip
+              >{%raw%}{{ $t('extension_rating_soon') }}{%endraw%}</q-tooltip
+            ></q-rating
           >
           <q-toggle
             v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
-            :label="extension.isActive ? 'Activated':  'Deactivated' "
+            :label="extension.isActive ? $t('activated'):  $t('deactivated') "
             color="secodary"
             style="max-height: 21px"
             v-model="extension.isActive"
             @input="toggleExtension(extension)"
             ><q-tooltip
-              >Make extension available/unavailable for users</q-tooltip
+              >{%raw%}{{ $t('activate_extension_details')
+              }}{%endraw%}</q-tooltip
             ></q-toggle
           >
         </div>
@@ -175,7 +182,7 @@
               color="primary"
               type="a"
               :href="[extension.id, '?usr=', g.user.id].join('')"
-              >Open</q-btn
+              >{%raw%}{{ $t('open') }}{%endraw%}</q-btn
             >
             <q-btn
               v-if="user.extensions.includes(extension.id) && extension.isActive"
@@ -186,7 +193,7 @@
                 url_for('install.extensions')
               }}', '?usr=', g.user.id, '&disable=', extension.id].join('')"
             >
-              Disable</q-btn
+              {%raw%}{{ $t('disable') }}{%endraw%}</q-btn
             >
             <q-btn
               v-if="extension.isInstalled && !user.extensions.includes(extension.id) && extension.isActive"
@@ -197,8 +204,11 @@
                 url_for('install.extensions')
               }}', '?usr=', g.user.id, '&enable=', extension.id].join('')"
             >
-              Enable
-              <q-tooltip>Enable extension for current user</q-tooltip></q-btn
+              {%raw%}{{ $t('enable') }}{%endraw%}
+              <q-tooltip
+                >{%raw%}{{ $t('enable_extension_details')
+                }}{%endraw%}</q-tooltip
+              ></q-btn
             >
 
             <q-btn
@@ -207,7 +217,10 @@
               color="primary"
               v-if="g.user.admin"
             >
-              Manage<q-tooltip>Install/uninstall extension</q-tooltip></q-btn
+              {%raw%}{{ $t('manage') }}{%endraw%}<q-tooltip
+                >{%raw%}{{ $t('manage_extension_details')
+                }}{%endraw%}</q-tooltip
+              ></q-btn
             >
           </div>
           <div v-else>
@@ -221,7 +234,10 @@
             class="float-right"
           >
             {% raw %}{{ extension.installedRelease.version }}{% endraw
-            %}<q-tooltip>Installed version</q-tooltip>
+            %}<q-tooltip
+              >{%raw%}{{ $t('extension_installed_version')
+              }}{%endraw%}</q-tooltip
+            >
           </div>
         </div>
       </q-card-actions>
@@ -229,17 +245,19 @@
   </div>
   <q-dialog v-model="showUninstallDialog">
     <q-card class="q-pa-lg">
-      <h6 class="q-my-md text-primary">Warning</h6>
+      <h6 class="q-my-md text-primary">{%raw%}{{ $t('warning') }}{%endraw%}</h6>
       <p>
-        You are about to remove the extension for all users. <br />
-        Are you sure you want to continue?
+        {%raw%}{{ $t('extension_uninstall_warning') }}{%endraw%} <br />
+        {%raw%}{{ $t('confirm_continue') }}{%endraw%}
       </p>
 
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="uninstallExtension()"
-          >Yes, Uninstall</q-btn
+          >{%raw%}{{ $t('uninstall_confirm') }}{%endraw%}</q-btn
         >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+          >{%raw%}{{ $t('cancel') }}{%endraw%}</q-btn
+        >
       </div>
     </q-card>
   </q-dialog>
@@ -275,26 +293,11 @@
               <q-item-section>
                 <div class="row">
                   <div class="col-10">
-                    Repository
+                    {%raw%}{{ $t('repository') }}{%endraw%}
                     <br />
                     <small v-text="repoName"></small>
                   </div>
-                  <div class="col-2">
-                    <!-- <div v-if="selectedExtension.stars" class="float-right">
-                      <small v-text="selectedExtension.stars"> </small>
-                      <q-rating
-                        max="1"
-                        v-model="maxStars"
-                        size="1.5em"
-                        color="yellow"
-                        icon="star"
-                        icon-selected="star"
-                        readonly
-                        no-dimming
-                      >
-                      </q-rating>
-                    </div> -->
-                  </div>
+                  <div class="col-2"></div>
                 </div>
               </q-item-section>
             </template>
@@ -319,10 +322,10 @@
                         v-if="!release.isInstalled"
                         @click="installExtension(release)"
                         color="primary unelevated mt-lg pt-lg"
-                        >Install</q-btn
+                        >{%raw%}{{ $t('install') }}{%endraw%}</q-btn
                       >
                       <q-btn v-else @click="showUninstall()" flat color="red">
-                        Uninstall</q-btn
+                        {%raw%}{{ $t('uninstall') }}{%endraw%}</q-btn
                       >
                       <a
                         v-if="release.html_url"
@@ -330,15 +333,14 @@
                         :href="release.html_url"
                         target="_blank"
                         style="color: inherit"
-                        >Release Notes</a
+                        >{%raw%}{{ $t('release_notes') }}{%endraw%}</a
                       >
                     </q-card-section>
                     <q-card-section v-else>
-                      This release requires LNbits version
+                      {%raw%}{{ $t('extension_min_lnbits_version') }}{%endraw%}
                       <strong>
                         <span v-text="release.min_lnbits_version"></span>
                       </strong>
-                      or above.
                     </q-card-section>
 
                     <div
@@ -360,9 +362,11 @@
           flat
           color="red"
         >
-          Uninstall</q-btn
+          {%raw%}{{ $t('uninstall') }}{%endraw%}</q-btn
         >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">
+          {%raw%}{{ $t('close') }}{%endraw%}</q-btn
+        >
       </div>
     </q-card>
   </q-dialog>
