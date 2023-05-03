@@ -28,8 +28,8 @@ class ExplicitRelease(BaseModel):
     icon: Optional[str]
     short_description: Optional[str]
     min_lnbits_version: Optional[str]
-    html_url: Optional[str]
-    details: Optional[str]
+    html_url: Optional[str]  # todo: release_url
+    warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
 
@@ -235,7 +235,7 @@ class ExtensionRelease(BaseModel):
     is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
     description: Optional[str] = None
-    details_html: Optional[str] = None
+    warning: Optional[str] = None
     icon: Optional[str] = None
 
     @classmethod
@@ -506,7 +506,7 @@ class InstallableExtension(BaseModel):
                                 description=e.short_description,
                                 min_lnbits_version=e.min_lnbits_version,
                                 is_version_compatible=e.is_version_compatible(),
-                                details_html=e.details,
+                                warning=e.warning,
                                 html_url=e.html_url,
                                 icon=e.icon,
                             )

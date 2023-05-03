@@ -342,11 +342,19 @@
                         <span v-text="release.min_lnbits_version"></span>
                       </strong>
                     </q-card-section>
+                    <q-card v-if="release.warning">
+                      <q-card-section>
+                        <div class="text-h6">
+                          <q-badge color="yellow" text-color="black">
+                            {%raw%}{{ $t('warning') }}{%endraw%}
+                          </q-badge>
+                        </div>
+                        <div class="text-subtitle2">
+                          <span v-text="release.warning"></span>
+                        </div>
+                      </q-card-section>
+                    </q-card>
 
-                    <div
-                      v-if="release.details_html"
-                      v-html="release.details_html"
-                    ></div>
                     <q-separator></q-separator> </q-card
                 ></q-expansion-item>
               </q-list>
