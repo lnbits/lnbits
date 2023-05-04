@@ -335,7 +335,7 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name}.")
-        Path(Path("lnbits", "upgrades")).mkdir(parents=True, exist_ok=True)
+        Path("lnbits", "upgrades").mkdir(parents=True, exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(self.ext_upgrade_dir)
