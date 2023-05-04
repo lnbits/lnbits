@@ -39,8 +39,7 @@ def main(
     """Launched with `poetry run lnbits` at root level"""
 
     # create data dir if it does not exist
-    if not Path(settings.lnbits_data_folder).is_dir():
-        Path(settings.lnbits_data_folder).mkdir(parents=True)
+    Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
