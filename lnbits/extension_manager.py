@@ -180,7 +180,7 @@ class Extension(NamedTuple):
 class ExtensionManager:
     def __init__(self):
         p = Path(settings.lnbits_path, "extensions")
-        os.makedirs(p, exist_ok=True)
+        Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
     @property
@@ -283,7 +283,7 @@ class InstallableExtension(BaseModel):
     @property
     def zip_path(self) -> Path:
         extensions_data_dir = Path(settings.lnbits_data_folder, "extensions")
-        os.makedirs(extensions_data_dir, exist_ok=True)
+        Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
         return Path(extensions_data_dir, f"{self.id}.zip")
 
     @property
@@ -335,7 +335,7 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name}.")
-        os.makedirs(Path("lnbits", "upgrades"), exist_ok=True)
+        Path(Path("lnbits", "upgrades")).mkdir(parents=True, exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(self.ext_upgrade_dir)
