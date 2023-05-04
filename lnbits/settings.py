@@ -227,6 +227,7 @@ class EditableSettings(
 
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
+    bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
     forwarded_allow_ips: str = Field(default="*")
@@ -354,8 +355,6 @@ def send_admin_user_to_saas():
                     f"error sending super_user to saas: {settings.lnbits_saas_callback}. Error: {str(e)}"
                 )
 
-
-############### INIT #################
 
 readonly_variables = ReadOnlySettings.readonly_fields()
 transient_variables = TransientSettings.readonly_fields()

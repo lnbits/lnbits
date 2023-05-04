@@ -148,27 +148,27 @@ new Vue({
           {
             name: 'memo',
             align: 'left',
-            label: 'Memo',
+            label: this.$t('memo'),
             field: 'memo'
           },
           {
             name: 'date',
             align: 'left',
-            label: 'Date',
+            label: this.$t('date'),
             field: 'date',
             sortable: true
           },
           {
             name: 'sat',
             align: 'right',
-            label: 'Amount (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: 'Fee (m' + LNBITS_DENOMINATION + ')',
+            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
             field: 'fee'
           }
         ],
@@ -466,6 +466,16 @@ new Vue({
         return
       }
 
+      // BIP-21 support
+      if (this.parse.data.request.toLowerCase().includes('lightning')) {
+        this.parse.data.request = this.parse.data.request.split('lightning=')[1]
+
+        // fail safe to check there's nothing after the lightning= part
+        if (this.parse.data.request.includes('&')) {
+          this.parse.data.request = this.parse.data.request.split('&')[0]
+        }
+      }
+
       let invoice
       try {
         invoice = decode(this.parse.data.request)
@@ -510,7 +520,7 @@ new Vue({
     payInvoice: function () {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
-        message: 'Processing payment...'
+        message: this.$t('processing_payment')
       })
 
       LNbits.api

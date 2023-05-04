@@ -28,7 +28,7 @@ Vue.component('lnbits-wallet-list', {
   },
   template: `
     <q-list v-if="user && user.wallets.length" dense class="lnbits-drawer__q-list">
-      <q-item-label header>Wallets</q-item-label>
+      <q-item-label header v-text="$t('wallets')"></q-item-label>
       <q-item v-for="wallet in wallets" :key="wallet.id"
         clickable
         :active="activeWallet && activeWallet.id === wallet.id"
@@ -56,7 +56,7 @@ Vue.component('lnbits-wallet-list', {
           <q-icon :name="(showForm) ? 'remove' : 'add'" color="grey-5" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption">Add a wallet</q-item-label>
+          <q-item-label lines="1" class="text-caption" v-text="$t('add_wallet')"></q-item-label>
         </q-item-section>
       </q-item>
       <q-item v-if="showForm">
@@ -112,7 +112,7 @@ Vue.component('lnbits-extension-list', {
   },
   template: `
     <q-list v-if="user" dense class="lnbits-drawer__q-list">
-      <q-item-label header>Extensions</q-item-label>
+      <q-item-label header v-text="$t('extensions')"></q-item-label>
       <q-item v-for="extension in userExtensions" :key="extension.code"
         clickable
         :active="extension.isActive"
@@ -137,7 +137,7 @@ Vue.component('lnbits-extension-list', {
           <q-icon name="clear_all" color="grey-5" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption">Extensions</q-item-label>
+          <q-item-label lines="1" class="text-caption" v-text="$t('extensions')"></q-item-label>
         </q-item-section>
       </q-item>
       <q-item clickable tag="a" :href="['/install?usr=', user.id].join('')">
@@ -145,7 +145,7 @@ Vue.component('lnbits-extension-list', {
           <q-icon name="playlist_add" color="grey-5" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption">Manage Extensions</q-item-label>
+          <q-item-label lines="1" class="text-caption" v-text="$t('manage_extensions')"></q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -199,7 +199,7 @@ Vue.component('lnbits-admin-ui', {
           <q-icon name="admin_panel_settings" color="grey-5" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption">Manage Server</q-item-label>
+          <q-item-label lines="1" class="text-caption" v-text="$t('manage_server')"></q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -228,34 +228,34 @@ Vue.component('lnbits-payment-details', {
         </q-badge>
       </div>
       <div class="row">
-        <div class="col-3"><b>Created</b>:</div>
+        <div class="col-3"><b v-text="$t('created')"></b>:</div>
         <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
       </div>
       <div class="row">
-        <div class="col-3"><b>Expiry</b>:</div>
+        <div class="col-3"><b v-text="$t('expiry')"></b>:</div>
         <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
       </div>
       <div class="row">
-        <div class="col-3"><b>Description</b>:</div>
+        <div class="col-3"><b v-text="$t('description')"></b>:</div>
         <div class="col-9">{{ payment.memo }}</div>
       </div>
       <div class="row">
-        <div class="col-3"><b>Amount</b>:</div>
+        <div class="col-3"><b v-text="$t('amount')"></b>:</div>
         <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
       </div>
       <div class="row">
-        <div class="col-3"><b>Fee</b>:</div>
+        <div class="col-3"><b v-text="$t('fee')"></b>:</div>
         <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
       </div>
       <div class="row">
-        <div class="col-3"><b>Payment hash</b>:</div>
+        <div class="col-3"><b v-text="$t('payment_hash')"></b>:</div>
         <div class="col-9 text-wrap mono">
             {{ payment.payment_hash }}
             <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
       </div>
       </div>
       <div class="row" v-if="payment.webhook">
-        <div class="col-3"><b>Webhook</b>:</div>
+        <div class="col-3"><b v-text="$t('webhook')"></b>:</div>
         <div class="col-9 text-wrap mono">
           {{ payment.webhook }}
           <q-badge :color="webhookStatusColor" text-color="white">
@@ -264,7 +264,7 @@ Vue.component('lnbits-payment-details', {
         </div>
       </div>
       <div class="row" v-if="hasPreimage">
-        <div class="col-3"><b>Payment proof</b>:</div>
+        <div class="col-3"><b v-text="$t('payment_proof')"></b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.preimage }}</div>
       </div>
       <div class="row" v-for="entry in extras">

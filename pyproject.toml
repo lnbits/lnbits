@@ -1,15 +1,11 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.10.3"
+version = "0.10.5"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 
-[tool.poetry.build]
-generate-setup-file = false
-script = "tools/build.py"
-
 [tool.poetry.dependencies]
-python = "^3.10 | ^3.9 | ^3.8 | ^3.7"
+python = "^3.10 | ^3.9"
 bech32 = "1.2.0"
 bitstring = "3.1.9"
 click = "8.0.4"
@@ -22,7 +18,6 @@ lnurl = "0.3.6"
 psycopg2-binary = "2.9.1"
 pydantic = "1.10.4"
 pyqrcode = "1.2.1"
-pyScss = "1.4.0"
 shortuuid = "1.0.11"
 sqlalchemy = "1.3.24"
 sqlalchemy-aio = "0.17.0"
@@ -37,11 +32,10 @@ protobuf = "4.21.12"
 Cerberus = "1.3.4"
 async-timeout = "4.0.2"
 pyln-client = "0.11.1"
-boltz-client = "0.1.3"
 cashu = "0.9.0"
 
-
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.0.0"
 isort = "^5.10.1"
 pytest = "^7.1.2"
 mock = "^4.0.3"
@@ -50,11 +44,10 @@ pytest-asyncio = "^0.19.0"
 pytest-cov = "^3.0.0"
 mypy = "^0.971"
 types-protobuf = "^3.19.22"
-flake8 = { version = "^6.0.0", python = ">=3.8.1" }
-pylint = { version = "^2.15.10", python = ">=3.7.2" }
+pylint = "^2.17.2"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "pyscss"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]

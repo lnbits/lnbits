@@ -316,23 +316,23 @@ def _pull_tagged(stream):
 
 
 # Tagged field containing BitArray
-def tagged(char, l):
+def tagged(char, bits):
     # Tagged fields need to be zero-padded to 5 bits.
-    while l.len % 5 != 0:
-        l.append("0b0")
+    while bits.len % 5 != 0:
+        bits.append("0b0")
     return (
         bitstring.pack(
             "uint:5, uint:5, uint:5",
             CHARSET.find(char),
-            (l.len / 5) / 32,
-            (l.len / 5) % 32,
+            (bits.len / 5) / 32,
+            (bits.len / 5) % 32,
         )
-        + l
+        + bits
     )
 
 
-def tagged_bytes(char, l):
-    return tagged(char, bitstring.BitArray(l))
+def tagged_bytes(char, bits):
+    return tagged(char, bitstring.BitArray(bits))
 
 
 def _trim_to_bytes(barr):
