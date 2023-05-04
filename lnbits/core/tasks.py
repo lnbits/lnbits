@@ -38,12 +38,17 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         logger.trace("received invoice paid event")
         # send information to sse channel
         await dispatch_api_invoice_listeners(payment)
-        wallet = await get_wallet(payment.wallet_id)
-        await websocketUpdater(
-            payment.wallet_id,
-            {"wallet_balance": wallet.balance or None, "payment": payment.dict()},
-        )
-
+        try:
+            wallet = await get_wallet(wallet_id, conn=conn)
+            await websocketUpdater(
+                wallet_id,
+                    {
+                        "wallet_balance": wallet.balance or None,
+                        "payment": payment._asdict(),
+                    },
+                )
+        except Exception:
+            pass
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
