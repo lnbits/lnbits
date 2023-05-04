@@ -234,6 +234,11 @@ async def pay_invoice(
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
+                wallet = await get_wallet(wallet_id, conn=conn)
+                await websocketUpdater(
+                    wallet_id,
+                    {"wallet_balance": wallet.balance, "payment": payment._asdict()},
+                )
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
