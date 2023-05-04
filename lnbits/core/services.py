@@ -38,6 +38,7 @@ from .crud import (
     get_super_settings,
     get_wallet,
     get_wallet_payment,
+    get_standalone_payment,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -66,7 +67,6 @@ async def create_invoice(
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
-
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
 
@@ -157,6 +157,15 @@ async def pay_invoice(
         # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
+            # perform additional checks on the internal payment
+            # the payment hash is not enough to make sure that this is the same invoice
+            internal_invoice = await get_standalone_payment(
+                internal_checking_id, incoming=True, conn=conn
+            )
+            assert internal_invoice is not None
+            assert internal_invoice.amount == invoice.amount_msat
+            assert internal_invoice.bolt11 == payment_request
+
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             await create_payment(
