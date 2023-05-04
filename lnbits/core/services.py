@@ -163,8 +163,11 @@ async def pay_invoice(
                 internal_checking_id, incoming=True, conn=conn
             )
             assert internal_invoice is not None
-            assert internal_invoice.amount == invoice.amount_msat
-            assert internal_invoice.bolt11 == payment_request
+            if (
+                internal_invoice.amount != invoice.amount_msat
+                or internal_invoice.bolt11 != payment_request
+            ):
+                raise PaymentFailure("Invalid invoice.")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
