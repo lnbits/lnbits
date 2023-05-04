@@ -41,7 +41,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         wallet = await get_wallet(payment.wallet_id)
         await websocketUpdater(
             payment.wallet_id,
-            {"wallet_balance": wallet.balance, "payment": payment.dict()},
+            {"wallet_balance": wallet.balance or None, "payment": payment.dict()},
         )
 
         # dispatch webhook
