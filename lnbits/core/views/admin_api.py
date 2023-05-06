@@ -32,11 +32,14 @@ async def api_get_settings(
 @core_app.put(
     "/admin/api/v1/settings/",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_admin)],
 )
-async def api_update_settings(data: EditableSettings):
+async def api_update_settings(
+    data: EditableSettings, user: User = Depends(check_admin)
+):
     await update_admin_settings(data)
-    update_cached_settings(dict(data))
+    admin_settings = await get_admin_settings(user.super_user)
+    assert admin_settings, "Updated admin settings not found."
+    update_cached_settings(admin_settings.dict())
     return {"status": "Success"}
 
 
