@@ -1,3 +1,5 @@
+from ..nodes.cln import CoreLightningNode
+
 try:
     from pyln.client import LightningRpc, RpcError  # type: ignore
 except ImportError:  # pragma: nocover
@@ -42,7 +44,14 @@ def _paid_invoices_stream(ln, last_pay_index):
     return ln.waitanyinvoice(last_pay_index)
 
 
+def strip_msat(amount):
+    return amount / 1000
+    return int(amount[:-4]) // 1000
+
+
 class CoreLightningWallet(Wallet):
+    __node_cls__ = CoreLightningNode
+
     def __init__(self):
         if LightningRpc is None:  # pragma: nocover
             raise ImportError(
@@ -64,6 +73,9 @@ class CoreLightningWallet(Wallet):
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break
+
+    async def ln_rpc(self, method, *args, **kwargs):
+        return await async_wrap(getattr(self.ln, method))(*args, **kwargs)
 
     async def status(self) -> StatusResponse:
         try:
@@ -127,7 +139,9 @@ class CoreLightningWallet(Wallet):
         payload = {
             "bolt11": bolt11,
             "maxfeepercent": f"{fee_limit_percent:.11}",
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
+            "exemptfee": 0,
+            # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
+            "description": invoice.description,
         }
         try:
             wrapped = async_wrap(_pay_invoice)

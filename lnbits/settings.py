@@ -1,15 +1,21 @@
-import importlib
+from __future__ import annotations
+
 import importlib.metadata
 import inspect
 import json
 import subprocess
 from os import path
 from sqlite3 import Row
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 import httpx
 from loguru import logger
 from pydantic import BaseSettings, Extra, Field, validator
+
+from lnbits.nodes.base import Node
+
+if TYPE_CHECKING:
+    from lnbits.wallets.base import Wallet
 
 
 def list_parse_fallback(v):
@@ -323,13 +329,20 @@ def set_cli_settings(**kwargs):
 def set_wallet_class(class_name: Optional[str] = None):
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
     wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
+    global WALLET, NODE
     WALLET = wallet_class()
+    if WALLET.__node_cls__:
+        NODE = WALLET.__node_cls__(WALLET)
 
 
-def get_wallet_class():
+def get_wallet_class() -> Wallet:
     # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
     return WALLET
+
+
+def get_node_class() -> Optional[Node]:
+    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+    return NODE
 
 
 def send_admin_user_to_saas():
@@ -389,3 +402,4 @@ FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
 # initialize as fake wallet
 WALLET = FAKE_WALLET
+NODE = None

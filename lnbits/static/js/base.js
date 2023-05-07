@@ -185,20 +185,7 @@ window.LNbits = {
     },
     payment: function (data) {
       obj = {
-        checking_id: data.id,
-        pending: data.pending,
-        amount: data.amount,
-        fee: data.fee,
-        memo: data.memo,
-        time: data.time,
-        bolt11: data.bolt11,
-        preimage: data.preimage,
-        payment_hash: data.payment_hash,
-        expiry: data.expiry,
-        extra: data.extra,
-        wallet_id: data.wallet_id,
-        webhook: data.webhook,
-        webhook_status: data.webhook_status
+        ...data
       }
 
       obj.date = Quasar.utils.date.formatDate(
@@ -213,7 +200,7 @@ window.LNbits = {
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
-      obj.tag = obj.extra.tag
+      obj.tag = obj.extra?.tag
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
@@ -244,6 +231,9 @@ window.LNbits = {
     },
     formatSat: function (value) {
       return new Intl.NumberFormat(window.LOCALE).format(value)
+    },
+    formatMsat: function (value) {
+      return this.formatSat(value / 1000)
     },
     notifyApiError: function (error) {
       var types = {

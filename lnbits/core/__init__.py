@@ -12,4 +12,5 @@ core_app_extra: CoreAppExtra = CoreAppExtra()
 from .views.admin_api import *  # noqa: F401,F403
 from .views.api import *  # noqa: F401,F403
 from .views.generic import *  # noqa: F401,F403
+from .views.node_api import *  # noqa: F401,F403
 from .views.public_api import *  # noqa: F401,F403

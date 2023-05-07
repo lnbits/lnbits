@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Coroutine, NamedTuple, Optional
+from typing import AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+
+from lnbits.nodes.base import Node
 
 
 class StatusResponse(NamedTuple):
@@ -48,6 +50,8 @@ class PaymentStatus(NamedTuple):
 
 
 class Wallet(ABC):
+    __node_cls__: Optional[Type[Node]] = None
+
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
         pass

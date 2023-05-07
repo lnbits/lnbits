@@ -394,7 +394,9 @@ async def manifest(usr: str):
         ],
     }
 
+
 ####################### NODE ###########################
+
 
 @core_html_routes.get("/node", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
