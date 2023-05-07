@@ -96,13 +96,13 @@
         <div class="col q-pb-lg">
           <q-card>
             <q-card-section>
-              <h5 class="text-subtitle1 q-my-none">Inbound Liquidity</h5>
+              <h5 class="text-subtitle1 q-my-none">Channels</h5>
               {% raw %}
               <div v-for="channel in this.channels" :key="channel.peer_id">
                 <q-linear-progress
                   class="q-mb-md"
                   size="25px"
-                  :value="channel.inbound_sat / channel.total_sat"
+                  :value="channel.inbound_msat / channel.total_msat"
                   :color="channel.color"
                   :style="`color: #${channel.color}`"
                 >
@@ -110,7 +110,7 @@
                     <q-badge
                       color="white"
                       text-color="accent"
-                      :label="`${channel.name} (${channel.inbound_sat} sats)`"
+                      :label="`${channel.name} (${formatMsat(channel.total_msat)} sats)`"
                     >
                       {{ channel.alias }}
                     </q-badge>
