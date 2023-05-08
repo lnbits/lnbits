@@ -74,7 +74,7 @@ class CoreLightningWallet(Wallet):
                 self.last_pay_index = inv["pay_index"]
                 break
 
-    async def ln_rpc(self, method, *args, **kwargs):
+    async def ln_rpc(self, method, *args, **kwargs) -> dict:
         return await async_wrap(getattr(self.ln, method))(*args, **kwargs)
 
     async def status(self) -> StatusResponse:

@@ -66,13 +66,13 @@ class NodeInfoResponse(BaseModel):
 class NodePayment(BaseModel):
     pending: bool
     amount: int
-    fee: Optional[int]
+    fee: Optional[int] = None
     memo: Optional[str]
     time: Optional[int]
     bolt11: str
     preimage: str
     payment_hash: str
-    expiry: Optional[float]
+    expiry: Optional[float] = None
 
 
 class PaymentStats(BaseModel):

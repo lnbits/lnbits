@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from grpc import RpcError
-
 from lnbits.nodes.base import ChannelStats, Node, PaymentStats
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -22,52 +20,45 @@ class CoreLightningNode(Node):
         return self.id
 
     async def get_channels(self) -> NodeChannelsResponse:
-        try:
-            funds = self.wallet.ln.listfunds()
-            nodes = self.wallet.ln.listnodes()
-            nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
+        funds = await self.wallet.ln_rpc("listfunds")
+        nodes = await self.wallet.ln_rpc("listnodes")
+        nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
-            return NodeChannelsResponse(
-                error_message=None,
-                channels=[
-                    NodeChannel(
-                        peer_id=ch["peer_id"],
-                        inbound_msat=ch["our_amount_msat"],
-                        outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
-                        total_msat=ch["amount_msat"],
-                        name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
-                        color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
-                    )
-                    for ch in funds["channels"]
-                ],
-            )
-        except RpcError as exc:
-            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
+        return NodeChannelsResponse(
+            error_message=None,
+            channels=[
+                NodeChannel(
+                    peer_id=ch["peer_id"],
+                    inbound_msat=ch["our_amount_msat"],
+                    outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
+                    total_msat=ch["amount_msat"],
+                    name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
+                    color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
+                )
+                for ch in funds["channels"]
+            ],
+        )
 
     async def get_info(self) -> NodeInfoResponse:
-        try:
-            info = self.wallet.ln.getinfo()
-            channel_response = await self.get_channels()
-            channels = channel_response.channels
-            return NodeInfoResponse(
-                id=info["id"],
-                alias=info["alias"],
-                color=info["color"],
-                # A future implementation could leverage the `sql` rpc to calculate these
-                # without having to fetch all the channels.
-                channel_stats=ChannelStats.from_list(channels),
-                num_peers=info["num_peers"],
-                blockheight=info["blockheight"],
-                balance_msat=sum(channel.inbound_msat for channel in channels),
-                channels=channels,
-            )
-        except RpcError as exc:
-            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
-            return NodeInfoResponse(error_message)
+        info = await self.wallet.ln_rpc("getinfo")
+        channel_response = await self.get_channels()
+        channels = channel_response.channels
+        return NodeInfoResponse(
+            id=info["id"],
+            alias=info["alias"],
+            color=info["color"],
+            # A future implementation could leverage the `sql` rpc to calculate these
+            # without having to fetch all the channels.
+            channel_stats=ChannelStats.from_list(channels),
+            num_peers=info["num_peers"],
+            blockheight=info["blockheight"],
+            balance_msat=sum(channel.inbound_msat for channel in channels),
+            channels=channels,
+        )
 
     async def get_payments(self) -> list[NodePayment]:
-        pays = self.wallet.ln.listpays()
-        invoices = self.wallet.ln.listinvoices()
+        pays = await self.wallet.ln_rpc("listpays")
+        invoices = await self.wallet.ln_rpc("listinvoices")
         results = []
 
         results.extend(
