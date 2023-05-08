@@ -6,7 +6,7 @@ import sys
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, List, NamedTuple, Optional, Tuple
 from urllib import request
 
 import httpx
@@ -470,7 +470,6 @@ class InstallableExtension(BaseModel):
             id=e.id,
             name=e.name,
             archive=e.archive,
-            version=e.version,
             short_description=e.short_description,
             icon=e.icon,
             dependencies=e.dependencies,
