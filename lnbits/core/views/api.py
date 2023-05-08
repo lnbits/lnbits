@@ -32,6 +32,7 @@ from lnbits import bolt11, lnurl
 from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
+    to_valid_user_id,
 )
 from lnbits.core.models import Payment, User, Wallet
 from lnbits.db import Filters
@@ -913,3 +914,11 @@ async def api_tinyurl(tinyurl_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
+
+
+@core_app.get("/api/v1/uuidv4/{hex_value}", status_code=HTTPStatus.OK)
+async def hex_to_uuid4(hex_value: str):
+    try:
+        return {"user_id": to_valid_user_id(hex_value)}
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
