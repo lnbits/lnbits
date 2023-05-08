@@ -67,11 +67,11 @@ async def stop_extension_background_work(ext_id: str, user: str):
 
 
 def to_valid_user_id(user_id: str) -> UUID:
-    if len(user_id) != 32:
-        raise ValueError("Length must be 32.")
+    if len(user_id) < 32:
+        raise ValueError("User ID must have at least 128 bits")
     try:
         int(user_id, 16)
     except:
-        raise ValueError("Invalid hex string.")
+        raise ValueError("Invalid hex string for User ID.")
 
-    return UUID(hex=user_id, version=4)
+    return UUID(hex=user_id[:32], version=4)
