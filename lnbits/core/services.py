@@ -44,7 +44,6 @@ from .crud import (
     update_super_user,
 )
 from .models import Payment
-from .helpers import run_migration
 
 
 class PaymentFailure(Exception):
