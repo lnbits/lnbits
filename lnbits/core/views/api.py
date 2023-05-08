@@ -919,6 +919,6 @@ async def api_tinyurl(tinyurl_id: str):
 @core_app.get("/api/v1/uuidv4/{hex_value}", status_code=HTTPStatus.OK)
 async def hex_to_uuid4(hex_value: str):
     try:
-        return {"user_id": to_valid_user_id(hex_value)}
+        return {"user_id": to_valid_user_id(hex_value).hex}
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
