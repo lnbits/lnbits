@@ -233,11 +233,13 @@
             v-if="extension.isInstalled && extension.installedRelease"
             class="float-right"
           >
-            {% raw %}{{ extension.installedRelease.version }}{% endraw
-            %}<q-tooltip
-              >{%raw%}{{ $t('extension_installed_version')
-              }}{%endraw%}</q-tooltip
-            >
+            <q-badge>
+              {% raw %}{{ extension.installedRelease.version }}{% endraw
+              %}<q-tooltip
+                >{%raw%}{{ $t('extension_installed_version')
+                }}{%endraw%}</q-tooltip
+              >
+            </q-badge>
           </div>
         </div>
       </q-card-actions>
