@@ -43,6 +43,7 @@ from .crud import (
     update_payment_status,
     update_super_user,
 )
+from .helpers import to_valid_user_id
 from .models import Payment
 
 
@@ -488,8 +489,10 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await create_account(user_id=super_user)
-        super_user = account.id
+        user_id = to_valid_user_id(super_user).hex if super_user else None
+        account = await create_account(user_id=user_id)
+        # the super_user might have been normalized by "to_valid_user_id" into a valid UUID4 value
+        settings.super_user = account.id
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
 
