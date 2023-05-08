@@ -702,7 +702,7 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
     row_dict = dict(sets)
     row_dict.pop("super_user")
     admin_settings = AdminSettings(
-        super_user=is_super_user,
+        is_super_user=is_super_user,
         lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
         **row_dict,
     )
