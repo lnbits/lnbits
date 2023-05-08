@@ -4,7 +4,7 @@
   <head>
     {% for url in INCLUDED_CSS %}
     <link rel="stylesheet" type="text/css" href="{{ url }}" />
-    {% endfor %}
+    {% endfor %} {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
     <meta
@@ -240,10 +240,13 @@
           <q-toolbar-title class="text-caption">
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
-
-            <small v-if="'{{SITE_TITLE}}' == 'LNbits'"
+            <small
+              >{% raw %}{{ $t('lnbits_version') }}{% endraw %}:
+              {{LNBITS_VERSION}},
+            </small>
+            <small
               >{% raw %}{{ $t('commit_version') }}{% endraw %}:
-              {{LNBITS_VERSION}}</small
+              {{COMMIT_VERSION}}</small
             >
           </q-toolbar-title>
           <q-space></q-space>

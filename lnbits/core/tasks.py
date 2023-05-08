@@ -9,6 +9,7 @@ from lnbits.tasks import SseListenersDict, register_invoice_listener
 from . import db
 from .crud import get_balance_notify
 from .models import Payment
+from .services import websocketUpdater
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
@@ -37,6 +38,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         logger.trace("received invoice paid event")
         # send information to sse channel
         await dispatch_api_invoice_listeners(payment)
+        await websocketUpdater(payment.wallet_id, payment.dict())
 
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
