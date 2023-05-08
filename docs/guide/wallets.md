@@ -4,14 +4,11 @@ title: Backend wallets
 nav_order: 3
 ---
 
-
-Backend wallets
-===============
+# Backend wallets
 
 LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
-
 
 ### CoreLightning
 
@@ -64,7 +61,6 @@ For the invoice listener to work you have a publicly accessible URL in your LNbi
 - `LNPAY_API_KEY`: sak_apiKey
 - `LNPAY_WALLET_KEY`: waka_apiKey
 
-
 ### OpenNode
 
 For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary.
@@ -72,7 +68,6 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `LNBITS_BACKEND_WALLET_CLASS`: **OpenNodeWallet**
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
-
 
 ### Cliche Wallet
 
