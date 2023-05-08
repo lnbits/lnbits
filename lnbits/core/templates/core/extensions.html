@@ -90,6 +90,7 @@
               class="float-right"
             >
               <small>{%raw%}{{ $t('new_version') }}{%endraw%}</small>
+              <q-tooltip><span  v-text="extension.latestRelease.version"></span></q-tooltip>
             </q-badge>
             {% raw %}
             <div class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm">
