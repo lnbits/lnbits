@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import shortuuid
 
@@ -18,8 +18,16 @@ from .models import BalanceCheck, Payment, TinyURL, User, Wallet
 # --------
 
 
-async def create_account(conn: Optional[Connection] = None) -> User:
-    user_id = uuid4().hex
+async def create_account(
+    conn: Optional[Connection] = None, user_id: Optional[str] = None
+) -> User:
+    if user_id:
+        if not is_valid_user_id(user_id):
+            raise ValueError("Invalid user id!")
+        user_id = UUID(hex=user_id, version=4).hex
+    else:
+        user_id = uuid4().hex
+
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -788,3 +796,14 @@ async def delete_tinyurl(tinyurl_id: str):
         "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )
+
+
+def is_valid_user_id(user_id: str) -> bool:
+    if len(user_id) != 32:
+        return False
+    try:
+        int(user_id, 16)
+    except:
+        return False
+
+    return True

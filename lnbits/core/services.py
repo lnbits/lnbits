@@ -44,6 +44,7 @@ from .crud import (
     update_super_user,
 )
 from .models import Payment
+from .helpers import run_migration
 
 
 class PaymentFailure(Exception):
@@ -446,8 +447,7 @@ async def check_admin_settings():
             logger.warning("Initialized settings from enviroment variables.")
 
         if settings.super_user and settings.super_user != settings_db.super_user:
-            # .env super_user overwrites DB super_user
-            settings_db = await update_super_user(settings.super_user)
+            settings_db = await update_super_user(settings_db.super_user)
 
         update_cached_settings(settings_db.dict())
 
@@ -488,7 +488,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await create_account()
+        account = await create_account(user_id=super_user)
         super_user = account.id
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
