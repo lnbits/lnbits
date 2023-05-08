@@ -2,9 +2,10 @@ import datetime
 import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import shortuuid
+from pydantic.types import UUID4
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
@@ -19,14 +20,9 @@ from .models import BalanceCheck, Payment, TinyURL, User, Wallet
 
 
 async def create_account(
-    conn: Optional[Connection] = None, user_id: Optional[str] = None
+    conn: Optional[Connection] = None, user_uuid4: Optional[UUID4] = None
 ) -> User:
-    if user_id:
-        if not is_valid_user_id(user_id):
-            raise ValueError("Invalid user id!")
-        user_id = UUID(hex=user_id, version=4).hex
-    else:
-        user_id = uuid4().hex
+    user_id = user_uuid4.hex if user_uuid4 else uuid4().hex
 
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
@@ -796,14 +792,3 @@ async def delete_tinyurl(tinyurl_id: str):
         "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
     )
-
-
-def is_valid_user_id(user_id: str) -> bool:
-    if len(user_id) != 32:
-        return False
-    try:
-        int(user_id, 16)
-    except:
-        return False
-
-    return True
