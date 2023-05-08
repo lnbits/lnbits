@@ -486,11 +486,11 @@ def update_cached_settings(sets_dict: dict):
 
 async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
     account = None
+    super_user = to_valid_user_id(super_user).hex if super_user else None
     if super_user:
         account = await get_account(super_user)
     if not account:
-        user_id = to_valid_user_id(super_user).hex if super_user else None
-        account = await create_account(user_id=user_id)
+        account = await create_account(user_id=super_user)
         # the super_user might have been normalized by "to_valid_user_id" into a valid UUID4 value
         settings.super_user = account.id
     if not account.wallets or len(account.wallets) == 0:
