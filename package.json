@@ -68,6 +68,7 @@
       "/static/i18n/pi.js",
       "/static/i18n/fr.js",
       "/static/i18n/nl.js",
+      "/static/i18n/we.js",
       "/static/js/base.js",
       "/static/js/components.js",
       "/static/js/bolt11-decoder.js"
