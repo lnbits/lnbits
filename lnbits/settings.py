@@ -310,7 +310,7 @@ class SuperSettings(EditableSettings):
 
 
 class AdminSettings(EditableSettings):
-    super_user: bool
+    is_super_user: bool
     lnbits_allowed_funding_sources: Optional[List[str]]
 
 
