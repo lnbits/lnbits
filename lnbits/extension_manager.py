@@ -68,6 +68,13 @@ class ExtensionConfig(BaseModel):
     name: str
     short_description: str
     tile: str = ""
+    warning: Optional[str] = ""
+    min_lnbits_version: Optional[str]
+
+    def is_version_compatible(self):
+        if not self.min_lnbits_version:
+            return True
+        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
 
 
 def download_url(url, save_path):
@@ -122,6 +129,17 @@ async def fetch_github_releases(org: str, repo: str) -> List[GitHubRepoRelease]:
     error_msg = "Cannot fetch extension releases"
     releases = await gihub_api_get(releases_url, error_msg)
     return [GitHubRepoRelease.parse_obj(r) for r in releases]
+
+
+async def fetch_github_release_config(
+    org: str, repo: str, tag_name: str
+) -> Optional[ExtensionConfig]:
+    config_url = (
+        f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
+    )
+    error_msg = "Cannot fetch GitHub extension config"
+    config = await gihub_api_get(config_url, error_msg)
+    return ExtensionConfig.parse_obj(config)
 
 
 async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:

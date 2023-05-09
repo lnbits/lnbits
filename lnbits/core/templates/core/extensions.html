@@ -312,13 +312,26 @@
                   v-for="release of selectedExtensionRepos[repoName].releases"
                   :key="release.version"
                   group="releases"
+                  @click="getGitHubReleaseDetails(release)"
                   :icon="getReleaseIcon(release)"
                   :label="release.description"
                   :caption="release.version"
                   :content-inset-level="0.5"
                   :header-class="getReleaseIconColor(release)"
                 >
-                  <q-card>
+                  <div v-if="release.inProgress">
+                    <q-spinner color="primary" size="2.55em"></q-spinner>
+                  </div>
+                  <div v-else-if="release.error">
+                    <q-icon
+                      class="gt-sm"
+                      name="error"
+                      color="pink"
+                      size="70px"
+                    ></q-icon>
+                    Cannot get the release details.
+                  </div>
+                  <q-card v-else>
                     <q-card-section v-if="release.is_version_compatible">
                       <q-btn
                         v-if="!release.isInstalled"
@@ -514,13 +527,15 @@
             `/api/v1/extension/${extension.id}/releases?usr=${this.g.user.id}`,
             this.g.user.wallets[0].adminkey
           )
-          console.log('### showUpgrade.data', data)
 
           this.selectedExtensionRepos = data.reduce((repos, release) => {
             repos[release.source_repo] = repos[release.source_repo] || {
               releases: [],
               isInstalled: false
             }
+            release.inProgress = false
+            release.error = null
+            release.loaded = false
             release.isInstalled = this.isInstalledVersion(
               this.selectedExtension,
               release
@@ -563,6 +578,31 @@
         if (release.isInstalled) return 'text-green'
 
         return ''
+      },
+      getGitHubReleaseDetails: async function (release) {
+        if (!release.is_github_release || release.loaded) {
+          return
+        }
+        const [org, repo] = release.source_repo.split('/')
+        release.inProgress = true
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/release/${org}/${repo}/${release.version}?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          release.loaded = true
+          release.is_version_compatible = data.is_version_compatible
+          release.min_lnbits_version = data.min_lnbits_version
+          release.warning = data.warning
+        } catch (error) {
+          console.warn(error)
+          release.error = error
+          LNbits.utils.notifyApiError(error)
+          
+        } finally {
+          release.inProgress = false
+        }
       }
     },
     created: function () {
