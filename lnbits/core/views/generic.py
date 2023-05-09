@@ -11,6 +11,7 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
+from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
@@ -412,6 +413,15 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "balance": balance,
         },
     )
+
+
+@core_html_routes.get("/uuidv4/{hex_value}")
+async def hex_to_uuid4(hex_value: str):
+    try:
+        user_id = to_valid_user_id(hex_value).hex
+        return RedirectResponse(url=f"/wallet?usr={user_id}")
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
 async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
