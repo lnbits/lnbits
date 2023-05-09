@@ -438,11 +438,11 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 
 async def check_admin_settings():
+    if settings.super_user:
+        settings.super_user = to_valid_user_id(settings.super_user).hex
+
     if settings.lnbits_admin_ui:
         settings_db = await get_super_settings()
-        settings.super_user = (
-            to_valid_user_id(settings.super_user).hex if settings.super_user else None
-        )
         if not settings_db:
             # create new settings if table is empty
             logger.warning("Settings DB empty. Inserting default settings.")
