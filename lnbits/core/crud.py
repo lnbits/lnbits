@@ -7,12 +7,12 @@ from uuid import uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
+from lnbits.db import Connection, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, TinyURL, User, Wallet
+from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
 
 # accounts
 # --------
@@ -343,7 +343,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     return rows
 
 
-async def get_payments(
+async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
     complete: bool = False,
@@ -352,28 +352,23 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    filters: Optional[Filters[Payment]] = None,
+    filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
-) -> List[Payment]:
+) -> Page[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    args: List[Any] = []
+    values: List[Any] = []
     clause: List[str] = []
 
     if since is not None:
-        if db.type == POSTGRES:
-            clause.append("time > to_timestamp(?)")
-        elif db.type == COCKROACH:
-            clause.append("time > cast(? AS timestamp)")
-        else:
-            clause.append("time > ?")
-        args.append(since)
+        clause.append(f"time > {db.timestamp_placeholder}")
+        values.append(since)
 
     if wallet_id:
         clause.append("wallet = ?")
-        args.append(wallet_id)
+        values.append(wallet_id)
 
     if complete and pending:
         pass
@@ -397,21 +392,54 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    if not filters:
-        filters = Filters(limit=None, offset=None)
-
-    rows = await (conn or db).fetchall(
-        f"""
-        SELECT *
-        FROM apipayments
-        {filters.where(clause)}
-        ORDER BY time DESC
-        {filters.pagination()}
-        """,
-        filters.values(args),
+    return await (conn or db).fetch_page(
+        "SELECT * FROM apipayments",
+        clause,
+        values,
+        filters=filters,
+        model=Payment,
     )
 
-    return [Payment.from_row(row) for row in rows]
+
+async def get_payments(
+    *,
+    wallet_id: Optional[str] = None,
+    complete: bool = False,
+    pending: bool = False,
+    outgoing: bool = False,
+    incoming: bool = False,
+    since: Optional[int] = None,
+    exclude_uncheckable: bool = False,
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+) -> list[Payment]:
+    """
+    Filters payments to be returned by complete | pending | outgoing | incoming.
+    """
+
+    if not filters:
+        filters = Filters()
+
+    if limit:
+        filters.limit = limit
+    if offset:
+        filters.offset = offset
+
+    page = await get_payments_paginated(
+        wallet_id=wallet_id,
+        complete=complete,
+        pending=pending,
+        outgoing=outgoing,
+        incoming=incoming,
+        since=since,
+        exclude_uncheckable=exclude_uncheckable,
+        filters=filters,
+        conn=conn,
+    )
+
+    return page.data
 
 
 async def delete_expired_invoices(
@@ -454,7 +482,6 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
-
     # todo: add this when tests are fixed
     # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     # assert previous_payment is None, "Payment already exists"
@@ -514,7 +541,6 @@ async def update_payment_details(
     new_checking_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> None:
-
     set_clause: List[str] = []
     set_variables: List[Any] = []
 
