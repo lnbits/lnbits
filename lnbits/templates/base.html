@@ -69,12 +69,16 @@
             icon="language"
             class="q-pl-md"
           >
-            <q-list v-for="({value, label}, index) in g.langs" :key="index">
-              <q-item clickable v-close-popup @click="changeLanguage(value)">
+            <q-list v-for="(lang, index) in g.langs" :key="index">
+              <q-item
+                clickable
+                v-close-popup
+                @click="changeLanguage(lang.value)"
+              >
                 <q-item-section>
                   {% raw %}
-                  <q-item-label>{{value.toUpperCase()}}</q-item-label>
-                  <q-tooltip>{{label}}</q-tooltip>
+                  <q-item-label>{{lang.display}}</q-item-label>
+                  <q-tooltip>{{lang.label}}</q-tooltip>
                   {% endraw %}
                 </q-item-section>
               </q-item>
@@ -284,14 +288,14 @@
         }
 
         window.langs = [
-          {value: 'en', label: 'English'},
-          {value: 'de', label: 'Deutsch'},
-          {value: 'es', label: 'Español'},
-          {value: 'jp', label: '日本語'},
-          {value: 'fr', label: 'Français'},
-          {value: 'it', label: 'Italiano'},
-          {value: 'pi', label: 'Pirate'},
-          {value: 'nl', label: 'Nederlands'}
+          {value: 'en', label: 'English', display: 'EN'},
+          {value: 'de', label: 'Deutsch', display: 'DE'},
+          {value: 'es', label: 'Español', display: 'ES'},
+          {value: 'jp', label: '日本語', display: 'JP'},
+          {value: 'fr', label: 'Français', display: 'FR'},
+          {value: 'it', label: 'Italiano', display: 'IT'},
+          {value: 'pi', label: 'Pirate', display: 'PI'},
+          {value: 'nl', label: 'Nederlands', display: 'NL'},
       ]
     </script>
     {% block scripts %}{% endblock %}
