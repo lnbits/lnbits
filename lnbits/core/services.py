@@ -35,6 +35,7 @@ from .crud import (
     create_wallet,
     delete_wallet_payment,
     get_account,
+    get_standalone_payment,
     get_super_settings,
     get_wallet,
     get_wallet_payment,
@@ -42,6 +43,7 @@ from .crud import (
     update_payment_status,
     update_super_user,
 )
+from .helpers import to_valid_user_id
 from .models import Payment
 
 
@@ -66,7 +68,6 @@ async def create_invoice(
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
-
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
 
@@ -157,6 +158,18 @@ async def pay_invoice(
         # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
+            # perform additional checks on the internal payment
+            # the payment hash is not enough to make sure that this is the same invoice
+            internal_invoice = await get_standalone_payment(
+                internal_checking_id, incoming=True, conn=conn
+            )
+            assert internal_invoice is not None
+            if (
+                internal_invoice.amount != invoice.amount_msat
+                or internal_invoice.bolt11 != payment_request
+            ):
+                raise PaymentFailure("Invalid invoice.")
+
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             await create_payment(
@@ -334,7 +347,8 @@ async def perform_lnurlauth(
 
     def encode_strict_der(r: int, s: int, order: int):
         # if s > order/2 verification will fail sometimes
-        # so we must fix it here (see https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147)
+        # so we must fix it here see:
+        # https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147
         if s > order // 2:
             s = order - s
 
@@ -424,6 +438,9 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 
 async def check_admin_settings():
+    if settings.super_user:
+        settings.super_user = to_valid_user_id(settings.super_user).hex
+
     if settings.lnbits_admin_ui:
         settings_db = await get_super_settings()
         if not settings_db:
@@ -445,6 +462,10 @@ async def check_admin_settings():
 
         admin_url = f"{settings.lnbits_baseurl}wallet?usr={settings.super_user}"
         logger.success(f"✔️ Access super user account at: {admin_url}")
+
+        # saving it to .super_user file
+        with open(".super_user", "w") as file:
+            file.write(settings.super_user)
 
         # callback for saas
         if (
@@ -471,8 +492,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await create_account()
-        super_user = account.id
+        account = await create_account(user_id=super_user)
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
 

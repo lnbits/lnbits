@@ -24,6 +24,7 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
+        cert = settings.lnd_rest_cert
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -39,8 +40,16 @@ class LndRestWallet(Wallet):
                 encrypted_macaroon
             )
 
-        if not endpoint or not macaroon or not settings.lnd_rest_cert:
-            raise Exception("cannot initialize lndrest")
+        if not endpoint:
+            raise Exception("cannot initialize lndrest: no endpoint")
+
+        if not macaroon:
+            raise Exception("cannot initialize lndrest: no macaroon")
+
+        if not cert:
+            logger.warning(
+                "no certificate for lndrest provided, this only works if you have a publicly issued certificate"
+            )
 
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
@@ -49,8 +58,12 @@ class LndRestWallet(Wallet):
         self.endpoint = endpoint
         self.macaroon = load_macaroon(macaroon)
 
+        # if no cert provided it should be public so we set verify to True
+        # and it will still check for validity of certificate and fail if its not valid
+        # even on startup
+        self.cert = cert or True
+
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
-        self.cert = settings.lnd_rest_cert
 
     async def status(self) -> StatusResponse:
         try:
@@ -174,9 +187,9 @@ class LndRestWallet(Wallet):
             timeout=None, headers=self.auth, verify=self.cert
         ) as client:
             async with client.stream("GET", url) as r:
-                async for l in r.aiter_lines():
+                async for json_line in r.aiter_lines():
                     try:
-                        line = json.loads(l)
+                        line = json.loads(json_line)
                         if line.get("error"):
                             logger.error(
                                 line["error"]["message"]

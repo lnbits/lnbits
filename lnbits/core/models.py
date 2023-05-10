@@ -11,9 +11,9 @@ from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.db import Connection
+from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
-from lnbits.settings import get_wallet_class
+from lnbits.settings import get_wallet_class, settings
 from lnbits.wallets.base import PaymentStatus
 
 
@@ -75,8 +75,18 @@ class User(BaseModel):
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
+    @classmethod
+    def is_extension_for_user(cls, ext: str, user: str) -> bool:
+        if ext not in settings.lnbits_admin_extensions:
+            return True
+        if user == settings.super_user:
+            return True
+        if user in settings.lnbits_admin_users:
+            return True
+        return False
 
-class Payment(BaseModel):
+
+class Payment(FromRowModel):
     checking_id: str
     pending: bool
     amount: int
@@ -202,6 +212,24 @@ class Payment(BaseModel):
         from .crud import delete_payment
 
         await delete_payment(self.checking_id, conn=conn)
+
+
+class PaymentFilters(FilterModel):
+    __search_fields__ = ["memo", "amount"]
+
+    checking_id: str
+    amount: int
+    fee: int
+    memo: Optional[str]
+    time: datetime.datetime
+    bolt11: str
+    preimage: str
+    payment_hash: str
+    expiry: Optional[datetime.datetime]
+    extra: Dict = {}
+    wallet_id: str
+    webhook: Optional[str]
+    webhook_status: Optional[int]
 
 
 class BalanceCheck(BaseModel):

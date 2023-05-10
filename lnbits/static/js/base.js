@@ -1,6 +1,14 @@
 /* globals crypto, moment, Vue, axios, Quasar, _ */
 
+Vue.use(VueI18n)
+
 window.LOCALE = 'en'
+window.i18n = new VueI18n({
+  locale: window.LOCALE,
+  fallbackLocale: window.LOCALE,
+  messages: window.localisation
+})
+
 window.EventHub = new Vue()
 window.LNbits = {
   api: {
@@ -59,8 +67,13 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    getPayments: function (wallet) {
-      return this.request('get', '/api/v1/payments', wallet.inkey)
+    getPayments: function (wallet, query) {
+      const params = new URLSearchParams(query)
+      return this.request(
+        'get',
+        '/api/v1/payments/paginated?' + params,
+        wallet.inkey
+      )
     },
     getPayment: function (wallet, paymentHash) {
       return this.request(
@@ -177,7 +190,7 @@ window.LNbits = {
     },
     payment: function (data) {
       obj = {
-        checking_id: data.id,
+        checking_id: data.checking_id,
         pending: data.pending,
         amount: data.amount,
         fee: data.fee,
@@ -320,6 +333,7 @@ window.LNbits = {
 }
 
 window.windowMixin = {
+  i18n: window.i18n,
   data: function () {
     return {
       g: {
@@ -335,6 +349,10 @@ window.windowMixin = {
   },
 
   methods: {
+    changeLanguage: function (newValue) {
+      window.i18n.locale = newValue
+      this.$q.localStorage.set('lnbits.lang', newValue)
+    },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
@@ -363,6 +381,12 @@ window.windowMixin = {
       this.$q.dark.set(true)
     }
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
+
+    let locale = this.$q.localStorage.getItem('lnbits.lang')
+    if (locale) {
+      window.LOCALE = locale
+      window.i18n.locale = locale
+    }
 
     addEventListener('offline', event => {
       this.g.offline = true

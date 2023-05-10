@@ -12,24 +12,23 @@
           @click="processing"
           type="a"
           href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
-        >
-          Press to claim bitcoin
-        </q-btn>
+          v-text="$t('press_to_claim')"
+        ></q-btn>
         {% else %}
         <q-form @submit="createWallet" class="q-gutter-md">
           <q-input
             filled
             dense
             v-model="walletName"
-            label="Name your {{SITE_TITLE}} wallet *"
+            :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
           ></q-input>
           <q-btn
             unelevated
             color="primary"
             :disable="walletName == ''"
             type="submit"
-            >Add a new wallet</q-btn
-          >
+            :label="$t('add_wallet')"
+          ></q-btn>
         </q-form>
         {% endif %}
       </q-card-section>
@@ -40,27 +39,7 @@
         <h3 class="q-my-none">{{SITE_TITLE}}</h3>
         <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
         <div v-if="'{{SITE_TITLE}}' == 'LNbits'">
-          <p>
-            Easy to set up and lightweight, LNbits can run on any
-            lightning-network funding source, currently supporting LND,
-            c-lightning, OpenNode, LNPay and even LNbits itself!
-          </p>
-          <p>
-            You can run LNbits for yourself, or easily offer a custodian
-            solution for others.
-          </p>
-          <p>
-            Each wallet has its own API keys and there is no limit to the number
-            of wallets you can make. Being able to partition funds makes LNbits
-            a useful tool for money management and as a development tool.
-          </p>
-          <p>
-            Extensions add extra functionality to LNbits so you can experiment
-            with a range of cutting-edge technologies on the lightning network.
-            We have made developing extensions as easy as possible, and as a
-            free and open-source project, we encourage people to develop and
-            submit their own.
-          </p>
+          <p v-text="$t('lnbits_description')"></p>
           <div class="row q-mt-md q-gutter-sm">
             <q-btn
               outline
@@ -69,8 +48,8 @@
               href="https://github.com/lnbits/lnbits"
               target="_blank"
               rel="noopener"
-              >View project in GitHub</q-btn
-            >
+              :label="$t('view_github')"
+            ></q-btn>
             <q-btn
               outline
               color="grey"
@@ -78,8 +57,8 @@
               href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
               target="_blank"
               rel="noopener"
-              >Donate</q-btn
-            >
+              :label="$t('donate')"
+            ></q-btn>
           </div>
         </div>
         <p v-else>{{SITE_DESCRIPTION | safe}}</p>
@@ -94,7 +73,7 @@
         <q-btn
           flat
           color="secondary"
-          label="Runs on"
+          :label="$t('runs_on')"
           class="full-width"
         ></q-btn>
         <div class="row">
@@ -162,15 +141,14 @@
               ></q-img>
             </a>
           </div>
-          <div class="col q-pl-md">&nbsp;</div>
-        </div>
-        <div class="col">
-          <a href="https://github.com/shesek/spark-wallet">
-            <q-img
-              contain
-              :src="($q.dark.isActive) ? '/static/images/spark.png' : '/static/images/sparkl.png'"
-            ></q-img>
-          </a>
+          <div class="col q-pl-md">
+            <a href="https://github.com/shesek/spark-wallet">
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '/static/images/spark.png' : '/static/images/sparkl.png'"
+              ></q-img>
+            </a>
+          </div>
         </div>
       </div>
 
