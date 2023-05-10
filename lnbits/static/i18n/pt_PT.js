@@ -65,7 +65,8 @@ window.localisation.pt_BR = {
   payment_sent: 'Pagamento Enviado',
   outgoing_payment_pending: 'Pagamento de saída pendente',
   drain_funds: 'Esvasiar carteira',
-  drain_funds_desc: 'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
+  drain_funds_desc:
+    'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
   i_understand: 'Eu entendo',
   copy_wallet_url: 'Copiar URL da carteira',
   disclaimer_dialog:
