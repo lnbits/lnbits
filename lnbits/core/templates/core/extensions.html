@@ -180,7 +180,7 @@
         <div class="col-10">
           <div v-if="!extension.inProgress">
             <q-btn
-              v-if="user.extensions.includes(extension.id) && extension.isActive"
+              v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="primary"
               type="a"
@@ -188,7 +188,7 @@
               >{%raw%}{{ $t('open') }}{%endraw%}</q-btn
             >
             <q-btn
-              v-if="user.extensions.includes(extension.id) && extension.isActive"
+              v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="grey-5"
               type="a"
@@ -436,8 +436,13 @@
         }
 
         this.filteredExtensions = this.extensions
+          .filter(e => (tab === 'installed' ? e.isInstalled : true))
           .filter(e =>
-            tab === 'installed' ? e.isInstalled && e.isActive : true
+            tab === 'installed'
+              ? e.isActive
+                ? true
+                : !!this.g.user.admin
+              : true
           )
           .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
