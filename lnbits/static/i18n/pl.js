@@ -1,4 +1,4 @@
-window.localisation.en = {
+window.localisation.pl = {
   server: 'Serwer',
   theme: 'Motyw',
   funding: 'Finansowanie',
@@ -83,5 +83,5 @@ window.localisation.en = {
   description: 'Opis',
   expiry: 'Wygasa',
   webhook: 'Webhook',
-  payment_proof: 'Potwierdzenie płątności'
+  payment_proof: 'Potwierdzenie płatności'
 }
