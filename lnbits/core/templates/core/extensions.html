@@ -434,7 +434,7 @@
         }
 
         this.filteredExtensions = this.extensions
-          .filter(e => (tab === 'installed' ? e.isInstalled : true))
+          .filter(e => (tab === 'installed' ? e.isInstalled && e.isActive : true))
           .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
         this.tab = tab
