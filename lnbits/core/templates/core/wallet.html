@@ -786,10 +786,10 @@
         indicator-color="transparent"
         align="justify"
       >
-        <q-tab @click="showReceiveDialog"><strong>Receive</strong> </q-tab>
+        <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+        </q-tab>
 
-        <q-tab @click="showParseDialog">
-          <strong>Send</strong>
+        <q-tab @click="showParseDialog" icon="file_upload" label="Send">
         </q-tab>
         <q-btn
           round
