@@ -51,6 +51,7 @@ class ExtensionsSettings(LNbitsSettings):
         ]
     )
 
+
 class ExtensionsInstallSettings(LNbitsSettings):
     lnbits_extensions_default_install: List[str] = Field(default=[])
     # required due to GitHUb rate-limit
