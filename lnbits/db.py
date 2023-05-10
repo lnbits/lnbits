@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import os
 import re
+import sqlite3
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
@@ -61,6 +63,8 @@ if settings.lnbits_database_url:
 else:
     if os.path.isdir(settings.lnbits_data_folder):
         DB_TYPE = SQLITE
+        sqlite3.register_converter("json", lambda val: json.loads(val.decode("utf-8")))
+        sqlite3.register_converter("timestamp", lambda val: int(val))
     else:
         raise NotADirectoryError(
             f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
@@ -245,7 +249,17 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+        if DB_TYPE == SQLITE:
+            self.engine = create_engine(
+                database_uri,
+                strategy=ASYNCIO_STRATEGY,
+                connect_args={
+                    "detect_types": sqlite3.PARSE_DECLTYPES
+                },
+            )
+        else:
+            self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")
@@ -412,8 +426,11 @@ class Filter(BaseModel, Generic[TFilterModel]):
     def statement(self):
         accessor = self.field
         if self.nested:
-            for name in self.nested:
-                accessor = f"({accessor} ->> '{name}')"
+            if DB_TYPE == SQLITE:
+                accessor = f"json_extract({accessor}, '$.{'.'.join(self.nested)}')"
+            else:
+                for name in self.nested:
+                    accessor = f"({accessor} ->> '{name}')"
         if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
             placeholder = Compat.timestamp_placeholder
         else:
