@@ -78,55 +78,13 @@
             icon="language"
             class="q-pl-md"
           >
-            <q-list>
-              <q-item clickable v-close-popup @click="changeLanguage('en')">
+            <q-list v-for="({value, label}, index) in g.langs" :key="index">
+              <q-item clickable v-close-popup @click="changeLanguage(value)">
                 <q-item-section>
-                  <q-item-label>EN</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('de')">
-                <q-item-section>
-                  <q-item-label>DE</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('es')">
-                <q-item-section>
-                  <q-item-label>ES</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('jp')">
-                <q-item-section>
-                  <q-item-label>JP</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('fr')">
-                <q-item-section>
-                  <q-item-label>FR</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('we')">
-                <q-item-section>
-                  <q-item-label>WE</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('it')">
-                <q-item-section>
-                  <q-item-label>IT</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('pi')">
-                <q-item-section>
-                  <q-item-label>PI</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('pl')">
-                <q-item-section>
-                  <q-item-label>PL</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('nl')">
-                <q-item-section>
-                  <q-item-label>NL</q-item-label>
+                  {% raw %}
+                  <q-item-label>{{value.toUpperCase()}}</q-item-label>
+                  <q-tooltip>{{label}}</q-tooltip>
+                  {% endraw %}
                 </q-item-section>
               </q-item>
             </q-list>
@@ -328,11 +286,22 @@
     {% endfor %}
     <!---->
     <script type="text/javascript">
-      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
-      if (themes && themes.length) {
-        window.allowedThemes = themes.map(str => str.trim())
-      }
+        const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
+        const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
+        if(themes && themes.length) {
+          window.allowedThemes = themes.map(str => str.trim())
+        }
+
+        window.langs = [
+          {value: 'en', label: 'English'},
+          {value: 'de', label: 'Deutsch'},
+          {value: 'es', label: 'Español'},
+          {value: 'jp', label: '日本語'},
+          {value: 'fr', label: 'Français'},
+          {value: 'it', label: 'Italiano'},
+          {value: 'pi', label: 'Pirate'},
+          {value: 'nl', label: 'Nederlands'}
+      ]
     </script>
     {% block scripts %}{% endblock %}
   </body>
