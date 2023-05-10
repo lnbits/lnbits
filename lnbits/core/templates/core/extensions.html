@@ -461,7 +461,7 @@
           .then(response => {
             extension.isAvailable = true
             extension.isInstalled = true
-            extension.installedRelease = true
+            extension.installedRelease = release
             this.toggleExtension(extension)
             extension.inProgress = false
             this.filteredExtensions = this.extensions.concat([])
@@ -488,6 +488,7 @@
             extension.isAvailable = false
             extension.isInstalled = false
             extension.inProgress = false
+            extension.installedRelease = null
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
             this.tab = 'installed'
