@@ -428,6 +428,8 @@ async def get_payments(
 
     if not filters:
         filters = Filters()
+        filters.direction = "desc"
+        filters.sortby = "time"
 
     if limit:
         filters.limit = limit
