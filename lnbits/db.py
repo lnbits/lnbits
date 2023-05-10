@@ -253,9 +253,7 @@ class Database(Compat):
             self.engine = create_engine(
                 database_uri,
                 strategy=ASYNCIO_STRATEGY,
-                connect_args={
-                    "detect_types": sqlite3.PARSE_DECLTYPES
-                },
+                connect_args={"detect_types": sqlite3.PARSE_DECLTYPES},
             )
         else:
             self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
