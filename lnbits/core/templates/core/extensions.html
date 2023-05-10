@@ -208,7 +208,9 @@
               }}', '?usr=', g.user.id, '&enable=', extension.id].join('')"
             >
               {%raw%}{{ $t('enable') }}{%endraw%}
-              <q-tooltip v-text="$t('enable_extension_details')"></q-tooltip
+              <q-tooltip>
+                <span v-text="$t('enable_extension_details')">
+                </span> </q-tooltip
             ></q-btn>
 
             <q-btn
