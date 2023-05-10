@@ -74,7 +74,7 @@ window.localisation.pl = {
   manage_extensions: 'Zarządzaj rozszerzeniami',
   manage_server: 'Zarządzaj serwerem',
   extensions: 'Rozszerzenia',
-  no_extensions: "Nie masz zainstalowanych żadnych rozszerzeń :(",
+  no_extensions: 'Nie masz zainstalowanych żadnych rozszerzeń :(',
   created: 'Utworzono',
   payment_hash: 'Hash Płatności',
   fee: 'Opłata',
