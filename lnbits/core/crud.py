@@ -428,14 +428,13 @@ async def get_payments(
 
     if not filters:
         filters = Filters()
+        filters.direction = "desc"
+        filters.sortby = "time"
 
     if limit:
         filters.limit = limit
     if offset:
         filters.offset = offset
-
-    filters.direction = "desc"
-    filters.sortby = "time"
 
     page = await get_payments_paginated(
         wallet_id=wallet_id,
