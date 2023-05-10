@@ -281,21 +281,21 @@
     {% endfor %}
     <!---->
     <script type="text/javascript">
-        const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
-        const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
-        if(themes && themes.length) {
-          window.allowedThemes = themes.map(str => str.trim())
-        }
+      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
+      if (themes && themes.length) {
+        window.allowedThemes = themes.map(str => str.trim())
+      }
 
-        window.langs = [
-          {value: 'en', label: 'English', display: 'EN'},
-          {value: 'de', label: 'Deutsch', display: 'DE'},
-          {value: 'es', label: 'Español', display: 'ES'},
-          {value: 'jp', label: '日本語', display: 'JP'},
-          {value: 'fr', label: 'Français', display: 'FR'},
-          {value: 'it', label: 'Italiano', display: 'IT'},
-          {value: 'pi', label: 'Pirate', display: 'PI'},
-          {value: 'nl', label: 'Nederlands', display: 'NL'},
+      window.langs = [
+        { value: 'en', label: 'English', display: 'EN' },
+        { value: 'de', label: 'Deutsch', display: 'DE' },
+        { value: 'es', label: 'Español', display: 'ES' },
+        { value: 'jp', label: '日本語', display: 'JP' },
+        { value: 'fr', label: 'Français', display: 'FR' },
+        { value: 'it', label: 'Italiano', display: 'IT' },
+        { value: 'pi', label: 'Pirate', display: 'PI' },
+        { value: 'nl', label: 'Nederlands', display: 'NL' },
       ]
     </script>
     {% block scripts %}{% endblock %}
