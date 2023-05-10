@@ -4,9 +4,9 @@ window.localisation.pt_BR = {
   funding: 'Financiamento',
   users: 'Usuários',
   restart: 'Reiniciar servidor',
-  save: 'Salvar',
-  save_tooltip: 'Salvar suas alterações',
-  topup: 'Recarregar',
+  save: 'Gravar',
+  save_tooltip: 'Gravar as alterações',
+  topup: 'Reforçar conta',
   topup_wallet: 'Recarregar uma carteira',
   topup_hint: 'Use o ID da carteira para recarregar qualquer carteira',
   restart_tooltip: 'Reinicie o servidor para que as alterações tenham efeito',
@@ -14,7 +14,7 @@ window.localisation.pt_BR = {
   reset_defaults: 'Redefinir para padrões',
   reset_defaults_tooltip:
     'Apagar todas as configurações e redefinir para os padrões.',
-  download_backup: 'Fazer backup do banco de dados',
+  download_backup: 'Fazer backup da base de dados',
   name_your_wallet: 'Nomeie sua carteira %{name}',
   paste_invoice_label: 'Cole uma fatura, pedido de pagamento ou código lnurl *',
   lnbits_description:
@@ -63,19 +63,18 @@ window.localisation.pt_BR = {
   invoice_waiting: 'Fatura aguardando pagamento',
   payment_received: 'Pagamento Recebido',
   payment_sent: 'Pagamento Enviado',
-  outgoing_payment_pending: 'Pagamento pendente de saída',
-  drain_funds: 'Drenar Fundos',
-  drain_funds_desc:
-    'Este é um código QR de retirada do LNURL para sugar tudo desta carteira. Não compartilhe com ninguém. É compatível com balanceCheck e balanceNotify para que sua carteira possa continuar retirando os fundos continuamente daqui após a primeira retirada.',
+  outgoing_payment_pending: 'Pagamento de saída pendente',
+  drain_funds: 'Esvasiar carteira',
+  drain_funds_desc: 'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
   i_understand: 'Eu entendo',
   copy_wallet_url: 'Copiar URL da carteira',
   disclaimer_dialog:
-    'Funcionalidade de login a ser lançada em uma atualização futura, por enquanto, certifique-se de marcar esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
+    'Funcionalidade de login a ser lançada numa atualização futura, por enquanto, certifique-se que marca esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
-  manage_extensions: 'Gerenciar extensões',
-  manage_server: 'Gerenciar servidor',
+  manage_extensions: 'Gerir extensões',
+  manage_server: 'Gerir servidor',
   extensions: 'Extensões',
-  no_extensions: 'Você não possui nenhuma extensão instalada :(',
+  no_extensions: 'Não há nenhuma extensão instalada :(',
   created: 'Criado',
   payment_hash: 'Hash de pagamento',
   fee: 'Taxa',
@@ -84,5 +83,5 @@ window.localisation.pt_BR = {
   description: 'Descrição',
   expiry: 'Validade',
   webhook: 'Webhook',
-  payment_proof: 'Comprovante de pagamento'
+  payment_proof: 'Comprovativo de pagamento'
 }
