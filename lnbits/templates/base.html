@@ -46,9 +46,13 @@
             {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
           </q-badge>
           {%endif%}
-          <q-badge color="yellow" text-color="black" class="q-mr-md">
+          <q-badge
+            v-show="$q.screen.gt.sm"
+            color="yellow"
+            text-color="black"
+            class="q-mr-md"
+          >
             <span
-              v-show="$q.screen.gt.sm"
               v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
             ></span>
           </q-badge>
