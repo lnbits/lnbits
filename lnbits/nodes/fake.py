@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from time import time
 from typing import TYPE_CHECKING
 
 from lnbits.nodes.base import ChannelStats, Node, PaymentStats
@@ -26,65 +27,42 @@ class FakeNode(Node):
                     outbound_msat=10000,
                     total_msat=20000,
                     name="cool fake node",
-                    color="#821212",
+                    color="821212",
                 )
             ],
         )
 
     async def get_info(self) -> NodeInfoResponse:
-        info = await self.wallet.ln_rpc("getinfo")
         channel_response = await self.get_channels()
         channels = channel_response.channels
         return NodeInfoResponse(
-            id=info["id"],
+            id=await self.get_id(),
             backend_name="Fake",
-            alias=info["alias"],
-            color=info["color"],
+            alias="FakeNode",
+            color="347293",
             onchain_balance_sat=100000000,
             onchain_confirmed_sat=100000000,
             # A future implementation could leverage the `sql` rpc to calculate these
             # without having to fetch all the channels.
             channel_stats=ChannelStats.from_list(channels),
-            num_peers=info["num_peers"],
-            blockheight=info["blockheight"],
+            num_peers=42,
+            blockheight=130,
             balance_msat=sum(channel.inbound_msat for channel in channels),
             channels=channels,
         )
 
     async def get_payments(self) -> list[NodePayment]:
-        pays = await self.wallet.ln_rpc("listpays")
-        invoices = await self.wallet.ln_rpc("listinvoices")
-        results = []
-
-        results.extend(
+        return [
             NodePayment(
-                bolt11=pay["bolt11"],
-                amount=int(pay["amount_msat"]) * -1,
-                fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
-                memo=pay.get("description"),
-                time=pay["created_at"],
-                preimage=pay["preimage"],
-                payment_hash=pay["payment_hash"],
-                pending=pay["status"] != "complete",
+                pending=False,
+                amount=100000,
+                memo="some payment",
+                time=int(time()),
+                bolt11="askdfjhaskldfhasdklfjhasdh",
+                preimage="0" * 64,
+                payment_hash="asllasdjflsdhfaksdjfhaskdjfhaskldfh",
             )
-            for pay in pays["pays"]
-            if pay["status"] != "failed"
-        )
-        results.extend(
-            NodePayment(
-                bolt11=invoice["bolt11"],
-                amount=invoice["amount_msat"],
-                # fee=pay["amount_sent_msat"] - pay["amount_msat"],
-                preimage=invoice.get("payment_preimage") or "0" * 64,
-                memo=invoice["description"],
-                time=invoice.get("paid_at", invoice["expires_at"]),
-                payment_hash=invoice["payment_hash"],
-                pending=invoice["status"] != "paid",
-            )
-            for invoice in invoices["invoices"]
-        )
-        results.sort(key=lambda x: x.time, reverse=True)
-        return results
+        ]
 
     async def get_payment_stats(self) -> PaymentStats:
         return PaymentStats()
