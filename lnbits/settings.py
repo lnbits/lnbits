@@ -50,6 +50,9 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
+
+
+class ExtensionsInstallSettings(LNbitsSettings):
     lnbits_extensions_default_install: List[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
@@ -279,6 +282,7 @@ class TransientSettings(InstalledExtensionsSettings):
 
 class ReadOnlySettings(
     EnvSettings,
+    ExtensionsInstallSettings,
     SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
