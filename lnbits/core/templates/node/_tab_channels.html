@@ -2,92 +2,8 @@
   <q-card-section class="q-pa-none">
     <div class="row q-col-gutter-lg q-pb-lg">
       <div class="col-12 col-md-4 q-gutter-y-md">
-        <q-card>
-          <q-card class="my-card">
-            <q-card-section>
-              <div class="text-h6">
-                <center>
-                  <qrcode
-                    value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
-                    :options="{width: 200}"
-                    class="rounded-borders"
-                  ></qrcode>
-                </center>
-              </div>
-            </q-card-section>
-            <q-card-actions vertical>
-              <q-btn
-                dense
-                unelevated
-                size="md"
-                @click="copyText('024a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365')"
-                >Public Key<q-tooltip> Click to copy </q-tooltip>
-              </q-btn>
-              <q-btn
-                dense
-                unelevated
-                size="md"
-                @click="copyText('24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735')"
-                >Node ID<q-tooltip> Click to copy </q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-card>
-      </div>
-
-      <div class="col-12 col-md-4 q-gutter-y-md">
-        <q-card>
-          <div class="row">
-            <div class="col">
-              <h5 class="text-subtitle1 q-my-none">Uptime</h5>
-              <q-circular-progress
-                show-value
-                font-size="40px"
-                value="85"
-                size="120px"
-                :thickness="0.22"
-                color="teal"
-                track-color="grey-3"
-                class="q-ma-md"
-              >
-                85%
-              </q-circular-progress>
-            </div>
-            <div class="col">
-              <h5 class="text-subtitle1 q-my-none">1ml Node Rank</h5>
-              <div style="max-width: 150px">
-                <div class="row q-mb-sm">
-                  <div class="col-9">Rank</div>
-                  <div class="col-3" outline style="background-color: grey">
-                    98
-                  </div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Channel</div>
-                  <div class="col-3" style="background-color: grey">45</div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Age</div>
-                  <div class="col-3" style="background-color: grey">145</div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Growth</div>
-                  <div class="col-3" style="background-color: grey">80</div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Availability</div>
-                  <div class="col-3" style="background-color: grey">15</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </q-card>
-        <q-btn unelevated color="primary" class="full-width" size="md"
-          >Open channel</q-btn
-        >
-        <q-btn unelevated color="primary" class="full-width" size="md"
-          >Close channel</q-btn
-        >
+        <q-btn unelevated color="primary" class="full-width" size="md">Open channel</q-btn>
+        <q-btn unelevated color="primary" class="full-width" size="md">Close channel</q-btn>
       </div>
     </div>
 
@@ -99,93 +15,17 @@
               <h5 class="text-subtitle1 q-my-none">Channels</h5>
               {% raw %}
               <div v-for="channel in this.channels" :key="channel.peer_id">
-                <q-linear-progress
-                  class="q-mb-md"
-                  size="25px"
-                  :value="channel.inbound_msat / channel.total_msat"
-                  :color="channel.color"
-                  :style="`color: #${channel.color}`"
-                >
+                <q-linear-progress class="q-mb-md" size="25px" :value="channel.inbound_msat / channel.total_msat"
+                  :color="channel.color" :style="`color: #${channel.color}`">
                   <div class="absolute-full flex flex-center">
-                    <q-badge
-                      color="white"
-                      text-color="accent"
-                      :label="`${channel.name} (${formatMsat(channel.total_msat)} sats)`"
-                    >
+                    <q-badge color="white" text-color="accent"
+                      :label="`${channel.name} (${formatMsat(channel.total_msat)} sats)`">
                       {{ channel.alias }}
                     </q-badge>
                   </div>
                 </q-linear-progress>
               </div>
               {% endraw %}
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-      <div class="col">
-        <div class="col q-pb-lg">
-          <q-card>
-            <q-card-section>
-              <h5 class="text-subtitle1 q-my-none">Outbound liquidity</h5>
-              <q-linear-progress
-                class="q-mb-md"
-                size="25px"
-                value="0.3"
-                color="grey"
-              >
-                <div class="absolute-full flex flex-center">
-                  <q-badge
-                    color="white"
-                    text-color="accent"
-                    label="Blixt Wallet (567,872 sats)"
-                  />
-                </div>
-              </q-linear-progress>
-
-              <q-linear-progress
-                class="q-mb-md"
-                size="25px"
-                value="0.4"
-                color="orange"
-              >
-                <div class="absolute-full flex flex-center">
-                  <q-badge
-                    color="white"
-                    text-color="accent"
-                    label="Fulmo (1,323,234 sats)"
-                  />
-                </div>
-              </q-linear-progress>
-
-              <q-linear-progress
-                class="q-mb-md"
-                size="25px"
-                value="0.1"
-                color="orange-9"
-              >
-                <div class="absolute-full flex flex-center">
-                  <q-badge
-                    color="white"
-                    text-color="accent"
-                    label="Fulmo (18,343,334 sats)"
-                  />
-                </div>
-              </q-linear-progress>
-
-              <q-linear-progress
-                class="q-mb-md"
-                size="25px"
-                value="0.6"
-                color="purple"
-              >
-                <div class="absolute-full flex flex-center">
-                  <q-badge
-                    color="white"
-                    text-color="accent"
-                    label="Fulmo (123,114 sats)"
-                  />
-                </div>
-              </q-linear-progress>
             </q-card-section>
           </q-card>
         </div>

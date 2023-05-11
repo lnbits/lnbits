@@ -50,26 +50,26 @@
   {% raw %}
   Vue.component('lnbits-stat',
     {
-      props: ['title', 'amount', 'msat'],
+      props: ['title', 'amount', 'msat', 'btc'],
       computed: {
-        value: function() {
-          return this.amount ?? LNbits.utils.formatMsat(this.msat)
+        value: function () {
+          return this.amount ?? (this.btc ? LNbits.utils.formatSat(this.btc) : LNbits.utils.formatMsat(this.msat))
         }
       },
       template: `
-        <q-card>
-          <q-card-section>
-            <div class="text-overline text-primary">
-              {{ title }}
-            </div>
-            <div>
-              <span class="text-h2 q-my-none">{{ value }}</span>
-              <span class='text-h4' v-if='msat'>sats</span>
-            </div>
-          </q-card-section>
-        </q-card>
-      `,
-
+          <q-card>
+            <q-card-section>
+              <div class="text-overline text-primary">
+                {{ title }}
+              </div>
+              <div>
+                <span class="text-h4 text-bold q-my-none">{{ value }}</span>
+                <span class='text-h5' v-if='msat'>sats</span>
+                <span class='text-h5' v-if='btc'>BTC</span>
+              </div>
+            </q-card-section>
+          </q-card>
+        `,
     },
   )
   {% endraw %}
@@ -93,7 +93,7 @@
         info: {},
         channel_stats: {},
         channels: [],
-        ranks: {},
+        ranks: null,
         filteredPayments: [],
         paymentsTable: {
           columns: [
@@ -146,7 +146,7 @@
       formatMsat: function (msat) {
         return LNbits.utils.formatMsat(msat)
       },
-      get: function() {
+      get: function () {
 
       },
       getChannels: function () {

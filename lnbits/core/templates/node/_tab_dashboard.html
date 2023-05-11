@@ -1,106 +1,86 @@
 <q-tab-panel name="dashboard">
   <q-card-section class="q-pa-none">
     {% raw %}
-    <div class="text-h4 q-mt-md text-bold">{{this.info.alias}}</div>
+    <div class="q-mt-md">
+      <div class="text-subtitle1 text-light">{{this.info.backend_name}}</div>
+      <div class="row items-baseline q-gutter-sm">
+        <div class="text-h4 text-bold">{{this.info.alias}}</div>
 
-    <div class="row">
-      <div :style="`color: #${this.info.color}`" class="q-my-md text-bold">
-        Color #{{this.info.color}}
+        <div :style="`color: #${this.info.color}`" class="text-bold">
+          Color #{{this.info.color}}
+        </div>
+        <div class="text-bold">{{this.info.id}}</div>
       </div>
-      <div class="q-my-md text-bold">{{this.info.id}}</div>
     </div>
-
     <div class="row q-col-gutter-lg q-mt-sm">
       <div class="col-12 col-md-8 q-gutter-y-md">
-        <div class="row q-col-gutter-lg q-pb-lg">
+        <div class="row q-col-gutter-md q-pb-lg">
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat
-              title="Total Capacity"
-              :msat="this.channel_stats.total_capacity"
-            />
+            <lnbits-stat title="Total Capacity" :msat="this.channel_stats.total_capacity" />
           </div>
-
           <div class="col-12 col-md-6 q-gutter-y-md">
             <lnbits-stat title="Balance" :msat="this.info.balance_msat" />
           </div>
+
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat
-              :title="$t('number_of_channels')"
-              :amount="this.channel_stats.num_active"
-            />
+            <lnbits-stat title="Onchain Balance" :btc="this.info.onchain_balance_sat / 100000000" />
+          </div>
+
+          <div class="col-12 col-md-6 q-gutter-y-md">
+            <lnbits-stat title="Onchain Confirmed" :btc="this.info.onchain_confirmed_sat / 100000000" />
           </div>
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat
-              :title="$t('avg_channel_size')"
-              :msat="this.channel_stats.avg_size"
-            />
+            <lnbits-stat :title="$t('number_of_channels')" :amount="this.channel_stats.num_active" />
           </div>
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat
-              :title="$t('biggest_channel_size')"
-              :msat="this.channel_stats.biggest_size"
-            />
+            <lnbits-stat :title="$t('avg_channel_size')" :msat="this.channel_stats.avg_size" />
           </div>
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat
-              :title="$t('smallest_channel_size')"
-              :msat="this.channel_stats.smallest_size"
-            />
+            <lnbits-stat :title="$t('biggest_channel_size')" :msat="this.channel_stats.biggest_size" />
+          </div>
+          <div class="col-12 col-md-6 q-gutter-y-md">
+            <lnbits-stat :title="$t('smallest_channel_size')" :msat="this.channel_stats.smallest_size" />
           </div>
         </div>
       </div>
-      <div class="col-12 col-md-4 q-gutter-y-md">
-        <q-card>
-          <div class="row">
-            <div class="col">
-              <h5 class="text-subtitle1 q-my-none">Uptime</h5>
-              <q-circular-progress
-                show-value
-                font-size="40px"
-                :value="85"
-                size="120px"
-                :thickness="0.22"
-                color="teal"
-                track-color="grey-3"
-                class="q-ma-md"
-              >
-                85%
-              </q-circular-progress>
-            </div>
-            <div class="col">
-              <h5 class="text-subtitle1 q-my-none">1ml Node Rank</h5>
-              <div style="max-width: 150px">
-                <div class="row q-mb-sm">
-                  <div class="col-9">Capacity</div>
-                  <div class="col-3" style="background-color: grey">
-                    {{ this.ranks.capacity }}
-                  </div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Channel Count</div>
-                  <div class="col-3" outline style="background-color: grey">
-                    {{ this.ranks.channelcount }}
-                  </div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Age</div>
-                  <div class="col-3" style="background-color: grey">
-                    {{ this.ranks.age }}
-                  </div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Growth</div>
-                  <div class="col-3" style="background-color: grey">
-                    {{ this.ranks.growth }}
-                  </div>
-                </div>
-                <div class="row q-mb-sm">
-                  <div class="col-9">Availability</div>
-                  <div class="col-3" style="background-color: grey">
-                    {{ this.ranks.availability }}
-                  </div>
+      <div class="column col-12 col-md-4 q-gutter-y-md">
+        <q-card class="q-my-none">
+          <div class="column q-ma-md">
+            <h5 class="text-subtitle1 text-bold q-my-none">1ml Node Rank</h5>
+            <div v-if="this.ranks">
+              <div class="row q-mb-sm items-center">
+                <div class="col-9">Capacity</div>
+                <div class="col-3 text-subtitle1 text-bold">
+                  {{ this.ranks.capacity }}
                 </div>
               </div>
+              <div class="row q-mb-sm items-center">
+                <div class="col-9">Channel Count</div>
+                <div class="col-3 text-subtitle1 text-bold">
+                  {{ this.ranks.channelcount }}
+                </div>
+              </div>
+              <div class="row q-mb-sm items-center">
+                <div class="col-9">Age</div>
+                <div class="col-3 text-subtitle1 text-bold">
+                  {{ this.ranks.age }}
+                </div>
+              </div>
+              <div class="row q-mb-sm items-center">
+                <div class="col-9">Growth</div>
+                <div class="col-3 text-subtitle1 text-bold">
+                  {{ this.ranks.growth }}
+                </div>
+              </div>
+              <div class="row q-mb-sm items-center">
+                <div class="col-9">Availability</div>
+                <div class="col-3 text-subtitle1 text-bold">
+                  {{ this.ranks.availability }}
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-subtitle1 text-center">
+              Node not found on 1ml
             </div>
           </div>
         </q-card>
@@ -109,24 +89,18 @@
             <q-card-section>
               <div class="text-h6">
                 <div style="text-align: center">
-                  <qrcode
-                    value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
-                    :options="{width: 200}"
-                    class="rounded-borders"
-                  ></qrcode>
+                  <qrcode value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
+                    :options="{width: 200}" class="rounded-borders"></qrcode>
                 </div>
               </div>
             </q-card-section>
             <q-card-actions vertical>
-              <q-btn dense unelevated size="md" @click="copyText(this.info.id)"
-                >Public Key<q-tooltip> Click to copy </q-tooltip>
+              <q-btn dense unelevated size="md" @click="copyText(this.info.id)">Public Key<q-tooltip> Click to copy
+                </q-tooltip>
               </q-btn>
-              <q-btn
-                dense
-                unelevated
-                size="md"
-                @click="copyText(this.info.id + '@84.16.229.1:9735')"
-                >Node ID<q-tooltip> Click to copy </q-tooltip>
+              <q-btn dense unelevated size="md" @click="copyText(this.info.id + '@84.16.229.1:9735')">Node
+                ID<q-tooltip>
+                  Click to copy </q-tooltip>
               </q-btn>
             </q-card-actions>
           </q-card>
