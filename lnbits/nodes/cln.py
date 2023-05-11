@@ -14,10 +14,8 @@ class CoreLightningNode(Node):
     wallet: CoreLightningWallet
 
     async def _get_id(self) -> str:
-        if not self.id:
-            info = await self.wallet.ln_rpc("getinfo")
-            self.id = info["id"]
-        return self.id
+        info = await self.wallet.ln_rpc("getinfo")
+        return info["id"]
 
     async def get_channels(self) -> NodeChannelsResponse:
         funds = await self.wallet.ln_rpc("listfunds")
@@ -41,12 +39,21 @@ class CoreLightningNode(Node):
 
     async def get_info(self) -> NodeInfoResponse:
         info = await self.wallet.ln_rpc("getinfo")
+        funds = await self.wallet.ln_rpc("listfunds")
+
         channel_response = await self.get_channels()
         channels = channel_response.channels
         return NodeInfoResponse(
             id=info["id"],
+            backend_name="CLN",
             alias=info["alias"],
             color=info["color"],
+            onchain_balance_sat=sum(output["value"] for output in funds["outputs"]),
+            onchain_confirmed_sat=sum(
+                output["value"]
+                for output in funds["outputs"]
+                if output["status"] == "confirmed"
+            ),
             # A future implementation could leverage the `sql` rpc to calculate these
             # without having to fetch all the channels.
             channel_stats=ChannelStats.from_list(channels),
@@ -93,4 +100,3 @@ class CoreLightningNode(Node):
 
     async def get_payment_stats(self) -> PaymentStats:
         return PaymentStats()
-

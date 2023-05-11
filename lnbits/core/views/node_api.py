@@ -3,9 +3,10 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin
-from lnbits.settings import get_node_class, settings
+from lnbits.settings import get_node_class
 
 from ...nodes.base import NodeChannelsResponse, NodeInfoResponse, NodePayment
 from .. import core_app
@@ -17,22 +18,28 @@ class NodeInfo(NodeInfoResponse):
     pass
 
 
-@node_api.get("/info")
-async def api_get_channels() -> Optional[NodeInfoResponse]:
+def require_node():
     NODE = get_node_class()
-    return await NODE.get_info()
+    if not NODE:
+        raise HTTPException(status_code=HTTP_503_SERVICE_UNAVAILABLE)
+    return NODE
+
+
+@node_api.get("/info")
+async def api_get_info(node=Depends(require_node)) -> Optional[NodeInfoResponse]:
+    return await node.get_info()
 
 
 @node_api.get("/channels")
-async def api_get_channels() -> Optional[NodeChannelsResponse]:
-    NODE = get_node_class()
-    return await NODE.get_channels()
+async def api_get_channels(
+    node=Depends(require_node),
+) -> Optional[NodeChannelsResponse]:
+    return await node.get_channels()
 
 
 @node_api.get("/transactions")
-async def api_get_payments() -> Optional[list[NodePayment]]:
-    NODE = get_node_class()
-    return await NODE.get_payments()
+async def api_get_payments(node=Depends(require_node)) -> Optional[list[NodePayment]]:
+    return await node.get_payments()
 
 
 class NodeRank(BaseModel):
@@ -48,9 +55,8 @@ class NodeRank(BaseModel):
     description="Retrieve node ranks from https://1ml.com",
     response_model=Optional[NodeRank],
 )
-async def api_get_1ml_stats() -> Optional[NodeRank]:
-    NODE = get_node_class()
-    node_id = await NODE.get_id()
+async def api_get_1ml_stats(node=Depends(require_node)) -> Optional[NodeRank]:
+    node_id = await node.get_id()
     async with httpx.AsyncClient() as client:
         node_id = "026165850492521f4ac8abd9bd8088123446d126f648ca35e60f88177dc149ceb2"
         r = await client.get(url=f"https://1ml.com/node/{node_id}/json", timeout=15)

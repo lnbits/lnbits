@@ -52,9 +52,12 @@ class ChannelStats(BaseModel):
 
 class NodeInfoResponse(BaseModel):
     id: str
+    backend_name: str
     alias: str
     color: str
     balance_msat: int
+    onchain_balance_sat: int
+    onchain_confirmed_sat: int
     num_peers: int
     blockheight: int
 
