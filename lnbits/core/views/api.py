@@ -48,6 +48,7 @@ from lnbits.extension_manager import (
     Extension,
     ExtensionRelease,
     InstallableExtension,
+    fetch_github_release_config,
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
@@ -779,6 +780,11 @@ async def api_install_extension(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
 
+    if not release.is_version_compatible:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
+        )
+
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
@@ -851,6 +857,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
             ext_info.clean_extension_files()
             await delete_installed_extension(ext_id=ext_info.id)
 
+        logger.success(f"Extension '{ext_id}' uninstalled.")
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
@@ -868,6 +875,27 @@ async def get_extension_releases(ext_id: str):
 
         return extension_releases
 
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.get(
+    "/api/v1/extension/release/{org}/{repo}/{tag_name}",
+    dependencies=[Depends(check_admin)],
+)
+async def get_extension_release(org: str, repo: str, tag_name: str):
+    try:
+        config = await fetch_github_release_config(org, repo, tag_name)
+        if not config:
+            return {}
+
+        return {
+            "min_lnbits_version": config.min_lnbits_version,
+            "is_version_compatible": config.is_version_compatible(),
+            "warning": config.warning,
+        }
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)

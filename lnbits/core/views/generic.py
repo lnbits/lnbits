@@ -57,11 +57,13 @@ async def robots():
 
 
 @core_html_routes.get(
-    "/extensions", name="core.extensions", response_class=HTMLResponse
+    "/extensions", name="install.extensions", response_class=HTMLResponse
 )
-async def extensions(
+async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
+    activate: str = Query(None),
+    deactivate: str = Query(None),
     enable: str = Query(None),
     disable: str = Query(None),
 ):
@@ -69,24 +71,7 @@ async def extensions(
 
     # Update user as his extensions have been updated
     if enable or disable:
-        updated_user = await get_user(user.id)
-        assert updated_user, "User does not exist."
-        user = updated_user
-
-    return template_renderer().TemplateResponse(
-        "core/extensions.html", {"request": request, "user": user.dict()}
-    )
-
-
-@core_html_routes.get(
-    "/install", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
-):
+        user = await get_user(user.id)  # type: ignore
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -153,7 +138,7 @@ async def extensions_install(
         )
 
         return template_renderer().TemplateResponse(
-            "core/install.html",
+            "core/extensions.html",
             {
                 "request": request,
                 "user": user.dict(),
