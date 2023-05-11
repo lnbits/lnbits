@@ -28,9 +28,9 @@
 
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
-          {% include "node/_tab_channels.html" %} {% include
-          "node/_tab_dashboard.html" %} {% include "node/_tab_transactions.html"
-          %}
+          {% include "node/_tab_dashboard.html" %}
+          {% include "node/_tab_channels.html" %}
+          {% include "node/_tab_transactions.html" %}
         </q-tab-panels>
       </q-form>
     </q-card>
@@ -89,6 +89,17 @@
         channel_stats: {},
         channels: [],
         ranks: null,
+
+        peers: [],
+
+        createChannelDialog: {
+          show: false,
+          data: {}
+        },
+        closeChannelDialog: {
+          show: false
+        },
+
         filteredPayments: [],
         paymentsTable: {
           columns: [
@@ -127,23 +138,36 @@
       }
     },
     created: function () {
-      this.getChannels()
       this.getInfo()
       this.get1MLStats()
-      this.getPayments()
+      this.getPeers()
+    },
+    watch: {
+      tab: function (val) {
+        if (val === 'transactions' && !this.filteredPayments.length) {
+          this.getPayments()
+        } else if(val === 'channels' && !this.channels.length) {
+          this.getChannels()
+          this.getPeers()
+        } else if(val === 'dashboard' && !this.info) {
+          this.getInfo()
+          this.get1MLStats()
+        }
+      }
     },
     computed: {
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
-      }
+      },
     },
     methods: {
       formatMsat: function (msat) {
         return LNbits.utils.formatMsat(msat)
       },
-      get: function () {
-
+      api: function (method, url, data) {
+        return LNbits.api.request(method, '/node/api/v1' + url + '?usr=' + this.g.user.id, {}, data)
       },
+
       getChannels: function () {
         LNbits.api
           .request('GET', '/node/api/v1/channels?usr=' + this.g.user.id, {})
@@ -195,8 +219,40 @@
               .sort((a, b) => {
                 return b.time - a.time
               })
+            console.log('payments', this.filteredPayments)
           })
-      }
+      },
+      getPeers: function () {
+        return this.api('GET', '/peers')
+          .then(response => {
+            this.peers = response.data
+            console.log('peers', this.peers)
+          })
+      },
+      connectPeer: function (uri) {
+        this.api('POST', '/peers', {uri})
+          .then(response => {
+            this.getPeers()
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
+      createChannel: function () {
+        this.api('POST', '/channels', {
+          amount: this.createChannelDialog.amount,
+          partner: this.createChannelDialog.partner,
+          private: this.createChannelDialog.private,
+          push_msat: this.createChannelDialog.push_msat
+        })
+          .then(response => {
+            this.createChannelDialog.show = false
+            this.getChannels()
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
     }
   })
 </script>

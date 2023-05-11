@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from lnbits.nodes.base import ChannelStats, Node, PaymentStats
+from lnbits.nodes.base import ChannelStats, Node, PaymentStats, NodePeerInfo
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
 
@@ -11,11 +11,36 @@ if TYPE_CHECKING:
 
 
 class CoreLightningNode(Node):
+    async def connect_peer(self, uri: str) -> bool:
+        await self.wallet.ln_rpc("connect", uri)
+        return True
+
+    async def open_channel(self, peer_id: str, funding_amount: int):
+        result = await self.wallet.ln_rpc("fundchannel", peer_id, funding_amount)
+        return result["txid"]
+
+    async def close_channel(self, channel_id: str):
+        result = await self.wallet.ln_rpc("close", channel_id)
+
     wallet: CoreLightningWallet
 
     async def _get_id(self) -> str:
         info = await self.wallet.ln_rpc("getinfo")
         return info["id"]
+
+    async def get_peer_ids(self) -> list[str]:
+        peers = await self.wallet.ln_rpc("listpeers")
+        return [p["id"] for p in peers["peers"]]
+
+    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
+        nodes = await self.wallet.ln_rpc("listnodes", pubkey)
+        node = nodes["nodes"][0]
+        return NodePeerInfo(
+            id=node["nodeid"],
+            alias=node["alias"],
+            color=node["color"],
+            last_timestamp=node["last_timestamp"],
+        )
 
     async def get_channels(self) -> NodeChannelsResponse:
         funds = await self.wallet.ln_rpc("listfunds")
@@ -80,7 +105,7 @@ class CoreLightningNode(Node):
                 pending=pay["status"] != "complete",
             )
             for pay in pays["pays"]
-            if pay["status"] != "failed"
+            if pay["status"] == "complete"
         )
         results.extend(
             NodePayment(

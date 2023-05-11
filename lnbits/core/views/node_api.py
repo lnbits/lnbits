@@ -8,7 +8,7 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 from lnbits.decorators import check_admin
 from lnbits.settings import get_node_class
 
-from ...nodes.base import NodeChannelsResponse, NodeInfoResponse, NodePayment
+from ...nodes.base import NodeChannelsResponse, NodeInfoResponse, NodePayment, Node, NodePeerInfo
 from .. import core_app
 
 node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
@@ -29,20 +29,30 @@ def require_node():
 
 
 @node_api.get("/info")
-async def api_get_info(node=Depends(require_node)) -> Optional[NodeInfoResponse]:
+async def api_get_info(node: Node = Depends(require_node)) -> Optional[NodeInfoResponse]:
     return await node.get_info()
 
 
 @node_api.get("/channels")
 async def api_get_channels(
-    node=Depends(require_node),
+    node: Node = Depends(require_node),
 ) -> Optional[NodeChannelsResponse]:
     return await node.get_channels()
 
 
 @node_api.get("/transactions")
-async def api_get_payments(node=Depends(require_node)) -> Optional[list[NodePayment]]:
+async def api_get_payments(node: Node = Depends(require_node)) -> Optional[list[NodePayment]]:
     return await node.get_payments()
+
+
+@node_api.get("/peers", response_model=list[NodePeerInfo])
+async def api_get_payments(node: Node = Depends(require_node)) -> list[NodePeerInfo]:
+    return await node.get_peers()
+
+
+@node_api.post("/peers/connect")
+async def api_connect_peer(node: Node = Depends(require_node), uri: str = ""):
+    return await node.connect_peer(uri)
 
 
 class NodeRank(BaseModel):

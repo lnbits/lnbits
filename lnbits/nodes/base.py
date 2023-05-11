@@ -78,8 +78,15 @@ class NodePayment(BaseModel):
     expiry: Optional[float] = None
 
 
+class NodePeerInfo(BaseModel):
+    id: str
+    alias: str
+    color: str
+    last_timestamp: Optional[int]
+
+
 class PaymentStats(BaseModel):
-    pass
+    volume: int
 
 
 class NodePaymentsResponse(BaseModel):
@@ -103,6 +110,33 @@ class Node(ABC):
     async def _get_id(self) -> str:
         pass
 
+    async def get_peers(self) -> list[NodePeerInfo]:
+        ids = await self.get_peer_ids()
+        return [
+            await self.get_peer_info(pubkey)
+            for pubkey in ids
+        ]
+
+    @abstractmethod
+    async def get_peer_ids(self) -> list[str]:
+        pass
+
+    @abstractmethod
+    async def connect_peer(self, uri: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
+        pass
+
+    @abstractmethod
+    async def open_channel(self, peer_id: str, funding_amount: int):
+        pass
+
+    @abstractmethod
+    async def close_channel(self, channel_id: str):
+        pass
+
     @abstractmethod
     async def get_channels(self) -> NodeChannelsResponse:
         pass
@@ -118,3 +152,4 @@ class Node(ABC):
     @abstractmethod
     async def get_payment_stats(self) -> PaymentStats:
         pass
+

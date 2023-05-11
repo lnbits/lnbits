@@ -28,8 +28,16 @@ class FakeNode(Node):
                     total_msat=20000,
                     name="cool fake node",
                     color="821212",
+                ),
+                NodeChannel(
+                    peer_id="another fake",
+                    inbound_msat=20000,
+                    outbound_msat=30000,
+                    total_msat=50000,
+                    name="imaginary node",
+                    color="128212",
                 )
-            ],
+            ] * 10,
         )
 
     async def get_info(self) -> NodeInfoResponse:
