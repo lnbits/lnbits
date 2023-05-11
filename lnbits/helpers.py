@@ -59,7 +59,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
-    if settings.bundle_assets and False:
+    if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
         t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
     else:
