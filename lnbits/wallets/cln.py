@@ -44,11 +44,6 @@ def _paid_invoices_stream(ln, last_pay_index):
     return ln.waitanyinvoice(last_pay_index)
 
 
-def strip_msat(amount):
-    return amount / 1000
-    return int(amount[:-4]) // 1000
-
-
 class CoreLightningWallet(Wallet):
     __node_cls__ = CoreLightningNode
 
