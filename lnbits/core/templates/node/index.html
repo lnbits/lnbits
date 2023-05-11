@@ -22,20 +22,15 @@
               :label="$t('transactions')"
               @update="val => tab = val.name"
             ></q-tab>
-            <q-tab
-              name="apps"
-              :label="$t('apps')"
-              @update="val => tab = val.name"
-            ></q-tab>
           </q-tabs>
         </div>
       </div>
 
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
-          {% include "node/_tab_apps.html" %} {% include
-          "node/_tab_channels.html" %} {% include "node/_tab_dashboard.html" %}
-          {% include "node/_tab_transactions.html" %}
+          {% include "node/_tab_channels.html" %} {% include
+          "node/_tab_dashboard.html" %} {% include "node/_tab_transactions.html"
+          %}
         </q-tab-panels>
       </q-form>
     </q-card>
