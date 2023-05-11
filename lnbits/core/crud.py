@@ -426,10 +426,10 @@ async def get_payments(
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    filters = Filters() or filters
+    filters = filters or Filters()
 
-    filters.sortby = "time" or filters.sortby
-    filters.direction = "desc" or filters.direction
+    filters.sortby = filters.sortby or "time"
+    filters.direction = filters.direction or "desc"
     filters.limit = limit or filters.limit
     filters.offset = offset or filters.offset
 
