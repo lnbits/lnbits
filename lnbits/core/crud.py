@@ -426,8 +426,7 @@ async def get_payments(
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    if not filters:
-        filters = Filters()
+    filters = Filters() or filters
 
     filters.sortby = "time" or filters.sortby
     filters.direction = "desc" or filters.direction
