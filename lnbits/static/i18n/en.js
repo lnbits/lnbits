@@ -2,6 +2,7 @@ window.localisation.en = {
   server: 'Server',
   theme: 'Theme',
   funding: 'Funding',
+
   users: 'Users',
   apps: 'Apps',
   channels: 'Channels',
@@ -14,6 +15,10 @@ window.localisation.en = {
   smallest_channel_size: 'Smallest Channel Size',
   number_of_channels: 'Number of Channels',
   active_channels: 'Active Channels',
+  connect_peer: 'Connect Peer',
+  connect: 'Connect',
+  open_channel: 'Open Channel',
+  open: 'Open',
   restart: 'Restart server',
   save: 'Save',
   save_tooltip: 'Save your changes',

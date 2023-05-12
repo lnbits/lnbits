@@ -1,14 +1,20 @@
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin
 from lnbits.settings import get_node_class
 
-from ...nodes.base import NodeChannelsResponse, NodeInfoResponse, NodePayment, Node, NodePeerInfo
+from ...nodes.base import (
+    Node,
+    NodeChannelsResponse,
+    NodeInfoResponse,
+    NodePayment,
+    NodePeerInfo,
+)
 from .. import core_app
 
 node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
@@ -29,7 +35,9 @@ def require_node():
 
 
 @node_api.get("/info")
-async def api_get_info(node: Node = Depends(require_node)) -> Optional[NodeInfoResponse]:
+async def api_get_info(
+    node: Node = Depends(require_node),
+) -> Optional[NodeInfoResponse]:
     return await node.get_info()
 
 
@@ -40,8 +48,26 @@ async def api_get_channels(
     return await node.get_channels()
 
 
+@node_api.post("/channels")
+async def api_create_channel(
+    node: Node = Depends(require_node),
+    peer_id: str = Body(embed=True),
+    funding_amount: int = Body(embed=True),
+) -> Optional[NodeChannelsResponse]:
+    return await node.open_channel(peer_id, funding_amount)
+
+
+@node_api.delete("/channels")
+async def api_delete_channel(
+    node: Node = Depends(require_node), channel_id: str = Body(embed=True)
+) -> Optional[NodeChannelsResponse]:
+    return await node.close_channel(channel_id)
+
+
 @node_api.get("/transactions")
-async def api_get_payments(node: Node = Depends(require_node)) -> Optional[list[NodePayment]]:
+async def api_get_transacions(
+    node: Node = Depends(require_node),
+) -> Optional[list[NodePayment]]:
     return await node.get_payments()
 
 
@@ -51,7 +77,9 @@ async def api_get_payments(node: Node = Depends(require_node)) -> list[NodePeerI
 
 
 @node_api.post("/peers/connect")
-async def api_connect_peer(node: Node = Depends(require_node), uri: str = ""):
+async def api_connect_peer(
+    uri: str = Body(embed=True), node: Node = Depends(require_node)
+):
     return await node.connect_peer(uri)
 
 

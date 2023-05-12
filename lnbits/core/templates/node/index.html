@@ -28,9 +28,9 @@
 
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
-          {% include "node/_tab_dashboard.html" %}
-          {% include "node/_tab_channels.html" %}
-          {% include "node/_tab_transactions.html" %}
+          {% include "node/_tab_dashboard.html" %} {% include
+          "node/_tab_channels.html" %} {% include "node/_tab_transactions.html"
+          %}
         </q-tab-panels>
       </q-form>
     </q-card>
@@ -92,7 +92,12 @@
 
         peers: [],
 
-        createChannelDialog: {
+        connectPeerDialog: {
+          show: false,
+          data: {}
+        },
+
+        openChannelDialog: {
           show: false,
           data: {}
         },
@@ -229,8 +234,9 @@
             console.log('peers', this.peers)
           })
       },
-      connectPeer: function (uri) {
-        this.api('POST', '/peers', {uri})
+      connectPeer: function () {
+        console.log('peer', this.connectPeerDialog)
+        LNbits.api.request('POST', '/node/api/v1/peers/connect?usr=' + this.g.user.id, {}, this.connectPeerDialog.data)
           .then(response => {
             this.getPeers()
           })
@@ -238,21 +244,20 @@
             console.log(error)
           })
       },
-      createChannel: function () {
-        this.api('POST', '/channels', {
-          amount: this.createChannelDialog.amount,
-          partner: this.createChannelDialog.partner,
-          private: this.createChannelDialog.private,
-          push_msat: this.createChannelDialog.push_msat
-        })
+      openChannel: function () {
+        this.api('POST', '/channels', this.openChannelDialog.data)
           .then(response => {
-            this.createChannelDialog.show = false
+            this.openChannelDialog.show = false
             this.getChannels()
           })
           .catch(error => {
             console.log(error)
           })
       },
+      showOpenChannelDialog: function (peer_id) {
+        this.openChannelDialog.show = true
+        this.openChannelDialog.data = {peer_id, funding_amount: 0}
+      }
     }
   })
 </script>

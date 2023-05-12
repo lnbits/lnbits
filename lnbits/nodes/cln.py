@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from lnbits.nodes.base import ChannelStats, Node, PaymentStats, NodePeerInfo
+from lnbits.nodes.base import ChannelStats, Node, NodePeerInfo, PaymentStats
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
 

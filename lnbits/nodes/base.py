@@ -112,10 +112,7 @@ class Node(ABC):
 
     async def get_peers(self) -> list[NodePeerInfo]:
         ids = await self.get_peer_ids()
-        return [
-            await self.get_peer_info(pubkey)
-            for pubkey in ids
-        ]
+        return [await self.get_peer_info(pubkey) for pubkey in ids]
 
     @abstractmethod
     async def get_peer_ids(self) -> list[str]:
@@ -152,4 +149,3 @@ class Node(ABC):
     @abstractmethod
     async def get_payment_stats(self) -> PaymentStats:
         pass
-

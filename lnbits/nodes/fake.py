@@ -36,8 +36,9 @@ class FakeNode(Node):
                     total_msat=50000,
                     name="imaginary node",
                     color="128212",
-                )
-            ] * 10,
+                ),
+            ]
+            * 10,
         )
 
     async def get_info(self) -> NodeInfoResponse:
