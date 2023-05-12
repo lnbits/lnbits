@@ -17,6 +17,8 @@ class NodeStatsResponse(NamedTuple):
 
 
 class NodeChannel(BaseModel):
+    short_id: Optional[str]
+    funding_txid: Optional[str]
     peer_id: str
     inbound_msat: int
     outbound_msat: int
@@ -127,11 +129,22 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def open_channel(self, peer_id: str, funding_amount: int):
+    async def open_channel(
+        self,
+        peer_id: str,
+        local_amount: int,
+        push_amount: Optional[int] = None,
+        fee_rate: Optional[int] = None,
+    ):
         pass
 
     @abstractmethod
-    async def close_channel(self, channel_id: str):
+    async def close_channel(
+        self,
+        short_id: Optional[str] = None,
+        funding_txid: Optional[str] = None,
+        force: bool = False,
+    ):
         pass
 
     @abstractmethod

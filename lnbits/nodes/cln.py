@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from fastapi import HTTPException
 
 from lnbits.nodes.base import ChannelStats, Node, NodePeerInfo, PaymentStats
 
@@ -15,12 +17,31 @@ class CoreLightningNode(Node):
         await self.wallet.ln_rpc("connect", uri)
         return True
 
-    async def open_channel(self, peer_id: str, funding_amount: int):
-        result = await self.wallet.ln_rpc("fundchannel", peer_id, funding_amount)
+    async def open_channel(
+        self,
+        peer_id: str,
+        local_amount: int,
+        push_amount: Optional[int] = None,
+        fee_rate: Optional[int] = None,
+    ):
+        result = await self.wallet.ln_rpc(
+            "fundchannel",
+            peer_id,
+            amount=local_amount,
+            push_msat=int(push_amount * 1000) if push_amount else None,
+            feerate=fee_rate,
+        )
         return result["txid"]
 
-    async def close_channel(self, channel_id: str):
-        result = await self.wallet.ln_rpc("close", channel_id)
+    async def close_channel(
+        self,
+        short_id: Optional[str] = None,
+        funding_txid: Optional[str] = None,
+        force: bool = False,
+    ):
+        if not short_id:
+            raise HTTPException(status_code=400, detail="Short id required")
+        result = await self.wallet.ln_rpc("close", short_id)
 
     wallet: CoreLightningWallet
 
@@ -51,6 +72,8 @@ class CoreLightningNode(Node):
             error_message=None,
             channels=[
                 NodeChannel(
+                    short_id=ch.get("short_channel_id"),
+                    funding_txid=ch["funding_txid"],
                     peer_id=ch["peer_id"],
                     inbound_msat=ch["our_amount_msat"],
                     outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],

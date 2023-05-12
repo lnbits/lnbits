@@ -51,17 +51,22 @@ async def api_get_channels(
 @node_api.post("/channels")
 async def api_create_channel(
     node: Node = Depends(require_node),
-    peer_id: str = Body(embed=True),
-    funding_amount: int = Body(embed=True),
+    peer_id: str = Body(),
+    funding_amount: int = Body(),
+    push_amount: Optional[int] = Body(None),
+    fee_rate: Optional[int] = Body(None),
 ) -> Optional[NodeChannelsResponse]:
-    return await node.open_channel(peer_id, funding_amount)
+    return await node.open_channel(peer_id, funding_amount, push_amount, fee_rate)
 
 
 @node_api.delete("/channels")
 async def api_delete_channel(
-    node: Node = Depends(require_node), channel_id: str = Body(embed=True)
+    node: Node = Depends(require_node),
+    short_id: Optional[str] = Body(None),
+    funding_txid: Optional[str] = Body(None),
+    force: bool = Body(False),
 ) -> Optional[NodeChannelsResponse]:
-    return await node.close_channel(channel_id)
+    return await node.close_channel(short_id, funding_txid, force)
 
 
 @node_api.get("/transactions")

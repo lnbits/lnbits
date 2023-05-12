@@ -102,7 +102,8 @@
           data: {}
         },
         closeChannelDialog: {
-          show: false
+          show: false,
+          data: {}
         },
 
         filteredPayments: [],
@@ -253,6 +254,13 @@
           .catch(error => {
             console.log(error)
           })
+      },
+      showCloseChannelDialog: function (channel) {
+        this.closeChannelDialog.show = true,
+        this.closeChannelDialog.data= {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
+      },
+      closeChannel: function () {
+        this.api('DELETE', '/channels', this.closeChannelDialog.data)
       },
       showOpenChannelDialog: function (peer_id) {
         this.openChannelDialog.show = true
