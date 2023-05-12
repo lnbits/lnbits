@@ -4,7 +4,18 @@ from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 
-from lnbits.nodes.base import ChannelStats, Node, NodePeerInfo, PaymentStats
+try:
+    from pyln.client import RpcError  # type: ignore
+except ImportError:  # pragma: nocover
+    LightningRpc = None
+
+from lnbits.nodes.base import (
+    ChannelState,
+    ChannelStats,
+    Node,
+    NodePeerInfo,
+    PaymentStats,
+)
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
 
@@ -12,11 +23,25 @@ if TYPE_CHECKING:
     from lnbits.wallets import CoreLightningWallet
 
 
+def catch_rpc_errors(f):
+    async def wrapper(*args, **kwargs):
+        try:
+            return await f(*args, **kwargs)
+        except RpcError as e:
+            raise HTTPException(status_code=500, detail=e.error["message"])  # type: ignore
+
+    return wrapper
+
+
 class CoreLightningNode(Node):
+    wallet: CoreLightningWallet
+
+    @catch_rpc_errors
     async def connect_peer(self, uri: str) -> bool:
         await self.wallet.ln_rpc("connect", uri)
         return True
 
+    @catch_rpc_errors
     async def open_channel(
         self,
         peer_id: str,
@@ -33,6 +58,7 @@ class CoreLightningNode(Node):
         )
         return result["txid"]
 
+    @catch_rpc_errors
     async def close_channel(
         self,
         short_id: Optional[str] = None,
@@ -43,16 +69,17 @@ class CoreLightningNode(Node):
             raise HTTPException(status_code=400, detail="Short id required")
         result = await self.wallet.ln_rpc("close", short_id)
 
-    wallet: CoreLightningWallet
-
+    @catch_rpc_errors
     async def _get_id(self) -> str:
         info = await self.wallet.ln_rpc("getinfo")
         return info["id"]
 
+    @catch_rpc_errors
     async def get_peer_ids(self) -> list[str]:
         peers = await self.wallet.ln_rpc("listpeers")
         return [p["id"] for p in peers["peers"]]
 
+    @catch_rpc_errors
     async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
         nodes = await self.wallet.ln_rpc("listnodes", pubkey)
         node = nodes["nodes"][0]
@@ -63,13 +90,13 @@ class CoreLightningNode(Node):
             last_timestamp=node["last_timestamp"],
         )
 
+    @catch_rpc_errors
     async def get_channels(self) -> NodeChannelsResponse:
         funds = await self.wallet.ln_rpc("listfunds")
         nodes = await self.wallet.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
         return NodeChannelsResponse(
-            error_message=None,
             channels=[
                 NodeChannel(
                     short_id=ch.get("short_channel_id"),
@@ -80,17 +107,28 @@ class CoreLightningNode(Node):
                     total_msat=ch["amount_msat"],
                     name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
                     color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
+                    state=(
+                        ChannelState.ACTIVE
+                        if ch["state"] == "CHANNELD_NORMAL"
+                        else ChannelState.PENDING
+                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
+                        else ChannelState.CLOSED
+                        if ch["state"]
+                        in ("CHANNELD_CLOSING", "CLOSINGD_SIGEXCHANGE", "ONCHAIN")
+                        else ChannelState.INACTIVE
+                    ),
                 )
                 for ch in funds["channels"]
             ],
         )
 
+    @catch_rpc_errors
     async def get_info(self) -> NodeInfoResponse:
         info = await self.wallet.ln_rpc("getinfo")
         funds = await self.wallet.ln_rpc("listfunds")
 
         channel_response = await self.get_channels()
-        channels = channel_response.channels
+        channels = channel_response.by_state[ChannelState.ACTIVE]
         return NodeInfoResponse(
             id=info["id"],
             backend_name="CLN",
@@ -108,9 +146,10 @@ class CoreLightningNode(Node):
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
             balance_msat=sum(channel.inbound_msat for channel in channels),
-            channels=channels,
+            channels=channel_response.channels,
         )
 
+    @catch_rpc_errors
     async def get_payments(self) -> list[NodePayment]:
         pays = await self.wallet.ln_rpc("listpays")
         invoices = await self.wallet.ln_rpc("listinvoices")

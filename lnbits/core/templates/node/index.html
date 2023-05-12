@@ -101,10 +101,23 @@
           show: false,
           data: {}
         },
+
         closeChannelDialog: {
           show: false,
           data: {}
         },
+
+        states: [
+          { label: 'Active', value: 'active' },
+          { label: 'Pending', value: 'pending' },
+          { label: 'Inactive', value: 'inactive' },
+          { label: 'Closed', value: 'closed' },
+        ],
+
+        stateFilters: [
+          { label: 'Active', value: 'active' },
+          { label: 'Pending', value: 'pending' },
+        ],
 
         filteredPayments: [],
         paymentsTable: {
@@ -165,6 +178,11 @@
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
       },
+      filteredChannels: function () {
+        return !this.stateFilters ? this.channels :  this.channels.filter(channel => {
+          return this.stateFilters.find( ({ value }) => value == channel.state) ? true : false
+        })
+      },
     },
     methods: {
       formatMsat: function (msat) {
@@ -172,12 +190,16 @@
       },
       api: function (method, url, data) {
         return LNbits.api.request(method, '/node/api/v1' + url + '?usr=' + this.g.user.id, {}, data)
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
       },
 
       getChannels: function () {
         LNbits.api
           .request('GET', '/node/api/v1/channels?usr=' + this.g.user.id, {})
           .then(response => {
+            //this.channels = response.data.by_state.active
             this.channels = response.data.channels
             console.log('hi', this.channels)
           })
@@ -186,7 +208,6 @@
         LNbits.api
           .request('GET', '/node/api/v1/info?usr=' + this.g.user.id, {})
           .then(response => {
-            this.channels = response.data.channels
             this.info = response.data
             this.channel_stats = response.data.channel_stats
             this.stats = {
@@ -237,12 +258,10 @@
       },
       connectPeer: function () {
         console.log('peer', this.connectPeerDialog)
-        LNbits.api.request('POST', '/node/api/v1/peers/connect?usr=' + this.g.user.id, {}, this.connectPeerDialog.data)
-          .then(response => {
+        this.api('POST','/peers/connect', this.connectPeerDialog.data)
+          .then(() => {
+            this.connectPeerDialog.show = false
             this.getPeers()
-          })
-          .catch(error => {
-            console.log(error)
           })
       },
       openChannel: function () {
@@ -261,6 +280,10 @@
       },
       closeChannel: function () {
         this.api('DELETE', '/channels', this.closeChannelDialog.data)
+          .then(response => {
+            this.closeChannelDialog.show = false
+            this.getChannels()
+          })
       },
       showOpenChannelDialog: function (peer_id) {
         this.openChannelDialog.show = true

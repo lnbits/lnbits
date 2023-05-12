@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple, Optional
 
 from pydantic import BaseModel
@@ -16,6 +17,13 @@ class NodeStatsResponse(NamedTuple):
     channel_balance: int
 
 
+class ChannelState(Enum):
+    ACTIVE = "active"
+    PENDING = "pending"
+    CLOSED = "closed"
+    INACTIVE = "inactive"
+
+
 class NodeChannel(BaseModel):
     short_id: Optional[str]
     funding_txid: Optional[str]
@@ -23,12 +31,12 @@ class NodeChannel(BaseModel):
     inbound_msat: int
     outbound_msat: int
     total_msat: int
+    state: ChannelState
     name: Optional[str]
     color: Optional[str]
 
 
 class NodeChannelsResponse(BaseModel):
-    error_message: Optional[str]
     channels: list[NodeChannel]
 
 

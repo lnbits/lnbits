@@ -2,12 +2,28 @@
   <q-dialog v-model="connectPeerDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
-        <q-input dense type="text" filled v-model="connectPeerDialog.data.uri" label="Node URI"
-          hint="pubkey@host:port"></q-input>
+        <q-input
+          dense
+          type="text"
+          filled
+          v-model="connectPeerDialog.data.uri"
+          label="Node URI"
+          hint="pubkey@host:port"
+        ></q-input>
 
         <div class="row q-mt-lg">
-          <q-btn :label="$t('connect')" color="primary" @click="connectPeer"></q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
+          <q-btn
+            :label="$t('connect')"
+            color="primary"
+            @click="connectPeer"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            :label="$t('cancel')"
+          ></q-btn>
         </div>
       </q-form>
     </q-card>
@@ -16,16 +32,41 @@
   <q-dialog v-model="openChannelDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
-        <q-input dense type="text" filled v-model="openChannelDialog.data.peer_id" label="Peer ID"
-          hint="pubkey@host:port"></q-input>
-        <q-input dense type="number" filled v-model.number="openChannelDialog.data.funding_amount"
-          label="Funding Amount"></q-input>
-        <q-input dense type="number" filled v-model.number="openChannelDialog.data.push_amount"
-          label="Push Amount"></q-input>
+        <q-input
+          dense
+          type="text"
+          filled
+          v-model="openChannelDialog.data.peer_id"
+          label="Peer ID"
+        ></q-input>
+        <q-input
+          dense
+          type="number"
+          filled
+          v-model.number="openChannelDialog.data.funding_amount"
+          label="Funding Amount"
+        ></q-input>
+        <q-input
+          dense
+          type="number"
+          filled
+          v-model.number="openChannelDialog.data.push_amount"
+          label="Push Amount"
+        ></q-input>
 
         <div class="row q-mt-lg">
-          <q-btn :label="$t('open')" color="primary" @click="openChannel"></q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
+          <q-btn
+            :label="$t('open')"
+            color="primary"
+            @click="openChannel"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            :label="$t('cancel')"
+          ></q-btn>
         </div>
       </q-form>
     </q-card>
@@ -39,8 +80,18 @@
         </div>
 
         <div class="row q-mt-lg">
-          <q-btn :label="$t('open')" color="primary" @click="closeChannel"></q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
+          <q-btn
+            :label="$t('close')"
+            color="primary"
+            @click="closeChannel"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            :label="$t('cancel')"
+          ></q-btn>
         </div>
       </q-form>
     </q-card>
@@ -52,25 +103,68 @@
         <div class="col q-pb-lg">
           <q-card>
             <q-card-section>
-              <div class="row items-center justify-between no-wrap">
-                <div class="text-h6 q-my-none">Channels</div>
-                <q-btn unelevated color="primary" size="md" @click="showOpenChannelDialog()">
+              <div class="row items-center q-gutter-sm no-wrap">
+                <div class="text-h6 q-my-none col-grow">Channels</div>
+                <q-select
+                  dense
+                  size="sm"
+                  style="min-width: 200px"
+                  filled
+                  multiple
+                  clearable
+                  v-model="stateFilters"
+                  :options="this.states"
+                ></q-select>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  size="md"
+                  @click="showOpenChannelDialog()"
+                >
                   Open channel
                 </q-btn>
               </div>
               {% raw %}
-              <q-table dense flat :data="this.channels" :pagination.sync="paymentsTable.pagination"
-                no-data-label="No channels opened" :filter="paymentsTable.filter">
+              <q-table
+                dense
+                flat
+                :data="this.filteredChannels"
+                :pagination.sync="paymentsTable.pagination"
+                no-data-label="No channels opened"
+              >
                 <template v-slot:header="props">
                   <q-tr :props="props"> </q-tr>
                 </template>
                 <template v-slot:body="props">
                   <q-tr :props="props">
                     <div class="row items-center justify-between q-gutter-md">
-                      <div class=" col-grow">
+                      <div class="col-grow">
+                        <div class="row items-center q-gutter-sm">
+                          <div class="text-subtitle1 col-grow">
+                            {{props.row.name}}
+                          </div>
+                          <q-badge
+                            rounded
+                            :color='props.row.state === "active" ? "green" : props.row.state === "pending" ? "orange" : props.row.state === "inactive" ? "grey" : "red"'
+                          >
+                            {{ props.row.state.charAt(0).toUpperCase() +
+                            props.row.state.slice(1) }}
+                          </q-badge>
+                          <q-btn
+                            :disable='props.row.state === "closed"'
+                            flat
+                            dense
+                            size="md"
+                            @click="showCloseChannelDialog(props.row)"
+                            icon="cancel"
+                            color="pink"
+                          ></q-btn>
+                        </div>
+
                         <div class="row items-center justify-between">
                           <span class="text-weight-thin">
-                            Inbound: {{ formatMsat(props.row.inbound_msat) }} sats
+                            Inbound: {{ formatMsat(props.row.inbound_msat) }}
+                            sats
                           </span>
                           <span class="text-weight-thin">
                             Outbound: {{ formatMsat(props.row.outbound_msat) }}
@@ -78,19 +172,25 @@
                           </span>
                         </div>
 
-                        <q-linear-progress class="q-mb-md" size="25px"
-                          :value="props.row.inbound_msat / props.row.total_msat" :color="props.row.color"
-                          :style="`color: #${props.row.color}`">
+                        <q-linear-progress
+                          rounded
+                          class="q-mb-md"
+                          size="25px"
+                          :value="props.row.inbound_msat / props.row.total_msat"
+                          :color="props.row.color"
+                          :style="`color: #${props.row.color}`"
+                        >
                           <div class="absolute-full flex flex-center">
-                            <q-badge color="white" text-color="accent"
-                              :label="`${props.row.name} (${formatMsat(props.row.total_msat)} sats)`">
+                            <q-badge
+                              color="white"
+                              text-color="accent"
+                              :label="`${formatMsat(props.row.total_msat)} sats`"
+                            >
                               {{ props.row.alias }}
                             </q-badge>
                           </div>
                         </q-linear-progress>
                       </div>
-                      <q-btn flat dense size="md" @click="showCloseChannelDialog(props.row)" icon="cancel"
-                        color="pink"></q-btn>
                     </div>
                   </q-tr>
                 </template>
@@ -112,25 +212,39 @@
                   Connect Peer
                 </q-btn>
               </div>
-              <q-table dense flat :data="this.peers" no-data-label="No transactions made yet">
+              <q-table
+                dense
+                flat
+                :data="this.peers"
+                no-data-label="No transactions made yet"
+              >
                 <template v-slot:header="props">
                   <q-tr :props="props"> </q-tr>
                 </template>
                 <template v-slot:body="props">
                   <q-tr :props="props">
-                    <div class="row justify-between no-wrap items-center q-gutter-sm">
+                    <div
+                      class="row justify-between no-wrap items-center q-gutter-sm"
+                    >
                       <div class="q-my-sm">
                         <div class="text-subtitle1 text-bold">
                           {{ props.row.alias }}
                         </div>
                         <div class="row items-baseline q-gutter-sm">
-                          <div :style="`color: #${props.row.color}`" class="text-bold">
-                            Color #{{ props.row.color }}
-                          </div>
+                          <q-badge
+                            :style="`background-color: #${props.row.color}`"
+                            class="text-bold"
+                          >
+                            #{{ props.row.color }}
+                          </q-badge>
                           <div>{{ props.row.id.substring(0,5) }}</div>
                         </div>
                       </div>
-                      <q-btn unelevated color="primary" @click="showOpenChannelDialog(props.row.id)">
+                      <q-btn
+                        unelevated
+                        color="primary"
+                        @click="showOpenChannelDialog(props.row.id)"
+                      >
                         Open channel
                       </q-btn>
                     </div>

@@ -1,14 +1,17 @@
 <q-tab-panel name="dashboard">
   <q-card-section class="q-pa-none">
     {% raw %}
-    <div class="q-mt-md">
-      <div class="text-subtitle1 text-light">{{this.info.backend_name}}</div>
-      <div class="row items-baseline q-gutter-sm">
-        <div class="text-h4 text-bold">{{this.info.alias}}</div>
+    <div>
+      <div class="text-h4 text-bold">{{this.info.alias}}</div>
+      <div class="row items-center q-gutter-sm">
+        <div class="text-subtitle1 text-light">{{this.info.backend_name}}</div>
 
-        <div :style="`color: #${this.info.color}`" class="text-bold">
-          Color #{{this.info.color}}
-        </div>
+        <q-badge
+          :style="`background-color: #${this.info.color}`"
+          class="text-bold"
+        >
+          #{{ this.info.color }}
+        </q-badge>
         <div class="text-bold">{{this.info.id}}</div>
       </div>
     </div>
