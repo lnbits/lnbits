@@ -13,7 +13,7 @@ from ...nodes.base import (
     NodeChannelsResponse,
     NodeInfoResponse,
     NodePayment,
-    NodePeerInfo,
+    NodePeerInfo, NodeInvoice,
 )
 from .. import core_app
 
@@ -69,11 +69,18 @@ async def api_delete_channel(
     return await node.close_channel(short_id, funding_txid, force)
 
 
-@node_api.get("/transactions")
+@node_api.get("/payments", response_model=list[NodePayment])
 async def api_get_transacions(
     node: Node = Depends(require_node),
 ) -> Optional[list[NodePayment]]:
     return await node.get_payments()
+
+
+@node_api.get("/invoices", response_model=list[NodeInvoice])
+async def api_get_transacions(
+    node: Node = Depends(require_node),
+) -> Optional[list[NodeInvoice]]:
+    return await node.get_invoices()
 
 
 @node_api.get("/peers", response_model=list[NodePeerInfo])

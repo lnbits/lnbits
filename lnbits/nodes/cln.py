@@ -14,7 +14,7 @@ from lnbits.nodes.base import (
     ChannelStats,
     Node,
     NodePeerInfo,
-    PaymentStats,
+    PaymentStats, NodeInvoice,
 )
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -114,7 +114,7 @@ class CoreLightningNode(Node):
                         if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
                         else ChannelState.CLOSED
                         if ch["state"]
-                        in ("CHANNELD_CLOSING", "CLOSINGD_SIGEXCHANGE", "ONCHAIN")
+                        in ("CHANNELD_CLOSING", "CLOSINGD_COMPLETE", "CLOSINGD_SIGEXCHANGE", "ONCHAIN")
                         else ChannelState.INACTIVE
                     ),
                 )
@@ -128,7 +128,7 @@ class CoreLightningNode(Node):
         funds = await self.wallet.ln_rpc("listfunds")
 
         channel_response = await self.get_channels()
-        channels = channel_response.by_state[ChannelState.ACTIVE]
+        active_channels = [channel for channel in channel_response.channels if channel.state == ChannelState.ACTIVE]
         return NodeInfoResponse(
             id=info["id"],
             backend_name="CLN",
@@ -142,48 +142,50 @@ class CoreLightningNode(Node):
             ),
             # A future implementation could leverage the `sql` rpc to calculate these
             # without having to fetch all the channels.
-            channel_stats=ChannelStats.from_list(channels),
+            channel_stats=ChannelStats.from_list(channel_response.channels),
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
-            balance_msat=sum(channel.inbound_msat for channel in channels),
+            balance_msat=sum(channel.inbound_msat for channel in active_channels),
             channels=channel_response.channels,
         )
 
     @catch_rpc_errors
     async def get_payments(self) -> list[NodePayment]:
         pays = await self.wallet.ln_rpc("listpays")
-        invoices = await self.wallet.ln_rpc("listinvoices")
-        results = []
-
-        results.extend(
+        results = [
             NodePayment(
                 bolt11=pay["bolt11"],
-                amount=int(pay["amount_msat"]) * -1,
+                amount=pay["amount_msat"],
                 fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
                 memo=pay.get("description"),
                 time=pay["created_at"],
                 preimage=pay["preimage"],
                 payment_hash=pay["payment_hash"],
                 pending=pay["status"] != "complete",
+                destination=await self.get_peer_info(pay["destination"])
             )
             for pay in pays["pays"]
             if pay["status"] == "complete"
-        )
-        results.extend(
-            NodePayment(
+        ]
+        results.sort(key=lambda x: x.time, reverse=True)
+        return results
+
+    @catch_rpc_errors
+    async def get_invoices(self) -> list[NodeInvoice]:
+        invoices = await self.wallet.ln_rpc("listinvoices")
+        return [
+            NodeInvoice(
                 bolt11=invoice["bolt11"],
                 amount=invoice["amount_msat"],
-                # fee=pay["amount_sent_msat"] - pay["amount_msat"],
                 preimage=invoice.get("payment_preimage") or "0" * 64,
                 memo=invoice["description"],
-                time=invoice.get("paid_at", invoice["expires_at"]),
+                paid_at=invoice.get("paid_at"),
+                expiry=invoice["expires_at"],
                 payment_hash=invoice["payment_hash"],
                 pending=invoice["status"] != "paid",
             )
             for invoice in invoices["invoices"]
-        )
-        results.sort(key=lambda x: x.time, reverse=True)
-        return results
+        ]
 
     async def get_payment_stats(self) -> PaymentStats:
         return PaymentStats()

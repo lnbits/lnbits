@@ -17,6 +17,13 @@ class NodeStatsResponse(NamedTuple):
     channel_balance: int
 
 
+class NodePeerInfo(BaseModel):
+    id: str
+    alias: str
+    color: str
+    last_timestamp: Optional[int]
+
+
 class ChannelState(Enum):
     ACTIVE = "active"
     PENDING = "pending"
@@ -86,13 +93,19 @@ class NodePayment(BaseModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float] = None
+    destination: Optional[NodePeerInfo] = None
 
 
-class NodePeerInfo(BaseModel):
-    id: str
-    alias: str
-    color: str
-    last_timestamp: Optional[int]
+class NodeInvoice(BaseModel):
+    pending: bool
+    amount: int
+    memo: Optional[str]
+    time: Optional[int]
+    bolt11: str
+    preimage: str
+    payment_hash: str
+    paid_at: Optional[int] = None
+    expiry: Optional[int] = None
 
 
 class PaymentStats(BaseModel):
@@ -165,6 +178,10 @@ class Node(ABC):
 
     @abstractmethod
     async def get_payments(self) -> list[NodePayment]:
+        pass
+
+    @abstractmethod
+    async def get_invoices(self) -> list[NodeInvoice]:
         pass
 
     @abstractmethod

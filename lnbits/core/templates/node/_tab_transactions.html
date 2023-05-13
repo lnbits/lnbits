@@ -1,45 +1,47 @@
-<q-tab-panel name="transactions">
-  <q-card-section class="q-pa-none">
+<q-tab-panel name='transactions'>
+  <q-card-section class='q-pa-none'>
     <q-tabs
-      class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
-      active-class="px-0"
-      indicator-color="transparent"
+      class='lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max'
+      active-class='px-0'
+      indicator-color='transparent'
     >
-      <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
+      <q-tab icon='content_paste' label='Paste' @click='showParseDialog'>
       </q-tab>
-      <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+      <q-tab icon='file_download' label='Receive' @click='showReceiveDialog'>
       </q-tab>
 
-      <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+      <q-tab icon='photo_camera' label='Scan' @click='showCamera'></q-tab>
     </q-tabs>
 
-    <div class="row q-col-gutter-lg q-pb-lg">
-      <div class="col-12 col-md-4 q-gutter-y-md">
+    <div class='row q-col-gutter-lg q-pb-lg'>
+      <div class='col-12 col-md-4 q-gutter-y-md'>
         <q-card>
           <q-card-section>
-            <div class="text-overline text-primary">Channel Balance</div>
-            <h6 class="text-h2 q-my-none">2,452,278 sats</h6>
+            <div class='text-overline text-primary'>Channel Balance</div>
+            <h6 class='text-h2 q-my-none'>2,452,278 sats</h6>
           </q-card-section>
         </q-card>
       </div>
     </div>
 
-    <div class="row q-col-gutter-lg">
-      <div class="col-12 col-md-8 q-gutter-y-md">
-        <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-          <div class="col">
-            <q-btn unelevated color="primary" class="full-width" size="md"
-              >Paste Request</q-btn
+    <div class='row q-col-gutter-lg'>
+      <div class='col-12 col-md-8 q-gutter-y-md'>
+        <div class='row q-pb-md q-px-md q-col-gutter-md gt-sm'>
+          <div class='col'>
+            <q-btn unelevated color='primary' class='full-width' size='md'
+            >Paste Request
+            </q-btn
             >
           </div>
-          <div class="col">
-            <q-btn unelevated color="primary" class="full-width" size="md"
-              >Create Invoice</q-btn
+          <div class='col'>
+            <q-btn unelevated color='primary' class='full-width' size='md'
+            >Create Invoice
+            </q-btn
             >
           </div>
-          <div class="col">
-            <q-btn unelevated color="secondary" icon="photo_camera" size="md"
-              >scan
+          <div class='col'>
+            <q-btn unelevated color='secondary' icon='photo_camera' size='md'
+            >scan
               <q-tooltip>Use camera to scan an invoice/QR</q-tooltip>
             </q-btn>
           </div>
@@ -47,17 +49,18 @@
       </div>
     </div>
 
-    <div class="row q-col-gutter-lg">
-      <div class="col-12 col-md-8 q-gutter-y-md">
+    <div class='row q-col-gutter-lg'>
+      <div class='col-12 col-md-6 q-gutter-y-md'>
         <q-card>
           <q-card-section>
-            <div class="row items-center no-wrap q-mb-sm">
-              <div class="col">
-                <h5 class="text-subtitle1 q-my-none">Transactions</h5>
+            <div class='row items-center no-wrap q-mb-sm'>
+              <div class='col'>
+                <h5 class='text-subtitle1 q-my-none'>Payments</h5>
               </div>
-              <div class="col-auto">
-                <q-btn flat color="grey" @click="exportCSV"
-                  >Export to CSV</q-btn
+              <div class='col-auto'>
+                <q-btn flat color='grey' @click='exportCSV'
+                >Export to CSV
+                </q-btn
                 >
                 <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
                 <q-tooltip>Check pending</q-tooltip>
@@ -66,176 +69,150 @@
                   dense
                   flat
                   round
-                  icon="show_chart"
-                  color="grey"
-                  @click="showChart"
+                  icon='show_chart'
+                  color='grey'
+                  @click='showChart'
                 >
                   <q-tooltip>Show chart</q-tooltip>
                 </q-btn>
               </div>
             </div>
             <q-input
-              v-if="payments.length > 10"
+              v-if='payments.length > 10'
               filled
               dense
               clearable
-              v-model="paymentsTable.filter"
-              debounce="300"
-              placeholder="Search by tag, memo, amount"
-              class="q-mb-md"
+              v-model='paymentsTable.filter'
+              debounce='300'
+              placeholder='Search by tag, memo, amount'
+              class='q-mb-md'
             >
             </q-input>
             <q-table
               dense
               flat
-              :data="filteredPayments"
-              :columns="paymentsTable.columns"
-              :pagination.sync="paymentsTable.pagination"
-              no-data-label="No transactions made yet"
-              :filter="paymentsTable.filter"
+              :data='filteredPayments'
+              :columns='paymentsTable.columns'
+              :pagination.sync='paymentsTable.pagination'
+              no-data-label='No transactions made yet'
+              :filter='paymentsTable.filter'
             >
               {% raw %}
-              <template v-slot:header="props">
-                <q-tr :props="props">
-                  <q-th auto-width></q-th>
-                  <q-th v-for="col in props.cols" :key="col.name" :props="props"
-                    >{{ col.label }}</q-th
+              <template v-slot:body-cell-pending='props'>
+                <q-td auto-width class='text-center'>
+                  <q-icon
+                    v-if='props.row.isPaid'
+                    size='14px'
+                    name='call_made'
+                    color='green'
+                    @click='props.expand = !props.expand'
+                  ></q-icon>
+                  <q-icon
+                    v-else
+                    name='settings_ethernet'
+                    color='grey'
+                    @click='props.expand = !props.expand'
                   >
-                </q-tr>
+                    <q-tooltip>Pending</q-tooltip>
+                  </q-icon>
+                </q-td>
               </template>
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td auto-width class="text-center">
-                    <q-icon
-                      v-if="props.row.isPaid"
-                      size="14px"
-                      :name="props.row.isOut ? 'call_made' : 'call_received'"
-                      :color="props.row.isOut ? 'pink' : 'green'"
-                      @click="props.expand = !props.expand"
-                    ></q-icon>
-                    <q-icon
-                      v-else
-                      name="settings_ethernet"
-                      color="grey"
-                      @click="props.expand = !props.expand"
-                    >
-                      <q-tooltip>Pending</q-tooltip>
-                    </q-icon>
-                  </q-td>
-                  <q-td
-                    key="memo"
-                    :props="props"
-                    style="white-space: normal; word-break: break-all"
+              <template v-slot:body-cell-date='props'>
+                <q-td auto-width key='date' :props='props'>
+                  <lnbits-date :ts='props.row.time'></lnbits-date>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-destination='props'>
+
+                <q-td auto-width key='destination'>
+                  <q-badge
+                    :style='`background-color: #${props.row.destination.color}`'
+                    class='text-bold'
                   >
-                    <q-badge
-                      v-if="props.row.tag"
-                      color="yellow"
-                      text-color="black"
-                    >
-                      <a
-                        class="inherit"
-                        :href="['/', props.row.tag, '/?usr=', user.id].join('')"
-                      >
-                        #{{ props.row.tag }}
-                      </a>
-                    </q-badge>
-                    {{ props.row.memo }}
-                  </q-td>
-                  <q-td auto-width key="date" :props="props">
-                    <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
-                  </q-td>
-                  {% endraw %}
-                  <q-td
-                    auto-width
-                    key="sat"
-                    v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                    :props="props"
-                    >{% raw %} {{
-                    parseFloat(String(props.row.fsat).replaceAll(",", "")) / 100
-                    }}
-                  </q-td>
-
-                  <q-td auto-width key="sat" v-else :props="props">
-                    {{ props.row.fsat }}
-                  </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
-                  </q-td>
-                </q-tr>
-
-                <q-dialog v-model="props.expand" :props="props">
-                  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                    <div class="text-center q-mb-lg">
-                      <div v-if="props.row.isIn && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Invoice waiting to be paid
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                        <div
-                          v-if="props.row.bolt11"
-                          class="text-center q-mb-lg"
-                        >
-                          <a :href="'lightning:' + props.row.bolt11">
-                            <q-responsive :ratio="1" class="q-mx-xl">
-                              <qrcode
-                                :value="props.row.bolt11"
-                                :options="{width: 340}"
-                                class="rounded-borders"
-                              ></qrcode>
-                            </q-responsive>
-                          </a>
-                        </div>
-                        <div class="row q-mt-lg">
-                          <q-btn
-                            outline
-                            color="grey"
-                            @click="copyText(props.row.bolt11)"
-                            >Copy invoice</q-btn
-                          >
-                          <q-btn
-                            v-close-popup
-                            flat
-                            color="grey"
-                            class="q-ml-auto"
-                            >Close</q-btn
-                          >
-                        </div>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isIn">
-                        <q-icon
-                          size="18px"
-                          :name="'call_received'"
-                          :color="'green'"
-                        ></q-icon>
-                        Payment Received
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isOut">
-                        <q-icon
-                          size="18px"
-                          :name="'call_made'"
-                          :color="'pink'"
-                        ></q-icon>
-                        Payment Sent
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isOut && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        Outgoing payment pending
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                    </div>
-                  </q-card>
-                </q-dialog>
+                    {{ props.row.destination.alias }}
+                  </q-badge>
+                </q-td>
               </template>
+              {% endraw %}
+            </q-table>
+          </q-card-section>
+        </q-card>
+      </div>
+      <div class='col-12 col-md-6 q-gutter-y-md'>
+        <q-card>
+          <q-card-section>
+            <div class='row items-center no-wrap q-mb-sm'>
+              <div class='col'>
+                <h5 class='text-subtitle1 q-my-none'>Invoices</h5>
+              </div>
+              <div class='col-auto'>
+                <q-btn flat color='grey' @click='exportCSV'
+                >Export to CSV
+                </q-btn
+                >
+                <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
+                <q-tooltip>Check pending</q-tooltip>
+              </q-btn>-->
+                <q-btn
+                  dense
+                  flat
+                  round
+                  icon='show_chart'
+                  color='grey'
+                  @click='showChart'
+                >
+                  <q-tooltip>Show chart</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
+            <q-input
+              v-if='payments.length > 10'
+              filled
+              dense
+              clearable
+              v-model='paymentsTable.filter'
+              debounce='300'
+              placeholder='Search by tag, memo, amount'
+              class='q-mb-md'
+            >
+            </q-input>
+            <q-table
+              dense
+              flat
+              :data='invoiceTable.data'
+              :columns='invoiceTable.columns'
+              :pagination.sync='invoiceTable.pagination'
+              no-data-label='No transactions made yet'
+              :filter='invoiceTable.filter'
+            >
+              {% raw %}
+              <template v-slot:body-cell-pending='props'>
+                <q-td auto-width class='text-center'>
+                  <q-icon
+                    v-if='!props.row.pending'
+                    size='14px'
+                    name='call_received'
+                    color='green'
+                    @click='props.expand = !props.expand'
+                  ></q-icon>
+                  <q-icon
+                    v-else
+                    name='settings_ethernet'
+                    color='grey'
+                    @click='props.expand = !props.expand'
+                  >
+                    <q-tooltip>Pending</q-tooltip>
+                  </q-icon>
+                </q-td>
+
+              </template>
+
+              <template v-slot:body-cell-date='props'>
+                  <q-td auto-width :props='props'>
+                    <lnbits-date v-if='props.row.paid_at' :ts='props.row.paid_at'></lnbits-date>
+                  </q-td>
+              </template>
+
               {% endraw %}
             </q-table>
           </q-card-section>

@@ -1,33 +1,33 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-gutter-y-md">
+<div class='row q-col-gutter-md justify-center'>
+  <div class='col q-gutter-y-md'>
     <q-card>
-      <div class="q-pa-md">
-        <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" active-color="primary" align="justify">
+      <div class='q-pa-md'>
+        <div class='q-gutter-y-md'>
+          <q-tabs v-model='tab' active-color='primary' align='justify'>
             <q-tab
-              name="dashboard"
+              name='dashboard'
               :label="$t('dashboard')"
-              @update="val => tab = val.name"
+              @update='val => tab = val.name'
             ></q-tab>
             <q-tab
-              name="channels"
+              name='channels'
               :label="$t('channels')"
-              @update="val => tab = val.name"
+              @update='val => tab = val.name'
             ></q-tab>
             <q-tab
-              name="transactions"
+              name='transactions'
               :label="$t('transactions')"
-              @update="val => tab = val.name"
+              @update='val => tab = val.name'
             ></q-tab>
           </q-tabs>
         </div>
       </div>
 
-      <q-form name="settings_form" id="settings_form">
-        <q-tab-panels v-model="tab" animated>
+      <q-form name='settings_form' id='settings_form'>
+        <q-tab-panels v-model='tab' animated>
           {% include "node/_tab_dashboard.html" %} {% include
           "node/_tab_channels.html" %} {% include "node/_tab_transactions.html"
           %}
@@ -47,26 +47,51 @@
     {
       props: ['title', 'amount', 'msat', 'btc'],
       computed: {
-        value: function () {
+        value: function() {
           return this.amount ?? (this.btc ? LNbits.utils.formatSat(this.btc) : LNbits.utils.formatMsat(this.msat))
         }
       },
       template: `
-          <q-card>
-            <q-card-section>
-              <div class="text-overline text-primary">
-                {{ title }}
-              </div>
-              <div>
-                <span class="text-h4 text-bold q-my-none">{{ value }}</span>
-                <span class='text-h5' v-if='msat'>sats</span>
-                <span class='text-h5' v-if='btc'>BTC</span>
-              </div>
-            </q-card-section>
-          </q-card>
-        `,
-    },
+        <q-card>
+        <q-card-section>
+          <div class='text-overline text-primary'>
+            {{ title }}
+          </div>
+          <div>
+            <span class='text-h4 text-bold q-my-none'>{{ value }}</span>
+            <span class='text-h5' v-if='msat'>sats</span>
+            <span class='text-h5' v-if='btc'>BTC</span>
+          </div>
+        </q-card-section>
+        </q-card>
+      `
+    }
   )
+
+
+  Vue.component('lnbits-date',
+    {
+      props: ['ts'],
+      computed: {
+        date: function() {
+          return Quasar.utils.date.formatDate(
+            new Date(this.ts * 1000),
+            'YYYY-MM-DD HH:mm'
+          )
+        },
+        dateFrom: function() {
+          return moment(this.date).fromNow()
+        }
+      },
+      template: `
+        <div>
+          <q-tooltip>{{ this.date }}</q-tooltip>
+          {{ this.dateFrom }}
+        </div>
+      `
+    }
+  )
+
   {% endraw %}
 
 
@@ -79,7 +104,7 @@
       }
     },
     mixins: [windowMixin],
-    data: function () {
+    data: function() {
       return {
         isSuperUser: false,
         wallet: {},
@@ -108,20 +133,25 @@
         },
 
         states: [
-          { label: 'Active', value: 'active' },
-          { label: 'Pending', value: 'pending' },
-          { label: 'Inactive', value: 'inactive' },
-          { label: 'Closed', value: 'closed' },
+          {label: 'Active', value: 'active'},
+          {label: 'Pending', value: 'pending'},
+          {label: 'Inactive', value: 'inactive'},
+          {label: 'Closed', value: 'closed'}
         ],
 
         stateFilters: [
-          { label: 'Active', value: 'active' },
-          { label: 'Pending', value: 'pending' },
+          {label: 'Active', value: 'active'},
+          {label: 'Pending', value: 'pending'}
         ],
 
         filteredPayments: [],
+        filteredInvoices: [],
         paymentsTable: {
           columns: [
+            {
+              name: 'pending',
+              label: ''
+            },
             {
               name: 'memo',
               align: 'left',
@@ -139,7 +169,55 @@
               name: 'sat',
               align: 'right',
               label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
-              field: 'sat',
+              field: row => this.formatMsat(row.amount),
+              sortable: true
+            },
+            {
+              name: 'fee',
+              align: 'right',
+              label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
+              field: 'fee'
+            },
+            {
+              name: 'destination',
+              align: 'right',
+              label: 'Destination',
+              field: 'destination'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+          filter: null
+        },
+        invoiceTable: {
+          data: [],
+          columns: [
+            {
+              name: 'pending',
+              label: ''
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'memo'
+            },
+            {
+              name: 'date',
+              label: this.$t('date'),
+              field: 'paid_at',
+              format: (date) => date && Quasar.utils.date.formatDate(
+                new Date(date * 1000),
+                'YYYY-MM-DD HH:mm'
+              ),
+              sortable: true
+            },
+            {
+              name: 'amount',
+              align: 'right',
+              label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+              field: row => this.formatMsat(row.amount),
               sortable: true
             },
             {
@@ -156,19 +234,20 @@
         }
       }
     },
-    created: function () {
+    created: function() {
       this.getInfo()
       this.get1MLStats()
       this.getPeers()
     },
     watch: {
-      tab: function (val) {
+      tab: function(val) {
         if (val === 'transactions' && !this.filteredPayments.length) {
           this.getPayments()
-        } else if(val === 'channels' && !this.channels.length) {
+          this.getInvoices()
+        } else if (val === 'channels' && !this.channels.length) {
           this.getChannels()
           this.getPeers()
-        } else if(val === 'dashboard' && !this.info) {
+        } else if (val === 'dashboard' && !this.info) {
           this.getInfo()
           this.get1MLStats()
         }
@@ -178,24 +257,24 @@
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
       },
-      filteredChannels: function () {
-        return !this.stateFilters ? this.channels :  this.channels.filter(channel => {
-          return this.stateFilters.find( ({ value }) => value == channel.state) ? true : false
+      filteredChannels: function() {
+        return !this.stateFilters ? this.channels : this.channels.filter(channel => {
+          return this.stateFilters.find(({value}) => value == channel.state) ? true : false
         })
-      },
+      }
     },
     methods: {
-      formatMsat: function (msat) {
+      formatMsat: function(msat) {
         return LNbits.utils.formatMsat(msat)
       },
-      api: function (method, url, data) {
+      api: function(method, url, data) {
         return LNbits.api.request(method, '/node/api/v1' + url + '?usr=' + this.g.user.id, {}, data)
           .catch(error => {
             LNbits.utils.notifyApiError(error)
           })
       },
 
-      getChannels: function () {
+      getChannels: function() {
         LNbits.api
           .request('GET', '/node/api/v1/channels?usr=' + this.g.user.id, {})
           .then(response => {
@@ -204,7 +283,7 @@
             console.log('hi', this.channels)
           })
       },
-      getInfo: function () {
+      getInfo: function() {
         LNbits.api
           .request('GET', '/node/api/v1/info?usr=' + this.g.user.id, {})
           .then(response => {
@@ -212,7 +291,7 @@
             this.channel_stats = response.data.channel_stats
             this.stats = {
               avg_channel_size: LNbits.utils.formatMsat(
-                response.data.avg_channel_size,
+                response.data.avg_channel_size
               ),
               balance: LNbits.utils.formatMsat(response.data.balance_msat),
               total_capacity: LNbits.utils.formatMsat(
@@ -223,21 +302,20 @@
                 response.data.biggest_channel_size
               ),
               smallest_channel_size: LNbits.utils.formatMsat(
-                response.data.smallest_channel_size,
+                response.data.smallest_channel_size
               )
             }
           })
       },
-      get1MLStats: function () {
+      get1MLStats: function() {
         return LNbits.api
           .request('GET', '/node/api/v1/rank?usr=' + this.g.user.id, {})
           .then(response => {
             this.ranks = response.data
           })
       },
-      getPayments: function () {
-        return LNbits.api
-          .request('GET', '/node/api/v1/transactions?usr=' + this.g.user.id, {})
+      getPayments: function() {
+        return this.api('GET', '/payments')
           .then(response => {
             this.filteredPayments = response.data
               .map(obj => {
@@ -249,22 +327,30 @@
             console.log('payments', this.filteredPayments)
           })
       },
-      getPeers: function () {
+      getInvoices: function() {
+        return this.api('GET', '/invoices')
+          .then(response => {
+            this.filteredInvoices = response.data
+            this.invoiceTable.data = response.data
+            console.log('payments', this.filteredPayments)
+          })
+      },
+      getPeers: function() {
         return this.api('GET', '/peers')
           .then(response => {
             this.peers = response.data
             console.log('peers', this.peers)
           })
       },
-      connectPeer: function () {
+      connectPeer: function() {
         console.log('peer', this.connectPeerDialog)
-        this.api('POST','/peers/connect', this.connectPeerDialog.data)
+        this.api('POST', '/peers/connect', this.connectPeerDialog.data)
           .then(() => {
             this.connectPeerDialog.show = false
             this.getPeers()
           })
       },
-      openChannel: function () {
+      openChannel: function() {
         this.api('POST', '/channels', this.openChannelDialog.data)
           .then(response => {
             this.openChannelDialog.show = false
@@ -274,18 +360,18 @@
             console.log(error)
           })
       },
-      showCloseChannelDialog: function (channel) {
+      showCloseChannelDialog: function(channel) {
         this.closeChannelDialog.show = true,
-        this.closeChannelDialog.data= {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
+          this.closeChannelDialog.data = {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
       },
-      closeChannel: function () {
+      closeChannel: function() {
         this.api('DELETE', '/channels', this.closeChannelDialog.data)
           .then(response => {
             this.closeChannelDialog.show = false
             this.getChannels()
           })
       },
-      showOpenChannelDialog: function (peer_id) {
+      showOpenChannelDialog: function(peer_id) {
         this.openChannelDialog.show = true
         this.openChannelDialog.data = {peer_id, funding_amount: 0}
       }
