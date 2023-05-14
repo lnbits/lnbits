@@ -46,13 +46,40 @@
           v-model.number="openChannelDialog.data.funding_amount"
           label="Funding Amount"
         ></q-input>
-        <q-input
-          dense
-          type="number"
-          filled
-          v-model.number="openChannelDialog.data.push_amount"
-          label="Push Amount"
-        ></q-input>
+        <q-expansion-item
+          icon='warning'
+          label='Advanced'
+        >
+          <q-card>
+            <q-card-section>
+
+            <div class='column q-gutter-md'>
+
+
+              <q-input
+                dense
+                type="number"
+                filled
+                v-model.number="openChannelDialog.data.push_amount"
+                label="Push Amount"
+                hint='This gifts sats to the other side!'
+              ></q-input>
+
+              <q-input
+                dense
+                type="number"
+                filled
+                v-model.number="openChannelDialog.data.fee_rate"
+                label="Fee Rate"
+              ></q-input>
+            </div>
+            </q-card-section>
+          </q-card>
+
+        </q-expansion-item>
+
+
+
 
         <div class="row q-mt-lg">
           <q-btn
@@ -125,6 +152,10 @@
                 </q-btn>
               </div>
               {% raw %}
+              <div class="text-subtitle1 col-grow">
+                Total
+              </div>
+              <lnbits-channel-balance :balance="this.activeBalance"></lnbits-channel-balance>
               <q-table
                 dense
                 flat
@@ -161,35 +192,8 @@
                           ></q-btn>
                         </div>
 
-                        <div class="row items-center justify-between">
-                          <span class="text-weight-thin">
-                            Inbound: {{ formatMsat(props.row.inbound_msat) }}
-                            sats
-                          </span>
-                          <span class="text-weight-thin">
-                            Outbound: {{ formatMsat(props.row.outbound_msat) }}
-                            sats
-                          </span>
-                        </div>
+                        <lnbits-channel-balance :balance="props.row.balance"></lnbits-channel-balance>
 
-                        <q-linear-progress
-                          rounded
-                          class="q-mb-md"
-                          size="25px"
-                          :value="props.row.inbound_msat / props.row.total_msat"
-                          :color="props.row.color"
-                          :style="`color: #${props.row.color}`"
-                        >
-                          <div class="absolute-full flex flex-center">
-                            <q-badge
-                              color="white"
-                              text-color="accent"
-                              :label="`${formatMsat(props.row.total_msat)} sats`"
-                            >
-                              {{ props.row.alias }}
-                            </q-badge>
-                          </div>
-                        </q-linear-progress>
                       </div>
                     </div>
                   </q-tr>
@@ -230,14 +234,16 @@
                         <div class="text-subtitle1 text-bold">
                           {{ props.row.alias }}
                         </div>
-                        <div class="row items-baseline q-gutter-sm">
+                        <div class="row items-center q-gutter-sm">
                           <q-badge
                             :style="`background-color: #${props.row.color}`"
                             class="text-bold"
                           >
                             #{{ props.row.color }}
                           </q-badge>
-                          <div>{{ props.row.id.substring(0,5) }}</div>
+                          <div class="text-bold">{{ shortenNodeId(info.id) }}</div>
+                          <q-btn size='xs' flat dense icon='content_paste' @click='copyText(info.id)'></q-btn>
+                          <q-btn size='xs' flat dense icon='qr_code' @click='showNodeInfoDialog(props.row)'></q-btn>
                         </div>
                       </div>
                       <q-btn

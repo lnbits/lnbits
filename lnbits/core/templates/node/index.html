@@ -1,33 +1,65 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 
-<div class='row q-col-gutter-md justify-center'>
-  <div class='col q-gutter-y-md'>
+<q-dialog v-model="nodeInfoDialog.show">
+  <q-card class="my-card">
+    <q-card-section>
+      <div class="text-h6">
+        <div style="text-align: center">
+          <qrcode
+            value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
+            :options="{width: 250}"
+            class="rounded-borders"
+          ></qrcode>
+        </div>
+      </div>
+    </q-card-section>
+    <q-card-actions vertical>
+      <q-btn
+        dense
+        unelevated
+        size="md"
+        @click="copyText(nodeInfoDialog.data.id)"
+        >Public Key<q-tooltip> Click to copy </q-tooltip>
+      </q-btn>
+      <q-btn
+        dense
+        unelevated
+        size="md"
+        @click="copyText(nodeInfoDialog.data.id + '@84.16.229.1:9735')"
+        >Node ID<q-tooltip> Click to copy </q-tooltip>
+      </q-btn>
+    </q-card-actions>
+  </q-card>
+</q-dialog>
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
     <q-card>
-      <div class='q-pa-md'>
-        <div class='q-gutter-y-md'>
-          <q-tabs v-model='tab' active-color='primary' align='justify'>
+      <div class="q-pa-md">
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" active-color="primary" align="justify">
             <q-tab
-              name='dashboard'
+              name="dashboard"
               :label="$t('dashboard')"
-              @update='val => tab = val.name'
+              @update="val => tab = val.name"
             ></q-tab>
             <q-tab
-              name='channels'
+              name="channels"
               :label="$t('channels')"
-              @update='val => tab = val.name'
+              @update="val => tab = val.name"
             ></q-tab>
             <q-tab
-              name='transactions'
+              name="transactions"
               :label="$t('transactions')"
-              @update='val => tab = val.name'
+              @update="val => tab = val.name"
             ></q-tab>
           </q-tabs>
         </div>
       </div>
 
-      <q-form name='settings_form' id='settings_form'>
-        <q-tab-panels v-model='tab' animated>
+      <q-form name="settings_form" id="settings_form">
+        <q-tab-panels v-model="tab" animated>
           {% include "node/_tab_dashboard.html" %} {% include
           "node/_tab_channels.html" %} {% include "node/_tab_transactions.html"
           %}
@@ -59,11 +91,79 @@
           </div>
           <div>
             <span class='text-h4 text-bold q-my-none'>{{ value }}</span>
-            <span class='text-h5' v-if='msat'>sats</span>
-            <span class='text-h5' v-if='btc'>BTC</span>
+            <span class='text-h5' v-if='msat != undefined'>sats</span>
+            <span class='text-h5' v-if='btc != undefined'>BTC</span>
           </div>
         </q-card-section>
         </q-card>
+      `
+    }
+  )
+
+
+  Vue.component('lnbits-channel-balance',
+    {
+      props: ['balance', 'color'],
+      methods: {
+        formatMsat: function(msat) {
+          return LNbits.utils.formatMsat(msat)
+        }
+      },
+      template: `
+        <div>
+                        <div class="row items-center justify-between">
+                          <span class="text-weight-thin">
+                            Inbound: {{ formatMsat(balance.inbound_msat) }}
+                            sats
+                          </span>
+                          <span class="text-weight-thin">
+                            Outbound: {{ formatMsat(balance.outbound_msat) }}
+                            sats
+                          </span>
+                        </div>
+
+                        <q-linear-progress
+                          rounded
+                          class="q-mb-md"
+                          size="25px"
+                          :value="balance.inbound_msat / balance.total_msat"
+                          :color="color"
+                          :style="\`color: #${this.color}\`"
+                        >
+                          <div class="absolute-full flex flex-center">
+                            <q-badge
+                              color="white"
+                              text-color="accent"
+                              :label="formatMsat(balance.total_msat) + ' sats'"
+                            >
+                              {{ balance.alias }}
+                            </q-badge>
+                          </div>
+                        </q-linear-progress>
+        </div>
+      `
+    }
+  )
+
+  Vue.component('lnbits-date',
+    {
+      props: ['ts'],
+      computed: {
+        date: function() {
+          return Quasar.utils.date.formatDate(
+            new Date(this.ts * 1000),
+            'YYYY-MM-DD HH:mm'
+          )
+        },
+        dateFrom: function() {
+          return moment(this.date).fromNow()
+        }
+      },
+      template: `
+        <div>
+          <q-tooltip>{{ this.date }}</q-tooltip>
+          {{ this.dateFrom }}
+        </div>
       `
     }
   )
@@ -113,6 +213,7 @@
         info: {},
         channel_stats: {},
         channels: [],
+        activeBalance: {},
         ranks: null,
 
         peers: [],
@@ -128,6 +229,11 @@
         },
 
         closeChannelDialog: {
+          show: false,
+          data: {}
+        },
+
+        nodeInfoDialog: {
           show: false,
           data: {}
         },
@@ -204,28 +310,25 @@
               field: 'memo'
             },
             {
-              name: 'date',
-              label: this.$t('date'),
+              name: 'paid_at',
               field: 'paid_at',
-              format: (date) => date && Quasar.utils.date.formatDate(
-                new Date(date * 1000),
-                'YYYY-MM-DD HH:mm'
-              ),
+              align: 'right',
+              label: 'Paid at',
+              sortable: true
+            },
+            {
+              name: 'expiry',
+              label: this.$t('expiry'),
+              field: 'expiry',
+              align: 'right',
               sortable: true
             },
             {
               name: 'amount',
-              align: 'right',
               label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
               field: row => this.formatMsat(row.amount),
               sortable: true
             },
-            {
-              name: 'fee',
-              align: 'right',
-              label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
-              field: 'fee'
-            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -280,6 +383,7 @@
           .then(response => {
             //this.channels = response.data.by_state.active
             this.channels = response.data.channels
+            this.activeBalance = response.data.active_balance
             console.log('hi', this.channels)
           })
       },
@@ -374,9 +478,19 @@
       showOpenChannelDialog: function(peer_id) {
         this.openChannelDialog.show = true
         this.openChannelDialog.data = {peer_id, funding_amount: 0}
-      }
+      },
+      showNodeInfoDialog: function(node) {
+        this.nodeInfoDialog.show = true
+        this.nodeInfoDialog.data = node
+      },
+      shortenNodeId: function(node_id) {
+        return node_id.substring(0, 5) + '...' + node_id.substring(node_id.length - 5)
+      },
     }
   })
+
+
+
 </script>
 
 {% endblock %}

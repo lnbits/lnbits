@@ -31,13 +31,17 @@ class ChannelState(Enum):
     INACTIVE = "inactive"
 
 
+class ChannelBalance(BaseModel):
+    inbound_msat: int
+    outbound_msat: int
+    total_msat: int
+
+
 class NodeChannel(BaseModel):
     short_id: Optional[str]
     funding_txid: Optional[str]
     peer_id: str
-    inbound_msat: int
-    outbound_msat: int
-    total_msat: int
+    balance: ChannelBalance
     state: ChannelState
     name: Optional[str]
     color: Optional[str]
@@ -45,6 +49,19 @@ class NodeChannel(BaseModel):
 
 class NodeChannelsResponse(BaseModel):
     channels: list[NodeChannel]
+    active_balance: ChannelBalance
+
+    @classmethod
+    def from_list(cls, channels: list[NodeChannel]):
+        active = [channel for channel in channels if channel.state == ChannelState.ACTIVE]
+        return NodeChannelsResponse(
+            channels=channels,
+            active_balance=ChannelBalance(
+                inbound_msat=sum(channel.balance.inbound_msat for channel in active),
+                outbound_msat=sum(channel.balance.outbound_msat for channel in active),
+                total_msat=sum(channel.balance.total_msat for channel in active),
+            )
+        )
 
 
 class ChannelStats(BaseModel):
@@ -59,12 +76,19 @@ class ChannelStats(BaseModel):
         return cls(
             num_active=len(channels),
             avg_size=int(
-                sum(channel.total_msat for channel in channels) / len(channels)
+                sum(channel.balance.total_msat for channel in channels) / len(channels)
             ),
-            biggest_size=max(channel.total_msat for channel in channels),
-            smallest_size=min(channel.total_msat for channel in channels),
-            total_capacity=sum(channel.total_msat for channel in channels),
+            biggest_size=max(channel.balance.total_msat for channel in channels),
+            smallest_size=min(channel.balance.total_msat for channel in channels),
+            total_capacity=sum(channel.balance.total_msat for channel in channels),
         )
+
+
+class NodeFees(BaseModel):
+    total_msat: int
+    daily_msat: Optional[int]
+    weekly_msat: Optional[int]
+    monthly_msat: Optional[int]
 
 
 class NodeInfoResponse(BaseModel):
@@ -80,6 +104,7 @@ class NodeInfoResponse(BaseModel):
 
     channels: list[NodeChannel]
     channel_stats: ChannelStats
+    fees: NodeFees
     # addresses: list[str]
 
 

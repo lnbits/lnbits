@@ -12,54 +12,73 @@
         >
           #{{ this.info.color }}
         </q-badge>
-        <div class="text-bold">{{this.info.id}}</div>
+        <div class="text-bold">{{ shortenNodeId(info.id) }}</div>
+        <q-btn
+          size="xs"
+          flat
+          dense
+          icon="content_paste"
+          @click="copyText(info.id)"
+        ></q-btn>
+        <q-btn
+          size="xs"
+          flat
+          dense
+          icon="qr_code"
+          @click="showNodeInfoDialog(info)"
+        ></q-btn>
       </div>
     </div>
     <div class="row q-col-gutter-lg q-mt-sm">
       <div class="col-12 col-md-8 q-gutter-y-md">
         <div class="row q-col-gutter-md q-pb-lg">
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               title="Total Capacity"
               :msat="this.channel_stats.total_capacity"
             />
           </div>
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat title="Balance" :msat="this.info.balance_msat" />
           </div>
 
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
+            <lnbits-stat title="Fees collected" :msat="this.info.fees.total_msat" />
+          </div>
+
+
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               title="Onchain Balance"
               :btc="this.info.onchain_balance_sat / 100000000"
             />
           </div>
 
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               title="Onchain Confirmed"
               :btc="this.info.onchain_confirmed_sat / 100000000"
             />
           </div>
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               :title="$t('number_of_channels')"
               :amount="this.channel_stats.num_active"
             />
           </div>
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               :title="$t('avg_channel_size')"
               :msat="this.channel_stats.avg_size"
             />
           </div>
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               :title="$t('biggest_channel_size')"
               :msat="this.channel_stats.biggest_size"
             />
           </div>
-          <div class="col-12 col-md-6 q-gutter-y-md">
+          <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
               :title="$t('smallest_channel_size')"
               :msat="this.channel_stats.smallest_size"
@@ -107,33 +126,6 @@
               Node not found on 1ml
             </div>
           </div>
-        </q-card>
-        <q-card>
-          <q-card class="my-card">
-            <q-card-section>
-              <div class="text-h6">
-                <div style="text-align: center">
-                  <qrcode
-                    value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
-                    :options="{width: 200}"
-                    class="rounded-borders"
-                  ></qrcode>
-                </div>
-              </div>
-            </q-card-section>
-            <q-card-actions vertical>
-              <q-btn dense unelevated size="md" @click="copyText(this.info.id)"
-                >Public Key<q-tooltip> Click to copy </q-tooltip>
-              </q-btn>
-              <q-btn
-                dense
-                unelevated
-                size="md"
-                @click="copyText(this.info.id + '@84.16.229.1:9735')"
-                >Node ID<q-tooltip> Click to copy </q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
         </q-card>
       </div>
     </div>

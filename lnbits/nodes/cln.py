@@ -13,8 +13,10 @@ from lnbits.nodes.base import (
     ChannelState,
     ChannelStats,
     Node,
+    NodeFees,
+    NodeInvoice,
     NodePeerInfo,
-    PaymentStats, NodeInvoice,
+    PaymentStats, ChannelBalance,
 )
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -96,31 +98,36 @@ class CoreLightningNode(Node):
         nodes = await self.wallet.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
-        return NodeChannelsResponse(
-            channels=[
-                NodeChannel(
-                    short_id=ch.get("short_channel_id"),
-                    funding_txid=ch["funding_txid"],
-                    peer_id=ch["peer_id"],
+        return NodeChannelsResponse.from_list([
+            NodeChannel(
+                short_id=ch.get("short_channel_id"),
+                funding_txid=ch["funding_txid"],
+                peer_id=ch["peer_id"],
+                balance=ChannelBalance(
                     inbound_msat=ch["our_amount_msat"],
                     outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
                     total_msat=ch["amount_msat"],
-                    name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
-                    color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
-                    state=(
-                        ChannelState.ACTIVE
-                        if ch["state"] == "CHANNELD_NORMAL"
-                        else ChannelState.PENDING
-                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
-                        else ChannelState.CLOSED
-                        if ch["state"]
-                        in ("CHANNELD_CLOSING", "CLOSINGD_COMPLETE", "CLOSINGD_SIGEXCHANGE", "ONCHAIN")
-                        else ChannelState.INACTIVE
-                    ),
-                )
-                for ch in funds["channels"]
-            ],
-        )
+                ),
+                name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
+                color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
+                state=(
+                    ChannelState.ACTIVE
+                    if ch["state"] == "CHANNELD_NORMAL"
+                    else ChannelState.PENDING
+                    if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
+                    else ChannelState.CLOSED
+                    if ch["state"]
+                    in (
+                        "CHANNELD_CLOSING",
+                        "CLOSINGD_COMPLETE",
+                        "CLOSINGD_SIGEXCHANGE",
+                        "ONCHAIN",
+                    )
+                    else ChannelState.INACTIVE
+                ),
+            )
+            for ch in funds["channels"]
+        ])
 
     @catch_rpc_errors
     async def get_info(self) -> NodeInfoResponse:
@@ -128,7 +135,11 @@ class CoreLightningNode(Node):
         funds = await self.wallet.ln_rpc("listfunds")
 
         channel_response = await self.get_channels()
-        active_channels = [channel for channel in channel_response.channels if channel.state == ChannelState.ACTIVE]
+        active_channels = [
+            channel
+            for channel in channel_response.channels
+            if channel.state == ChannelState.ACTIVE
+        ]
         return NodeInfoResponse(
             id=info["id"],
             backend_name="CLN",
@@ -145,8 +156,9 @@ class CoreLightningNode(Node):
             channel_stats=ChannelStats.from_list(channel_response.channels),
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
-            balance_msat=sum(channel.inbound_msat for channel in active_channels),
+            balance_msat=sum(channel.balance.inbound_msat for channel in active_channels),
             channels=channel_response.channels,
+            fees=NodeFees(total_msat=info["fees_collected_msat"]),
         )
 
     @catch_rpc_errors
@@ -162,7 +174,7 @@ class CoreLightningNode(Node):
                 preimage=pay["preimage"],
                 payment_hash=pay["payment_hash"],
                 pending=pay["status"] != "complete",
-                destination=await self.get_peer_info(pay["destination"])
+                destination=await self.get_peer_info(pay["destination"]),
             )
             for pay in pays["pays"]
             if pay["status"] == "complete"
