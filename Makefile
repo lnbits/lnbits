@@ -1,16 +1,22 @@
 .PHONY: test
 
-all: format check requirements.txt
+all: format check
 
 format: prettier isort black
 
-check: mypy checkprettier checkisort checkblack
+check: mypy pyright pylint flake8 checkisort checkblack checkprettier
 
-prettier: $(shell find lnbits -name "*.js" -o -name ".html")
-	./node_modules/.bin/prettier --write lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js  lnbits/extensions/*/static/components/*/*.html
+prettier:
+	poetry run ./node_modules/.bin/prettier --write lnbits
+
+pyright:
+	poetry run ./node_modules/.bin/pyright
 
 black:
 	poetry run black .
+
+flake8:
+	poetry run flake8
 
 mypy:
 	poetry run mypy
@@ -18,8 +24,11 @@ mypy:
 isort:
 	poetry run isort .
 
-checkprettier: $(shell find lnbits -name "*.js" -o -name ".html")
-	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js lnbits/extensions/*/static/components/*/*.html
+pylint:
+	poetry run pylint *.py lnbits/ tools/ tests/
+
+checkprettier:
+	poetry run ./node_modules/.bin/prettier --check lnbits
 
 checkblack:
 	poetry run black --check .
@@ -28,10 +37,6 @@ checkisort:
 	poetry run isort --check-only .
 
 test:
-	BOLTZ_NETWORK="regtest" \
-	BOLTZ_URL="http://127.0.0.1:9001" \
-	BOLTZ_MEMPOOL_SPACE_URL="http://127.0.0.1:8080" \
-	BOLTZ_MEMPOOL_SPACE_URL_WS="ws://127.0.0.1:8080" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
@@ -40,26 +45,10 @@ test:
 	poetry run pytest
 
 test-real-wallet:
-	BOLTZ_NETWORK="regtest" \
-	BOLTZ_URL="http://127.0.0.1:9001" \
-	BOLTZ_MEMPOOL_SPACE_URL="http://127.0.0.1:8080" \
-	BOLTZ_MEMPOOL_SPACE_URL_WS="ws://127.0.0.1:8080" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
 	poetry run pytest
-
-test-venv:
-	BOLTZ_NETWORK="regtest" \
-	BOLTZ_URL="http://127.0.0.1:9001" \
-	BOLTZ_MEMPOOL_SPACE_URL="http://127.0.0.1:8080" \
-	BOLTZ_MEMPOOL_SPACE_URL_WS="ws://127.0.0.1:8080" \
-	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
-	FAKE_WALLET_SECRET="ToTheMoon1" \
-	LNBITS_DATA_FOLDER="./tests/data" \
-	PYTHONUNBUFFERED=1 \
-	DEBUG=true \
-	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
 test-migration:
 	rm -rf ./migration-data
@@ -82,3 +71,29 @@ migration:
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
+	#
+
+sass:
+	npm run sass
+
+bundle:
+	npm install
+	npm run sass
+	npm run vendor_copy
+	npm run vendor_json
+	poetry run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
+	npm run vendor_bundle_css
+	npm run vendor_minify_css
+	npm run vendor_bundle_js
+	npm run vendor_minify_js
+	# increment serviceworker version
+	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/core/static/js/service-worker.js)/" \
+		lnbits/core/static/js/service-worker.js
+
+install-pre-commit-hook:
+	@echo "Installing pre-commit hook to git"
+	@echo "Uninstall the hook with poetry run pre-commit uninstall"
+	poetry run pre-commit install
+
+pre-commit:
+	poetry run pre-commit run --all-files

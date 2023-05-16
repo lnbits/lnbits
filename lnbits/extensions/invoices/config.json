@@ -1,6 +1,0 @@
-{
-  "name": "Invoices",
-  "short_description": "Create invoices for your clients.",
-	"tile": "/invoices/static/image/invoices.png",
-  "contributors": ["leesalminen"]
-}

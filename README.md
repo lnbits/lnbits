@@ -1,13 +1,11 @@
-LNbits
-======
+# LNbits
 
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
 
-
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
-# LNbits v0.9 BETA, free and open-source Lightning wallet accounts system
+# LNbits v0.10 BETA, free and open-source Lightning wallet accounts system
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
@@ -17,15 +15,15 @@ Use [legend.lnbits.com](https://legend.lnbits.com), or run your own LNbits serve
 
 LNbits is a Python server that sits on top of any funding source. It can be used as:
 
-* Accounts system to mitigate the risk of exposing applications to your full balance via unique API keys for each wallet
-* Extendable platform for exploring Lightning network functionality via the LNbits extension framework
-* Part of a development stack via LNbits API
-* Fallback wallet for the LNURL scheme
-* Instant wallet for LN demonstrations
+- Accounts system to mitigate the risk of exposing applications to your full balance via unique API keys for each wallet
+- Extendable platform for exploring Lightning network functionality via the LNbits extension framework
+- Part of a development stack via LNbits API
+- Fallback wallet for the LNURL scheme
+- Instant wallet for LN demonstrations
 
-LNbits can run on top of any Lightning funding source. It supports LND, CLN, Eclair, Spark, LNpay, OpenNode, lntxbot, LightningTipBot, and with more being added regularly.
+LNbits can run on top of any Lightning funding source. It supports LND, CLN, Eclair, Spark, LNpay, OpenNode, LightningTipBot, and with more being added regularly.
 
-See [docs.lnbits.org](https://docs.lnbits.org) for more detailed documentation.
+See [LNbits Wiki](https://github.com/lnbits/lnbits/wiki/) for more detailed documentation.
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
@@ -33,7 +31,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](docs/guide/installation.md) for details on installation and setup.
+See the [install guide](https://github.com/lnbits/lnbits/wiki/LNbits-Documentation#install-options) for details on installation and setup.
 
 ## LNbits as an account system
 
@@ -60,7 +58,7 @@ Example use would be an ATM, which utilises LNURL, if the user scans the QR with
 
 ## LNbits as an instant wallet
 
-Wallets can be easily generated and given out to people at events. "Go to this  website", has a lot less friction than "Download this app".
+Wallets can be easily generated and given out to people at events. "Go to this website", has a lot less friction than "Download this app".
 
 ![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
 
@@ -68,8 +66,7 @@ Wallets can be easily generated and given out to people at events. "Go to this  
 
 If you like this project [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
-
-[docs]: https://docs.lnbits.org/
+[docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
 [github-mypy]: https://github.com/lnbits/lnbits/actions?query=workflow%3Amypy
 [github-mypy-badge]: https://github.com/lnbits/lnbits/workflows/mypy/badge.svg
