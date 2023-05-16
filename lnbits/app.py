@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
     # Rate limiter
     limiter = Limiter(
         key_func=lambda request: request.client.host,
-        default_limits=[settings.lnbits_rate_limit + "/minute"],
+        default_limits=[settings.lnbits_rate_limit_no + "/" + settings.lnbits_rate_limit_unit],
     )
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

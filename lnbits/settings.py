@@ -102,7 +102,8 @@ class OpsSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
-    lnbits_rate_limit: str = Field(default="10000")
+    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: List[str] = Field(default=[])
     lnbits_blocked_ips: List[str] = Field(default=[])
 
