@@ -46,40 +46,30 @@
           v-model.number="openChannelDialog.data.funding_amount"
           label="Funding Amount"
         ></q-input>
-        <q-expansion-item
-          icon='warning'
-          label='Advanced'
-        >
+        <q-expansion-item icon="warning" label="Advanced">
           <q-card>
             <q-card-section>
+              <div class="column q-gutter-md">
+                <q-input
+                  dense
+                  type="number"
+                  filled
+                  v-model.number="openChannelDialog.data.push_amount"
+                  label="Push Amount"
+                  hint="This gifts sats to the other side!"
+                ></q-input>
 
-            <div class='column q-gutter-md'>
-
-
-              <q-input
-                dense
-                type="number"
-                filled
-                v-model.number="openChannelDialog.data.push_amount"
-                label="Push Amount"
-                hint='This gifts sats to the other side!'
-              ></q-input>
-
-              <q-input
-                dense
-                type="number"
-                filled
-                v-model.number="openChannelDialog.data.fee_rate"
-                label="Fee Rate"
-              ></q-input>
-            </div>
+                <q-input
+                  dense
+                  type="number"
+                  filled
+                  v-model.number="openChannelDialog.data.fee_rate"
+                  label="Fee Rate"
+                ></q-input>
+              </div>
             </q-card-section>
           </q-card>
-
         </q-expansion-item>
-
-
-
 
         <div class="row q-mt-lg">
           <q-btn
@@ -152,10 +142,10 @@
                 </q-btn>
               </div>
               {% raw %}
-              <div class="text-subtitle1 col-grow">
-                Total
-              </div>
-              <lnbits-channel-balance :balance="this.activeBalance"></lnbits-channel-balance>
+              <div class="text-subtitle1 col-grow">Total</div>
+              <lnbits-channel-balance
+                :balance="this.activeBalance"
+              ></lnbits-channel-balance>
               <q-table
                 dense
                 flat
@@ -192,8 +182,9 @@
                           ></q-btn>
                         </div>
 
-                        <lnbits-channel-balance :balance="props.row.balance"></lnbits-channel-balance>
-
+                        <lnbits-channel-balance
+                          :balance="props.row.balance"
+                        ></lnbits-channel-balance>
                       </div>
                     </div>
                   </q-tr>
@@ -241,9 +232,23 @@
                           >
                             #{{ props.row.color }}
                           </q-badge>
-                          <div class="text-bold">{{ shortenNodeId(info.id) }}</div>
-                          <q-btn size='xs' flat dense icon='content_paste' @click='copyText(info.id)'></q-btn>
-                          <q-btn size='xs' flat dense icon='qr_code' @click='showNodeInfoDialog(props.row)'></q-btn>
+                          <div class="text-bold">
+                            {{ shortenNodeId(info.id) }}
+                          </div>
+                          <q-btn
+                            size="xs"
+                            flat
+                            dense
+                            icon="content_paste"
+                            @click="copyText(info.id)"
+                          ></q-btn>
+                          <q-btn
+                            size="xs"
+                            flat
+                            dense
+                            icon="qr_code"
+                            @click="showNodeInfoDialog(props.row)"
+                          ></q-btn>
                         </div>
                       </div>
                       <q-btn

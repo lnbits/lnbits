@@ -53,19 +53,21 @@ class NodeChannelsResponse(BaseModel):
 
     @classmethod
     def from_list(cls, channels: list[NodeChannel]):
-        active = [channel for channel in channels if channel.state == ChannelState.ACTIVE]
+        active = [
+            channel for channel in channels if channel.state == ChannelState.ACTIVE
+        ]
         return NodeChannelsResponse(
             channels=channels,
             active_balance=ChannelBalance(
                 inbound_msat=sum(channel.balance.inbound_msat for channel in active),
                 outbound_msat=sum(channel.balance.outbound_msat for channel in active),
                 total_msat=sum(channel.balance.total_msat for channel in active),
-            )
+            ),
         )
 
 
 class ChannelStats(BaseModel):
-    num_active: int
+    counts: dict[ChannelState, int]
     avg_size: int
     biggest_size: Optional[int]
     smallest_size: Optional[int]
@@ -73,8 +75,12 @@ class ChannelStats(BaseModel):
 
     @classmethod
     def from_list(cls, channels: list[NodeChannel]):
+        counts = {}
+        for channel in channels:
+            counts[channel.state] = counts.get(channel.state, 0) + 1
+
         return cls(
-            num_active=len(channels),
+            counts=counts,
             avg_size=int(
                 sum(channel.balance.total_msat for channel in channels) / len(channels)
             ),
@@ -91,20 +97,22 @@ class NodeFees(BaseModel):
     monthly_msat: Optional[int]
 
 
-class NodeInfoResponse(BaseModel):
+class PublicNodeInfo(BaseModel):
     id: str
     backend_name: str
     alias: str
     color: str
-    balance_msat: int
-    onchain_balance_sat: int
-    onchain_confirmed_sat: int
     num_peers: int
     blockheight: int
-
-    channels: list[NodeChannel]
     channel_stats: ChannelStats
+
+
+class NodeInfoResponse(PublicNodeInfo):
+    onchain_balance_sat: int
+    onchain_confirmed_sat: int
+    channels: list[NodeChannel]
     fees: NodeFees
+    balance_msat: int
     # addresses: list[str]
 
 
@@ -113,7 +121,7 @@ class NodePayment(BaseModel):
     amount: int
     fee: Optional[int] = None
     memo: Optional[str]
-    time: Optional[int]
+    time: int
     bolt11: str
     preimage: str
     payment_hash: str
@@ -125,7 +133,6 @@ class NodeInvoice(BaseModel):
     pending: bool
     amount: int
     memo: Optional[str]
-    time: Optional[int]
     bolt11: str
     preimage: str
     payment_hash: str
@@ -200,6 +207,10 @@ class Node(ABC):
     @abstractmethod
     async def get_info(self) -> NodeInfoResponse:
         pass
+
+    async def get_public_info(self) -> PublicNodeInfo:
+        info = await self.get_info()
+        return PublicNodeInfo(**info.dict())
 
     @abstractmethod
     async def get_payments(self) -> list[NodePayment]:

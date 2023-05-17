@@ -43,9 +43,11 @@
           </div>
 
           <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
-            <lnbits-stat title="Fees collected" :msat="this.info.fees.total_msat" />
+            <lnbits-stat
+              title="Fees collected"
+              :msat="this.info.fees.total_msat"
+            />
           </div>
-
 
           <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
@@ -61,10 +63,7 @@
             />
           </div>
           <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
-            <lnbits-stat
-              :title="$t('number_of_channels')"
-              :amount="this.channel_stats.num_active"
-            />
+            <lnbits-stat title="Peers" :amount="this.info.num_peers" />
           </div>
           <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
             <lnbits-stat
@@ -87,49 +86,12 @@
         </div>
       </div>
       <div class="column col-12 col-md-4 q-gutter-y-md">
-        <q-card class="q-my-none">
-          <div class="column q-ma-md">
-            <h5 class="text-subtitle1 text-bold q-my-none">1ml Node Rank</h5>
-            <div v-if="this.ranks">
-              <div class="row q-mb-sm items-center">
-                <div class="col-9">Capacity</div>
-                <div class="col-3 text-subtitle1 text-bold">
-                  {{ this.ranks.capacity }}
-                </div>
-              </div>
-              <div class="row q-mb-sm items-center">
-                <div class="col-9">Channel Count</div>
-                <div class="col-3 text-subtitle1 text-bold">
-                  {{ this.ranks.channelcount }}
-                </div>
-              </div>
-              <div class="row q-mb-sm items-center">
-                <div class="col-9">Age</div>
-                <div class="col-3 text-subtitle1 text-bold">
-                  {{ this.ranks.age }}
-                </div>
-              </div>
-              <div class="row q-mb-sm items-center">
-                <div class="col-9">Growth</div>
-                <div class="col-3 text-subtitle1 text-bold">
-                  {{ this.ranks.growth }}
-                </div>
-              </div>
-              <div class="row q-mb-sm items-center">
-                <div class="col-9">Availability</div>
-                <div class="col-3 text-subtitle1 text-bold">
-                  {{ this.ranks.availability }}
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-subtitle1 text-center">
-              Node not found on 1ml
-            </div>
-          </div>
-        </q-card>
+        <lnbits-node-ranks></lnbits-node-ranks>
+        <lnbits-channel-stats
+          :stats="this.channel_stats"
+        ></lnbits-channel-stats>
       </div>
     </div>
-
     {% endraw %}
   </q-card-section>
 </q-tab-panel>

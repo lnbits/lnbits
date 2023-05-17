@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
+import starlette.status as status
 from fastapi import HTTPException
 
 try:
@@ -10,13 +11,14 @@ except ImportError:  # pragma: nocover
     LightningRpc = None
 
 from lnbits.nodes.base import (
+    ChannelBalance,
     ChannelState,
     ChannelStats,
     Node,
     NodeFees,
     NodeInvoice,
     NodePeerInfo,
-    PaymentStats, ChannelBalance,
+    PaymentStats,
 )
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -40,7 +42,29 @@ class CoreLightningNode(Node):
 
     @catch_rpc_errors
     async def connect_peer(self, uri: str) -> bool:
-        await self.wallet.ln_rpc("connect", uri)
+        try:
+            await self.wallet.ln_rpc("connect", uri)
+        except RpcError as e:
+            message = e.error["message"]  # type: ignore
+
+            if "no address known for peer" in message:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail="Connection establishment: No address known for peer",
+                )
+            elif "Connection timed out" in message:
+                raise HTTPException(
+                    status.HTTP_504_GATEWAY_TIMEOUT,
+                    detail="Connection establishment: Connection timed out.",
+                )
+            elif "Connection refused" in message:
+                raise HTTPException(
+                    status.HTTP_504_GATEWAY_TIMEOUT,
+                    detail="Connection establishment: Connection refused.",
+                )
+            else:
+                raise
+
         return True
 
     @catch_rpc_errors
@@ -51,14 +75,43 @@ class CoreLightningNode(Node):
         push_amount: Optional[int] = None,
         fee_rate: Optional[int] = None,
     ):
-        result = await self.wallet.ln_rpc(
-            "fundchannel",
-            peer_id,
-            amount=local_amount,
-            push_msat=int(push_amount * 1000) if push_amount else None,
-            feerate=fee_rate,
-        )
-        return result["txid"]
+        try:
+            result = await self.wallet.ln_rpc(
+                "fundchannel",
+                peer_id,
+                amount=local_amount,
+                push_msat=int(push_amount * 1000) if push_amount else None,
+                feerate=fee_rate,
+            )
+            return result["txid"]
+        except RpcError as e:
+            message = e.error["message"]  # type: ignore
+
+            if "amount: should be a satoshi amount" in message:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail="The amount is not a valid satoshi amount.",
+                )
+
+            if "Unknown peer" in message:
+                raise HTTPException(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="We where able to connect to the peer but CLN can't find it when opening a channel.",
+                )
+
+            if "Owning subdaemon openingd died" in message:
+                # https://github.com/ElementsProject/lightning/issues/2798#issuecomment-511205719
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail="Likely the peer didn't like our channel opening proposal and disconnected from us.",
+                )
+
+            if (
+                "Number of pending channels exceed maximum" in message
+                or "exceeds maximum chan size of 10 BTC" in message
+                or "Could not afford" in message
+            ):
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
 
     @catch_rpc_errors
     async def close_channel(
@@ -69,7 +122,17 @@ class CoreLightningNode(Node):
     ):
         if not short_id:
             raise HTTPException(status_code=400, detail="Short id required")
-        result = await self.wallet.ln_rpc("close", short_id)
+        try:
+            result = await self.wallet.ln_rpc("close", short_id)
+        except RpcError as e:
+            message = e.error["message"]  # type: ignore
+            if (
+                "Short channel ID not active:" in message
+                or "Short channel ID not found" in message
+            ):
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
+            else:
+                raise
 
     @catch_rpc_errors
     async def _get_id(self) -> str:
@@ -98,36 +161,38 @@ class CoreLightningNode(Node):
         nodes = await self.wallet.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
-        return NodeChannelsResponse.from_list([
-            NodeChannel(
-                short_id=ch.get("short_channel_id"),
-                funding_txid=ch["funding_txid"],
-                peer_id=ch["peer_id"],
-                balance=ChannelBalance(
-                    inbound_msat=ch["our_amount_msat"],
-                    outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
-                    total_msat=ch["amount_msat"],
-                ),
-                name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
-                color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
-                state=(
-                    ChannelState.ACTIVE
-                    if ch["state"] == "CHANNELD_NORMAL"
-                    else ChannelState.PENDING
-                    if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
-                    else ChannelState.CLOSED
-                    if ch["state"]
-                    in (
-                        "CHANNELD_CLOSING",
-                        "CLOSINGD_COMPLETE",
-                        "CLOSINGD_SIGEXCHANGE",
-                        "ONCHAIN",
-                    )
-                    else ChannelState.INACTIVE
-                ),
-            )
-            for ch in funds["channels"]
-        ])
+        return NodeChannelsResponse.from_list(
+            [
+                NodeChannel(
+                    short_id=ch.get("short_channel_id"),
+                    funding_txid=ch["funding_txid"],
+                    peer_id=ch["peer_id"],
+                    balance=ChannelBalance(
+                        inbound_msat=ch["our_amount_msat"],
+                        outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
+                        total_msat=ch["amount_msat"],
+                    ),
+                    name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
+                    color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
+                    state=(
+                        ChannelState.ACTIVE
+                        if ch["state"] == "CHANNELD_NORMAL"
+                        else ChannelState.PENDING
+                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
+                        else ChannelState.CLOSED
+                        if ch["state"]
+                        in (
+                            "CHANNELD_CLOSING",
+                            "CLOSINGD_COMPLETE",
+                            "CLOSINGD_SIGEXCHANGE",
+                            "ONCHAIN",
+                        )
+                        else ChannelState.INACTIVE
+                    ),
+                )
+                for ch in funds["channels"]
+            ]
+        )
 
     @catch_rpc_errors
     async def get_info(self) -> NodeInfoResponse:
@@ -156,7 +221,9 @@ class CoreLightningNode(Node):
             channel_stats=ChannelStats.from_list(channel_response.channels),
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
-            balance_msat=sum(channel.balance.inbound_msat for channel in active_channels),
+            balance_msat=sum(
+                channel.balance.inbound_msat for channel in active_channels
+            ),
             channels=channel_response.channels,
             fees=NodeFees(total_msat=info["fees_collected_msat"]),
         )

@@ -15,6 +15,20 @@
           <br />
         </div>
       </div>
+      <div class="row">
+        <div class="col">
+          <div>Node UI</div>
+          <q-toggle
+            label="Enabled"
+            v-model="formData.lnbits_node_ui"
+          ></q-toggle>
+          <q-toggle
+            v-if="formData.lnbits_node_ui"
+            label="Public node UI"
+            v-model="formData.lnbits_public_node_ui"
+          ></q-toggle>
+        </div>
+      </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
           <div class="row">

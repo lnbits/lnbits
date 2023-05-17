@@ -15,10 +15,11 @@ from ...nodes.base import (
     NodeInvoice,
     NodePayment,
     NodePeerInfo,
+    PublicNodeInfo,
 )
 from .. import core_app
 
-node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
+node_api = APIRouter(prefix="/node/api/v1")
 
 
 class NodeInfo(NodeInfoResponse):
@@ -35,7 +36,24 @@ def require_node():
     return NODE
 
 
-@node_api.get("/info")
+def require_node_public():
+    NODE = get_node_class()
+    if not NODE:
+        raise HTTPException(
+            status_code=HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Active backend doesnt support Node apis",
+        )
+    return NODE
+
+
+@node_api.get("/public/info", response_model=PublicNodeInfo)
+async def api_get_public_info(
+    node: Node = Depends(require_node),
+) -> PublicNodeInfo:
+    return await node.get_public_info()
+
+
+@node_api.get("/info", dependencies=[Depends(check_admin)])
 async def api_get_info(
     node: Node = Depends(require_node),
 ) -> Optional[NodeInfoResponse]:
@@ -112,6 +130,7 @@ class NodeRank(BaseModel):
 async def api_get_1ml_stats(node=Depends(require_node)) -> Optional[NodeRank]:
     node_id = await node.get_id()
     async with httpx.AsyncClient() as client:
+        # node_id = "026165850492521f4ac8abd9bd8088123446d126f648ca35e60f88177dc149ceb2"
         r = await client.get(url=f"https://1ml.com/node/{node_id}/json", timeout=15)
         try:
             r.raise_for_status()

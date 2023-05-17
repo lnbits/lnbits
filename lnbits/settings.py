@@ -202,6 +202,8 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+    lnbits_node_ui: bool = Field(default=False)
+    lnbits_public_node_ui: bool = Field(default=False)
 
 
 class EditableSettings(
