@@ -38,7 +38,11 @@ from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
-from .middleware import ExtensionsRedirectMiddleware, InstalledExtensionMiddleware
+from .middleware import (
+    ExtensionsRedirectMiddleware,
+    InstalledExtensionMiddleware,
+    add_security_middleware,
+)
 from .requestvars import g
 from .tasks import (
     catch_everything_and_restart,
@@ -91,37 +95,6 @@ def create_app() -> FastAPI:
 
     return app
 
-async def add_security_middleware(app: FastAPI):
-    # Rate limiter
-    limiter = Limiter(
-        key_func=lambda request: request.client.host,
-        default_limits=[settings.lnbits_rate_limit_no + "/" + settings.lnbits_rate_limit_unit],
-    )
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    app.add_middleware(SlowAPIMiddleware)
-
-    @app.middleware("http")
-    async def block_allow_ip_middleware(request: Request, call_next):
-        response = await call_next(request)
-        if (
-            settings.lnbits_allowed_ips == []
-            and request.client.host in settings.lnbits_blocked_ips
-        ):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "IP is blocked"},
-            )
-        if (
-            settings.lnbits_allowed_ips != []
-            and request.client.host not in settings.lnbits_allowed_ips
-        ):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "IP not permitted"},
-            )
-        return response
-    app.middleware("http")(block_allow_ip_middleware)
 
 async def check_funding_source() -> None:
     original_sigint_handler = signal.getsignal(signal.SIGINT)

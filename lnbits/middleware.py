@@ -2,7 +2,11 @@ from http import HTTPStatus
 from typing import Any, List, Tuple, Union
 from urllib.parse import parse_qs
 
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.helpers import template_renderer
@@ -32,7 +36,7 @@ class InstalledExtensionMiddleware:
 
         headers = scope.get("headers", [])
 
-        # block path for all users if the extension is disabled
+        # block path for all usInstalledExtensionMiddlewareers if the extension is disabled
         if path_name in settings.lnbits_deactivated_extensions:
             response = self._response_by_accepted_type(
                 headers, f"Extension '{path_name}' disabled", HTTPStatus.NOT_FOUND
@@ -189,3 +193,41 @@ class ExtensionsRedirectMiddleware:
         ]
 
         return "/" + "/".join(elements)
+
+
+async def add_security_middleware(app: FastAPI):
+    # Rate limiter
+    limiter = Limiter(
+        key_func=lambda request: request.client.host,
+        default_limits=[
+            settings.lnbits_rate_limit_no + "/" + settings.lnbits_rate_limit_unit
+        ],
+    )
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
+    @app.middleware("http")
+    async def block_allow_ip_middleware(request: Request, call_next):
+        response = await call_next(request)
+        if (
+            settings.lnbits_allowed_ips == []
+            and request.client
+            and request.client.host in settings.lnbits_blocked_ips
+        ):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "IP is blocked"},
+            )
+        if (
+            settings.lnbits_allowed_ips != []
+            and request.client
+            and request.client.host not in settings.lnbits_allowed_ips
+        ):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "IP not permitted"},
+            )
+        return response
+
+    app.middleware("http")(block_allow_ip_middleware)

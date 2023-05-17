@@ -23,96 +23,99 @@
           </div>
         </div>
       </div>
-      <br/>
+      <br />
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>IP Blocker</p>
           <div class="row q-col-gutter-md">
             <div class="col-6">
-            <q-input
-              filled
-              v-model="formBlockedIPs"
-              @keydown.enter="addBlockedIPs"
-              type="text"
-              label="Enter IP and hit enter"
-              hint="Block access by IP"
-            >
-              <q-btn
-                @click="addExtensionsManifest"
-                dense
-                flat
-                icon="add"
-              ></q-btn>
-            </q-input>
-            <div>
-              {%raw%}
-              <q-chip
-                v-for="blocked_ip in formData.lnbits_blocked_ips"
-                :key="blocked_ip"
-                removable
-                @remove="removeBlockedIPs(blocked_ip)"
-                color="primary"
-                text-color="white"
+              <q-input
+                filled
+                v-model="formBlockedIPs"
+                @keydown.enter="addBlockedIPs"
+                type="text"
+                label="Enter IP and hit enter"
+                hint="Block access by IP"
               >
-                {{ blocked_ip }}
-              </q-chip>
-              {%endraw%}
+                <q-btn
+                  @click="addExtensionsManifest"
+                  dense
+                  flat
+                  icon="add"
+                ></q-btn>
+              </q-input>
+              <div>
+                {%raw%}
+                <q-chip
+                  v-for="blocked_ip in formData.lnbits_blocked_ips"
+                  :key="blocked_ip"
+                  removable
+                  @remove="removeBlockedIPs(blocked_ip)"
+                  color="primary"
+                  text-color="white"
+                >
+                  {{ blocked_ip }}
+                </q-chip>
+                {%endraw%}
+              </div>
+              <br />
             </div>
-            <br />
+            <div class="col-6">
+              <q-input
+                filled
+                v-model="formAllowedIPs"
+                @keydown.enter="addAllowedIPs"
+                type="text"
+                label="Enter IP and hit enter"
+                hint="Allow access by IP (will override blocked IPs)"
+              >
+                <q-btn
+                  @click="addExtensionsManifest"
+                  dense
+                  flat
+                  icon="add"
+                ></q-btn>
+              </q-input>
+              <div>
+                {%raw%}
+                <q-chip
+                  v-for="allowed_ip in formData.lnbits_allowed_ips"
+                  :key="allowed_ip"
+                  removable
+                  @remove="removeAllowedIPs(allowed_ip)"
+                  color="primary"
+                  text-color="white"
+                >
+                  {{ allowed_ip }}
+                </q-chip>
+                {%endraw%}
+              </div>
+              <br />
+            </div>
           </div>
-        <div class="col-6">
-          <q-input
-            filled
-            v-model="formAllowedIPs"
-            @keydown.enter="addAllowedIPs"
-            type="text"
-            label="Enter IP and hit enter"
-            hint="Allow access by IP (will override blocked IPs)"
-          >
-            <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
-          </q-input>
-          <div>
-            {%raw%}
-            <q-chip
-              v-for="allowed_ip in formData.lnbits_allowed_ips"
-              :key="allowed_ip"
-              removable
-              @remove="removeAllowedIPs(allowed_ip)"
-              color="primary"
-              text-color="white"
-            >
-              {{ allowed_ip }}
-            </q-chip>
-            {%endraw%}
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Rate Limiter</p>
+          <div class="row q-col-gutter-md">
+            <div class="col-6">
+              <q-input
+                filled
+                type="number"
+                v-model.number="formData.lnbits_rate_limit_no"
+                label="number of requests"
+              ></q-input>
+            </div>
+            <div class="col-6">
+              <q-select
+                filled
+                :options="['second','minute','hour']"
+                v-model="formData.lnbits_rate_limit_unit"
+                label="Time unit"
+              ></q-select>
+            </div>
           </div>
-          <br />
         </div>
       </div>
-    </div>
-    <div class="col-12 col-md-6">
-      <p>Rate Limiter</p>
-      <div class="row q-col-gutter-md"> 
-      <div class="col-6">
-        <q-input
-          filled
-          type="number"
-          v-model.number="formData.lnbits_rate_limit_no"
-          label="number of requests"
-        ></q-input>
-      </div>
-      <div class="col-6">
-        <q-select 
-          filled
-          :options="['second','minute','hour']"
-          v-model="formData.lnbits_rate_limit_unit"
-          label="Time unit"
-        ></q-select>
-
-      </div>
-    </div>
-  </div>
-      </div>
-    
     </div>
   </q-card-section>
 </q-tab-panel>
