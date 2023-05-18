@@ -125,7 +125,6 @@
               </div>
             </div>
             <q-input
-              v-if="payments.length > 10"
               filled
               dense
               clearable
@@ -138,12 +137,14 @@
             <q-table
               dense
               flat
-              :data="filteredPayments"
+              :data="payments"
               :row-key="paymentTableRowKey"
               :columns="paymentsTable.columns"
               :pagination.sync="paymentsTable.pagination"
               :no-data-label="$t('no_transactions')"
               :filter="paymentsTable.filter"
+              :loading="paymentsTable.loading"
+              @request="fetchPayments"
             >
               {% raw %}
               <template v-slot:header="props">
@@ -192,14 +193,14 @@
                     </q-badge>
                     {{ props.row.memo }}
                   </q-td>
-                  <q-td auto-width key="date" :props="props">
+                  <q-td auto-width key="time" :props="props">
                     <q-tooltip>{{ props.row.date }}</q-tooltip>
                     {{ props.row.dateFrom }}
                   </q-td>
                   {% endraw %}
                   <q-td
                     auto-width
-                    key="sat"
+                    key="amount"
                     v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
                     :props="props"
                     >{% raw %} {{
@@ -207,7 +208,7 @@
                     }}
                   </q-td>
 
-                  <q-td auto-width key="sat" v-else :props="props">
+                  <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}
                   </q-td>
                   <q-td auto-width key="fee" :props="props">
@@ -778,23 +779,27 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
       <q-tabs
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
         indicator-color="transparent"
+        align="justify"
       >
-        <q-tab
-          icon="account_balance_wallet"
-          label="Wallets"
-          @click="g.visibleDrawer = !g.visibleDrawer"
-        >
-        </q-tab>
-        <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
-        </q-tab>
         <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
         </q-tab>
 
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <q-tab @click="showParseDialog" icon="file_upload" label="Send">
+        </q-tab>
+        <q-btn
+          round
+          size="35px"
+          unelevated
+          icon="qr_code_scanner"
+          @click="showCamera"
+          class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
+        >
+        </q-btn>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">

@@ -11,7 +11,7 @@ from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.db import Connection
+from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.wallets.base import PaymentStatus
@@ -86,7 +86,7 @@ class User(BaseModel):
         return False
 
 
-class Payment(BaseModel):
+class Payment(FromRowModel):
     checking_id: str
     pending: bool
     amount: int
@@ -212,6 +212,24 @@ class Payment(BaseModel):
         from .crud import delete_payment
 
         await delete_payment(self.checking_id, conn=conn)
+
+
+class PaymentFilters(FilterModel):
+    __search_fields__ = ["memo", "amount"]
+
+    checking_id: str
+    amount: int
+    fee: int
+    memo: Optional[str]
+    time: datetime.datetime
+    bolt11: str
+    preimage: str
+    payment_hash: str
+    expiry: Optional[datetime.datetime]
+    extra: Dict = {}
+    wallet_id: str
+    webhook: Optional[str]
+    webhook_status: Optional[int]
 
 
 class BalanceCheck(BaseModel):

@@ -67,8 +67,13 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    getPayments: function (wallet) {
-      return this.request('get', '/api/v1/payments', wallet.inkey)
+    getPayments: function (wallet, query) {
+      const params = new URLSearchParams(query)
+      return this.request(
+        'get',
+        '/api/v1/payments/paginated?' + params,
+        wallet.inkey
+      )
     },
     getPayment: function (wallet, paymentHash) {
       return this.request(
@@ -185,7 +190,20 @@ window.LNbits = {
     },
     payment: function (data) {
       obj = {
-        ...data
+        checking_id: data.checking_id,
+        pending: data.pending,
+        amount: data.amount,
+        fee: data.fee,
+        memo: data.memo,
+        time: data.time,
+        bolt11: data.bolt11,
+        preimage: data.preimage,
+        payment_hash: data.payment_hash,
+        expiry: data.expiry,
+        extra: data.extra,
+        wallet_id: data.wallet_id,
+        webhook: data.webhook,
+        webhook_status: data.webhook_status
       }
 
       obj.date = Quasar.utils.date.formatDate(

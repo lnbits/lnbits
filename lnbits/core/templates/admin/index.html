@@ -467,7 +467,7 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.isSuperUser = response.data.super_user || false
+            this.isSuperUser = response.data.is_super_user || false
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
@@ -478,7 +478,7 @@
       },
       updateSettings() {
         let data = _.omit(this.formData, [
-          'super_user',
+          'is_super_user',
           'lnbits_allowed_funding_sources'
         ])
         LNbits.api
