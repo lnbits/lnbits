@@ -1,34 +1,7 @@
 <q-tab-panel name="dashboard">
   <q-card-section class="q-pa-none">
     {% raw %}
-    <div>
-      <div class="text-h4 text-bold">{{this.info.alias}}</div>
-      <div class="row items-center q-gutter-sm">
-        <div class="text-subtitle1 text-light">{{this.info.backend_name}}</div>
-
-        <q-badge
-          :style="`background-color: #${this.info.color}`"
-          class="text-bold"
-        >
-          #{{ this.info.color }}
-        </q-badge>
-        <div class="text-bold">{{ shortenNodeId(info.id) }}</div>
-        <q-btn
-          size="xs"
-          flat
-          dense
-          icon="content_paste"
-          @click="copyText(info.id)"
-        ></q-btn>
-        <q-btn
-          size="xs"
-          flat
-          dense
-          icon="qr_code"
-          @click="showNodeInfoDialog(info)"
-        ></q-btn>
-      </div>
-    </div>
+    <lnbits-node-info :info='this.info'></lnbits-node-info>
     <div class="row q-col-gutter-lg q-mt-sm">
       <div class="col-12 col-md-8 q-gutter-y-md">
         <div class="row q-col-gutter-md q-pb-lg">
@@ -86,7 +59,7 @@
         </div>
       </div>
       <div class="column col-12 col-md-4 q-gutter-y-md">
-        <lnbits-node-ranks></lnbits-node-ranks>
+        <lnbits-node-ranks :ranks='this.ranks'></lnbits-node-ranks>
         <lnbits-channel-stats
           :stats="this.channel_stats"
         ></lnbits-channel-stats>

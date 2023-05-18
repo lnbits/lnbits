@@ -224,7 +224,6 @@ class CoreLightningNode(Node):
             balance_msat=sum(
                 channel.balance.inbound_msat for channel in active_channels
             ),
-            channels=channel_response.channels,
             fees=NodeFees(total_msat=info["fees_collected_msat"]),
         )
 

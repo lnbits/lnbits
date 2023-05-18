@@ -116,9 +116,8 @@
 
   <q-card-section class="q-pa-none">
     <div class="row q-col-gutter-lg">
-      <div class="col">
-        <div class="col q-pb-lg">
-          <q-card>
+      <div class="col-12 col-lg-6 q-pb-lg">
+          <q-card class='full-height'>
             <q-card-section>
               <div class="row items-center q-gutter-sm no-wrap">
                 <div class="text-h6 q-my-none col-grow">Channels</div>
@@ -194,11 +193,9 @@
               {% endraw %}
             </q-card-section>
           </q-card>
-        </div>
       </div>
-      <div class="col">
-        <div class="col q-pb-lg">
-          <q-card>
+      <div class="col-12 col-lg-6 q-pb-lg">
+          <q-card class='full-height'>
             <q-card-section>
               {% raw %}
               <div class="row items-center justify-between no-wrap">
@@ -233,14 +230,14 @@
                             #{{ props.row.color }}
                           </q-badge>
                           <div class="text-bold">
-                            {{ shortenNodeId(info.id) }}
+                            {{ shortenNodeId(props.row.id) }}
                           </div>
                           <q-btn
                             size="xs"
                             flat
                             dense
                             icon="content_paste"
-                            @click="copyText(info.id)"
+                            @click="copyText(props.row.id)"
                           ></q-btn>
                           <q-btn
                             size="xs"
@@ -266,7 +263,6 @@
               {% endraw %}
             </q-card-section>
           </q-card>
-        </div>
       </div>
     </div>
   </q-card-section>

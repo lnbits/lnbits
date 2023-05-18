@@ -110,7 +110,6 @@ class PublicNodeInfo(BaseModel):
 class NodeInfoResponse(PublicNodeInfo):
     onchain_balance_sat: int
     onchain_confirmed_sat: int
-    channels: list[NodeChannel]
     fees: NodeFees
     balance_msat: int
     # addresses: list[str]

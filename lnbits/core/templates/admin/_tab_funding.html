@@ -17,16 +17,22 @@
       </div>
       <div class="row">
         <div class="col">
-          <div>Node UI</div>
-          <q-toggle
-            label="Enabled"
-            v-model="formData.lnbits_node_ui"
-          ></q-toggle>
-          <q-toggle
-            v-if="formData.lnbits_node_ui"
-            label="Public node UI"
-            v-model="formData.lnbits_public_node_ui"
-          ></q-toggle>
+          <div v-if="'{{LNBITS_NODE_UI_AVAILABLE}}' === 'True'">
+            <div>Node Management</div>
+            <q-toggle
+              label="Node UI"
+              v-model="formData.lnbits_node_ui"
+            ></q-toggle>
+            <q-toggle
+              v-if="formData.lnbits_node_ui"
+              label="Public node UI"
+              v-model="formData.lnbits_public_node_ui"
+            ></q-toggle>
+            <br/>
+          </div>
+          <p v-else>
+            Node Management not supported by active funding source
+          </p>
         </div>
       </div>
       <div class="row q-col-gutter-md">

@@ -419,7 +419,7 @@ window.windowMixin = {
             return !obj.hidden
           })
           .filter(function (obj) {
-            if (window.user.admin) return obj
+            if (window.user?.admin) return obj
             return !obj.isAdminOnly
           })
           .map(function (obj) {

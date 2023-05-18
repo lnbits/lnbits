@@ -2,35 +2,7 @@
 %} {% block page %}
 
 <q-dialog v-model="nodeInfoDialog.show">
-  <q-card class="my-card">
-    <q-card-section>
-      <div class="text-h6">
-        <div style="text-align: center">
-          <qrcode
-            value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
-            :options="{width: 250}"
-            class="rounded-borders"
-          ></qrcode>
-        </div>
-      </div>
-    </q-card-section>
-    <q-card-actions vertical>
-      <q-btn
-        dense
-        unelevated
-        size="md"
-        @click="copyText(nodeInfoDialog.data.id)"
-        >Public Key<q-tooltip> Click to copy </q-tooltip>
-      </q-btn>
-      <q-btn
-        dense
-        unelevated
-        size="md"
-        @click="copyText(nodeInfoDialog.data.id + '@84.16.229.1:9735')"
-        >Node ID<q-tooltip> Click to copy </q-tooltip>
-      </q-btn>
-    </q-card-actions>
-  </q-card>
+  <lnbits-node-qrcode :info='nodeInfoDialog.data'></lnbits-node-qrcode>
 </q-dialog>
 
 <div class="row q-col-gutter-md justify-center">
@@ -70,6 +42,7 @@
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/core/static/js/node.js"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)
@@ -483,12 +456,9 @@
         this.nodeInfoDialog.show = true
         this.nodeInfoDialog.data = node
       },
-      shortenNodeId: function (node_id) {
-        return node_id.substring(0, 5) + '...' + node_id.substring(node_id.length - 5)
-      },
+      shortenNodeId
     }
   })
 </script>
-<script src="/core/static/js/node.js"></script>
 
 {% endblock %}

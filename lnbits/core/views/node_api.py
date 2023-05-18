@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin
-from lnbits.settings import get_node_class
+from lnbits.settings import get_node_class, settings
 
 from ...nodes.base import (
     Node,
@@ -19,7 +19,6 @@ from ...nodes.base import (
 )
 from .. import core_app
 
-node_api = APIRouter(prefix="/node/api/v1")
 
 
 class NodeInfo(NodeInfoResponse):
@@ -30,30 +29,42 @@ def require_node():
     NODE = get_node_class()
     if not NODE:
         raise HTTPException(
-            status_code=HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Active backend doesnt support Node apis",
+            status_code=400,
+            detail="Active backend does not implement Node API",
         )
-    return NODE
-
-
-def require_node_public():
-    NODE = get_node_class()
-    if not NODE:
+    if not settings.lnbits_node_ui:
         raise HTTPException(
-            status_code=HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Active backend doesnt support Node apis",
+            status_code=404,
+            detail="Not enabled",
         )
     return NODE
 
 
-@node_api.get("/public/info", response_model=PublicNodeInfo)
+def check_public():
+    if not (settings.lnbits_node_ui and settings.lnbits_public_node_ui):
+        raise HTTPException(
+            status_code=404,
+            detail="Not enabled",
+        )
+
+
+node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
+public_node_api = APIRouter(prefix="/node/public/api/v1", dependencies=[Depends(check_public)])
+
+
+@node_api.get("/ok", description='Check if node api can be enabled', status_code=200, dependencies=[Depends(require_node)])
+async def api_get_public_info() -> PublicNodeInfo:
+    pass
+
+
+@public_node_api.get("/info", response_model=PublicNodeInfo)
 async def api_get_public_info(
-    node: Node = Depends(require_node),
+    node: Node = Depends(require_node)
 ) -> PublicNodeInfo:
     return await node.get_public_info()
 
 
-@node_api.get("/info", dependencies=[Depends(check_admin)])
+@node_api.get("/info")
 async def api_get_info(
     node: Node = Depends(require_node),
 ) -> Optional[NodeInfoResponse]:
@@ -122,12 +133,18 @@ class NodeRank(BaseModel):
     availability: Optional[int]
 
 
+# Same for public and private api
 @node_api.get(
     "/rank",
     description="Retrieve node ranks from https://1ml.com",
     response_model=Optional[NodeRank],
 )
-async def api_get_1ml_stats(node=Depends(require_node)) -> Optional[NodeRank]:
+@public_node_api.get(
+    "/rank",
+    description="Retrieve node ranks from https://1ml.com",
+    response_model=Optional[NodeRank],
+)
+async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[NodeRank]:
     node_id = await node.get_id()
     async with httpx.AsyncClient() as client:
         # node_id = "026165850492521f4ac8abd9bd8088123446d126f648ca35e60f88177dc149ceb2"
@@ -140,3 +157,4 @@ async def api_get_1ml_stats(node=Depends(require_node)) -> Optional[NodeRank]:
 
 
 core_app.include_router(node_api)
+core_app.include_router(public_node_api)

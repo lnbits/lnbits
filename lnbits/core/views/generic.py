@@ -400,7 +400,7 @@ async def manifest(usr: str):
 
 @core_html_routes.get("/node", response_class=HTMLResponse)
 async def node(request: Request, user: User = Depends(check_admin)):
-    if not settings.lnbits_admin_ui:
+    if not settings.lnbits_node_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     WALLET = get_wallet_class()
@@ -420,6 +420,9 @@ async def node(request: Request, user: User = Depends(check_admin)):
 
 @core_html_routes.get("/node/public", response_class=HTMLResponse)
 async def public(request: Request):
+
+    if not settings.lnbits_public_node_ui:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     WALLET = get_wallet_class()
     _, balance = await WALLET.status()

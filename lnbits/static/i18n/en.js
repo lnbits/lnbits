@@ -19,6 +19,8 @@ window.localisation.en = {
   connect: 'Connect',
   open_channel: 'Open Channel',
   open: 'Open',
+  close_channel: 'Close Channel',
+  close: 'Close',
   restart: 'Restart server',
   save: 'Save',
   save_tooltip: 'Save your changes',

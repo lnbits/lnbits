@@ -1,66 +1,11 @@
 <q-tab-panel name="transactions">
   <q-card-section class="q-pa-none">
-    <q-tabs
-      class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
-      active-class="px-0"
-      indicator-color="transparent"
-    >
-      <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
-      </q-tab>
-      <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
-      </q-tab>
-
-      <q-tab icon="photo_camera" label="Scan" @click="showCamera"></q-tab>
-    </q-tabs>
-
-    <div class="row q-col-gutter-lg q-pb-lg">
-      <div class="col-12 col-md-4 q-gutter-y-md">
-        <q-card>
-          <q-card-section>
-            <div class="text-overline text-primary">Channel Balance</div>
-            <h6 class="text-h2 q-my-none">2,452,278 sats</h6>
-          </q-card-section>
-        </q-card>
-      </div>
-    </div>
-
-    <div class="row q-col-gutter-lg">
-      <div class="col-12 col-md-8 q-gutter-y-md">
-        <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-          <div class="col">
-            <q-btn unelevated color="primary" class="full-width" size="md"
-              >Paste Request
-            </q-btn>
-          </div>
-          <div class="col">
-            <q-btn unelevated color="primary" class="full-width" size="md"
-              >Create Invoice
-            </q-btn>
-          </div>
-          <div class="col">
-            <q-btn unelevated color="secondary" icon="photo_camera" size="md"
-              >scan
-              <q-tooltip>Use camera to scan an invoice/QR</q-tooltip>
-            </q-btn>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="row q-col-gutter-md q-pb-lg">
-      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
-        <lnbits-stat
-          title="Total Capacity"
-          :msat="this.channel_stats.total_capacity"
-        />
-      </div>
-      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
-        <lnbits-stat title="Balance" :msat="this.info.balance_msat" />
-      </div>
 
-      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
-        <lnbits-stat title="Fees collected" :msat="this.info.fees.total_msat" />
-      </div>
+
+
+
     </div>
 
     <div class="row q-col-gutter-lg">
@@ -78,14 +23,7 @@
                 <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
                 <q-tooltip>Check pending</q-tooltip>
               </q-btn>-->
-                <q-btn
-                  dense
-                  flat
-                  round
-                  icon="show_chart"
-                  color="grey"
-                  @click="showChart"
-                >
+                <q-btn dense flat round icon="show_chart" color="grey">
                   <q-tooltip>Show chart</q-tooltip>
                 </q-btn>
               </div>
@@ -156,7 +94,7 @@
                     flat
                     dense
                     icon="qr_code"
-                    @click="showNodeInfoDialog(props.row)"
+                    @click="showNodeInfoDialog(props.row.destination)"
                   ></q-btn>
                 </q-td>
               </template>
