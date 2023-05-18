@@ -1,7 +1,7 @@
 <q-tab-panel name="dashboard">
   <q-card-section class="q-pa-none">
     {% raw %}
-    <lnbits-node-info :info='this.info'></lnbits-node-info>
+    <lnbits-node-info :info="this.info"></lnbits-node-info>
     <div class="row q-col-gutter-lg q-mt-sm">
       <div class="col-12 col-md-8 q-gutter-y-md">
         <div class="row q-col-gutter-md q-pb-lg">
@@ -59,7 +59,7 @@
         </div>
       </div>
       <div class="column col-12 col-md-4 q-gutter-y-md">
-        <lnbits-node-ranks :ranks='this.ranks'></lnbits-node-ranks>
+        <lnbits-node-ranks :ranks="this.ranks"></lnbits-node-ranks>
         <lnbits-channel-stats
           :stats="this.channel_stats"
         ></lnbits-channel-stats>

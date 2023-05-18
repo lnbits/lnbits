@@ -266,4 +266,4 @@ class CoreLightningNode(Node):
         ]
 
     async def get_payment_stats(self) -> PaymentStats:
-        return PaymentStats()
+        return PaymentStats(volume=0)

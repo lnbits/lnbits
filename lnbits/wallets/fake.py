@@ -6,7 +6,6 @@ from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
 
-from lnbits.nodes.fake import FakeNode
 from lnbits.settings import settings
 
 from ..bolt11 import Invoice, decode, encode
@@ -20,8 +19,6 @@ from .base import (
 
 
 class FakeWallet(Wallet):
-    __node_cls__ = FakeNode
-
     queue: asyncio.Queue = asyncio.Queue(0)
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(

@@ -1,13 +1,12 @@
 function shortenNodeId(nodeId) {
-  return nodeId ? (
-    nodeId.substring(0, 5) + '...' + nodeId.substring(nodeId.length - 5)
-  ) : '...'
+  return nodeId
+    ? nodeId.substring(0, 5) + '...' + nodeId.substring(nodeId.length - 5)
+    : '...'
 }
-
 
 Vue.component('lnbits-node-ranks', {
   props: ['ranks'],
-  data: function() {
+  data: function () {
     return {
       user: {},
       stats: [
@@ -38,7 +37,7 @@ Vue.component('lnbits-node-ranks', {
 
 Vue.component('lnbits-channel-stats', {
   props: ['stats'],
-  data: function() {
+  data: function () {
     return {
       states: [
         {label: 'Active', value: 'active', color: 'green'},
@@ -65,7 +64,7 @@ Vue.component('lnbits-channel-stats', {
     </div>
     </q-card>
   `,
-  created: function() {
+  created: function () {
     if (window.user) {
       this.user = LNbits.map.user(window.user)
     }
@@ -75,7 +74,7 @@ Vue.component('lnbits-channel-stats', {
 Vue.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
-    value: function() {
+    value: function () {
       return (
         this.amount ??
         (this.btc
@@ -145,7 +144,7 @@ Vue.component('lnbits-node-info', {
   },
   mixins: [windowMixin],
   methods: {
-    shortenNodeId,
+    shortenNodeId
   },
   template: `
     <div class='row items-baseline q-gutter-x-sm'>
@@ -180,5 +179,3 @@ Vue.component('lnbits-node-info', {
     </div>
   `
 })
-
-

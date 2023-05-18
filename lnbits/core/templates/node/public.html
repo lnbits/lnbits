@@ -1,41 +1,41 @@
 {% extends "public.html" %} {% from "macros.jinja" import window_vars with
 context %} {% block page %}
 
-<div class="q-ma-lg-xl q-mx-auto q-ma-xl" style='max-width: 1048px'>
+<div class="q-ma-lg-xl q-mx-auto q-ma-xl" style="max-width: 1048px">
   <lnbits-node-info :info="this.info"></lnbits-node-info>
 
   <div class="row q-col-gutter-lg q-mt-sm">
     <div class="col-12 col-md-8 q-gutter-y-md">
       <div class="row q-col-gutter-md q-pb-lg">
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
             title="Total Capacity"
             :msat="this.channel_stats.total_capacity"
           />
         </div>
 
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat title="Peers" :amount="this.info.num_peers" />
         </div>
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
             :title="$t('avg_channel_size')"
             :msat="this.channel_stats.avg_size"
           />
         </div>
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
             :title="$t('biggest_channel_size')"
             :msat="this.channel_stats.biggest_size"
           />
         </div>
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
             :title="$t('smallest_channel_size')"
             :msat="this.channel_stats.smallest_size"
           />
         </div>
-        <div class="col-12 col-md-6  q-gutter-y-md">
+        <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
             :title="$t('smallest_channel_size')"
             :msat="this.channel_stats.smallest_size"
@@ -44,7 +44,7 @@ context %} {% block page %}
       </div>
     </div>
     <div class="column col-12 col-md-4 q-gutter-y-md">
-      <lnbits-node-ranks :ranks='this.ranks'></lnbits-node-ranks>
+      <lnbits-node-ranks :ranks="this.ranks"></lnbits-node-ranks>
       <lnbits-channel-stats :stats="this.channel_stats"></lnbits-channel-stats>
     </div>
   </div>

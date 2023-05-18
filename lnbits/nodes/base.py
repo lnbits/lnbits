@@ -75,7 +75,7 @@ class ChannelStats(BaseModel):
 
     @classmethod
     def from_list(cls, channels: list[NodeChannel]):
-        counts = {}
+        counts: dict[ChannelState, int] = {}
         for channel in channels:
             counts[channel.state] = counts.get(channel.state, 0) + 1
 
@@ -92,9 +92,9 @@ class ChannelStats(BaseModel):
 
 class NodeFees(BaseModel):
     total_msat: int
-    daily_msat: Optional[int]
-    weekly_msat: Optional[int]
-    monthly_msat: Optional[int]
+    daily_msat: Optional[int] = None
+    weekly_msat: Optional[int] = None
+    monthly_msat: Optional[int] = None
 
 
 class PublicNodeInfo(BaseModel):

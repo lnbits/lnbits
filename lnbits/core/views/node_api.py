@@ -20,7 +20,6 @@ from ...nodes.base import (
 from .. import core_app
 
 
-
 class NodeInfo(NodeInfoResponse):
     pass
 
@@ -49,18 +48,23 @@ def check_public():
 
 
 node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
-public_node_api = APIRouter(prefix="/node/public/api/v1", dependencies=[Depends(check_public)])
+public_node_api = APIRouter(
+    prefix="/node/public/api/v1", dependencies=[Depends(check_public)]
+)
 
 
-@node_api.get("/ok", description='Check if node api can be enabled', status_code=200, dependencies=[Depends(require_node)])
-async def api_get_public_info() -> PublicNodeInfo:
+@node_api.get(
+    "/ok",
+    description="Check if node api can be enabled",
+    status_code=200,
+    dependencies=[Depends(require_node)],
+)
+async def api_get_ok():
     pass
 
 
 @public_node_api.get("/info", response_model=PublicNodeInfo)
-async def api_get_public_info(
-    node: Node = Depends(require_node)
-) -> PublicNodeInfo:
+async def api_get_public_info(node: Node = Depends(require_node)) -> PublicNodeInfo:
     return await node.get_public_info()
 
 
@@ -114,7 +118,7 @@ async def api_get_invoices(
 
 
 @node_api.get("/peers", response_model=list[NodePeerInfo])
-async def api_get_payments(node: Node = Depends(require_node)) -> list[NodePeerInfo]:
+async def api_get_peers(node: Node = Depends(require_node)) -> list[NodePeerInfo]:
     return await node.get_peers()
 
 
