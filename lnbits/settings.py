@@ -409,4 +409,4 @@ FAKE_WALLET: Wallet = getattr(wallets_module, "FakeWallet")()
 
 # initialize as fake wallet
 WALLET = FAKE_WALLET
-NODE = None
+NODE: Optional[Node] = None
