@@ -154,7 +154,7 @@ class CoreLightningNode(Node):
             color=node["color"],
             last_timestamp=node["last_timestamp"],
             addresses=[
-                address["address"] + ":" + address["port"]
+                address["address"] + ":" + str(address["port"])
                 for address in node["addresses"]
             ],
         )
