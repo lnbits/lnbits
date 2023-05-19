@@ -1,0 +1,87 @@
+<q-tab-panel name="status">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none" v-text="$t('status')"></h6>
+    <br />
+    <div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p v-text="$t('notifications')"></p>
+          <p
+            v-if="!formData.lnbits_status_notifications"
+            v-text="$t('notifications_disabled')"
+          ></p>
+          <div v-if="formData.lnbits_status_notifications">
+            {% include "admin/_tab_status_notifications.html" %}
+          </div>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p v-text="$t('settings')"></p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_notifications')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_notifications_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_status_notifications"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_killswitch')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_killswitch_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_status_killswitch"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('killswitch_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('killswitch_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_status_interval"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+          <div>
+            <p v-text="$t('status_source')"></p>
+            <q-input
+              filled
+              v-model="formData.lnbits_status_manifest"
+              type="text"
+              :label="$t('status_source_label')"
+            />
+          </div>
+          <br />
+        </div>
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

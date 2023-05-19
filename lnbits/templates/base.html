@@ -13,6 +13,14 @@
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <script type="text/javascript">
+      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson}}
+      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson}}
+      if(themes && themes.length) {
+        window.allowedThemes = themes.map(str => str.trim())
+      }
+    </script>
     {% if web_manifest %}
     <link async="async" rel="manifest" href="{{ web_manifest }}" />
     {% endif %} {% block head_scripts %}{% endblock %}
