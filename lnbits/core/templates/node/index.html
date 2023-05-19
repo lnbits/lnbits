@@ -211,6 +211,11 @@
           data: {}
         },
 
+        transactionDetailsDialog: {
+          show: false,
+          data: {}
+        },
+
         states: [
           {label: 'Active', value: 'active', color: 'green'},
           {label: 'Pending', value: 'pending', color: 'orange'},
@@ -425,6 +430,11 @@
       showNodeInfoDialog: function (node) {
         this.nodeInfoDialog.show = true
         this.nodeInfoDialog.data = node
+      },
+      showTransactionDetailsDialog: function (details) {
+        this.transactionDetailsDialog.show = true
+        this.transactionDetailsDialog.data = details
+        console.log('details', details)
       },
       exportCSV: function () {
 

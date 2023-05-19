@@ -1,5 +1,76 @@
 <q-tab-panel name="transactions">
   <q-card-section class="q-pa-none">
+    <q-dialog v-model="transactionDetailsDialog.show">
+      <q-card class="my-card">
+        <q-card-section>
+          {% raw %}
+          <div class="text-center q-mb-lg">
+            <div
+              v-if="transactionDetailsDialog.data.isIn && transactionDetailsDialog.data.pending"
+            >
+              <q-icon
+                size="18px"
+                :name="'call_received'"
+                :color="'green'"
+              ></q-icon>
+              <span v-text="$t('payment_received')"></span>
+            </div>
+            <div class="row q-my-md">
+              <div class="col-3"><b v-text="$t('payment_hash')"></b>:</div>
+              <div class="col-9 text-wrap mono">
+                {{ transactionDetailsDialog.data.payment_hash }}
+                <q-icon
+                  name="content_copy"
+                  @click="copyText(transactionDetailsDialog.data.payment_hash)"
+                  size="1em"
+                  color="grey"
+                  class="q-mb-xs cursor-pointer"
+                />
+              </div>
+              <div
+                class="row"
+                v-if="transactionDetailsDialog.data.preimage && !transactionDetailsDialog.data.pending"
+              >
+                <div class="col-3"><b v-text="$t('payment_proof')"></b>:</div>
+                <div class="col-9 text-wrap mono">
+                  {{ transactionDetailsDialog.data.preimage }}
+                  <q-icon
+                    name="content_copy"
+                    @click="copyText(transactionDetailsDialog.data.preimage)"
+                    size="1em"
+                    color="grey"
+                    class="q-mb-xs cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="transactionDetailsDialog.data.bolt11"
+              class="text-center q-mb-lg"
+            >
+              <a :href="'lightning:' + transactionDetailsDialog.data.bolt11">
+                <q-responsive :ratio="1" class="q-mx-xl">
+                  <qrcode
+                    :value="'lightning:' + transactionDetailsDialog.data.bolt11.toUpperCase()"
+                    :options="{width: 340}"
+                    class="rounded-borders"
+                  ></qrcode>
+                </q-responsive>
+              </a>
+              <q-btn
+                outline
+                color="grey"
+                @click="copyText(transactionDetailsDialog.data.bolt11)"
+                :label="$t('copy_invoice')"
+                class="q-mt-sm"
+              ></q-btn>
+            </div>
+          </div>
+          {% endraw %}
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
     <div class="row q-col-gutter-md q-pb-lg"></div>
 
     <div class="row q-col-gutter-lg">
@@ -38,18 +109,17 @@
                     size="xs"
                     name="call_made"
                     color="green"
-                    @click="props.expand = true"
+                    @click="showTransactionDetailsDialog(props.row)"
                   ></q-icon>
                   <q-icon
                     v-else
                     size="xs"
                     name="settings_ethernet"
                     color="grey"
-                    @click="props.expand = true"
+                    @click="showTransactionDetailsDialog(props.row)"
                   >
                     <q-tooltip>Pending</q-tooltip>
                   </q-icon>
-                  {{props.expand}}
                   <q-dialog v-model="props.row.expand" :props="props">
                     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                       <div class="text-center q-mb-lg">
@@ -202,14 +272,14 @@
                     size="xs"
                     name="call_received"
                     color="green"
-                    @click="props.expand = !props.expand"
+                    @click="showTransactionDetailsDialog(props.row)"
                   ></q-icon>
                   <q-icon
                     v-else
                     size="xs"
                     name="settings_ethernet"
                     color="grey"
-                    @click="props.expand = !props.expand"
+                    @click="showTransactionDetailsDialog(props.row)"
                   >
                     <q-tooltip>Pending</q-tooltip>
                   </q-icon>
