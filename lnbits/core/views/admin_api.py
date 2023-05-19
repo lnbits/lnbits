@@ -16,7 +16,6 @@ from lnbits.core.services import update_cached_settings, update_wallet_balance
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, EditableSettings, settings
-from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Op
 
 from .. import core_app
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings

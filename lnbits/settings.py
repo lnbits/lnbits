@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import importlib.metadata
 import inspect
 import json
@@ -404,7 +405,7 @@ if not settings.lnbits_admin_ui:
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
+FAKE_WALLET: Wallet = getattr(wallets_module, "FakeWallet")()
 
 # initialize as fake wallet
 WALLET = FAKE_WALLET

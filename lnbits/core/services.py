@@ -83,7 +83,7 @@ async def create_invoice(
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok:
+    if not ok or not payment_request or not checking_id:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)

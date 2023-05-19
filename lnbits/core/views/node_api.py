@@ -3,7 +3,6 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
-from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin
 from lnbits.settings import get_node_class, settings

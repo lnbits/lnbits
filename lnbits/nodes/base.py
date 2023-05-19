@@ -22,6 +22,7 @@ class NodePeerInfo(BaseModel):
     alias: str
     color: str
     last_timestamp: Optional[int]
+    addresses: list[str]
 
 
 class ChannelState(Enum):
@@ -105,6 +106,7 @@ class PublicNodeInfo(BaseModel):
     num_peers: int
     blockheight: int
     channel_stats: ChannelStats
+    addresses: list[str]
 
 
 class NodeInfoResponse(PublicNodeInfo):
@@ -112,7 +114,6 @@ class NodeInfoResponse(PublicNodeInfo):
     onchain_confirmed_sat: int
     fees: NodeFees
     balance_msat: int
-    # addresses: list[str]
 
 
 class NodePayment(BaseModel):
@@ -209,7 +210,7 @@ class Node(ABC):
 
     async def get_public_info(self) -> PublicNodeInfo:
         info = await self.get_info()
-        return PublicNodeInfo(**info.dict())
+        return PublicNodeInfo(**info.__dict__)
 
     @abstractmethod
     async def get_payments(self) -> list[NodePayment]:

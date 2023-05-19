@@ -123,7 +123,7 @@ class CoreLightningNode(Node):
         if not short_id:
             raise HTTPException(status_code=400, detail="Short id required")
         try:
-            result = await self.wallet.ln_rpc("close", short_id)
+            await self.wallet.ln_rpc("close", short_id)
         except RpcError as e:
             message = e.error["message"]  # type: ignore
             if (
@@ -153,6 +153,7 @@ class CoreLightningNode(Node):
             alias=node["alias"],
             color=node["color"],
             last_timestamp=node["last_timestamp"],
+            addresses=[address["address"] + ":" + address["port"] for address in node["addresses"]],
         )
 
     @catch_rpc_errors
@@ -225,6 +226,7 @@ class CoreLightningNode(Node):
                 channel.balance.inbound_msat for channel in active_channels
             ),
             fees=NodeFees(total_msat=info["fees_collected_msat"]),
+            addresses=[address["address"] for address in info["address"]],
         )
 
     @catch_rpc_errors
