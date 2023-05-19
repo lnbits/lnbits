@@ -122,5 +122,26 @@ window.localisation.en = {
   description: 'Description',
   expiry: 'Expiry',
   webhook: 'Webhook',
-  payment_proof: 'Payment Proof'
+  payment_proof: 'Payment Proof',
+  update_available: 'Update %{version} available!',
+  latest_update: 'You are on the latest version %{version}.',
+  notifications: 'Notifications',
+  no_notifications: 'No notifications',
+  notifications_disabled: 'LNbits status notifications are disabled.',
+  enable_notifications: 'Enable Notifications',
+  enable_notifications_desc:
+    'If enabled it will fetch the latest LNbits Status updates, like security incidents and updates.',
+  enable_killswitch: 'Enable Killswitch',
+  enable_killswitch_desc:
+    'If enabled it will change your funding source to VoidWallet automatically if LNbits sends out a killswitch signal. You will need to enable manually after an update.',
+  killswitch_interval: 'Killswitch Interval',
+  killswitch_interval_desc:
+    'How often the background task should check for a killswitch signal in minutes.',
+  status: 'Status',
+  status_source: 'Status Source',
+  status_source_label:
+    'Source URL (only use the official LNbits status source, and sources you can trust)',
+  more: 'more',
+  releases: 'Releases',
+  settings: 'Settings'
 }

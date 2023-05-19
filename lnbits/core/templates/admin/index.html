@@ -77,6 +77,12 @@
             ></q-tab>
 
             <q-tab
+              name="status"
+              :label="$t('status')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
               name="users"
               :label="$t('users')"
               @update="val => tab = val.name"
@@ -183,6 +189,23 @@
           'monochrome',
           'salvador'
         ],
+        statusData: {},
+        statusDataTable: {
+          columns: [
+            {
+              name: 'date',
+              align: 'left',
+              label: this.$t('date'),
+              field: 'date'
+            },
+            {
+              name: 'message',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'message'
+            }
+          ]
+        },
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
@@ -389,8 +412,14 @@
       })
     },
     computed: {
+      lnbitsVersion() {
+        return LNBITS_VERSION
+      },
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
+      },
+      updateAvailable() {
+        return LNBITS_VERSION !== this.statusData.version
       }
     },
     methods: {
@@ -401,7 +430,6 @@
           //admin_users = [...admin_users, addUser]
           this.formData.lnbits_admin_users = [...admin_users, addUser]
           this.formAddAdmin = ''
-          //console.log(this.checkChanges)
         }
       },
       removeAdminUser(user) {
@@ -527,6 +555,16 @@
           })
         })
       },
+      formatDate(date) {
+        return moment(date * 1000).fromNow()
+      },
+      getNotifications() {
+        if (this.settings.lnbits_status_notifications) {
+          axios.get(this.settings.lnbits_status_manifest).then(response => {
+            this.statusData = response.data
+          })
+        }
+      },
       getSettings() {
         LNbits.api
           .request(
@@ -539,6 +577,7 @@
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
+            this.getNotifications()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
