@@ -11,7 +11,7 @@ from sqlite3 import Row
 from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, root_validator
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
@@ -344,6 +344,7 @@ class FromRowModel(BaseModel):
 
 class FilterModel(BaseModel):
     __search_fields__: List[str] = []
+    __sort_fields__: Optional[List[str]] = None
 
 
 T = TypeVar("T")
@@ -437,6 +438,18 @@ class Filters(BaseModel, Generic[TFilterModel]):
     direction: Optional[Literal["asc", "desc"]] = None
 
     model: Optional[Type[TFilterModel]] = None
+
+    @root_validator(pre=True)
+    def validate_sortby(cls, values):
+        sortby = values.get("sortby")
+        model = values.get("model")
+        if sortby and model:
+            model = values["model"]
+            # if no sort fields are specified explicitly all fields are allowed
+            allowed = model.__sort_fields__ or model.__fields__
+            if sortby not in allowed:
+                raise ValueError("Invalid sort field")
+        return values
 
     def pagination(self) -> str:
         stmt = ""
