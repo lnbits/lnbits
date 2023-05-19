@@ -166,7 +166,7 @@ async def pay_invoice(
             assert internal_invoice is not None
             if (
                 internal_invoice.amount != invoice.amount_msat
-                or internal_invoice.bolt11 != payment_request
+                or internal_invoice.bolt11 != payment_request.lower()
             ):
                 raise PaymentFailure("Invalid invoice.")
 
