@@ -153,7 +153,10 @@ class CoreLightningNode(Node):
             alias=node["alias"],
             color=node["color"],
             last_timestamp=node["last_timestamp"],
-            addresses=[address["address"] + ":" + address["port"] for address in node["addresses"]],
+            addresses=[
+                address["address"] + ":" + address["port"]
+                for address in node["addresses"]
+            ],
         )
 
     @catch_rpc_errors
