@@ -108,10 +108,14 @@ Vue.component('lnbits-node-qrcode', {
         <div class="text-h6">
           <div style="text-align: center">
             <qrcode
-              value="24a8228d764091fce2ed67e1a7404f83e38ea3c7cb42030a2789e73cf3b341365@84.16.229.1:9735"
+              :value="info.addresses[0]"
               :options="{width: 250}"
+              v-if='info.addresses[0]' 
               class="rounded-borders"
             ></qrcode>
+            <div v-else class='text-subtitle1'>
+              No addresses available
+            </div>
           </div>
         </div>
       </q-card-section>
@@ -122,13 +126,6 @@ Vue.component('lnbits-node-qrcode', {
           size="md"
           @click="copyText(info.id)"
         >Public Key<q-tooltip> Click to copy </q-tooltip>
-        </q-btn>
-        <q-btn
-          dense
-          unelevated
-          size="md"
-          @click="copyText(info.id+ '@84.16.229.1:9735')"
-        >Node ID<q-tooltip> Click to copy </q-tooltip>
         </q-btn>
       </q-card-actions>
     </q-card>

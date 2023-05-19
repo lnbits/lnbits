@@ -223,9 +223,8 @@
           {label: 'Pending', value: 'pending'}
         ],
 
-        filteredPayments: [],
-        filteredInvoices: [],
         paymentsTable: {
+          data: [],
           columns: [
             {
               name: 'pending',
@@ -265,7 +264,7 @@
             }
           ],
           pagination: {
-            rowsPerPage: 10
+            rowsPerPage: 10,
           },
           filter: null
         },
@@ -317,7 +316,7 @@
     },
     watch: {
       tab: function (val) {
-        if (val === 'transactions' && !this.filteredPayments.length) {
+        if (val === 'transactions' && !this.paymentsTable.data.length) {
           this.getPayments()
           this.getInvoices()
         } else if (val === 'channels' && !this.channels.length) {
@@ -349,10 +348,8 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-
       getChannels: function () {
-        LNbits.api
-          .request('GET', '/node/api/v1/channels?usr=' + this.g.user.id, {})
+        return this.api('GET', '/channels')
           .then(response => {
             //this.channels = response.data.by_state.active
             this.channels = response.data.channels
@@ -361,32 +358,14 @@
           })
       },
       getInfo: function () {
-        LNbits.api
-          .request('GET', '/node/api/v1/info?usr=' + this.g.user.id, {})
+        return this.api('GET', '/info')
           .then(response => {
             this.info = response.data
             this.channel_stats = response.data.channel_stats
-            this.stats = {
-              avg_channel_size: LNbits.utils.formatMsat(
-                response.data.avg_channel_size
-              ),
-              balance: LNbits.utils.formatMsat(response.data.balance_msat),
-              total_capacity: LNbits.utils.formatMsat(
-                response.data.total_capacity_msat
-              ),
-              num_channels: response.data.num_channels,
-              biggest_channel_size: LNbits.utils.formatMsat(
-                response.data.biggest_channel_size
-              ),
-              smallest_channel_size: LNbits.utils.formatMsat(
-                response.data.smallest_channel_size
-              )
-            }
           })
       },
       get1MLStats: function () {
-        return LNbits.api
-          .request('GET', '/node/api/v1/rank?usr=' + this.g.user.id, {})
+        return this.api('GET', '/rank')
           .then(response => {
             this.ranks = response.data
           })
@@ -394,22 +373,13 @@
       getPayments: function () {
         return this.api('GET', '/payments')
           .then(response => {
-            this.filteredPayments = response.data
-              .map(obj => {
-                return LNbits.map.payment(obj)
-              })
-              .sort((a, b) => {
-                return b.time - a.time
-              })
-            console.log('payments', this.filteredPayments)
+            this.paymentsTable.data = response.data
           })
       },
       getInvoices: function () {
         return this.api('GET', '/invoices')
           .then(response => {
-            this.filteredInvoices = response.data
             this.invoiceTable.data = response.data
-            console.log('payments', this.filteredPayments)
           })
       },
       getPeers: function () {
@@ -438,8 +408,8 @@
           })
       },
       showCloseChannelDialog: function (channel) {
-        this.closeChannelDialog.show = true,
-          this.closeChannelDialog.data = {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
+        this.closeChannelDialog.show = true
+        this.closeChannelDialog.data = {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
       },
       closeChannel: function () {
         this.api('DELETE', '/channels', this.closeChannelDialog.data)
@@ -455,6 +425,9 @@
       showNodeInfoDialog: function (node) {
         this.nodeInfoDialog.show = true
         this.nodeInfoDialog.data = node
+      },
+      exportCSV: function () {
+
       },
       shortenNodeId
     }
