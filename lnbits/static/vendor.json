@@ -5,7 +5,7 @@
     "/static/vendor/axios.js",
     "/static/vendor/vue.js",
     "/static/vendor/vue-router.js",
-    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/VueQrcodeReader.umd.js",
     "/static/vendor/vue-qrcode.js",
     "/static/vendor/vuex.js",
     "/static/vendor/quasar.ie.polyfills.umd.min.js",
@@ -32,7 +32,6 @@
   "css": [
     "/static/vendor/quasar.css",
     "/static/vendor/Chart.css",
-    "/static/vendor/vue-qrcode-reader.css",
     "/static/css/base.css"
   ]
 }
