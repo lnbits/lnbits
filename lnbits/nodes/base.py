@@ -19,10 +19,10 @@ class NodeStatsResponse(NamedTuple):
 
 class NodePeerInfo(BaseModel):
     id: str
-    alias: str
-    color: str
-    last_timestamp: Optional[int]
-    addresses: list[str]
+    alias: Optional[str] = None
+    color: Optional[str] = None
+    last_timestamp: Optional[int] = None
+    addresses: Optional[list[str]] = None
 
 
 class ChannelState(Enum):

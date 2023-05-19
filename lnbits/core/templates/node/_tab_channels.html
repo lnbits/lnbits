@@ -164,13 +164,13 @@
                         </div>
                         <q-badge
                           rounded
-                          :color='props.row.state === "active" ? "green" : props.row.state === "pending" ? "orange" : props.row.state === "inactive" ? "grey" : "red"'
+                          :color="states.find(s => s.value == props.row.state)?.color"
                         >
-                          {{ props.row.state.charAt(0).toUpperCase() +
-                          props.row.state.slice(1) }}
+                          {{ states.find(s => s.value == props.row.state)?.label
+                          }}
                         </q-badge>
                         <q-btn
-                          :disable='props.row.state === "closed"'
+                          :disable='props.row.state !== "active"'
                           flat
                           dense
                           size="md"

@@ -146,18 +146,24 @@ class CoreLightningNode(Node):
 
     @catch_rpc_errors
     async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        nodes = await self.wallet.ln_rpc("listnodes", pubkey)
-        node = nodes["nodes"][0]
-        return NodePeerInfo(
-            id=node["nodeid"],
-            alias=node["alias"],
-            color=node["color"],
-            last_timestamp=node["last_timestamp"],
-            addresses=[
-                address["address"] + ":" + str(address["port"])
-                for address in node["addresses"]
-            ],
-        )
+        result = await self.wallet.ln_rpc("listnodes", pubkey)
+        nodes = result["nodes"]
+        if len(nodes) == 0:
+            return NodePeerInfo(id=pubkey)
+        node = nodes[0]
+        if "last_timestamp" in node:
+            return NodePeerInfo(
+                id=node["nodeid"],
+                alias=node["alias"],
+                color=node["color"],
+                last_timestamp=node["last_timestamp"],
+                addresses=[
+                    address["address"] + ":" + str(address["port"])
+                    for address in node["addresses"]
+                ],
+            )
+        else:
+            return NodePeerInfo(id=node["nodeid"])
 
     @catch_rpc_errors
     async def get_channels(self) -> NodeChannelsResponse:
