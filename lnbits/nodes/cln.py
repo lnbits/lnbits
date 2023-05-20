@@ -231,9 +231,7 @@ class CoreLightningNode(Node):
             channel_stats=ChannelStats.from_list(channel_response.channels),
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
-            balance_msat=sum(
-                channel.balance.local_msat for channel in active_channels
-            ),
+            balance_msat=sum(channel.balance.local_msat for channel in active_channels),
             fees=NodeFees(total_msat=info["fees_collected_msat"]),
             addresses=[address["address"] for address in info["address"]],
         )

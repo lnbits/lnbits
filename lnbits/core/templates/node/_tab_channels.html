@@ -116,11 +116,19 @@
 
   <q-card-section class="q-pa-none">
     <div class="row q-col-gutter-lg">
-      <div class="col-12 col-lg-6 q-pb-lg">
+      <div class="col-12 col-xl-6">
         <q-card class="full-height">
-          <q-card-section>
-            <div class="row items-center q-gutter-sm no-wrap">
-              <div class="text-h6 q-my-none col-grow">Channels</div>
+          <q-card-section class='q-gutter-y-sm'>
+            <div class="row items-center q-mt-none q-gutter-x-sm no-wrap">
+              <div class="col-grow text-h6 q-my-none col-grow">Channels</div>
+              <q-input
+                filled
+                dense
+                clearable
+                v-model="channels.filter"
+                placeholder="Search..."
+                class="col-auto"
+              ></q-input>
               <q-select
                 dense
                 size="sm"
@@ -130,60 +138,73 @@
                 clearable
                 v-model="stateFilters"
                 :options="this.states"
+                class="col-auto"
               ></q-select>
               <q-btn
                 unelevated
                 color="primary"
                 size="md"
+                class="col-auto"
                 @click="showOpenChannelDialog()"
               >
                 Open channel
               </q-btn>
             </div>
             {% raw %}
-            <div class="text-subtitle1 col-grow">Total</div>
-            <lnbits-channel-balance
-              :balance="this.activeBalance"
-            ></lnbits-channel-balance>
+            <div>
+              <div class="text-subtitle1 col-grow">Total</div>
+              <lnbits-channel-balance
+                :balance="this.activeBalance"
+              ></lnbits-channel-balance>
+            </div>
+            <q-separator></q-separator>
             <q-table
               dense
               flat
               :data="this.filteredChannels"
+              :filter="channels.filter"
               no-data-label="No channels opened"
             >
               <template v-slot:header="props">
-                <q-tr :props="props"> </q-tr>
+                <q-tr :props="props" style="height: 0"> </q-tr>
               </template>
               <template v-slot:body="props">
                 <q-tr :props="props">
-                  <div class="row items-center justify-between q-gutter-md">
-                    <div class="col-grow">
-                      <div class="row items-center q-gutter-sm">
-                        <div class="text-subtitle1 col-grow">
-                          {{props.row.name}}
-                        </div>
-                        <q-badge
-                          rounded
-                          :color="states.find(s => s.value == props.row.state)?.color"
-                        >
-                          {{ states.find(s => s.value == props.row.state)?.label
-                          }}
-                        </q-badge>
+                  <div class="q-pb-sm">
+                    <div class="row items-center q-gutter-sm">
+                      <div class="text-subtitle1 col-grow">
+                        {{props.row.name}}
+                      </div>
+                      <div class="text-caption" v-if="props.row.short_id">
+                        {{ props.row.short_id }}
                         <q-btn
-                          :disable='props.row.state !== "active"'
+                          size="xs"
                           flat
                           dense
-                          size="md"
-                          @click="showCloseChannelDialog(props.row)"
-                          icon="cancel"
-                          color="pink"
+                          icon="content_paste"
+                          @click="copyText(props.row.short_id)"
                         ></q-btn>
                       </div>
-
-                      <lnbits-channel-balance
-                        :balance="props.row.balance"
-                      ></lnbits-channel-balance>
+                      <q-badge
+                        rounded
+                        :color="states.find(s => s.value == props.row.state)?.color"
+                      >
+                        {{ states.find(s => s.value == props.row.state)?.label
+                        }}
+                      </q-badge>
+                      <q-btn
+                        :disable='props.row.state !== "active"'
+                        flat
+                        dense
+                        size="md"
+                        @click="showCloseChannelDialog(props.row)"
+                        icon="cancel"
+                        color="pink"
+                      ></q-btn>
                     </div>
+                    <lnbits-channel-balance
+                      :balance="props.row.balance"
+                    ></lnbits-channel-balance>
                   </div>
                 </q-tr>
               </template>
@@ -193,24 +214,38 @@
           </q-card-section>
         </q-card>
       </div>
-      <div class="col-12 col-lg-6 q-pb-lg">
+      <div class="col-12 col-xl-6">
         <q-card class="full-height">
-          <q-card-section>
+          <q-card-section class="column q-gutter-y-sm">
             {% raw %}
-            <div class="row items-center justify-between no-wrap">
-              <div class="text-h6 q-my-none">Peers</div>
-              <q-btn color="primary" @click="connectPeerDialog.show = true">
+            <div class="row items-center q-mt-none justify-between q-gutter-x-md no-wrap">
+              <div class="col-grow text-h6 q-my-none">Peers</div>
+              <q-input
+                filled
+                dense
+                clearable
+                v-model="peers.filter"
+                placeholder="Search..."
+                class="col-auto"
+              ></q-input>
+              <q-btn
+                class="col-auto"
+                color="primary"
+                @click="connectPeerDialog.show = true"
+              >
                 Connect Peer
               </q-btn>
             </div>
+            <q-separator></q-separator>
             <q-table
               dense
               flat
-              :data="this.peers"
+              :data="peers.data"
+              :filter="peers.filter"
               no-data-label="No transactions made yet"
             >
               <template v-slot:header="props">
-                <q-tr :props="props"> </q-tr>
+                <q-tr :props="props" style="height: 0"> </q-tr>
               </template>
               <template v-slot:body="props">
                 <q-tr :props="props">

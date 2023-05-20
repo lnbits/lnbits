@@ -97,7 +97,6 @@
 
                         <q-linear-progress
                           rounded
-                          class="q-mb-md"
                           size="25px"
                           :value="balance.local_msat / balance.total_msat"
                           :color="color"
@@ -185,11 +184,20 @@
         payments: 1000,
         info: {},
         channel_stats: {},
-        channels: [],
+
+        channels: {
+          data: [],
+          filter: ''
+        },
+
+
         activeBalance: {},
         ranks: {},
 
-        peers: [],
+        peers: {
+          data: [],
+          filter: '',
+        },
 
         connectPeerDialog: {
           show: false,
@@ -317,19 +325,15 @@
     created: function () {
       this.getInfo()
       this.get1MLStats()
-      this.getPeers()
     },
     watch: {
       tab: function (val) {
         if (val === 'transactions' && !this.paymentsTable.data.length) {
           this.getPayments()
           this.getInvoices()
-        } else if (val === 'channels' && !this.channels.length) {
+        } else if (val === 'channels' && !this.channels.data.length) {
           this.getChannels()
           this.getPeers()
-        } else if (val === 'dashboard' && !this.info) {
-          this.getInfo()
-          this.get1MLStats()
         }
       }
     },
@@ -338,9 +342,9 @@
         return !_.isEqual(this.settings, this.formData)
       },
       filteredChannels: function () {
-        return !this.stateFilters ? this.channels : this.channels.filter(channel => {
-          return this.stateFilters.find(({value}) => value == channel.state) ? true : false
-        })
+        return this.stateFilters ? this.channels.data.filter(channel => {
+          return this.stateFilters.find(({value}) => value == channel.state)
+        }) : this.channels.data
       }
     },
     methods: {
@@ -357,7 +361,7 @@
         return this.api('GET', '/channels')
           .then(response => {
             //this.channels = response.data.by_state.active
-            this.channels = response.data.channels
+            this.channels.data = response.data.channels
             this.activeBalance = response.data.active_balance
             console.log('hi', this.channels)
           })
@@ -390,7 +394,7 @@
       getPeers: function () {
         return this.api('GET', '/peers')
           .then(response => {
-            this.peers = response.data
+            this.peers.data = response.data
             console.log('peers', this.peers)
           })
       },
