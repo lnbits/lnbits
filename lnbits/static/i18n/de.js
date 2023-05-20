@@ -14,16 +14,16 @@ window.localisation.de = {
   add_funds_tooltip: 'Füge Geld zu einer Wallet hinzu.',
   reset_defaults: 'Zurücksetzen',
   reset_defaults_tooltip:
-    'Alle Einstellungen zurücksetzen auf die Standardeinstellungen.',
+    'Alle Einstellungen auf die Standardeinstellungen zurücksetzen.',
   download_backup: 'Datenbank-Backup herunterladen',
   name_your_wallet: 'Vergib deiner %{name} Wallet einen Namen',
   paste_invoice_label:
-    'Füge eine Rechnung, Zahlungsanforderung oder lnurl ein *',
+    'Füge eine Rechnung, Zahlungsanforderung oder LNURL ein *',
   lnbits_description:
     'Einfach zu installieren und kompakt, LNbits kann auf jeder Funding-Quelle im Lightning Netzwerk aufsetzen. Derzeit unterstützt: LND, c-lightning, OpenNode, LNPay und sogar LNbits selbst! Du kannst LNbits für dich selbst betreiben oder anderen die Verwaltung durch dich anbieten. Jede Wallet hat ihre eigenen API-Schlüssel und die Anzahl der Wallets ist unbegrenzt. Die Möglichkeit, Gelder auf verschiedene Accounts mit unterschiedlicher Logik aufteilen zu können macht LNbits zu einem nützlichen Werkzeug für deine Buchhaltung - aber auch als Entwicklungswerkzeug. Erweiterungen bereichern LNbits Accounts um zusätzliche Funktionalität, so dass du mit einer Reihe von neuartigen Technologien auf dem Lightning-Netzwerk experimentieren kannst. Wir haben es so einfach wie möglich gemacht, Erweiterungen zu entwickeln, und als freies und Open-Source-Projekt möchten wir Menschen ermutigen, sich selbst hieran zu versuchen und gemeinsam mit uns neue Funktionalitäten zu entwickeln.',
   export_to_phone: 'Auf dem Telefon öffnen',
   export_to_phone_desc:
-    'Dieser QR-Code beinhaltet vollständige Rechte auf deine Wallet. Du kannste den QR-Code mit Deinem Telefon scannen, um deine Wallet dort zu öffnen.',
+    'Dieser QR-Code beinhaltet vollständige Rechte auf deine Wallet. Du kannst den QR-Code mit Deinem Telefon scannen, um deine Wallet dort zu öffnen.',
   wallets: 'Wallets',
   add_wallet: 'Wallet hinzufügen',
   delete_wallet: 'Wallet löschen',
@@ -35,7 +35,7 @@ window.localisation.de = {
   donate: 'Spenden',
   view_github: 'Auf GitHub anzeigen',
   voidwallet_active: 'VoidWallet ist aktiv! Zahlungen deaktiviert',
-  use_with_caution: 'BITTE MIT VORSICHT BENUTZEN- %{name} Wallet ist noch BETA',
+  use_with_caution: 'BITTE MIT VORSICHT BENUTZEN - %{name} Wallet ist noch BETA',
   toggle_darkmode: 'Auf Dark Mode umschalten',
   view_swagger_docs: 'LNbits Swagger API-Dokumente',
   api_docs: 'API docs',
@@ -46,7 +46,7 @@ window.localisation.de = {
   paste_request: 'Anfrage einfügen',
   create_invoice: 'Rechnung erstellen',
   camera_tooltip:
-    'Verwenden Sie die Kamera, um eine Rechnung oder einen QR-Code zu scannen',
+    'Verwende die Kamera, um eine Rechnung oder einen QR-Code zu scannen',
   export_csv: 'Exportieren als CSV',
   transactions: 'Transaktionen',
   chart_tooltip: 'Diagramm anzeigen',
@@ -68,7 +68,7 @@ window.localisation.de = {
   outgoing_payment_pending: 'Ausgehende Zahlung wartend',
   drain_funds: 'Sats abziehen',
   drain_funds_desc:
-    'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass deine Brieftasche die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
+    'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass dein Wallet die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
   i_understand: 'Ich verstehe',
   copy_wallet_url: 'Wallet-URL kopieren',
   disclaimer_dialog:
@@ -84,7 +84,7 @@ window.localisation.de = {
   warning: 'Warnung',
   manage: 'Verwalten',
   repository: 'Repository',
-  confirm_continue: 'Sind Sie sicher, dass Sie fortfahren möchten?',
+  confirm_continue: 'Bist du sicher, dass du fortfahren möchtest?',
   manage_extension_details: 'Erweiterung installieren/deinstallieren',
   install: 'Installieren',
   uninstall: 'Deinstallieren',
@@ -104,7 +104,7 @@ window.localisation.de = {
     '(Nur Administratorkonten können Erweiterungen installieren)',
   new_version: 'Neue Version',
   extension_depends_on: 'Hängt ab von:',
-  extension_rating_soon: 'Bewertungen kommen bald',
+  extension_rating_soon: 'Bewertungen sind bald verfügbar',
   extension_installed_version: 'Installierte Version',
   extension_uninstall_warning:
     'Sie sind dabei, die Erweiterung für alle Benutzer zu entfernen.',
