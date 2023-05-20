@@ -178,8 +178,8 @@ class CoreLightningNode(Node):
                     funding_txid=ch["funding_txid"],
                     peer_id=ch["peer_id"],
                     balance=ChannelBalance(
-                        inbound_msat=ch["our_amount_msat"],
-                        outbound_msat=ch["amount_msat"] - ch["our_amount_msat"],
+                        local_msat=ch["our_amount_msat"],
+                        remote_msat=ch["amount_msat"] - ch["our_amount_msat"],
                         total_msat=ch["amount_msat"],
                     ),
                     name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
@@ -232,7 +232,7 @@ class CoreLightningNode(Node):
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
             balance_msat=sum(
-                channel.balance.inbound_msat for channel in active_channels
+                channel.balance.local_msat for channel in active_channels
             ),
             fees=NodeFees(total_msat=info["fees_collected_msat"]),
             addresses=[address["address"] for address in info["address"]],

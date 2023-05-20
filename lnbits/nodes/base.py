@@ -33,8 +33,8 @@ class ChannelState(Enum):
 
 
 class ChannelBalance(BaseModel):
-    inbound_msat: int
-    outbound_msat: int
+    local_msat: int
+    remote_msat: int
     total_msat: int
 
 
@@ -60,8 +60,8 @@ class NodeChannelsResponse(BaseModel):
         return NodeChannelsResponse(
             channels=channels,
             active_balance=ChannelBalance(
-                inbound_msat=sum(channel.balance.inbound_msat for channel in active),
-                outbound_msat=sum(channel.balance.outbound_msat for channel in active),
+                local_msat=sum(channel.balance.local_msat for channel in active),
+                remote_msat=sum(channel.balance.remote_msat for channel in active),
                 total_msat=sum(channel.balance.total_msat for channel in active),
             ),
         )

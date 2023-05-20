@@ -86,11 +86,11 @@
         <div>
                         <div class="row items-center justify-between">
                           <span class="text-weight-thin">
-                            Inbound: {{ formatMsat(balance.inbound_msat) }}
+                            Local: {{ formatMsat(balance.local_msat) }}
                             sats
                           </span>
                           <span class="text-weight-thin">
-                            Outbound: {{ formatMsat(balance.outbound_msat) }}
+                            Remote: {{ formatMsat(balance.remote_msat) }}
                             sats
                           </span>
                         </div>
@@ -99,7 +99,7 @@
                           rounded
                           class="q-mb-md"
                           size="25px"
-                          :value="balance.inbound_msat / balance.total_msat"
+                          :value="balance.local_msat / balance.total_msat"
                           :color="color"
                           :style="\`color: #${this.color}\`"
                         >
