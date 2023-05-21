@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, NamedTuple, Optional
 
 from pydantic import BaseModel
 
+from lnbits.db import FilterModel, Filters, Page
+
 if TYPE_CHECKING:
     from lnbits.wallets.base import Wallet
 
@@ -123,7 +125,7 @@ class NodePayment(BaseModel):
     memo: Optional[str]
     time: int
     bolt11: str
-    preimage: str
+    preimage: Optional[str]
     payment_hash: str
     expiry: Optional[float] = None
     destination: Optional[NodePeerInfo] = None
@@ -134,7 +136,7 @@ class NodeInvoice(BaseModel):
     amount: int
     memo: Optional[str]
     bolt11: str
-    preimage: str
+    preimage: Optional[str]
     payment_hash: str
     paid_at: Optional[int] = None
     expiry: Optional[int] = None
@@ -147,6 +149,18 @@ class PaymentStats(BaseModel):
 class NodePaymentsResponse(BaseModel):
     error_message: Optional[str]
     payments: list[NodePayment]
+
+
+class NodeInvoiceFilters(FilterModel):
+    pass
+
+
+class NodeInvoiceFilters(FilterModel):
+    pass
+
+
+class NodePaymentsFilters(FilterModel):
+    pass
 
 
 class Node(ABC):
@@ -213,11 +227,15 @@ class Node(ABC):
         return PublicNodeInfo(**info.__dict__)
 
     @abstractmethod
-    async def get_payments(self) -> list[NodePayment]:
+    async def get_payments(
+        self, filters: Filters[NodePaymentsFilters]
+    ) -> Page[NodePayment]:
         pass
 
     @abstractmethod
-    async def get_invoices(self) -> list[NodeInvoice]:
+    async def get_invoices(
+        self, filters: Filters[NodeInvoiceFilters]
+    ) -> Page[NodeInvoice]:
         pass
 
     @abstractmethod

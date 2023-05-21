@@ -278,6 +278,8 @@
           ],
           pagination: {
             rowsPerPage: 10,
+            page: 1,
+            rowsNumber: 10
           },
           filter: null
         },
@@ -316,7 +318,9 @@
             },
           ],
           pagination: {
-            rowsPerPage: 10
+            rowsPerPage: 10,
+            page: 1,
+            rowsNumber: 10
           },
           filter: null
         }
@@ -351,8 +355,10 @@
       formatMsat: function (msat) {
         return LNbits.utils.formatMsat(msat)
       },
-      api: function (method, url, data) {
-        return LNbits.api.request(method, '/node/api/v1' + url + '?usr=' + this.g.user.id, {}, data)
+      api: function (method, url, options) {
+        const params = new URLSearchParams(options?.query)
+        params.set('usr', this.g.user.id)
+        return LNbits.api.request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
           .catch(error => {
             LNbits.utils.notifyApiError(error)
           })
@@ -379,16 +385,34 @@
             this.ranks = response.data
           })
       },
-      getPayments: function () {
-        return this.api('GET', '/payments')
+      getPayments: function (props) {
+        if (props) {
+          this.paymentsTable.pagination = props.pagination
+        }
+        let pagination = this.paymentsTable.pagination
+        const query = {
+          limit: pagination.rowsPerPage,
+          offset: ((pagination.page - 1) * pagination.rowsPerPage) ?? 0,
+        }
+        return this.api('GET', '/payments', {query})
           .then(response => {
-            this.paymentsTable.data = response.data
+            this.paymentsTable.data = response.data.data
+            this.paymentsTable.pagination.rowsNumber = response.data.total
           })
       },
-      getInvoices: function () {
-        return this.api('GET', '/invoices')
+      getInvoices: function (props) {
+        if (props) {
+          this.invoiceTable.pagination = props.pagination
+        }
+        let pagination = this.invoiceTable.pagination
+        const query = {
+          limit: pagination.rowsPerPage,
+          offset: ((pagination.page - 1) * pagination.rowsPerPage) ?? 0,
+        }
+        return this.api('GET', '/invoices', {query})
           .then(response => {
-            this.invoiceTable.data = response.data
+            this.invoiceTable.data = response.data.data
+            this.invoiceTable.pagination.rowsNumber = response.data.total
           })
       },
       getPeers: function () {
@@ -400,14 +424,14 @@
       },
       connectPeer: function () {
         console.log('peer', this.connectPeerDialog)
-        this.api('POST', '/peers/connect', this.connectPeerDialog.data)
+        this.api('POST', '/peers/connect', {data: this.connectPeerDialog.data})
           .then(() => {
             this.connectPeerDialog.show = false
             this.getPeers()
           })
       },
       openChannel: function () {
-        this.api('POST', '/channels', this.openChannelDialog.data)
+        this.api('POST', '/channels', {data: this.openChannelDialog.data})
           .then(response => {
             this.openChannelDialog.show = false
             this.getChannels()
@@ -421,7 +445,7 @@
         this.closeChannelDialog.data = {force: false, short_id: channel.short_id, funding_txid: channel.funding_txid}
       },
       closeChannel: function () {
-        this.api('DELETE', '/channels', this.closeChannelDialog.data)
+        this.api('DELETE', '/channels', {data: this.closeChannelDialog.data})
           .then(response => {
             this.closeChannelDialog.show = false
             this.getChannels()

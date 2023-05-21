@@ -100,6 +100,7 @@
               row-key="payment_hash"
               no-data-label="No transactions made yet"
               :filter="paymentsTable.filter"
+              @request="getPayments"
             >
               {% raw %}
               <template v-slot:body-cell-pending="props">
@@ -263,6 +264,7 @@
               :pagination.sync="invoiceTable.pagination"
               no-data-label="No transactions made yet"
               :filter="invoiceTable.filter"
+              @request="getInvoices"
             >
               {% raw %}
               <template v-slot:body-cell-pending="props">

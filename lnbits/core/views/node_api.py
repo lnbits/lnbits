@@ -4,15 +4,18 @@ import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 
-from lnbits.decorators import check_admin
+from lnbits.decorators import check_admin, parse_filters
 from lnbits.settings import get_node_class, settings
 
+from ...db import Filters, Page
 from ...nodes.base import (
     Node,
     NodeChannelsResponse,
     NodeInfoResponse,
     NodeInvoice,
+    NodeInvoiceFilters,
     NodePayment,
+    NodePaymentsFilters,
     NodePeerInfo,
     PublicNodeInfo,
 )
@@ -102,18 +105,20 @@ async def api_delete_channel(
     return await node.close_channel(short_id, funding_txid, force)
 
 
-@node_api.get("/payments", response_model=list[NodePayment])
+@node_api.get("/payments", response_model=Page[NodePayment])
 async def api_get_payments(
     node: Node = Depends(require_node),
-) -> Optional[list[NodePayment]]:
-    return await node.get_payments()
+    filters: Filters = Depends(parse_filters(NodePaymentsFilters)),
+) -> Optional[Page[NodePayment]]:
+    return await node.get_payments(filters)
 
 
-@node_api.get("/invoices", response_model=list[NodeInvoice])
+@node_api.get("/invoices", response_model=Page[NodeInvoice])
 async def api_get_invoices(
     node: Node = Depends(require_node),
-) -> Optional[list[NodeInvoice]]:
-    return await node.get_invoices()
+    filters: Filters = Depends(parse_filters(NodeInvoiceFilters)),
+) -> Optional[Page[NodeInvoice]]:
+    return await node.get_invoices(filters)
 
 
 @node_api.get("/peers", response_model=list[NodePeerInfo])

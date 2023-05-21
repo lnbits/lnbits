@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+from functools import partial, wraps
 from typing import TYPE_CHECKING, Optional
 
 import starlette.status as status
 from fastapi import HTTPException
+
+from ..db import Filters, Page
 
 try:
     from pyln.client import RpcError  # type: ignore
@@ -17,6 +21,8 @@ from lnbits.nodes.base import (
     Node,
     NodeFees,
     NodeInvoice,
+    NodeInvoiceFilters,
+    NodePaymentsFilters,
     NodePeerInfo,
     PaymentStats,
 )
@@ -25,6 +31,17 @@ from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayme
 
 if TYPE_CHECKING:
     from lnbits.wallets import CoreLightningWallet
+
+
+def async_wrap(func):
+    @wraps(func)
+    async def run(*args, loop=None, executor=None, **kwargs):
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        partial_func = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, partial_func)
+
+    return run
 
 
 def catch_rpc_errors(f):
@@ -39,6 +56,17 @@ def catch_rpc_errors(f):
 
 class CoreLightningNode(Node):
     wallet: CoreLightningWallet
+
+    def __init__(self, wallet: CoreLightningWallet):
+        super().__init__(wallet)
+        try:
+            raw = self.wallet.ln.call("listsqlschemas")
+            self.schema_cols: dict[str, list] = {
+                schema["tablename"]: schema["columns"] for schema in raw["schemas"]
+            }
+        except RpcError:
+            self.schema_cols = None
+        self.cache = {}
 
     @catch_rpc_errors
     async def connect_peer(self, uri: str) -> bool:
@@ -237,42 +265,125 @@ class CoreLightningNode(Node):
         )
 
     @catch_rpc_errors
-    async def get_payments(self) -> list[NodePayment]:
-        pays = await self.wallet.ln_rpc("listpays")
-        results = [
-            NodePayment(
-                bolt11=pay["bolt11"],
-                amount=pay["amount_msat"],
-                fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
-                memo=pay.get("description"),
-                time=pay["created_at"],
-                preimage=pay["preimage"],
-                payment_hash=pay["payment_hash"],
-                pending=pay["status"] != "complete",
-                destination=await self.get_peer_info(pay["destination"]),
+    async def get_payments(
+        self, filters: Filters[NodePaymentsFilters]
+    ) -> Page[NodePayment]:
+        if self.schema_cols:
+            rows = await self.sql(
+                f"""
+                SELECT payment_hash,
+                       status,
+                       sum(amount_msat),
+                       destination,
+                       created_at,
+                       sum(amount_msat) - sum(amount_sent_msat),
+                       max(bolt11),
+                       description,
+                       payment_preimage
+                FROM sendpays
+                WHERE status != 'failed'
+                GROUP BY payment_hash
+                ORDER BY created_at DESC
+                {filters.pagination()}
+                """,
             )
-            for pay in pays["pays"]
-            if pay["status"] == "complete"
-        ]
-        results.sort(key=lambda x: x.time, reverse=True)
-        return results
+            count = await self.sql(
+                f"""
+                SELECT count(bolt11)
+                FROM sendpays
+                WHERE status != 'failed'
+                """,
+                cache=True,
+            )
+            return Page(
+                data=[
+                    NodePayment(
+                        payment_hash=row[0],
+                        pending=row[1] != "complete",
+                        amount=row[2],
+                        destination=await self.get_peer_info(row[3]),
+                        time=row[4],
+                        fee=row[5],
+                        bolt11=row[6],
+                        memo=row[7],
+                        preimage=row[8],
+                    )
+                    for row in rows
+                ],
+                total=count[0][0],
+            )
+        else:
+            result = await self.wallet.ln_rpc("listpays")
+            results = [
+                NodePayment(
+                    bolt11=pay["bolt11"],
+                    amount=pay["amount_msat"],
+                    fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
+                    memo=pay.get("description"),
+                    time=pay["created_at"],
+                    preimage=pay["preimage"],
+                    payment_hash=pay["payment_hash"],
+                    pending=pay["status"] != "complete",
+                    destination=await self.get_peer_info(pay["destination"]),
+                )
+                for pay in result["pays"]
+                if pay["status"] != "failed"
+            ]
+            results.sort(key=lambda x: x.time, reverse=True)
+            return Page(data=results, total=len(results))
 
     @catch_rpc_errors
-    async def get_invoices(self) -> list[NodeInvoice]:
-        invoices = await self.wallet.ln_rpc("listinvoices")
-        return [
-            NodeInvoice(
-                bolt11=invoice["bolt11"],
-                amount=invoice["amount_msat"],
-                preimage=invoice.get("payment_preimage") or "0" * 64,
-                memo=invoice["description"],
-                paid_at=invoice.get("paid_at"),
-                expiry=invoice["expires_at"],
-                payment_hash=invoice["payment_hash"],
-                pending=invoice["status"] != "paid",
+    @async_wrap
+    def sql(self, query: str, schema: str = None, cache=False) -> list:
+        if cache and query in self.cache:
+            return self.cache[query]
+
+        result = self.wallet.ln.call("sql", [query.replace("\n", " ")])
+
+        if schema and schema in self.schema_cols:
+            rows = [
+                {self.schema_cols[schema][i]["name"]: val for i, val in enumerate(row)}
+                for row in result["rows"]
+            ]
+        else:
+            rows = result["rows"]
+
+        if cache:
+            self.cache[query] = rows
+        return rows
+
+    @catch_rpc_errors
+    async def get_invoices(
+        self, filters: Filters[NodeInvoiceFilters] = None
+    ) -> Page[NodeInvoice]:
+        if self.schema_cols:
+            invoices = await self.sql(
+                f"SELECT * FROM invoices {filters.pagination()}", schema="invoices"
             )
-            for invoice in invoices["invoices"]
-        ]
+            count = await self.sql(f"SELECT count(*) FROM invoices", cache=True)
+            count = count[0][0]
+        else:
+            result = await self.wallet.ln_rpc("listinvoices")
+            invoices = result["invoices"]
+            count = len(invoices)
+        return Page(
+            data=[
+                NodeInvoice(
+                    bolt11=invoice["bolt11"],
+                    amount=invoice["amount_msat"],
+                    preimage=invoice.get("payment_preimage") or "0" * 64,
+                    memo=invoice["description"],
+                    paid_at=invoice.get("paid_at"),
+                    expiry=invoice["expires_at"],
+                    payment_hash=invoice["payment_hash"],
+                    pending=invoice["status"] != "paid",
+                )
+                for invoice in invoices
+            ],
+            total=count,
+        )
 
     async def get_payment_stats(self) -> PaymentStats:
+        test = self.wallet.ln.call("sql", ["SELECT sum(amount_msat) FROM invoices"])
+        test = self.wallet.ln.call("sql", ["SELECT sum(amount_msat) FROM invoices"])
         return PaymentStats(volume=0)

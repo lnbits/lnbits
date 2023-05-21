@@ -13,9 +13,8 @@ import httpx
 from loguru import logger
 from pydantic import BaseSettings, Extra, Field, validator
 
-from lnbits.nodes.base import Node
-
 if TYPE_CHECKING:
+    from lnbits.nodes.base import Node
     from lnbits.wallets.base import Wallet
 
 
