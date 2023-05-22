@@ -1,4 +1,4 @@
-window.localisation.pt_BR = {
+window.localisation.pt_PT = {
   server: 'Servidor',
   theme: 'Tema',
   funding: 'Financiamento',
