@@ -343,7 +343,8 @@ window.windowMixin = {
         user: null,
         wallet: null,
         payments: [],
-        allowedThemes: null
+        allowedThemes: null,
+        langs: []
       }
     }
   },
@@ -387,6 +388,8 @@ window.windowMixin = {
       window.LOCALE = locale
       window.i18n.locale = locale
     }
+
+    this.g.langs = window.langs ?? []
 
     addEventListener('offline', event => {
       this.g.offline = true
