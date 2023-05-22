@@ -67,8 +67,13 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    getPayments: function (wallet) {
-      return this.request('get', '/api/v1/payments', wallet.inkey)
+    getPayments: function (wallet, query) {
+      const params = new URLSearchParams(query)
+      return this.request(
+        'get',
+        '/api/v1/payments/paginated?' + params,
+        wallet.inkey
+      )
     },
     getPayment: function (wallet, paymentHash) {
       return this.request(
@@ -185,7 +190,7 @@ window.LNbits = {
     },
     payment: function (data) {
       obj = {
-        checking_id: data.id,
+        checking_id: data.checking_id,
         pending: data.pending,
         amount: data.amount,
         fee: data.fee,

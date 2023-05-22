@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import os
@@ -5,10 +7,11 @@ import re
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
+from sqlite3 import Row
+from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, root_validator
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
@@ -18,6 +21,51 @@ from lnbits.settings import settings
 POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
+
+if settings.lnbits_database_url:
+    database_uri = settings.lnbits_database_url
+
+    if database_uri.startswith("cockroachdb://"):
+        DB_TYPE = COCKROACH
+    else:
+        DB_TYPE = POSTGRES
+
+    from psycopg2.extensions import DECIMAL, new_type, register_type
+
+    def _parse_timestamp(value, _):
+        if value is None:
+            return None
+        f = "%Y-%m-%d %H:%M:%S.%f"
+        if "." not in value:
+            f = "%Y-%m-%d %H:%M:%S"
+        return time.mktime(datetime.datetime.strptime(value, f).timetuple())
+
+    register_type(
+        new_type(
+            DECIMAL.values,
+            "DEC2FLOAT",
+            lambda value, curs: float(value) if value is not None else None,
+        )
+    )
+    register_type(
+        new_type(
+            (1082, 1083, 1266),
+            "DATE2INT",
+            lambda value, curs: time.mktime(value.timetuple())
+            if value is not None
+            else None,
+        )
+    )
+
+    register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
+else:
+    if os.path.isdir(settings.lnbits_data_folder):
+        DB_TYPE = SQLITE
+    else:
+        raise NotADirectoryError(
+            f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
+            f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
+        )
 
 
 class Compat:
@@ -68,6 +116,16 @@ class Compat:
             return "BIGINT"
         return "INT"
 
+    @classmethod
+    @property
+    def timestamp_placeholder(cls):
+        if DB_TYPE == POSTGRES:
+            return "to_timestamp(?)"
+        elif DB_TYPE == COCKROACH:
+            return "cast(? AS timestamp)"
+        else:
+            return "?"
+
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
@@ -87,17 +145,21 @@ class Connection(Compat):
         # strip html
         CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
 
-        def cleanhtml(raw_html):
-            if isinstance(raw_html, str):
-                cleantext = re.sub(CLEANR, "", raw_html)
-                return cleantext
-            else:
-                return raw_html
-
         # tuple to list and back to tuple
-        value_list = [values] if isinstance(values, str) else list(values)
-        values = tuple([cleanhtml(val) for val in value_list])
-        return values
+        raw_values = [values] if isinstance(values, str) else list(values)
+        values = []
+        for raw_value in raw_values:
+            if isinstance(raw_value, str):
+                values.append(re.sub(CLEANR, "", raw_value))
+            elif isinstance(raw_value, datetime.datetime):
+                ts = raw_value.timestamp()
+                if self.type == SQLITE:
+                    values.append(int(ts))
+                else:
+                    values.append(ts)
+            else:
+                values.append(raw_value)
+        return tuple(values)
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(
@@ -113,6 +175,51 @@ class Connection(Compat):
         await result.close()
         return row
 
+    async def fetch_page(
+        self,
+        query: str,
+        where: Optional[List[str]] = None,
+        values: Optional[List[str]] = None,
+        filters: Optional[Filters] = None,
+        model: Optional[Type[TRowModel]] = None,
+    ) -> Page[TRowModel]:
+        if not filters:
+            filters = Filters()
+        clause = filters.where(where)
+        parsed_values = filters.values(values)
+
+        rows = await self.fetchall(
+            f"""
+            {query}
+            {clause}
+            {filters.order_by()}
+            {filters.pagination()}
+            """,
+            parsed_values,
+        )
+        if rows:
+            # no need for extra query if no pagination is specified
+            if filters.offset or filters.limit:
+                count = await self.fetchone(
+                    f"""
+                    SELECT COUNT(*) FROM (
+                        {query}
+                        {clause}
+                    ) as count
+                    """,
+                    parsed_values,
+                )
+                count = int(count[0])
+            else:
+                count = len(rows)
+        else:
+            count = 0
+
+        return Page(
+            data=[model.from_row(row) for row in rows] if model else rows,
+            total=count,
+        )
+
     async def execute(self, query: str, values: tuple = ()):
         return await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
@@ -122,57 +229,17 @@ class Connection(Compat):
 class Database(Compat):
     def __init__(self, db_name: str):
         self.name = db_name
+        self.schema = self.name
+        self.type = DB_TYPE
 
-        if settings.lnbits_database_url:
+        if DB_TYPE == SQLITE:
+            self.path = os.path.join(
+                settings.lnbits_data_folder, f"{self.name}.sqlite3"
+            )
+            database_uri = f"sqlite:///{self.path}"
+        else:
             database_uri = settings.lnbits_database_url
 
-            if database_uri.startswith("cockroachdb://"):
-                self.type = COCKROACH
-            else:
-                self.type = POSTGRES
-
-            from psycopg2.extensions import DECIMAL, new_type, register_type
-
-            def _parse_timestamp(value, _):
-                if value is None:
-                    return None
-                f = "%Y-%m-%d %H:%M:%S.%f"
-                if "." not in value:
-                    f = "%Y-%m-%d %H:%M:%S"
-                return time.mktime(datetime.datetime.strptime(value, f).timetuple())
-
-            register_type(
-                new_type(
-                    DECIMAL.values,
-                    "DEC2FLOAT",
-                    lambda value, curs: float(value) if value is not None else None,
-                )
-            )
-            register_type(
-                new_type(
-                    (1082, 1083, 1266),
-                    "DATE2INT",
-                    lambda value, curs: time.mktime(value.timetuple())
-                    if value is not None
-                    else None,
-                )
-            )
-
-            register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
-        else:
-            if os.path.isdir(settings.lnbits_data_folder):
-                self.path = os.path.join(
-                    settings.lnbits_data_folder, f"{self.name}.sqlite3"
-                )
-                database_uri = f"sqlite:///{self.path}"
-                self.type = SQLITE
-            else:
-                raise NotADirectoryError(
-                    f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
-                    f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
-                )
-        logger.trace(f"database {self.type} added for {self.name}")
-        self.schema = self.name
         if self.name.startswith("ext_"):
             self.schema = self.name[4:]
         else:
@@ -180,6 +247,8 @@ class Database(Compat):
 
         self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
         self.lock = asyncio.Lock()
+
+        logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
     async def connect(self):
@@ -215,6 +284,17 @@ class Database(Compat):
             await result.close()
             return row
 
+    async def fetch_page(
+        self,
+        query: str,
+        where: Optional[List[str]] = None,
+        values: Optional[List[str]] = None,
+        filters: Optional[Filters] = None,
+        model: Optional[Type[TRowModel]] = None,
+    ) -> Page[TRowModel]:
+        async with self.connect() as conn:
+            return await conn.fetch_page(query, where, values, filters, model)
+
     async def execute(self, query: str, values: tuple = ()):
         async with self.connect() as conn:
             return await conn.execute(query, values)
@@ -229,6 +309,8 @@ class Operator(Enum):
     LT = "lt"
     EQ = "eq"
     NE = "ne"
+    GE = "ge"
+    LE = "le"
     INCLUDE = "in"
     EXCLUDE = "ex"
 
@@ -246,21 +328,46 @@ class Operator(Enum):
             return ">"
         elif self == Operator.LT:
             return "<"
+        elif self == Operator.GE:
+            return ">="
+        elif self == Operator.LE:
+            return "<="
         else:
             raise ValueError("Unknown SQL Operator")
 
 
+class FromRowModel(BaseModel):
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(**dict(row))
+
+
+class FilterModel(BaseModel):
+    __search_fields__: List[str] = []
+    __sort_fields__: Optional[List[str]] = None
+
+
+T = TypeVar("T")
 TModel = TypeVar("TModel", bound=BaseModel)
+TRowModel = TypeVar("TRowModel", bound=FromRowModel)
+TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 
 
-class Filter(BaseModel, Generic[TModel]):
+class Page(BaseModel, Generic[T]):
+    data: list[T]
+    total: int
+
+
+class Filter(BaseModel, Generic[TFilterModel]):
     field: str
-    nested: Optional[list[str]]
+    nested: Optional[List[str]]
     op: Operator = Operator.EQ
     values: list[Any]
 
+    model: Optional[Type[TFilterModel]]
+
     @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TModel]):
+    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
         # Key format:
         # key[operator]
         # e.g. name[eq]
@@ -300,7 +407,7 @@ class Filter(BaseModel, Generic[TModel]):
         else:
             raise ValueError("Unknown filter field")
 
-        return cls(field=field, op=op, nested=nested, values=values)
+        return cls(field=field, op=op, nested=nested, values=values, model=model)
 
     @property
     def statement(self):
@@ -308,18 +415,49 @@ class Filter(BaseModel, Generic[TModel]):
         if self.nested:
             for name in self.nested:
                 accessor = f"({accessor} ->> '{name}')"
+        if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
+            placeholder = Compat.timestamp_placeholder
+        else:
+            placeholder = "?"
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join(["?"] * len(self.values))
+            placeholders = ", ".join([placeholder] * len(self.values))
             stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
         else:
-            stmt = [f"{accessor} {self.op.as_sql} ?"] * len(self.values)
+            stmt = [f"{accessor} {self.op.as_sql} {placeholder}"] * len(self.values)
         return " OR ".join(stmt)
 
 
-class Filters(BaseModel, Generic[TModel]):
-    filters: List[Filter[TModel]] = []
-    limit: Optional[int]
-    offset: Optional[int]
+class Filters(BaseModel, Generic[TFilterModel]):
+    """
+    Generic helper class for filtering and sorting data.
+    For usage in an api endpoint, use the `parse_filters` dependency.
+
+    When constructing this class manually always make sure to pass a model so that the values can be validated.
+    Otherwise, make sure to validate the inputs manually.
+    """
+
+    filters: List[Filter[TFilterModel]] = []
+    search: Optional[str] = None
+
+    offset: Optional[int] = None
+    limit: Optional[int] = None
+
+    sortby: Optional[str] = None
+    direction: Optional[Literal["asc", "desc"]] = None
+
+    model: Optional[Type[TFilterModel]] = None
+
+    @root_validator(pre=True)
+    def validate_sortby(cls, values):
+        sortby = values.get("sortby")
+        model = values.get("model")
+        if sortby and model:
+            model = values["model"]
+            # if no sort fields are specified explicitly all fields are allowed
+            allowed = model.__sort_fields__ or model.__fields__
+            if sortby not in allowed:
+                raise ValueError("Invalid sort field")
+        return values
 
     def pagination(self) -> str:
         stmt = ""
@@ -329,16 +467,36 @@ class Filters(BaseModel, Generic[TModel]):
             stmt += f"OFFSET {self.offset}"
         return stmt
 
-    def where(self, where_stmts: List[str]) -> str:
+    def where(self, where_stmts: Optional[List[str]] = None) -> str:
+        if not where_stmts:
+            where_stmts = []
         if self.filters:
             for filter in self.filters:
                 where_stmts.append(filter.statement)
+        if self.search and self.model:
+            if DB_TYPE == POSTGRES:
+                where_stmts.append(
+                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+                )
+            elif DB_TYPE == SQLITE:
+                where_stmts.append(
+                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
+                )
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""
 
-    def values(self, values: List[str]) -> Tuple:
+    def order_by(self) -> str:
+        if self.sortby:
+            return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
+        return ""
+
+    def values(self, values: Optional[List[str]] = None) -> tuple:
+        if not values:
+            values = []
         if self.filters:
             for filter in self.filters:
                 values.extend(filter.values)
+        if self.search and self.model:
+            values.append(f"%{self.search}%")
         return tuple(values)

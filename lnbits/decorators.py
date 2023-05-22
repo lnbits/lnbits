@@ -1,16 +1,16 @@
 from http import HTTPStatus
-from typing import Optional, Type
+from typing import Literal, Optional, Type
 
-from fastapi import HTTPException, Request, Security, status
+from fastapi import Query, Request, Security, status
+from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery
 from fastapi.security.base import SecurityBase
-from pydantic import BaseModel
 from pydantic.types import UUID4
 
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
-from lnbits.db import Filter, Filters
+from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -185,7 +185,6 @@ async def require_admin_key(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ):
-
     token = api_key_header or api_key_query
 
     if not token:
@@ -211,7 +210,6 @@ async def require_invoice_key(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ):
-
     token = api_key_header or api_key_query
 
     if not token:
@@ -279,14 +277,19 @@ async def check_super_user(usr: UUID4) -> User:
     return user
 
 
-def parse_filters(model: Type[BaseModel]):
+def parse_filters(model: Type[TFilterModel]):
     """
     Parses the query params as filters.
     :param model: model used for validation of filter values
     """
 
     def dependency(
-        request: Request, limit: Optional[int] = None, offset: Optional[int] = None
+        request: Request,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sortby: Optional[str] = None,
+        direction: Optional[Literal["asc", "desc"]] = None,
+        search: Optional[str] = Query(None, description="Text based search"),
     ):
         params = request.query_params
         filters = []
@@ -300,6 +303,10 @@ def parse_filters(model: Type[BaseModel]):
             filters=filters,
             limit=limit,
             offset=offset,
+            sortby=sortby,
+            direction=direction,
+            search=search,
+            model=model,
         )
 
     return dependency

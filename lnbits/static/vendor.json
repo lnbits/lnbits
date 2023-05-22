@@ -5,7 +5,7 @@
     "/static/vendor/axios.js",
     "/static/vendor/vue.js",
     "/static/vendor/vue-router.js",
-    "/static/vendor/vue-qrcode-reader.browser.js",
+    "/static/vendor/VueQrcodeReader.umd.js",
     "/static/vendor/vue-qrcode.js",
     "/static/vendor/vuex.js",
     "/static/vendor/quasar.ie.polyfills.umd.min.js",
@@ -13,10 +13,18 @@
     "/static/vendor/Chart.bundle.js",
     "/static/vendor/vue-i18n.js",
     "/static/i18n/i18n.js",
-    "/static/i18n/en.js",
     "/static/i18n/de.js",
+    "/static/i18n/en.js",
     "/static/i18n/es.js",
+    "/static/i18n/fr.js",
+    "/static/i18n/it.js",
     "/static/i18n/jp.js",
+    "/static/i18n/nl.js",
+    "/static/i18n/pi.js",
+    "/static/i18n/pl.js",
+    "/static/i18n/fr.js",
+    "/static/i18n/nl.js",
+    "/static/i18n/we.js",
     "/static/js/base.js",
     "/static/js/components.js",
     "/static/js/bolt11-decoder.js"
@@ -24,7 +32,6 @@
   "css": [
     "/static/vendor/quasar.css",
     "/static/vendor/Chart.css",
-    "/static/vendor/vue-qrcode-reader.css",
     "/static/css/base.css"
   ]
 }
