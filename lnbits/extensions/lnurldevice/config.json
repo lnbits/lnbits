@@ -1,6 +1,0 @@
-{
-  "name": "LNURLDevice",
-  "short_description": "For offline LNURL devices",
-	"tile": "/lnurldevice/static/image/lnurldevice.png",
-  "contributors": ["arcbtc"]
-}

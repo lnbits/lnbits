@@ -8,7 +8,7 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularly.
+LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
@@ -18,7 +18,7 @@ A backend wallet can be configured using the following LNbits environment variab
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
 - `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
-### Spark (c-lightning)
+### Spark (Core Lightning)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **SparkWallet**
 - `SPARK_URL`: http://10.147.17.230:9737/rpc
@@ -47,7 +47,7 @@ You can also use an AES-encrypted macaroon (more info) instead by using
 
 - `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
-To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroon.py`.
+To encrypt your macaroon, run `poetry run python lnbits/wallets/macaroon/macaroon.py`.
 
 ### LNbits
 
@@ -57,19 +57,12 @@ To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroo
 
 ### LNPay
 
-For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret. For example, `https://mylnbits/wallet/webhook` will be the Endpoint Url that gets notified about the payment. 
+For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret. For example, `https://mylnbits/wallet/webhook` will be the Endpoint Url that gets notified about the payment.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNPayWallet**
 - `LNPAY_API_ENDPOINT`: https://api.lnpay.co/v1/
 - `LNPAY_API_KEY`: sak_apiKey
 - `LNPAY_WALLET_KEY`: waka_apiKey
-
-
-### lntxbot
-
-- `LNBITS_BACKEND_WALLET_CLASS`: **LntxbotWallet**
-- `LNTXBOT_API_ENDPOINT`: https://lntxbot.com/
-- `LNTXBOT_KEY`: lntxbotAdminApiKey
 
 
 ### OpenNode

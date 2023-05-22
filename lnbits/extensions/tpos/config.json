@@ -1,6 +1,0 @@
-{
-  "name": "TPoS",
-  "short_description": "A shareable PoS terminal!",
-	"tile": "/tpos/static/image/tpos.png",
-  "contributors": ["talvasconcelos", "arcbtc", "leesalminen"]
-}

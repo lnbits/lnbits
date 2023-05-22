@@ -1,0 +1,12 @@
+**/.git
+**/.svn
+**/.hg
+**/node_modules
+
+*.yml
+
+**/lnbits/extensions/*
+
+**/lnbits/static/vendor
+**/lnbits/static/bundle.*
+**/lnbits/static/css/*

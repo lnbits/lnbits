@@ -1,6 +1,0 @@
-{
-  "name": "Bolt Cards",
-  "short_description": "Self custody Bolt Cards with one time LNURLw",
-  "tile": "/boltcards/static/image/boltcard.png",
-  "contributors": ["iwarpbtc", "arcbtc", "leesalminen"]
-}

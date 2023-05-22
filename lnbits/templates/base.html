@@ -2,12 +2,9 @@
 
 <html lang="en">
   <head>
-    {% for url in VENDORED_CSS %}
+    {% for url in INCLUDED_CSS %}
     <link rel="stylesheet" type="text/css" href="{{ url }}" />
-    {% endfor %}
-    <!---->
-    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
-    {% block styles %}{% endblock %}
+    {% endfor %} {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
     <meta
@@ -43,14 +40,26 @@
               <span><strong>LN</strong>bits</span> {% endif %} {%endif%} {%
               endblock %}
             </q-btn>
+            {% block toolbar_subtitle %}{%if user and user.super_user%}
+            <q-badge align="middle">Super User</q-badge>
+            {% elif user and user.admin %}
+            <q-badge align="middle">Admin User</q-badge>
+            {%endif%}{% endblock %}
           </q-toolbar-title>
-          {% block beta %}
-          <q-badge color="yellow" text-color="black" class="q-mr-md">
+          {% block beta %} {% if VOIDWALLET %}
+          <q-badge color="red" text-color="black" class="q-mr-md">
+            {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
+          </q-badge>
+          {%endif%}
+          <q-badge
+            v-show="$q.screen.gt.sm"
+            color="yellow"
+            text-color="black"
+            class="q-mr-md"
+          >
             <span
-              ><span v-show="$q.screen.gt.sm"
-                >USE WITH CAUTION - {{SITE_TITLE}} wallet is still in </span
-              >BETA</span
-            >
+              v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
+            ></span>
           </q-badge>
           {% endblock %}
           <q-badge
@@ -59,8 +68,69 @@
             text-color="white"
             class="q-mr-md"
           >
-            <span> OFFLINE </span>
+            <span>OFFLINE</span>
           </q-badge>
+          <q-btn-dropdown
+            dense
+            flat
+            round
+            size="sm"
+            icon="language"
+            class="q-pl-md"
+          >
+            <q-list>
+              <q-item clickable v-close-popup @click="changeLanguage('en')">
+                <q-item-section>
+                  <q-item-label>EN</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('de')">
+                <q-item-section>
+                  <q-item-label>DE</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('es')">
+                <q-item-section>
+                  <q-item-label>ES</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('jp')">
+                <q-item-section>
+                  <q-item-label>JP</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('fr')">
+                <q-item-section>
+                  <q-item-label>FR</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('we')">
+                <q-item-section>
+                  <q-item-label>WE</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('it')">
+                <q-item-section>
+                  <q-item-label>IT</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('pi')">
+                <q-item-section>
+                  <q-item-label>PI</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('pl')">
+                <q-item-section>
+                  <q-item-label>PL</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="changeLanguage('nl')">
+                <q-item-section>
+                  <q-item-label>NL</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
@@ -138,7 +208,17 @@
                 icon="format_color_fill"
                 color="pink-13"
                 size="md"
-                ><q-tooltip>Freedom</q-tooltip>
+                ><q-tooltip>freedom</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('cyber')"
+                dense
+                flat
+                @click="changeColor('cyber')"
+                icon="format_color_fill"
+                color="light-green-9"
+                size="md"
+                ><q-tooltip>cyber</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"
@@ -161,7 +241,9 @@
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
             size="sm"
           >
-            <q-tooltip>Toggle Dark Mode</q-tooltip>
+            <q-tooltip
+              >{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip
+            >
           </q-btn>
         </q-toolbar>
       </q-header>
@@ -175,7 +257,10 @@
         :elevated="$q.screen.lt.md"
       >
         <lnbits-wallet-list></lnbits-wallet-list>
-        <lnbits-admin-ui></lnbits-admin-ui>
+
+        <lnbits-admin-ui
+          v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
+        ></lnbits-admin-ui>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
@@ -194,9 +279,13 @@
           <q-toolbar-title class="text-caption">
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
-
-            <small v-if="'{{SITE_TITLE}}' == 'LNbits'"
-              >Commit version: {{LNBITS_VERSION}}</small
+            <small
+              >{% raw %}{{ $t('lnbits_version') }}{% endraw %}:
+              {{LNBITS_VERSION}},
+            </small>
+            <small
+              >{% raw %}{{ $t('commit_version') }}{% endraw %}:
+              {{COMMIT_VERSION}}</small
             >
           </q-toolbar-title>
           <q-space></q-space>
@@ -209,8 +298,10 @@
             target="_blank"
             rel="noopener"
           >
-            API DOCS
-            <q-tooltip>View LNbits Swagger API docs</q-tooltip>
+            {% raw %}{{ $t('api_docs') }}{% endraw %}
+            <q-tooltip
+              >{% raw %}{{ $t('view_swagger_docs') }}{% endraw %}</q-tooltip
+            >
           </q-btn>
           <q-btn
             flat
@@ -222,7 +313,7 @@
             target="_blank"
             rel="noopener"
           >
-            <q-tooltip>View project in GitHub</q-tooltip>
+            <q-tooltip>{% raw %}{{ $t('view_github') }}{% endraw %}</q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-footer>
@@ -232,16 +323,14 @@
 
     {% block vue_templates %}{% endblock %}
     <!---->
-    {% for url in VENDORED_JS %}
+    {% for url in INCLUDED_JS %}
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->
-    <script src="/static/js/base.js"></script>
-    <script src="/static/js/components.js"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
-      if(themes && themes.length) {
+      if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
     </script>

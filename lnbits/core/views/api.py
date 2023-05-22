@@ -5,7 +5,7 @@ import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import async_timeout
@@ -26,18 +26,32 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import StreamingResponse
+from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.core.models import Payment, Wallet
+from lnbits.core.helpers import (
+    migrate_extension_database,
+    stop_extension_background_work,
+)
+from lnbits.core.models import Payment, PaymentFilters, User, Wallet
+from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     get_key_type,
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import url_for
+from lnbits.extension_manager import (
+    CreateExtension,
+    Extension,
+    ExtensionRelease,
+    InstallableExtension,
+    fetch_github_release_config,
+    get_valid_extensions,
+)
+from lnbits.helpers import generate_filter_params_openapi, url_for
 from lnbits.settings import get_wallet_class, settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -45,10 +59,18 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, db
+from .. import core_app, core_app_extra, db
 from ..crud import (
+    add_installed_extension,
+    create_tinyurl,
+    delete_installed_extension,
+    delete_tinyurl,
+    get_dbversions,
     get_payments,
+    get_payments_paginated,
     get_standalone_payment,
+    get_tinyurl,
+    get_tinyurl_by_url,
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
@@ -104,20 +126,25 @@ async def api_update_wallet(
     }
 
 
-@core_app.get("/api/v1/payments")
+@core_app.get(
+    "/api/v1/payments",
+    name="Payment List",
+    summary="get list of payments",
+    response_description="list of payments",
+    response_model=List[Payment],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
 async def api_payments(
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
     wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pendingPayments = await get_payments(
+    pending_payments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
-    for payment in pendingPayments:
+    for payment in pending_payments:
         await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
@@ -125,9 +152,39 @@ async def api_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
-        limit=limit,
-        offset=offset,
+        filters=filters,
     )
+
+
+@core_app.get(
+    "/api/v1/payments/paginated",
+    name="Payment List",
+    summary="get paginated list of payments",
+    response_description="list of payments",
+    response_model=Page[Payment],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_paginated(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
+):
+    pending = await get_payments_paginated(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        filters=filters,
+    )
+    for payment in pending.data:
+        await check_transaction_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
+    page = await get_payments_paginated(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+        filters=filters,
+    )
+    return page
 
 
 class CreateInvoiceData(BaseModel):
@@ -137,6 +194,7 @@ class CreateInvoiceData(BaseModel):
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
+    expiry: Optional[int] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -176,12 +234,13 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     async with db.connect() as conn:
         try:
-            payment_hash, payment_request = await create_invoice(
+            _, payment_request = await create_invoice(
                 wallet_id=wallet.id,
                 amount=amount,
                 memo=memo,
                 description_hash=description_hash,
                 unhashed_description=unhashed_description,
+                expiry=data.expiry,
                 extra=data.extra,
                 webhook=data.webhook,
                 internal=data.internal,
@@ -378,7 +437,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 async with async_timeout.timeout(1):
                     payment: Payment = await payment_queue.get()
                     if payment.wallet_id == this_wallet_id:
-                        logger.debug("sse listener: payment receieved", payment)
+                        logger.debug("sse listener: payment received", payment)
                         await send_queue.put(("payment-received", payment))
             except asyncio.TimeoutError:
                 pass
@@ -393,8 +452,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
             typ, data = await send_queue.get()
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
-
-            yield dict(data=jdata, event=typ)
+                yield dict(data=jdata, event=typ)
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
@@ -413,11 +471,12 @@ async def api_payments_sse(
     )
 
 
+# TODO: refactor this route into a public and admin one
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None
+    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None  # type: ignore
 
     # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
     # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
@@ -487,6 +546,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
+        assert lnurlauth_key.verifying_key
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
@@ -551,10 +611,10 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                 for [k, v] in metadata:
                     if k == "text/plain":
                         params.update(description=v)
-                    if k == "image/jpeg;base64" or k == "image/png;base64":
-                        data_uri = "data:" + k + "," + v
+                    if k in ("image/jpeg;base64", "image/png;base64"):
+                        data_uri = f"data:{k},{v}"
                         params.update(image=data_uri)
-                    if k == "text/email" or k == "text/identifier":
+                    if k in ("text/email", "text/identifier"):
                         params.update(targetUser=v)
                 params.update(commentAllowed=data.get("commentAllowed", 0))
 
@@ -675,7 +735,7 @@ async def api_auditor():
     if not error_message:
         delta = node_balance - total_balance
     else:
-        node_balance, delta = None, None
+        node_balance, delta = 0, 0
 
     return {
         "node_balance_msats": int(node_balance),
@@ -685,7 +745,7 @@ async def api_auditor():
     }
 
 
-##################UNIVERSAL WEBSOCKET MANAGER########################
+# UNIVERSAL WEBSOCKET MANAGER
 
 
 @core_app.websocket("/api/v1/ws/{item_id}")
@@ -693,7 +753,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         websocketManager.disconnect(websocket)
 
@@ -714,3 +774,209 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": True, "data": data}
     except:
         return {"sent": False, "data": data}
+
+
+@core_app.post("/api/v1/extension")
+async def api_install_extension(
+    data: CreateExtension, user: User = Depends(check_admin)
+):
+    release = await InstallableExtension.get_extension_release(
+        data.ext_id, data.source_repo, data.archive
+    )
+    if not release:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
+        )
+
+    if not release.is_version_compatible:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
+        )
+
+    ext_info = InstallableExtension(
+        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
+    )
+
+    ext_info.download_archive()
+
+    try:
+        ext_info.extract_archive()
+
+        extension = Extension.from_installable_ext(ext_info)
+
+        db_version = (await get_dbversions()).get(data.ext_id, 0)
+        await migrate_extension_database(extension, db_version)
+
+        await add_installed_extension(ext_info)
+
+        # call stop while the old routes are still active
+        await stop_extension_background_work(data.ext_id, user.id)
+
+        if data.ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [data.ext_id]
+
+        # mount routes for the new version
+        core_app_extra.register_new_ext_routes(extension)
+
+        if extension.upgrade_hash:
+            ext_info.nofiy_upgrade()
+
+        return extension
+
+    except Exception as ex:
+        logger.warning(ex)
+        ext_info.clean_extension_files()
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Failed to install extension.",
+        )
+
+
+@core_app.delete("/api/v1/extension/{ext_id}")
+async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
+    installable_extensions = await InstallableExtension.get_installable_extensions()
+
+    extensions = [e for e in installable_extensions if e.id == ext_id]
+    if len(extensions) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unknown extension id: {ext_id}",
+        )
+
+    # check that other extensions do not depend on this one
+    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
+        installed_ext = next(
+            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+        )
+        if installed_ext and ext_id in installed_ext.dependencies:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot uninstall. Extension '{installed_ext.name}' depends on this one.",
+            )
+
+    try:
+        # call stop while the old routes are still active
+        await stop_extension_background_work(ext_id, user.id)
+
+        if ext_id not in settings.lnbits_deactivated_extensions:
+            settings.lnbits_deactivated_extensions += [ext_id]
+
+        for ext_info in extensions:
+            ext_info.clean_extension_files()
+            await delete_installed_extension(ext_id=ext_info.id)
+
+        logger.success(f"Extension '{ext_id}' uninstalled.")
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.get(
+    "/api/v1/extension/{ext_id}/releases", dependencies=[Depends(check_admin)]
+)
+async def get_extension_releases(ext_id: str):
+    try:
+        extension_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
+
+        return extension_releases
+
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.get(
+    "/api/v1/extension/release/{org}/{repo}/{tag_name}",
+    dependencies=[Depends(check_admin)],
+)
+async def get_extension_release(org: str, repo: str, tag_name: str):
+    try:
+        config = await fetch_github_release_config(org, repo, tag_name)
+        if not config:
+            return {}
+
+        return {
+            "min_lnbits_version": config.min_lnbits_version,
+            "is_version_compatible": config.is_version_compatible(),
+            "warning": config.warning,
+        }
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+# TINYURL
+
+
+@core_app.post("/api/v1/tinyurl")
+async def api_create_tinyurl(
+    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    tinyurls = await get_tinyurl_by_url(url)
+    try:
+        for tinyurl in tinyurls:
+            if tinyurl:
+                if tinyurl.wallet == wallet.wallet.inkey:
+                    return tinyurl
+        return await create_tinyurl(url, endless, wallet.wallet.inkey)
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
+        )
+
+
+@core_app.get("/api/v1/tinyurl/{tinyurl_id}")
+async def api_get_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                return tinyurl
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
+        )
+
+
+@core_app.delete("/api/v1/tinyurl/{tinyurl_id}")
+async def api_delete_tinyurl(
+    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            if tinyurl.wallet == wallet.wallet.inkey:
+                await delete_tinyurl(tinyurl_id)
+                return {"deleted": True}
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
+        )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
+        )
+
+
+@core_app.get("/t/{tinyurl_id}")
+async def api_tinyurl(tinyurl_id: str):
+    try:
+        tinyurl = await get_tinyurl(tinyurl_id)
+        if tinyurl:
+            response = RedirectResponse(url=tinyurl.url)
+            return response
+        else:
+            return
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
+        )

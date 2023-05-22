@@ -21,13 +21,14 @@ from .base import (
 class LnTipsWallet(Wallet):
     def __init__(self):
         endpoint = settings.lntips_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-
         key = (
             settings.lntips_api_key
             or settings.lntips_admin_key
             or settings.lntips_invoice_key
         )
+        if not endpoint or not key:
+            raise Exception("cannot initialize lntxbod")
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": f"Basic {key}"}
 
     async def status(self) -> StatusResponse:
@@ -55,13 +56,11 @@ class LnTipsWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"amount": amount}
+        data: Dict = {"amount": amount, "description_hash": "", "memo": memo or ""}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:
             data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["memo"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -77,7 +76,6 @@ class LnTipsWallet(Wallet):
                 error_message = data["message"]
             except:
                 error_message = r.text
-                pass
 
             return InvoiceResponse(False, None, None, error_message)
 
@@ -103,7 +101,6 @@ class LnTipsWallet(Wallet):
                 error_message = data["error"]
             except:
                 error_message = r.text
-                pass
             return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()["details"]
@@ -113,31 +110,37 @@ class LnTipsWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{self.endpoint}/api/v1/invoicestatus/{checking_id}",
-                headers=self.auth,
-            )
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    f"{self.endpoint}/api/v1/invoicestatus/{checking_id}",
+                    headers=self.auth,
+                )
 
-        if r.is_error or len(r.text) == 0:
+            if r.is_error or len(r.text) == 0:
+                raise Exception
+
+            data = r.json()
+            return PaymentStatus(data["paid"])
+        except:
             return PaymentStatus(None)
-
-        data = r.json()
-        return PaymentStatus(data["paid"])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                url=f"{self.endpoint}/api/v1/paymentstatus/{checking_id}",
-                headers=self.auth,
-            )
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    url=f"{self.endpoint}/api/v1/paymentstatus/{checking_id}",
+                    headers=self.auth,
+                )
 
-        if r.is_error:
+            if r.is_error:
+                raise Exception
+            data = r.json()
+
+            paid_to_status = {False: None, True: True}
+            return PaymentStatus(paid_to_status[data.get("paid")])
+        except:
             return PaymentStatus(None)
-        data = r.json()
-
-        paid_to_status = {False: None, True: True}
-        return PaymentStatus(paid_to_status[data.get("paid")])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None
@@ -159,7 +162,7 @@ class LnTipsWallet(Wallet):
                             except:
                                 continue
                             yield inv["payment_hash"]
-            except Exception as e:
+            except Exception:
                 pass
 
             # do not sleep if the connection was active for more than 10s

@@ -1,9 +1,8 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
-import httpx
 from loguru import logger
 from websocket import create_connection
 
@@ -23,6 +22,8 @@ class ClicheWallet(Wallet):
 
     def __init__(self):
         self.endpoint = settings.cliche_endpoint
+        if not self.endpoint:
+            raise Exception("cannot initialize cliche")
 
     async def status(self) -> StatusResponse:
         try:
@@ -37,7 +38,7 @@ class ClicheWallet(Wallet):
             data = json.loads(r)
         except:
             return StatusResponse(
-                f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
+                f"Failed to connect to {self.endpoint}, got: '{r[:200]}...'", 0
             )
 
         return StatusResponse(None, data["result"]["wallets"][0]["balance"])
@@ -48,6 +49,7 @@ class ClicheWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         if unhashed_description or description_hash:
             description_hash_str = (
@@ -89,6 +91,13 @@ class ClicheWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
+        checking_id, fee_msat, preimage, error_message, payment_ok = (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
         for _ in range(2):
             r = ws.recv()
             data = json.loads(r)
@@ -151,9 +160,9 @@ class ClicheWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                ws = await create_connection(self.endpoint)
+                ws = create_connection(self.endpoint)
                 while True:
-                    r = await ws.recv()
+                    r = ws.recv()
                     data = json.loads(r)
                     print(data)
                     try:

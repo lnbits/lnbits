@@ -3,12 +3,15 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-my-md">
     <q-btn
-      label="Save"
+      :label="$t('save')"
       color="primary"
       @click="updateSettings"
       :disabled="!checkChanges"
     >
-      <q-tooltip v-if="checkChanges"> Save your changes </q-tooltip>
+      <q-tooltip v-if="checkChanges"
+        >{%raw%}{{ $t('save_tooltip') }}{%endraw%}</q-tooltip
+      >
+
       <q-badge
         v-if="checkChanges"
         color="red"
@@ -17,15 +20,17 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
+
     <q-btn
       v-if="isSuperUser"
-      label="Restart server"
+      :label="$t('restart')"
       color="primary"
       @click="restartServer"
     >
-      <q-tooltip v-if="needsRestart">
-        Restart the server for changes to take effect
-      </q-tooltip>
+      <q-tooltip v-if="needsRestart"
+        >{%raw%}{{ $t('restart_tooltip') }}{%endraw%}</q-tooltip
+      >
+
       <q-badge
         v-if="needsRestart"
         color="red"
@@ -34,31 +39,31 @@
         style="padding: 6px; border-radius: 6px"
       />
     </q-btn>
+
     <q-btn
       v-if="isSuperUser"
-      label="Topup"
+      :label="$t('topup')"
       color="primary"
       @click="topUpDialog.show = true"
     >
-      <q-tooltip> Add funds to a wallet. </q-tooltip>
+      <q-tooltip>{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
-    <!-- <q-btn
-      label="Download Database Backup"
-      flat
-      @click="downloadBackup"
-      ></q-btn> -->
+
+    <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
+
     <q-btn
       flat
       v-if="isSuperUser"
-      label="Reset to defaults"
+      :label="$t('reset_defaults')"
       color="primary"
       @click="deleteSettings"
       class="float-right"
     >
-      <q-tooltip> Delete all settings and reset to defaults. </q-tooltip>
+      <q-tooltip>{%raw%}{{ $t('reset_defaults_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
   </div>
 </div>
+
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
@@ -67,27 +72,31 @@
           <q-tabs v-model="tab" active-color="primary" align="justify">
             <q-tab
               name="funding"
-              label="Funding"
+              :label="$t('funding')"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="users"
-              label="Users"
+              :label="$t('users')"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="server"
-              label="Server"
+              :label="$t('server')"
               @update="val => tab = val.name"
             ></q-tab>
+
             <q-tab
               name="theme"
-              label="Theme"
+              :label="$t('theme')"
               @update="val => tab = val.name"
             ></q-tab>
           </q-tabs>
         </div>
       </div>
+
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
@@ -98,10 +107,12 @@
     </q-card>
   </div>
 </div>
+
 <q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <q-form class="q-gutter-md">
-      <p>TopUp a wallet</p>
+      <p v-text="$t('topup_wallet')"></p>
+
       <div class="row">
         <div class="col-12">
           <q-input
@@ -110,28 +121,41 @@
             filled
             v-model="wallet.id"
             label="Wallet ID"
-            hint="Use the wallet ID to topup any wallet"
+            :hint="$t('topup_hint')"
           ></q-input>
+
           <br />
         </div>
+
         <div class="col-12">
           <q-input
             dense
             type="number"
             filled
             v-model="wallet.amount"
-            label="Topup amount"
+            :label="$t('amount')"
           ></q-input>
         </div>
       </div>
+
       <div class="row q-mt-lg">
-        <q-btn label="Topup" color="primary" @click="topupWallet"></q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        <q-btn
+          :label="$t('topup')"
+          color="primary"
+          @click="topupWallet"
+        ></q-btn>
+
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          :label="$t('cancel')"
+        ></q-btn>
       </div>
     </q-form>
   </q-card>
 </q-dialog>
-
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
@@ -144,6 +168,7 @@
           'classic',
           'bitcoin',
           'flamingo',
+          'cyber',
           'freedom',
           'mint',
           'autumn',
@@ -153,6 +178,7 @@
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
+        formAddExtensionsManifest: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -173,7 +199,7 @@
             }
           ],
           [
-            'CLightningWallet',
+            'CoreLightningWallet',
             {
               corelightning_rpc: {
                 value: null,
@@ -199,18 +225,6 @@
               lnd_rest_macaroon_encrypted: {
                 value: null,
                 label: 'Encrypted Macaroon'
-              },
-              lnd_cert: {
-                value: null,
-                label: 'Certificate'
-              },
-              lnd_rest_admin_macaroon: {
-                value: null,
-                label: 'Admin Macaroon'
-              },
-              lnd_rest_invoice_macaroon: {
-                value: null,
-                label: 'Invoice Macaroon'
               }
             }
           ],
@@ -233,10 +247,6 @@
                 value: null,
                 label: 'Admin Macaroon'
               },
-              lnd_grpc_invoice_macaroon: {
-                value: null,
-                label: 'Invoice Macaroon'
-              },
               lnd_grpc_macaroon_encrypted: {
                 value: null,
                 label: 'Encrypted Macaroon'
@@ -244,15 +254,15 @@
             }
           ],
           [
-            'LntxbotWallet',
+            'LnTipsWallet',
             {
-              lntxbot_api_endpoint: {
+              lntips_api_endpoint: {
                 value: null,
                 label: 'Endpoint'
               },
-              lntxbot_key: {
+              lntips_api_key: {
                 value: null,
-                label: 'Key'
+                label: 'API Key'
               }
             }
           ],
@@ -278,7 +288,7 @@
             {
               eclair_url: {
                 value: null,
-                label: 'Endpoint'
+                label: 'URL'
               },
               eclair_pass: {
                 value: null,
@@ -333,19 +343,6 @@
                 label: 'Token'
               }
             }
-          ],
-          [
-            'LnTipsWallet',
-            {
-              lntips_api_endpoint: {
-                value: null,
-                label: 'Endpoint'
-              },
-              lntips_api_key: {
-                value: null,
-                label: 'API Key'
-              }
-            }
           ]
         ])
       }
@@ -386,6 +383,27 @@
         let allowed_users = this.formData.lnbits_allowed_users
         this.formData.lnbits_allowed_users = allowed_users.filter(
           u => u !== user
+        )
+      },
+      addExtensionsManifest() {
+        const addManifest = this.formAddExtensionsManifest.trim()
+        const manifests = this.formData.lnbits_extensions_manifests
+        if (
+          addManifest &&
+          addManifest.length &&
+          !manifests.includes(addManifest)
+        ) {
+          this.formData.lnbits_extensions_manifests = [
+            ...manifests,
+            addManifest
+          ]
+          this.formAddExtensionsManifest = ''
+        }
+      },
+      removeExtensionsManifest(manifest) {
+        const manifests = this.formData.lnbits_extensions_manifests
+        this.formData.lnbits_extensions_manifests = manifests.filter(
+          m => m !== manifest
         )
       },
       restartServer() {
@@ -445,7 +463,7 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.isSuperUser = response.data.super_user || false
+            this.isSuperUser = response.data.is_super_user || false
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
@@ -456,7 +474,7 @@
       },
       updateSettings() {
         let data = _.omit(this.formData, [
-          'super_user',
+          'is_super_user',
           'lnbits_allowed_funding_sources'
         ])
         LNbits.api
@@ -509,19 +527,7 @@
           })
       },
       downloadBackup() {
-        LNbits.api
-          .request('GET', '/admin/api/v1/backup/?usr=' + this.g.user.id)
-          .then(response => {
-            this.$q.notify({
-              type: 'positive',
-              message:
-                'Success! Database backup request, download starts soon!',
-              icon: null
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        window.open('/admin/api/v1/backup/?usr=' + this.g.user.id, '_blank')
       }
     }
   })

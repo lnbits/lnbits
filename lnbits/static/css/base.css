@@ -1,0 +1,545 @@
+[data-theme=classic] .q-drawer--dark,
+body[data-theme=classic].body--dark,
+[data-theme=classic] .q-menu--dark {
+  background: #1f2234 !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='classic'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=classic] .q-card--dark,
+[data-theme=classic] .q-stepper--dark {
+  background: #333646 !important;
+}
+
+[data-theme=classic] .bg-primary {
+  background: #673ab7 !important;
+}
+[data-theme=classic] .text-primary {
+  color: #673ab7 !important;
+}
+[data-theme=classic] .bg-secondary {
+  background: #9c27b0 !important;
+}
+[data-theme=classic] .text-secondary {
+  color: #9c27b0 !important;
+}
+[data-theme=classic] .bg-dark {
+  background: #1f2234 !important;
+}
+[data-theme=classic] .text-dark {
+  color: #1f2234 !important;
+}
+[data-theme=classic] .bg-info {
+  background: #333646 !important;
+}
+[data-theme=classic] .text-info {
+  color: #333646 !important;
+}
+[data-theme=classic] .bg-marginal-bg {
+  background: #1f2234 !important;
+}
+[data-theme=classic] .text-marginal-bg {
+  color: #1f2234 !important;
+}
+[data-theme=classic] .bg-marginal-text {
+  background: #fff !important;
+}
+[data-theme=classic] .text-marginal-text {
+  color: #fff !important;
+}
+
+[data-theme=bitcoin] .q-drawer--dark,
+body[data-theme=bitcoin].body--dark,
+[data-theme=bitcoin] .q-menu--dark {
+  background: #2d293b !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='bitcoin'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=bitcoin] .q-card--dark,
+[data-theme=bitcoin] .q-stepper--dark {
+  background: #333646 !important;
+}
+
+[data-theme=bitcoin] .bg-primary {
+  background: #ff9853 !important;
+}
+[data-theme=bitcoin] .text-primary {
+  color: #ff9853 !important;
+}
+[data-theme=bitcoin] .bg-secondary {
+  background: #ff7353 !important;
+}
+[data-theme=bitcoin] .text-secondary {
+  color: #ff7353 !important;
+}
+[data-theme=bitcoin] .bg-dark {
+  background: #2d293b !important;
+}
+[data-theme=bitcoin] .text-dark {
+  color: #2d293b !important;
+}
+[data-theme=bitcoin] .bg-info {
+  background: #333646 !important;
+}
+[data-theme=bitcoin] .text-info {
+  color: #333646 !important;
+}
+[data-theme=bitcoin] .bg-marginal-bg {
+  background: #2d293b !important;
+}
+[data-theme=bitcoin] .text-marginal-bg {
+  color: #2d293b !important;
+}
+[data-theme=bitcoin] .bg-marginal-text {
+  background: #fff !important;
+}
+[data-theme=bitcoin] .text-marginal-text {
+  color: #fff !important;
+}
+
+[data-theme=freedom] .q-drawer--dark,
+body[data-theme=freedom].body--dark,
+[data-theme=freedom] .q-menu--dark {
+  background: #0a0a0a !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='freedom'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=freedom] .q-card--dark,
+[data-theme=freedom] .q-stepper--dark {
+  background: #1b1b1b !important;
+}
+
+[data-theme=freedom] .bg-primary {
+  background: #e22156 !important;
+}
+[data-theme=freedom] .text-primary {
+  color: #e22156 !important;
+}
+[data-theme=freedom] .bg-secondary {
+  background: #b91a45 !important;
+}
+[data-theme=freedom] .text-secondary {
+  color: #b91a45 !important;
+}
+[data-theme=freedom] .bg-dark {
+  background: #0a0a0a !important;
+}
+[data-theme=freedom] .text-dark {
+  color: #0a0a0a !important;
+}
+[data-theme=freedom] .bg-info {
+  background: #1b1b1b !important;
+}
+[data-theme=freedom] .text-info {
+  color: #1b1b1b !important;
+}
+[data-theme=freedom] .bg-marginal-bg {
+  background: #2d293b !important;
+}
+[data-theme=freedom] .text-marginal-bg {
+  color: #2d293b !important;
+}
+[data-theme=freedom] .bg-marginal-text {
+  background: #fff !important;
+}
+[data-theme=freedom] .text-marginal-text {
+  color: #fff !important;
+}
+
+[data-theme=cyber] .q-drawer--dark,
+body[data-theme=cyber].body--dark,
+[data-theme=cyber] .q-menu--dark {
+  background: #0a0a0a !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='cyber'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=cyber] .q-card--dark,
+[data-theme=cyber] .q-stepper--dark {
+  background: #1b1b1b !important;
+}
+
+[data-theme=cyber] .bg-primary {
+  background: #7cb342 !important;
+}
+[data-theme=cyber] .text-primary {
+  color: #7cb342 !important;
+}
+[data-theme=cyber] .bg-secondary {
+  background: #558b2f !important;
+}
+[data-theme=cyber] .text-secondary {
+  color: #558b2f !important;
+}
+[data-theme=cyber] .bg-dark {
+  background: #0a0a0a !important;
+}
+[data-theme=cyber] .text-dark {
+  color: #0a0a0a !important;
+}
+[data-theme=cyber] .bg-info {
+  background: #1b1b1b !important;
+}
+[data-theme=cyber] .text-info {
+  color: #1b1b1b !important;
+}
+[data-theme=cyber] .bg-marginal-bg {
+  background: #2d293b !important;
+}
+[data-theme=cyber] .text-marginal-bg {
+  color: #2d293b !important;
+}
+[data-theme=cyber] .bg-marginal-text {
+  background: #fff !important;
+}
+[data-theme=cyber] .text-marginal-text {
+  color: #fff !important;
+}
+
+[data-theme=mint] .q-drawer--dark,
+body[data-theme=mint].body--dark,
+[data-theme=mint] .q-menu--dark {
+  background: #1f342b !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='mint'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=mint] .q-card--dark,
+[data-theme=mint] .q-stepper--dark {
+  background: #334642 !important;
+}
+
+[data-theme=mint] .bg-primary {
+  background: #3ab77d !important;
+}
+[data-theme=mint] .text-primary {
+  color: #3ab77d !important;
+}
+[data-theme=mint] .bg-secondary {
+  background: #27b065 !important;
+}
+[data-theme=mint] .text-secondary {
+  color: #27b065 !important;
+}
+[data-theme=mint] .bg-dark {
+  background: #1f342b !important;
+}
+[data-theme=mint] .text-dark {
+  color: #1f342b !important;
+}
+[data-theme=mint] .bg-info {
+  background: #334642 !important;
+}
+[data-theme=mint] .text-info {
+  color: #334642 !important;
+}
+[data-theme=mint] .bg-marginal-bg {
+  background: #1f342b !important;
+}
+[data-theme=mint] .text-marginal-bg {
+  color: #1f342b !important;
+}
+[data-theme=mint] .bg-marginal-text {
+  background: #fff !important;
+}
+[data-theme=mint] .text-marginal-text {
+  color: #fff !important;
+}
+
+[data-theme=autumn] .q-drawer--dark,
+body[data-theme=autumn].body--dark,
+[data-theme=autumn] .q-menu--dark {
+  background: #34291f !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='autumn'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=autumn] .q-card--dark,
+[data-theme=autumn] .q-stepper--dark {
+  background: #463f33 !important;
+}
+
+[data-theme=autumn] .bg-primary {
+  background: #b7763a !important;
+}
+[data-theme=autumn] .text-primary {
+  color: #b7763a !important;
+}
+[data-theme=autumn] .bg-secondary {
+  background: #b07927 !important;
+}
+[data-theme=autumn] .text-secondary {
+  color: #b07927 !important;
+}
+[data-theme=autumn] .bg-dark {
+  background: #34291f !important;
+}
+[data-theme=autumn] .text-dark {
+  color: #34291f !important;
+}
+[data-theme=autumn] .bg-info {
+  background: #463f33 !important;
+}
+[data-theme=autumn] .text-info {
+  color: #463f33 !important;
+}
+[data-theme=autumn] .bg-marginal-bg {
+  background: #342a1f !important;
+}
+[data-theme=autumn] .text-marginal-bg {
+  color: #342a1f !important;
+}
+[data-theme=autumn] .bg-marginal-text {
+  background: rgb(255, 255, 255) !important;
+}
+[data-theme=autumn] .text-marginal-text {
+  color: rgb(255, 255, 255) !important;
+}
+
+[data-theme=flamingo] .q-drawer--dark,
+body[data-theme=flamingo].body--dark,
+[data-theme=flamingo] .q-menu--dark {
+  background: #803a45 !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='flamingo'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=flamingo] .q-card--dark,
+[data-theme=flamingo] .q-stepper--dark {
+  background: #ec7599 !important;
+}
+
+[data-theme=flamingo] .bg-primary {
+  background: #d11d53 !important;
+}
+[data-theme=flamingo] .text-primary {
+  color: #d11d53 !important;
+}
+[data-theme=flamingo] .bg-secondary {
+  background: #db3e6d !important;
+}
+[data-theme=flamingo] .text-secondary {
+  color: #db3e6d !important;
+}
+[data-theme=flamingo] .bg-dark {
+  background: #803a45 !important;
+}
+[data-theme=flamingo] .text-dark {
+  color: #803a45 !important;
+}
+[data-theme=flamingo] .bg-info {
+  background: #ec7599 !important;
+}
+[data-theme=flamingo] .text-info {
+  color: #ec7599 !important;
+}
+[data-theme=flamingo] .bg-marginal-bg {
+  background: #803a45 !important;
+}
+[data-theme=flamingo] .text-marginal-bg {
+  color: #803a45 !important;
+}
+[data-theme=flamingo] .bg-marginal-text {
+  background: rgb(255, 255, 255) !important;
+}
+[data-theme=flamingo] .text-marginal-text {
+  color: rgb(255, 255, 255) !important;
+}
+
+[data-theme=monochrome] .q-drawer--dark,
+body[data-theme=monochrome].body--dark,
+[data-theme=monochrome] .q-menu--dark {
+  background: #000 !important;
+}
+
+/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+// set a darker body bg for all themes, when in "dark mode"
+body[data-theme='monochrome'].body--dark {
+  background: scale-color($color, $lightness: -60%);
+}
+*/
+[data-theme=monochrome] .q-card--dark,
+[data-theme=monochrome] .q-stepper--dark {
+  background: rgb(39, 39, 39) !important;
+}
+
+[data-theme=monochrome] .bg-primary {
+  background: #494949 !important;
+}
+[data-theme=monochrome] .text-primary {
+  color: #494949 !important;
+}
+[data-theme=monochrome] .bg-secondary {
+  background: #6b6b6b !important;
+}
+[data-theme=monochrome] .text-secondary {
+  color: #6b6b6b !important;
+}
+[data-theme=monochrome] .bg-dark {
+  background: #000 !important;
+}
+[data-theme=monochrome] .text-dark {
+  color: #000 !important;
+}
+[data-theme=monochrome] .bg-info {
+  background: rgb(39, 39, 39) !important;
+}
+[data-theme=monochrome] .text-info {
+  color: rgb(39, 39, 39) !important;
+}
+[data-theme=monochrome] .bg-marginal-bg {
+  background: #000 !important;
+}
+[data-theme=monochrome] .text-marginal-bg {
+  color: #000 !important;
+}
+[data-theme=monochrome] .bg-marginal-text {
+  background: rgb(255, 255, 255) !important;
+}
+[data-theme=monochrome] .text-marginal-text {
+  color: rgb(255, 255, 255) !important;
+}
+
+[data-theme=freedom] .q-drawer--dark {
+  background: #0a0a0a !important;
+}
+
+[data-theme=freedom] .q-header {
+  background: #0a0a0a !important;
+}
+
+[data-theme=cyber] .q-drawer--dark {
+  background: #0a0a0a !important;
+}
+
+[data-theme=cyber] .q-header {
+  background: #0a0a0a !important;
+}
+
+[data-theme=salvador] .q-drawer--dark {
+  background: #242424 !important;
+}
+
+[data-theme=salvador] .q-header {
+  background: #0f47af !important;
+}
+
+[data-theme=flamingo] .q-drawer--dark {
+  background: #e75480 !important;
+}
+
+[data-theme=flamingo] .q-header {
+  background: #e75480 !important;
+}
+
+[v-cloak] {
+  display: none;
+}
+
+body.body--dark .q-table--dark {
+  background: transparent;
+}
+
+body.body--dark .q-field--error .text-negative,
+body.body--dark .q-field--error .q-field__messages {
+  color: yellow !important;
+}
+
+.lnbits-drawer__q-list .q-item {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+.lnbits-drawer__q-list .q-item.q-item--active {
+  color: inherit;
+  font-weight: bold;
+}
+
+.lnbits__dialog-card {
+  width: 500px;
+}
+
+.q-table--dense th:first-child,
+.q-table--dense td:first-child,
+.q-table--dense .q-table__bottom {
+  padding-left: 6px !important;
+}
+.q-table--dense th:last-child,
+.q-table--dense td:last-child,
+.q-table--dense .q-table__bottom {
+  padding-right: 6px !important;
+}
+
+a.inherit {
+  color: inherit;
+  text-decoration: none;
+}
+
+video {
+  border-radius: 3px;
+}
+
+@font-face {
+  font-family: "Material Icons";
+  font-style: normal;
+  font-weight: 400;
+  src: url(/static/fonts/material-icons-v50.woff2) format("woff2");
+}
+.material-icons {
+  font-family: "Material Icons";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -moz-font-feature-settings: "liga";
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.q-rating__icon {
+  font-size: 1em;
+}
+
+.text-wrap {
+  word-break: break-word;
+}
+
+.q-card code {
+  overflow-wrap: break-word;
+}
