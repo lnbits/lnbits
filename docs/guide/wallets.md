@@ -18,7 +18,7 @@ A backend wallet can be configured using the following LNbits environment variab
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
 - `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
-### Spark (c-lightning)
+### Spark (Core Lightning)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **SparkWallet**
 - `SPARK_URL`: http://10.147.17.230:9737/rpc
