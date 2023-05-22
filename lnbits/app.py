@@ -21,7 +21,8 @@ from loguru import logger
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
-from lnbits.settings import get_wallet_class, set_wallet_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import (

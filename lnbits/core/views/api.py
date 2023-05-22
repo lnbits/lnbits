@@ -52,12 +52,13 @@ from lnbits.extension_manager import (
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
+from lnbits.wallets import get_wallet_class
 
 from .. import core_app, core_app_extra, db
 from ..crud import (

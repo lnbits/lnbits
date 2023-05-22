@@ -12,7 +12,8 @@ from pydantic.schema import (
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
-from lnbits.settings import get_node_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_node_class
 
 from .db import FilterModel
 from .extension_manager import get_valid_extensions

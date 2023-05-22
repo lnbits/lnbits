@@ -7,15 +7,11 @@ import json
 import subprocess
 from os import path
 from sqlite3 import Row
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
 from pydantic import BaseSettings, Extra, Field, validator
-
-if TYPE_CHECKING:
-    from lnbits.nodes.base import Node
-    from lnbits.wallets.base import Wallet
 
 
 def list_parse_fallback(v):
@@ -331,26 +327,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-# set wallet class after settings are loaded
-def set_wallet_class(class_name: Optional[str] = None):
-    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET, NODE
-    WALLET = wallet_class()
-    if WALLET.__node_cls__:
-        NODE = WALLET.__node_cls__(WALLET)
-
-
-def get_wallet_class() -> Wallet:
-    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return WALLET
-
-
-def get_node_class() -> Optional[Node]:
-    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return NODE
-
-
 def send_admin_user_to_saas():
     if settings.lnbits_saas_callback:
         with httpx.Client() as client:
@@ -401,11 +377,3 @@ if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
-
-
-wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET: Wallet = getattr(wallets_module, "FakeWallet")()
-
-# initialize as fake wallet
-WALLET = FAKE_WALLET
-NODE: Optional[Node] = None

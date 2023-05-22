@@ -1,4 +1,4 @@
-from ..nodes.cln import CoreLightningNode
+from lnbits.nodes.cln import CoreLightningNode
 
 try:
     from pyln.client import LightningRpc, RpcError  # type: ignore

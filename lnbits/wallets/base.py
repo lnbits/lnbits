@@ -1,7 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+from __future__ import annotations
 
-from lnbits.nodes.base import Node
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+
+if TYPE_CHECKING:
+    from lnbits.nodes.base import Node
 
 
 class StatusResponse(NamedTuple):

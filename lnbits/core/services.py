@@ -15,14 +15,13 @@ from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
 from lnbits.settings import (
-    FAKE_WALLET,
     EditableSettings,
     SuperSettings,
-    get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
     settings,
 )
+from lnbits.wallets import FAKE_WALLET, get_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
