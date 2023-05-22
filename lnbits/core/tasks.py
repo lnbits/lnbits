@@ -42,11 +42,11 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         if wallet:
             await websocketUpdater(
                 payment.wallet_id,
-                    {
-                        "wallet_balance": wallet.balance or None,
-                        "payment": payment._asdict(),
-                    },
-                )
+                {
+                    "wallet_balance": wallet.balance or None,
+                    "payment": payment._asdict(),
+                },
+            )
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
