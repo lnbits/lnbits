@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, NamedTuple, Optional
+from time import time
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
+from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import FilterModel, Filters, Page
@@ -155,12 +158,14 @@ class NodeInvoiceFilters(FilterModel):
     pass
 
 
-class NodeInvoiceFilters(FilterModel):
-    pass
-
-
 class NodePaymentsFilters(FilterModel):
     pass
+
+
+class Cached(NamedTuple):
+    value: Any
+    stale: float
+    expiry: float
 
 
 class Node(ABC):
@@ -169,6 +174,8 @@ class Node(ABC):
     def __init__(self, wallet: Wallet):
         self.wallet = wallet
         self.id: Optional[str] = None
+        self.cache: dict[Any, Cached] = {}
+        asyncio.create_task(self.invalide_cache())
 
     async def get_id(self):
         if not self.id:
@@ -192,8 +199,16 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
+    async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
         pass
+
+    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
+        info = self.get_cache(f"peers:{pubkey}")
+        if not info:
+            info = await self._get_peer_info(pubkey)
+            if info.last_timestamp:
+                self.set_cache(f"peers:{pubkey}", info)
+        return info
 
     @abstractmethod
     async def open_channel(
@@ -241,3 +256,42 @@ class Node(ABC):
     @abstractmethod
     async def get_payment_stats(self) -> PaymentStats:
         pass
+
+    async def get_and_revalidate(self, coro, key: str, expiry: float = 20):
+        """
+        Stale while revalidate cache
+        Gets a result from the cache if it exists, otherwise run the coroutine and cache the result
+        """
+        cached = self.cache.get(key)
+        if cached:
+            ts = time()
+            if ts < cached.expiry:
+                if ts > cached.stale:
+                    asyncio.create_task(coro()).add_done_callback(
+                        lambda fut: self.set_cache(key, fut.result(), expiry)
+                    )
+                return cached.value
+        value = await coro()
+        self.set_cache(key, value, expiry)
+        return value
+
+    async def invalide_cache(self):
+        while True:
+            try:
+                await asyncio.sleep(60)
+                ts = time()
+                self.cache = {k: v for k, v in self.cache.items() if v.expiry > ts}
+            except Exception:
+                logger.error("Error invalidating cache")
+
+    def get_cache(self, key: str) -> Optional[Any]:
+        cached = self.cache.get(key)
+        if cached:
+            if cached.expiry > time():
+                return cached.value
+            else:
+                self.cache.pop(key)
+        return None
+
+    def set_cache(self, key: str, value: Any, expiry: float = 10):
+        self.cache[key] = Cached(value, time() + expiry / 2, time() + expiry)

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 import starlette.status as status
 from fastapi import HTTPException
 
-from ..db import Filters, Page
+from lnbits.db import Filters, Page
 
 try:
     from pyln.client import RpcError  # type: ignore
@@ -61,12 +61,12 @@ class CoreLightningNode(Node):
         super().__init__(wallet)
         try:
             raw = self.wallet.ln.call("listsqlschemas")
-            self.schema_cols: dict[str, list] = {
+            self.schema_cols = {
                 schema["tablename"]: schema["columns"] for schema in raw["schemas"]
             }
+            self.schema_cols = {}
         except RpcError:
-            self.schema_cols = None
-        self.cache = {}
+            self.schema_cols = {}
 
     @catch_rpc_errors
     async def connect_peer(self, uri: str) -> bool:
@@ -173,7 +173,7 @@ class CoreLightningNode(Node):
         return [p["id"] for p in peers["peers"]]
 
     @catch_rpc_errors
-    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
+    async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
         result = await self.wallet.ln_rpc("listnodes", pubkey)
         nodes = result["nodes"]
         if len(nodes) == 0:
@@ -287,13 +287,15 @@ class CoreLightningNode(Node):
                 {filters.pagination()}
                 """,
             )
-            count = await self.sql(
-                f"""
-                SELECT count(bolt11)
-                FROM sendpays
-                WHERE status != 'failed'
-                """,
-                cache=True,
+            count = await self.get_and_revalidate(
+                lambda: self.sql(
+                    """
+                    SELECT count(bolt11)
+                    FROM sendpays
+                    WHERE status != 'failed'
+                    """,
+                ),
+                "payments-count",
             )
             return Page(
                 data=[
@@ -313,31 +315,36 @@ class CoreLightningNode(Node):
                 total=count[0][0],
             )
         else:
-            result = await self.wallet.ln_rpc("listpays")
-            results = [
-                NodePayment(
-                    bolt11=pay["bolt11"],
-                    amount=pay["amount_msat"],
-                    fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
-                    memo=pay.get("description"),
-                    time=pay["created_at"],
-                    preimage=pay["preimage"],
-                    payment_hash=pay["payment_hash"],
-                    pending=pay["status"] != "complete",
-                    destination=await self.get_peer_info(pay["destination"]),
-                )
-                for pay in result["pays"]
-                if pay["status"] != "failed"
-            ]
-            results.sort(key=lambda x: x.time, reverse=True)
-            return Page(data=results, total=len(results))
+
+            async def get_payments():
+                result = await self.wallet.ln_rpc("listpays")
+                return [
+                    NodePayment(
+                        bolt11=pay["bolt11"],
+                        amount=pay["amount_msat"],
+                        fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
+                        memo=pay.get("description"),
+                        time=pay["created_at"],
+                        preimage=pay.get("preimage"),
+                        payment_hash=pay["payment_hash"],
+                        pending=pay["status"] != "complete",
+                        destination=await self.get_peer_info(pay["destination"]),
+                    )
+                    for pay in result["pays"]
+                    if pay["status"] != "failed"
+                ]
+
+            results = await self.get_and_revalidate(get_payments, "payments")
+            count = len(results)
+            if filters.offset:
+                results = results[filters.offset :]
+            if filters.limit:
+                results = results[: filters.limit]
+            return Page(data=results, total=count)
 
     @catch_rpc_errors
     @async_wrap
-    def sql(self, query: str, schema: str = None, cache=False) -> list:
-        if cache and query in self.cache:
-            return self.cache[query]
-
+    async def sql(self, query: str, schema: Optional[str] = None) -> list:
         result = self.wallet.ln.call("sql", [query.replace("\n", " ")])
 
         if schema and schema in self.schema_cols:
@@ -347,31 +354,36 @@ class CoreLightningNode(Node):
             ]
         else:
             rows = result["rows"]
-
-        if cache:
-            self.cache[query] = rows
         return rows
 
     @catch_rpc_errors
     async def get_invoices(
-        self, filters: Filters[NodeInvoiceFilters] = None
+        self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
         if self.schema_cols:
             invoices = await self.sql(
                 f"SELECT * FROM invoices {filters.pagination()}", schema="invoices"
             )
-            count = await self.sql(f"SELECT count(*) FROM invoices", cache=True)
+            count = await self.get_and_revalidate(
+                lambda: self.sql("SELECT count(*) FROM invoices"), key="invoices-count"
+            )
             count = count[0][0]
         else:
-            result = await self.wallet.ln_rpc("listinvoices")
+            result = await self.get_and_revalidate(
+                lambda: self.wallet.ln_rpc("listinvoices"), key="invoices"
+            )
             invoices = result["invoices"]
             count = len(invoices)
+            if filters.offset:
+                invoices = invoices[filters.offset :]
+            if filters.limit:
+                invoices = invoices[: filters.limit]
         return Page(
             data=[
                 NodeInvoice(
                     bolt11=invoice["bolt11"],
                     amount=invoice["amount_msat"],
-                    preimage=invoice.get("payment_preimage") or "0" * 64,
+                    preimage=invoice.get("payment_preimage"),
                     memo=invoice["description"],
                     paid_at=invoice.get("paid_at"),
                     expiry=invoice["expires_at"],
@@ -384,6 +396,5 @@ class CoreLightningNode(Node):
         )
 
     async def get_payment_stats(self) -> PaymentStats:
-        test = self.wallet.ln.call("sql", ["SELECT sum(amount_msat) FROM invoices"])
-        test = self.wallet.ln.call("sql", ["SELECT sum(amount_msat) FROM invoices"])
-        return PaymentStats(volume=0)
+        volume = self.wallet.ln.call("sql", ["SELECT sum(amount_msat) FROM invoices"])
+        return PaymentStats(volume=volume)
