@@ -309,7 +309,20 @@
               <q-separator></q-separator>
 
               <q-list>
-                {% include "core/_api_docs.html" %}
+                <q-expansion-item
+                  group="extras"
+                  icon="swap_vertical_circle"
+                  :label="$t('api_keys')"
+                  :content-inset-level="0.5"
+                >
+                  <q-card-section>
+                    <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
+                    <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em
+                    ><br />
+                    <strong>Invoice/read key: </strong
+                    ><em>{{ wallet.inkey }}</em>
+                  </q-card-section>
+                </q-expansion-item>
                 <q-separator></q-separator>
 
                 {% if wallet.lnurlwithdraw_full %}
