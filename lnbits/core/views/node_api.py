@@ -5,8 +5,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 
 from lnbits.decorators import check_admin, parse_filters
+from lnbits.nodes import get_node_class
 from lnbits.settings import settings
-from lnbits.wallets import get_node_class
 
 from ...db import Filters, Page
 from ...nodes.base import (

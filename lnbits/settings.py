@@ -380,6 +380,9 @@ if not settings.lnbits_admin_ui:
 
 
 def get_wallet_class():
+    """
+    Backwards compatibility
+    """
     from lnbits.wallets import get_wallet_class
 
     return get_wallet_class()
