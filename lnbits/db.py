@@ -49,15 +49,6 @@ if settings.lnbits_database_url:
             lambda value, curs: float(value) if value is not None else None,
         )
     )
-    register_type(
-        new_type(
-            (1082, 1083, 1266),
-            "DATE2INT",
-            lambda value, curs: time.mktime(value.timetuple())
-            if value is not None
-            else None,
-        )
-    )
 
     register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
 else:
@@ -161,6 +152,8 @@ class Connection(Compat):
                     values.append(int(ts))
                 else:
                     values.append(ts)
+            elif isinstance(raw_value, dict):
+                values.append(json.dumps(raw_value))
             else:
                 values.append(raw_value)
         return tuple(values)
@@ -253,6 +246,8 @@ class Database(Compat):
             self.engine = create_engine(
                 database_uri,
                 strategy=ASYNCIO_STRATEGY,
+                # Make sure the above registered converters get used
+                # https://docs.python.org/3/library/sqlite3.html#sqlite3.PARSE_DECLTYPES
                 connect_args={"detect_types": sqlite3.PARSE_DECLTYPES},
             )
         else:
