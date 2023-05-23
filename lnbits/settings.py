@@ -377,3 +377,9 @@ if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
     for key, value in settings.dict(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
+
+
+def get_wallet_class():
+    from lnbits.wallets import get_wallet_class
+
+    return get_wallet_class()
