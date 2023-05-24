@@ -788,7 +788,11 @@
         indicator-color="transparent"
         align="justify"
       >
-        <q-tab icon="file_download" @click="showReceiveDialog" :label="$t('receive')">
+        <q-tab
+          icon="file_download"
+          @click="showReceiveDialog"
+          :label="$t('receive')"
+        >
         </q-tab>
 
         <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
