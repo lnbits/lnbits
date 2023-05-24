@@ -250,17 +250,14 @@ Vue.component('lnbits-payment-details', {
     <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
   </div>
 
-  <div class="row" v-if="payment.webhook">
-    <b v-text="$t('webhook')"></b>:
-    {{ payment.webhook }}
-    <q-badge :color="webhookStatusColor" text-color="white">
+  <div class="text-wrap" v-if="payment.webhook">
+    <b style="white-space: nowrap;" v-text="$t('webhook')"></b>:&nbsp;{{ payment.webhook }}:&nbsp;<q-badge :color="webhookStatusColor" text-color="white">
       {{ webhookStatusText }}
     </q-badge>
   </div>
 
-  <div class="row" v-if="hasPreimage">
-    <b v-text="$t('payment_proof')"></b>:
-    {{ payment.preimage }}
+  <div class="text-wrap" v-if="hasPreimage">
+    <b style="white-space: nowrap;" v-text="$t('payment_proof')"></b>:&nbsp;{{ payment.preimage }}
   </div>
 
   <div class="row" v-for="entry in extras">
