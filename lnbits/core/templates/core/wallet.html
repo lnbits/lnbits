@@ -175,7 +175,7 @@
                     </q-icon>
                   </q-td>
                   <q-td
-                    key="memo"
+                    key="time"
                     :props="props"
                     style="white-space: normal; word-break: break-all"
                   >
@@ -192,11 +192,15 @@
                       </a>
                     </q-badge>
                     {{ props.row.memo }}
+                    <br />
+
+                    <i>
+                      {{ props.row.dateFrom }}<q-tooltip
+                        >{{ props.row.date }}</q-tooltip
+                      ></i
+                    >
                   </q-td>
-                  <q-td auto-width key="time" :props="props">
-                    <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
-                  </q-td>
+
                   {% endraw %}
                   <q-td
                     auto-width
@@ -209,10 +213,8 @@
                   </q-td>
 
                   <q-td auto-width key="amount" v-else :props="props">
-                    {{ props.row.fsat }}
-                  </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
+                    {{ props.row.fsat }}<br />
+                    <i>fee {{ props.row.fee/1000 }}</i>
                   </q-td>
                 </q-tr>
 
@@ -552,7 +554,7 @@
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong v-text="$t('description')">:</strong> {{
+              <strong v-text="$t('memo')">:</strong> {{
               parse.invoice.description }}<br />
               <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
               <strong>Hash:</strong> {{ parse.invoice.hash }}
@@ -779,23 +781,31 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
       <q-tabs
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
         indicator-color="transparent"
+        align="justify"
       >
         <q-tab
-          icon="account_balance_wallet"
-          label="Wallets"
-          @click="g.visibleDrawer = !g.visibleDrawer"
+          icon="file_download"
+          @click="showReceiveDialog"
+          :label="$t('receive')"
         >
         </q-tab>
-        <q-tab icon="content_paste" label="Paste" @click="showParseDialog">
-        </q-tab>
-        <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
-        </q-tab>
 
-        <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+        <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
+        </q-tab>
+        <q-btn
+          round
+          size="35px"
+          unelevated
+          icon="qr_code_scanner"
+          @click="showCamera"
+          class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
+        >
+        </q-btn>
       </q-tabs>
 
       <q-dialog v-model="disclaimerDialog.show">

@@ -15,14 +15,13 @@ from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
 from lnbits.settings import (
-    FAKE_WALLET,
     EditableSettings,
     SuperSettings,
-    get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
     settings,
 )
+from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -37,6 +36,7 @@ from .crud import (
     get_account,
     get_standalone_payment,
     get_super_settings,
+    get_total_balance,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
@@ -83,7 +83,7 @@ async def create_invoice(
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok:
+    if not ok or not payment_request or not checking_id:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
@@ -166,7 +166,7 @@ async def pay_invoice(
             assert internal_invoice is not None
             if (
                 internal_invoice.amount != invoice.amount_msat
-                or internal_invoice.bolt11 != payment_request
+                or internal_invoice.bolt11 != payment_request.lower()
             ):
                 raise PaymentFailure("Invalid invoice.")
 
@@ -247,6 +247,15 @@ async def pay_invoice(
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
+                wallet = await get_wallet(wallet_id, conn=conn)
+                if wallet:
+                    await websocketUpdater(
+                        wallet_id,
+                        {
+                            "wallet_balance": wallet.balance or None,
+                            "payment": payment._asdict(),
+                        },
+                    )
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
@@ -455,12 +464,7 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        # printing settings for debugging
-        logger.debug("Admin settings:")
-        for key, value in settings.dict(exclude_none=True).items():
-            logger.debug(f"{key}: {value}")
-
-        admin_url = f"{settings.lnbits_baseurl}wallet?usr={settings.super_user}"
+        admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
         # saving it to .super_user file
@@ -482,7 +486,7 @@ def update_cached_settings(sets_dict: dict):
             try:
                 setattr(settings, key, value)
             except:
-                logger.error(f"error overriding setting: {key}, value: {value}")
+                logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
 
@@ -507,7 +511,6 @@ class WebsocketConnectionManager:
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        logger.debug(websocket)
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
@@ -524,3 +527,20 @@ websocketManager = WebsocketConnectionManager()
 
 async def websocketUpdater(item_id, data):
     return await websocketManager.send_data(f"{data}", item_id)
+
+
+async def switch_to_voidwallet() -> None:
+    WALLET = get_wallet_class()
+    if WALLET.__class__.__name__ == "VoidWallet":
+        return
+    set_wallet_class("VoidWallet")
+    settings.lnbits_backend_wallet_class = "VoidWallet"
+
+
+async def get_balance_delta() -> Tuple[int, int, int]:
+    WALLET = get_wallet_class()
+    total_balance = await get_total_balance()
+    error_message, node_balance = await WALLET.status()
+    if error_message:
+        raise Exception(error_message)
+    return node_balance - total_balance, node_balance, total_balance

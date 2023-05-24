@@ -19,7 +19,7 @@ window.localisation.es = {
   name_your_wallet: 'Nombre de su billetera %{name}',
   paste_invoice_label: 'Pegue la factura aquí',
   lnbits_description:
-    'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning, actualmente compatible con LND, c-lightning, OpenNode, LNPay y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
+    'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning, actualmente compatible con LND, Core Lightning, OpenNode, LNPay y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
   export_to_phone: 'Exportar a teléfono con código QR',
   export_to_phone_desc:
     'Este código QR contiene su URL de billetera con acceso completo. Puede escanearlo desde su teléfono para abrir su billetera allí.',
@@ -63,6 +63,8 @@ window.localisation.es = {
   invoice_waiting: 'Factura esperando pago',
   payment_received: 'Pago recibido',
   payment_sent: 'Pago enviado',
+  receive: 'recibir',
+  send: 'enviar',
   outgoing_payment_pending: 'Pago saliente pendiente',
   drain_funds: 'Drenar fondos',
   drain_funds_desc:
@@ -72,11 +74,43 @@ window.localisation.es = {
   disclaimer_dialog:
     'La funcionalidad de inicio de sesión se lanzará en una actualización futura, por ahora, asegúrese de guardar esta página como marcador para acceder a su billetera en el futuro. Este servicio está en BETA y no asumimos ninguna responsabilidad por personas que pierdan el acceso a sus fondos.',
   no_transactions: 'No hay transacciones todavía',
-  manage_extensions: 'Administrar extensiones',
   manage_server: 'Administrar servidor',
   extensions: 'Extensiones',
   no_extensions: 'No tienes extensiones instaladas :(',
   created: 'Creado',
+
+  search_extensions: 'Extensiones de búsqueda',
+  warning: 'Advertencia',
+  manage: 'Administrar',
+  repository: 'Repositorio',
+  confirm_continue: '¿Está seguro de que desea continuar?',
+  manage_extension_details: 'Instalar/desinstalar extensión',
+  install: 'Instalar',
+  uninstall: 'Desinstalar',
+  open: 'Abrir',
+  enable: 'Habilitar',
+  enable_extension_details: 'Habilitar extensión para el usuario actual',
+  disable: 'Deshabilitar',
+  installed: 'Instalado',
+  activated: 'Activado',
+  deactivated: 'Desactivado',
+  release_notes: 'Notas de la versión',
+  activate_extension_details:
+    'Hacer que la extensión esté disponible/no disponible para los usuarios',
+  featured: 'Destacado',
+  all: 'Todos',
+  only_admins_can_install:
+    '(Solo las cuentas de administrador pueden instalar extensiones)',
+  new_version: 'Nueva Versión',
+  extension_depends_on: 'Depende de:',
+  extension_rating_soon: 'Calificaciones próximamente',
+  extension_installed_version: 'Versión instalada',
+  extension_uninstall_warning:
+    'Está a punto de eliminar la extensión para todos los usuarios.',
+  uninstall_confirm: 'Sí, desinstalar',
+  extension_min_lnbits_version:
+    'Esta versión requiere al menos una versión de LNbits',
+
   payment_hash: 'Hash de pago',
   fee: 'Cuota',
   amount: 'Cantidad',

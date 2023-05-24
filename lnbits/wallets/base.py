@@ -48,6 +48,9 @@ class PaymentStatus(NamedTuple):
 
 
 class Wallet(ABC):
+    async def cleanup(self):
+        pass
+
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
         pass
@@ -58,6 +61,7 @@ class Wallet(ABC):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        **kwargs,
     ) -> Coroutine[None, None, InvoiceResponse]:
         pass
 

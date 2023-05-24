@@ -31,6 +31,13 @@ class SparkWallet(Wallet):
         assert settings.spark_url, "spark url does not exist"
         self.url = settings.spark_url.replace("/rpc", "")
         self.token = settings.spark_token
+        assert self.token, "spark wallet token does not exist"
+        self.client = httpx.AsyncClient(
+            base_url=self.url, headers={"X-Access": self.token}
+        )
+
+    async def cleanup(self):
+        await self.client.aclose()
 
     def __getattr__(self, key):
         async def call(*args, **kwargs):
@@ -46,15 +53,12 @@ class SparkWallet(Wallet):
                 params = {}
 
             try:
-                async with httpx.AsyncClient() as client:
-                    assert self.token, "spark wallet token does not exist"
-                    r = await client.post(
-                        self.url + "/rpc",
-                        headers={"X-Access": self.token},
-                        json={"method": key, "params": params},
-                        timeout=60 * 60 * 24,
-                    )
-                    r.raise_for_status()
+                r = await self.client.post(
+                    "/rpc",
+                    json={"method": key, "params": params},
+                    timeout=60 * 60 * 24,
+                )
+                r.raise_for_status()
             except (
                 OSError,
                 httpx.ConnectError,
@@ -224,17 +228,16 @@ class SparkWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = f"{self.url}/stream?access-key={self.token}"
+        url = f"/stream?access-key={self.token}"
 
         while True:
             try:
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream("GET", url) as r:
-                        async for line in r.aiter_lines():
-                            if line.startswith("data:"):
-                                data = json.loads(line[5:])
-                                if "pay_index" in data and data.get("status") == "paid":
-                                    yield data["label"]
+                async with self.client.stream("GET", url, timeout=None) as r:
+                    async for line in r.aiter_lines():
+                        if line.startswith("data:"):
+                            data = json.loads(line[5:])
+                            if "pay_index" in data and data.get("status") == "paid":
+                                yield data["label"]
             except (
                 OSError,
                 httpx.ReadError,

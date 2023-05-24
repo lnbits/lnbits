@@ -259,10 +259,6 @@ async def check_admin(usr: UUID4) -> User:
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="User not authorized. No admin privileges.",
         )
-    user.admin = True
-    user.super_user = False
-    if user.id == settings.super_user:
-        user.super_user = True
 
     return user
 

@@ -50,6 +50,9 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
+
+
+class ExtensionsInstallSettings(LNbitsSettings):
     lnbits_extensions_default_install: List[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
@@ -86,6 +89,7 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
+    lnbits_allowed_currencies: List[str] = Field(default=[])
 
 
 class OpsSettings(LNbitsSettings):
@@ -95,6 +99,22 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+
+
+class SecuritySettings(LNbitsSettings):
+    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_unit: str = Field(default="minute")
+    lnbits_allowed_ips: List[str] = Field(default=[])
+    lnbits_blocked_ips: List[str] = Field(default=[])
+    lnbits_notifications: bool = Field(default=False)
+    lnbits_killswitch: bool = Field(default=False)
+    lnbits_killswitch_interval: int = Field(default=60)
+    lnbits_watchdog: bool = Field(default=False)
+    lnbits_watchdog_interval: int = Field(default=60)
+    lnbits_watchdog_delta: int = Field(default=1_000_000)
+    lnbits_status_manifest: str = Field(
+        default="https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+    )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -203,6 +223,7 @@ class EditableSettings(
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
+    SecuritySettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
@@ -279,6 +300,7 @@ class TransientSettings(InstalledExtensionsSettings):
 
 class ReadOnlySettings(
     EnvSettings,
+    ExtensionsInstallSettings,
     SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
@@ -317,19 +339,6 @@ class AdminSettings(EditableSettings):
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
-
-
-# set wallet class after settings are loaded
-def set_wallet_class(class_name: Optional[str] = None):
-    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
-    WALLET = wallet_class()
-
-
-def get_wallet_class():
-    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return WALLET
 
 
 def send_admin_user_to_saas():
@@ -377,15 +386,11 @@ except:
 
 settings.version = importlib.metadata.version("lnbits")
 
-# printing environment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
-        logger.debug(f"{key}: {value}")
 
+def get_wallet_class():
+    """
+    Backwards compatibility
+    """
+    from lnbits.wallets import get_wallet_class
 
-wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
-
-# initialize as fake wallet
-WALLET = FAKE_WALLET
+    return get_wallet_class()

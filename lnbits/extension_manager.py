@@ -12,6 +12,7 @@ from urllib import request
 import httpx
 from fastapi import HTTPException
 from loguru import logger
+from packaging import version
 from pydantic import BaseModel
 
 from lnbits.settings import settings
@@ -24,12 +25,19 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: List[str] = []
+    repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
-    html_url: Optional[str]
-    details: Optional[str]
+    min_lnbits_version: Optional[str]
+    html_url: Optional[str]  # todo: release_url
+    warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+
+    def is_version_compatible(self):
+        if not self.min_lnbits_version:
+            return True
+        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
 
 
 class GitHubRelease(BaseModel):
@@ -61,6 +69,13 @@ class ExtensionConfig(BaseModel):
     name: str
     short_description: str
     tile: str = ""
+    warning: Optional[str] = ""
+    min_lnbits_version: Optional[str]
+
+    def is_version_compatible(self):
+        if not self.min_lnbits_version:
+            return True
+        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
 
 
 def download_url(url, save_path):
@@ -84,18 +99,18 @@ async def fetch_github_repo_info(
 ) -> Tuple[GitHubRepo, GitHubRepoRelease, ExtensionConfig]:
     repo_url = f"https://api.github.com/repos/{org}/{repository}"
     error_msg = "Cannot fetch extension repo"
-    repo = await gihub_api_get(repo_url, error_msg)
+    repo = await github_api_get(repo_url, error_msg)
     github_repo = GitHubRepo.parse_obj(repo)
 
     lates_release_url = (
         f"https://api.github.com/repos/{org}/{repository}/releases/latest"
     )
     error_msg = "Cannot fetch extension releases"
-    latest_release: Any = await gihub_api_get(lates_release_url, error_msg)
+    latest_release: Any = await github_api_get(lates_release_url, error_msg)
 
     config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
-    config = await gihub_api_get(config_url, error_msg)
+    config = await github_api_get(config_url, error_msg)
 
     return (
         github_repo,
@@ -106,18 +121,29 @@ async def fetch_github_repo_info(
 
 async def fetch_manifest(url) -> Manifest:
     error_msg = "Cannot fetch extensions manifest"
-    manifest = await gihub_api_get(url, error_msg)
+    manifest = await github_api_get(url, error_msg)
     return Manifest.parse_obj(manifest)
 
 
 async def fetch_github_releases(org: str, repo: str) -> List[GitHubRepoRelease]:
     releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
     error_msg = "Cannot fetch extension releases"
-    releases = await gihub_api_get(releases_url, error_msg)
+    releases = await github_api_get(releases_url, error_msg)
     return [GitHubRepoRelease.parse_obj(r) for r in releases]
 
 
-async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:
+async def fetch_github_release_config(
+    org: str, repo: str, tag_name: str
+) -> Optional[ExtensionConfig]:
+    config_url = (
+        f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
+    )
+    error_msg = "Cannot fetch GitHub extension config"
+    config = await github_api_get(config_url, error_msg)
+    return ExtensionConfig.parse_obj(config)
+
+
+async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
     async with httpx.AsyncClient() as client:
         headers = (
             {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
@@ -224,9 +250,12 @@ class ExtensionRelease(BaseModel):
     source_repo: str
     is_github_release: bool = False
     hash: Optional[str] = None
+    min_lnbits_version: Optional[str] = None
+    is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
     description: Optional[str] = None
-    details_html: Optional[str] = None
+    warning: Optional[str] = None
+    repo: Optional[str] = None
     icon: Optional[str] = None
 
     @classmethod
@@ -240,8 +269,27 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
-            # description=r.body, # bad for JSON
+            repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
+        )
+
+    @classmethod
+    def from_explicit_release(
+        cls, source_repo: str, e: "ExplicitRelease"
+    ) -> "ExtensionRelease":
+        return ExtensionRelease(
+            name=e.name,
+            version=e.version,
+            archive=e.archive,
+            hash=e.hash,
+            source_repo=source_repo,
+            description=e.short_description,
+            min_lnbits_version=e.min_lnbits_version,
+            is_version_compatible=e.is_version_compatible(),
+            warning=e.warning,
+            html_url=e.html_url,
+            repo=e.repo,
+            icon=e.icon,
         )
 
     @classmethod
@@ -308,8 +356,14 @@ class InstallableExtension(BaseModel):
             return False
         return Path(self.ext_dir, "config.json").is_file()
 
+    @property
+    def installed_version(self) -> str:
+        if self.installed_release:
+            return self.installed_release.version
+        return ""
+
     def download_archive(self):
-        logger.info(f"Downloading extension {self.name}.")
+        logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
@@ -334,7 +388,7 @@ class InstallableExtension(BaseModel):
             )
 
     def extract_archive(self):
-        logger.info(f"Extracting extension {self.name}.")
+        logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
         Path("lnbits", "upgrades").mkdir(parents=True, exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
@@ -369,7 +423,7 @@ class InstallableExtension(BaseModel):
             Path(self.ext_upgrade_dir, self.id),
             Path(settings.lnbits_path, "extensions", self.id),
         )
-        logger.success(f"Extension {self.name} installed.")
+        logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
     def nofiy_upgrade(self) -> None:
         """Update the list of upgraded extensions. The middleware will perform redirects based on this"""
@@ -393,6 +447,15 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
 
         shutil.rmtree(self.ext_upgrade_dir, True)
+
+    def check_latest_version(self, release: Optional[ExtensionRelease]):
+        if not release:
+            return
+        if not self.latest_release:
+            self.latest_release = release
+            return
+        if version.parse(self.latest_release.version) < version.parse(release.version):
+            self.latest_release = release
 
     @classmethod
     def from_row(cls, data: dict) -> "InstallableExtension":
@@ -451,18 +514,30 @@ class InstallableExtension(BaseModel):
                 manifest = await fetch_manifest(url)
 
                 for r in manifest.repos:
-                    if r.id in extension_id_list:
-                        continue
                     ext = await InstallableExtension.from_github_release(r)
-                    if ext:
-                        ext.featured = ext.id in manifest.featured
-                        extension_list += [ext]
-                        extension_id_list += [ext.id]
+                    if not ext:
+                        continue
+                    existing_ext = next(
+                        (ee for ee in extension_list if ee.id == r.id), None
+                    )
+                    if existing_ext:
+                        existing_ext.check_latest_version(ext.latest_release)
+                        continue
+
+                    ext.featured = ext.id in manifest.featured
+                    extension_list += [ext]
+                    extension_id_list += [ext.id]
 
                 for e in manifest.extensions:
-                    if e.id in extension_id_list:
+                    release = ExtensionRelease.from_explicit_release(url, e)
+                    existing_ext = next(
+                        (ee for ee in extension_list if ee.id == e.id), None
+                    )
+                    if existing_ext:
+                        existing_ext.check_latest_version(release)
                         continue
                     ext = InstallableExtension.from_explicit_release(e)
+                    ext.check_latest_version(release)
                     ext.featured = ext.id in manifest.featured
                     extension_list += [ext]
                     extension_id_list += [e.id]
@@ -488,17 +563,7 @@ class InstallableExtension(BaseModel):
                 for e in manifest.extensions:
                     if e.id == ext_id:
                         extension_releases += [
-                            ExtensionRelease(
-                                name=e.name,
-                                version=e.version,
-                                archive=e.archive,
-                                hash=e.hash,
-                                source_repo=url,
-                                description=e.short_description,
-                                details_html=e.details,
-                                html_url=e.html_url,
-                                icon=e.icon,
-                            )
+                            ExtensionRelease.from_explicit_release(url, e)
                         ]
 
             except Exception as e:

@@ -15,14 +15,17 @@ from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
+from ...utils.exchange_rates import currencies
 from ..crud import (
     create_account,
     create_wallet,
     delete_wallet,
     get_balance_check,
+    get_dbversions,
     get_inactive_extensions,
     get_installed_extensions,
     get_user,
@@ -57,11 +60,13 @@ async def robots():
 
 
 @core_html_routes.get(
-    "/extensions", name="core.extensions", response_class=HTMLResponse
+    "/extensions", name="install.extensions", response_class=HTMLResponse
 )
-async def extensions(
+async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
+    activate: str = Query(None),
+    deactivate: str = Query(None),
     enable: str = Query(None),
     disable: str = Query(None),
 ):
@@ -69,24 +74,7 @@ async def extensions(
 
     # Update user as his extensions have been updated
     if enable or disable:
-        updated_user = await get_user(user.id)
-        assert updated_user, "User does not exist."
-        user = updated_user
-
-    return template_renderer().TemplateResponse(
-        "core/extensions.html", {"request": request, "user": user.dict()}
-    )
-
-
-@core_html_routes.get(
-    "/install", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
-):
+        user = await get_user(user.id)  # type: ignore
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -128,6 +116,7 @@ async def extensions_install(
 
         all_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         inactive_extensions = await get_inactive_extensions()
+        db_version = await get_dbversions()
         extensions = list(
             map(
                 lambda ext: {
@@ -139,7 +128,9 @@ async def extensions_install(
                     "isFeatured": ext.featured,
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_exts_ids,
+                    "hasDatabaseTables": ext.id in db_version,
                     "isAvailable": ext.id in all_extensions,
+                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release
@@ -153,7 +144,7 @@ async def extensions_install(
         )
 
         return template_renderer().TemplateResponse(
-            "core/install.html",
+            "core/extensions.html",
             {
                 "request": request,
                 "user": user.dict(),
@@ -411,6 +402,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
+            "currencies": list(currencies.keys()),
         },
     )
 

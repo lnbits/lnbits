@@ -89,6 +89,12 @@
             ></q-tab>
 
             <q-tab
+              name="security"
+              :label="$t('security')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
               name="theme"
               :label="$t('theme')"
               @update="val => tab = val.name"
@@ -101,7 +107,8 @@
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
           "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
-          include "admin/_tab_theme.html" %}
+          include "admin/_tab_security.html" %} {% include
+          "admin/_tab_theme.html" %}
         </q-tab-panels>
       </q-form>
     </q-card>
@@ -164,6 +171,8 @@
     data: function () {
       return {
         settings: {},
+        logs: [],
+        serverlogEnabled: false,
         lnbits_theme_options: [
           'classic',
           'bitcoin',
@@ -175,10 +184,30 @@
           'monochrome',
           'salvador'
         ],
+        auditData: {},
+        statusData: {},
+        statusDataTable: {
+          columns: [
+            {
+              name: 'date',
+              align: 'left',
+              label: this.$t('date'),
+              field: 'date'
+            },
+            {
+              name: 'message',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'message'
+            }
+          ]
+        },
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
         formAddExtensionsManifest: '',
+        formAllowedIPs: '',
+        formBlockedIPs: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -349,11 +378,18 @@
     },
     created: function () {
       this.getSettings()
+      this.getAudit()
       this.balance = +'{{ balance|safe }}'
     },
     computed: {
+      lnbitsVersion() {
+        return LNBITS_VERSION
+      },
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
+      },
+      updateAvailable() {
+        return LNBITS_VERSION !== this.statusData.version
       }
     },
     methods: {
@@ -364,7 +400,6 @@
           //admin_users = [...admin_users, addUser]
           this.formData.lnbits_admin_users = [...admin_users, addUser]
           this.formAddAdmin = ''
-          //console.log(this.checkChanges)
         }
       },
       removeAdminUser(user) {
@@ -404,6 +439,68 @@
         const manifests = this.formData.lnbits_extensions_manifests
         this.formData.lnbits_extensions_manifests = manifests.filter(
           m => m !== manifest
+        )
+      },
+      async toggleServerLog() {
+        this.serverlogEnabled = !this.serverlogEnabled
+        if (this.serverlogEnabled) {
+          const wsProto = location.protocol !== 'http:' ? 'wss://' : 'ws://'
+          const digestHex = await LNbits.utils.digestMessage(this.g.user.id)
+          const localUrl =
+            wsProto +
+            document.domain +
+            ':' +
+            location.port +
+            '/api/v1/ws/' +
+            digestHex
+          this.ws = new WebSocket(localUrl)
+          this.ws.addEventListener('message', async ({data}) => {
+            this.logs.push(data.toString())
+            const scrollArea = this.$refs.logScroll
+            if (scrollArea) {
+              const scrollTarget = scrollArea.getScrollTarget()
+              const duration = 0
+              scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+            }
+          })
+        } else {
+          this.ws.close()
+        }
+      },
+      addAllowedIPs() {
+        const allowedIPs = this.formAllowedIPs.trim()
+        const allowed_ips = this.formData.lnbits_allowed_ips
+        if (
+          allowedIPs &&
+          allowedIPs.length &&
+          !allowed_ips.includes(allowedIPs)
+        ) {
+          this.formData.lnbits_allowed_ips = [...allowed_ips, allowedIPs]
+          this.formAllowedIPs = ''
+        }
+      },
+      removeAllowedIPs(allowed_ip) {
+        const allowed_ips = this.formData.lnbits_allowed_ips
+        this.formData.lnbits_allowed_ips = allowed_ips.filter(
+          a => a !== allowed_ip
+        )
+      },
+      addBlockedIPs() {
+        const blockedIPs = this.formBlockedIPs.trim()
+        const blocked_ips = this.formData.lnbits_blocked_ips
+        if (
+          blockedIPs &&
+          blockedIPs.length &&
+          !blocked_ips.includes(blockedIPs)
+        ) {
+          this.formData.lnbits_blocked_ips = [...blocked_ips, blockedIPs]
+          this.formBlockedIPs = ''
+        }
+      },
+      removeBlockedIPs(blocked_ip) {
+        const blocked_ips = this.formData.lnbits_blocked_ips
+        this.formData.lnbits_blocked_ips = blocked_ips.filter(
+          b => b !== blocked_ip
         )
       },
       restartServer() {
@@ -449,11 +546,42 @@
         this.settings.lnbits_allowed_funding_sources.map(f => {
           let opts = this.funding_sources.get(f)
           if (!opts) return
-
           Object.keys(opts).forEach(e => {
             opts[e].value = this.settings[e]
           })
         })
+      },
+      formatDate(date) {
+        return moment(date * 1000).fromNow()
+      },
+      getNotifications() {
+        if (this.settings.lnbits_notifications) {
+          axios
+            .get(this.settings.lnbits_status_manifest)
+            .then(response => {
+              this.statusData = response.data
+            })
+            .catch(error => {
+              this.formData.lnbits_notifications = false
+              error.response.data = {}
+              error.response.data.message = 'Could not fetch status manifest.'
+              LNbits.utils.notifyApiError(error)
+            })
+        }
+      },
+      getAudit() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/audit/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.auditData = response.data
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       getSettings() {
         LNbits.api
@@ -467,6 +595,7 @@
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
+            this.getNotifications()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -487,7 +616,9 @@
           .then(response => {
             this.needsRestart =
               this.settings.lnbits_backend_wallet_class !==
-              this.formData.lnbits_backend_wallet_class
+                this.formData.lnbits_backend_wallet_class ||
+              this.settings.lnbits_killswitch !==
+                this.formData.lnbits_killswitch
             this.settings = this.formData
             this.formData = _.clone(this.settings)
             this.updateFundingData()

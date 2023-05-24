@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.10.6"
+version = "0.10.9"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 
@@ -33,6 +33,7 @@ Cerberus = "1.3.4"
 async-timeout = "4.0.2"
 pyln-client = "0.11.1"
 cashu = "0.9.0"
+slowapi = "^0.1.7"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
@@ -65,6 +66,7 @@ include = [
 exclude = [
   "lnbits/wallets/lnd_grpc_files",
   "lnbits/extensions",
+  "lnbits/upgrades",
 ]
 
 [tool.mypy]
@@ -127,6 +129,7 @@ enable = [
 [tool.pylint.MASTER]
 ignore-paths = [
   "^lnbits/extensions/.*$",
+  "^lnbits/upgrades/.*$",
   "^lnbits/wallets/lnd_grpc_files/.*$",
 ]
 fail-under = 10.0
