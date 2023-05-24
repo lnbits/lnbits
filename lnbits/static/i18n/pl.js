@@ -62,6 +62,8 @@ window.localisation.pl = {
   invoice_waiting: 'Faktura oczekuje na zapłatę',
   payment_received: 'Otrzymano płatność',
   payment_sent: 'Wysłano płatność',
+  receive: 'odbierać',
+  send: 'wysłać',
   outgoing_payment_pending: 'Płatność wychodząca w toku',
   drain_funds: 'Opróżnij środki',
   drain_funds_desc:

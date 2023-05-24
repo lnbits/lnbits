@@ -63,6 +63,8 @@ window.localisation.we = {
   invoice_waiting: 'Anfoneb yn aros i gael ei thalu',
   payment_received: 'Taliad a Dderbyniwyd',
   payment_sent: 'Taliad a Anfonwyd',
+  receive: 'derbyn',
+  send: 'anfon',
   outgoing_payment_pending: 'Taliad sy`n aros yn yr arfaeth',
   drain_funds: 'Cronfeydd Draenio',
   drain_funds_desc:

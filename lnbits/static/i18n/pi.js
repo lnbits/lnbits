@@ -64,6 +64,8 @@ window.localisation.pi = {
   invoice_waiting: 'Invoice waiting to be plundered, arrr',
   payment_received: 'Payment Received like a treasure, argh',
   payment_sent: 'Payment Sent, hoist the colors! We´ve got some doubloons!',
+  receive: 'booty',
+  send: 'hoist',
   outgoing_payment_pending:
     'Outgoing payment pending in the port, ye scurvy dog',
   drain_funds: 'Plunder all the doubloons, ye buccaneer',
