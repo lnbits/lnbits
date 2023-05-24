@@ -149,7 +149,6 @@
               {% raw %}
               <template v-slot:header="props">
                 <q-tr :props="props">
-                  <q-th auto-width></q-th>
                   <q-th v-for="col in props.cols" :key="col.name" :props="props"
                     >{{ col.label }}</q-th
                   >
@@ -192,11 +191,11 @@
                       </a>
                     </q-badge>
                     {{ props.row.memo }}
-                  </q-td>
-                  <q-td auto-width key="time" :props="props">
+                    <br />
                     <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
+                    <i> {{ props.row.dateFrom }}</i>
                   </q-td>
+
                   {% endraw %}
                   <q-td
                     auto-width
@@ -209,10 +208,8 @@
                   </q-td>
 
                   <q-td auto-width key="amount" v-else :props="props">
-                    {{ props.row.fsat }}
-                  </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
+                    {{ props.row.fsat }}<br />
+                    <i>fee {{ props.row.fee }}</i>
                   </q-td>
                 </q-tr>
 
@@ -552,7 +549,7 @@
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong v-text="$t('description')">:</strong> {{
+              <strong v-text="$t('memo')">:</strong> {{
               parse.invoice.description }}<br />
               <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
               <strong>Hash:</strong> {{ parse.invoice.hash }}

@@ -214,37 +214,33 @@ Vue.component('lnbits-payment-details', {
   },
   template: `
     <div class="q-py-md" style="text-align: left">
-      <div class="row justify-center q-mb-md">
+      <div v-if="payment.tag" class="row justify-center q-mb-md">
         <q-badge v-if="hasTag" color="yellow" text-color="black">
           #{{ payment.tag }}
         </q-badge>
       </div>
       <div class="row">
-        <div class="col-3"><b v-text="$t('created')"></b>:</div>
-        <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
+        <b v-text="$t('created')"></b>:
+        {{ payment.date }} ({{ payment.dateFrom }})
       </div>
       <div class="row">
-        <div class="col-3"><b v-text="$t('expiry')"></b>:</div>
-        <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
+       <b v-text="$t('expiry')"></b>:
+       {{ payment.expirydate }} ({{ payment.expirydateFrom }})
       </div>
       <div class="row">
-        <div class="col-3"><b v-text="$t('description')"></b>:</div>
-        <div class="col-9">{{ payment.memo }}</div>
+       <b v-text="$t('amount')"></b>:
+        {{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
       </div>
       <div class="row">
-        <div class="col-3"><b v-text="$t('amount')"></b>:</div>
-        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
+        <b v-text="$t('fee')"></b>:
+        {{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
       </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('fee')"></b>:</div>
-        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('payment_hash')"></b>:</div>
-        <div class="col-9 text-wrap mono">
-            {{ payment.payment_hash }}
+      <div class="text-wrap">
+        <b style="white-space: nowrap;" v-text="$t('payment_hash')"></b>:&nbsp;{{ payment.payment_hash }}
             <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
       </div>
+      <div class="text-wrap">
+        <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
       </div>
       <div class="row" v-if="payment.webhook">
         <div class="col-3"><b v-text="$t('webhook')"></b>:</div>
