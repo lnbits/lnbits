@@ -353,8 +353,14 @@ class InstallableExtension(BaseModel):
             return False
         return Path(self.ext_dir, "config.json").is_file()
 
+    @property
+    def installed_version(self) -> str:
+        if self.installed_release:
+            return self.installed_release.version
+        return ""
+
     def download_archive(self):
-        logger.info(f"Downloading extension {self.name}.")
+        logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
@@ -379,7 +385,7 @@ class InstallableExtension(BaseModel):
             )
 
     def extract_archive(self):
-        logger.info(f"Extracting extension {self.name}.")
+        logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
         Path("lnbits", "upgrades").mkdir(parents=True, exist_ok=True)
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
@@ -414,7 +420,7 @@ class InstallableExtension(BaseModel):
             Path(self.ext_upgrade_dir, self.id),
             Path(settings.lnbits_path, "extensions", self.id),
         )
-        logger.success(f"Extension {self.name} installed.")
+        logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
     def nofiy_upgrade(self) -> None:
         """Update the list of upgraded extensions. The middleware will perform redirects based on this"""
