@@ -214,7 +214,7 @@ Vue.component('lnbits-payment-details', {
   },
   template: `
     <div class="q-py-md" style="text-align: left">
-      <div class="row justify-center q-mb-md">
+      <div v-if="payment.tag" class="row justify-center q-mb-md">
         <q-badge v-if="hasTag" color="yellow" text-color="black">
           #{{ payment.tag }}
         </q-badge>
