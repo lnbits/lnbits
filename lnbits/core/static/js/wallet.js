@@ -146,15 +146,16 @@ new Vue({
       paymentsTable: {
         columns: [
           {
-            name: 'memo',
-            align: 'left',
-            label: this.$t('memo'),
-            field: 'memo'
-          },
-          {
             name: 'time',
             align: 'left',
             label: this.$t('date'),
+            field: 'date',
+            sortable: true
+          },
+          {
+            name: 'memo',
+            align: 'left',
+            label: this.$t('memo'),
             field: 'date',
             sortable: true
           },
@@ -164,12 +165,6 @@ new Vue({
             label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
             sortable: true
-          },
-          {
-            name: 'fee',
-            align: 'right',
-            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
-            field: 'fee'
           }
         ],
         pagination: {
