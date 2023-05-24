@@ -78,55 +78,18 @@
             icon="language"
             class="q-pl-md"
           >
-            <q-list>
-              <q-item clickable v-close-popup @click="changeLanguage('en')">
-                <q-item-section>
-                  <q-item-label>EN</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('de')">
-                <q-item-section>
-                  <q-item-label>DE</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('es')">
-                <q-item-section>
-                  <q-item-label>ES</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('jp')">
-                <q-item-section>
-                  <q-item-label>JP</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('fr')">
-                <q-item-section>
-                  <q-item-label>FR</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('we')">
-                <q-item-section>
-                  <q-item-label>WE</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('it')">
-                <q-item-section>
-                  <q-item-label>IT</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('pi')">
-                <q-item-section>
-                  <q-item-label>PI</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('pl')">
-                <q-item-section>
-                  <q-item-label>PL</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="changeLanguage('nl')">
-                <q-item-section>
-                  <q-item-label>NL</q-item-label>
+            <q-list v-for="(lang, index) in g.langs" :key="index">
+              <q-item
+                clickable
+                v-close-popup
+                @click="changeLanguage(lang.value)"
+                ><q-item-section>
+                  {% raw %}
+                  <q-item-label
+                    >{{lang.display ?? lang.value.toUpperCase()}}</q-item-label
+                  >
+                  <q-tooltip>{{lang.label}}</q-tooltip>
+                  {% endraw %}
                 </q-item-section>
               </q-item>
             </q-list>
@@ -276,6 +239,7 @@
         class="bg-transparent q-px-lg q-py-md"
         :class="{'text-dark': !$q.dark.isActive}"
       >
+        <q-space class="q-py-lg lt-sm"></q-space>
         <q-toolbar class="gt-sm">
           <q-toolbar-title class="text-caption">
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
@@ -329,11 +293,25 @@
     {% endfor %}
     <!---->
     <script type="text/javascript">
-      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
+      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
       if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
+      window.langs = [
+        {value: 'en', label: 'English', display: 'EN'},
+        {value: 'de', label: 'Deutsch', display: 'DE'},
+        {value: 'es', label: 'Español', display: 'ES'},
+        {value: 'jp', label: '日本語', display: 'JP'},
+        {value: 'fr', label: 'Français', display: 'FR'},
+        {value: 'it', label: 'Italiano', display: 'IT'},
+        {value: 'pi', label: 'Pirate', display: 'PI'},
+        {value: 'nl', label: 'Nederlands', display: 'NL'},
+        {value: 'we', label: 'Cymraeg', display: 'CY'},
+        {value: 'pl', label: 'Polski', display: 'PL'},
+        {value: 'pt', label: 'Português', display: 'PT'},
+        {value: 'br', label: 'Português', display: 'BR'}
+      ]
     </script>
     {% block scripts %}{% endblock %}
   </body>

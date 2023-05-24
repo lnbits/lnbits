@@ -150,6 +150,17 @@
             </a>
           </div>
         </div>
+        <div class="row">
+          <div class="col">
+            <a href="https://voltage.cloud">
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '/static/images/voltage.png' : '/static/images/voltagel.png'"
+              ></q-img>
+            </a>
+          </div>
+          <div class="col q-pl-md"></div>
+        </div>
       </div>
 
       {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}

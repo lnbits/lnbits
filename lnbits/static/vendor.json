@@ -25,6 +25,8 @@
     "/static/i18n/fr.js",
     "/static/i18n/nl.js",
     "/static/i18n/we.js",
+    "/static/i18n/pt.js",
+    "/static/i18n/br.js",
     "/static/js/base.js",
     "/static/js/components.js",
     "/static/js/bolt11-decoder.js"

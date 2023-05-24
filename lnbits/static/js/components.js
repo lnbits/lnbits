@@ -222,71 +222,73 @@ Vue.component('lnbits-payment-details', {
     }
   },
   template: `
-    <div class="q-py-md" style="text-align: left">
-      <div class="row justify-center q-mb-md">
-        <q-badge v-if="hasTag" color="yellow" text-color="black">
-          #{{ payment.tag }}
-        </q-badge>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('created')"></b>:</div>
-        <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('expiry')"></b>:</div>
-        <div class="col-9">{{ payment.expirydate }} ({{ payment.expirydateFrom }})</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('description')"></b>:</div>
-        <div class="col-9">{{ payment.memo }}</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('amount')"></b>:</div>
-        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('fee')"></b>:</div>
-        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
-      </div>
-      <div class="row">
-        <div class="col-3"><b v-text="$t('payment_hash')"></b>:</div>
-        <div class="col-9 text-wrap mono">
-            {{ payment.payment_hash }}
-            <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
-      </div>
-      </div>
-      <div class="row" v-if="payment.webhook">
-        <div class="col-3"><b v-text="$t('webhook')"></b>:</div>
-        <div class="col-9 text-wrap mono">
-          {{ payment.webhook }}
-          <q-badge :color="webhookStatusColor" text-color="white">
-            {{ webhookStatusText }}
-          </q-badge>
-        </div>
-      </div>
-      <div class="row" v-if="hasPreimage">
-        <div class="col-3"><b v-text="$t('payment_proof')"></b>:</div>
-        <div class="col-9 text-wrap mono">{{ payment.preimage }}</div>
-      </div>
-      <div class="row" v-for="entry in extras">
-        <div class="col-3">
-          <q-badge v-if="hasTag" color="secondary" text-color="white">
-            extra
-          </q-badge>
-          <b>{{ entry.key }}</b>:
-        </div>
-        <div class="col-9 text-wrap mono">{{ entry.value }}</div>
-      </div>
-      <div class="row" v-if="hasSuccessAction">
-        <div class="col-3"><b>Success action</b>:</div>
-        <div class="col-9">
-          <lnbits-lnurlpay-success-action
-            :payment="payment"
-            :success_action="payment.extra.success_action"
-          ></lnbits-lnurlpay-success-action>
-        </div>
-      </div>
-    </div>
+  <div class="q-py-md" style="text-align: left">
+      
+  <div v-if="payment.tag" class="row justify-center q-mb-md">
+    <q-badge v-if="hasTag" color="yellow" text-color="black">
+      #{{ payment.tag }}
+    </q-badge>
+  </div>
+  
+  <div class="row">
+    <b v-text="$t('created')"></b>:
+    {{ payment.date }} ({{ payment.dateFrom }})
+  </div>
+  
+  <div class="row">
+   <b v-text="$t('expiry')"></b>:
+   {{ payment.expirydate }} ({{ payment.expirydateFrom }})
+  </div>
+  
+  <div class="row">
+   <b v-text="$t('amount')"></b>:
+    {{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
+  </div>
+  
+  <div class="row">
+    <b v-text="$t('fee')"></b>:
+    {{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
+  </div>
+  
+  <div class="text-wrap">
+    <b style="white-space: nowrap;" v-text="$t('payment_hash')"></b>:&nbsp;{{ payment.payment_hash }}
+        <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
+  </div>
+  
+  <div class="text-wrap">
+    <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
+  </div>
+
+  <div class="row" v-if="payment.webhook">
+    <b v-text="$t('webhook')"></b>:
+    {{ payment.webhook }}
+    <q-badge :color="webhookStatusColor" text-color="white">
+      {{ webhookStatusText }}
+    </q-badge>
+  </div>
+
+  <div class="row" v-if="hasPreimage">
+    <b v-text="$t('payment_proof')"></b>:
+    {{ payment.preimage }}
+  </div>
+
+  <div class="row" v-for="entry in extras">
+    <q-badge v-if="hasTag" color="secondary" text-color="white">
+      extra
+    </q-badge>
+    <b>{{ entry.key }}</b>:
+    {{ entry.value }}
+  </div>
+
+  <div class="row" v-if="hasSuccessAction">
+    <b>Success action</b>:
+      <lnbits-lnurlpay-success-action
+        :payment="payment"
+        :success_action="payment.extra.success_action"
+      ></lnbits-lnurlpay-success-action>
+  </div>
+
+</div>
   `,
   computed: {
     hasPreimage() {
