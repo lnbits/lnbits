@@ -121,6 +121,13 @@ class Compat:
         else:
             return "?"
 
+    @classmethod
+    def json_partial_update(cls, colname: str):
+        if DB_TYPE == SQLITE:
+            return f"{colname} = json_patch({colname}, ?)"
+        else:
+            return f"{colname} = {colname}::jsonb || ?"
+
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
@@ -388,14 +395,21 @@ class Filter(BaseModel, Generic[TFilterModel]):
             op = Operator("eq")
 
         field = field_names[0]
-        nested = field_names[1:]
 
         if field in model.__fields__:
             compare_field = model.__fields__[field]
+            nested = field_names[1:]
+            # Filter model can contain pydantic models can be nested aswell
+            while nested and issubclass(compare_field.type_, BaseModel):
+                name = nested.pop(0)
+                if name in compare_field.type_.__fields__:
+                    compare_field = compare_field.type_.__fields__[name]
+                else:
+                    raise ValueError("Unknown filter field")
+
             values = []
             for raw_value in raw_values:
-                # If there is a nested field, pydantic expects a dict, so the raw value is turned into a dict before
-                # and the converted value is extracted afterwards
+                # Before validation of nested fields the values are parsed into a dict
                 for name in reversed(nested):
                     raw_value = {name: raw_value}
 
@@ -408,12 +422,13 @@ class Filter(BaseModel, Generic[TFilterModel]):
                         validated = validated[name]
                     else:
                         validated = getattr(validated, name)
-
                 values.append(validated)
         else:
             raise ValueError("Unknown filter field")
 
-        return cls(field=field, op=op, nested=nested, values=values, model=model)
+        return cls(
+            field=field, op=op, nested=field_names[1:], values=values, model=model
+        )
 
     @property
     def statement(self):
@@ -422,8 +437,9 @@ class Filter(BaseModel, Generic[TFilterModel]):
             if DB_TYPE == SQLITE:
                 accessor = f"json_extract({accessor}, '$.{'.'.join(self.nested)}')"
             else:
-                for name in self.nested:
-                    accessor = f"({accessor} ->> '{name}')"
+                # https://www.postgresql.org/docs/9.3/functions-json.html
+                path = "{" + ",".join(self.nested) + "}"
+                accessor = f"{accessor} #>> '{path}'"
         if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
             placeholder = Compat.timestamp_placeholder
         else:
