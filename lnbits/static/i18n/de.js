@@ -66,6 +66,8 @@ window.localisation.de = {
   invoice_waiting: 'Rechnung wartend auf Zahlung',
   payment_received: 'Zahlung erhalten',
   payment_sent: 'Zahlung gesendet',
+  receive: 'erhalten',
+  send: 'schicken',
   outgoing_payment_pending: 'Ausgehende Zahlung wartend',
   drain_funds: 'Sats abziehen',
   drain_funds_desc:
