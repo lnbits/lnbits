@@ -148,13 +148,6 @@ new Vue({
           {
             name: 'time',
             align: 'left',
-            label: this.$t('date'),
-            field: 'date',
-            sortable: true
-          },
-          {
-            name: 'memo',
-            align: 'left',
             label: this.$t('memo'),
             field: 'date',
             sortable: true
