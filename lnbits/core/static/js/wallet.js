@@ -170,6 +170,62 @@ new Vue({
         filter: null,
         loading: false
       },
+      paymentsCSV: {
+        columns: [
+          {
+            name: 'memo',
+            align: 'left',
+            label: this.$t('memo'),
+            field: 'memo'
+          },
+          {
+            name: 'time',
+            align: 'left',
+            label: this.$t('date'),
+            field: 'date',
+            sortable: true
+          },
+          {
+            name: 'amount',
+            align: 'right',
+            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+            field: 'sat',
+            sortable: true
+          },
+          {
+            name: 'fee',
+            align: 'right',
+            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
+            field: 'fee'
+          },
+          {
+            name: 'tag',
+            align: 'right',
+            label: this.$t('tag'),
+            field: 'tag'
+          },
+          {
+            name: 'payment_hash',
+            align: 'right',
+            label: this.$t('payment_hash'),
+            field: 'payment_hash'
+          },
+          {
+            name: 'payment_proof',
+            align: 'right',
+            label: this.$t('payment_proof'),
+            field: 'payment_proof'
+          },
+          {
+            name: 'webhook',
+            align: 'right',
+            label: this.$t('webhook'),
+            field: 'webhook'
+          }
+        ],
+        filter: null,
+        loading: false
+      },
       paymentsChart: {
         show: false
       },
@@ -731,7 +787,7 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = structuredClone(this.paymentsTable.columns)
+      let columns = structuredClone(this.paymentsCSV.columns)
       columns.unshift({
         name: 'pending',
         align: 'left',
