@@ -25,6 +25,7 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: List[str] = []
+    repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
     min_lnbits_version: Optional[str]
@@ -254,6 +255,7 @@ class ExtensionRelease(BaseModel):
     html_url: Optional[str] = None
     description: Optional[str] = None
     warning: Optional[str] = None
+    repo: Optional[str] = None
     icon: Optional[str] = None
 
     @classmethod
@@ -267,7 +269,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
-            # description=r.body, # bad for JSON
+            repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
         )
 
@@ -286,6 +288,7 @@ class ExtensionRelease(BaseModel):
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
             html_url=e.html_url,
+            repo=e.repo,
             icon=e.icon,
         )
 

@@ -300,6 +300,11 @@
                     {%raw%}{{ $t('repository') }}{%endraw%}
                     <br />
                     <small v-text="repoName"></small>
+                    <q-tooltip
+                      ><span
+                        v-text="selectedExtensionRepos[repoName].repo"
+                      ></span
+                    ></q-tooltip>
                   </div>
                   <div class="col-2"></div>
                 </div>
@@ -541,7 +546,8 @@
           this.selectedExtensionRepos = data.reduce((repos, release) => {
             repos[release.source_repo] = repos[release.source_repo] || {
               releases: [],
-              isInstalled: false
+              isInstalled: false,
+              repo: release.repo
             }
             release.inProgress = false
             release.error = null
