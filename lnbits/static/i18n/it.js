@@ -64,6 +64,8 @@ window.localisation.it = {
   invoice_waiting: 'Fattura in attesa di pagamento',
   payment_received: 'Pagamento ricevuto',
   payment_sent: 'Pagamento inviato',
+  receive: 'ricevere',
+  send: 'inviare',
   outgoing_payment_pending: 'Pagamento in uscita in attesa',
   drain_funds: 'Fondi di drenaggio',
   drain_funds_desc:

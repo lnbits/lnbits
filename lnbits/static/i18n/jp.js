@@ -62,6 +62,8 @@ window.localisation.jp = {
   invoice_waiting: '請求書を待っています',
   payment_received: 'お支払いありがとうございます',
   payment_sent: '支払いが完了しました',
+  receive: '受け取る',
+  send: '送信',
   outgoing_payment_pending: '支払い保留中',
   drain_funds: '資金を排出する',
   drain_funds_desc: 'ウォレットの残高をすべて他のウォレットに送金します',

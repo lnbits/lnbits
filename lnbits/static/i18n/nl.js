@@ -65,6 +65,8 @@ window.localisation.nl = {
   invoice_waiting: 'Factuur wachtend op betaling',
   payment_received: 'Betaling ontvangen',
   payment_sent: 'Betaling verzonden',
+  receive: 'ontvangen',
+  send: 'versturen',
   voutgoing_payment_pending: 'Uitgaande betaling in behandeling',
   drain_funds: 'Geld opnemen',
   drain_funds_desc:

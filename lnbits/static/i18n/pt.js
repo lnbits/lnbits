@@ -63,6 +63,8 @@ window.localisation.pt = {
   invoice_waiting: 'Fatura aguardando pagamento',
   payment_received: 'Pagamento Recebido',
   payment_sent: 'Pagamento Enviado',
+  receive: 'receber',
+  send: 'enviar',
   outgoing_payment_pending: 'Pagamento de saída pendente',
   drain_funds: 'Esvasiar carteira',
   drain_funds_desc:

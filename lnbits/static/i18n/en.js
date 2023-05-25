@@ -80,6 +80,8 @@ window.localisation.en = {
   invoice_waiting: 'Invoice waiting to be paid',
   payment_received: 'Payment Received',
   payment_sent: 'Payment Sent',
+  receive: 'receive',
+  send: 'send',
   outgoing_payment_pending: 'Outgoing payment pending',
   drain_funds: 'Drain Funds',
   drain_funds_desc:
