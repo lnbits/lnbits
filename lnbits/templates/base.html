@@ -82,6 +82,7 @@
               <q-item
                 clickable
                 v-close-popup
+                :active="activeLanguage(lang.value)"
                 @click="changeLanguage(lang.value)"
                 ><q-item-section>
                   {% raw %}

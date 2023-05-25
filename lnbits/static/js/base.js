@@ -350,6 +350,9 @@ window.windowMixin = {
   },
 
   methods: {
+    activeLanguage: function (lang) {
+      return window.i18n.locale === lang
+    },
     changeLanguage: function (newValue) {
       window.i18n.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
