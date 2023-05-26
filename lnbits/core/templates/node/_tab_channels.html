@@ -251,10 +251,8 @@
               </template>
               <template v-slot:body="props">
                 <q-tr :props="props">
-                  <div
-                    class="row justify-between no-wrap items-center q-gutter-sm"
-                  >
-                    <div class="q-my-sm">
+                  <div class="row no-wrap items-center q-gutter-sm">
+                    <div class="q-my-sm col-grow">
                       <div class="text-subtitle1 text-bold">
                         {{ props.row.alias }}
                       </div>
@@ -291,6 +289,14 @@
                     >
                       Open channel
                     </q-btn>
+                    <q-btn
+                      flat
+                      dense
+                      size="md"
+                      @click="disconnectPeer(props.row.id)"
+                      icon="cancel"
+                      color="pink"
+                    ></q-btn>
                   </div>
                 </q-tr>
               </template>

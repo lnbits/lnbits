@@ -95,6 +95,9 @@ class CoreLightningNode(Node):
 
         return True
 
+    async def disconnect_peer(self, id: str):
+        await self.wallet.ln_rpc("disconnect", id)
+
     @catch_rpc_errors
     async def open_channel(
         self,
@@ -170,7 +173,7 @@ class CoreLightningNode(Node):
     @catch_rpc_errors
     async def get_peer_ids(self) -> list[str]:
         peers = await self.wallet.ln_rpc("listpeers")
-        return [p["id"] for p in peers["peers"]]
+        return [p["id"] for p in peers["peers"] if p["connected"]]
 
     @catch_rpc_errors
     async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:

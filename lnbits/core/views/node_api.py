@@ -127,11 +127,18 @@ async def api_get_peers(node: Node = Depends(require_node)) -> list[NodePeerInfo
     return await node.get_peers()
 
 
-@node_api.post("/peers/connect")
+@node_api.post("/peers")
 async def api_connect_peer(
     uri: str = Body(embed=True), node: Node = Depends(require_node)
 ):
     return await node.connect_peer(uri)
+
+
+@node_api.delete("/peers")
+async def api_disconnect_peer(
+    id: str = Body(embed=True), node: Node = Depends(require_node)
+):
+    return await node.disconnect_peer(id)
 
 
 class NodeRank(BaseModel):

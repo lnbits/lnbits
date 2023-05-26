@@ -199,6 +199,10 @@ class Node(ABC):
         pass
 
     @abstractmethod
+    async def disconnect_peer(self, id: str):
+        pass
+
+    @abstractmethod
     async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
         pass
 

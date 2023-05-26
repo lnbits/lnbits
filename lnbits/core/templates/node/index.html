@@ -424,10 +424,27 @@
       },
       connectPeer: function () {
         console.log('peer', this.connectPeerDialog)
-        this.api('POST', '/peers/connect', {data: this.connectPeerDialog.data})
+        this.api('POST', '/peers', {data: this.connectPeerDialog.data})
           .then(() => {
             this.connectPeerDialog.show = false
             this.getPeers()
+          })
+      },
+      disconnectPeer: function(id) {
+        LNbits.utils
+          .confirmDialog(
+            'Do you really wanna disconnect this peer?'
+          )
+          .onOk(() => {
+            this.api('DELETE', '/peers', {data: {id}})
+              .then(response => {
+                this.$q.notify({
+                  message: 'Disconnected',
+                  icon: null
+                })
+                this.needsRestart = true
+                this.getPeers()
+              })
           })
       },
       openChannel: function () {
