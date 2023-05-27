@@ -154,7 +154,7 @@
             <div>
               <div class="text-subtitle1 col-grow">Total</div>
               <lnbits-channel-balance
-                :balance="this.activeBalance"
+                :balance="this.totalBalance"
               ></lnbits-channel-balance>
             </div>
             <q-separator></q-separator>
@@ -204,6 +204,7 @@
                     </div>
                     <lnbits-channel-balance
                       :balance="props.row.balance"
+                      :color="props.row.color"
                     ></lnbits-channel-balance>
                   </div>
                 </q-tr>

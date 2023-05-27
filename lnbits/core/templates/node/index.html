@@ -100,7 +100,7 @@
                           size="25px"
                           :value="balance.local_msat / balance.total_msat"
                           :color="color"
-                          :style="\`color: #${this.color}\`"
+                          :style="\`color: #\${this.color}\`"
                         >
                           <div class="absolute-full flex flex-center">
                             <q-badge
@@ -349,7 +349,18 @@
         return this.stateFilters ? this.channels.data.filter(channel => {
           return this.stateFilters.find(({value}) => value == channel.state)
         }) : this.channels.data
-      }
+      },
+      totalBalance: function () {
+        return this.filteredChannels.reduce(
+          (balance, channel) => {
+            balance.local_msat += channel.balance.local_msat
+            balance.remote_msat += channel.balance.remote_msat
+            balance.total_msat += channel.balance.total_msat
+            return balance
+          },
+          {local_msat: 0, remote_msat: 0, total_msat: 0}
+        )
+      },
     },
     methods: {
       formatMsat: function (msat) {
