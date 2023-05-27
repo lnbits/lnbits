@@ -136,12 +136,38 @@ window.localisation.en = {
     'If enabled it will change your funding source to VoidWallet automatically if LNbits sends out a killswitch signal. You will need to enable manually after an update.',
   killswitch_interval: 'Killswitch Interval',
   killswitch_interval_desc:
-    'How often the background task should check for a killswitch signal in minutes.',
+    'How often the background task should check for the LNBits killswitch signal from the status source (in minutes).',
+  enable_watchdog: 'Enable Watchdog',
+  enable_watchdog_desc:
+    'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',
+  watchdog_interval: 'Watchdog Interval',
+  watchdog_interval_desc:
+    'How often the background task should check for a killswitch signal in the watchdog delta [node_balance - lnbits_balance] (in minutes).',
+  watchdog_delta: 'Watchdog Delta',
+  watchdog_delta_desc:
+    'Limit before killswitch changes funding source to VoidWallet [lnbits_balance - node_balance > delta]',
   status: 'Status',
-  status_source: 'Status Source',
-  status_source_label:
+  notification_source: 'Notification Source',
+  notification_source_label:
     'Source URL (only use the official LNbits status source, and sources you can trust)',
   more: 'more',
   releases: 'Releases',
-  settings: 'Settings'
+  killswitch: 'Killswitch',
+  watchdog: 'Watchdog',
+  server_logs: 'Server Logs',
+  ip_blocker: 'IP Blocker',
+  security: 'Security',
+  security_tools: 'Security tools',
+  block_access_hint: 'Block access by IP',
+  allow_access_hint: 'Allow access by IP (will override blocked IPs)',
+  enter_ip: 'Enter IP and hit enter',
+  rate_limiter: 'Rate Limiter',
+  number_of_requests: 'Number of requests',
+  time_unit: 'Time unit',
+  minute: 'minute',
+  second: 'second',
+  hour: 'hour',
+  disable_server_log: 'Disable Server Log',
+  enable_server_log: 'Enable Server Log',
+  coming_soon: 'Feature coming soon'
 }

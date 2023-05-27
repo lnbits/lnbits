@@ -244,6 +244,7 @@ class BalanceCheck(BaseModel):
 
 class CoreAppExtra:
     register_new_ext_routes: Callable
+    register_new_ratelimiter: Callable
 
 
 class TinyURL(BaseModel):

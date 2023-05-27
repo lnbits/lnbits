@@ -77,12 +77,6 @@
             ></q-tab>
 
             <q-tab
-              name="status"
-              :label="$t('status')"
-              @update="val => tab = val.name"
-            ></q-tab>
-
-            <q-tab
               name="users"
               :label="$t('users')"
               @update="val => tab = val.name"
@@ -96,7 +90,7 @@
 
             <q-tab
               name="security"
-              label="Security"
+              :label="$t('security')"
               @update="val => tab = val.name"
             ></q-tab>
 
@@ -178,6 +172,7 @@
       return {
         settings: {},
         logs: [],
+        serverlogEnabled: false,
         lnbits_theme_options: [
           'classic',
           'bitcoin',
@@ -189,6 +184,7 @@
           'monochrome',
           'salvador'
         ],
+        auditData: {},
         statusData: {},
         statusDataTable: {
           columns: [
@@ -382,34 +378,8 @@
     },
     created: function () {
       this.getSettings()
+      this.getAudit()
       this.balance = +'{{ balance|safe }}'
-      if (location.protocol !== 'http:') {
-        localUrl =
-          'wss://' +
-          document.domain +
-          ':' +
-          location.port +
-          '/api/v1/ws/' +
-          this.g.user.id
-      } else {
-        localUrl =
-          'ws://' +
-          document.domain +
-          ':' +
-          location.port +
-          '/api/v1/ws/' +
-          this.g.user.id
-      }
-      this.ws = new WebSocket(localUrl)
-      this.ws.addEventListener('message', async ({data}) => {
-        this.logs.push(data.toString())
-        const scrollArea = this.$refs.logScroll
-        if (scrollArea) {
-          const scrollTarget = scrollArea.getScrollTarget()
-          const duration = 0
-          scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
-        }
-      })
     },
     computed: {
       lnbitsVersion() {
@@ -470,6 +440,32 @@
         this.formData.lnbits_extensions_manifests = manifests.filter(
           m => m !== manifest
         )
+      },
+      async toggleServerLog() {
+        this.serverlogEnabled = !this.serverlogEnabled
+        if (this.serverlogEnabled) {
+          const wsProto = location.protocol !== 'http:' ? 'wss://' : 'ws://'
+          const digestHex = await LNbits.utils.digestMessage(this.g.user.id)
+          const localUrl =
+            wsProto +
+            document.domain +
+            ':' +
+            location.port +
+            '/api/v1/ws/' +
+            digestHex
+          this.ws = new WebSocket(localUrl)
+          this.ws.addEventListener('message', async ({data}) => {
+            this.logs.push(data.toString())
+            const scrollArea = this.$refs.logScroll
+            if (scrollArea) {
+              const scrollTarget = scrollArea.getScrollTarget()
+              const duration = 0
+              scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+            }
+          })
+        } else {
+          this.ws.close()
+        }
       },
       addAllowedIPs() {
         const allowedIPs = this.formAllowedIPs.trim()
@@ -559,11 +555,33 @@
         return moment(date * 1000).fromNow()
       },
       getNotifications() {
-        if (this.settings.lnbits_status_notifications) {
-          axios.get(this.settings.lnbits_status_manifest).then(response => {
-            this.statusData = response.data
-          })
+        if (this.settings.lnbits_notifications) {
+          axios
+            .get(this.settings.lnbits_status_manifest)
+            .then(response => {
+              this.statusData = response.data
+            })
+            .catch(error => {
+              this.formData.lnbits_notifications = false
+              error.response.data = {}
+              error.response.data.message = 'Could not fetch status manifest.'
+              LNbits.utils.notifyApiError(error)
+            })
         }
+      },
+      getAudit() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/audit/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.auditData = response.data
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       getSettings() {
         LNbits.api

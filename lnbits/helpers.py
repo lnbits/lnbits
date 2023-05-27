@@ -51,10 +51,6 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
-    t.env.globals["LNBITS_RATE_LIMIT_NO"] = settings.lnbits_rate_limit_no
-    t.env.globals["LNBITS_RATE_LIMIT_UNIT"] = settings.lnbits_rate_limit_unit
-    t.env.globals["LNBITS_ALLOWED_IPS"] = settings.lnbits_allowed_ips
-    t.env.globals["LNBITS_BLOCKED_IPS"] = settings.lnbits_blocked_ips
     t.env.globals["EXTENSIONS"] = [
         e
         for e in get_valid_extensions()

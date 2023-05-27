@@ -1,16 +1,15 @@
 <q-tab-panel name="security">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">Security tools</h6>
+    <h6 class="q-my-none" v-text="$t('security_tools')"></h6>
     <br />
     <div>
       <div class="row">
-        <div class="column" style="width: 100%">
+        <div v-if="serverlogEnabled" class="column" style="width: 100%">
           <div
             class="col bg-primary"
             style="padding-left: 5px; max-height: 20px; color: #fafafa"
-          >
-            SERVER LOGS
-          </div>
+            v-text="$t('server_logs')"
+          ></div>
           <div class="col" style="background-color: #292929">
             <q-scroll-area
               ref="logScroll"
@@ -22,11 +21,18 @@
             </q-scroll-area>
           </div>
         </div>
+        <q-btn
+          @click="toggleServerLog"
+          dense
+          flat
+          color="primary"
+          :label="(serverlogEnabled) ? $t('disable_server_log') : $t('enable_server_log')"
+        ></q-btn>
       </div>
       <br />
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <p>IP Blocker</p>
+        <div class="col-12 col-md-12">
+          <p v-text="$t('ip_blocker')"></p>
           <div class="row q-col-gutter-md">
             <div class="col-6">
               <q-input
@@ -34,8 +40,8 @@
                 v-model="formBlockedIPs"
                 @keydown.enter="addBlockedIPs"
                 type="text"
-                label="Enter IP and hit enter"
-                hint="Block access by IP"
+                :label="$t('enter_ip')"
+                :hint="$t('block_access_hint')"
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -66,8 +72,8 @@
                 v-model="formAllowedIPs"
                 @keydown.enter="addAllowedIPs"
                 type="text"
-                label="Enter IP and hit enter"
-                hint="Allow access by IP (will override blocked IPs)"
+                :label="$t('enter_ip')"
+                :hint="$t('allow_access_hint')"
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -94,26 +100,163 @@
             </div>
           </div>
         </div>
-        <div class="col-12 col-md-6">
-          <p>Rate Limiter</p>
+        <div class="col-12 col-md-12">
+          <p v-text="$t('rate_limiter')"></p>
           <div class="row q-col-gutter-md">
             <div class="col-6">
               <q-input
                 filled
                 type="number"
                 v-model.number="formData.lnbits_rate_limit_no"
-                label="number of requests"
+                :label="$t('number_of_requests')"
               ></q-input>
             </div>
             <div class="col-6">
               <q-select
                 filled
-                :options="['second','minute','hour']"
+                :options="[$t('second'),$t('minute'),$t('hour')]"
                 v-model="formData.lnbits_rate_limit_unit"
-                label="Time unit"
+                :label="$t('time_unit')"
               ></q-select>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+    <br />
+    <div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_notifications')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_notifications_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_notifications"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+          <p
+            v-if="!formData.lnbits_notifications"
+            v-text="$t('notifications_disabled')"
+          ></p>
+          <div v-if="formData.lnbits_notifications">
+            {% include "admin/_tab_security_notifications.html" %}
+          </div>
+          <br />
+          <div>
+            <p v-text="$t('notification_source')"></p>
+            <q-input
+              filled
+              v-model="formData.lnbits_status_manifest"
+              type="text"
+              :label="$t('notification_source_label')"
+            />
+          </div>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p v-text="$t('killswitch')"></p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_killswitch')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_killswitch_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_killswitch"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('killswitch_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('killswitch_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_killswitch_interval"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+          <p v-text="$t('watchdog')"></p>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_watchdog_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_watchdog"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_interval"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_delta_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_delta"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
         </div>
       </div>
     </div>
