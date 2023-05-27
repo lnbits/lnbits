@@ -195,7 +195,7 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def connect_peer(self, uri: str) -> bool:
+    async def connect_peer(self, uri: str):
         pass
 
     @abstractmethod
@@ -290,7 +290,7 @@ class Node(ABC):
 
     def get_cache(self, key: str) -> Optional[Any]:
         cached = self.cache.get(key)
-        if cached:
+        if cached is not None:
             if cached.expiry > time():
                 return cached.value
             else:

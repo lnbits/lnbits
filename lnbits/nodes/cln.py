@@ -25,6 +25,7 @@ from lnbits.nodes.base import (
     NodePaymentsFilters,
     NodePeerInfo,
     PaymentStats,
+    PublicNodeInfo,
 )
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -69,7 +70,7 @@ class CoreLightningNode(Node):
             self.schema_cols = {}
 
     @catch_rpc_errors
-    async def connect_peer(self, uri: str) -> bool:
+    async def connect_peer(self, uri: str):
         try:
             await self.wallet.ln_rpc("connect", uri)
         except RpcError as e:
@@ -92,8 +93,6 @@ class CoreLightningNode(Node):
                 )
             else:
                 raise
-
-        return True
 
     async def disconnect_peer(self, id: str):
         await self.wallet.ln_rpc("disconnect", id)
