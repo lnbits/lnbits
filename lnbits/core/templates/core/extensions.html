@@ -257,8 +257,45 @@
       </p>
 
       <div class="row q-mt-lg">
+        <q-checkbox
+          v-model="uninstallAndDropDb"
+          value="false"
+          label="Cleanup database tables"
+        >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+            {%raw%}{{ $t('extension_db_drop_info') }}{%endraw%}
+          </q-tooltip>
+        </q-checkbox>
+      </div>
+      <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="uninstallExtension()"
           >{%raw%}{{ $t('uninstall_confirm') }}{%endraw%}</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+          >{%raw%}{{ $t('cancel') }}{%endraw%}</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="showDropDbDialog">
+    <q-card v-if="selectedExtension" class="q-pa-lg">
+      <h6 class="q-my-md text-primary">{%raw%}{{ $t('warning') }}{%endraw%}</h6>
+      <p>{%raw%}{{ $t('extension_db_drop_warning') }}{%endraw%} <br /></p>
+      <q-input
+        v-model="dropDbExtensionId"
+        :label="selectedExtension.id"
+      ></q-input>
+      <br />
+      <p>{%raw%}{{ $t('confirm_continue') }}{%endraw%}</p>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          :disable="dropDbExtensionId !== selectedExtension.id"
+          outline
+          color="red"
+          @click="dropExtensionDb()"
+          >{%raw%}{{ $t('confirm') }}{%endraw%}</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto"
           >{%raw%}{{ $t('cancel') }}{%endraw%}</q-btn
@@ -386,9 +423,18 @@
           v-if="selectedExtension?.isInstalled"
           @click="showUninstall()"
           flat
-          color="red"
+          color="gray"
         >
           {%raw%}{{ $t('uninstall') }}{%endraw%}</q-btn
+        >
+        <q-btn
+          v-else-if="selectedExtension?.hasDatabaseTables"
+          @click="showDropDb()"
+          flat
+          color="red"
+          :label="$t('drop_db')"
+        >
+          {%raw%}{{ }}{%endraw%}</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">
           {%raw%}{{ $t('close') }}{%endraw%}</q-btn
@@ -408,8 +454,11 @@
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
+        showDropDbDialog: false,
+        dropDbExtensionId: '',
         selectedExtension: null,
         selectedExtensionRepos: null,
+        uninstallAndDropDb: false,
         maxStars: 5,
         user: null
       }
@@ -498,6 +547,40 @@
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
             this.tab = 'installed'
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension uninstalled!'
+            })
+            if (this.uninstallAndDropDb) {
+              this.showDropDb()
+            }
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
+      },
+
+      dropExtensionDb: async function () {
+        const extension = this.selectedExtension
+        this.showUpgradeDialog = false
+        this.showDropDbDialog = false
+        this.dropDbExtensionId = ''
+        extension.inProgress = true
+        LNbits.api
+          .request(
+            'DELETE',
+            `/api/v1/extension/${extension.id}/db?usr=${this.g.user.id}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            extension.installedRelease = null
+            extension.inProgress = false
+            extension.hasDatabaseTables = false
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension DB deleted!'
+            })
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
@@ -526,6 +609,11 @@
       showUninstall: function () {
         this.showUpgradeDialog = false
         this.showUninstallDialog = true
+        this.uninstallAndDropDb = false
+      },
+
+      showDropDb: function () {
+        this.showDropDbDialog = true
       },
 
       showUpgrade: async function (extension) {
