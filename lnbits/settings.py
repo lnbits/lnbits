@@ -43,6 +43,10 @@ class UsersSettings(LNbitsSettings):
     lnbits_allowed_users: List[str] = Field(default=[])
 
 
+class AllowedCurrencies(LNbitsSettings):
+    lnbits_allowed_currencies: List[str] = Field(default=[])
+
+
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(
@@ -203,6 +207,7 @@ class FundingSourcesSettings(
 
 class EditableSettings(
     UsersSettings,
+    AllowedCurrencies,
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
