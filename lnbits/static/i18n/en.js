@@ -107,7 +107,8 @@ window.localisation.en = {
   extension_uninstall_warning:
     'You are about to remove the extension for all users.',
   uninstall_confirm: 'Yes, Uninstall',
-  extension_db_drop_info: 'All data for the extension will be permanently deleted. There is no way to undo this operation!',
+  extension_db_drop_info:
+    'All data for the extension will be permanently deleted. There is no way to undo this operation!',
   extension_db_drop_warning:
     'You are about to remove all data for the extension. Please type the extension name to continue:',
 
