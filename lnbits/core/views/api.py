@@ -910,7 +910,6 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
 )
 async def delete_extension_db(ext_id: str):
     try:
-        print("### delete_extension_db", ext_id)
         db_version = (await get_dbversions()).get(ext_id, None)
         if not db_version:
             raise HTTPException(
