@@ -57,7 +57,7 @@ $ poetry run lnbits
 ```
 It will now show you the Super User Account:
 
-`SUCCESS | ✔️ Access super user account at: https://127.0.0.1:5000/wallet?usr=5711d7..`
+`SUCCESS | ✔️ Access super user account at: https://127.0.0.1:5000/wallet?usr=<ID from ".super_user" file>`
 
 The `/wallet?usr=..` is your super user account. You just have to append it to your normal LNbits web domain.
 
