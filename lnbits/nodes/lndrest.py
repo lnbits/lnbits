@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 from httpx import HTTPStatusError
+from loguru import logger
 
 from lnbits.db import Filters, Page
 from lnbits.nodes import Node
 from lnbits.nodes.base import (
     ChannelBalance,
+    ChannelPoint,
     ChannelState,
     ChannelStats,
     NodeChannel,
@@ -48,8 +49,9 @@ class LndRestNode(Node):
             response.raise_for_status()
         except HTTPStatusError as e:
             json = e.response.json()
-            error = json.get("error") or json
-            raise HTTPException(e.response.status_code, detail=error.get("message"))
+            if json:
+                error = json.get("error") or json
+                raise HTTPException(e.response.status_code, detail=error.get("message"))
         return response.json()
 
     def get(self, path: str, **kwargs):
@@ -111,20 +113,32 @@ class LndRestNode(Node):
         )
         pass
 
-    async def close_channel(
+    async def _close_channel(
         self,
-        short_id: Optional[str] = None,
-        funding_txid: Optional[str] = None,
+        point: ChannelPoint,
         force: bool = False,
     ):
         async with self.wallet.client.stream(
             "DELETE",
-            f"{self.wallet.endpoint}/v1/channels/{funding_txid}/0",
+            f"{self.wallet.endpoint}/v1/channels/{point.funding_txid}/{point.output_index}",
             params={"force": force},
             timeout=None,
         ) as stream:
             async for chunk in stream.aiter_text():
-                print(chunk)
+                if chunk:
+                    chunk = json.loads(chunk)
+                    logger.info(f"LND Channel close update: {chunk['result']}")
+
+    async def close_channel(
+        self,
+        short_id: Optional[str] = None,
+        point: Optional[ChannelPoint] = None,
+        force: bool = False,
+    ):
+        if not point:
+            raise HTTPException(status_code=400, detail="Channel point required")
+
+        asyncio.create_task(self._close_channel(point, force))
 
     async def get_channels(self) -> NodeChannelsResponse:
         normal, pending, closed = await asyncio.gather(
@@ -170,10 +184,14 @@ class LndRestNode(Node):
 
         for channel in normal["channels"]:
             info = await self.get_peer_info(channel["remote_pubkey"])
+            funding_tx, output_index = channel["channel_point"].split(":")
             channels.append(
                 NodeChannel(
                     short_id=channel["chan_id"],
-                    funding_txid=channel["channel_point"].split(":")[0],
+                    point=ChannelPoint(
+                        funding_txid=funding_tx,
+                        output_index=output_index,
+                    ),
                     peer_id=channel["remote_pubkey"],
                     balance=ChannelBalance(
                         local_msat=msat(channel["local_balance"]),
@@ -234,7 +252,7 @@ class LndRestNode(Node):
         response = await self.get(
             "/v1/payments",
             params={
-                "index_offset": offset + 1 - filters.offset,
+                "index_offset": offset + 1 - (filters.offset or 0),
                 "max_payments": filters.limit,
                 "include_incomplete": True,
                 "count_total_payments": True,
@@ -257,6 +275,7 @@ class LndRestNode(Node):
                 if payment["htlcs"]
                 else None,
                 bolt11=payment["payment_request"],
+                preimage=payment["payment_preimage"],
             )
             for payment in response["payments"]
         ]
@@ -294,7 +313,7 @@ class LndRestNode(Node):
             )
             for invoice in response["invoices"]
         ]
-        return Page(data=invoices, total=len(invoices) * 2 + filters.offset)
+        return Page(data=invoices, total=len(invoices) * 2 + (filters.offset or 0))
 
     async def get_payment_stats(self) -> PaymentStats:
-        pass
+        return PaymentStats(volume=0)

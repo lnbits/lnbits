@@ -10,6 +10,7 @@ from lnbits.settings import settings
 
 from ...db import Filters, Page
 from ...nodes.base import (
+    ChannelPoint,
     Node,
     NodeChannelsResponse,
     NodeInfoResponse,
@@ -100,10 +101,10 @@ async def api_create_channel(
 async def api_delete_channel(
     node: Node = Depends(require_node),
     short_id: Optional[str] = Body(None),
-    funding_txid: Optional[str] = Body(None),
+    point: Optional[ChannelPoint] = Body(None),
     force: bool = Body(False),
 ) -> Optional[NodeChannelsResponse]:
-    return await node.close_channel(short_id, funding_txid, force)
+    return await node.close_channel(short_id, point, force)
 
 
 @node_api.get("/payments", response_model=Page[NodePayment])

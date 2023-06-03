@@ -16,6 +16,7 @@ except ImportError:  # pragma: nocover
 
 from lnbits.nodes.base import (
     ChannelBalance,
+    ChannelPoint,
     ChannelState,
     ChannelStats,
     Node,
@@ -25,7 +26,6 @@ from lnbits.nodes.base import (
     NodePaymentsFilters,
     NodePeerInfo,
     PaymentStats,
-    PublicNodeInfo,
 )
 
 from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
@@ -147,12 +147,13 @@ class CoreLightningNode(Node):
     async def close_channel(
         self,
         short_id: Optional[str] = None,
-        funding_txid: Optional[str] = None,
+        point: Optional[ChannelPoint] = None,
         force: bool = False,
     ):
         if not short_id:
             raise HTTPException(status_code=400, detail="Short id required")
         try:
+            self.wallet.ln.close()
             await self.wallet.ln_rpc("close", short_id)
         except RpcError as e:
             message = e.error["message"]  # type: ignore
@@ -205,7 +206,10 @@ class CoreLightningNode(Node):
             [
                 NodeChannel(
                     short_id=ch.get("short_channel_id"),
-                    funding_txid=ch["funding_txid"],
+                    point=ChannelPoint(
+                        funding_txid=ch["funding_txid"],
+                        output_index=ch["funding_output"],
+                    ),
                     peer_id=ch["peer_id"],
                     balance=ChannelBalance(
                         local_msat=ch["our_amount_msat"],

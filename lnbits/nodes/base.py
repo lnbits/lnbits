@@ -43,9 +43,14 @@ class ChannelBalance(BaseModel):
     total_msat: int
 
 
+class ChannelPoint(BaseModel):
+    funding_txid: str
+    output_index: int
+
+
 class NodeChannel(BaseModel):
-    short_id: Optional[str]
-    funding_txid: Optional[str]
+    short_id: Optional[str] = None
+    point: Optional[ChannelPoint] = None
     peer_id: str
     balance: ChannelBalance
     state: ChannelState
@@ -125,7 +130,7 @@ class NodePayment(BaseModel):
     pending: bool
     amount: int
     fee: Optional[int] = None
-    memo: Optional[str]
+    memo: Optional[str] = None
     time: int
     bolt11: str
     preimage: Optional[str]
@@ -228,7 +233,7 @@ class Node(ABC):
     async def close_channel(
         self,
         short_id: Optional[str] = None,
-        funding_txid: Optional[str] = None,
+        point: Optional[ChannelPoint] = None,
         force: bool = False,
     ):
         pass
