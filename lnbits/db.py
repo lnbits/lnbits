@@ -128,6 +128,15 @@ class Compat:
         else:
             return f"{colname} = {colname}::jsonb || ?"
 
+    @classmethod
+    def json_path(cls, colname: str, *path: str):
+        if DB_TYPE == SQLITE:
+            return f"json_extract({colname}, '$.{'.'.join(path)}')"
+        else:
+            # https://www.postgresql.org/docs/9.3/functions-json.html
+            as_path = "{" + ",".join(path) + "}"
+            return f"{colname} #>> '{as_path}'"
+
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
@@ -450,12 +459,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
     def statement(self):
         accessor = self.field
         if self.nested:
-            if DB_TYPE == SQLITE:
-                accessor = f"json_extract({accessor}, '$.{'.'.join(self.nested)}')"
-            else:
-                # https://www.postgresql.org/docs/9.3/functions-json.html
-                path = "{" + ",".join(self.nested) + "}"
-                accessor = f"{accessor} #>> '{path}'"
+            accessor = Compat.json_path(accessor, *self.nested)
         if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
             placeholder = Compat.timestamp_placeholder
         else:
