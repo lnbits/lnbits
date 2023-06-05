@@ -32,13 +32,13 @@ class LNPayWallet(Wallet):
         self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"X-Api-Key": settings.lnpay_api_key}
-        self.client = httpx.AsyncClient(headers=self.auth)
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
     async def cleanup(self):
         await self.client.aclose()
 
     async def status(self) -> StatusResponse:
-        url = f"{self.endpoint}/wallet/{self.wallet_key}"
+        url = "/wallet/{self.wallet_key}"
         try:
             r = await self.client.get(url, timeout=60)
         except (httpx.ConnectError, httpx.RequestError):
@@ -73,7 +73,7 @@ class LNPayWallet(Wallet):
             data["memo"] = memo or ""
 
         r = await self.client.post(
-            f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
+            "/wallet/{self.wallet_key}/invoice",
             json=data,
             timeout=60,
         )
@@ -92,7 +92,7 @@ class LNPayWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
-            f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
+            "/wallet/{self.wallet_key}/withdraw",
             json={"payment_request": bolt11},
             timeout=None,
         )
@@ -117,7 +117,7 @@ class LNPayWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
-            url=f"{self.endpoint}/lntx/{checking_id}",
+            url="/lntx/{checking_id}",
         )
 
         if r.is_error:
@@ -152,7 +152,7 @@ class LNPayWallet(Wallet):
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        r = await self.client.get(f"{self.endpoint}/lntx/{lntx_id}?fields=settled")
+        r = await self.client.get("/lntx/{lntx_id}?fields=settled")
         data = r.json()
         if data["settled"]:
             await self.queue.put(lntx_id)

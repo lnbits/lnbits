@@ -29,14 +29,14 @@ class LNbitsWallet(Wallet):
         if not self.endpoint or not key:
             raise Exception("cannot initialize lnbits wallet")
         self.key = {"X-Api-Key": key}
-        self.client = httpx.AsyncClient(headers=self.key)
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.key)
 
     async def cleanup(self):
         await self.client.aclose()
 
     async def status(self) -> StatusResponse:
         try:
-            r = await self.client.get(url=f"{self.endpoint}/api/v1/wallet", timeout=15)
+            r = await self.client.get(url="/api/v1/wallet", timeout=15)
         except Exception as exc:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint} due to: {exc}", 0
@@ -70,7 +70,7 @@ class LNbitsWallet(Wallet):
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
 
-        r = await self.client.post(url=f"{self.endpoint}/api/v1/payments", json=data)
+        r = await self.client.post(url="/api/v1/payments", json=data)
         ok, checking_id, payment_request, error_message = (
             not r.is_error,
             None,
@@ -88,7 +88,7 @@ class LNbitsWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
-            url=f"{self.endpoint}/api/v1/payments",
+            url="/api/v1/payments",
             json={"out": True, "bolt11": bolt11},
             timeout=None,
         )
@@ -109,7 +109,7 @@ class LNbitsWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.get(
-                url=f"{self.endpoint}/api/v1/payments/{checking_id}",
+                url="/api/v1/payments/{checking_id}",
             )
             if r.is_error:
                 return PaymentStatus(None)
@@ -118,7 +118,7 @@ class LNbitsWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url=f"{self.endpoint}/api/v1/payments/{checking_id}")
+        r = await self.client.get(url="/api/v1/payments/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(None)

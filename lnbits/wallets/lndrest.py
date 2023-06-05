@@ -64,14 +64,16 @@ class LndRestWallet(Wallet):
         self.cert = cert or True
 
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
-        self.client = httpx.AsyncClient(headers=self.auth, verify=self.cert)
+        self.client = httpx.AsyncClient(
+            base_url=self.endpoint, headers=self.auth, verify=self.cert
+        )
 
     async def cleanup(self):
         await self.client.aclose()
 
     async def status(self) -> StatusResponse:
         try:
-            r = await self.client.get(f"{self.endpoint}/v1/balance/channels")
+            r = await self.client.get("/v1/balance/channels")
             r.raise_for_status()
         except (httpx.ConnectError, httpx.RequestError) as exc:
             return StatusResponse(f"Unable to connect to {self.endpoint}. {exc}", 0)
@@ -105,7 +107,7 @@ class LndRestWallet(Wallet):
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
-        r = await self.client.post(url=f"{self.endpoint}/v1/invoices", json=data)
+        r = await self.client.post(url="/v1/invoices", json=data)
 
         if r.is_error:
             error_message = r.text
@@ -128,7 +130,7 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
         r = await self.client.post(
-            url=f"{self.endpoint}/v1/channels/transactions",
+            url="/v1/channels/transactions",
             json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
             timeout=None,
         )
@@ -144,7 +146,7 @@ class LndRestWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url=f"{self.endpoint}/v1/invoice/{checking_id}")
+        r = await self.client.get(url="/v1/invoice/{checking_id}")
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
@@ -165,7 +167,7 @@ class LndRestWallet(Wallet):
         except ValueError:
             return PaymentStatus(None)
 
-        url = f"{self.endpoint}/v2/router/track/{checking_id}"
+        url = "/v2/router/track/{checking_id}"
 
         # check payment.status:
         # https://api.lightning.community/?python=#paymentpaymentstatus

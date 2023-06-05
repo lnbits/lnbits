@@ -41,13 +41,13 @@ class EclairWallet(Wallet):
         encodedAuth = base64.b64encode(f":{passw}".encode())
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}
-        self.client = httpx.AsyncClient(headers=self.auth)
+        self.client = httpx.AsyncClient(base_url=self.url, headers=self.auth)
 
     async def cleanup(self):
         await self.client.aclose()
 
     async def status(self) -> StatusResponse:
-        r = await self.client.post(f"{self.url}/globalbalance", timeout=5)
+        r = await self.client.post("/globalbalance", timeout=5)
         try:
             data = r.json()
         except:
@@ -70,7 +70,6 @@ class EclairWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-
         data: Dict = {
             "amountMsat": amount * 1000,
             "description_hash": b"",
@@ -84,7 +83,7 @@ class EclairWallet(Wallet):
         elif unhashed_description:
             data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
 
-        r = await self.client.post(f"{self.url}/createinvoice", data=data, timeout=40)
+        r = await self.client.post("/createinvoice", data=data, timeout=40)
 
         if r.is_error:
             try:
@@ -100,7 +99,7 @@ class EclairWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
-            f"{self.url}/payinvoice",
+            "/payinvoice",
             data={"invoice": bolt11, "blocking": True},
             timeout=None,
         )
@@ -124,7 +123,7 @@ class EclairWallet(Wallet):
         # We do all this again to get the fee:
 
         r = await self.client.post(
-            f"{self.url}/getsentinfo",
+            "/getsentinfo",
             data={"paymentHash": checking_id},
             timeout=40,
         )
@@ -156,7 +155,7 @@ class EclairWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                f"{self.url}/getreceivedinfo",
+                "/getreceivedinfo",
                 data={"paymentHash": checking_id},
             )
 
@@ -178,7 +177,7 @@ class EclairWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                f"{self.url}/getsentinfo",
+                "/getsentinfo",
                 data={"paymentHash": checking_id},
                 timeout=40,
             )
