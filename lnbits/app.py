@@ -21,6 +21,7 @@ from loguru import logger
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
+from lnbits.nodes import get_node_class
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
@@ -47,7 +48,6 @@ from .tasks import (
 
 
 def create_app() -> FastAPI:
-
     configure_logger()
 
     app = FastAPI(
@@ -91,7 +91,6 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
@@ -279,7 +278,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
-
         try:
             # wait till migration is done
             await migrate_databases()
@@ -291,6 +289,10 @@ def register_startup(app: FastAPI):
 
             # initialize WALLET
             set_wallet_class()
+
+            NODE = get_node_class()
+            if NODE:
+                await NODE.startup()
 
             # initialize funding source
             await check_funding_source()

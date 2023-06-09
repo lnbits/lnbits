@@ -180,6 +180,8 @@ class Node(ABC):
         self.wallet = wallet
         self.id: Optional[str] = None
         self.cache: dict[Any, Cached] = {}
+
+    async def startup(self):
         asyncio.create_task(self.invalide_cache())
 
     async def get_id(self):

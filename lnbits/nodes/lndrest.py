@@ -246,7 +246,6 @@ class LndRestNode(Node):
     async def get_payments(
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
-
         offset = self.get_cache("payments_offset") or -1
 
         response = await self.get(
@@ -287,19 +286,15 @@ class LndRestNode(Node):
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        offset = self.get_cache("payments_offset")
+        offset = filters.offset or 0
 
         response = await self.get(
             "/v1/invoices",
             params={
-                "index_offset": offset + 1 - filters.offset
-                if offset
-                else filters.offset,
+                "index_offset": offset,
                 "num_max_invoices": filters.limit,
             },
         )
-        if filters.offset == 0:
-            self.set_cache("invoices_offset", int(response["last_index_offset"]))
         invoices = [
             NodeInvoice(
                 payment_hash=invoice["r_hash"],
@@ -313,7 +308,15 @@ class LndRestNode(Node):
             )
             for invoice in response["invoices"]
         ]
-        return Page(data=invoices, total=len(invoices) * 2 + (filters.offset or 0))
+        # we simply guess that there is at least one more page because
+        # lnd doesnt provide the total amount of invoices
+        total = len(invoices) + offset
+        if len(invoices) == filters.limit and filters.limit:
+            total += filters.limit
+        return Page(
+            data=invoices,
+            total=total,
+        )
 
     async def get_payment_stats(self) -> PaymentStats:
         return PaymentStats(volume=0)

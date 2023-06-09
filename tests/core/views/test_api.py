@@ -9,7 +9,7 @@ from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
 from lnbits.db import DB_TYPE, SQLITE
 from lnbits.wallets import get_wallet_class
-from tests.conftest import CreateInvoiceData, api_payments_create_invoice
+from tests.conftest import CreateInvoiceData, api_payments_create_invoice, settings
 
 from ...helpers import get_random_invoice_data, is_fake
 
@@ -283,7 +283,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    WALLET.__class__.__name__ in ["CoreLightningWallet"],
+    settings.lnbits_backend_wallet_class in ["CoreLightningWallet"],
     reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio

@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
@@ -9,6 +10,7 @@ from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
+from lnbits.wallets import set_wallet_class
 from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
 
 
@@ -21,17 +23,13 @@ def event_loop():
 
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
-def app(event_loop):
+async def app(event_loop):
     app = create_app()
-    # use redefined version of the event loop for scope="session"
-    # loop = asyncio.get_event_loop()
-    loop = event_loop
-    loop.run_until_complete(migrate_databases())
+    await migrate_databases()
+    set_wallet_class()
     yield app
-    # # get the current event loop and gracefully stop any running tasks
-    # loop = event_loop
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    # loop.close()
+    # gracefully stop any running tasks
+    await event_loop.shutdown_asyncgens()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -67,6 +65,14 @@ async def from_wallet(from_user):
 async def to_user():
     user = await create_account()
     yield user
+
+
+@pytest.fixture()
+def from_super_user(from_user):
+    prev = settings.super_user
+    settings.super_user = from_user.id
+    yield from_user
+    settings.super_user = prev
 
 
 @pytest_asyncio.fixture(scope="session")

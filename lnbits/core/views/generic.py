@@ -404,7 +404,6 @@ async def node(request: Request, user: User = Depends(check_admin)):
 
 @core_html_routes.get("/node/public", response_class=HTMLResponse)
 async def node_public(request: Request):
-
     if not settings.lnbits_public_node_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
