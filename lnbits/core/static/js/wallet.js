@@ -3,42 +3,19 @@
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
-function generateChart(canvas, payments) {
-  var txs = []
-  var n = 0
-  var data = {
+function generateChart(canvas, rawData) {
+  const data = {
     labels: [],
     income: [],
-    outcome: [],
+    spending: [],
     cumulative: []
   }
 
-  _.each(
-    payments.filter(p => !p.pending).sort((a, b) => a.time - b.time),
-    tx => {
-      txs.push({
-        hour: Quasar.utils.date.formatDate(tx.date, 'YYYY-MM-DDTHH:00'),
-        sat: tx.sat
-      })
-    }
-  )
-
-  _.each(_.groupBy(txs, 'hour'), (value, day) => {
-    var income = _.reduce(
-      value,
-      (memo, tx) => (tx.sat >= 0 ? memo + tx.sat : memo),
-      0
-    )
-    var outcome = _.reduce(
-      value,
-      (memo, tx) => (tx.sat < 0 ? memo + Math.abs(tx.sat) : memo),
-      0
-    )
-    n = n + income - outcome
-    data.labels.push(day)
-    data.income.push(income)
-    data.outcome.push(outcome)
-    data.cumulative.push(n)
+  rawData.forEach(p => {
+    data.labels.push(p.date)
+    data.income.push(p.income)
+    data.spending.push(p.spending)
+    data.cumulative.push(p.balance)
   })
 
   new Chart(canvas.getContext('2d'), {
@@ -64,7 +41,7 @@ function generateChart(canvas, payments) {
           backgroundColor: window.Color('rgb(76,175,80)').alpha(0.5).rgbString() // green
         },
         {
-          data: data.outcome,
+          data: data.spending,
           type: 'bar',
           label: 'out',
           barPercentage: 0.75,
@@ -277,9 +254,17 @@ new Vue({
     },
     showChart: function () {
       this.paymentsChart.show = true
-      this.$nextTick(() => {
-        generateChart(this.$refs.canvas, this.payments)
-      })
+      LNbits.api
+        .request('GET', '/api/v1/payments/history', this.g.wallet.adminkey)
+        .then(response => {
+          this.$nextTick(() => {
+            generateChart(this.$refs.canvas, response.data)
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+          this.paymentsChart.show = false
+        })
     },
     focusInput(el) {
       this.$nextTick(() => this.$refs[el].focus())
@@ -635,7 +620,7 @@ new Vue({
                     switch (response.data.success_action.tag) {
                       case 'url':
                         this.$q.notify({
-                          message: `<a target="_blank" style="color: inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
+                          message: `<a target='_blank' style='color: inherit' href='${response.data.success_action.url}'>${response.data.success_action.url}</a>`,
                           caption: response.data.success_action.description,
                           html: true,
                           type: 'positive',
