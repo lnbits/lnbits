@@ -190,7 +190,7 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 async def test_get_payments(client, from_wallet, adminkey_headers_from):
     # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
     # a different timestamp than previous invoices
-    # due to this limitation both payments (normal and paginated) are tested at the same time as they are almost
+    # due to this limitation all payments (normal, paginated and csv) are tested at the same time as they are almost
     # identical anyways
     if DB_TYPE == SQLITE:
         await asyncio.sleep(1)
@@ -244,6 +244,16 @@ async def test_get_payments(client, from_wallet, adminkey_headers_from):
     paginated = response.json()
     assert len(paginated["data"]) == 2
     assert paginated["total"] == len(fake_data)
+
+    response = await client.get(
+        "/api/v1/payments.csv",
+        params={"time[ge]": ts},
+        headers=adminkey_headers_from,
+    )
+
+    assert response.status_code == 200
+    csv = response.text.split("\n")[1:-1]  # remove first and last line
+    assert len(csv) == len(fake_data)
 
 
 # check POST /api/v1/payments/decode
