@@ -600,6 +600,16 @@ async def update_payment_extra(
     )
 
 
+async def update_pending_payments(wallet_id: str):
+    pending_payments = await get_payments(
+        wallet_id=wallet_id,
+        pending=True,
+        exclude_uncheckable=True,
+    )
+    for payment in pending_payments:
+        await payment.check_status()
+
+
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
     await (conn or db).execute(
         "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)

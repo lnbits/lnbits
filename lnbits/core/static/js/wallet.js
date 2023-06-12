@@ -784,17 +784,9 @@ new Vue({
       })
     },
     exportCSV: function () {
-      // status is important for export but it is not in paymentsTable
-      // because it is manually added with payment detail link and icons
-      // and would cause duplication in the list
-      let columns = structuredClone(this.paymentsCSV.columns)
-      columns.unshift({
-        name: 'pending',
-        align: 'left',
-        label: 'Pending',
-        field: 'pending'
-      })
-      LNbits.utils.exportCSV(columns, this.payments)
+      // a bit of a hack to make the browser download the file
+      window.location.href =
+        '/api/v1/payments.csv?api-key=' + this.g.wallet.adminkey
     }
   },
   watch: {

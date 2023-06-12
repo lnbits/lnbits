@@ -37,7 +37,6 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
-
         url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
         try:
             return lnurl_encode(url)
@@ -150,6 +149,10 @@ class Payment(FromRowModel):
     @property
     def is_uncheckable(self) -> bool:
         return self.checking_id.startswith("internal_")
+
+    @property
+    def date(self):
+        return datetime.datetime.fromtimestamp(self.time)
 
     async def update_status(
         self,

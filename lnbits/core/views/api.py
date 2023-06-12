@@ -74,6 +74,7 @@ from ..crud import (
     get_total_balance,
     get_wallet_for_key,
     save_balance_check,
+    update_pending_payments,
     update_wallet,
 )
 from ..services import (
@@ -130,21 +131,56 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending_payments = await get_payments(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending_payments:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     return await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
+    )
+
+
+@core_app.get(
+    "/api/v1/payments.csv",
+    name="Get payments as csv",
+    summary="get list of payments",
+    response_description="list of payments",
+    response_model=List[Payment],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_csv(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
+):
+    await update_pending_payments(wallet.wallet.id)
+
+    payments = await get_payments(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+        filters=filters,
+    )
+
+    cols = {
+        "Pending": "pending",
+        "Date": "date",
+        "Memo": "memo",
+        "Amount (sats)": "sat",
+        "Fee (msats)": "fee",
+        "Payment Hash": "payment_hash",
+        "Payment Proof": "preimage",
+        "Webhook": "webhook",
+    }
+
+    def generator():
+        yield ",".join(cols.keys()) + "\n"
+        for payment in payments:
+            yield ",".join(str(getattr(payment, attr)) for attr in cols.values()) + "\n"
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=export.csv"},
     )
 
 
@@ -160,16 +196,7 @@ async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending = await get_payments_paginated(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending.data:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     page = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
         pending=True,
