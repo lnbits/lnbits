@@ -12,7 +12,15 @@ from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
+from .models import (
+    BalanceCheck,
+    Payment,
+    PaymentFilters,
+    PaymentHistoryPoint,
+    TinyURL,
+    User,
+    Wallet,
+)
 
 # accounts
 # --------
@@ -608,6 +616,36 @@ async def update_pending_payments(wallet_id: str):
     )
     for payment in pending_payments:
         await payment.check_status()
+
+
+async def get_payments_history(
+    wallet_id: Optional[str] = None, filters: Optional[Filters] = None
+) -> List[PaymentHistoryPoint]:
+    transactions = await db.fetchall(
+        """
+        SELECT DATE(time)                                              date,
+               SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)        income,
+               SUM(CASE WHEN amount < 0 THEN -amount - fee ELSE 0 END) spending
+        FROM apipayments
+        WHERE pending = False
+        GROUP BY date
+        ORDER BY date DESC
+        """
+    )
+    if wallet_id:
+        wallet = await get_wallet(wallet_id)
+        if wallet:
+            balance = wallet.balance_msat
+        else:
+            raise ValueError("Unknown wallet")
+    else:
+        balance = await get_total_balance()
+
+    results: list[PaymentHistoryPoint] = []
+    for row in transactions:
+        balance -= row.income - row.spending
+        results.insert(0, PaymentHistoryPoint(balance=balance, **dict(row)))
+    return results
 
 
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:

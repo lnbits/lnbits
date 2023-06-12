@@ -33,7 +33,13 @@ from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
 )
-from lnbits.core.models import Payment, PaymentFilters, User, Wallet
+from lnbits.core.models import (
+    Payment,
+    PaymentFilters,
+    PaymentHistoryPoint,
+    User,
+    Wallet,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -67,6 +73,7 @@ from ..crud import (
     delete_tinyurl,
     get_dbversions,
     get_payments,
+    get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
     get_tinyurl,
@@ -180,8 +187,24 @@ async def api_payments_csv(
     return StreamingResponse(
         generator(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=export.csv"},
+        headers={"Content-Disposition": "attachment; filename=payments.csv"},
     )
+
+
+@core_app.get(
+    "/api/v1/payments/history",
+    name="Get payments as csv",
+    summary="get list of payments",
+    response_description="list of payments",
+    # response_model=List[PaymentHistoryPoint],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_csv(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+    await update_pending_payments(wallet.wallet.id)
+    return await get_payments_history(wallet.wallet.id, filters)
 
 
 @core_app.get(

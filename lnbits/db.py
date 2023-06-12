@@ -47,15 +47,6 @@ if settings.lnbits_database_url:
             lambda value, curs: float(value) if value is not None else None,
         )
     )
-    register_type(
-        new_type(
-            (1082, 1083, 1266),
-            "DATE2INT",
-            lambda value, curs: time.mktime(value.timetuple())
-            if value is not None
-            else None,
-        )
-    )
 
     register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
 else:
