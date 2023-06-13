@@ -621,16 +621,25 @@ async def update_pending_payments(wallet_id: str):
 async def get_payments_history(
     wallet_id: Optional[str] = None, filters: Optional[Filters] = None
 ) -> List[PaymentHistoryPoint]:
+    if not filters:
+        filters = Filters()
+    where = ["pending = False"]
+    values = []
+    if wallet_id:
+        where.append("wallet = ?")
+        values.append(wallet_id)
+
     transactions = await db.fetchall(
-        """
+        f"""
         SELECT DATE(time)                                              date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)        income,
                SUM(CASE WHEN amount < 0 THEN -amount - fee ELSE 0 END) spending
         FROM apipayments
-        WHERE pending = False
+        {filters.where(where)}
         GROUP BY date
         ORDER BY date DESC
-        """
+        """,
+        filters.values(values),
     )
     if wallet_id:
         wallet = await get_wallet(wallet_id)
