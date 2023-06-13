@@ -121,18 +121,19 @@ class Compat:
             return "?"
 
     @classmethod
-    def truncate_date(cls, col: str, to: DateTrunc):
+    def truncate_date(cls, col: str, trunc: DateTrunc) -> str:
         """
-        Removes all parts of the given date up until `to`.
+        Removes all parts of the given date up until `trunc`.
         Based on `date_trunc` postgres function
         """
         if DB_TYPE == SQLITE:
-            if to == "hour":
+            if trunc == "hour":
                 return f"strftime({col}, %Y-%m-%d %H)"
-            elif to == "hour":
+            elif trunc == "hour":
                 return f"strftime({col}, %Y-%m-%d)"
-        elif to in ("day", "hour"):
-            return f"date_trunc('{to}', {col})"
+        elif trunc in ("day", "hour"):
+            return f"date_trunc('{trunc}', {col})"
+        raise ValueError(f"Invalid truncation: {trunc}")
 
 
 class Connection(Compat):

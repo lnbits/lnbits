@@ -4,21 +4,23 @@ Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
 function generateChart(canvas, rawData) {
-  const data = {
-    labels: [],
-    income: [],
-    spending: [],
-    cumulative: []
-  }
+  const data = rawData.reduce(
+    (previous, current) => {
+      previous.labels.push(current.date)
+      previous.income.push(current.income)
+      previous.spending.push(current.spending)
+      previous.cumulative.push(current.balance)
+      return previous
+    },
+    {
+      labels: [],
+      income: [],
+      spending: [],
+      cumulative: []
+    }
+  )
 
-  rawData.forEach(p => {
-    data.labels.push(p.date)
-    data.income.push(p.income)
-    data.spending.push(p.spending)
-    data.cumulative.push(p.balance)
-  })
-
-  new Chart(canvas.getContext('2d'), {
+  return new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
       labels: data.labels,
@@ -62,7 +64,7 @@ function generateChart(canvas, rawData) {
           {
             type: 'time',
             display: true,
-            offset: true,
+            //offset: true,
             time: {
               minUnit: 'hour',
               stepSize: 3
@@ -204,7 +206,13 @@ new Vue({
         loading: false
       },
       paymentsChart: {
-        show: false
+        show: false,
+        group: {value: 'hour', label: 'Hour'},
+        groupOptions: [
+          {value: 'day', label: 'Day'},
+          {value: 'hour', label: 'Hour'}
+        ],
+        instance: null
       },
       disclaimerDialog: {
         show: false,
@@ -255,10 +263,20 @@ new Vue({
     showChart: function () {
       this.paymentsChart.show = true
       LNbits.api
-        .request('GET', '/api/v1/payments/history', this.g.wallet.adminkey)
+        .request(
+          'GET',
+          '/api/v1/payments/history?group=' + this.paymentsChart.group.value,
+          this.g.wallet.adminkey
+        )
         .then(response => {
           this.$nextTick(() => {
-            generateChart(this.$refs.canvas, response.data)
+            if (this.paymentsChart.instance) {
+              this.paymentsChart.instance.destroy()
+            }
+            this.paymentsChart.instance = generateChart(
+              this.$refs.canvas,
+              response.data
+            )
           })
         })
         .catch(err => {
@@ -777,6 +795,9 @@ new Vue({
   watch: {
     payments: function () {
       this.fetchBalance()
+    },
+    'paymentsChart.group': function () {
+      this.showChart()
     }
   },
   created: function () {

@@ -196,10 +196,10 @@ async def api_payments_csv(
     name="Get payments as csv",
     summary="get list of payments",
     response_description="list of payments",
-    # response_model=List[PaymentHistoryPoint],
+    response_model=List[PaymentHistoryPoint],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
-async def api_payments_csv(
+async def api_payments_history(
     wallet: WalletTypeInfo = Depends(get_key_type),
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),

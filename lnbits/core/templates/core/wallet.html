@@ -777,6 +777,19 @@
       <q-dialog v-model="paymentsChart.show">
         <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
           <q-card-section>
+            <div class="row q-gutter-sm justify-between">
+              <div class="text-h6">Payments Chart</div>
+              <q-select
+                label="Group"
+                filled
+                dense
+                v-model="paymentsChart.group"
+                style="min-width: 120px"
+                :options="paymentsChart.groupOptions"
+              >
+              </q-select>
+            </div>
+
             <canvas ref="canvas" width="600" height="400"></canvas>
           </q-card-section>
         </q-card>
