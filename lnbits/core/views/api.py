@@ -40,7 +40,7 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.db import Filters, Page
+from lnbits.db import DateTrunc, Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
@@ -201,10 +201,11 @@ async def api_payments_csv(
 )
 async def api_payments_csv(
     wallet: WalletTypeInfo = Depends(get_key_type),
+    group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
     await update_pending_payments(wallet.wallet.id)
-    return await get_payments_history(wallet.wallet.id, filters)
+    return await get_payments_history(wallet.wallet.id, group, filters)
 
 
 @core_app.get(

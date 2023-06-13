@@ -59,6 +59,9 @@ else:
         )
 
 
+DateTrunc = Literal["hour", "day"]
+
+
 class Compat:
     type: Optional[str] = "<inherited>"
     schema: Optional[str] = "<inherited>"
@@ -116,6 +119,20 @@ class Compat:
             return "cast(? AS timestamp)"
         else:
             return "?"
+
+    @classmethod
+    def truncate_date(cls, col: str, to: DateTrunc):
+        """
+        Removes all parts of the given date up until `to`.
+        Based on `date_trunc` postgres function
+        """
+        if DB_TYPE == SQLITE:
+            if to == "hour":
+                return f"strftime({col}, %Y-%m-%d %H)"
+            elif to == "hour":
+                return f"strftime({col}, %Y-%m-%d)"
+        elif to in ("day", "hour"):
+            return f"date_trunc('{to}', {col})"
 
 
 class Connection(Compat):

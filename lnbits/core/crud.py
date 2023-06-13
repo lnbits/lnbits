@@ -619,7 +619,9 @@ async def update_pending_payments(wallet_id: str):
 
 
 async def get_payments_history(
-    wallet_id: Optional[str] = None, filters: Optional[Filters] = None
+    wallet_id: Optional[str] = None,
+    trunc: str = "day",
+    filters: Optional[Filters] = None,
 ) -> List[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
@@ -631,7 +633,7 @@ async def get_payments_history(
 
     transactions = await db.fetchall(
         f"""
-        SELECT DATE(time)                                              date,
+        SELECT {db.truncate_date('time', trunc)}                                              date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)        income,
                SUM(CASE WHEN amount < 0 THEN -amount - fee ELSE 0 END) spending
         FROM apipayments

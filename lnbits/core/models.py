@@ -236,7 +236,7 @@ class PaymentFilters(FilterModel):
 
 
 class PaymentHistoryPoint(BaseModel):
-    date: datetime.date
+    date: datetime.datetime
     income: int
     spending: int
     balance: int
