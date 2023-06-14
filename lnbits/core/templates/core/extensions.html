@@ -108,7 +108,8 @@
               class="text-subtitle2 gt-sm"
               style="font-size: 11px; height: 34px"
             >
-              {{ extension.shortDescription }}
+              {{ extension.shortDescription ||
+              extension.installedRelease?.description }}
             </div>
             <div class="text-subtitle1 lt-md q-mt-sm q-mb-xs">
               {{ extension.name }}
