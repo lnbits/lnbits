@@ -28,6 +28,11 @@
               label="Public node UI"
               v-model="formData.lnbits_public_node_ui"
             ></q-toggle>
+            <q-toggle
+              v-if="formData.lnbits_node_ui"
+              label="Transactions Tab (Disable on large CLN nodes)"
+              v-model="formData.lnbits_node_ui_transactions"
+            ></q-toggle>
             <br />
           </div>
           <p v-else>Node Management not supported by active funding source</p>

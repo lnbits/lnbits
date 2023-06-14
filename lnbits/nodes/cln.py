@@ -61,7 +61,7 @@ class CoreLightningNode(Node):
     def __init__(self, wallet: CoreLightningWallet):
         super().__init__(wallet)
         try:
-            raw = self.wallet.ln.call("listsqlschemas")
+            raw: dict = self.wallet.ln.call("listsqlschemas")  # type: ignore
             self.schema_cols = {
                 schema["tablename"]: schema["columns"] for schema in raw["schemas"]
             }
@@ -349,9 +349,11 @@ class CoreLightningNode(Node):
             return Page(data=results, total=count)
 
     @catch_rpc_errors
-    @async_wrap
     async def sql(self, query: str, schema: Optional[str] = None) -> list:
-        result = self.wallet.ln.call("sql", [query.replace("\n", " ")])
+        loop = asyncio.get_event_loop()
+        result: dict = await loop.run_in_executor(  # type: ignore
+            None, lambda: self.wallet.ln.call("sql", [query.replace("\n", " ")])
+        )
 
         if schema and schema in self.schema_cols:
             rows = [

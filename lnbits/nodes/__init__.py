@@ -1,6 +1,7 @@
 from typing import Optional
 
 from .base import Node
+from .cln import CoreLightningNode
 
 
 def get_node_class() -> Optional[Node]:

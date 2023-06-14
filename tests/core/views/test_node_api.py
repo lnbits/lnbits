@@ -1,4 +1,5 @@
 import pytest
+from lnbits.nodes.base import NodeChannelsResponse
 
 from tests.conftest import pytest_asyncio, settings
 

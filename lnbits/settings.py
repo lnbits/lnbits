@@ -201,8 +201,12 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+
+
+class NodeUISettings(LNbitsSettings):
     lnbits_node_ui: bool = Field(default=False)
     lnbits_public_node_ui: bool = Field(default=False)
+    lnbits_node_ui_transactions: bool = Field(default=True)
 
 
 class EditableSettings(
@@ -213,6 +217,7 @@ class EditableSettings(
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
+    NodeUISettings,
 ):
     @validator(
         "lnbits_admin_users",
