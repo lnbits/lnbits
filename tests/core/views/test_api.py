@@ -11,7 +11,7 @@ from lnbits.db import DB_TYPE, SQLITE
 from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice, settings
 
-from ...helpers import get_random_invoice_data, is_fake, is_cln
+from ...helpers import get_random_invoice_data, is_cln, is_fake
 
 WALLET = get_wallet_class()
 
