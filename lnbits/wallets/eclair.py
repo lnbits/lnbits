@@ -72,8 +72,6 @@ class EclairWallet(Wallet):
 
         data: Dict = {
             "amountMsat": amount * 1000,
-            "description_hash": b"",
-            "description": memo,
         }
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
@@ -82,6 +80,8 @@ class EclairWallet(Wallet):
             data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
             data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
+        else:
+            data["description"] = memo
 
         async with httpx.AsyncClient() as client:
             r = await client.post(

@@ -62,7 +62,7 @@ def run_cmd_json(cmd: str) -> dict:
     return json.loads(run_cmd(cmd))
 
 
-def get_real_invoice(sats: int, prefix: str, description: str = "test") -> dict:
+def get_real_invoice(sats: int) -> dict:
     msats = sats * 1000
     return run_cmd_json(f"{docker_lightning_cli} addinvoice {msats}")
 
