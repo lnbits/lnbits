@@ -41,6 +41,7 @@ async def get_random_invoice_data():
 set_wallet_class()
 WALLET = get_wallet_class()
 is_fake: bool = WALLET.__class__.__name__ == "FakeWallet"
+is_cln: bool = WALLET.__class__.__name__ == "CoreLightningWallet"
 is_regtest: bool = not is_fake
 
 

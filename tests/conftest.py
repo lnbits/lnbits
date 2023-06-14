@@ -23,13 +23,10 @@ def event_loop():
 
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
-async def app(event_loop):
+async def app():
     app = create_app()
     await migrate_databases()
-    set_wallet_class()
     yield app
-    # gracefully stop any running tasks
-    await event_loop.shutdown_asyncgens()
 
 
 @pytest_asyncio.fixture(scope="session")
