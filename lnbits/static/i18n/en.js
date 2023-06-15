@@ -100,6 +100,7 @@ window.localisation.en = {
   featured: 'Featured',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
+  admin_only: 'Admin Only',
   new_version: 'New Version',
   extension_depends_on: 'Depends on:',
   extension_rating_soon: 'Ratings coming soon',
