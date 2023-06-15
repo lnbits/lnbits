@@ -381,13 +381,6 @@ except:
 
 settings.version = importlib.metadata.version("lnbits")
 
-# printing environment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
-        logger.debug(f"{key}: {value}")
-
-
 wallets_module = importlib.import_module("lnbits.wallets")
 FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
