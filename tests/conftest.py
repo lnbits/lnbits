@@ -127,6 +127,6 @@ async def invoice(to_wallet):
 
 @pytest_asyncio.fixture(scope="session")
 async def real_invoice():
-    invoice = get_real_invoice(100_000, "test-fixture")
-    yield invoice
+    invoice = get_real_invoice(100)
+    yield {"bolt11": invoice["payment_request"]}
     del invoice

@@ -3,7 +3,7 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -70,18 +70,19 @@ class EclairWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        data: Dict = {
+        data: Dict[str, Any] = {
             "amountMsat": amount * 1000,
-            "description_hash": b"",
-            "description": memo,
         }
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
 
+        # Either 'description' (string) or 'descriptionHash' must be supplied
         if description_hash:
             data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
             data["descriptionHash"] = hashlib.sha256(unhashed_description).hexdigest()
+        else:
+            data["description"] = memo
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
