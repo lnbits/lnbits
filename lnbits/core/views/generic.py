@@ -128,6 +128,7 @@ async def extensions_install(
                     "isInstalled": ext.id in installed_exts_ids,
                     "hasDatabaseTables": ext.id in db_version,
                     "isAvailable": ext.id in all_extensions,
+                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release

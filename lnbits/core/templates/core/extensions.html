@@ -199,8 +199,11 @@
             >
               {%raw%}{{ $t('disable') }}{%endraw%}</q-btn
             >
+            <q-badge v-if="extension.isAdminOnly && !user.admin">
+              {%raw%}{{ $t('admin_only') }}{%endraw%}
+            </q-badge>
             <q-btn
-              v-if="extension.isInstalled && !user.extensions.includes(extension.id) && extension.isActive"
+              v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
               flat
               color="primary"
               type="a"
