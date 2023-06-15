@@ -918,7 +918,9 @@ async def delete_extension_db(ext_id: str):
             )
         await drop_extension_db(ext_id=ext_id)
         await delete_dbversion(ext_id=ext_id)
+        logger.success(f"Database removed for extension '{ext_id}'")
     except HTTPException as ex:
+        logger.error(ex)
         raise ex
     except Exception as ex:
         logger.error(ex)
