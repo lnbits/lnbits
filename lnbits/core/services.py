@@ -464,11 +464,6 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        # printing settings for debugging
-        logger.debug("Admin settings:")
-        for key, value in settings.dict(exclude_none=True).items():
-            logger.debug(f"{key}: {value}")
-
         admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
