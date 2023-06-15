@@ -76,6 +76,7 @@ class EclairWallet(Wallet):
         if kwargs.get("expiry"):
             data["expireIn"] = kwargs["expiry"]
 
+        # Either 'description' (string) or 'descriptionHash' must be supplied
         if description_hash:
             data["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
