@@ -54,7 +54,7 @@ class SparkWallet(Wallet):
 
             try:
                 r = await self.client.post(
-                    self.url + "/rpc",
+                    "/rpc",
                     json={"method": key, "params": params},
                     timeout=60 * 60 * 24,
                 )
@@ -228,17 +228,16 @@ class SparkWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = f"{self.url}/stream?access-key={self.token}"
+        url = f"/stream?access-key={self.token}"
 
         while True:
             try:
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream("GET", url) as r:
-                        async for line in r.aiter_lines():
-                            if line.startswith("data:"):
-                                data = json.loads(line[5:])
-                                if "pay_index" in data and data.get("status") == "paid":
-                                    yield data["label"]
+                async with self.client.stream("GET", url, timeout=None) as r:
+                    async for line in r.aiter_lines():
+                        if line.startswith("data:"):
+                            data = json.loads(line[5:])
+                            if "pay_index" in data and data.get("status") == "paid":
+                                yield data["label"]
             except (
                 OSError,
                 httpx.ReadError,
