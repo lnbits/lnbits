@@ -59,7 +59,7 @@ else:
         )
 
 
-DateTrunc = Literal["hour", "day"]
+DateTrunc = Literal["hour", "day", "month"]
 
 
 class Compat:
@@ -130,10 +130,11 @@ class Compat:
             formats = {
                 "hour": "%Y-%m-%d %H:00:00",
                 "day": "%Y-%m-%d 00:00:00",
+                "month": "%Y-%m-01 00:00:00",
             }
             if trunc in formats:
                 return f"strftime('{formats[trunc]}', {col}, 'unixepoch')"
-        elif trunc in ("day", "hour"):
+        elif trunc in ("day", "hour", "month"):
             return f"date_trunc('{trunc}', {col})"
         raise ValueError(f"Invalid truncation: {trunc}")
 

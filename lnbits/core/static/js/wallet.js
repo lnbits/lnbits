@@ -209,6 +209,7 @@ new Vue({
         show: false,
         group: {value: 'hour', label: 'Hour'},
         groupOptions: [
+          {value: 'month', label: 'Month'},
           {value: 'day', label: 'Day'},
           {value: 'hour', label: 'Hour'}
         ],
