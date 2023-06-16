@@ -109,7 +109,7 @@ class LNbitsWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.get(
-                url="/api/v1/payments/{checking_id}",
+                url=f"/api/v1/payments/{checking_id}",
             )
             if r.is_error:
                 return PaymentStatus(None)
@@ -118,7 +118,7 @@ class LNbitsWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url="/api/v1/payments/{checking_id}")
+        r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(None)
