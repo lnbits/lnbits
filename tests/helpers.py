@@ -69,7 +69,7 @@ def get_real_invoice(sats: int) -> dict:
 
 def pay_real_invoice(invoice: str) -> Popen:
     return Popen(
-        f"{docker_lightning_cli} payinvoice {invoice}",
+        f"{docker_lightning_cli} payinvoice --force {invoice}",
         shell=True,
         stdin=PIPE,
         stdout=PIPE,
