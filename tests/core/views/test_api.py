@@ -7,7 +7,7 @@ from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_fake
+from ...helpers import get_random_invoice_data, is_fake, is_regtest
 
 WALLET = get_wallet_class()
 
@@ -247,6 +247,9 @@ async def test_get_payments_csv(client, adminkey_headers_from, fake_payments):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    is_regtest, reason="payments wont be confirmed rightaway in regtest"
+)
 async def test_get_payments_history(client, adminkey_headers_from, fake_payments):
     fake_data, filters = fake_payments
 
