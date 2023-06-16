@@ -270,6 +270,14 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
         payment.amount * 1000 for payment in fake_data if payment.out
     )
 
+    response = await client.get(
+        "/api/v1/payments/history?group=INVALID",
+        params=filters,
+        headers=adminkey_headers_from,
+    )
+
+    assert response.status_code == 400
+
 
 # check POST /api/v1/payments/decode
 @pytest.mark.asyncio
