@@ -109,7 +109,7 @@ class LnTipsWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                "/api/v1/invoicestatus/{checking_id}",
+                f"/api/v1/invoicestatus/{checking_id}",
             )
 
             if r.is_error or len(r.text) == 0:
@@ -123,7 +123,7 @@ class LnTipsWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                url="/api/v1/paymentstatus/{checking_id}",
+                url=f"/api/v1/paymentstatus/{checking_id}",
             )
 
             if r.is_error:
