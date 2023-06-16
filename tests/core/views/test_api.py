@@ -355,8 +355,15 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
     assert not response["paid"]
+
+    async def listen():
+        async for payment_hash in get_wallet_class().paid_invoices_stream():
+            assert payment_hash == invoice["payment_hash"]
+            return
+
+    task = asyncio.create_task(listen())
     pay_real_invoice(invoice["payment_request"])
-    await asyncio.sleep(1)
+    await asyncio.wait_for(task, timeout=3)
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
