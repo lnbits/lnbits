@@ -1,4 +1,5 @@
 import asyncio
+from time import time
 
 import pytest_asyncio
 from httpx import AsyncClient
@@ -7,7 +8,7 @@ from lnbits.app import create_app
 from lnbits.commands import migrate_databases
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
-from lnbits.db import Database
+from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
 
@@ -130,3 +131,24 @@ async def real_invoice():
     invoice = get_real_invoice(100_000, "test-fixture")
     yield invoice
     del invoice
+
+
+@pytest_asyncio.fixture(scope="session")
+async def fake_payments(from_wallet):
+    # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
+    # a different timestamp than previous invoices
+    if DB_TYPE == SQLITE:
+        await asyncio.sleep(1)
+    ts = time()
+
+    fake_data = [
+        CreateInvoiceData(amount=10, memo="aaaa"),
+        CreateInvoiceData(amount=100, memo="bbbb"),
+        CreateInvoiceData(amount=1000, memo="aabb"),
+    ]
+
+    for invoice in fake_data:
+        await api_payments_create_invoice(invoice, from_wallet)
+
+    params = {"time[ge]": ts, "time[le]": time()}
+    return fake_data, params
