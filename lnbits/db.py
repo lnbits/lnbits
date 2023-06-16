@@ -303,6 +303,21 @@ class Database(Compat):
     async def reuse_conn(self, conn: Connection):
         yield conn
 
+    @classmethod
+    async def clean_ext_db_files(self, ext_id: str) -> bool:
+        """
+        If the extension DB is stored directly on the filesystem (like SQLite) then delete the files and return True.
+        Otherwise do nothing and return False.
+        """
+
+        if DB_TYPE == SQLITE:
+            db_file = os.path.join(settings.lnbits_data_folder, f"ext_{ext_id}.sqlite3")
+            if os.path.isfile(db_file):
+                os.remove(db_file)
+            return True
+
+        return False
+
 
 class Operator(Enum):
     GT = "gt"

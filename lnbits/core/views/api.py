@@ -63,8 +63,10 @@ from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
     create_tinyurl,
+    delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
+    drop_extension_db,
     get_dbversions,
     get_payments,
     get_payments_paginated,
@@ -899,6 +901,32 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.delete(
+    "/api/v1/extension/{ext_id}/db",
+    dependencies=[Depends(check_admin)],
+)
+async def delete_extension_db(ext_id: str):
+    try:
+        db_version = (await get_dbversions()).get(ext_id, None)
+        if not db_version:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown extension id: {ext_id}",
+            )
+        await drop_extension_db(ext_id=ext_id)
+        await delete_dbversion(ext_id=ext_id)
+        logger.success(f"Database removed for extension '{ext_id}'")
+    except HTTPException as ex:
+        logger.error(ex)
+        raise ex
+    except Exception as ex:
+        logger.error(ex)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Cannot delete data for extension '{ext_id}'",
         )
 
 
