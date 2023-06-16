@@ -356,6 +356,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert not response["paid"]
     pay_real_invoice(invoice["payment_request"])
+    await asyncio.sleep(1)
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
