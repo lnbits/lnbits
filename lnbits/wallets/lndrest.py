@@ -146,7 +146,7 @@ class LndRestWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url="/v1/invoice/{checking_id}")
+        r = await self.client.get(url=f"/v1/invoice/{checking_id}")
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
