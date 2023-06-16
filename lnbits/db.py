@@ -129,13 +129,16 @@ class Compat:
             return f"{colname} = {colname}::jsonb || ?"
 
     @classmethod
-    def json_path(cls, colname: str, *path: str):
+    def json_path(cls, colname: str, *path: str, type_: Type = None):
         if DB_TYPE == SQLITE:
             return f"json_extract({colname}, '$.{'.'.join(path)}')"
         else:
             # https://www.postgresql.org/docs/9.3/functions-json.html
             as_path = "{" + ",".join(path) + "}"
-            return f"{colname} #>> '{as_path}'"
+            accessor = f"{colname} #>> '{as_path}'"
+            if type_ == int:
+                accessor = f"({accessor})::int"
+            return accessor
 
 
 class Connection(Compat):
@@ -458,9 +461,10 @@ class Filter(BaseModel, Generic[TFilterModel]):
     @property
     def statement(self):
         accessor = self.field
+        type_ = type(self.values[0])
         if self.nested:
-            accessor = Compat.json_path(accessor, *self.nested)
-        if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
+            accessor = Compat.json_path(accessor, *self.nested, type_=type_)
+        if type_ == datetime.datetime:
             placeholder = Compat.timestamp_placeholder
         else:
             placeholder = "?"
