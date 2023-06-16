@@ -7,7 +7,6 @@ from uuid import UUID, uuid4
 import shortuuid
 
 from lnbits import bolt11
-
 from lnbits.db import Connection, Database, DateTrunc, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings

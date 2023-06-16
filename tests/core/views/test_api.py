@@ -1,15 +1,11 @@
-import asyncio
 import hashlib
-from time import time
 
 import pytest
 
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.views.api import api_payment
-from lnbits.db import DB_TYPE, SQLITE
 from lnbits.settings import get_wallet_class
-from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
 from ...helpers import get_random_invoice_data, is_fake
 
