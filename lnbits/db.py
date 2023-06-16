@@ -127,10 +127,12 @@ class Compat:
         Based on `date_trunc` postgres function
         """
         if DB_TYPE == SQLITE:
-            if trunc == "hour":
-                return f"strftime({col}, %Y-%m-%d %H)"
-            elif trunc == "hour":
-                return f"strftime({col}, %Y-%m-%d)"
+            formats = {
+                "hour": "%Y-%m-%d %H:00:00",
+                "day": "%Y-%m-%d 00:00:00",
+            }
+            if trunc in formats:
+                return f"strftime('{formats[trunc]}', {col}, 'unixepoch')"
         elif trunc in ("day", "hour"):
             return f"date_trunc('{trunc}', {col})"
         raise ValueError(f"Invalid truncation: {trunc}")
