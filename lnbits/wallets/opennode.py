@@ -41,8 +41,7 @@ class OpenNodeWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get("/v1/account/balance", timeout=40)
+            r = await self.client.get("/v1/account/balance", timeout=40)
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
@@ -63,16 +62,15 @@ class OpenNodeWallet(Wallet):
         if description_hash or unhashed_description:
             raise Unsupported("description_hash")
 
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                "/v1/charges",
-                json={
-                    "amount": amount,
-                    "description": memo or "",
-                    # "callback_url": url_for("/webhook_listener", _external=True),
-                },
-                timeout=40,
-            )
+        r = await self.client.post(
+            "/v1/charges",
+            json={
+                "amount": amount,
+                "description": memo or "",
+                # "callback_url": url_for("/webhook_listener", _external=True),
+            },
+            timeout=40,
+        )
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -84,12 +82,11 @@ class OpenNodeWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                "/v2/withdrawals",
-                json={"type": "ln", "address": bolt11},
-                timeout=None,
-            )
+        r = await self.client.post(
+            "/v2/withdrawals",
+            json={"type": "ln", "address": bolt11},
+            timeout=None,
+        )
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -105,8 +102,7 @@ class OpenNodeWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, None, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.get("/v1/charge/{checking_id}")
+        r = await self.client.get(f"/v1/charge/{checking_id}")
         if r.is_error:
             return PaymentStatus(None)
         data = r.json()["data"]
@@ -114,8 +110,7 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.get("/v1/withdrawal/{checking_id}")
+        r = await self.client.get(f"/v1/withdrawal/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(None)
