@@ -44,7 +44,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                 payment.wallet_id,
                 {
                     "wallet_balance": wallet.balance or None,
-                    "payment": payment._asdict(),
+                    "payment": payment.dict(),
                 },
             )
         # dispatch webhook

@@ -1,4 +1,5 @@
 window.localisation.en = {
+  confirm: 'Yes',
   server: 'Server',
   theme: 'Theme',
   funding: 'Funding',
@@ -104,6 +105,7 @@ window.localisation.en = {
   manage_extension_details: 'Install/uninstall extension',
   install: 'Install',
   uninstall: 'Uninstall',
+  drop_db: 'Remove Data',
   open: 'Open',
   enable: 'Enable',
   enable_extension_details: 'Enable extension for current user',
@@ -116,6 +118,7 @@ window.localisation.en = {
   featured: 'Featured',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
+  admin_only: 'Admin Only',
   new_version: 'New Version',
   extension_depends_on: 'Depends on:',
   extension_rating_soon: 'Ratings coming soon',
@@ -123,6 +126,11 @@ window.localisation.en = {
   extension_uninstall_warning:
     'You are about to remove the extension for all users.',
   uninstall_confirm: 'Yes, Uninstall',
+  extension_db_drop_info:
+    'All data for the extension will be permanently deleted. There is no way to undo this operation!',
+  extension_db_drop_warning:
+    'You are about to remove all data for the extension. Please type the extension name to continue:',
+
   extension_min_lnbits_version: 'This release requires at least LNbits version',
 
   payment_hash: 'Payment Hash',

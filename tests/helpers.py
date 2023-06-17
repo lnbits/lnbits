@@ -3,11 +3,10 @@ import json
 import random
 import secrets
 import string
-import time
 from subprocess import PIPE, Popen, run
 
 from lnbits.core.crud import create_payment
-from lnbits.wallets import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_wallet_class
 
 
 async def credit_wallet(wallet_id: str, amount: int):
@@ -49,8 +48,8 @@ docker_bitcoin_rpc = "lnbits"
 docker_prefix = "lnbits-legend"
 docker_cmd = "docker exec"
 
-docker_lightning = f"{docker_cmd} {docker_prefix}-clightning-2-1"
-docker_lightning_cli = f"{docker_lightning} lightning-cli --network regtest"
+docker_lightning = f"{docker_cmd} {docker_prefix}-lnd-1-1"
+docker_lightning_cli = f"{docker_lightning} lncli --network regtest --rpcserver=lnd-1"
 
 docker_bitcoin = f"{docker_cmd} {docker_prefix}-bitcoind-1-1"
 docker_bitcoin_cli = f"{docker_bitcoin} bitcoin-cli -rpcuser={docker_bitcoin_rpc} -rpcpassword={docker_bitcoin_rpc} -regtest"
@@ -64,16 +63,17 @@ def run_cmd_json(cmd: str) -> dict:
     return json.loads(run_cmd(cmd))
 
 
-def get_real_invoice(sats: int, prefix: str, description: str = "test") -> dict:
+def get_real_invoice(sats: int) -> dict:
     msats = sats * 1000
-    return run_cmd_json(
-        f"{docker_lightning_cli} invoice {msats} {prefix}-{time.time()} {description}"
-    )
+    return run_cmd_json(f"{docker_lightning_cli} addinvoice {msats}")
 
 
 def pay_real_invoice(invoice: str) -> Popen:
     return Popen(
-        f"{docker_lightning_cli} pay {invoice}", shell=True, stdin=PIPE, stdout=PIPE
+        f"{docker_lightning_cli} payinvoice {invoice}",
+        shell=True,
+        stdin=PIPE,
+        stdout=PIPE,
     )
 
 

@@ -38,8 +38,8 @@ jobs:
           LNBITS_DATA_FOLDER: ./data
           LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
           LND_REST_ENDPOINT: https://localhost:8081/
-          LND_REST_CERT: ./docker/data/lnd-1/tls.cert
-          LND_REST_MACAROON: ./docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
+          LND_REST_CERT: ./docker/data/lnd-3/tls.cert
+          LND_REST_MACAROON: ./docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
@@ -83,8 +83,8 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: LndWallet
           LND_GRPC_ENDPOINT: localhost
           LND_GRPC_PORT: 10009
-          LND_GRPC_CERT: docker/data/lnd-1/tls.cert
-          LND_GRPC_MACAROON: docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
+          LND_GRPC_CERT: docker/data/lnd-3/tls.cert
+          LND_GRPC_MACAROON: docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
