@@ -69,7 +69,6 @@ class EclairWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-
         data: Dict[str, Any] = {
             "amountMsat": amount * 1000,
         }

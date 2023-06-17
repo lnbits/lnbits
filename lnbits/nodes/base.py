@@ -150,10 +150,6 @@ class NodeInvoice(BaseModel):
     expiry: Optional[int] = None
 
 
-class PaymentStats(BaseModel):
-    volume: int
-
-
 class NodePaymentsResponse(BaseModel):
     error_message: Optional[str]
     payments: list[NodePayment]
@@ -262,10 +258,6 @@ class Node(ABC):
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        pass
-
-    @abstractmethod
-    async def get_payment_stats(self) -> PaymentStats:
         pass
 
     async def get_and_revalidate(self, coro, key: str, expiry: float = 20):

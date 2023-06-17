@@ -24,7 +24,6 @@ from lnbits.nodes.base import (
     NodePayment,
     NodePaymentsFilters,
     NodePeerInfo,
-    PaymentStats,
     PublicNodeInfo,
 )
 
@@ -317,6 +316,3 @@ class LndRestNode(Node):
             data=invoices,
             total=total,
         )
-
-    async def get_payment_stats(self) -> PaymentStats:
-        return PaymentStats(volume=0)
