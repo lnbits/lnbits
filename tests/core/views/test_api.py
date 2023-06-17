@@ -6,7 +6,7 @@ import pytest
 
 from lnbits import bolt11
 from lnbits.core.models import Payment
-from lnbits.core.views.api import api_payment
+from lnbits.core.views.api import api_auditor, api_payment
 from lnbits.db import DB_TYPE, SQLITE
 from lnbits.settings import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
@@ -341,12 +341,19 @@ async def test_pay_real_invoice(
     assert response["paid"] is True
 
 
+async def get_node_balance_sats():
+    audit = await api_auditor()
+    return audit["node_balance_msats"] / 1000
+
+
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
+    prev_balance = await get_node_balance_sats()
+    create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
-        json=CreateInvoiceData(out=False, amount=1000, memo="test").dict(),
+        json=create_invoice.dict(),
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -368,3 +375,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
     assert response["paid"]
+
+    await asyncio.sleep(0.2)
+    balance = await get_node_balance_sats()
+    assert balance - prev_balance == create_invoice.amount
