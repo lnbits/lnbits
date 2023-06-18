@@ -376,6 +376,6 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response["paid"]
 
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.4)
     balance = await get_node_balance_sats()
     assert balance - prev_balance == create_invoice.amount
