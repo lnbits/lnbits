@@ -320,11 +320,17 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     return invoice
 
 
+async def get_node_balance_sats():
+    audit = await api_auditor()
+    return audit["node_balance_msats"] / 1000
+
+
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
     client, real_invoice, adminkey_headers_from, inkey_headers_from
 ):
+    prev_balance = await get_node_balance_sats()
     response = await client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
     )
@@ -340,10 +346,9 @@ async def test_pay_real_invoice(
     assert type(response) == dict
     assert response["paid"] is True
 
-
-async def get_node_balance_sats():
-    audit = await api_auditor()
-    return audit["node_balance_msats"] / 1000
+    await asyncio.sleep(0.3)
+    balance = await get_node_balance_sats()
+    assert prev_balance - balance == 100
 
 
 @pytest.mark.asyncio
@@ -376,6 +381,6 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response["paid"]
 
-    await asyncio.sleep(0.4)
+    await asyncio.sleep(0.3)
     balance = await get_node_balance_sats()
     assert balance - prev_balance == create_invoice.amount

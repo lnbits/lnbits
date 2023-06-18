@@ -553,7 +553,6 @@ _sym_db.RegisterMessage(UpdateChanStatusResponse)
 
 _ROUTER = DESCRIPTOR.services_by_name["Router"]
 if _descriptor._USE_C_DESCRIPTORS == False:
-
     DESCRIPTOR._options = None
     DESCRIPTOR._serialized_options = (
         b"Z/github.com/lightningnetwork/lnd/lnrpc/routerrpc"

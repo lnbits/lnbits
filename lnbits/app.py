@@ -46,7 +46,6 @@ from .tasks import (
 
 
 def create_app() -> FastAPI:
-
     configure_logger()
 
     app = FastAPI(
@@ -91,7 +90,6 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
@@ -280,7 +278,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
-
         try:
             # wait till migration is done
             await migrate_databases()

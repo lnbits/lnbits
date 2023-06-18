@@ -2661,7 +2661,6 @@ _sym_db.RegisterMessage(InterceptFeedback)
 
 _LIGHTNING = DESCRIPTOR.services_by_name["Lightning"]
 if _descriptor._USE_C_DESCRIPTORS == False:
-
     DESCRIPTOR._options = None
     DESCRIPTOR._serialized_options = b"Z%github.com/lightningnetwork/lnd/lnrpc"
     _TRANSACTION.fields_by_name["dest_addresses"]._options = None

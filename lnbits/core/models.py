@@ -37,7 +37,6 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
-
         url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
         try:
             return lnurl_encode(url)
