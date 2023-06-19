@@ -674,7 +674,6 @@ async def get_payments_history(
     # since we dont know the balance at the starting point, we take the current balance and walk backwards
     results: list[PaymentHistoryPoint] = []
     for row in transactions:
-        print(row)
         results.insert(
             0,
             PaymentHistoryPoint(
