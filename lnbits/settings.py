@@ -91,6 +91,7 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
+    lnbits_allowed_currencies: List[str] = Field(default=[])
 
 
 class OpsSettings(LNbitsSettings):

@@ -19,6 +19,7 @@ from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
+from ...utils.exchange_rates import currencies
 from ..crud import (
     create_account,
     create_wallet,
@@ -439,6 +440,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
+            "currencies": list(currencies.keys()),
         },
     )
 

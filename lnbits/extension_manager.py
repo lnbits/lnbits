@@ -99,18 +99,18 @@ async def fetch_github_repo_info(
 ) -> Tuple[GitHubRepo, GitHubRepoRelease, ExtensionConfig]:
     repo_url = f"https://api.github.com/repos/{org}/{repository}"
     error_msg = "Cannot fetch extension repo"
-    repo = await gihub_api_get(repo_url, error_msg)
+    repo = await github_api_get(repo_url, error_msg)
     github_repo = GitHubRepo.parse_obj(repo)
 
     lates_release_url = (
         f"https://api.github.com/repos/{org}/{repository}/releases/latest"
     )
     error_msg = "Cannot fetch extension releases"
-    latest_release: Any = await gihub_api_get(lates_release_url, error_msg)
+    latest_release: Any = await github_api_get(lates_release_url, error_msg)
 
     config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
-    config = await gihub_api_get(config_url, error_msg)
+    config = await github_api_get(config_url, error_msg)
 
     return (
         github_repo,
@@ -121,14 +121,14 @@ async def fetch_github_repo_info(
 
 async def fetch_manifest(url) -> Manifest:
     error_msg = "Cannot fetch extensions manifest"
-    manifest = await gihub_api_get(url, error_msg)
+    manifest = await github_api_get(url, error_msg)
     return Manifest.parse_obj(manifest)
 
 
 async def fetch_github_releases(org: str, repo: str) -> List[GitHubRepoRelease]:
     releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
     error_msg = "Cannot fetch extension releases"
-    releases = await gihub_api_get(releases_url, error_msg)
+    releases = await github_api_get(releases_url, error_msg)
     return [GitHubRepoRelease.parse_obj(r) for r in releases]
 
 
@@ -139,11 +139,11 @@ async def fetch_github_release_config(
         f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
     )
     error_msg = "Cannot fetch GitHub extension config"
-    config = await gihub_api_get(config_url, error_msg)
+    config = await github_api_get(config_url, error_msg)
     return ExtensionConfig.parse_obj(config)
 
 
-async def gihub_api_get(url: str, error_msg: Optional[str]) -> Any:
+async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
     async with httpx.AsyncClient() as client:
         headers = (
             {"Authorization": "Bearer " + settings.lnbits_ext_github_token}

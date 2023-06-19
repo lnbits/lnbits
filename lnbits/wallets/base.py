@@ -55,6 +55,9 @@ class PaymentStatus(NamedTuple):
 class Wallet(ABC):
     __node_cls__: Optional[Type[Node]] = None
 
+    async def cleanup(self):
+        pass
+
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
         pass
