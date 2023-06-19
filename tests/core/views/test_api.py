@@ -4,10 +4,13 @@ import pytest
 
 from lnbits import bolt11
 from lnbits.core.models import Payment
-from lnbits.core.views.api import api_payment
+
+from lnbits.core.views.api import api_auditor, api_payment
+from lnbits.db import DB_TYPE, SQLITE
+
 from lnbits.settings import get_wallet_class
 
-from ...helpers import get_random_invoice_data, is_fake, is_regtest
+from ...helpers import get_random_invoice_data, is_fake, is_regtest, pay_real_invoice
 
 WALLET = get_wallet_class()
 
@@ -352,11 +355,17 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     return invoice
 
 
+async def get_node_balance_sats():
+    audit = await api_auditor()
+    return audit["node_balance_msats"] / 1000
+
+
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
     client, real_invoice, adminkey_headers_from, inkey_headers_from
 ):
+    prev_balance = await get_node_balance_sats()
     response = await client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
     )
@@ -369,5 +378,46 @@ async def test_pay_real_invoice(
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
-    assert type(response) == dict
-    assert response["paid"] is True
+    assert response["paid"]
+
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    assert status.paid
+
+    await asyncio.sleep(0.3)
+    balance = await get_node_balance_sats()
+    assert prev_balance - balance == 100
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
+    prev_balance = await get_node_balance_sats()
+    create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
+    response = await client.post(
+        "/api/v1/payments",
+        json=create_invoice.dict(),
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    invoice = response.json()
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert not response["paid"]
+
+    async def listen():
+        async for payment_hash in get_wallet_class().paid_invoices_stream():
+            assert payment_hash == invoice["payment_hash"]
+            return
+
+    task = asyncio.create_task(listen())
+    pay_real_invoice(invoice["payment_request"])
+    await asyncio.wait_for(task, timeout=3)
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert response["paid"]
+
+    await asyncio.sleep(0.3)
+    balance = await get_node_balance_sats()
+    assert balance - prev_balance == create_invoice.amount
