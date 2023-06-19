@@ -32,12 +32,15 @@ class LNPayWallet(Wallet):
         self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"X-Api-Key": settings.lnpay_api_key}
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+
+    async def cleanup(self):
+        await self.client.aclose()
 
     async def status(self) -> StatusResponse:
-        url = f"{self.endpoint}/wallet/{self.wallet_key}"
+        url = f"/wallet/{self.wallet_key}"
         try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get(url, headers=self.auth, timeout=60)
+            r = await self.client.get(url, timeout=60)
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{url}'", 0)
 
@@ -69,13 +72,11 @@ class LNPayWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
-                headers=self.auth,
-                json=data,
-                timeout=60,
-            )
+        r = await self.client.post(
+            f"/wallet/{self.wallet_key}/invoice",
+            json=data,
+            timeout=60,
+        )
         ok, checking_id, payment_request, error_message = (
             r.status_code == 201,
             None,
@@ -90,13 +91,11 @@ class LNPayWallet(Wallet):
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
-                headers=self.auth,
-                json={"payment_request": bolt11},
-                timeout=None,
-            )
+        r = await self.client.post(
+            f"/wallet/{self.wallet_key}/withdraw",
+            json={"payment_request": bolt11},
+            timeout=None,
+        )
 
         try:
             data = r.json()
@@ -117,11 +116,9 @@ class LNPayWallet(Wallet):
         return await self.get_payment_status(checking_id)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                url=f"{self.endpoint}/lntx/{checking_id}",
-                headers=self.auth,
-            )
+        r = await self.client.get(
+            url=f"/lntx/{checking_id}",
+        )
 
         if r.is_error:
             return PaymentStatus(None)
@@ -155,12 +152,9 @@ class LNPayWallet(Wallet):
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{self.endpoint}/lntx/{lntx_id}?fields=settled", headers=self.auth
-            )
-            data = r.json()
-            if data["settled"]:
-                await self.queue.put(lntx_id)
+        r = await self.client.get(f"/lntx/{lntx_id}?fields=settled")
+        data = r.json()
+        if data["settled"]:
+            await self.queue.put(lntx_id)
 
         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

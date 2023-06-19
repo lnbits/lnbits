@@ -30,12 +30,13 @@ class LnTipsWallet(Wallet):
             raise Exception("cannot initialize lntxbod")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": f"Basic {key}"}
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+
+    async def cleanup(self):
+        await self.client.aclose()
 
     async def status(self) -> StatusResponse:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{self.endpoint}/api/v1/balance", headers=self.auth, timeout=40
-            )
+        r = await self.client.get("/api/v1/balance", timeout=40)
         try:
             data = r.json()
         except:
@@ -62,13 +63,11 @@ class LnTipsWallet(Wallet):
         elif unhashed_description:
             data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
 
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{self.endpoint}/api/v1/createinvoice",
-                headers=self.auth,
-                json=data,
-                timeout=40,
-            )
+        r = await self.client.post(
+            "/api/v1/createinvoice",
+            json=data,
+            timeout=40,
+        )
 
         if r.is_error:
             try:
@@ -85,13 +84,11 @@ class LnTipsWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{self.endpoint}/api/v1/payinvoice",
-                headers=self.auth,
-                json={"pay_req": bolt11},
-                timeout=None,
-            )
+        r = await self.client.post(
+            "/api/v1/payinvoice",
+            json={"pay_req": bolt11},
+            timeout=None,
+        )
         if r.is_error:
             return PaymentResponse(False, None, 0, None, r.text)
 
@@ -111,11 +108,9 @@ class LnTipsWallet(Wallet):
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            async with httpx.AsyncClient() as client:
-                r = await client.post(
-                    f"{self.endpoint}/api/v1/invoicestatus/{checking_id}",
-                    headers=self.auth,
-                )
+            r = await self.client.post(
+                f"/api/v1/invoicestatus/{checking_id}",
+            )
 
             if r.is_error or len(r.text) == 0:
                 raise Exception
@@ -127,11 +122,9 @@ class LnTipsWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            async with httpx.AsyncClient() as client:
-                r = await client.post(
-                    url=f"{self.endpoint}/api/v1/paymentstatus/{checking_id}",
-                    headers=self.auth,
-                )
+            r = await self.client.post(
+                url=f"/api/v1/paymentstatus/{checking_id}",
+            )
 
             if r.is_error:
                 raise Exception
@@ -145,23 +138,22 @@ class LnTipsWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None
         while True:
-            url = f"{self.endpoint}/api/v1/invoicestream"
+            url = "/api/v1/invoicestream"
             try:
-                async with httpx.AsyncClient(timeout=None, headers=self.auth) as client:
-                    last_connected = time.time()
-                    async with client.stream("GET", url) as r:
-                        async for line in r.aiter_lines():
-                            try:
-                                prefix = "data: "
-                                if not line.startswith(prefix):
-                                    continue
-                                data = line[len(prefix) :]  # sse parsing
-                                inv = json.loads(data)
-                                if not inv.get("payment_hash"):
-                                    continue
-                            except:
+                last_connected = time.time()
+                async with self.client.stream("GET", url) as r:
+                    async for line in r.aiter_lines():
+                        try:
+                            prefix = "data: "
+                            if not line.startswith(prefix):
                                 continue
-                            yield inv["payment_hash"]
+                            data = line[len(prefix) :]  # sse parsing
+                            inv = json.loads(data)
+                            if not inv.get("payment_hash"):
+                                continue
+                        except:
+                            continue
+                        yield inv["payment_hash"]
             except Exception:
                 pass
 

@@ -46,7 +46,6 @@ from .tasks import (
 
 
 def create_app() -> FastAPI:
-
     configure_logger()
 
     app = FastAPI(
@@ -82,6 +81,7 @@ def create_app() -> FastAPI:
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
+    register_shutdown(app)
 
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
@@ -90,7 +90,6 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
@@ -279,7 +278,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
-
         try:
             # wait till migration is done
             await migrate_databases()
@@ -301,6 +299,13 @@ def register_startup(app: FastAPI):
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
+
+
+def register_shutdown(app: FastAPI):
+    @app.on_event("shutdown")
+    async def on_shutdown():
+        WALLET = get_wallet_class()
+        await WALLET.cleanup()
 
 
 def log_server_info():

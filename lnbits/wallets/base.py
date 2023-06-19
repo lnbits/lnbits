@@ -48,6 +48,9 @@ class PaymentStatus(NamedTuple):
 
 
 class Wallet(ABC):
+    async def cleanup(self):
+        pass
+
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
         pass
