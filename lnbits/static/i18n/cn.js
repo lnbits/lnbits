@@ -25,8 +25,7 @@ window.localisation.cn = {
   wallets: '钱包',
   add_wallet: '添加新钱包',
   delete_wallet: '删除钱包',
-  delete_wallet_desc:
-    '整个钱包将被删除，资金将无法恢复',
+  delete_wallet_desc: '整个钱包将被删除，资金将无法恢复',
   rename_wallet: '重命名钱包',
   update_name: '更新名称',
   press_to_claim: '点击领取比特币',
@@ -76,7 +75,7 @@ window.localisation.cn = {
   no_transactions: '尚未进行任何交易',
   manage_server: '管理服务器',
   extensions: '扩展程序',
-  no_extensions: "你没有安装任何扩展程序 :(",
+  no_extensions: '你没有安装任何扩展程序 :(',
   created: '已创建',
 
   search_extensions: '搜索扩展程序',
@@ -105,11 +104,9 @@ window.localisation.cn = {
   extension_depends_on: '依赖于:',
   extension_rating_soon: '即将推出评分',
   extension_installed_version: '已安装的版本',
-  extension_uninstall_warning:
-    '您即将对所有用户删除该扩展程序。',
+  extension_uninstall_warning: '您即将对所有用户删除该扩展程序。',
   uninstall_confirm: '是的，卸载',
-  extension_db_drop_info:
-    '该扩展程序的所有数据将被永久删除。此操作无法撤销！',
+  extension_db_drop_info: '该扩展程序的所有数据将被永久删除。此操作无法撤销！',
   extension_db_drop_warning:
     '您即将删除该扩展的所有数据。请继续输入扩展程序名称以确认操作：',
 
@@ -124,5 +121,3 @@ window.localisation.cn = {
   webhook: 'Webhook',
   payment_proof: '付款证明'
 }
-
-
