@@ -717,16 +717,13 @@ new Vue({
           }
         })
     },
-    updateWalletName: function () {
-      let newName = this.newName
-      let adminkey = this.g.wallet.adminkey
-      if (!newName || !newName.length) return
+    updateWallet: function () {
       LNbits.api
-        .request('PUT', '/api/v1/wallet/' + newName, adminkey, {})
+        .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, this.update)
         .then(res => {
           this.newName = ''
           this.$q.notify({
-            message: `Wallet named updated.`,
+            message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })

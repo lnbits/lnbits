@@ -358,14 +358,27 @@
                 >
                   <q-card>
                     <q-card-section>
-                      <div class="" style="max-width: 320px">
-                        <q-input
-                          filled
-                          v-model.trim="newName"
-                          label="Label"
-                          dense="dense"
-                          @update:model-value="(e) => console.log(e)"
-                        />
+                      <div class="row q-gutter-x-md">
+                        <div>
+                          <q-input
+                            filled
+                            v-model.trim="update.name"
+                            label="Name"
+                            dense
+                            @update:model-value="(e) => console.log(e)"
+                          />
+                        </div>
+                        <div>
+                          <q-select
+                            filled
+                            dense
+                            v-model="update.currency"
+                            type="text"
+                            :label="$t('unit')"
+                            :options="receive.units"
+                          ></q-select>
+                        </div>
+
                       </div>
                       <q-btn
                         :disable="!newName.length"

@@ -11,6 +11,7 @@ from lnbits.core.models import WalletType
 from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 
 from . import db
 from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
@@ -247,6 +248,7 @@ async def update_wallet(
         WHERE id = ?
         """,
         (new_name, wallet_id),
+        values,
     )
     wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
     assert wallet, "updated created wallet couldn't be retrieved"
@@ -529,12 +531,20 @@ async def create_payment(
         # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 
+    wallet = await get_wallet(wallet_id, conn=conn)
+
+    fiat_amount = None
+    if wallet and wallet.currency:
+        fiat_amount = await satoshis_amount_as_fiat(
+            amount / 1000, wallet.currency
+        )
+
     await (conn or db).execute(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra, webhook, expiry)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, pending, memo, fee, extra, webhook, expiry, fiat_currency, fiat_amount)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -553,6 +563,8 @@ async def create_payment(
             ),
             webhook,
             db.datetime_to_timestamp(expiration_date),
+            wallet.currency,
+            fiat_amount
         ),
     )
 
