@@ -28,3 +28,10 @@ async def test_sql_json(db, json_test_table):
     await db.execute(f"UPDATE test SET {db.json_partial_update('data')}", (update,))
     row = await db.fetchone("SELECT * FROM test")
     assert row.data == obj
+
+
+@pytest.mark.asyncio
+async def test_sql_json_null(db, json_test_table):
+    await db.execute("INSERT INTO test VALUES(?)", (None,))
+    row = await db.fetchone("SELECT * FROM test")
+    assert row.data is None
