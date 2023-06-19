@@ -13,7 +13,8 @@ from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
 
 
@@ -37,7 +38,6 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
-
         url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
         try:
             return lnurl_encode(url)

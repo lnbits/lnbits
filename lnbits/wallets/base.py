@@ -61,6 +61,8 @@ class Wallet(ABC):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> Coroutine[None, None, InvoiceResponse]:
         pass
 
