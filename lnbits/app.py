@@ -340,6 +340,7 @@ def register_shutdown(app: FastAPI):
         WALLET = get_wallet_class()
         await WALLET.cleanup()
 
+
 def initialize_server_logger():
 
     super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
