@@ -341,19 +341,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-# set wallet class after settings are loaded
-def set_wallet_class(class_name: Optional[str] = None):
-    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
-    WALLET = wallet_class()
-
-
-def get_wallet_class():
-    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return WALLET
-
-
 def send_admin_user_to_saas():
     if settings.lnbits_saas_callback:
         with httpx.Client() as client:
@@ -399,8 +386,11 @@ except:
 
 settings.version = importlib.metadata.version("lnbits")
 
-wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
-# initialize as fake wallet
-WALLET = FAKE_WALLET
+def get_wallet_class():
+    """
+    Backwards compatibility
+    """
+    from lnbits.wallets import get_wallet_class
+
+    return get_wallet_class()
