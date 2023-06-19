@@ -63,6 +63,35 @@ else:
         )
 
 
+class QueryValues(list):
+    def json_path(self, colname: str, *path: str, type_: Type = None):
+        if DB_TYPE == SQLITE:
+            path_value = f"$.{'.'.join(path)}"
+            accessor = f"json_extract({colname}, ?)"
+        else:
+            # https://www.postgresql.org/docs/9.3/functions-json.html
+            path_value = "'{" + ",".join(path) + "}'"
+            accessor = f"{colname} #>> ?"
+            if type_ == int:
+                accessor = f"({accessor})::int"
+        self.append(path_value)
+        return accessor
+
+    def json_partial_update(self, colname: str, value: dict):
+        self.append(value)
+        if DB_TYPE == SQLITE:
+            return f"{colname} = json_patch({colname}, ?)"
+        else:
+            return f"{colname} = {colname}::jsonb || ?"
+
+    def __call__(self, value: Any):
+        return self.placeholder(value)
+
+    def placeholder(self, value: Any):
+        self.append(value)
+        return "?"
+
+
 class Compat:
     type: Optional[str] = "<inherited>"
     schema: Optional[str] = "<inherited>"

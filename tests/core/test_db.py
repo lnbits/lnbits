@@ -1,4 +1,16 @@
 import pytest
+import pytest_asyncio
+
+from lnbits.db import QueryValues
+
+
+@pytest_asyncio.fixture
+async def json_test_table(db):
+    try:
+        await db.execute("CREATE TABLE test (data JSON)")
+        yield db
+    finally:
+        await db.execute("DROP TABLE test")
 
 
 @pytest.mark.asyncio
@@ -6,26 +18,35 @@ async def test_sql_json(db, json_test_table):
     obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
     await db.execute("INSERT INTO test VALUES(?)", (obj,))
 
+    values = QueryValues()
     row = await db.fetchone(
-        f"SELECT * FROM test WHERE {db.json_path('data', 'a', type_=int)} >= ?",
-        (obj["a"],),
+        f"""
+        SELECT * FROM test WHERE {values.json_path('data', 'a', type_=int)} >= {values(obj["a"])}
+        """,
+        values,
     )
     assert row.data == obj
 
+    values = QueryValues()
     row = await db.fetchone(
-        f"SELECT * FROM test WHERE {db.json_path('data', 'c', 'nested')} = ?",
-        (obj["c"]["nested"],),
+        f"SELECT * FROM test WHERE {values.json_path('data', 'c', 'nested')} = {values(obj['c']['nested'])}",
+        values,
     )
     assert row.data == obj
 
+    values = QueryValues()
     row = await db.fetchone(
-        f"SELECT * FROM test WHERE {db.json_path('data', 'b')} != ?", (obj["b"],)
+        f"SELECT * FROM test WHERE {values.json_path('data', 'b')} != {values(obj['b'])}",
+        values,
     )
     assert not row
 
     update = {"b": "baz"}
     obj |= update
-    await db.execute(f"UPDATE test SET {db.json_partial_update('data')}", (update,))
+    values = QueryValues()
+    await db.execute(
+        f"UPDATE test SET {values.json_partial_update('data', update)}", values
+    )
     row = await db.fetchone("SELECT * FROM test")
     assert row.data == obj
 
