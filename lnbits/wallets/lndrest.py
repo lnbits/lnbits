@@ -167,7 +167,7 @@ class LndRestWallet(Wallet):
         except ValueError:
             return PaymentStatus(None)
 
-        url = "/v2/router/track/{checking_id}"
+        url = f"/v2/router/track/{checking_id}"
 
         # check payment.status:
         # https://api.lightning.community/?python=#paymentpaymentstatus
@@ -206,7 +206,7 @@ class LndRestWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                url = self.endpoint + "/v1/invoices/subscribe"
+                url = "/v1/invoices/subscribe"
                 async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():
                         try:
