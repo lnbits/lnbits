@@ -343,8 +343,10 @@ async def test_pay_real_invoice(
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
-    assert type(response) == dict
-    assert response["paid"] is True
+    assert response["paid"]
+
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    assert status.paid
 
     await asyncio.sleep(0.3)
     balance = await get_node_balance_sats()
