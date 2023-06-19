@@ -172,7 +172,7 @@ class CoreLightningWallet(Wallet):
             r = self.ln.listpays(payment_hash=checking_id)
         except:
             return PaymentStatus(None)
-        if not "pays" in r or not r["pays"]:
+        if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)
         payment_resp = r["pays"][-1]
 
