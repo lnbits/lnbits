@@ -6,7 +6,7 @@ import string
 from subprocess import PIPE, Popen, run
 
 from lnbits.core.crud import create_payment
-from lnbits.settings import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_wallet_class, set_wallet_class
 
 
 async def credit_wallet(wallet_id: str, amount: int):
