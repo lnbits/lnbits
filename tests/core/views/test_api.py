@@ -283,8 +283,8 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    is_cln,
-    reason="cln does not support description_hash",
+    WALLET.__class__.__name__ in ["CoreLightningWallet"],
+    reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
@@ -326,7 +326,7 @@ async def get_node_balance_sats():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(is_fake or is_cln, reason="this only works in regtest")
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
     client, real_invoice, adminkey_headers_from, inkey_headers_from
 ):
