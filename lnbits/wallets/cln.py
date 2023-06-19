@@ -69,7 +69,7 @@ class CoreLightningWallet(Wallet):
         try:
             funds = self.ln.listfunds()
             return StatusResponse(
-                None, sum([ch["channel_sat"] * 1000 for ch in funds["channels"]])
+                None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
@@ -141,7 +141,7 @@ class CoreLightningWallet(Wallet):
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
 
-        fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
+        fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
         return PaymentResponse(
             True, r["payment_hash"], fee_msat, r["payment_preimage"], None
         )

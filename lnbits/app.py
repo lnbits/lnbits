@@ -154,13 +154,17 @@ async def check_installed_extensions(app: FastAPI):
 
     for ext in installed_extensions:
         try:
-            installed = check_installed_extension(ext)
+            installed = check_installed_extension_files(ext)
             if not installed:
                 await restore_installed_extension(app, ext)
-                logger.info(f"✔️ Successfully re-installed extension: {ext.id}")
+                logger.info(
+                    f"✔️ Successfully re-installed extension: {ext.id} ({ext.installed_version})"
+                )
         except Exception as e:
             logger.warning(e)
-            logger.warning(f"Failed to re-install extension: {ext.id}")
+            logger.warning(
+                f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
+            )
 
 
 async def build_all_installed_extensions_list() -> List[InstallableExtension]:
@@ -183,13 +187,11 @@ async def build_all_installed_extensions_list() -> List[InstallableExtension]:
                 id=ext_id, name=ext_id, installed_release=release, icon=release.icon
             )
             installed_extensions.append(ext_info)
-            await add_installed_extension(ext_info)
-            await update_installed_extension_state(ext_id=ext_id, active=True)
 
     return installed_extensions
 
 
-def check_installed_extension(ext: InstallableExtension) -> bool:
+def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
@@ -205,6 +207,9 @@ def check_installed_extension(ext: InstallableExtension) -> bool:
 
 
 async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
+    await add_installed_extension(ext)
+    await update_installed_extension_state(ext_id=ext.id, active=True)
+
     extension = Extension.from_installable_ext(ext)
     register_ext_routes(app, extension)
 

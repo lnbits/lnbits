@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import Connection, Filters, Page
+from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -139,6 +139,25 @@ async def delete_installed_extension(
         DELETE from installed_extensions  WHERE id = ?
         """,
         (ext_id,),
+    )
+
+
+async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -> None:
+    db_version = await (conn or db).fetchone(
+        "SELECT * FROM dbversions WHERE db = ?", (ext_id,)
+    )
+    # Check that 'ext_id' is a valid extension id and not a malicious string
+    assert db_version, f"Extension '{ext_id}' db version cannot be found"
+
+    is_file_based_db = await Database.clean_ext_db_files(ext_id)
+    if is_file_based_db:
+        return
+
+    # String formatting is required, params are not accepted for 'DROP SCHEMA'.
+    # The `ext_id` value is verified above.
+    await (conn or db).execute(
+        f"DROP SCHEMA IF EXISTS {ext_id} CASCADE",
+        (),
     )
 
 
@@ -336,7 +355,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     rows = await db.fetchall(
         f"""
         SELECT * FROM apipayments
-        WHERE pending = 'false'
+        WHERE pending = false
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -778,6 +797,15 @@ async def update_migration_version(conn, db_name, version):
         ON CONFLICT (db) DO UPDATE SET version = ?
         """,
         (db_name, version, version),
+    )
+
+
+async def delete_dbversion(*, ext_id: str, conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        """
+        DELETE FROM dbversions WHERE db = ?
+        """,
+        (ext_id,),
     )
 
 

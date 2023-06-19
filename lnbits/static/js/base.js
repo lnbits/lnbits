@@ -343,12 +343,16 @@ window.windowMixin = {
         user: null,
         wallet: null,
         payments: [],
-        allowedThemes: null
+        allowedThemes: null,
+        langs: []
       }
     }
   },
 
   methods: {
+    activeLanguage: function (lang) {
+      return window.i18n.locale === lang
+    },
     changeLanguage: function (newValue) {
       window.i18n.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
@@ -387,6 +391,8 @@ window.windowMixin = {
       window.LOCALE = locale
       window.i18n.locale = locale
     }
+
+    this.g.langs = window.langs ?? []
 
     addEventListener('offline', event => {
       this.g.offline = true

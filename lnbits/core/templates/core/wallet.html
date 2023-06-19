@@ -175,7 +175,7 @@
                     </q-icon>
                   </q-td>
                   <q-td
-                    key="memo"
+                    key="time"
                     :props="props"
                     style="white-space: normal; word-break: break-all"
                   >
@@ -192,11 +192,15 @@
                       </a>
                     </q-badge>
                     {{ props.row.memo }}
+                    <br />
+
+                    <i>
+                      {{ props.row.dateFrom }}<q-tooltip
+                        >{{ props.row.date }}</q-tooltip
+                      ></i
+                    >
                   </q-td>
-                  <q-td auto-width key="time" :props="props">
-                    <q-tooltip>{{ props.row.date }}</q-tooltip>
-                    {{ props.row.dateFrom }}
-                  </q-td>
+
                   {% endraw %}
                   <q-td
                     auto-width
@@ -209,10 +213,8 @@
                   </q-td>
 
                   <q-td auto-width key="amount" v-else :props="props">
-                    {{ props.row.fsat }}
-                  </q-td>
-                  <q-td auto-width key="fee" :props="props">
-                    {{ props.row.fee }}
+                    {{ props.row.fsat }}<br />
+                    <i>fee {{ props.row.fee/1000 }}</i>
                   </q-td>
                 </q-tr>
 
@@ -552,7 +554,7 @@
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong v-text="$t('description')">:</strong> {{
+              <strong v-text="$t('memo')">:</strong> {{
               parse.invoice.description }}<br />
               <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
               <strong>Hash:</strong> {{ parse.invoice.hash }}
@@ -786,10 +788,14 @@
         indicator-color="transparent"
         align="justify"
       >
-        <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+        <q-tab
+          icon="file_download"
+          @click="showReceiveDialog"
+          :label="$t('receive')"
+        >
         </q-tab>
 
-        <q-tab @click="showParseDialog" icon="file_upload" label="Send">
+        <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
         </q-tab>
         <q-btn
           round
