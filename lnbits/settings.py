@@ -43,10 +43,6 @@ class UsersSettings(LNbitsSettings):
     lnbits_allowed_users: List[str] = Field(default=[])
 
 
-class AllowedCurrencies(LNbitsSettings):
-    lnbits_allowed_currencies: List[str] = Field(default=[])
-
-
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(
@@ -93,6 +89,7 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
+    lnbits_allowed_currencies: List[str] = Field(default=[])
 
 
 class OpsSettings(LNbitsSettings):
@@ -207,7 +204,6 @@ class FundingSourcesSettings(
 
 class EditableSettings(
     UsersSettings,
-    AllowedCurrencies,
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,

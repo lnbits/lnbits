@@ -670,11 +670,12 @@ async def api_perform_lnurlauth(
 
 @core_app.get("/api/v1/currencies")
 async def api_list_currencies_available():
-    allow_list = {currency.upper() for currency in settings.lnbits_allowed_currencies}
-
-    if allow_list:
-        return [item for item in currencies.keys() if item.upper() in allow_list]
-
+    if len(settings.lnbits_allowed_currencies) > 0:
+        return [
+            item
+            for item in currencies.keys()
+            if item.upper() in settings.lnbits_allowed_currencies
+        ]
     return list(currencies.keys())
 
 
