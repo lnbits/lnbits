@@ -43,6 +43,7 @@ from .crud import (
     update_payment_status,
     update_super_user,
 )
+from .helpers import to_valid_user_id
 from .models import Payment
 
 
@@ -437,6 +438,9 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 
 async def check_admin_settings():
+    if settings.super_user:
+        settings.super_user = to_valid_user_id(settings.super_user).hex
+
     if settings.lnbits_admin_ui:
         settings_db = await get_super_settings()
         if not settings_db:
@@ -478,7 +482,7 @@ def update_cached_settings(sets_dict: dict):
             try:
                 setattr(settings, key, value)
             except:
-                logger.error(f"error overriding setting: {key}, value: {value}")
+                logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
 
@@ -488,8 +492,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await create_account()
-        super_user = account.id
+        account = await create_account(user_id=super_user)
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
 

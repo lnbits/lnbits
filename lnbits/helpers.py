@@ -4,7 +4,6 @@ from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
-from pydantic import BaseModel
 from pydantic.schema import (
     field_schema,
     get_flat_models_from_fields,
@@ -15,6 +14,7 @@ from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
+from .db import FilterModel
 from .extension_manager import get_valid_extensions
 
 
@@ -32,7 +32,6 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 
 
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
-
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
         folders.extend(additional_folders)
@@ -96,7 +95,7 @@ def get_current_extension_name() -> str:
     return ext_name
 
 
-def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
+def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False):
     """
     Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
     :param model: Filter model
@@ -117,6 +116,11 @@ def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
         description = "Supports Filtering"
         if schema["type"] == "object":
             description += f". Nested attributes can be filtered too, e.g. `{field.alias}.[additional].[attributes]`"
+        if (
+            hasattr(model, "__search_fields__")
+            and field.name in model.__search_fields__
+        ):
+            description += ". Supports Search"
 
         parameter = {
             "name": field.alias,
