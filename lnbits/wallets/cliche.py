@@ -8,14 +8,8 @@ from websocket import create_connection
 
 from lnbits.settings import settings
 
-from ..core.models import Payment
-from .base import (
-    InvoiceResponse,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    Wallet,
-)
+from ..core.models import Payment, PaymentStatus
+from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
 
 
 class ClicheWallet(Wallet):

@@ -11,6 +11,7 @@ from lnurl import decode as decode_lnurl
 from loguru import logger
 
 from lnbits import bolt11
+from lnbits.core.models import PaymentStatus
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
@@ -23,7 +24,7 @@ from lnbits.settings import (
     set_wallet_class,
     settings,
 )
-from lnbits.wallets.base import PaymentResponse, PaymentStatus
+from lnbits.wallets.base import PaymentResponse
 
 from . import db
 from .crud import (
