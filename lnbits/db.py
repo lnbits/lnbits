@@ -84,12 +84,15 @@ class QueryValues(list):
         else:
             return f"{colname} = {colname}::jsonb || ?"
 
-    def __call__(self, value: Any):
-        return self.placeholder(value)
-
     def placeholder(self, value: Any):
         self.append(value)
-        return "?"
+        if type(value) == datetime.datetime:
+            return Compat.timestamp_placeholder
+        else:
+            return "?"
+
+    def __call__(self, value: Any):
+        return self.placeholder(value)
 
 
 class Compat:
@@ -150,24 +153,6 @@ class Compat:
         else:
             return "?"
 
-    @classmethod
-    def json_partial_update(cls, colname: str):
-        if DB_TYPE == SQLITE:
-            return f"{colname} = json_patch({colname}, ?)"
-        else:
-            return f"{colname} = {colname}::jsonb || ?"
-
-    @classmethod
-    def json_path(cls, colname: str, *path: str, type_: Type = None):
-        if DB_TYPE == SQLITE:
-            return f"json_extract({colname}, '$.{'.'.join(path)}')"
-        else:
-            # https://www.postgresql.org/docs/9.3/functions-json.html
-            as_path = "{" + ",".join(path) + "}"
-            accessor = f"{colname} #>> '{as_path}'"
-            if type_ == int:
-                accessor = f"({accessor})::int"
-            return accessor
 
 
 class Connection(Compat):
@@ -230,8 +215,8 @@ class Connection(Compat):
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
-        clause = filters.where(where)
-        parsed_values = filters.values(values)
+        values = QueryValues(values) if values else QueryValues()
+        clause = filters.where(values, where)
 
         rows = await self.fetchall(
             f"""
@@ -240,7 +225,7 @@ class Connection(Compat):
             {filters.order_by()}
             {filters.pagination()}
             """,
-            parsed_values,
+            values,
         )
         if rows:
             # no need for extra query if no pagination is specified
@@ -252,7 +237,7 @@ class Connection(Compat):
                         {clause}
                     ) as count
                     """,
-                    parsed_values,
+                    values,
                 )
                 count = int(count[0])
             else:
@@ -487,21 +472,18 @@ class Filter(BaseModel, Generic[TFilterModel]):
             field=field, op=op, nested=field_names[1:], values=values, model=model
         )
 
-    @property
-    def statement(self):
+    def statement(self, values: QueryValues):
         accessor = self.field
         type_ = type(self.values[0])
         if self.nested:
-            accessor = Compat.json_path(accessor, *self.nested, type_=type_)
-        if type_ == datetime.datetime:
-            placeholder = Compat.timestamp_placeholder
-        else:
-            placeholder = "?"
+            accessor = values.json_path(accessor, *self.nested, type_=type_)
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join([placeholder] * len(self.values))
+            placeholders = ", ".join([values(value) for value in self.values])
             stmt = [f"{accessor} {self.op.as_sql} ({placeholders})"]
         else:
-            stmt = [f"{accessor} {self.op.as_sql} {placeholder}"] * len(self.values)
+            stmt = [
+                f"{accessor} {self.op.as_sql} {values(value)}" for value in self.values
+            ]
         return " OR ".join(stmt)
 
 
@@ -545,20 +527,23 @@ class Filters(BaseModel, Generic[TFilterModel]):
             stmt += f"OFFSET {self.offset}"
         return stmt
 
-    def where(self, where_stmts: Optional[List[str]] = None) -> str:
+    def where(
+        self, values: QueryValues, where_stmts: Optional[List[str]] = None
+    ) -> str:
         if not where_stmts:
             where_stmts = []
         if self.filters:
             for filter in self.filters:
-                where_stmts.append(filter.statement)
+                where_stmts.append(filter.statement(values))
         if self.search and self.model:
+            search = f"%{self.search}%"
             if DB_TYPE == POSTGRES:
                 where_stmts.append(
-                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE {values(search)}"
                 )
             elif DB_TYPE == SQLITE:
                 where_stmts.append(
-                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
+                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE {values(search)}"
                 )
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
