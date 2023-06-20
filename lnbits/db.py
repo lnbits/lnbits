@@ -10,7 +10,7 @@ import time
 from contextlib import asynccontextmanager
 from enum import Enum
 from sqlite3 import Row
-from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
+from typing import Any, Generic, List, Literal, Optional, Sequence, Type, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -95,6 +95,9 @@ class QueryValues(list):
         return self.placeholder(value)
 
 
+Values = Sequence[Any]
+
+
 class Compat:
     type: Optional[str] = "<inherited>"
     schema: Optional[str] = "<inherited>"
@@ -154,7 +157,6 @@ class Compat:
             return "?"
 
 
-
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
         self.conn = conn
@@ -191,13 +193,13 @@ class Connection(Compat):
                 values.append(raw_value)
         return tuple(values)
 
-    async def fetchall(self, query: str, values: tuple = ()) -> list:
+    async def fetchall(self, query: str, values: Values = ()) -> list:
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
         return await result.fetchall()
 
-    async def fetchone(self, query: str, values: tuple = ()):
+    async def fetchone(self, query: str, values: Values = ()):
         result = await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
@@ -250,7 +252,7 @@ class Connection(Compat):
             total=count,
         )
 
-    async def execute(self, query: str, values: tuple = ()):
+    async def execute(self, query: str, values: Values = ()):
         return await self.conn.execute(
             self.rewrite_query(query), self.rewrite_values(values)
         )
@@ -312,12 +314,12 @@ class Database(Compat):
         finally:
             self.lock.release()
 
-    async def fetchall(self, query: str, values: tuple = ()) -> list:
+    async def fetchall(self, query: str, values: Values = ()) -> list:
         async with self.connect() as conn:
             result = await conn.execute(query, values)
             return await result.fetchall()
 
-    async def fetchone(self, query: str, values: tuple = ()):
+    async def fetchone(self, query: str, values: Values = ()):
         async with self.connect() as conn:
             result = await conn.execute(query, values)
             row = await result.fetchone()
@@ -335,7 +337,7 @@ class Database(Compat):
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model)
 
-    async def execute(self, query: str, values: tuple = ()):
+    async def execute(self, query: str, values: Values = ()):
         async with self.connect() as conn:
             return await conn.execute(query, values)
 
