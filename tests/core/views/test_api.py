@@ -346,7 +346,23 @@ async def test_pay_real_invoice(
     )
     assert response["paid"]
 
-    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    status = await WALLET.get_payment_status(  # create a dummy payment object of which we will only use checking_id in get_payment_status
+        Payment(
+            payment_hash=invoice.payment_hash,
+            checking_id=invoice.payment_hash,
+            pending=False,
+            fee=0,
+            amount=invoice.amount_msat,
+            time=0,
+            bolt11=invoice.payment_request,
+            memo=invoice.description,
+            expiry=invoice.expiry,
+            preimage="",
+            wallet_id="",
+            webhook=None,
+            webhook_status=None,
+        )
+    )
     assert status.paid
 
     await asyncio.sleep(0.3)

@@ -2,6 +2,7 @@
 from .cliche import ClicheWallet
 from .cln import CoreLightningWallet
 from .cln import CoreLightningWallet as CLightningWallet
+from .clnrest import CLNRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
@@ -12,4 +13,3 @@ from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
 from .spark import SparkWallet
 from .void import VoidWallet
-from .clnrest import CLNRestWallet
