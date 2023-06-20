@@ -466,7 +466,7 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
+        admin_url = f'{settings.lnbits_baseurl}wallet?usr={settings.super_user}'
         logger.success(f"✔️ Access super user account at: {admin_url}")
 
         # saving it to .super_user file
