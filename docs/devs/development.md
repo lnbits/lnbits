@@ -12,6 +12,15 @@ For developers
 Thanks for contributing :)
 
 
+Precommit hooks
+=====
+
+This ensures that all commits adhere to the formatting and linting rules.
+
+```bash
+make install-pre-commit-hook
+```
+
 Tests
 =====
 

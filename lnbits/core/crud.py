@@ -83,6 +83,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         wallets=[Wallet(**w) for w in wallets],
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
+        super_user=user["id"] == settings.super_user,
     )
 
 
@@ -308,6 +309,11 @@ async def get_wallet_for_key(
 
 
 async def get_total_balance(conn: Optional[Connection] = None):
+    row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
+    return 0 if row[0] is None else row[0]
+
+
+async def get_active_wallet_total_balance(conn: Optional[Connection] = None):
     row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
     return 0 if row[0] is None else row[0]
 
