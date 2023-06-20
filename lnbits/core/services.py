@@ -15,7 +15,6 @@ from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
 from lnbits.settings import (
-    FAKE_WALLET,
     EditableSettings,
     SuperSettings,
     get_wallet_class,
@@ -76,7 +75,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet = FAKE_WALLET if internal else get_wallet_class()
+    wallet = get_wallet_class("FakeWallet") if internal else get_wallet_class()
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount,

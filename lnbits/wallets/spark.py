@@ -9,6 +9,7 @@ from loguru import logger
 
 from lnbits.settings import settings
 
+from ..core.models import Payment
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -183,9 +184,9 @@ class SparkWallet(Wallet):
             else:
                 return PaymentResponse(False, None, None, None, str(exc))
 
-    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         try:
-            r = await self.listinvoices(label=checking_id)
+            r = await self.listinvoices(label=payment.checking_id)
         except (SparkError, UnknownError):
             return PaymentStatus(None)
 
@@ -197,24 +198,24 @@ class SparkWallet(Wallet):
         else:
             return PaymentStatus(False)
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
         # check if it's 32 bytes hex
-        if len(checking_id) != 64:
+        if len(payment.checking_id) != 64:
             return PaymentStatus(None)
         try:
-            int(checking_id, 16)
+            int(payment.checking_id, 16)
         except ValueError:
             return PaymentStatus(None)
 
         # ask sparko
         try:
-            r = await self.listpays(payment_hash=checking_id)
+            r = await self.listpays(payment_hash=payment.checking_id)
         except (SparkError, UnknownError):
             return PaymentStatus(None)
 
         if not r["pays"]:
             return PaymentStatus(False)
-        if r["pays"][0]["payment_hash"] == checking_id:
+        if r["pays"][0]["payment_hash"] == payment.checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
                 fee_msat = -(
