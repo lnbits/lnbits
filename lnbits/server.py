@@ -4,6 +4,7 @@ uvloop.install()
 
 import multiprocessing as mp
 import time
+from pathlib import Path
 
 import click
 import uvicorn
@@ -36,6 +37,9 @@ def main(
     ssl_certfile: str,
 ):
     """Launched with `poetry run lnbits` at root level"""
+
+    # create data dir if it does not exist
+    Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 

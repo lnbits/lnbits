@@ -3,12 +3,14 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-my-md">
     <q-btn
-      label="Save"
+      :label="$t('save')"
       color="primary"
       @click="updateSettings"
       :disabled="!checkChanges"
     >
-      <q-tooltip v-if="checkChanges"> Save your changes </q-tooltip>
+      <q-tooltip v-if="checkChanges"
+        >{%raw%}{{ $t('save_tooltip') }}{%endraw%}</q-tooltip
+      >
 
       <q-badge
         v-if="checkChanges"
@@ -21,13 +23,13 @@
 
     <q-btn
       v-if="isSuperUser"
-      label="Restart server"
+      :label="$t('restart')"
       color="primary"
       @click="restartServer"
     >
-      <q-tooltip v-if="needsRestart">
-        Restart the server for changes to take effect
-      </q-tooltip>
+      <q-tooltip v-if="needsRestart"
+        >{%raw%}{{ $t('restart_tooltip') }}{%endraw%}</q-tooltip
+      >
 
       <q-badge
         v-if="needsRestart"
@@ -40,28 +42,24 @@
 
     <q-btn
       v-if="isSuperUser"
-      label="Topup"
+      :label="$t('topup')"
       color="primary"
       @click="topUpDialog.show = true"
     >
-      <q-tooltip> Add funds to a wallet. </q-tooltip>
+      <q-tooltip>{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
 
-    <q-btn
-      label="Download Database Backup"
-      flat
-      @click="downloadBackup"
-    ></q-btn>
+    <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
 
     <q-btn
       flat
       v-if="isSuperUser"
-      label="Reset to defaults"
+      :label="$t('reset_defaults')"
       color="primary"
       @click="deleteSettings"
       class="float-right"
     >
-      <q-tooltip> Delete all settings and reset to defaults. </q-tooltip>
+      <q-tooltip>{%raw%}{{ $t('reset_defaults_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
   </div>
 </div>
@@ -74,25 +72,31 @@
           <q-tabs v-model="tab" active-color="primary" align="justify">
             <q-tab
               name="funding"
-              label="Funding"
+              :label="$t('funding')"
               @update="val => tab = val.name"
             ></q-tab>
 
             <q-tab
               name="users"
-              label="Users"
+              :label="$t('users')"
               @update="val => tab = val.name"
             ></q-tab>
 
             <q-tab
               name="server"
-              label="Server"
+              :label="$t('server')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
+              name="security"
+              :label="$t('security')"
               @update="val => tab = val.name"
             ></q-tab>
 
             <q-tab
               name="theme"
-              label="Theme"
+              :label="$t('theme')"
               @update="val => tab = val.name"
             ></q-tab>
           </q-tabs>
@@ -103,7 +107,8 @@
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
           "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
-          include "admin/_tab_theme.html" %}
+          include "admin/_tab_security.html" %} {% include
+          "admin/_tab_theme.html" %}
         </q-tab-panels>
       </q-form>
     </q-card>
@@ -113,7 +118,7 @@
 <q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <q-form class="q-gutter-md">
-      <p>TopUp a wallet</p>
+      <p v-text="$t('topup_wallet')"></p>
 
       <div class="row">
         <div class="col-12">
@@ -123,7 +128,7 @@
             filled
             v-model="wallet.id"
             label="Wallet ID"
-            hint="Use the wallet ID to topup any wallet"
+            :hint="$t('topup_hint')"
           ></q-input>
 
           <br />
@@ -135,15 +140,25 @@
             type="number"
             filled
             v-model="wallet.amount"
-            label="Topup amount"
+            :label="$t('amount')"
           ></q-input>
         </div>
       </div>
 
       <div class="row q-mt-lg">
-        <q-btn label="Topup" color="primary" @click="topupWallet"></q-btn>
+        <q-btn
+          :label="$t('topup')"
+          color="primary"
+          @click="topupWallet"
+        ></q-btn>
 
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          :label="$t('cancel')"
+        ></q-btn>
       </div>
     </q-form>
   </q-card>
@@ -156,6 +171,8 @@
     data: function () {
       return {
         settings: {},
+        logs: [],
+        serverlogEnabled: false,
         lnbits_theme_options: [
           'classic',
           'bitcoin',
@@ -167,10 +184,30 @@
           'monochrome',
           'salvador'
         ],
+        auditData: {},
+        statusData: {},
+        statusDataTable: {
+          columns: [
+            {
+              name: 'date',
+              align: 'left',
+              label: this.$t('date'),
+              field: 'date'
+            },
+            {
+              name: 'message',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'message'
+            }
+          ]
+        },
         formData: {},
         formAddAdmin: '',
         formAddUser: '',
         formAddExtensionsManifest: '',
+        formAllowedIPs: '',
+        formBlockedIPs: '',
         isSuperUser: false,
         wallet: {},
         cancel: {},
@@ -217,18 +254,6 @@
               lnd_rest_macaroon_encrypted: {
                 value: null,
                 label: 'Encrypted Macaroon'
-              },
-              lnd_cert: {
-                value: null,
-                label: 'Certificate'
-              },
-              lnd_rest_admin_macaroon: {
-                value: null,
-                label: 'Admin Macaroon'
-              },
-              lnd_rest_invoice_macaroon: {
-                value: null,
-                label: 'Invoice Macaroon'
               }
             }
           ],
@@ -250,10 +275,6 @@
               lnd_grpc_admin_macaroon: {
                 value: null,
                 label: 'Admin Macaroon'
-              },
-              lnd_grpc_invoice_macaroon: {
-                value: null,
-                label: 'Invoice Macaroon'
               },
               lnd_grpc_macaroon_encrypted: {
                 value: null,
@@ -357,11 +378,18 @@
     },
     created: function () {
       this.getSettings()
+      this.getAudit()
       this.balance = +'{{ balance|safe }}'
     },
     computed: {
+      lnbitsVersion() {
+        return LNBITS_VERSION
+      },
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
+      },
+      updateAvailable() {
+        return LNBITS_VERSION !== this.statusData.version
       }
     },
     methods: {
@@ -372,7 +400,6 @@
           //admin_users = [...admin_users, addUser]
           this.formData.lnbits_admin_users = [...admin_users, addUser]
           this.formAddAdmin = ''
-          //console.log(this.checkChanges)
         }
       },
       removeAdminUser(user) {
@@ -412,6 +439,68 @@
         const manifests = this.formData.lnbits_extensions_manifests
         this.formData.lnbits_extensions_manifests = manifests.filter(
           m => m !== manifest
+        )
+      },
+      async toggleServerLog() {
+        this.serverlogEnabled = !this.serverlogEnabled
+        if (this.serverlogEnabled) {
+          const wsProto = location.protocol !== 'http:' ? 'wss://' : 'ws://'
+          const digestHex = await LNbits.utils.digestMessage(this.g.user.id)
+          const localUrl =
+            wsProto +
+            document.domain +
+            ':' +
+            location.port +
+            '/api/v1/ws/' +
+            digestHex
+          this.ws = new WebSocket(localUrl)
+          this.ws.addEventListener('message', async ({data}) => {
+            this.logs.push(data.toString())
+            const scrollArea = this.$refs.logScroll
+            if (scrollArea) {
+              const scrollTarget = scrollArea.getScrollTarget()
+              const duration = 0
+              scrollArea.setScrollPosition(scrollTarget.scrollHeight, duration)
+            }
+          })
+        } else {
+          this.ws.close()
+        }
+      },
+      addAllowedIPs() {
+        const allowedIPs = this.formAllowedIPs.trim()
+        const allowed_ips = this.formData.lnbits_allowed_ips
+        if (
+          allowedIPs &&
+          allowedIPs.length &&
+          !allowed_ips.includes(allowedIPs)
+        ) {
+          this.formData.lnbits_allowed_ips = [...allowed_ips, allowedIPs]
+          this.formAllowedIPs = ''
+        }
+      },
+      removeAllowedIPs(allowed_ip) {
+        const allowed_ips = this.formData.lnbits_allowed_ips
+        this.formData.lnbits_allowed_ips = allowed_ips.filter(
+          a => a !== allowed_ip
+        )
+      },
+      addBlockedIPs() {
+        const blockedIPs = this.formBlockedIPs.trim()
+        const blocked_ips = this.formData.lnbits_blocked_ips
+        if (
+          blockedIPs &&
+          blockedIPs.length &&
+          !blocked_ips.includes(blockedIPs)
+        ) {
+          this.formData.lnbits_blocked_ips = [...blocked_ips, blockedIPs]
+          this.formBlockedIPs = ''
+        }
+      },
+      removeBlockedIPs(blocked_ip) {
+        const blocked_ips = this.formData.lnbits_blocked_ips
+        this.formData.lnbits_blocked_ips = blocked_ips.filter(
+          b => b !== blocked_ip
         )
       },
       restartServer() {
@@ -457,11 +546,42 @@
         this.settings.lnbits_allowed_funding_sources.map(f => {
           let opts = this.funding_sources.get(f)
           if (!opts) return
-
           Object.keys(opts).forEach(e => {
             opts[e].value = this.settings[e]
           })
         })
+      },
+      formatDate(date) {
+        return moment(date * 1000).fromNow()
+      },
+      getNotifications() {
+        if (this.settings.lnbits_notifications) {
+          axios
+            .get(this.settings.lnbits_status_manifest)
+            .then(response => {
+              this.statusData = response.data
+            })
+            .catch(error => {
+              this.formData.lnbits_notifications = false
+              error.response.data = {}
+              error.response.data.message = 'Could not fetch status manifest.'
+              LNbits.utils.notifyApiError(error)
+            })
+        }
+      },
+      getAudit() {
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/audit/?usr=' + this.g.user.id,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.auditData = response.data
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       getSettings() {
         LNbits.api
@@ -471,10 +591,11 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.isSuperUser = response.data.super_user || false
+            this.isSuperUser = response.data.is_super_user || false
             this.settings = response.data
             this.formData = _.clone(this.settings)
             this.updateFundingData()
+            this.getNotifications()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -482,7 +603,7 @@
       },
       updateSettings() {
         let data = _.omit(this.formData, [
-          'super_user',
+          'is_super_user',
           'lnbits_allowed_funding_sources'
         ])
         LNbits.api

@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 import json
-import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
@@ -33,8 +32,8 @@ from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
 )
-from lnbits.core.models import Payment, User, Wallet
-from lnbits.db import Filters
+from lnbits.core.models import Payment, PaymentFilters, User, Wallet
+from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
@@ -48,10 +47,11 @@ from lnbits.extension_manager import (
     Extension,
     ExtensionRelease,
     InstallableExtension,
+    fetch_github_release_config,
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -62,14 +62,16 @@ from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
     create_tinyurl,
+    delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
+    drop_extension_db,
     get_dbversions,
     get_payments,
+    get_payments_paginated,
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
-    get_total_balance,
     get_wallet_for_key,
     save_balance_check,
     update_wallet,
@@ -122,19 +124,19 @@ async def api_update_wallet(
     summary="get list of payments",
     response_description="list of payments",
     response_model=List[Payment],
-    openapi_extra=generate_filter_params_openapi(Payment),
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
-    filters: Filters = Depends(parse_filters(Payment)),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pendingPayments = await get_payments(
+    pending_payments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         exclude_uncheckable=True,
         filters=filters,
     )
-    for payment in pendingPayments:
+    for payment in pending_payments:
         await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
@@ -144,6 +146,37 @@ async def api_payments(
         complete=True,
         filters=filters,
     )
+
+
+@core_app.get(
+    "/api/v1/payments/paginated",
+    name="Payment List",
+    summary="get paginated list of payments",
+    response_description="list of payments",
+    response_model=Page[Payment],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_paginated(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
+):
+    pending = await get_payments_paginated(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        filters=filters,
+    )
+    for payment in pending.data:
+        await check_transaction_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
+    page = await get_payments_paginated(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+        filters=filters,
+    )
+    return page
 
 
 class CreateInvoiceData(BaseModel):
@@ -637,6 +670,12 @@ async def api_perform_lnurlauth(
 
 @core_app.get("/api/v1/currencies")
 async def api_list_currencies_available():
+    if len(settings.lnbits_allowed_currencies) > 0:
+        return [
+            item
+            for item in currencies.keys()
+            if item.upper() in settings.lnbits_allowed_currencies
+        ]
     return list(currencies.keys())
 
 
@@ -685,26 +724,7 @@ async def img(request: Request, data):
     )
 
 
-@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
-async def api_auditor():
-    WALLET = get_wallet_class()
-    total_balance = await get_total_balance()
-    error_message, node_balance = await WALLET.status()
-
-    if not error_message:
-        delta = node_balance - total_balance
-    else:
-        node_balance, delta = 0, 0
-
-    return {
-        "node_balance_msats": int(node_balance),
-        "lnbits_balance_msats": int(total_balance),
-        "delta_msats": int(delta),
-        "timestamp": int(time.time()),
-    }
-
-
-##################UNIVERSAL WEBSOCKET MANAGER########################
+# UNIVERSAL WEBSOCKET MANAGER
 
 
 @core_app.websocket("/api/v1/ws/{item_id}")
@@ -747,6 +767,11 @@ async def api_install_extension(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
 
+    if not release.is_version_compatible:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
+        )
+
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
@@ -782,13 +807,12 @@ async def api_install_extension(
         ext_info.clean_extension_files()
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Failed to install extension.",
+            detail=f"Failed to install extension {ext_info.id} ({ext_info.installed_version}).",
         )
 
 
 @core_app.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
-
     installable_extensions = await InstallableExtension.get_installable_extensions()
 
     extensions = [e for e in installable_extensions if e.id == ext_id]
@@ -820,6 +844,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
             ext_info.clean_extension_files()
             await delete_installed_extension(ext_id=ext_info.id)
 
+        logger.success(f"Extension '{ext_id}' uninstalled.")
     except Exception as ex:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
@@ -843,7 +868,54 @@ async def get_extension_releases(ext_id: str):
         )
 
 
-############################TINYURL##################################
+@core_app.get(
+    "/api/v1/extension/release/{org}/{repo}/{tag_name}",
+    dependencies=[Depends(check_admin)],
+)
+async def get_extension_release(org: str, repo: str, tag_name: str):
+    try:
+        config = await fetch_github_release_config(org, repo, tag_name)
+        if not config:
+            return {}
+
+        return {
+            "min_lnbits_version": config.min_lnbits_version,
+            "is_version_compatible": config.is_version_compatible(),
+            "warning": config.warning,
+        }
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@core_app.delete(
+    "/api/v1/extension/{ext_id}/db",
+    dependencies=[Depends(check_admin)],
+)
+async def delete_extension_db(ext_id: str):
+    try:
+        db_version = (await get_dbversions()).get(ext_id, None)
+        if not db_version:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown extension id: {ext_id}",
+            )
+        await drop_extension_db(ext_id=ext_id)
+        await delete_dbversion(ext_id=ext_id)
+        logger.success(f"Database removed for extension '{ext_id}'")
+    except HTTPException as ex:
+        logger.error(ex)
+        raise ex
+    except Exception as ex:
+        logger.error(ex)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Cannot delete data for extension '{ext_id}'",
+        )
+
+
+# TINYURL
 
 
 @core_app.post("/api/v1/tinyurl")

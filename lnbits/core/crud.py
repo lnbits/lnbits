@@ -2,24 +2,31 @@ import datetime
 import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import COCKROACH, POSTGRES, Connection, Filters
+from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
 from . import db
-from .models import BalanceCheck, Payment, TinyURL, User, Wallet
+from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
 
 # accounts
 # --------
 
 
-async def create_account(conn: Optional[Connection] = None) -> User:
-    user_id = uuid4().hex
+async def create_account(
+    conn: Optional[Connection] = None, user_id: Optional[str] = None
+) -> User:
+    if user_id:
+        user_uuid4 = UUID(hex=user_id, version=4)
+        assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
+    else:
+        user_id = uuid4().hex
+
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -62,10 +69,13 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     return User(
         id=user["id"],
         email=user["email"],
-        extensions=[e[0] for e in extensions],
+        extensions=[
+            e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
+        ],
         wallets=[Wallet(**w) for w in wallets],
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
+        super_user=user["id"] == settings.super_user,
     )
 
 
@@ -130,6 +140,25 @@ async def delete_installed_extension(
         DELETE from installed_extensions  WHERE id = ?
         """,
         (ext_id,),
+    )
+
+
+async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -> None:
+    db_version = await (conn or db).fetchone(
+        "SELECT * FROM dbversions WHERE db = ?", (ext_id,)
+    )
+    # Check that 'ext_id' is a valid extension id and not a malicious string
+    assert db_version, f"Extension '{ext_id}' db version cannot be found"
+
+    is_file_based_db = await Database.clean_ext_db_files(ext_id)
+    if is_file_based_db:
+        return
+
+    # String formatting is required, params are not accepted for 'DROP SCHEMA'.
+    # The `ext_id` value is verified above.
+    await (conn or db).execute(
+        f"DROP SCHEMA IF EXISTS {ext_id} CASCADE",
+        (),
     )
 
 
@@ -276,6 +305,11 @@ async def get_total_balance(conn: Optional[Connection] = None):
     return 0 if row[0] is None else row[0]
 
 
+async def get_active_wallet_total_balance(conn: Optional[Connection] = None):
+    row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
+    return 0 if row[0] is None else row[0]
+
+
 # wallet payments
 # ---------------
 
@@ -327,7 +361,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     rows = await db.fetchall(
         f"""
         SELECT * FROM apipayments
-        WHERE pending = 'false'
+        WHERE pending = false
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -341,7 +375,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     return rows
 
 
-async def get_payments(
+async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
     complete: bool = False,
@@ -350,28 +384,23 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
-    filters: Optional[Filters[Payment]] = None,
+    filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
-) -> List[Payment]:
+) -> Page[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    args: List[Any] = []
+    values: List[Any] = []
     clause: List[str] = []
 
     if since is not None:
-        if db.type == POSTGRES:
-            clause.append("time > to_timestamp(?)")
-        elif db.type == COCKROACH:
-            clause.append("time > cast(? AS timestamp)")
-        else:
-            clause.append("time > ?")
-        args.append(since)
+        clause.append(f"time > {db.timestamp_placeholder}")
+        values.append(since)
 
     if wallet_id:
         clause.append("wallet = ?")
-        args.append(wallet_id)
+        values.append(wallet_id)
 
     if complete and pending:
         pass
@@ -395,21 +424,53 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
-    if not filters:
-        filters = Filters(limit=None, offset=None)
-
-    rows = await (conn or db).fetchall(
-        f"""
-        SELECT *
-        FROM apipayments
-        {filters.where(clause)}
-        ORDER BY time DESC
-        {filters.pagination()}
-        """,
-        filters.values(args),
+    return await (conn or db).fetch_page(
+        "SELECT * FROM apipayments",
+        clause,
+        values,
+        filters=filters,
+        model=Payment,
     )
 
-    return [Payment.from_row(row) for row in rows]
+
+async def get_payments(
+    *,
+    wallet_id: Optional[str] = None,
+    complete: bool = False,
+    pending: bool = False,
+    outgoing: bool = False,
+    incoming: bool = False,
+    since: Optional[int] = None,
+    exclude_uncheckable: bool = False,
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+) -> list[Payment]:
+    """
+    Filters payments to be returned by complete | pending | outgoing | incoming.
+    """
+
+    filters = filters or Filters()
+
+    filters.sortby = filters.sortby or "time"
+    filters.direction = filters.direction or "desc"
+    filters.limit = limit or filters.limit
+    filters.offset = offset or filters.offset
+
+    page = await get_payments_paginated(
+        wallet_id=wallet_id,
+        complete=complete,
+        pending=pending,
+        outgoing=outgoing,
+        incoming=incoming,
+        since=since,
+        exclude_uncheckable=exclude_uncheckable,
+        filters=filters,
+        conn=conn,
+    )
+
+    return page.data
 
 
 async def delete_expired_invoices(
@@ -452,7 +513,6 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
-
     # todo: add this when tests are fixed
     # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     # assert previous_payment is None, "Payment already exists"
@@ -512,7 +572,6 @@ async def update_payment_details(
     new_checking_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> None:
-
     set_clause: List[str] = []
     set_variables: List[Any] = []
 
@@ -700,7 +759,7 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
     row_dict = dict(sets)
     row_dict.pop("super_user")
     admin_settings = AdminSettings(
-        super_user=is_super_user,
+        is_super_user=is_super_user,
         lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
         **row_dict,
     )
@@ -744,6 +803,15 @@ async def update_migration_version(conn, db_name, version):
         ON CONFLICT (db) DO UPDATE SET version = ?
         """,
         (db_name, version, version),
+    )
+
+
+async def delete_dbversion(*, ext_id: str, conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        """
+        DELETE FROM dbversions WHERE db = ?
+        """,
+        (ext_id,),
     )
 
 

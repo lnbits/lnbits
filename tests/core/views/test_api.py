@@ -1,12 +1,18 @@
+import asyncio
 import hashlib
+from time import time
 
 import pytest
 
 from lnbits import bolt11
+from lnbits.core.models import Payment
+from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
+from lnbits.db import DB_TYPE, SQLITE
 from lnbits.settings import get_wallet_class
+from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
-from ...helpers import get_random_invoice_data, is_fake
+from ...helpers import get_random_invoice_data, is_fake, pay_real_invoice
 
 WALLET = get_wallet_class()
 
@@ -181,6 +187,66 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     assert response.status_code > 300  # should fail
 
 
+@pytest.mark.asyncio
+async def test_get_payments(client, from_wallet, adminkey_headers_from):
+    # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
+    # a different timestamp than previous invoices
+    # due to this limitation both payments (normal and paginated) are tested at the same time as they are almost
+    # identical anyways
+    if DB_TYPE == SQLITE:
+        await asyncio.sleep(1)
+    ts = time()
+
+    fake_data = [
+        CreateInvoiceData(amount=10, memo="aaaa"),
+        CreateInvoiceData(amount=100, memo="bbbb"),
+        CreateInvoiceData(amount=1000, memo="aabb"),
+    ]
+
+    for invoice in fake_data:
+        await api_payments_create_invoice(invoice, from_wallet)
+
+    async def get_payments(params: dict):
+        params["time[ge]"] = ts
+        response = await client.get(
+            "/api/v1/payments",
+            params=params,
+            headers=adminkey_headers_from,
+        )
+        assert response.status_code == 200
+        return [Payment(**payment) for payment in response.json()]
+
+    payments = await get_payments({"sortby": "amount", "direction": "desc", "limit": 2})
+    assert payments[-1].amount < payments[0].amount
+    assert len(payments) == 2
+
+    payments = await get_payments({"offset": 2, "limit": 2})
+    assert len(payments) == 1
+
+    payments = await get_payments({"sortby": "amount", "direction": "asc"})
+    assert payments[-1].amount > payments[0].amount
+
+    payments = await get_payments({"search": "aaa"})
+    assert len(payments) == 1
+
+    payments = await get_payments({"search": "aa"})
+    assert len(payments) == 2
+
+    # amount is in msat
+    payments = await get_payments({"amount[gt]": 10000})
+    assert len(payments) == 2
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"limit": 2, "time[ge]": ts},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code == 200
+    paginated = response.json()
+    assert len(paginated["data"]) == 2
+    assert paginated["total"] == len(fake_data)
+
+
 # check POST /api/v1/payments/decode
 @pytest.mark.asyncio
 async def test_decode_invoice(client, invoice):
@@ -255,11 +321,17 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     return invoice
 
 
+async def get_node_balance_sats():
+    audit = await api_auditor()
+    return audit["node_balance_msats"] / 1000
+
+
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
     client, real_invoice, adminkey_headers_from, inkey_headers_from
 ):
+    prev_balance = await get_node_balance_sats()
     response = await client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
     )
@@ -272,5 +344,46 @@ async def test_pay_real_invoice(
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
-    assert type(response) == dict
-    assert response["paid"] is True
+    assert response["paid"]
+
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    assert status.paid
+
+    await asyncio.sleep(0.3)
+    balance = await get_node_balance_sats()
+    assert prev_balance - balance == 100
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
+    prev_balance = await get_node_balance_sats()
+    create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
+    response = await client.post(
+        "/api/v1/payments",
+        json=create_invoice.dict(),
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    invoice = response.json()
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert not response["paid"]
+
+    async def listen():
+        async for payment_hash in get_wallet_class().paid_invoices_stream():
+            assert payment_hash == invoice["payment_hash"]
+            return
+
+    task = asyncio.create_task(listen())
+    pay_real_invoice(invoice["payment_request"])
+    await asyncio.wait_for(task, timeout=3)
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert response["paid"]
+
+    await asyncio.sleep(0.3)
+    balance = await get_node_balance_sats()
+    assert balance - prev_balance == create_invoice.amount

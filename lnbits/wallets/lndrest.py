@@ -24,6 +24,7 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
+        cert = settings.lnd_rest_cert
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -39,8 +40,16 @@ class LndRestWallet(Wallet):
                 encrypted_macaroon
             )
 
-        if not endpoint or not macaroon or not settings.lnd_rest_cert:
-            raise Exception("cannot initialize lndrest")
+        if not endpoint:
+            raise Exception("cannot initialize lndrest: no endpoint")
+
+        if not macaroon:
+            raise Exception("cannot initialize lndrest: no macaroon")
+
+        if not cert:
+            logger.warning(
+                "no certificate for lndrest provided, this only works if you have a publicly issued certificate"
+            )
 
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
@@ -49,16 +58,23 @@ class LndRestWallet(Wallet):
         self.endpoint = endpoint
         self.macaroon = load_macaroon(macaroon)
 
+        # if no cert provided it should be public so we set verify to True
+        # and it will still check for validity of certificate and fail if its not valid
+        # even on startup
+        self.cert = cert or True
+
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
-        self.cert = settings.lnd_rest_cert
+        self.client = httpx.AsyncClient(
+            base_url=self.endpoint, headers=self.auth, verify=self.cert
+        )
+
+    async def cleanup(self):
+        await self.client.aclose()
 
     async def status(self) -> StatusResponse:
         try:
-            async with httpx.AsyncClient(verify=self.cert) as client:
-                r = await client.get(
-                    f"{self.endpoint}/v1/balance/channels", headers=self.auth
-                )
-                r.raise_for_status()
+            r = await self.client.get("/v1/balance/channels")
+            r.raise_for_status()
         except (httpx.ConnectError, httpx.RequestError) as exc:
             return StatusResponse(f"Unable to connect to {self.endpoint}. {exc}", 0)
 
@@ -91,10 +107,7 @@ class LndRestWallet(Wallet):
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.post(
-                url=f"{self.endpoint}/v1/invoices", headers=self.auth, json=data
-            )
+        r = await self.client.post(url="/v1/invoices", json=data)
 
         if r.is_error:
             error_message = r.text
@@ -112,17 +125,15 @@ class LndRestWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            # set the fee limit for the payment
-            lnrpcFeeLimit = dict()
-            lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
+        # set the fee limit for the payment
+        lnrpcFeeLimit = dict()
+        lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
-            r = await client.post(
-                url=f"{self.endpoint}/v1/channels/transactions",
-                headers=self.auth,
-                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-                timeout=None,
-            )
+        r = await self.client.post(
+            url="/v1/channels/transactions",
+            json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+            timeout=None,
+        )
 
         if r.is_error or r.json().get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
@@ -135,10 +146,7 @@ class LndRestWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.get(
-                url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth
-            )
+        r = await self.client.get(url=f"/v1/invoice/{checking_id}")
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
@@ -159,7 +167,7 @@ class LndRestWallet(Wallet):
         except ValueError:
             return PaymentStatus(None)
 
-        url = f"{self.endpoint}/v2/router/track/{checking_id}"
+        url = f"/v2/router/track/{checking_id}"
 
         # check payment.status:
         # https://api.lightning.community/?python=#paymentpaymentstatus
@@ -170,52 +178,46 @@ class LndRestWallet(Wallet):
             "FAILED": False,
         }
 
-        async with httpx.AsyncClient(
-            timeout=None, headers=self.auth, verify=self.cert
-        ) as client:
-            async with client.stream("GET", url) as r:
-                async for l in r.aiter_lines():
-                    try:
-                        line = json.loads(l)
-                        if line.get("error"):
-                            logger.error(
-                                line["error"]["message"]
-                                if "message" in line["error"]
-                                else line["error"]
-                            )
-                            return PaymentStatus(None)
-                        payment = line.get("result")
-                        if payment is not None and payment.get("status"):
-                            return PaymentStatus(
-                                paid=statuses[payment["status"]],
-                                fee_msat=payment.get("fee_msat"),
-                                preimage=payment.get("payment_preimage"),
-                            )
-                        else:
-                            return PaymentStatus(None)
-                    except:
-                        continue
+        async with self.client.stream("GET", url, timeout=None) as r:
+            async for json_line in r.aiter_lines():
+                try:
+                    line = json.loads(json_line)
+                    if line.get("error"):
+                        logger.error(
+                            line["error"]["message"]
+                            if "message" in line["error"]
+                            else line["error"]
+                        )
+                        return PaymentStatus(None)
+                    payment = line.get("result")
+                    if payment is not None and payment.get("status"):
+                        return PaymentStatus(
+                            paid=statuses[payment["status"]],
+                            fee_msat=payment.get("fee_msat"),
+                            preimage=payment.get("payment_preimage"),
+                        )
+                    else:
+                        return PaymentStatus(None)
+                except:
+                    continue
 
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                url = self.endpoint + "/v1/invoices/subscribe"
-                async with httpx.AsyncClient(
-                    timeout=None, headers=self.auth, verify=self.cert
-                ) as client:
-                    async with client.stream("GET", url) as r:
-                        async for line in r.aiter_lines():
-                            try:
-                                inv = json.loads(line)["result"]
-                                if not inv["settled"]:
-                                    continue
-                            except:
+                url = "/v1/invoices/subscribe"
+                async with self.client.stream("GET", url, timeout=None) as r:
+                    async for line in r.aiter_lines():
+                        try:
+                            inv = json.loads(line)["result"]
+                            if not inv["settled"]:
                                 continue
+                        except:
+                            continue
 
-                            payment_hash = base64.b64decode(inv["r_hash"]).hex()
-                            yield payment_hash
+                        payment_hash = base64.b64decode(inv["r_hash"]).hex()
+                        yield payment_hash
             except Exception as exc:
                 logger.error(
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"

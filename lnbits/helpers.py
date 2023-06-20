@@ -1,8 +1,9 @@
+import json
+from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
-from pydantic import BaseModel
 from pydantic.schema import (
     field_schema,
     get_flat_models_from_fields,
@@ -13,27 +14,8 @@ from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
+from .db import FilterModel
 from .extension_manager import get_valid_extensions
-
-vendored_js = [
-    "/static/vendor/moment.js",
-    "/static/vendor/underscore.js",
-    "/static/vendor/axios.js",
-    "/static/vendor/vue.js",
-    "/static/vendor/vue-router.js",
-    "/static/vendor/vue-qrcode-reader.browser.js",
-    "/static/vendor/vue-qrcode.js",
-    "/static/vendor/vuex.js",
-    "/static/vendor/quasar.ie.polyfills.umd.min.js",
-    "/static/vendor/quasar.umd.js",
-    "/static/vendor/Chart.bundle.js",
-]
-
-vendored_css = [
-    "/static/vendor/quasar.css",
-    "/static/vendor/Chart.css",
-    "/static/vendor/vue-qrcode-reader.css",
-]
 
 
 def urlsafe_short_hash() -> str:
@@ -50,7 +32,6 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 
 
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
-
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
         folders.extend(additional_folders)
@@ -67,7 +48,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
-    t.env.globals["LNBITS_VERSION"] = settings.lnbits_commit
+    t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
+    t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
     t.env.globals["EXTENSIONS"] = [
         e
@@ -77,12 +59,15 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
-    if settings.debug:
-        t.env.globals["VENDORED_JS"] = vendored_js
-        t.env.globals["VENDORED_CSS"] = vendored_css
+    if settings.bundle_assets:
+        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
+        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
     else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
-        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+        vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
+        with open(vendor_filepath) as vendor_file:
+            vendor_files = json.loads(vendor_file.read())
+            t.env.globals["INCLUDED_JS"] = vendor_files["js"]
+            t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
 
     return t
 
@@ -110,7 +95,7 @@ def get_current_extension_name() -> str:
     return ext_name
 
 
-def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
+def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False):
     """
     Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
     :param model: Filter model
@@ -131,6 +116,11 @@ def generate_filter_params_openapi(model: Type[BaseModel], keep_optional=False):
         description = "Supports Filtering"
         if schema["type"] == "object":
             description += f". Nested attributes can be filtered too, e.g. `{field.alias}.[additional].[attributes]`"
+        if (
+            hasattr(model, "__search_fields__")
+            and field.name in model.__search_fields__
+        ):
+            description += ". Supports Search"
 
         parameter = {
             "name": field.alias,

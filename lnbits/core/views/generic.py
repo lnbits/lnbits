@@ -11,17 +11,20 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
+from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import get_wallet_class, settings
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
+from ...utils.exchange_rates import currencies
 from ..crud import (
     create_account,
     create_wallet,
     delete_wallet,
     get_balance_check,
+    get_dbversions,
     get_inactive_extensions,
     get_installed_extensions,
     get_user,
@@ -56,11 +59,13 @@ async def robots():
 
 
 @core_html_routes.get(
-    "/extensions", name="core.extensions", response_class=HTMLResponse
+    "/extensions", name="install.extensions", response_class=HTMLResponse
 )
-async def extensions(
+async def extensions_install(
     request: Request,
     user: User = Depends(check_user_exists),
+    activate: str = Query(None),
+    deactivate: str = Query(None),
     enable: str = Query(None),
     disable: str = Query(None),
 ):
@@ -69,21 +74,6 @@ async def extensions(
     # Update user as his extensions have been updated
     if enable or disable:
         user = await get_user(user.id)  # type: ignore
-
-    return template_renderer().TemplateResponse(
-        "core/extensions.html", {"request": request, "user": user.dict()}
-    )
-
-
-@core_html_routes.get(
-    "/install", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
-):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -125,6 +115,7 @@ async def extensions_install(
 
         all_extensions = list(map(lambda e: e.code, get_valid_extensions()))
         inactive_extensions = await get_inactive_extensions()
+        db_version = await get_dbversions()
         extensions = list(
             map(
                 lambda ext: {
@@ -136,7 +127,9 @@ async def extensions_install(
                     "isFeatured": ext.featured,
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_exts_ids,
+                    "hasDatabaseTables": ext.id in db_version,
                     "isAvailable": ext.id in all_extensions,
+                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
                     "latestRelease": dict(ext.latest_release)
                     if ext.latest_release
@@ -150,7 +143,7 @@ async def extensions_install(
         )
 
         return template_renderer().TemplateResponse(
-            "core/install.html",
+            "core/extensions.html",
             {
                 "request": request,
                 "user": user.dict(),
@@ -186,8 +179,10 @@ async def wallet(
     wallet_name = nme
 
     if not user_id:
-        user = await get_user((await create_account()).id)
-        logger.info(f"Create user {user.id}")  # type: ignore
+        new_user = await create_account()
+        user = await get_user(new_user.id)
+        assert user, "Newly created user has to exist."
+        logger.info(f"Create user {user.id}")
     else:
         user = await get_user(user_id)
         if not user:
@@ -209,23 +204,23 @@ async def wallet(
             user.super_user = True
 
     if not wallet_id:
-        if user.wallets and not wallet_name:  # type: ignore
-            wallet = user.wallets[0]  # type: ignore
+        if user.wallets and not wallet_name:
+            wallet = user.wallets[0]
         else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)  # type: ignore
+            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
             logger.info(
-                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"  # type: ignore
+                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"
             )
 
         return RedirectResponse(
-            f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
+            f"/wallet?usr={user.id}&wal={wallet.id}",
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
     logger.debug(
         f"Access {'user '+ user.id + ' ' if user else ''} {'wallet ' + wallet_name if wallet_name else ''}"
     )
-    userwallet = user.get_wallet(wallet_id)  # type: ignore
+    userwallet = user.get_wallet(wallet_id)
     if not userwallet:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
@@ -235,10 +230,10 @@ async def wallet(
         "core/wallet.html",
         {
             "request": request,
-            "user": user.dict(),  # type: ignore
+            "user": user.dict(),
             "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
-            "web_manifest": f"/manifest/{user.id}.webmanifest",  # type: ignore
+            "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
 
@@ -294,18 +289,21 @@ async def lnurl_full_withdraw_callback(request: Request):
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
 async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
-    user_wallet_ids = [u.id for u in user.wallets]  # type: ignore
+    if not user:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User not found.")
+
+    user_wallet_ids = [u.id for u in user.wallets]
 
     if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
-        await delete_wallet(user_id=user.id, wallet_id=wal)  # type: ignore
+        await delete_wallet(user_id=user.id, wallet_id=wal)
         user_wallet_ids.remove(wal)
         logger.debug("Deleted wallet {wal} of user {user.id}")
 
     if user_wallet_ids:
         return RedirectResponse(
-            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),  # type: ignore
+            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
@@ -328,7 +326,8 @@ async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
         user = await get_user(account.id, conn=conn)
-        wallet = await create_wallet(user_id=user.id, conn=conn)  # type: ignore
+        assert user, "Newly created user not found."
+        wallet = await create_wallet(user_id=user.id, conn=conn)
 
     asyncio.create_task(
         redeem_lnurl_withdraw(
@@ -341,7 +340,7 @@ async def lnurlwallet(request: Request):
     )
 
     return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
+        f"/wallet?usr={user.id}&wal={wallet.id}",
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
@@ -402,8 +401,18 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
+            "currencies": list(currencies.keys()),
         },
     )
+
+
+@core_html_routes.get("/uuidv4/{hex_value}")
+async def hex_to_uuid4(hex_value: str):
+    try:
+        user_id = to_valid_user_id(hex_value).hex
+        return RedirectResponse(url=f"/wallet?usr={user_id}")
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
 async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
