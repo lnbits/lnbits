@@ -70,7 +70,7 @@ class QueryValues(list):
             accessor = f"json_extract({colname}, ?)"
         else:
             # https://www.postgresql.org/docs/9.3/functions-json.html
-            path_value = "'{" + ",".join(path) + "}'"
+            path_value = "{" + ",".join(path) + "}"
             accessor = f"{colname} #>> ?"
             if type_ == int:
                 accessor = f"({accessor})::int"
