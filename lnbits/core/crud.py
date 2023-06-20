@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import Connection, Database, DateTrunc, Filters, Page
+from lnbits.db import DB_TYPE, SQLITE, Connection, Database, DateTrunc, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -637,6 +637,13 @@ async def update_pending_payments(wallet_id: str):
         await payment.check_status()
 
 
+sqlite_formats = {
+    "hour": "%Y-%m-%d %H:00:00",
+    "day": "%Y-%m-%d 00:00:00",
+    "month": "%Y-%m-01 00:00:00",
+}
+
+
 async def get_payments_history(
     wallet_id: Optional[str] = None,
     group: DateTrunc = "day",
@@ -650,9 +657,16 @@ async def get_payments_history(
         where.append("wallet = ?")
         values.append(wallet_id)
 
+    if DB_TYPE == SQLITE and group in sqlite_formats:
+        date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
+    elif group in ("day", "hour", "month"):
+        date_trunc = f"date_trunc('{group}', time)"
+    else:
+        raise ValueError(f"Invalid group value: {group}")
+
     transactions = await db.fetchall(
         f"""
-        SELECT {db.truncate_date('time', group)} date,
+        SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
                SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
         FROM apipayments

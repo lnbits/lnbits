@@ -120,24 +120,6 @@ class Compat:
         else:
             return "?"
 
-    @classmethod
-    def truncate_date(cls, col: str, trunc: DateTrunc) -> str:
-        """
-        Removes all parts of the given date up until `trunc`.
-        Based on `date_trunc` postgres function
-        """
-        if DB_TYPE == SQLITE:
-            formats = {
-                "hour": "%Y-%m-%d %H:00:00",
-                "day": "%Y-%m-%d 00:00:00",
-                "month": "%Y-%m-01 00:00:00",
-            }
-            if trunc in formats:
-                return f"strftime('{formats[trunc]}', {col}, 'unixepoch')"
-        elif trunc in ("day", "hour", "month"):
-            return f"date_trunc('{trunc}', {col})"
-        raise ValueError(f"Invalid truncation: {trunc}")
-
 
 class Connection(Compat):
     def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
