@@ -132,13 +132,11 @@ class CLNRestWallet(Wallet):
 
         statuses = {
             "complete": True,
-            "TODO:FAILED": False,
-            "TODO:PENDING": None,
+            "failed": False,
+            "pending": None,
         }
-        if data["status"] not in statuses:
-            return PaymentResponse(False, None, None, None, "payment failed")
         return PaymentResponse(
-            statuses[data["status"]], checking_id, fee_msat, preimage, None
+            statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
@@ -186,22 +184,19 @@ class CLNRestWallet(Wallet):
 
             statuses = {
                 "complete": True,
-                "TODO:failed": False,
-                "TODO:pending": None,
+                "failed": False,
+                "pending": None,
             }
 
             pay = data["pays"][0]
 
             fee_msat, preimage = None, None
             if statuses[pay["status"]]:
-                fee_msat = (
-                    -abs(
-                        int(pay["amount_sent_msat"][:-4]) - int(pay["amount_msat"][:-4])
-                    )
-                    // 1000
+                # cut off "msat" and convert to int
+                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
+                    pay["amount_msat"][:-4]
                 )
                 preimage = pay["preimage"]
-            print(pay["status"])
 
             return PaymentStatus(statuses.get(pay["status"]), fee_msat, preimage)
         except:
