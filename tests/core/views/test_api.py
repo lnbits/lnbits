@@ -6,8 +6,7 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.models import Payment
 from lnbits.core.views.admin_api import api_auditor
-from lnbits.core.views.api import api_payment
-from lnbits.db import DB_TYPE, SQLITE
+from lnbits.core.views.api import CreateInvoiceData, api_payment
 from lnbits.settings import get_wallet_class
 
 from ...helpers import get_random_invoice_data, is_fake, is_regtest, pay_real_invoice
