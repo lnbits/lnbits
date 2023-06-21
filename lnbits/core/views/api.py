@@ -57,7 +57,6 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
-from lnbits.wallets import get_wallet_class
 
 from .. import core_app, core_app_extra, db
 from ..crud import (
