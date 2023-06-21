@@ -79,7 +79,7 @@ openapi:
 	poetry run lnbits &
 	sleep 7
 	curl -s http://0.0.0.0:5003/openapi.json | poetry run openapi-spec-validator --errors=all -
-	kill %1
+	# kill -9 %1
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
