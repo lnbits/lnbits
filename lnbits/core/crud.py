@@ -1,13 +1,13 @@
 import datetime
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
 
 from lnbits import bolt11
-from lnbits.db import DB_TYPE, SQLITE, Connection, Database, DateTrunc, Filters, Page
+from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
 
@@ -643,6 +643,7 @@ async def update_pending_payments(wallet_id: str):
         await payment.check_status()
 
 
+DateTrunc = Literal["hour", "day", "month"]
 sqlite_formats = {
     "hour": "%Y-%m-%d %H:00:00",
     "day": "%Y-%m-%d 00:00:00",

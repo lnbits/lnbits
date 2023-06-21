@@ -59,9 +59,6 @@ else:
         )
 
 
-DateTrunc = Literal["hour", "day", "month"]
-
-
 class Compat:
     type: Optional[str] = "<inherited>"
     schema: Optional[str] = "<inherited>"

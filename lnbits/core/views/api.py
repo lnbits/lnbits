@@ -39,7 +39,7 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.db import DateTrunc, Filters, Page
+from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
@@ -66,6 +66,7 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, core_app_extra, db
 from ..crud import (
+    DateTrunc,
     add_installed_extension,
     create_tinyurl,
     delete_dbversion,
