@@ -245,6 +245,13 @@ class EditableSettings(
             **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
         )
 
+    # fixes openapi.json validation, remove field env_names
+    class Config:
+        @staticmethod
+        def schema_extra(schema: dict[str, Any]) -> None:
+            for prop in schema.get("properties", {}).values():
+                prop.pop("env_names", None)
+
 
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
