@@ -21,10 +21,10 @@ from loguru import logger
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import register_task_listeners
-from lnbits.nodes import get_node_class
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
+from .cache import cache
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import (
     add_installed_extension,
@@ -292,15 +292,13 @@ def register_startup(app: FastAPI):
             # initialize WALLET
             set_wallet_class()
 
-            NODE = get_node_class()
-            if NODE:
-                await NODE.startup()
-
             # initialize funding source
             await check_funding_source()
 
             # check extensions after restart
             await check_installed_extensions(app)
+
+            asyncio.create_task(cache.invalidate_forever())
 
         except Exception as e:
             logger.error(str(e))

@@ -9,6 +9,8 @@ from fastapi import HTTPException
 
 from lnbits.db import Filters, Page
 
+from ..cache import cache
+
 try:
     from pyln.client import RpcError  # type: ignore
 except ImportError:  # pragma: nocover
@@ -288,7 +290,9 @@ class CoreLightningNode(Node):
                 if pay["status"] != "failed"
             ]
 
-        results = await self.get_and_revalidate(get_payments, "payments")
+        results = await cache.get_and_revalidate(
+            get_payments, "payments", prefix=self.name
+        )
         count = len(results)
         if filters.offset:
             results = results[filters.offset :]
@@ -316,8 +320,8 @@ class CoreLightningNode(Node):
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        result = await self.get_and_revalidate(
-            lambda: self.wallet.ln_rpc("listinvoices"), key="invoices"
+        result = await cache.get_and_revalidate(
+            lambda: self.wallet.ln_rpc("listinvoices"), key="invoices", prefix=self.name
         )
         invoices = result["invoices"]
         count = len(invoices)

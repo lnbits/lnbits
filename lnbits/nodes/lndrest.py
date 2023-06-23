@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from httpx import HTTPStatusError
 from loguru import logger
 
+from lnbits.cache import cache
 from lnbits.db import Filters, Page
 from lnbits.nodes import Node
 from lnbits.nodes.base import (
@@ -245,7 +246,7 @@ class LndRestNode(Node):
     async def get_payments(
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
-        offset = self.get_cache("payments_offset") or -1
+        offset = cache.get("payments_offset", prefix=self.name) or -1
 
         response = await self.get(
             "/v1/payments",
@@ -258,7 +259,9 @@ class LndRestNode(Node):
             },
         )
 
-        self.set_cache("payments_offset", int(response["total_num_payments"]))
+        cache.set(
+            "payments_offset", int(response["total_num_payments"]), prefix=self.name
+        )
 
         payments = [
             NodePayment(
