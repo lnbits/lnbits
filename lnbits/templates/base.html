@@ -296,6 +296,7 @@
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
+      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
       if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
@@ -304,6 +305,7 @@
         {value: 'de', label: 'Deutsch', display: 'DE'},
         {value: 'es', label: 'Español', display: 'ES'},
         {value: 'jp', label: '日本語', display: 'JP'},
+        {value: 'cn', label: '中文', display: 'CN'},
         {value: 'fr', label: 'Français', display: 'FR'},
         {value: 'it', label: 'Italiano', display: 'IT'},
         {value: 'pi', label: 'Pirate', display: 'PI'},

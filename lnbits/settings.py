@@ -103,6 +103,22 @@ class OpsSettings(LNbitsSettings):
     lnbits_denomination: str = Field(default="sats")
 
 
+class SecuritySettings(LNbitsSettings):
+    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_unit: str = Field(default="minute")
+    lnbits_allowed_ips: List[str] = Field(default=[])
+    lnbits_blocked_ips: List[str] = Field(default=[])
+    lnbits_notifications: bool = Field(default=False)
+    lnbits_killswitch: bool = Field(default=False)
+    lnbits_killswitch_interval: int = Field(default=60)
+    lnbits_watchdog: bool = Field(default=False)
+    lnbits_watchdog_interval: int = Field(default=60)
+    lnbits_watchdog_delta: int = Field(default=1_000_000)
+    lnbits_status_manifest: str = Field(
+        default="https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+    )
+
+
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
 
@@ -215,6 +231,7 @@ class EditableSettings(
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
+    SecuritySettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,

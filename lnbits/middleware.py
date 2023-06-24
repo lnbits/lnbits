@@ -2,9 +2,14 @@ from http import HTTPStatus
 from typing import Any, List, Tuple, Union
 from urllib.parse import parse_qs
 
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from lnbits.core import core_app_extra
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
@@ -189,3 +194,30 @@ class ExtensionsRedirectMiddleware:
         ]
 
         return "/" + "/".join(elements)
+
+
+def add_ratelimit_middleware(app: FastAPI):
+    core_app_extra.register_new_ratelimiter()
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
+
+def add_ip_block_middleware(app: FastAPI):
+    @app.middleware("http")
+    async def block_allow_ip_middleware(request: Request, call_next):
+        response = await call_next(request)
+        if not request.client:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "No request client"},
+            )
+        if request.client.host in settings.lnbits_allowed_ips:
+            return response
+        if request.client.host in settings.lnbits_blocked_ips:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "IP is blocked"},
+            )
+        return response
+
+    app.middleware("http")(block_allow_ip_middleware)

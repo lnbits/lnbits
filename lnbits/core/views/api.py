@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 import json
-import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
@@ -74,7 +73,6 @@ from ..crud import (
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
-    get_total_balance,
     get_wallet_for_key,
     save_balance_check,
     update_wallet,
@@ -725,25 +723,6 @@ async def img(request: Request, data):
             "Expires": "0",
         },
     )
-
-
-@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
-async def api_auditor():
-    WALLET = get_wallet_class()
-    total_balance = await get_total_balance()
-    error_message, node_balance = await WALLET.status()
-
-    if not error_message:
-        delta = node_balance - total_balance
-    else:
-        node_balance, delta = 0, 0
-
-    return {
-        "node_balance_msats": int(node_balance),
-        "lnbits_balance_msats": int(total_balance),
-        "delta_msats": int(delta),
-        "timestamp": int(time.time()),
-    }
 
 
 # UNIVERSAL WEBSOCKET MANAGER
