@@ -4,10 +4,9 @@ import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
-import async_timeout
 import httpx
 import pyqrcode
 from fastapi import (
