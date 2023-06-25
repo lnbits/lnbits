@@ -419,6 +419,8 @@ new Vue({
             }
           }
 
+          this.fetchPayments()
+
           clearInterval(this.receive.paymentChecker)
           setTimeout(() => {
             clearInterval(this.receive.paymentChecker)
