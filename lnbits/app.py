@@ -14,7 +14,6 @@ from typing import Callable, List
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -43,6 +42,7 @@ from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
 from .middleware import (
+    CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
     add_ip_block_middleware,
@@ -83,7 +83,9 @@ def create_app() -> FastAPI:
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
 
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(
+        CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
+    )
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
