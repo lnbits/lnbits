@@ -66,6 +66,7 @@ include = [
 exclude = [
   "lnbits/wallets/lnd_grpc_files",
   "lnbits/extensions",
+  "lnbits/upgrades",
 ]
 
 [tool.mypy]
@@ -128,6 +129,7 @@ enable = [
 [tool.pylint.MASTER]
 ignore-paths = [
   "^lnbits/extensions/.*$",
+  "^lnbits/upgrades/.*$",
   "^lnbits/wallets/lnd_grpc_files/.*$",
 ]
 fail-under = 10.0
