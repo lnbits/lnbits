@@ -1,4 +1,4 @@
-exclude: '^lnbits/static/bundle.*|^docs/.*|^lnbits/static/vendor/.*|^lnbits/extensions/.*|^lnbits/wallets/lnd_grpc_files/.*|^package-lock.json$'
+exclude: '^lnbits/static/bundle.*|^docs/.*|^lnbits/static/vendor/.*|^lnbits/extensions/.*|^lnbits/upgrades/.*|^lnbits/wallets/lnd_grpc_files/.*|^package-lock.json$'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
