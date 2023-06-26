@@ -8,13 +8,11 @@ from typing import Callable, Dict, List, NamedTuple, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from lnurl import encode as lnurl_encode
-from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
 
 
 class Wallet(BaseModel):
@@ -193,43 +191,6 @@ class Payment(FromRowModel):
         from .crud import update_payment_status
 
         await update_payment_status(self.checking_id, pending)
-
-    async def check_status(
-        self,
-        conn: Optional[Connection] = None,
-    ) -> PaymentStatus:
-        if self.is_uncheckable:
-            return PaymentStatus(None)
-
-        logger.debug(
-            f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
-        )
-
-        WALLET = get_wallet_class()
-        if self.is_out:
-            status = await WALLET.get_payment_status(self)
-        else:
-            status = await WALLET.get_invoice_status(self)
-
-        logger.debug(f"Status: {status}")
-
-        if self.is_in and status.pending and self.is_expired and self.expiry:
-            expiration_date = datetime.datetime.fromtimestamp(self.expiry)
-            logger.debug(
-                f"Deleting expired incoming pending payment {self.checking_id}: expired {expiration_date}"
-            )
-            await self.delete(conn)
-        elif self.is_out and status.failed:
-            logger.warning(
-                f"Deleting outgoing failed payment {self.checking_id}: {status}"
-            )
-            await self.delete(conn)
-        elif not status.pending:
-            logger.info(
-                f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
-            )
-            await self.update_status(status, conn=conn)
-        return status
 
     async def delete(self, conn: Optional[Connection] = None) -> None:
         from .crud import delete_payment

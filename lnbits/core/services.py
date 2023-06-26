@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
@@ -44,7 +45,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import Payment
+from .models import Payment, PaymentStatus
 
 
 class PaymentFailure(Exception):
@@ -412,13 +413,47 @@ async def check_transaction_status(
     payment: Optional[Payment] = await get_wallet_payment(
         wallet_id, payment_hash, conn=conn
     )
-    if not payment:
-        return PaymentStatus(None)
+    if payment:
+        return await check_payment_status(payment, conn)
+
+
+async def check_payment_status(
+    payment: Payment, conn: Optional[Connection] = None
+) -> PaymentStatus:
     if not payment.pending:
         # note: before, we still checked the status of the payment again
         return PaymentStatus(True, fee_msat=payment.fee)
+    if payment.is_uncheckable:
+        return PaymentStatus(None)
 
-    status: PaymentStatus = await payment.check_status()
+    logger.debug(
+        f"Checking {'outgoing' if payment.is_out else 'incoming'} pending payment {payment.checking_id}"
+    )
+
+    WALLET = get_wallet_class()
+    if payment.is_out:
+        status = await WALLET.get_payment_status(payment)
+    else:
+        status = await WALLET.get_invoice_status(payment)
+
+    logger.debug(f"Status: {status}")
+
+    if payment.is_in and status.pending and payment.is_expired and payment.expiry:
+        expiration_date = datetime.fromtimestamp(payment.expiry)
+        logger.debug(
+            f"Deleting expired incoming pending payment {payment.checking_id}: expired {expiration_date}"
+        )
+        await payment.delete(conn)
+    elif payment.is_out and status.failed:
+        logger.warning(
+            f"Deleting outgoing failed payment {payment.checking_id}: {status}"
+        )
+        await payment.delete(conn)
+    elif not status.pending:
+        logger.info(
+            f"Marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
+        )
+        await payment.update_status(status, conn=conn)
     return status
 
 
