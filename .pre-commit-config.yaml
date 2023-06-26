@@ -26,6 +26,7 @@ repos:
     rev: '50c5478ed9e10bf360335449280cf2a67f4edb7a'
     hooks:
       - id: prettier
+        types_or: [css, javascript, html, json]
         args: ['lnbits']
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
