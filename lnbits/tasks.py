@@ -15,7 +15,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-from lnbits.settings import get_wallet_class
+from lnbits.wallets import get_wallet_class
 
 from .core import db
 

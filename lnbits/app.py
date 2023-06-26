@@ -29,7 +29,8 @@ from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
     register_task_listeners,
     unregister_killswitch,
 )
-from lnbits.settings import get_wallet_class, set_wallet_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import (
@@ -342,7 +343,6 @@ def register_shutdown(app: FastAPI):
 
 
 def initialize_server_logger():
-
     super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
 
     serverlog_queue = asyncio.Queue()

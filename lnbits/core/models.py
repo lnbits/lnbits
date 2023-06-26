@@ -13,7 +13,8 @@ from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class
 
 
 class Wallet(BaseModel):
