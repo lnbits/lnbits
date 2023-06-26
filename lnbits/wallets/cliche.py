@@ -44,7 +44,7 @@ class ClicheWallet(Wallet):
             command["params"] = params
 
         self.ws.send(json.dumps(command))
-        future = Future()
+        future: Future = Future()
         self.futures[self.next_id] = future
         data = await future
         return data
@@ -210,6 +210,15 @@ class ClicheWallet(Wallet):
         while True:
             try:
                 await self.connect()
+                while True:
+                    r = self.ws.recv()
+                    data = json.loads(r)
+                    
+                    try:
+                        if data["result"]["status"]:
+                            yield data["result"]["payment_hash"]
+                    except:
+                        continue
 
             except Exception as exc:
                 logger.error(
