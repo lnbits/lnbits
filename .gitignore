@@ -24,6 +24,7 @@ tests/data/*.sqlite3
 *.env
 .env
 .super_user
+.pre-commit-config.yaml
 
 data
 *.sqlite3
