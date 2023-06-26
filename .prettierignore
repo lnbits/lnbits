@@ -6,6 +6,7 @@
 *.yml
 
 **/lnbits/extensions/*
+**/lnbits/upgrades/*
 
 **/lnbits/static/vendor
 **/lnbits/static/bundle.*

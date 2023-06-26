@@ -136,7 +136,7 @@ class LnTipsWallet(Wallet):
             url = "/api/v1/invoicestream"
             try:
                 last_connected = time.time()
-                async with self.client.stream("GET", url) as r:
+                async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():
                         try:
                             prefix = "data: "
