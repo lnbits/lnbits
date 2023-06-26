@@ -35,12 +35,10 @@ class CLNRestWallet(Wallet):
             self.auth["encodingtype"] = "hex"
 
         self.cert = settings.cln_rest_cert or False
+        self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
 
     async def status(self) -> StatusResponse:
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.get(
-                f"{self.url}/v1/getBalance", headers=self.auth, timeout=5
-            )
+        r = await self.client.get(f"{self.url}/v1/getBalance", timeout=5)
         try:
             data = r.json()
         except:
@@ -75,13 +73,11 @@ class CLNRestWallet(Wallet):
         if kwargs.get("preimage"):
             data["preimage"] = kwargs["preimage"]
 
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.post(
-                f"{self.url}/v1/invoice/genInvoice",
-                headers=self.auth,
-                data=data,
-                timeout=40,
-            )
+        r = await self.client.post(
+            f"{self.url}/v1/invoice/genInvoice",
+            data=data,
+            timeout=40,
+        )
 
         # TODO: handle errors correctly
         if r.is_error:
@@ -99,18 +95,16 @@ class CLNRestWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.post(
-                f"{self.url}/v1/pay",
-                headers=self.auth,
-                data={
-                    "invoice": bolt11,
-                    "maxfeepercent": f"{fee_limit_percent:.11}",
-                    "exemptfee": 0,  # so fee_limit_percent is applied even on payments
-                    # with fee < 5000 millisatoshi (which is default value of exemptfee)
-                },
-                timeout=None,
-            )
+        r = await self.client.post(
+            f"{self.url}/v1/pay",
+            data={
+                "invoice": bolt11,
+                "maxfeepercent": f"{fee_limit_percent:.11}",
+                "exemptfee": 0,  # so fee_limit_percent is applied even on payments
+                # with fee < 5000 millisatoshi (which is default value of exemptfee)
+            },
+            timeout=None,
+        )
 
         # TODO: handle errors correctly
         if "error" in r.json():
@@ -142,14 +136,11 @@ class CLNRestWallet(Wallet):
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         # get invoice bolt11 from checking_id
         # cln-rest wants the "label" here....
+        r = await self.client.get(
+            f"{self.url}/v1/invoice/listInvoices",
+            params={"label": payment.checking_id},
+        )
         try:
-            async with httpx.AsyncClient(verify=self.cert) as client:
-                r = await client.get(
-                    f"{self.url}/v1/invoice/listInvoices",
-                    headers=self.auth,
-                    params={"label": payment.checking_id},
-                )
-
             r.raise_for_status()
             data = r.json()
 
@@ -166,17 +157,12 @@ class CLNRestWallet(Wallet):
 
     async def get_payment_status(self, payment: Payment) -> PaymentStatus:
         # cln-rest wants the "bolt11" here.... sigh
-
+        r = await self.client.get(
+            f"{self.url}/v1/pay/listPays",
+            params={"invoice": payment.bolt11},
+        )
         try:
-            async with httpx.AsyncClient(verify=self.cert) as client:
-                r = await client.get(
-                    f"{self.url}/v1/pay/listPays",
-                    headers=self.auth,
-                    params={"invoice": payment.bolt11},
-                )
-
             r.raise_for_status()
-
             data = r.json()
 
             if r.is_error or "error" in data or data.get("pays") is None:
