@@ -4,7 +4,7 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Callable, Dict, List, NamedTuple, Optional
+from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from lnurl import encode as lnurl_encode
@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.settings import settings
+
 
 
 class Wallet(BaseModel):
@@ -82,30 +83,6 @@ class User(BaseModel):
         if user in settings.lnbits_admin_users:
             return True
         return False
-
-
-class PaymentStatus(NamedTuple):
-    paid: Optional[bool] = None
-    fee_msat: Optional[int] = None
-    preimage: Optional[str] = None
-
-    @property
-    def pending(self) -> bool:
-        return self.paid is not True
-
-    @property
-    def failed(self) -> bool:
-        return self.paid is False
-
-    def __str__(self) -> str:
-        if self.paid is True:
-            return "settled"
-        elif self.paid is False:
-            return "failed"
-        elif self.paid is None:
-            return "still pending"
-        else:
-            return "unknown (should never happen)"
 
 
 class Payment(FromRowModel):

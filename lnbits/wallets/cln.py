@@ -13,8 +13,15 @@ from loguru import logger
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
+from ..core.models import Payment
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 def async_wrap(func):
@@ -122,8 +129,8 @@ class CoreLightningWallet(Wallet):
                 amount=invoice.amount_msat,
                 time=0,
                 bolt11=bolt11,
-                memo="",
-                expiry=0,
+                memo=invoice.description,
+                expiry=invoice.expiry,
                 preimage="",
                 wallet_id="",
                 webhook=None,
