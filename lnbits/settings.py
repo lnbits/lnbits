@@ -348,20 +348,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-# set wallet class after settings are loaded
-def set_wallet_class(class_name: Optional[str] = None):
-    settings.lnbits_backend_wallet_class = (
-        class_name or settings.lnbits_backend_wallet_class
-    )
-
-
-def get_wallet_class(wallet: Optional[str] = None):
-    wallets_module = importlib.import_module("lnbits.wallets")
-    if wallet:
-        return getattr(wallets_module, wallet)()
-    return getattr(wallets_module, settings.lnbits_backend_wallet_class)()
-
-
 def send_admin_user_to_saas():
     if settings.lnbits_saas_callback:
         with httpx.Client() as client:
@@ -406,3 +392,12 @@ except:
     settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")
+
+
+def get_wallet_class():
+    """
+    Backwards compatibility
+    """
+    from lnbits.wallets import get_wallet_class
+
+    return get_wallet_class()

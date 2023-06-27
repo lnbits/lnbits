@@ -9,8 +9,14 @@ from loguru import logger
 from lnbits.settings import settings
 
 from ..bolt11 import Invoice, decode, encode
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from ..core.models import Payment
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class FakeWallet(Wallet):
