@@ -211,10 +211,12 @@
                     parseFloat(String(props.row.fsat).replaceAll(",", "")) / 100
                     }}
                   </q-td>
-
                   <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}<br />
-                    <i>fee {{ props.row.fee/1000 }}</i>
+                    <i>
+                      {{ props.row.extra.wallet_fiat_currency }} {{
+                      props.row.extra.wallet_fiat_amount }}
+                    </i>
                   </q-td>
                 </q-tr>
 
@@ -358,39 +360,56 @@
                 >
                   <q-card>
                     <q-card-section>
-                      <div class="row q-gutter-x-md">
-                        <div>
-                          <q-input
-                            filled
-                            v-model.trim="update.name"
-                            label="Name"
-                            dense
-                            @update:model-value="(e) => console.log(e)"
-                          />
-                        </div>
-                        <div>
-                          <q-select
-                            filled
-                            dense
-                            v-model="update.currency"
-                            type="text"
-                            :label="$t('unit')"
-                            :options="receive.units"
-                          ></q-select>
-                        </div>
-
+                      <div class="" style="max-width: 320px">
+                        <q-input
+                          filled
+                          v-model.trim="update.name"
+                          label="Name"
+                          dense
+                          @update:model-value="(e) => console.log(e)"
+                        />
                       </div>
                       <q-btn
-                        :disable="!newName.length"
+                        :disable="!update.name.length"
                         unelevated
                         class="q-mt-sm"
                         color="primary"
                         :label="$t('update_name')"
-                        @click="updateWalletName()"
+                        @click="updateWallet({ name: update.name })"
                       ></q-btn>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
+                <q-separator></q-separator>
+                <q-expansion-item
+                  group="extras"
+                  icon="attach_money"
+                  :label="$t('fiat_tracking')"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <div style="max-width: 360px">
+                        <q-select
+                          filled
+                          dense
+                          v-model="update.currency"
+                          type="text"
+                          :label="$t('unit')"
+                          :options="receive.units"
+                        ></q-select>
+                      </div>
+                      <q-btn
+                        :disable="!update.name.length"
+                        unelevated
+                        class="q-mt-sm"
+                        color="primary"
+                        :label="$t('update_currency')"
+                        @click="updateWallet({ currency: update.currency })"
+                      ></q-btn>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+
                 <q-separator></q-separator>
                 <q-expansion-item
                   group="extras"

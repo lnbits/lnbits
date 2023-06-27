@@ -256,7 +256,10 @@ new Vue({
       },
       balance: 0,
       credit: 0,
-      newName: ''
+      update: {
+        name: null,
+        currency: null
+      }
     }
   },
   computed: {
@@ -717,11 +720,10 @@ new Vue({
           }
         })
     },
-    updateWallet: function () {
+    updateWallet: function (data) {
       LNbits.api
-        .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, this.update)
+        .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(res => {
-          this.newName = ''
           this.$q.notify({
             message: `Wallet updated.`,
             type: 'positive',
@@ -734,7 +736,6 @@ new Vue({
           )
         })
         .catch(err => {
-          this.newName = ''
           LNbits.utils.notifyApiError(err)
         })
     },
@@ -807,6 +808,19 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
+
+    this.update.name = this.g.wallet.name
+    this.update.currency = this.g.wallet.currency
+
+    if (currency) {
+      this.paymentsTable.columns.push({
+        name: 'fiat_amount',
+        align: 'right',
+        label: `${this.$t('amount')} (Fiat)`,
+        field: 'fiat_amount',
+        sortable: false
+      })
+    }
 
     LNbits.api
       .request('GET', '/api/v1/currencies')

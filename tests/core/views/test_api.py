@@ -359,6 +359,48 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     return invoice
 
 
+@pytest.mark.asyncio
+async def test_update_wallet(client, adminkey_headers_from):
+    name = "new name"
+    currency = "EUR"
+
+    response = await client.patch(
+        "/api/v1/wallet", json={"name": name}, headers=adminkey_headers_from
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == name
+
+    response = await client.patch(
+        "/api/v1/wallet", json={"currency": currency}, headers=adminkey_headers_from
+    )
+    assert response.status_code == 200
+    assert response.json()["currency"] == currency
+    # name is not changed because updates are partial
+    assert response.json()["name"] == name
+
+
+@pytest.mark.asyncio
+async def test_fiat_tracking(client, adminkey_headers_from):
+    await client.patch(
+        "/api/v1/wallet", json={"currency": "EUR"}, headers=adminkey_headers_from
+    )
+
+    data = await get_random_invoice_data()
+    data["amount"] = 1000
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_from
+    )
+    assert response.is_success
+
+    response = await client.get(
+        "/api/v1/payments?limit=1", headers=adminkey_headers_from
+    )
+    assert response.status_code == 200
+    payment = response.json()[0]
+    assert payment["extra"]["wallet_fiat_currency"] == "EUR"
+    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+
+
 async def get_node_balance_sats():
     audit = await api_auditor()
     return audit["node_balance_msats"] / 1000

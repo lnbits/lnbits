@@ -114,7 +114,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
-async def api_update_wallet(
+async def api_update_wallet_name(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     await update_wallet(wallet.wallet.id, new_name)
@@ -123,6 +123,15 @@ async def api_update_wallet(
         "name": wallet.wallet.name,
         "balance": wallet.wallet.balance_msat,
     }
+
+
+@core_app.patch("/api/v1/wallet", response_model=Wallet)
+async def api_update_wallet(
+    name: Optional[str] = Body(None),
+    currency: Optional[str] = Body(None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    return await update_wallet(wallet.wallet.id, name, currency)
 
 
 @core_app.get(

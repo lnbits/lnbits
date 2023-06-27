@@ -11,7 +11,7 @@ from lnbits.core.models import WalletType
 from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
+from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from . import db
 from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
@@ -239,16 +239,25 @@ async def create_wallet(
 
 
 async def update_wallet(
-    wallet_id: str, new_name: str, conn: Optional[Connection] = None
+    wallet_id: str,
+    name: Optional[str] = None,
+    currency: Optional[str] = None,
+    conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
+    set_clause = []
+    values = []
+    if name:
+        set_clause.append("name = ?")
+        values.append(name)
+    if currency:
+        set_clause.append("currency = ?")
+        values.append(currency)
+    values.append(wallet_id)
     await (conn or db).execute(
-        """
-        UPDATE wallets SET
-            name = ?
-        WHERE id = ?
+        f"""
+        UPDATE wallets SET {', '.join(set_clause)} WHERE id = ?
         """,
-        (new_name, wallet_id),
-        values,
+        tuple(values),
     )
     wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
     assert wallet, "updated created wallet couldn't be retrieved"
@@ -520,9 +529,10 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
+
     # todo: add this when tests are fixed
-    # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
-    # assert previous_payment is None, "Payment already exists"
+    previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    assert previous_payment is None, "Payment already exists"
 
     try:
         invoice = bolt11.decode(payment_request)
@@ -532,19 +542,22 @@ async def create_payment(
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 
     wallet = await get_wallet(wallet_id, conn=conn)
+    assert wallet, "invalid wallet_id"
 
     fiat_amount = None
-    if wallet and wallet.currency:
-        fiat_amount = await satoshis_amount_as_fiat(
-            amount / 1000, wallet.currency
-        )
+    if wallet.currency:
+        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, wallet.currency)
+        fiat_amount = round(fiat_amount, ndigits=3)
+        extra = extra or {}
+        extra["wallet_fiat_currency"] = wallet.currency
+        extra["wallet_fiat_amount"] = fiat_amount
 
     await (conn or db).execute(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra, webhook, expiry, fiat_currency, fiat_amount)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, pending, memo, fee, extra, webhook, expiry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -563,8 +576,6 @@ async def create_payment(
             ),
             webhook,
             db.datetime_to_timestamp(expiration_date),
-            wallet.currency,
-            fiat_amount
         ),
     )
 

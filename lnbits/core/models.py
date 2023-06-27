@@ -121,7 +121,6 @@ class Payment(FromRowModel):
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
-    fiat_amounts: Optional[dict]
 
     @classmethod
     def from_row(cls, row: Row):
@@ -140,7 +139,6 @@ class Payment(FromRowModel):
             wallet_id=row["wallet"],
             webhook=row["webhook"],
             webhook_status=row["webhook_status"],
-            fiat_amounts=row["fiat_amounts"],
         )
 
     @property
