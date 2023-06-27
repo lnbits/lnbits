@@ -15,15 +15,13 @@ from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
 from lnbits.settings import (
-    FAKE_WALLET,
     EditableSettings,
     SuperSettings,
-    get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
-    set_wallet_class,
     settings,
 )
+from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -85,7 +83,7 @@ async def create_invoice(
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok:
+    if not ok or not payment_request or not checking_id:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
