@@ -18,12 +18,11 @@ from lnbits.helpers import url_for
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
-    get_wallet_class,
     readonly_variables,
     send_admin_user_to_saas,
-    set_wallet_class,
     settings,
 )
+from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse
 
 from . import db
@@ -76,7 +75,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet = get_wallet_class("FakeWallet") if internal else get_wallet_class()
+    wallet = FAKE_WALLET if internal else get_wallet_class()
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount,
@@ -85,7 +84,7 @@ async def create_invoice(
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok:
+    if not ok or not payment_request or not checking_id:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
