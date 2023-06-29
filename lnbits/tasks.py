@@ -3,7 +3,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -18,6 +18,23 @@ from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.wallets import get_wallet_class
 
 from .core import db
+
+tasks: List[asyncio.Task] = []
+
+
+def create_task(coro_or_fut):
+    task = asyncio.create_task(coro_or_fut)
+    tasks.append(task)
+    return task
+
+
+def create_permanent_task(func):
+    return create_task(catch_everything_and_restart(func))
+
+
+def cancel_all_tasks():
+    for task in tasks:
+        task.cancel()
 
 
 async def catch_everything_and_restart(func):
