@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 from typing import Any, List, Tuple, Union
 from urllib.parse import parse_qs
@@ -214,6 +215,7 @@ def add_ip_block_middleware(app: FastAPI):
             response = await call_next(request)
             return response
         if request.client.host in settings.lnbits_blocked_ips:
+            await asyncio.sleep(5)
             return JSONResponse(
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
