@@ -28,9 +28,9 @@ from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
     register_killswitch,
     register_task_listeners,
-    unregister_killswitch,
 )
 from lnbits.settings import settings
+from lnbits.tasks import cancel_all_tasks, create_permanent_task
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
@@ -52,7 +52,6 @@ from .middleware import (
 )
 from .requestvars import g
 from .tasks import (
-    catch_everything_and_restart,
     check_pending_payments,
     internal_invoice_listener,
     invoice_listener,
@@ -95,7 +94,7 @@ def create_app() -> FastAPI:
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
-    register_shutdown(app)
+    register_wallet_cleanup(app)
 
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
@@ -338,7 +337,7 @@ def register_startup(app: FastAPI):
             raise ImportError("Failed to run 'startup' event.")
 
 
-def register_shutdown(app: FastAPI):
+def register_wallet_cleanup(app: FastAPI):
     @app.on_event("shutdown")
     async def on_shutdown():
         WALLET = get_wallet_class()
@@ -396,20 +395,18 @@ def register_async_tasks(app):
 
     @app.on_event("startup")
     async def listeners():
-        loop = asyncio.get_event_loop()
-        loop.create_task(catch_everything_and_restart(check_pending_payments))
-        loop.create_task(catch_everything_and_restart(invoice_listener))
-        loop.create_task(catch_everything_and_restart(internal_invoice_listener))
-        await register_task_listeners()
-        # await register_watchdog()
-        await register_killswitch()
+        create_permanent_task(check_pending_payments)
+        create_permanent_task(invoice_listener)
+        create_permanent_task(internal_invoice_listener)
+        register_task_listeners()
+        register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?
 
     @app.on_event("shutdown")
     async def stop_listeners():
-        # await unregister_watchdog()
-        await unregister_killswitch()
-        pass
+        cancel_all_tasks()
+        # wait a bit to allow them to finish, so that cleanup can run without problems
+        await asyncio.sleep(0.1)
 
 
 def register_exception_handlers(app: FastAPI):
