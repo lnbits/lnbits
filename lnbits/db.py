@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
 import os
 import re
@@ -246,31 +245,25 @@ class Database(Compat):
             self.schema = None
 
         self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
-        self.lock = asyncio.Lock()
-
         logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
     async def connect(self):
-        await self.lock.acquire()
-        try:
-            async with self.engine.connect() as conn:  # type: ignore
-                async with conn.begin() as txn:
-                    wconn = Connection(conn, txn, self.type, self.name, self.schema)
+        async with self.engine.connect() as conn:  # type: ignore
+            async with conn.begin() as txn:
+                wconn = Connection(conn, txn, self.type, self.name, self.schema)
 
-                    if self.schema:
-                        if self.type in {POSTGRES, COCKROACH}:
-                            await wconn.execute(
-                                f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
-                            )
-                        elif self.type == SQLITE:
-                            await wconn.execute(
-                                f"ATTACH '{self.path}' AS {self.schema}"
-                            )
+                if self.schema:
+                    if self.type in {POSTGRES, COCKROACH}:
+                        await wconn.execute(
+                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
+                        )
+                    elif self.type == SQLITE:
+                        await wconn.execute(
+                            f"ATTACH '{self.path}' AS {self.schema}"
+                        )
 
-                    yield wconn
-        finally:
-            self.lock.release()
+                yield wconn
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         async with self.connect() as conn:
