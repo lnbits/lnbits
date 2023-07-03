@@ -218,7 +218,7 @@ def add_ip_block_middleware(app: FastAPI):
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
             )
-        # this is not needed on latest FastAPI
+        # this try: except: block is not needed on latest FastAPI (await call_next(request) is enough)
         # https://stackoverflow.com/questions/71222144/runtimeerror-no-response-returned-in-fastapi-when-refresh-request
         # TODO: remove after https://github.com/lnbits/lnbits/pull/1609 is merged
         try:
