@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 from typing import Any, List, Tuple, Union
 from urllib.parse import parse_qs
@@ -205,19 +206,20 @@ def add_ratelimit_middleware(app: FastAPI):
 def add_ip_block_middleware(app: FastAPI):
     @app.middleware("http")
     async def block_allow_ip_middleware(request: Request, call_next):
-        response = await call_next(request)
         if not request.client:
             return JSONResponse(
-                status_code=429,
+                status_code=403,  # Forbidden
                 content={"detail": "No request client"},
             )
-        if request.client.host in settings.lnbits_allowed_ips:
-            return response
-        if request.client.host in settings.lnbits_blocked_ips:
+        if (
+            request.client.host in settings.lnbits_blocked_ips
+            and request.client.host not in settings.lnbits_allowed_ips
+        ):
+            await asyncio.sleep(5)
             return JSONResponse(
-                status_code=429,
+                status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
             )
-        return response
+        return await call_next(request)
 
     app.middleware("http")(block_allow_ip_middleware)
