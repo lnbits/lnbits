@@ -211,16 +211,15 @@ def add_ip_block_middleware(app: FastAPI):
                 status_code=403,  # Forbidden
                 content={"detail": "No request client"},
             )
-        if request.client.host in settings.lnbits_allowed_ips:
-            response = await call_next(request)
-            return response
-        if request.client.host in settings.lnbits_blocked_ips:
+        if (
+            request.client.host in settings.lnbits_blocked_ips
+            and request.client.host not in settings.lnbits_allowed_ips
+        ):
             await asyncio.sleep(5)
             return JSONResponse(
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
             )
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 
     app.middleware("http")(block_allow_ip_middleware)
