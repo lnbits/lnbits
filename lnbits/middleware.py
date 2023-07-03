@@ -215,7 +215,6 @@ def add_ip_block_middleware(app: FastAPI):
             request.client.host in settings.lnbits_blocked_ips
             and request.client.host not in settings.lnbits_allowed_ips
         ):
-            await asyncio.sleep(5)
             return JSONResponse(
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
@@ -228,5 +227,6 @@ def add_ip_block_middleware(app: FastAPI):
         except RuntimeError as exc:
             if str(exc) == "No response returned." and await request.is_disconnected():
                 return Response(status_code=HTTPStatus.NO_CONTENT)
+            raise  # bubble up different exceptions
 
     app.middleware("http")(block_allow_ip_middleware)
