@@ -259,9 +259,7 @@ class Database(Compat):
                             f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
                         )
                     elif self.type == SQLITE:
-                        await wconn.execute(
-                            f"ATTACH '{self.path}' AS {self.schema}"
-                        )
+                        await wconn.execute(f"ATTACH '{self.path}' AS {self.schema}")
 
                 yield wconn
 
