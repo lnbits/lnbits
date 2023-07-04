@@ -22,6 +22,7 @@ jobs:
           cache: "poetry"
       - name: Install dependencies
         run: |
+          poetry env use python${{ matrix.python-version }}
           poetry install --no-root
       - name: Run tests
         run: make flake8
