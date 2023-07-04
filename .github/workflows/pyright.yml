@@ -22,7 +22,7 @@ jobs:
           cache: "poetry"
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --no-root
           npm install
       - name: Run tests
         run: make pyright
