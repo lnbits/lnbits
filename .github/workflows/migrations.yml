@@ -37,7 +37,7 @@ jobs:
           cache: "poetry"
       - name: Install dependencies
         run: |
-          poetry install --no-root
+          poetry install
           sudo apt install unzip
       - name: Run migrations
         run: |
