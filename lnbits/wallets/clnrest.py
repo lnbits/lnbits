@@ -1,4 +1,5 @@
 import asyncio
+import json
 import random
 from typing import AsyncGenerator, Dict, Optional
 
@@ -36,6 +37,12 @@ class CLNRestWallet(Wallet):
 
         self.cert = settings.cln_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
+        self.last_pay_index = 0
+        self.statuses = {
+            "complete": True,
+            "failed": False,
+            "pending": None,
+        }
 
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/getBalance", timeout=5)
@@ -124,13 +131,8 @@ class CLNRestWallet(Wallet):
         preimage = data["payment_preimage"]
         fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-        statuses = {
-            "complete": True,
-            "failed": False,
-            "pending": None,
-        }
         return PaymentResponse(
-            statuses.get(data["status"]), checking_id, fee_msat, preimage, None
+            self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
@@ -146,12 +148,7 @@ class CLNRestWallet(Wallet):
 
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in eclair response")
-            statuses = {
-                "paid": True,
-                "expired": False,
-                "unpaid": None,
-            }
-            return PaymentStatus(statuses.get(data["invoices"][0]["status"]))
+            return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
         except:
             return PaymentStatus(None)
 
@@ -165,36 +162,44 @@ class CLNRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            if r.is_error or "error" in data or data.get("pays") is None:
+            if r.is_error or "error" in data or not data.get("pays"):
                 raise Exception("error in cln-rest response")
-
-            statuses = {
-                "complete": True,
-                "failed": False,
-                "pending": None,
-            }
 
             pay = data["pays"][0]
 
             fee_msat, preimage = None, None
-            if statuses[pay["status"]]:
+            if self.statuses[pay["status"]]:
                 # cut off "msat" and convert to int
                 fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
                     pay["amount_msat"][:-4]
                 )
                 preimage = pay["preimage"]
 
-            return PaymentStatus(statuses.get(pay["status"]), fee_msat, preimage)
+            return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
         except:
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                await asyncio.sleep(100)
-                yield "asd"
+                url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
+                async with self.client.stream("GET", url, timeout=None) as r:
+                    async for line in r.aiter_lines():
+                        print(line)
+                        try:
+                            inv = json.loads(line)
+                            paid = inv["status"] == "paid"
+                            self.last_pay_index = inv["pay_index"]
+                            if not paid:
+                                continue
+                        except:
+                            continue
+
+                        # payment_hash = inv["payment_hash"]
+                        # yield payment_hash
+                        yield inv["label"]
             except Exception as exc:
                 logger.error(
-                    f"lost connection to eclair invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
