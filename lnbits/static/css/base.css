@@ -325,7 +325,7 @@ body[data-theme='autumn'].body--dark {
 [data-theme=flamingo] .q-drawer--dark,
 body[data-theme=flamingo].body--dark,
 [data-theme=flamingo] .q-menu--dark {
-  background: #803a45 !important;
+  background: #2f032f !important;
 }
 
 /* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
@@ -336,38 +336,38 @@ body[data-theme='flamingo'].body--dark {
 */
 [data-theme=flamingo] .q-card--dark,
 [data-theme=flamingo] .q-stepper--dark {
-  background: #ec7599 !important;
+  background: #bc23bc !important;
 }
 
 [data-theme=flamingo] .bg-primary {
-  background: #d11d53 !important;
+  background: #ff00ff !important;
 }
 [data-theme=flamingo] .text-primary {
-  color: #d11d53 !important;
+  color: #ff00ff !important;
 }
 [data-theme=flamingo] .bg-secondary {
-  background: #db3e6d !important;
+  background: #fda3fd !important;
 }
 [data-theme=flamingo] .text-secondary {
-  color: #db3e6d !important;
+  color: #fda3fd !important;
 }
 [data-theme=flamingo] .bg-dark {
-  background: #803a45 !important;
+  background: #2f032f !important;
 }
 [data-theme=flamingo] .text-dark {
-  color: #803a45 !important;
+  color: #2f032f !important;
 }
 [data-theme=flamingo] .bg-info {
-  background: #ec7599 !important;
+  background: #bc23bc !important;
 }
 [data-theme=flamingo] .text-info {
-  color: #ec7599 !important;
+  color: #bc23bc !important;
 }
 [data-theme=flamingo] .bg-marginal-bg {
-  background: #803a45 !important;
+  background: #311231 !important;
 }
 [data-theme=flamingo] .text-marginal-bg {
-  color: #803a45 !important;
+  color: #311231 !important;
 }
 [data-theme=flamingo] .bg-marginal-text {
   background: rgb(255, 255, 255) !important;
@@ -452,14 +452,6 @@ body[data-theme='monochrome'].body--dark {
 
 [data-theme=salvador] .q-header {
   background: #0f47af !important;
-}
-
-[data-theme=flamingo] .q-drawer--dark {
-  background: #e75480 !important;
-}
-
-[data-theme=flamingo] .q-header {
-  background: #e75480 !important;
 }
 
 [v-cloak] {
