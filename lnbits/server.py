@@ -1,14 +1,10 @@
-import uvloop
-from uvicorn.supervisors import ChangeReload
-
-uvloop.install()
-
 import multiprocessing as mp
 import time
 from pathlib import Path
 
 import click
 import uvicorn
+from uvicorn.supervisors import ChangeReload
 
 from lnbits.settings import set_cli_settings, settings
 
