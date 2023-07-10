@@ -115,7 +115,6 @@ class CoreLightningWallet(Wallet):
         previous_payment = await self.get_payment_status(
             # create a dummy payment object of which we will only use checking_id in get_payment_status
             Payment.dummy(
-                payment_hash=invoice.payment_hash,
                 checking_id=invoice.payment_hash,
             )
         )
