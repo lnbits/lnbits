@@ -97,6 +97,10 @@ class CLNRestWallet(Wallet):
             return InvoiceResponse(False, None, None, error_message)
 
         data = r.json()
+        assert "payment_hash" in data
+        assert "bolt11" in data
+        # NOTE: use payment_hash when cln-rest updates and supports it
+        # return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
         return InvoiceResponse(True, label, data["bolt11"], None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -138,6 +142,7 @@ class CLNRestWallet(Wallet):
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         # get invoice bolt11 from checking_id
         # cln-rest wants the "label" here....
+        # NOTE: We can get rid of all labels and use payment_hash when cln-rest updates and supports it
         r = await self.client.get(
             f"{self.url}/v1/invoice/listInvoices",
             params={"label": payment.checking_id},
@@ -197,6 +202,7 @@ class CLNRestWallet(Wallet):
 
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
+                        # NOTE: use payment_hash when cln-rest updates and supports it
                         yield inv["label"]
             except Exception as exc:
                 logger.error(
