@@ -160,7 +160,6 @@ class Payment(FromRowModel):
             wallet_id="",
             webhook=None,
             webhook_status=None,
-            **kwargs,
         )
 
     @property
