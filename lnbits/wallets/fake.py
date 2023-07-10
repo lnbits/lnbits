@@ -9,13 +9,8 @@ from loguru import logger
 from lnbits.settings import settings
 
 from ..bolt11 import Invoice, decode, encode
-from .base import (
-    InvoiceResponse,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    Wallet,
-)
+from ..core.models import Payment, PaymentStatus
+from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
 
 
 class FakeWallet(Wallet):
@@ -88,10 +83,10 @@ class FakeWallet(Wallet):
                 ok=False, error_message="Only internal invoices can be used!"
             )
 
-    async def get_invoice_status(self, _: str) -> PaymentStatus:
+    async def get_invoice_status(self, _: Payment) -> PaymentStatus:
         return PaymentStatus(None)
 
-    async def get_payment_status(self, _: str) -> PaymentStatus:
+    async def get_payment_status(self, _: Payment) -> PaymentStatus:
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

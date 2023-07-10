@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Coroutine, NamedTuple, Optional
 
+from ..core.models import Payment, PaymentStatus
+
 
 class StatusResponse(NamedTuple):
     error_message: Optional[str]
@@ -21,30 +23,6 @@ class PaymentResponse(NamedTuple):
     fee_msat: Optional[int] = None
     preimage: Optional[str] = None
     error_message: Optional[str] = None
-
-
-class PaymentStatus(NamedTuple):
-    paid: Optional[bool] = None
-    fee_msat: Optional[int] = None
-    preimage: Optional[str] = None
-
-    @property
-    def pending(self) -> bool:
-        return self.paid is not True
-
-    @property
-    def failed(self) -> bool:
-        return self.paid is False
-
-    def __str__(self) -> str:
-        if self.paid is True:
-            return "settled"
-        elif self.paid is False:
-            return "failed"
-        elif self.paid is None:
-            return "still pending"
-        else:
-            return "unknown (should never happen)"
 
 
 class Wallet(ABC):
@@ -73,13 +51,13 @@ class Wallet(ABC):
 
     @abstractmethod
     def get_invoice_status(
-        self, checking_id: str
+        self, payment: Payment
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
     @abstractmethod
     def get_payment_status(
-        self, checking_id: str
+        self, payment: Payment
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 

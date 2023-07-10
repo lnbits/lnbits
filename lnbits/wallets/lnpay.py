@@ -10,13 +10,8 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from .base import (
-    InvoiceResponse,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    Wallet,
-)
+from ..core.models import Payment, PaymentStatus
+from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
 
 
 class LNPayWallet(Wallet):
@@ -112,12 +107,12 @@ class LNPayWallet(Wallet):
         preimage = data["lnTx"]["payment_preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)
+    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+        return await self.get_payment_status(payment)
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
         r = await self.client.get(
-            url=f"/lntx/{checking_id}",
+            url=f"/lntx/{payment.checking_id}",
         )
 
         if r.is_error:
