@@ -2,10 +2,11 @@ import asyncio
 import random
 from typing import Any, AsyncGenerator, Optional
 
+from bolt11.decode import decode as bolt11_decode
+from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -95,11 +96,19 @@ class CoreLightningWallet(Wallet):
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        invoice = lnbits_bolt11.decode(bolt11)
+        try:
+            invoice = bolt11_decode(bolt11)
+        except Bolt11Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
 
         previous_payment = await self.get_payment_status(invoice.payment_hash)
         if previous_payment.paid:
             return PaymentResponse(False, None, None, None, "invoice already paid")
+
+        if not invoice.amount_msat or invoice.amount_msat <= 0:
+            return PaymentResponse(
+                False, None, None, None, "CLN 0 amount invoice not supported"
+            )
 
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
         # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi

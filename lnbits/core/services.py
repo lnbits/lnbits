@@ -176,6 +176,12 @@ async def pay_invoice(
     will regularly check for the payment.
     """
     invoice = bolt11.decode(payment_request)
+
+    if not invoice.amount_msat or not invoice.amount_msat > 0:
+        raise ValueError("Amountless invoices not supported.")
+    if max_sat and invoice.amount_msat > max_sat * 1000:
+        raise ValueError("Amount in invoice is too high.")
+
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
