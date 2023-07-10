@@ -101,12 +101,25 @@
                 ></h5>
               </div>
               <div class="col-auto">
-                <q-btn
-                  flat
-                  color="grey"
-                  @click="exportCSV"
-                  :label="$t('export_csv')"
-                ></q-btn>
+                <q-btn-dropdown color="grey" :label="$t('export_csv')">
+                  <q-list>
+                    <q-item clickable v-close-popup @click.prevent="exportCSV">
+                      <q-item-section>
+                        <q-item-label
+                          >{%raw%}{{$t('export_csv')}}{%endraw%}</q-item-label
+                        >
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup @click="exportCSVFiat">
+                      <q-item-section>
+                        <q-item-label
+                          >{%raw%}{{$t('export_csv')}}
+                          (fiat){%endraw%}</q-item-label
+                        >
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
                 <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
                 <q-tooltip>Check pending</q-tooltip>
               </q-btn>-->
