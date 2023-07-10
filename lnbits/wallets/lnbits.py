@@ -98,20 +98,8 @@ class LNbitsWallet(Wallet):
 
         # we do this to get the fee and preimage
         payment: PaymentStatus = await self.get_payment_status(
-            Payment(
-                payment_hash=data["payment_hash"],
+            Payment.dummy(
                 checking_id=data["payment_hash"],
-                pending=False,
-                fee=0,
-                amount=0,
-                time=0,
-                bolt11=bolt11,
-                memo="",
-                expiry=0,
-                preimage="",
-                wallet_id="",
-                webhook=None,
-                webhook_status=None,
             )
         )
 

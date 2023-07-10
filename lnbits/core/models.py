@@ -143,6 +143,26 @@ class Payment(FromRowModel):
             webhook_status=row["webhook_status"],
         )
 
+    @classmethod
+    def dummy(cls, **kwargs) -> "Payment":
+        return cls(
+            checking_id=kwargs.get("checking_id") or "internal_dummy",
+            payment_hash=kwargs.get("payment_hash") or "0" * 64,
+            bolt11=kwargs.get("bolt11") or "",
+            preimage="0" * 64,
+            extra={},
+            pending=False,
+            amount=0,
+            fee=0,
+            memo="",
+            time=0,
+            expiry=None,
+            wallet_id="",
+            webhook=None,
+            webhook_status=None,
+            **kwargs,
+        )
+
     @property
     def tag(self) -> Optional[str]:
         if self.extra is None:
