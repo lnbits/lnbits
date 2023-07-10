@@ -783,7 +783,7 @@ new Vue({
         ])
       })
     },
-    exportCSV: function () {
+    exportCSV() {
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
@@ -794,6 +794,40 @@ new Vue({
         label: 'Pending',
         field: 'pending'
       })
+      LNbits.utils.exportCSV(columns, this.payments)
+    },
+    exportCSVFiat() {
+      // status is important for export but it is not in paymentsTable
+      // because it is manually added with payment detail link and icons
+      // and would cause duplication in the list
+      let columns = structuredClone(this.paymentsCSV.columns)
+      columns.unshift({
+        name: 'pending',
+        align: 'left',
+        label: 'Pending',
+        field: 'pending'
+      })
+      columns.push(
+        {
+          name: 'currency',
+          align: 'left',
+          label: 'Currency',
+          field: row => row.extra.currency ?? null
+        },
+        {
+          name: 'fiatAmount',
+          align: 'left',
+          label: 'Fiat Amount',
+          field: row => row.extra.fiatAmount ?? null
+        },
+        {
+          name: 'rate',
+          align: 'left',
+          label: 'Exchange Rate (sats per unit)',
+          field: row =>
+            row.extra.rate ? Math.round(row.extra.rate * 1000) / 1000 : null
+        }
+      )
       LNbits.utils.exportCSV(columns, this.payments)
     }
   },
