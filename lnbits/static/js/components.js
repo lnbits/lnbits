@@ -261,7 +261,7 @@ Vue.component('lnbits-payment-details', {
   </div>
 
   <div class="row" v-for="entry in extras">
-    <q-badge v-if="hasTag" color="secondary" text-color="white">
+    <q-badge v-if="hasTag" color="secondary" text-color="white" class="q-mr-xs">
       extra
     </q-badge>
     <b>{{ entry.key }}</b>:
