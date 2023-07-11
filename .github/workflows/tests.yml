@@ -22,7 +22,7 @@ jobs:
           cache: "poetry"
       - name: Install dependencies
         run: |
-          poetry install --no-root
+          poetry install
       - name: Run tests
         run: make test
   postgres:
@@ -59,7 +59,7 @@ jobs:
           cache: "poetry"
       - name: Install dependencies
         run: |
-          poetry install --no-root
+          poetry install
       - name: Run tests
         env:
           LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
