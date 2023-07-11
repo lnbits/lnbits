@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.3.1"]
+        poetry-version: ["1.5.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Poetry ${{ matrix.poetry-version }}
@@ -52,7 +52,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.3.1"]
+        poetry-version: ["1.5.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Poetry ${{ matrix.poetry-version }}
@@ -97,7 +97,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.3.1"]
+        poetry-version: ["1.5.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Poetry ${{ matrix.poetry-version }}
@@ -139,7 +139,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.3.1"]
+        poetry-version: ["1.5.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Poetry ${{ matrix.poetry-version }}
@@ -183,7 +183,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9"]
-        poetry-version: ["1.3.1"]
+        poetry-version: ["1.5.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Poetry ${{ matrix.poetry-version }}

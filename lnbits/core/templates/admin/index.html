@@ -616,7 +616,9 @@
           .then(response => {
             this.needsRestart =
               this.settings.lnbits_backend_wallet_class !==
-              this.formData.lnbits_backend_wallet_class
+                this.formData.lnbits_backend_wallet_class ||
+              this.settings.lnbits_killswitch !==
+                this.formData.lnbits_killswitch
             this.settings = this.formData
             this.formData = _.clone(this.settings)
             this.updateFundingData()

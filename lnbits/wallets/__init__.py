@@ -37,7 +37,7 @@ def get_wallet_class() -> Wallet:
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = FakeWallet()
+FAKE_WALLET: Wallet = FakeWallet()
 
 # initialize as fake wallet
 WALLET: Wallet = FAKE_WALLET
