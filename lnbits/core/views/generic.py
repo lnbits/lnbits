@@ -180,8 +180,8 @@ async def wallet(
             wallet = await create_wallet(user_id=user.id)
             return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
         return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
-    else:
-        wallet_id = wal.hex
+
+    wallet_id = wal.hex
 
     userwallet = user.get_wallet(wallet_id)
     if not userwallet or userwallet.deleted:

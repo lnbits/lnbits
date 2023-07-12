@@ -43,9 +43,9 @@ async def create_account(
     else:
         user_id = uuid4().hex
     
-    # if new users are not allowed, return None
     if len(settings.lnbits_allowed_users) > 0 and user_id not in settings.lnbits_allowed_users:
         return None
+
 
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
