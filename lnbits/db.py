@@ -439,18 +439,10 @@ class Filter(BaseModel, Generic[TFilterModel]):
             op = Operator("eq")
 
         field = field_names[0]
+        nested = field_names[1:]
 
         if field in model.__fields__:
             compare_field = model.__fields__[field]
-            nested = field_names[1:]
-            # Filter model can contain pydantic models can be nested aswell
-            while nested and issubclass(compare_field.type_, BaseModel):
-                name = nested.pop(0)
-                if name in compare_field.type_.__fields__:
-                    compare_field = compare_field.type_.__fields__[name]
-                else:
-                    raise ValueError("Unknown filter field")
-
             values = []
             for raw_value in raw_values:
                 # Before validation of nested fields the values are parsed into a dict
@@ -470,9 +462,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         else:
             raise ValueError("Unknown filter field")
 
-        return cls(
-            field=field, op=op, nested=field_names[1:], values=values, model=model
-        )
+        return cls(field=field, op=op, nested=nested, values=values, model=model)
 
     def statement(self, values: QueryValues):
         accessor = self.field
@@ -555,13 +545,3 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.sortby:
             return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
-
-    def values(self, values: Optional[List[str]] = None) -> tuple:
-        if not values:
-            values = []
-        if self.filters:
-            for filter in self.filters:
-                values.extend(filter.values)
-        if self.search and self.model:
-            values.append(f"%{self.search}%")
-        return tuple(values)
