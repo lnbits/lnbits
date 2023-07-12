@@ -36,12 +36,16 @@ from .models import (
 
 async def create_account(
     conn: Optional[Connection] = None, user_id: Optional[str] = None
-) -> User:
+) -> Optional[User]:
     if user_id:
         user_uuid4 = UUID(hex=user_id, version=4)
         assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
     else:
         user_id = uuid4().hex
+    
+    # if user is not allowed and not admin and not super user, return None
+    if user_id not in settings.lnbits_allowed_users and user_id not in settings.lnbits_admin_users and user_id != settings.super_user:
+        return None
 
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
