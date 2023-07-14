@@ -36,6 +36,7 @@ class CLNRestWallet(Wallet):
             self.auth["encodingtype"] = "hex"
 
         self.cert = settings.cln_rest_cert or False
+        print(f"Auth header: {self.auth}")
         self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
         self.last_pay_index = 0
         self.statuses = {
