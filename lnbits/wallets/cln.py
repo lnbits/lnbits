@@ -147,8 +147,8 @@ class CoreLightningWallet(Wallet):
 
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         try:
-            r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
-        except:
+            r: dict = self.ln.listinvoices(payment_hash=payment.checking_id)
+        except RpcError:
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
@@ -165,8 +165,8 @@ class CoreLightningWallet(Wallet):
 
     async def get_payment_status(self, payment: Payment) -> PaymentStatus:
         try:
-            r: dict = self.ln.call("listpays", {"payment_hash": checking_id})  # type: ignore
-        except:
+            r: dict = self.ln.call("listpays", {"payment_hash": payment.checking_id})
+        except RpcError:
             return PaymentStatus(None)
         if not r["pays"]:
             return PaymentStatus(None)
