@@ -251,10 +251,10 @@ async def pay_invoice(
                 if wallet:
                     await websocketUpdater(
                         wallet_id,
-                        {
+                        json.dumps({
                             "wallet_balance": wallet.balance or None,
                             "payment": payment._asdict(),
-                        },
+                        }),
                     )
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
