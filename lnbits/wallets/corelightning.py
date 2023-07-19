@@ -46,7 +46,7 @@ class CoreLightningWallet(Wallet):
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
-        # check if description_hash is supported (from CLN>=v0.11.0)
+        # check if description_hash is supported (from corelightning>=v0.11.0)
         self.supports_description_hash = (
             "deschashonly" in self.ln.help("invoice")["help"][0]["command"]  # type: ignore
         )
@@ -82,7 +82,7 @@ class CoreLightningWallet(Wallet):
         try:
             if description_hash and not unhashed_description:
                 raise Unsupported(
-                    "'description_hash' unsupported by CLN, provide 'unhashed_description'"
+                    "'description_hash' unsupported by CoreLightning, provide 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
                 raise Unsupported("unhashed_description")
@@ -104,7 +104,7 @@ class CoreLightningWallet(Wallet):
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
+            error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
@@ -135,7 +135,7 @@ class CoreLightningWallet(Wallet):
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except:
-                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
+                error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
@@ -195,6 +195,6 @@ class CoreLightningWallet(Wallet):
                 yield paid["payment_hash"]
             except Exception as exc:
                 logger.error(
-                    f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to corelightning invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)

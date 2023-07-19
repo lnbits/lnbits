@@ -13,12 +13,12 @@ from ..core.models import Payment, PaymentStatus
 from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
 
 
-class CLNRestWallet(Wallet):
+class CoreLightningRestWallet(Wallet):
     def __init__(self):
-        url = settings.cln_rest_url
-        macaroon = settings.cln_rest_macaroon
+        url = settings.corelightning_rest_url
+        macaroon = settings.corelightning_rest_macaroon
         if not url or not macaroon:
-            raise Exception("cannot initialize CLN-rest")
+            raise Exception("cannot initialize corelightning-rest")
 
         # check if macaroon is base64 or hex
         macaroon_ishex = True
@@ -35,7 +35,7 @@ class CLNRestWallet(Wallet):
         if macaroon_ishex:
             self.auth["encodingtype"] = "hex"
 
-        self.cert = settings.cln_rest_cert or False
+        self.cert = settings.corelightning_rest_cert or False
         print(f"Auth header: {self.auth}")
         self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
         self.last_pay_index = 0
@@ -100,7 +100,7 @@ class CLNRestWallet(Wallet):
         data = r.json()
         assert "payment_hash" in data
         assert "bolt11" in data
-        # NOTE: use payment_hash when cln-rest updates and supports it
+        # NOTE: use payment_hash when corelightning-rest updates and supports it
         # return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
         return InvoiceResponse(True, label, data["bolt11"], None)
 
@@ -142,8 +142,8 @@ class CLNRestWallet(Wallet):
 
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         # get invoice bolt11 from checking_id
-        # cln-rest wants the "label" here....
-        # NOTE: We can get rid of all labels and use payment_hash when cln-rest updates and supports it
+        # corelightning-rest wants the "label" here....
+        # NOTE: We can get rid of all labels and use payment_hash when corelightning-rest updates and supports it
         r = await self.client.get(
             f"{self.url}/v1/invoice/listInvoices",
             params={"label": payment.checking_id},
@@ -159,7 +159,7 @@ class CLNRestWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, payment: Payment) -> PaymentStatus:
-        # cln-rest wants the "bolt11" here.... sigh
+        # corelightning-rest wants the "bolt11" here.... sigh
         r = await self.client.get(
             f"{self.url}/v1/pay/listPays",
             params={"invoice": payment.bolt11},
@@ -169,7 +169,7 @@ class CLNRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or not data.get("pays"):
-                raise Exception("error in cln-rest response")
+                raise Exception("error in corelightning-rest response")
 
             pay = data["pays"][0]
 
@@ -203,7 +203,7 @@ class CLNRestWallet(Wallet):
 
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
-                        # NOTE: use payment_hash when cln-rest updates and supports it
+                        # NOTE: use payment_hash when corelightning-rest updates and supports it
                         yield inv["label"]
             except Exception as exc:
                 logger.error(
