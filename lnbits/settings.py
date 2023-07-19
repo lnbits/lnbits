@@ -199,7 +199,7 @@ class BoltzExtensionSettings(LNbitsSettings):
 
 
 class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=600)
+    lightning_invoice_expiry: int = Field(default=3600)
 
 
 class FundingSourcesSettings(
