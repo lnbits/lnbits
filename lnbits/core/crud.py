@@ -268,11 +268,8 @@ async def delete_wallet(
 ) -> None:
     await (conn or db).execute(
         """
-        UPDATE wallets AS w
-        SET
-            "user" = 'del:' || w."user",
-            adminkey = 'del:' || w.adminkey,
-            inkey = 'del:' || w.inkey
+        UPDATE wallets
+        SET deleted = true
         WHERE id = ? AND "user" = ?
         """,
         (wallet_id, user_id),
@@ -285,7 +282,8 @@ async def get_wallet(
     row = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE id = ?
+        AS balance_msat FROM wallets
+        WHERE id = ? AND deleted is NULL OR deleted = false
         """,
         (wallet_id,),
     )
