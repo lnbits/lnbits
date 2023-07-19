@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Dict, Optional
 
 import httpx
@@ -124,10 +125,12 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         if wallet:
             await websocketUpdater(
                 payment.wallet_id,
-                {
-                    "wallet_balance": wallet.balance or None,
-                    "payment": payment.dict(),
-                },
+                json.dumps(
+                    {
+                        "wallet_balance": wallet.balance or None,
+                        "payment": payment.dict(),
+                    }
+                ),
             )
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
