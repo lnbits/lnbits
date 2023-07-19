@@ -20,7 +20,7 @@ class Cache:
     def __init__(self):
         self._values: dict[Any, Cached] = {}
 
-    def get(self, key: str, default: Any = None) -> Optional[Any]:
+    def get(self, key: str, default=None) -> Optional[Any]:
         cached = self._values.get(key)
         if cached is not None:
             if cached.expiry > time():
