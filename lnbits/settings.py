@@ -137,10 +137,10 @@ class CoreLightningFundingSource(LNbitsSettings):
     clightning_rpc: Optional[str] = Field(default=None)
 
 
-class CLNRestFundingSource(LNbitsSettings):
-    cln_rest_url: Optional[str] = Field(default=None)
-    cln_rest_macaroon: Optional[str] = Field(default=None)
-    cln_rest_cert: Optional[str] = Field(default=None)
+class CoreLightningRestFundingSource(LNbitsSettings):
+    corelightning_rest_url: Optional[str] = Field(default=None)
+    corelightning_rest_macaroon: Optional[str] = Field(default=None)
+    corelightning_rest_cert: Optional[str] = Field(default=None)
 
 
 class EclairFundingSource(LNbitsSettings):
@@ -213,7 +213,7 @@ class FundingSourcesSettings(
     LNbitsFundingSource,
     ClicheFundingSource,
     CoreLightningFundingSource,
-    CLNRestFundingSource,
+    CoreLightningRestFundingSource,
     EclairFundingSource,
     LndRestFundingSource,
     LndGrpcFundingSource,
@@ -282,6 +282,7 @@ class SuperUserSettings(LNbitsSettings):
             "VoidWallet",
             "FakeWallet",
             "CoreLightningWallet",
+            "CoreLightningRestWallet",
             "LndRestWallet",
             "EclairWallet",
             "LndWallet",

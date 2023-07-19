@@ -8,9 +8,9 @@ from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
 from .cliche import ClicheWallet
-from .cln import CoreLightningWallet
-from .cln import CoreLightningWallet as CLightningWallet
-from .clnrest import CLNRestWallet
+from .corelightning import CoreLightningWallet
+from .corelightning import CoreLightningWallet as CLightningWallet
+from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
