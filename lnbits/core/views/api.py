@@ -758,12 +758,15 @@ async def websocket_update_get(item_id: str, data: str):
 
 @core_app.websocket("/api/v1/currency/ws/{item_id}/{currency}")
 async def websocket_connect_exchnage(websocket: WebSocket, item_id: str, currency: str):
+    for connection in websocketManager.active_connections:
+        if connection.path_params["item_id"] == item_id:
+            return
     await websocketManager.connect(websocket)
     try:
         while True:
             try:
                 data = await satoshis_amount_as_fiat(100000000, currency.strip().upper())
-                await websocketUpdater(item_id, data)
+                await websocketUpdater(item_id, json.dumps({currency.strip().upper(): float("{:.2f}".format(data))}))
                 await asyncio.sleep(5)
             except:
                 return {"error": "Failed to get currency"}
