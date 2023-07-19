@@ -754,6 +754,22 @@ async def websocket_update_get(item_id: str, data: str):
     except:
         return {"sent": False, "data": data}
 
+# UNIVERSAL WEBSOCKET MANAGER
+
+@core_app.websocket("/api/v1/currency/ws/{item_id}/{currency}")
+async def websocket_connect_exchnage(websocket: WebSocket, item_id: str, currency: str):
+    await websocketManager.connect(websocket)
+    try:
+        while True:
+            try:
+                data = await satoshis_amount_as_fiat(100000000, currency.strip().upper())
+                await websocketUpdater(item_id, data)
+                await asyncio.sleep(5)
+            except:
+                return {"error": "Failed to get currency"}
+    except WebSocketDisconnect:
+        websocketManager.disconnect(websocket)
+        
 
 @core_app.post("/api/v1/extension")
 async def api_install_extension(
