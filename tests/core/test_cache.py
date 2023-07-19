@@ -23,6 +23,8 @@ value = "bar"
 async def test_cache_get_set(cache):
     cache.set(key, value)
     assert cache.get(key) == value
+    assert cache.get(key, default="default") == value
+    assert cache.get("i-dont-exist", default="default") == "default"
 
 
 @pytest.mark.asyncio
@@ -38,13 +40,6 @@ async def test_cache_pop(cache):
     assert cache.pop(key) == value
     assert not cache.get(key)
     assert cache.pop(key, default="a") == "a"
-
-
-@pytest.mark.asyncio
-async def test_cache_prefix(cache):
-    cache.set(key, value, prefix="a")
-    assert cache.get(key, prefix="a") == value
-    assert not cache.get(key)
 
 
 @pytest.mark.asyncio

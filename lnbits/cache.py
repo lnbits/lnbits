@@ -12,10 +12,6 @@ class Cached(NamedTuple):
     expiry: float
 
 
-def _add_prefix(key: str, prefix: str):
-    return prefix + ":" + key if prefix else key
-
-
 class Cache:
     """
     Small caching utility providing simple get/set interface (very much like redis)
@@ -24,34 +20,34 @@ class Cache:
     def __init__(self):
         self._values: dict[Any, Cached] = {}
 
-    def get(self, key: str, prefix: str = "") -> Optional[Any]:
-        cached = self._values.get(_add_prefix(key, prefix))
+    def get(self, key: str, default: Any = None) -> Optional[Any]:
+        cached = self._values.get(key)
         if cached is not None:
             if cached.expiry > time():
                 return cached.value
             else:
-                self.pop(key, prefix)
-        return None
+                self.pop(key)
+        return default
 
-    def set(self, key: str, value: Any, expiry: float = 10, prefix: str = ""):
-        self._values[_add_prefix(key, prefix)] = Cached(value, time() + expiry)
+    def set(self, key: str, value: Any, expiry: float = 10):
+        self._values[key] = Cached(value, time() + expiry)
 
-    def pop(self, key: str, prefix: str = "", default=None) -> Optional[Any]:
-        cached = self._values.pop(_add_prefix(key, prefix), None)
+    def pop(self, key: str, default=None) -> Optional[Any]:
+        cached = self._values.pop(key, None)
         if cached:
             return cached.value
         return default
 
-    async def save_result(self, coro, key: str, expiry: float = 10, prefix: str = ""):
+    async def save_result(self, coro, key: str, expiry: float = 10):
         """
-        Call the coroutine and cache its result
+        If `key` exists, return its value, otherwise call coro and cache its result
         """
-        cached = self.get(key, prefix)
+        cached = self.get(key)
         if cached:
             return cached
         else:
             value = await coro()
-            self.set(key, value, expiry=expiry, prefix=prefix)
+            self.set(key, value, expiry=expiry)
             return value
 
     async def invalidate_forever(self, interval: float = 1):
