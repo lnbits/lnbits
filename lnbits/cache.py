@@ -26,7 +26,7 @@ class Cache:
             if cached.expiry > time():
                 return cached.value
             else:
-                self.pop(key)
+                self._values.pop(key)
         return default
 
     def set(self, key: str, value: Any, expiry: float = 10):
@@ -34,7 +34,7 @@ class Cache:
 
     def pop(self, key: str, default=None) -> Optional[Any]:
         cached = self._values.pop(key, None)
-        if cached:
+        if cached and cached.expiry > time():
             return cached.value
         return default
 
