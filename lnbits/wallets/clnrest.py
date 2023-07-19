@@ -11,32 +11,29 @@ from lnbits.settings import settings
 
 from ..core.models import Payment, PaymentStatus
 from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .macaroon import load_macaroon
 
 
 class CLNRestWallet(Wallet):
     def __init__(self):
         url = settings.cln_rest_url
         macaroon = settings.cln_rest_macaroon
+        assert macaroon, "missing cln-rest macaroon"
+
+        self.macaroon = load_macaroon(macaroon)
+
         if not url or not macaroon:
             raise Exception("cannot initialize CLN-rest")
 
-        # check if macaroon is base64 or hex
-        macaroon_ishex = True
-        try:
-            bytes.fromhex(macaroon)
-        except ValueError:
-            macaroon_ishex = False
-
         self.url = url[:-1] if url.endswith("/") else url
         self.auth = {
-            "macaroon": macaroon,
+            "macaroon": bytes.fromhex(self.macaroon),
+            "encodingtype": "hex",
             "accept": "application/json",
         }
-        if macaroon_ishex:
-            self.auth["encodingtype"] = "hex"
 
         self.cert = settings.cln_rest_cert or False
-        print(f"Auth header: {self.auth}")
+
         self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
         self.last_pay_index = 0
         self.statuses = {
