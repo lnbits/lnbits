@@ -32,7 +32,10 @@ class SparkWallet(Wallet):
         )
 
     async def cleanup(self):
-        await self.client.aclose()
+        try:
+            await self.client.aclose()
+        except Exception as e:
+            logger.warning(f"Error closing wallet connection: {e}")
 
     def __getattr__(self, key):
         async def call(*args, **kwargs):
