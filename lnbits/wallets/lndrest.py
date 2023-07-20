@@ -71,7 +71,7 @@ class LndRestWallet(Wallet):
     async def cleanup(self):
         try:
             await self.client.aclose()
-        except Exception as e:
+        except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
