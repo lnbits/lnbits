@@ -27,7 +27,7 @@ class CoreLightningRestWallet(Wallet):
 
         self.url = url[:-1] if url.endswith("/") else url
         self.auth = {
-            "macaroon": bytes.fromhex(self.macaroon),
+            "macaroon": self.macaroon,
             "encodingtype": "hex",
             "accept": "application/json",
         }
