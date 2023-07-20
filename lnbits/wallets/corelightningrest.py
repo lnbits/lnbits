@@ -41,6 +41,12 @@ class CoreLightningRestWallet(Wallet):
             "pending": None,
         }
 
+    async def cleanup(self):
+        try:
+            await self.client.aclose()
+        except Exception as e:
+            logger.warning(f"Error closing wallet connection: {e}")
+
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/getBalance", timeout=5)
         try:
