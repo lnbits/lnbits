@@ -168,9 +168,9 @@ jobs:
           PORT: 5123
           LNBITS_DATA_FOLDER: ./data
           LNBITS_BACKEND_WALLET_CLASS: CoreLightningRestWallet
-          CORELIGHTNING_REST_ENDPOINT: https://localhost:3001
+          CORELIGHTNING_REST_URL: https://localhost:3001
           CORELIGHTNING_REST_MACAROON: ./docker/data/clightning-2-rest/access.macaroon
-          CORELIGHTNING_REST_CERTIFICATE: ./docker/data/clightning-2-rest/certificate.pem
+          CORELIGHTNING_REST_CERT: ./docker/data/clightning-2-rest/certificate.pem
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
