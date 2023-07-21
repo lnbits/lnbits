@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 import json
-import time
 import uuid
 from http import HTTPStatus
 from io import BytesIO
@@ -52,7 +51,7 @@ from lnbits.extension_manager import (
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -73,7 +72,6 @@ from ..crud import (
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
-    get_total_balance,
     get_wallet_for_key,
     save_balance_check,
     update_wallet,
@@ -672,6 +670,12 @@ async def api_perform_lnurlauth(
 
 @core_app.get("/api/v1/currencies")
 async def api_list_currencies_available():
+    if len(settings.lnbits_allowed_currencies) > 0:
+        return [
+            item
+            for item in currencies.keys()
+            if item.upper() in settings.lnbits_allowed_currencies
+        ]
     return list(currencies.keys())
 
 
@@ -718,25 +722,6 @@ async def img(request: Request, data):
             "Expires": "0",
         },
     )
-
-
-@core_app.get("/api/v1/audit", dependencies=[Depends(check_admin)])
-async def api_auditor():
-    WALLET = get_wallet_class()
-    total_balance = await get_total_balance()
-    error_message, node_balance = await WALLET.status()
-
-    if not error_message:
-        delta = node_balance - total_balance
-    else:
-        node_balance, delta = 0, 0
-
-    return {
-        "node_balance_msats": int(node_balance),
-        "lnbits_balance_msats": int(total_balance),
-        "delta_msats": int(delta),
-        "timestamp": int(time.time()),
-    }
 
 
 # UNIVERSAL WEBSOCKET MANAGER

@@ -7,21 +7,30 @@ import shutil
 import signal
 import sys
 import traceback
+from hashlib import sha256
 from http import HTTPStatus
 from typing import Callable, List
 
-from fastapi import FastAPI, Request
-from fastapi.exceptions import HTTPException, RequestValidationError
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.tasks import register_task_listeners
-from lnbits.settings import get_wallet_class, set_wallet_class, settings
+from lnbits.core.services import websocketUpdater
+from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
+    register_killswitch,
+    register_task_listeners,
+    unregister_killswitch,
+)
+from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
 from .core import (
@@ -34,7 +43,12 @@ from .core.services import check_admin_settings
 from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
-from .middleware import ExtensionsRedirectMiddleware, InstalledExtensionMiddleware
+from .middleware import (
+    ExtensionsRedirectMiddleware,
+    InstalledExtensionMiddleware,
+    add_ip_block_middleware,
+    add_ratelimit_middleware,
+)
 from .requestvars import g
 from .tasks import (
     catch_everything_and_restart,
@@ -46,9 +60,7 @@ from .tasks import (
 
 
 def create_app() -> FastAPI:
-
     configure_logger()
-
     app = FastAPI(
         title="LNbits API",
         description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
@@ -82,15 +94,16 @@ def create_app() -> FastAPI:
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
+    register_shutdown(app)
 
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
+    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     return app
 
 
 async def check_funding_source() -> None:
-
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
@@ -246,6 +259,19 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
     return register_new_ext_routes_fn
 
 
+def register_new_ratelimiter(app: FastAPI) -> Callable:
+    def register_new_ratelimiter_fn():
+        limiter = Limiter(
+            key_func=get_remote_address,
+            default_limits=[
+                f"{settings.lnbits_rate_limit_no}/{settings.lnbits_rate_limit_unit}"
+            ],
+        )
+        app.state.limiter = limiter
+
+    return register_new_ratelimiter_fn
+
+
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     ext_module = importlib.import_module(ext.module_name)
@@ -279,7 +305,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
-
         try:
             # wait till migration is done
             await migrate_databases()
@@ -288,6 +313,10 @@ def register_startup(app: FastAPI):
             await check_admin_settings()
 
             log_server_info()
+
+            # adds security middleware
+            add_ratelimit_middleware(app)
+            add_ip_block_middleware(app)
 
             # initialize WALLET
             set_wallet_class()
@@ -298,9 +327,37 @@ def register_startup(app: FastAPI):
             # check extensions after restart
             await check_installed_extensions(app)
 
+            if settings.lnbits_admin_ui:
+                initialize_server_logger()
+
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
+
+
+def register_shutdown(app: FastAPI):
+    @app.on_event("shutdown")
+    async def on_shutdown():
+        WALLET = get_wallet_class()
+        await WALLET.cleanup()
+
+
+def initialize_server_logger():
+    super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
+
+    serverlog_queue = asyncio.Queue()
+
+    async def update_websocket_serverlog():
+        while True:
+            msg = await serverlog_queue.get()
+            await websocketUpdater(super_user_hash, msg)
+
+    asyncio.create_task(update_websocket_serverlog())
+
+    logger.add(
+        lambda msg: serverlog_queue.put_nowait(msg),
+        format=Formatter().format,
+    )
 
 
 def log_server_info():
@@ -341,10 +398,14 @@ def register_async_tasks(app):
         loop.create_task(catch_everything_and_restart(invoice_listener))
         loop.create_task(catch_everything_and_restart(internal_invoice_listener))
         await register_task_listeners()
+        # await register_watchdog()
+        await register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?
 
     @app.on_event("shutdown")
     async def stop_listeners():
+        # await unregister_watchdog()
+        await unregister_killswitch()
         pass
 
 
@@ -423,7 +484,6 @@ def configure_logger() -> None:
     log_level: str = "DEBUG" if settings.debug else "INFO"
     formatter = Formatter()
     logger.add(sys.stderr, level=log_level, format=formatter.format)
-
     logging.getLogger("uvicorn").handlers = [InterceptHandler()]
     logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
 

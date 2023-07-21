@@ -6,7 +6,7 @@ import string
 from subprocess import PIPE, Popen, run
 
 from lnbits.core.crud import create_payment
-from lnbits.settings import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_wallet_class, set_wallet_class
 
 
 async def credit_wallet(wallet_id: str, amount: int):
@@ -63,13 +63,12 @@ def run_cmd_json(cmd: str) -> dict:
 
 
 def get_real_invoice(sats: int) -> dict:
-    msats = sats * 1000
-    return run_cmd_json(f"{docker_lightning_cli} addinvoice {msats}")
+    return run_cmd_json(f"{docker_lightning_cli} addinvoice {sats}")
 
 
 def pay_real_invoice(invoice: str) -> Popen:
     return Popen(
-        f"{docker_lightning_cli} payinvoice {invoice}",
+        f"{docker_lightning_cli} payinvoice --force {invoice}",
         shell=True,
         stdin=PIPE,
         stdout=PIPE,

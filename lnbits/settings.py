@@ -89,6 +89,7 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
+    lnbits_allowed_currencies: List[str] = Field(default=[])
 
 
 class OpsSettings(LNbitsSettings):
@@ -98,6 +99,22 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+
+
+class SecuritySettings(LNbitsSettings):
+    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_unit: str = Field(default="minute")
+    lnbits_allowed_ips: List[str] = Field(default=[])
+    lnbits_blocked_ips: List[str] = Field(default=[])
+    lnbits_notifications: bool = Field(default=False)
+    lnbits_killswitch: bool = Field(default=False)
+    lnbits_killswitch_interval: int = Field(default=60)
+    lnbits_watchdog: bool = Field(default=False)
+    lnbits_watchdog_interval: int = Field(default=60)
+    lnbits_watchdog_delta: int = Field(default=1_000_000)
+    lnbits_status_manifest: str = Field(
+        default="https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+    )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -182,7 +199,7 @@ class BoltzExtensionSettings(LNbitsSettings):
 
 
 class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=600)
+    lightning_invoice_expiry: int = Field(default=3600)
 
 
 class FundingSourcesSettings(
@@ -206,6 +223,7 @@ class EditableSettings(
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
+    SecuritySettings,
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
@@ -226,6 +244,13 @@ class EditableSettings(
         return cls(
             **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
         )
+
+    # fixes openapi.json validation, remove field env_names
+    class Config:
+        @staticmethod
+        def schema_extra(schema: dict[str, Any]) -> None:
+            for prop in schema.get("properties", {}).values():
+                prop.pop("env_names", None)
 
 
 class EnvSettings(LNbitsSettings):
@@ -323,19 +348,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-# set wallet class after settings are loaded
-def set_wallet_class(class_name: Optional[str] = None):
-    backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
-    WALLET = wallet_class()
-
-
-def get_wallet_class():
-    # wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
-    return WALLET
-
-
 def send_admin_user_to_saas():
     if settings.lnbits_saas_callback:
         with httpx.Client() as client:
@@ -381,8 +393,11 @@ except:
 
 settings.version = importlib.metadata.version("lnbits")
 
-wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 
-# initialize as fake wallet
-WALLET = FAKE_WALLET
+def get_wallet_class():
+    """
+    Backwards compatibility
+    """
+    from lnbits.wallets import get_wallet_class
+
+    return get_wallet_class()
