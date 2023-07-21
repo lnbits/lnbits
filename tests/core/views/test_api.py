@@ -446,12 +446,12 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     client, adminkey_headers_from, inkey_headers_from
 ):
     """
-    1. We create an invoice
-    2. We pay it
-    3. We verify that the inoice was paid
+    1. We create a real invoice
+    2. We pay it from our wallet
+    3. We check that the inoice was paid with the backend
     4. We set the invoice to pending in the database
-    5. We recheck the state of the invoice
-    6. We verify that the invoice is paid
+    5. We recheck the state of the invoice with the backend
+    6. We verify that the invoice is now marked as paid in the database
     """
     create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
     response = await client.post(
