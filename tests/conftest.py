@@ -116,7 +116,7 @@ async def adminkey_headers_to(to_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoiceData = CreateInvoiceData(**data)
@@ -125,7 +125,7 @@ async def invoice(to_wallet):
     del invoice
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def real_invoice():
     invoice = get_real_invoice(100)
     yield {"bolt11": invoice["payment_request"]}
