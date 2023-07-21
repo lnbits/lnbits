@@ -50,12 +50,14 @@ class Cache:
             self.set(key, value, expiry=expiry)
             return value
 
-    async def invalidate_forever(self, interval: float = 1):
+    async def invalidate_forever(self, interval: float = 10):
         while True:
             try:
                 await asyncio.sleep(interval)
                 ts = time()
-                self._values = {k: v for k, v in self._values.items() if v.expiry > ts}
+                expired = [k for k, v in self._values.items() if v.expiry < ts]
+                for k in expired:
+                    self._values.pop(k)
             except Exception:
                 logger.error("Error invalidating cache")
 
