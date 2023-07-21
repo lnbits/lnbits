@@ -376,7 +376,7 @@
         ])
       }
     },
-    created: function () {
+    created() {
       this.getSettings()
       this.getAudit()
       this.balance = +'{{ balance|safe }}'
@@ -593,7 +593,7 @@
           .then(response => {
             this.isSuperUser = response.data.is_super_user || false
             this.settings = response.data
-            this.formData = _.clone(this.settings)
+            this.formData = {...this.settings}
             this.updateFundingData()
             this.getNotifications()
           })
@@ -624,7 +624,9 @@
             this.updateFundingData()
             this.$q.notify({
               type: 'positive',
-              message: 'Success! Settings changed!',
+              message: `Success! Settings changed! ${
+                this.needsRestart ? 'Restart required!' : ''
+              }`,
               icon: null
             })
           })
