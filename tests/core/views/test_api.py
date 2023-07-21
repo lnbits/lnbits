@@ -5,6 +5,7 @@ from time import time
 import pytest
 
 from lnbits import bolt11
+from lnbits.core.crud import get_standalone_payment, update_payment_details
 from lnbits.core.models import Payment
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
@@ -387,3 +388,49 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     await asyncio.sleep(0.3)
     balance = await get_node_balance_sats()
     assert balance - prev_balance == create_invoice.amount
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice_set_pending_and_check_state(
+    client, real_invoice, adminkey_headers_from, inkey_headers_from
+):
+    """
+    1. We create an invoice
+    2. We pay it
+    3. We verify that the inoice was paid
+    4. We set the invoice to pending in the database
+    5. We recheck the state of the invoice
+    6. We verify that the invoice is paid
+    """
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+    invoice = response.json()
+    assert len(invoice["payment_hash"]) == 64
+    assert len(invoice["checking_id"]) > 0
+
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert response["paid"]
+
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    assert status.paid
+
+    # get the payment from the db
+    payment = await get_standalone_payment(invoice["payment_hash"])
+    assert payment
+    assert payment.pending is False
+
+    # set the invoice to pending
+    await update_payment_details(payment.checking_id, pending=True)
+
+    payment_pending = await get_standalone_payment(invoice["payment_hash"])
+    assert payment_pending
+    assert payment_pending.pending is True
+
+    # check the payment status
+    await payment.check_status()
