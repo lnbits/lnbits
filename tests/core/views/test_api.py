@@ -501,3 +501,13 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     )
     assert payment_not_pending
     assert payment_not_pending.pending is False
+
+    # verify we get the same result if we use the checking_id to look up the payment
+    payment_by_checking_id = await get_standalone_payment(
+        payment_not_pending.checking_id, incoming=True
+    )
+
+    assert payment_by_checking_id
+    assert payment_by_checking_id.pending is False
+    assert payment_by_checking_id.bolt11 == payment_not_pending.bolt11
+    assert payment_by_checking_id.payment_hash == payment_not_pending.payment_hash
