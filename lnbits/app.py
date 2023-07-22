@@ -24,6 +24,7 @@ from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
+    payment_processor,
     register_killswitch,
     register_task_listeners,
 )
@@ -427,6 +428,7 @@ def register_async_tasks(app):
         create_permanent_task(invoice_listener)
         create_permanent_task(internal_invoice_listener)
         create_permanent_task(cache.invalidate_forever)
+        create_permanent_task(payment_processor)
         register_task_listeners()
         register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?

@@ -1,17 +1,31 @@
 import asyncio
-from typing import Dict
+from asyncio import Future
+from typing import Dict, Optional
 
 import httpx
 from loguru import logger
+from pydantic import BaseModel, Field
 
+from lnbits import bolt11
 from lnbits.core.crud import (
+    check_internal,
+    check_internal_pending,
+    create_payment,
+    delete_wallet_payment,
     get_balance_notify,
+    get_standalone_payment,
     get_wallet,
+    get_wallet_payment,
     get_webpush_subscriptions_for_user,
+    update_payment_details,
+    update_payment_status,
 )
 from lnbits.core.db import db
 from lnbits.core.models import Payment
 from lnbits.core.services import (
+    PaymentFailure,
+    calculate_fiat_amounts,
+    fee_reserve,
     get_balance_delta,
     send_payment_notification,
     switch_to_voidwallet,
@@ -143,15 +157,25 @@ async def dispatch_api_invoice_listeners(payment: Payment):
             api_invoice_listeners.pop(chan_name)
 
 
-async def pay_invoice(
-    *,
-    wallet_id: str,
-    payment_request: str,
-    max_sat: Optional[int] = None,
-    extra: Optional[Dict] = None,
-    description: str = "",
-    conn: Optional[Connection] = None,
-) -> str:
+class PaymentJob(BaseModel):
+    fut: Future = Field(
+        default_factory=lambda: asyncio.get_event_loop().create_future()
+    )
+
+    wallet_id: str
+    payment_request: str
+    max_sat: Optional[int]
+    memo: str
+    extra: Optional[Dict]
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+payment_queue: asyncio.Queue[PaymentJob] = asyncio.Queue()
+
+
+async def _process_payment(job: PaymentJob) -> str:
     """
     Pay a Lightning invoice.
     First, we create a temporary payment in the database with fees set to the reserve
@@ -162,37 +186,26 @@ async def pay_invoice(
     If the payment is still in flight, we hope that some other process
     will regularly check for the payment.
     """
-    invoice = bolt11.decode(payment_request)
+    invoice = bolt11.decode(job.payment_request)
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
-    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+    async with db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
-        if max_sat and invoice.amount_msat > max_sat * 1000:
+        if job.max_sat and invoice.amount_msat > job.max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
-            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
+            invoice.amount_msat / 1000, job.wallet_id, extra=job.extra, conn=conn
         )
 
-        # put all parameters that don't change here
-        class PaymentKwargs(TypedDict):
-            wallet_id: str
-            payment_request: str
-            payment_hash: str
-            amount: int
-            memo: str
-            extra: Optional[Dict]
-
-        payment_kwargs: PaymentKwargs = PaymentKwargs(
-            wallet_id=wallet_id,
-            payment_request=payment_request,
-            payment_hash=invoice.payment_hash,
+        payment_kwargs = job.dict(include={"wallet_id", "payment_request", "extra"})
+        payment_kwargs.update(
             amount=-invoice.amount_msat,
-            memo=description or invoice.description or "",
-            extra=extra,
+            payment_hash=invoice.payment_hash,
+            memo=job.memo or invoice.description or "",
         )
 
         # we check if an internal invoice exists that has already been paid
@@ -212,7 +225,7 @@ async def pay_invoice(
             assert internal_invoice is not None
             if (
                 internal_invoice.amount != invoice.amount_msat
-                or internal_invoice.bolt11 != payment_request.lower()
+                or internal_invoice.bolt11 != job.payment_request.lower()
             ):
                 raise PaymentFailure("Invalid invoice.")
 
@@ -242,7 +255,7 @@ async def pay_invoice(
                 raise PaymentFailure("Could not make payment.")
 
         # do the balance check
-        wallet = await get_wallet(wallet_id, conn=conn)
+        wallet = await get_wallet(job.wallet_id, conn=conn)
         assert wallet, "Wallet for balancecheck could not be fetched"
         if wallet.balance_msat < 0:
             logger.debug("balance is too low, deleting temporary payment")
@@ -258,10 +271,7 @@ async def pay_invoice(
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
-        async with db.connect() as conn:
-            await update_payment_status(
-                checking_id=internal_checking_id, pending=False, conn=conn
-            )
+        await update_payment_status(checking_id=internal_checking_id, pending=False)
         await send_payment_notification(wallet, new_payment)
 
         # notify receiver asynchronously
@@ -273,9 +283,7 @@ async def pay_invoice(
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
         WALLET = get_wallet_class()
-        payment: PaymentResponse = await WALLET.pay_invoice(
-            payment_request, fee_reserve_msat
-        )
+        payment = await WALLET.pay_invoice(job.payment_request, fee_reserve_msat)
 
         if payment.checking_id and payment.checking_id != temp_id:
             logger.warning(
@@ -296,9 +304,9 @@ async def pay_invoice(
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
-                wallet = await get_wallet(wallet_id, conn=conn)
+                wallet = await get_wallet(job.wallet_id, conn=conn)
                 updated = await get_wallet_payment(
-                    wallet_id, payment.checking_id, conn=conn
+                    job.wallet_id, payment.checking_id, conn=conn
                 )
                 if wallet and updated:
                     await send_payment_notification(wallet, updated)
@@ -306,9 +314,8 @@ async def pay_invoice(
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
             logger.warning("backend sent payment failure")
-            async with db.connect() as conn:
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
+            logger.debug(f"deleting temporary payment {temp_id}")
+            await delete_wallet_payment(temp_id, job.wallet_id)
             raise PaymentFailure(
                 f"Payment failed: {payment.error_message}"
                 or "Payment failed, but backend didn't give us an error message."
@@ -320,6 +327,24 @@ async def pay_invoice(
             )
 
     return invoice.payment_hash
+
+
+async def payment_processor():
+    while True:
+        job = await payment_queue.get()
+        try:
+            payment = await _process_payment(job)
+            job.fut.set_result(payment)
+        except (ValueError, PermissionError, PaymentFailure) as e:
+            logger.info(
+                f"could not process payment {job.payment_request} for {job.wallet_id}"
+            )
+            job.fut.set_exception(e)
+        except Exception as e:
+            logger.exception("error processing payment", e)
+            job.fut.set_exception(e)
+        finally:
+            payment_queue.task_done()
 
 
 async def dispatch_webhook(payment: Payment):
