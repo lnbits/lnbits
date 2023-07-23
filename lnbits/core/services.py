@@ -44,7 +44,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import Payment
+from .models import Payment, Wallet
 
 
 class PaymentFailure(Exception):
@@ -429,6 +429,18 @@ def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+async def send_payment_notification(wallet: Wallet, payment: Payment):
+    await websocketUpdater(
+        wallet.id,
+        json.dumps(
+            {
+                "wallet_balance": wallet.balance,
+                "payment": payment.dict(),
+            }
+        ),
+    )
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):
