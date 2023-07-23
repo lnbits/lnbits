@@ -1,5 +1,4 @@
 import asyncio
-import json
 from typing import Dict, Optional
 
 import httpx
@@ -11,7 +10,7 @@ from lnbits.tasks import SseListenersDict, register_invoice_listener
 from . import db
 from .crud import get_balance_notify, get_wallet
 from .models import Payment
-from .services import get_balance_delta, switch_to_voidwallet, websocketUpdater
+from .services import get_balance_delta, send_payment_notification, switch_to_voidwallet
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
@@ -123,15 +122,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         await dispatch_api_invoice_listeners(payment)
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
-            await websocketUpdater(
-                payment.wallet_id,
-                json.dumps(
-                    {
-                        "wallet_balance": wallet.balance or None,
-                        "payment": payment.dict(),
-                    }
-                ),
-            )
+            await send_payment_notification(wallet, payment)
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
