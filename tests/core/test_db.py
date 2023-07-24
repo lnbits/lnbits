@@ -20,7 +20,7 @@ async def test_date_conversion(db):
 
 # make test to create wallet and delete wallet
 @pytest.mark.asyncio
-async def test_create_wallet_and_delete_wallet(to_user):
+async def test_create_wallet_and_delete_wallet(app, to_user):
     # create wallet
     wallet = await create_wallet(user_id=to_user.id, wallet_name="test_wallet_delete")
     assert wallet
