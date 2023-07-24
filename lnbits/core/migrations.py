@@ -334,7 +334,9 @@ async def m013_add_deleted_to_wallets(db):
     Adds deleted column to wallets.
     """
     try:
-        await db.execute("ALTER TABLE wallets ADD COLUMN deleted BOOLEAN")
+        await db.execute(
+            "ALTER TABLE wallets ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT false"
+        )
     except OperationalError:
         pass
 
