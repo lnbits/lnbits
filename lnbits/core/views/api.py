@@ -541,8 +541,9 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         assert lnurlauth_key.verifying_key
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             r = await client.get(url, timeout=5)
+            r.raise_for_status()
             if r.is_error:
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
