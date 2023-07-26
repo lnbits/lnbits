@@ -13,7 +13,13 @@ from lnbits.db import DB_TYPE, SQLITE
 from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
-from ...helpers import get_random_invoice_data, is_fake, pay_real_invoice
+from ...helpers import (
+    cancel_invoice,
+    get_random_invoice_data,
+    is_fake,
+    pay_real_invoice,
+    settle_invoice,
+)
 
 WALLET = get_wallet_class()
 
@@ -457,6 +463,25 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     payment_not_pending = await get_standalone_payment(invoice["payment_hash"])
     assert payment_not_pending
     assert payment_not_pending.pending is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
+    preimage, invoice = hold_invoice
+    response = await client.post(
+        "/api/v1/payments",
+        json={"bolt11": invoice["payment_request"]},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+
+    # TODO: Proper test calle :)
+    # settle hold invoice
+    settle_invoice(preimage)
+    # check if paid
+    # randomly cancel invoice
+    cancel_invoice(invoice["payment_hash"])
 
 
 @pytest.mark.asyncio
