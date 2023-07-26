@@ -466,7 +466,9 @@ async def test_pay_real_invoice_set_pending_and_check_state(
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
+async def test_pay_hold_invoice_check_pending(
+    client, hold_invoice, adminkey_headers_from
+):
     preimage, invoice = hold_invoice
     task = asyncio.create_task(
         client.post(
@@ -477,13 +479,28 @@ async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
     )
     await asyncio.sleep(1)
 
-    # TODO: Proper test calle :)
-    # settle hold invoice
+    # get payment hash from the invoice
+    invoice_obj = bolt11.decode(invoice)
+
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db
+    assert payment_db.pending is True
+
     settle_invoice(preimage)
 
     response = await task
     assert response.status_code < 300
+
     # check if paid
+
+    await asyncio.sleep(1)
+
+    payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db_after_settlement
+    assert payment_db_after_settlement.pending is False
+
     # randomly cancel invoice
     # cancel_invoice(invoice["payment_hash"])
 
