@@ -526,7 +526,7 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     assert payment_db
     assert payment_db.pending is True
 
-    preimage_hash = hashlib.sha256(preimage).hexdigest()
+    preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
     cancel_invoice(preimage_hash)
 
     response = await task
