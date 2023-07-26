@@ -44,7 +44,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import Payment
+from .models import Payment, Wallet
 
 
 class PaymentFailure(Exception):
@@ -172,7 +172,7 @@ async def pay_invoice(
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
-            await create_payment(
+            new_payment = await create_payment(
                 checking_id=internal_id,
                 fee=0,
                 pending=False,
@@ -184,7 +184,7 @@ async def pay_invoice(
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
             try:
-                await create_payment(
+                new_payment = await create_payment(
                     checking_id=temp_id,
                     fee=-fee_reserve_msat,
                     conn=conn,
@@ -215,6 +215,7 @@ async def pay_invoice(
             await update_payment_status(
                 checking_id=internal_checking_id, pending=False, conn=conn
             )
+        await send_payment_notification(wallet, new_payment)
 
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
@@ -248,16 +249,11 @@ async def pay_invoice(
                     conn=conn,
                 )
                 wallet = await get_wallet(wallet_id, conn=conn)
-                if wallet:
-                    await websocketUpdater(
-                        wallet_id,
-                        json.dumps(
-                            {
-                                "wallet_balance": wallet.balance or None,
-                                "payment": payment._asdict(),
-                            }
-                        ),
-                    )
+                updated = await get_wallet_payment(
+                    wallet_id, payment.checking_id, conn=conn
+                )
+                if wallet and updated:
+                    await send_payment_notification(wallet, updated)
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
@@ -429,6 +425,18 @@ def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+async def send_payment_notification(wallet: Wallet, payment: Payment):
+    await websocketUpdater(
+        wallet.id,
+        json.dumps(
+            {
+                "wallet_balance": wallet.balance,
+                "payment": payment.dict(),
+            }
+        ),
+    )
 
 
 async def update_wallet_balance(wallet_id: str, amount: int):

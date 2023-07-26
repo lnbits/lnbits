@@ -113,14 +113,28 @@ async def test_create_invoice_custom_expiry(client, inkey_headers_to):
 
 # check POST /api/v1/payments: make payment
 @pytest.mark.asyncio
-async def test_pay_invoice(client, invoice, adminkey_headers_from):
+async def test_pay_invoice(
+    client, from_wallet_ws, to_wallet_ws, invoice, adminkey_headers_from
+):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
     assert response.status_code < 300
-    assert len(response.json()["payment_hash"]) == 64
-    assert len(response.json()["checking_id"]) > 0
+    invoice = response.json()
+    assert len(invoice["payment_hash"]) == 64
+    assert len(invoice["checking_id"]) > 0
+
+    data = from_wallet_ws.receive_json()
+    assert "wallet_balance" in data
+    payment = Payment(**data["payment"])
+    assert payment.payment_hash == invoice["payment_hash"]
+
+    # websocket from to_wallet cant be tested before https://github.com/lnbits/lnbits/pull/1793
+    # data = to_wallet_ws.receive_json()
+    # assert "wallet_balance" in data
+    # payment = Payment(**data["payment"])
+    # assert payment.payment_hash == invoice["payment_hash"]
 
 
 # check GET /api/v1/payments/<hash>: payment status
@@ -330,7 +344,7 @@ async def get_node_balance_sats():
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
-    client, real_invoice, adminkey_headers_from, inkey_headers_from
+    client, real_invoice, adminkey_headers_from, inkey_headers_from, from_wallet_ws
 ):
     prev_balance = await get_node_balance_sats()
     response = await client.post(
@@ -340,6 +354,11 @@ async def test_pay_real_invoice(
     invoice = response.json()
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
+
+    data = from_wallet_ws.receive_json()
+    assert "wallet_balance" in data
+    payment = Payment(**data["payment"])
+    assert payment.payment_hash == invoice["payment_hash"]
 
     # check the payment status
     response = await api_payment(

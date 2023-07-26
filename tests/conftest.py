@@ -1,6 +1,8 @@
 import asyncio
 
+import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from lnbits.app import create_app
@@ -41,6 +43,11 @@ async def client(app):
     await client.aclose()
 
 
+@pytest.fixture(scope="session")
+def test_client(app):
+    return TestClient(app)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def db():
     yield Database("database")
@@ -63,6 +70,12 @@ async def from_wallet(from_user):
     yield wallet
 
 
+@pytest.fixture
+def from_wallet_ws(from_wallet, test_client):
+    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
+        yield ws
+
+
 @pytest_asyncio.fixture(scope="session")
 async def to_user():
     user = await create_account()
@@ -78,6 +91,12 @@ async def to_wallet(to_user):
         amount=999999999,
     )
     yield wallet
+
+
+@pytest.fixture
+def to_wallet_ws(to_wallet, test_client):
+    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
+        yield ws
 
 
 @pytest_asyncio.fixture(scope="session")
