@@ -11,7 +11,12 @@ from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
-from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
+from tests.helpers import (
+    credit_wallet,
+    get_hold_invoice,
+    get_random_invoice_data,
+    get_real_invoice,
+)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -148,4 +153,11 @@ async def invoice(to_wallet):
 async def real_invoice():
     invoice = get_real_invoice(100)
     yield {"bolt11": invoice["payment_request"]}
+    del invoice
+
+
+@pytest_asyncio.fixture(scope="function")
+async def hold_invoice():
+    invoice = get_hold_invoice(100)
+    yield invoice
     del invoice
