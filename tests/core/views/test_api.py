@@ -532,7 +532,7 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     cancel_invoice(preimage_hash)
 
     response = await task
-    assert response.status_code < 300
+    assert response.status_code > 200
 
     # check if paid
 
