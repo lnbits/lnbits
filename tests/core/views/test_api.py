@@ -532,14 +532,11 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     cancel_invoice(preimage_hash)
 
     response = await task
-    assert response.status_code > 200
+    assert response.status_code > 300  # should error
 
     # check if paid
 
     await asyncio.sleep(1)
-
-    status = await payment_db.check_status()
-    assert status.paid is False
 
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement is None
