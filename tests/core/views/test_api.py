@@ -14,7 +14,6 @@ from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
 from ...helpers import (
-    cancel_invoice,
     get_random_invoice_data,
     is_fake,
     pay_real_invoice,
@@ -486,7 +485,7 @@ async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
     assert response.status_code < 300
     # check if paid
     # randomly cancel invoice
-    cancel_invoice(invoice["payment_hash"])
+    # cancel_invoice(invoice["payment_hash"])
 
 
 @pytest.mark.asyncio
