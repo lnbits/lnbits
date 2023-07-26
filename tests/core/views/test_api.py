@@ -480,7 +480,7 @@ async def test_pay_hold_invoice_check_pending(
     await asyncio.sleep(1)
 
     # get payment hash from the invoice
-    invoice_obj = bolt11.decode(invoice)
+    invoice_obj = bolt11.decode(invoice["payment_request"])
 
     payment_db = await get_standalone_payment(invoice_obj.payment_hash)
 
