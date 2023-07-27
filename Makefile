@@ -36,6 +36,9 @@ checkblack:
 checkisort:
 	poetry run isort --check-only .
 
+dev:
+	poetry run lnbits --reload
+
 test:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
