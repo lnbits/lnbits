@@ -70,3 +70,43 @@ async def test_node_peers(node_client, from_super_user):
     )
     assert response.status_code == 200
     assert len(response.json())
+
+
+@pytest.mark.asyncio
+async def test_node_invoices(node_client, from_super_user, invoice):
+    response = await node_client.get(
+        "/node/api/v1/invoices", params={"usr": from_super_user.id, "limit": 1}
+    )
+    assert response.status_code == 200
+    invoices = response.json()
+    assert len(invoices) == 1
+    assert invoices[0]["payment_hash"] == invoice["payment_hash"]
+
+
+@pytest.mark.asyncio
+async def test_node_invoices(node_client, from_super_user, invoice):
+    response = await node_client.get(
+        "/node/api/v1/invoices", params={"usr": from_super_user.id, "limit": 1}
+    )
+    assert response.status_code == 200
+    invoices = response.json()["data"]
+    assert len(invoices) == 1
+    assert invoices[0]["payment_hash"] == invoice["payment_hash"]
+
+
+@pytest.mark.asyncio
+async def test_node_payments(
+    node_client, from_super_user, real_invoice, adminkey_headers_from
+):
+    response = await node_client.post(
+        "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+
+    response = await node_client.get(
+        "/node/api/v1/payments", params={"usr": from_super_user.id, "limit": 1}
+    )
+    assert response.status_code == 200
+    payments = response.json()["data"]
+    assert len(payments) == 1
+    assert payments[0]["bolt11"] == real_invoice["bolt11"]
