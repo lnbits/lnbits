@@ -64,6 +64,18 @@ else:
 
 
 class QueryValues(list):
+    """
+    A small wrapper around `list` to help with building SQL queries.
+    It makes sure the order of placeholders in the query and passed values match
+    by appending each value when the placeholder inserted.
+
+    It is especially useful in cases like `json_path`,
+    which produces database-varying sql containing a placeholder with an according value.
+    Without this helper, the function would have to inject the value into the query string directly, which is a security risk.
+
+    For example usage, see tests/core/test_db.py
+    """
+
     def json_path(self, colname: str, *path: str, type_: Type = None):
         if DB_TYPE == SQLITE:
             path_value = f"$.{'.'.join(path)}"
