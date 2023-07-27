@@ -4,7 +4,7 @@ import pytest_asyncio
 from lnbits.db import QueryValues
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(autouse=True)
 async def json_test_table(db):
     try:
         await db.execute("CREATE TABLE test (data JSON)")
@@ -14,7 +14,7 @@ async def json_test_table(db):
 
 
 @pytest.mark.asyncio
-async def test_sql_json(db, json_test_table):
+async def test_sql_json(db):
     obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
     another_obj = {"a": 2, "b": "baz"}
 
@@ -58,7 +58,7 @@ async def test_sql_json(db, json_test_table):
 
 
 @pytest.mark.asyncio
-async def test_sql_json_null(db, json_test_table):
+async def test_sql_json_null(db):
     await db.execute("INSERT INTO test VALUES(?)", (None,))
     row = await db.fetchone("SELECT * FROM test")
     assert row.data is None
