@@ -16,30 +16,36 @@ async def json_test_table(db):
 @pytest.mark.asyncio
 async def test_sql_json(db, json_test_table):
     obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
+    another_obj = {"a": 2, "b": "baz"}
+
     await db.execute("INSERT INTO test VALUES(?)", (obj,))
+    await db.execute("INSERT INTO test VALUES(?)", (another_obj,))
 
     values = QueryValues()
-    row = await db.fetchone(
+    rows = await db.fetchall(
         f"""
         SELECT * FROM test WHERE {values.json_path('data', 'a', type_=int)} >= {values(obj["a"])}
         """,
         values,
     )
-    assert row.data == obj
+    assert len(rows) == 1
+    assert rows[0].data == obj
 
     values = QueryValues()
-    row = await db.fetchone(
+    rows = await db.fetchall(
         f"SELECT * FROM test WHERE {values.json_path('data', 'c', 'nested')} = {values(obj['c']['nested'])}",
         values,
     )
-    assert row.data == obj
+    assert len(rows) == 1
+    assert rows[0].data == obj
 
     values = QueryValues()
-    row = await db.fetchone(
+    rows = await db.fetchall(
         f"SELECT * FROM test WHERE {values.json_path('data', 'b')} != {values(obj['b'])}",
         values,
     )
-    assert not row
+    assert len(rows) == 1
+    assert rows[0].data == another_obj
 
     update = {"b": "baz"}
     obj |= update
