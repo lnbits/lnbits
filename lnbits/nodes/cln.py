@@ -286,13 +286,11 @@ class CoreLightningNode(Node):
                     pending=pay["status"] != "complete",
                     destination=await self.get_peer_info(pay["destination"]),
                 )
-                for pay in result["pays"]
+                for pay in reversed(result["pays"])
                 if pay["status"] != "failed"
             ]
 
-        results = await cache.get_and_revalidate(
-            get_payments, "payments", prefix=self.name
-        )
+        results = await cache.save_result(get_payments, key="payments")
         count = len(results)
         if filters.offset:
             results = results[filters.offset :]
@@ -320,10 +318,11 @@ class CoreLightningNode(Node):
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        result = await cache.get_and_revalidate(
-            lambda: self.wallet.ln_rpc("listinvoices"), key="invoices", prefix=self.name
+        result = await cache.save_result(
+            lambda: self.wallet.ln_rpc("listinvoices"), key="invoices"
         )
         invoices = result["invoices"]
+        invoices.reverse()
         count = len(invoices)
         if filters.offset:
             invoices = invoices[filters.offset :]

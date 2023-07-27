@@ -202,11 +202,11 @@ class Node(ABC):
         pass
 
     async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        info = cache.get(f"peers:{pubkey}", prefix=self.name)
+        info = cache.get(f"peers:{pubkey}")
         if not info:
             info = await self._get_peer_info(pubkey)
             if info.last_timestamp:
-                cache.set(f"peers:{pubkey}", info, prefix=self.name)
+                cache.set(f"peers:{pubkey}", info)
         return info
 
     @abstractmethod

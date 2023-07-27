@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from typing import TYPE_CHECKING, Optional
 
@@ -34,6 +35,10 @@ if TYPE_CHECKING:
 
 def msat(raw: str) -> int:
     return int(raw) * 1000
+
+
+def _decode_bytes(data: str) -> str:
+    return base64.b64decode(data).hex()
 
 
 class LndRestNode(Node):
@@ -241,27 +246,35 @@ class LndRestNode(Node):
             ),
         )
 
-        pass
-
     async def get_payments(
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
-        offset = cache.get("payments_offset", prefix=self.name) or -1
+        payments_count = cache.get("payments_count")
+        if not payments_count and filters.offset:
+            # this forces fetching the payments count
+            await self.get_payments(Filters(limit=1))
+            payments_count = cache.get("payments_count")
+
+        if filters.offset and payments_count:
+            index_offset = max(payments_count + 1 - filters.offset, 0)
+        else:
+            index_offset = 0
 
         response = await self.get(
             "/v1/payments",
             params={
-                "index_offset": offset + 1 - (filters.offset or 0),
+                "index_offset": index_offset,
                 "max_payments": filters.limit,
                 "include_incomplete": True,
-                "count_total_payments": True,
                 "reversed": True,
+                "count_total_payments": not index_offset,
             },
         )
 
-        cache.set(
-            "payments_offset", int(response["total_num_payments"]), prefix=self.name
-        )
+        if not filters.offset:
+            payments_count = int(response["total_num_payments"])
+
+        cache.set("payments_count", payments_count)
 
         payments = [
             NodePayment(
@@ -283,39 +296,51 @@ class LndRestNode(Node):
 
         payments.sort(key=lambda p: p.time, reverse=True)
 
-        return Page(data=payments, total=response["total_num_payments"])
+        return Page(data=payments, total=payments_count or 0)
 
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        offset = filters.offset or 0
+        last_invoice_index = cache.get("last_invoice_index")
+        if not last_invoice_index and filters.offset:
+            # this forces fetching the last invoice index so
+            await self.get_invoices(Filters(limit=1))
+            last_invoice_index = cache.get("last_invoice_index")
+
+        if filters.offset and last_invoice_index:
+            index_offset = max(last_invoice_index + 1 - filters.offset, 0)
+        else:
+            index_offset = 0
 
         response = await self.get(
             "/v1/invoices",
             params={
-                "index_offset": offset,
+                "index_offset": index_offset,
                 "num_max_invoices": filters.limit,
+                "reversed": True,
             },
         )
+
+        if not filters.offset:
+            last_invoice_index = int(response["last_index_offset"])
+
+        cache.set("last_invoice_index", last_invoice_index)
+
         invoices = [
             NodeInvoice(
-                payment_hash=invoice["r_hash"],
+                payment_hash=_decode_bytes(invoice["r_hash"]),
                 amount=invoice["value_msat"],
                 memo=invoice["memo"],
                 pending=invoice["state"] == "OPEN",
                 paid_at=invoice["settle_date"],
                 expiry=invoice["creation_date"] + invoice["expiry"],
-                preimage=invoice["r_preimage"],
+                preimage=_decode_bytes(invoice["r_preimage"]),
                 bolt11=invoice["payment_request"],
             )
-            for invoice in response["invoices"]
+            for invoice in reversed(response["invoices"])
         ]
-        # we simply guess that there is at least one more page because
-        # lnd doesnt provide the total amount of invoices
-        total = len(invoices) + offset
-        if len(invoices) == filters.limit and filters.limit:
-            total += filters.limit
+
         return Page(
             data=invoices,
-            total=total,
+            total=last_invoice_index or 0,
         )
