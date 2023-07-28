@@ -47,8 +47,15 @@ async def test_sql_json(db):
     assert len(rows) == 1
     assert rows[0].data == another_obj
 
-    update = {"b": "baz"}
-    obj |= update
+
+@pytest.mark.asyncio
+async def test_sql_json_update(db):
+    obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
+    await db.execute("INSERT INTO test VALUES(?)", (obj,))
+
+    update = {"b": "baz", "c": {"another": "string"}}
+    obj["b"] = update["b"]
+    obj["c"] |= update["c"]
     values = QueryValues()
     await db.execute(
         f"UPDATE test SET {values.json_partial_update('data', update)}", values
