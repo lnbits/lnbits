@@ -76,7 +76,7 @@ class QueryValues(list):
     For example usage, see tests/core/test_db.py
     """
 
-    def json_path(self, colname: str, *path: str, type_: Type = None):
+    def json_path(self, colname: str, *path: str, type_: Type = None) -> str:
         if DB_TYPE == SQLITE:
             path_value = f"$.{'.'.join(path)}"
             accessor = f"json_extract({colname}, ?)"
@@ -89,14 +89,14 @@ class QueryValues(list):
         self.append(path_value)
         return accessor
 
-    def json_partial_update(self, colname: str, value: dict):
+    def json_partial_update(self, colname: str, value: dict) -> str:
         self.append(value)
         if DB_TYPE == SQLITE:
             return f"{colname} = json_patch({colname}, ?)"
         else:
             return f"{colname} = {colname}::jsonb || ?"
 
-    def placeholder(self, value: Any):
+    def placeholder(self, value: Any) -> str:
         self.append(value)
         if type(value) == datetime.datetime:
             return Compat.timestamp_placeholder
