@@ -64,6 +64,20 @@ async def test_sql_json_update(db):
     assert row.data == obj
 
 
+@pytest.mark.xfail
+@pytest.mark.asyncio
+async def test_sql_json_cant_inject(db):
+    obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
+    await db.execute("INSERT INTO test VALUES(?)", (obj,))
+
+    values = QueryValues()
+    malicious_col = """data IS NOT NULL; INSERT INTO test VALUES ('{"inject": 3}'); SELECT * FROM test WHERE data"""
+    await db.fetchall(
+        f"SELECT * FROM test WHERE {values.json_path(malicious_col, 'c', 'nested')} = {values(obj['c']['nested'])}",
+        values,
+    )
+
+
 @pytest.mark.asyncio
 async def test_sql_json_null(db):
     await db.execute("INSERT INTO test VALUES(?)", (None,))
