@@ -10,4 +10,3 @@ async def test_date_conversion(db):
     if db.type == POSTGRES:
         row = await db.fetchone("SELECT now()::date")
         assert row and type(row[0]) == date
-
