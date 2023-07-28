@@ -53,12 +53,10 @@ async def test_sql_json_update(db):
     obj = {"a": 3, "b": "bar", "c": {"nested": "d"}}
     await db.execute("INSERT INTO test VALUES(?)", (obj,))
 
-    update = {"b": "baz", "c": {"another": "string"}}
-    obj["b"] = update["b"]
-    obj["c"] |= update["c"]
+    obj["c"]["nested"] = "baz"
     values = QueryValues()
     await db.execute(
-        f"UPDATE test SET {values.json_partial_update('data', update)}", values
+        f"UPDATE test SET {values.json_set('data', 'c', 'nested', value='baz')}", values
     )
     row = await db.fetchone("SELECT * FROM test")
     assert row.data == obj

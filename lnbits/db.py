@@ -74,37 +74,54 @@ class QueryValues(list):
     Without this helper, the function would have to inject the value into the query string directly, which is a security risk.
 
     For example usage, see tests/core/test_db.py
+
+    JSON ressources:
+        https://www.sqlite.org/json1.html
+        https://www.postgresql.org/docs/current/functions-json.html
     """
 
     def json_path(self, colname: str, *path: str, type_: Type = None) -> str:
+        colname = self._sanitize_colname(colname)
         if DB_TYPE == SQLITE:
-            path_value = f"$.{'.'.join(path)}"
             accessor = f"json_extract({colname}, ?)"
         else:
-            # https://www.postgresql.org/docs/9.3/functions-json.html
-            path_value = "{" + ",".join(path) + "}"
             accessor = f"{colname} #>> ?"
             if type_ == int:
                 accessor = f"({accessor})::int"
-        self.append(path_value)
+        self.append(self._path(*path))
         return accessor
 
-    def json_partial_update(self, colname: str, value: dict) -> str:
-        self.append(value)
+    def json_set(self, colname: str, *path: str, value: Any) -> str:
+        colname = self._sanitize_colname(colname)
+        self.append(self._path(*path))
         if DB_TYPE == SQLITE:
-            return f"{colname} = json_patch({colname}, ?)"
+            return f"{colname} = json_set({colname}, ?, {self(value)})"
         else:
-            return f"{colname} = {colname}::jsonb || ?"
+            if isinstance(value, str):
+                value = f'"{value}"'
+            return f"{colname} = jsonb_set({colname}::jsonb, ?, {self(value)})"
 
     def placeholder(self, value: Any) -> str:
         self.append(value)
         if type(value) == datetime.datetime:
-            return Compat.timestamp_placeholder
+            return Compat.timestamp_placeholder  # type: ignore
         else:
             return "?"
 
-    def __call__(self, value: Any):
+    def __call__(self, value: Any) -> str:
         return self.placeholder(value)
+
+    def _sanitize_colname(self, colname: str) -> str:
+        if not colname.isidentifier():
+            raise ValueError("Invalid colname")
+        # quote it, just in case any reserved word is used as a colname
+        return '"' + colname + '"'
+
+    def _path(self, *path: str) -> str:
+        if DB_TYPE == SQLITE:
+            return f"$.{'.'.join(path)}"
+        else:
+            return "{" + ",".join(path) + "}"
 
 
 Values = Sequence[Any]
