@@ -211,12 +211,20 @@ class CoreLightningRestWallet(Wallet):
                                 continue
                         except:
                             continue
-
-                        # payment_hash = inv["payment_hash"]
-                        # yield payment_hash
-                        # NOTE: use payment_hash when corelightning-rest updates and supports it
                         logger.trace(f"paid invoice: {inv}")
                         yield inv["label"]
+                        # NOTE: use payment_hash when corelightning-rest updates and supports it
+                        # payment_hash = inv["payment_hash"]
+                        # yield payment_hash
+                        # hack to return payment_hash if the above shouldn't work
+                        # r = await self.client.get(
+                        #     f"{self.url}/v1/invoice/listInvoices",
+                        #     params={"label": inv["label"]},
+                        # )
+                        # paid_invoce = r.json()
+                        # logger.trace(f"paid invoice: {paid_invoce}")
+                        # yield paid_invoce["invoices"][0]["payment_hash"]
+
             except Exception as exc:
                 logger.debug(
                     f"lost connection to lnd invoices stream: '{exc}', reconnecting."

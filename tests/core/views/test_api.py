@@ -305,7 +305,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    WALLET.__class__.__name__ in ["CoreLightningWallet"],
+    WALLET.__class__.__name__ in ["CoreLightningWallet", "CoreLightningRestWallet"],
     reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio
@@ -321,14 +321,14 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     invoice = response.json()
     invoice_bolt11 = bolt11.decode(invoice["payment_request"])
 
-    if invoice_bolt11.description is None:
-        assert invoice_bolt11.description_hash == descr_hash
-    else:
-        # CLN-Rest won't allow description hash........
-        assert invoice_bolt11.description == description
+    assert invoice_bolt11.description_hash == descr_hash
     return invoice
 
 
+@pytest.mark.skipif(
+    WALLET.__class__.__name__ in ["CoreLightningRestWallet"],
+    reason="wallet does not support unhashed_description",
+)
 @pytest.mark.asyncio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
@@ -405,7 +405,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
     async def listen():
         async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["payment_hash"]
+            assert payment_hash == invoice["checking_id"]
             return
 
     task = asyncio.create_task(listen())
@@ -630,7 +630,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
 
     async def listen():
         async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["payment_hash"]
+            assert payment_hash == invoice["checking_id"]
             return
 
     task = asyncio.create_task(listen())
