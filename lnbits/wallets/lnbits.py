@@ -99,7 +99,7 @@ class LNbitsWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["detail"]
-            return PaymentResponse(None, None, None, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
         else:
             data = r.json()
             checking_id = data["payment_hash"]
