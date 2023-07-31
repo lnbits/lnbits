@@ -528,16 +528,16 @@ async def test_pay_hold_invoice_check_pending_and_fail(
 
     preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
 
+    # cancel the hodl invoice
     assert preimage_hash == invoice_obj.payment_hash
     cancel_invoice(preimage_hash)
 
     response = await task
     assert response.status_code > 300  # should error
 
-    # check if paid
-
     await asyncio.sleep(1)
 
+    # payment should not be in database anymore
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement is None
 
@@ -565,7 +565,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert payment_db
     assert payment_db.pending is True
 
-    # cancel payment task
+    # cancel payment task, this simulates the client dropping the connection
     task.cancel()
 
     preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
@@ -576,10 +576,11 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     # check if paid
     await asyncio.sleep(1)
 
+    # payment should still be in db
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement is not None
 
-    # status should still be available
+    # status should still be available and be False
     status = await payment_db.check_status()
     assert status.paid is False
 

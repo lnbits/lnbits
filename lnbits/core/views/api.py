@@ -318,12 +318,9 @@ async def api_payments_create(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="BOLT11 string is invalid or not given",
             )
-        try:
-            return await api_payments_pay_invoice(
-                invoiceData.bolt11, wallet.wallet
-            )  # admin key
-        except Exception as exc:
-            raise HTTPException(status_code=520, detail=str(exc))
+        return await api_payments_pay_invoice(
+            invoiceData.bolt11, wallet.wallet
+        )  # admin key
     elif not invoiceData.out:
         # invoice key
         return await api_payments_create_invoice(invoiceData, wallet.wallet)
