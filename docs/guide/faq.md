@@ -20,7 +20,7 @@ allow-self-payment=1
 
 </details>
   
-<details><summary>Funding source only available via tor (e.g. Umbrel)</summary>
+<details><summary>Funding source only available via tor (e.g. Start9 or Umbrel)</summary>
   <p>If you want your setup to stay behind tor then only apps, pos and wallets that have tor activated can communicate with your wallets. Most likely you will have trouble when people try to redeem your voucher through onion or when importing your lnbits wallets into a wallet-app that doesnt support tor. If you plan to let LNbits wallets interact with plain internet shops and services you should consider <a href="https://github.com/TrezorHannes/Dual-LND-Hybrid-VPS">setting up hybrid mode for your node</a>.</p>
 </details>
     
@@ -73,7 +73,7 @@ allow-self-payment=1
         You need to have a domain and to be able to configure a CNAME for your DNS record as well as generate a subdomain dedicated to your LNbits instance like eg. lnbits.yourdomain.com. 
         You also need access to your internet router to open the https port (usually 443) and forward it your LNbits IP within your LAN (usually 80). The ports might depend on your node implementation if those ports do not work please ask for them in a help group of your node supplier.</li>
        <li>You can also follow the Apache installation option, explained in the <a href="https://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https">LNbits installation manual</a>.</li>
-       <li>If you run LNbits from a bundle node (Umbrel, myNode, Embassy, Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits in the newest version.</li>
+       <li>If you run LNbits from a bundle node (myNode, Start9, Umbrel,Raspiblitz etc), you can follow <a href="https://github.com/TrezorHannes/vps-lnbits">this extensive guide</a> with many options to switch your Tor only LNbits into a clearnet LNbits. For Citadel there is a HTTPS Option in your manual to activate https for LNbits in the newest version.</li>
        </ul>
     </details>
    </li>

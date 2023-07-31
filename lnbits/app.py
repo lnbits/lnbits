@@ -484,9 +484,11 @@ def configure_logger() -> None:
     logger.remove()
     log_level: str = "DEBUG" if settings.debug else "INFO"
     formatter = Formatter()
-    logger.add(sys.stderr, level=log_level, format=formatter.format)
+    logger.add(sys.stdout, level=log_level, format=formatter.format)
     logging.getLogger("uvicorn").handlers = [InterceptHandler()]
     logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.error").propagate = False
 
 
 class Formatter:

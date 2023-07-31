@@ -31,7 +31,10 @@ class OpenNodeWallet(Wallet):
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
     async def cleanup(self):
-        await self.client.aclose()
+        try:
+            await self.client.aclose()
+        except RuntimeError as e:
+            logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
         try:

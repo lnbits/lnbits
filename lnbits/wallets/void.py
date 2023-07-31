@@ -1,20 +1,16 @@
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from loguru import logger
 
 from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
+from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
 
 
 class VoidWallet(Wallet):
-    async def create_invoice(
-        self,
-        amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        **kwargs,
-    ) -> InvoiceResponse:
-        raise Unsupported("")
+    async def create_invoice(self, *_, **__) -> InvoiceResponse:
+        return InvoiceResponse(
+            ok=False, error_message="VoidWallet cannot create invoices."
+        )
 
     async def status(self) -> StatusResponse:
         logger.warning(
@@ -25,8 +21,10 @@ class VoidWallet(Wallet):
         )
         return StatusResponse(None, 0)
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        raise Unsupported("")
+    async def pay_invoice(self, *_, **__) -> PaymentResponse:
+        return PaymentResponse(
+            ok=False, error_message="VoidWallet cannot pay invoices."
+        )
 
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         return PaymentStatus(None)

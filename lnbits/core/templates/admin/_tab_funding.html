@@ -47,7 +47,8 @@
               <p>Invoice Expiry</p>
               <q-input
                 filled
-                v-model="formData.lightning_invoice_expiry"
+                v-model.number="formData.lightning_invoice_expiry"
+                type="number"
                 label="Invoice expiry (seconds)"
                 mask="#######"
               >
