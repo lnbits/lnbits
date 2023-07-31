@@ -578,8 +578,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
 
     # status should still be available
     status = await payment_db.check_status()
-    # TODO: LNbitsWallet returns None but all other backends return False here. Why?
-    assert status.paid in [False, None]
+    assert status.paid is False
 
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement is None
