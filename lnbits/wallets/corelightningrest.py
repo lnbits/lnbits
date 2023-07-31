@@ -155,7 +155,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or data.get("invoices") is None:
-                raise Exception("error in eclair response")
+                raise Exception("error in cln response")
             return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
         except:
             return PaymentStatus(None)
@@ -193,9 +193,10 @@ class CoreLightningRestWallet(Wallet):
                 url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
                 async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():
-                        print(line)
+                        inv = json.loads(line)
+                        if "error" in inv and "message" in inv["error"]:
+                            raise Exception(inv["error"]["message"])
                         try:
-                            inv = json.loads(line)
                             paid = inv["status"] == "paid"
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
@@ -206,9 +207,10 @@ class CoreLightningRestWallet(Wallet):
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
                         # NOTE: use payment_hash when corelightning-rest updates and supports it
+                        logger.debug(f"paid invoice: {inv}")
                         yield inv["label"]
             except Exception as exc:
-                logger.error(
-                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                logger.debug(
+                    f"lost connection to lnd invoices stream: '{exc}', reconnecting."
                 )
-                await asyncio.sleep(5)
+                await asyncio.sleep(0.02)
