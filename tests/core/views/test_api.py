@@ -445,9 +445,11 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert response["paid"]
 
     # make sure that the backend also thinks it's paid
-    status = await WALLET.get_payment_status(Payment.dummy(
-                checking_id=invoice["payment_hash"],
-            ))
+    status = await WALLET.get_payment_status(
+        Payment.dummy(
+            checking_id=invoice["payment_hash"],
+        )
+    )
     assert status.paid
 
     # get the outgoing payment from the db
