@@ -14,6 +14,7 @@ from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoiceData, api_payments_create_invoice
 
 from ...helpers import (
+    cancel_invoice,
     get_random_invoice_data,
     is_fake,
     pay_real_invoice,
@@ -468,7 +469,9 @@ async def test_pay_real_invoice_set_pending_and_check_state(
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
+async def test_pay_hold_invoice_check_pending(
+    client, hold_invoice, adminkey_headers_from
+):
     preimage, invoice = hold_invoice
     task = asyncio.create_task(
         client.post(
@@ -479,15 +482,115 @@ async def test_pay_hold_invoice(client, hold_invoice, adminkey_headers_from):
     )
     await asyncio.sleep(1)
 
-    # TODO: Proper test calle :)
-    # settle hold invoice
+    # get payment hash from the invoice
+    invoice_obj = bolt11.decode(invoice["payment_request"])
+
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db
+    assert payment_db.pending is True
+
     settle_invoice(preimage)
 
     response = await task
     assert response.status_code < 300
+
     # check if paid
-    # randomly cancel invoice
-    # cancel_invoice(invoice["payment_hash"])
+
+    await asyncio.sleep(1)
+
+    payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db_after_settlement
+    assert payment_db_after_settlement.pending is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_hold_invoice_check_pending_and_fail(
+    client, hold_invoice, adminkey_headers_from
+):
+    preimage, invoice = hold_invoice
+    task = asyncio.create_task(
+        client.post(
+            "/api/v1/payments",
+            json={"bolt11": invoice["payment_request"]},
+            headers=adminkey_headers_from,
+        )
+    )
+    await asyncio.sleep(1)
+
+    # get payment hash from the invoice
+    invoice_obj = bolt11.decode(invoice["payment_request"])
+
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db
+    assert payment_db.pending is True
+
+    preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
+
+    # cancel the hodl invoice
+    assert preimage_hash == invoice_obj.payment_hash
+    cancel_invoice(preimage_hash)
+
+    response = await task
+    assert response.status_code > 300  # should error
+
+    await asyncio.sleep(1)
+
+    # payment should not be in database anymore
+    payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
+    assert payment_db_after_settlement is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_meantime(
+    client, hold_invoice, adminkey_headers_from
+):
+    preimage, invoice = hold_invoice
+    task = asyncio.create_task(
+        client.post(
+            "/api/v1/payments",
+            json={"bolt11": invoice["payment_request"]},
+            headers=adminkey_headers_from,
+        )
+    )
+    await asyncio.sleep(1)
+
+    # get payment hash from the invoice
+    invoice_obj = bolt11.decode(invoice["payment_request"])
+
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+
+    assert payment_db
+    assert payment_db.pending is True
+
+    # cancel payment task, this simulates the client dropping the connection
+    task.cancel()
+
+    preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
+
+    assert preimage_hash == invoice_obj.payment_hash
+    cancel_invoice(preimage_hash)
+
+    # check if paid
+    await asyncio.sleep(1)
+
+    # payment should still be in db
+    payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
+    assert payment_db_after_settlement is not None
+
+    # status should still be available and be False
+    status = await payment_db.check_status()
+    assert status.paid is False
+
+    # now the payment should be gone after the status check
+    payment_db_after_status_check = await get_standalone_payment(
+        invoice_obj.payment_hash
+    )
+    assert payment_db_after_status_check is None
 
 
 @pytest.mark.asyncio
