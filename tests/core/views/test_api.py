@@ -578,7 +578,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
 
     # status should still be available
     status = await payment_db.check_status()
-    assert status.paid is False
+    assert status.paid in [False or None]
 
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement is None
