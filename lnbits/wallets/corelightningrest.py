@@ -10,7 +10,7 @@ from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
 from .macaroon import load_macaroon
 
 
@@ -77,6 +77,14 @@ class CoreLightningRestWallet(Wallet):
             "description": memo,
             "label": label,
         }
+        if description_hash and not unhashed_description:
+            raise Unsupported(
+                "'description_hash' unsupported by CoreLightningRest, provide 'unhashed_description'"
+            )
+
+        if unhashed_description:
+            data["description"] = unhashed_description.decode("utf-8")
+
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
 
@@ -207,7 +215,7 @@ class CoreLightningRestWallet(Wallet):
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
                         # NOTE: use payment_hash when corelightning-rest updates and supports it
-                        logger.debug(f"paid invoice: {inv}")
+                        logger.trace(f"paid invoice: {inv}")
                         yield inv["label"]
             except Exception as exc:
                 logger.debug(
