@@ -314,15 +314,18 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     description = "asdasdasd"
     descr_hash = hashlib.sha256(description.encode()).hexdigest()
     data["description_hash"] = descr_hash
-    data["unhashed_description"] = description
+    data["unhashed_description"] = description.encode().hex()
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to
     )
     invoice = response.json()
-
     invoice_bolt11 = bolt11.decode(invoice["payment_request"])
-    assert invoice_bolt11.description_hash == descr_hash
-    assert invoice_bolt11.description is None
+
+    if invoice_bolt11.description is None:
+        assert invoice_bolt11.description_hash == descr_hash
+    else:
+        # CLN-Rest won't allow description hash........
+        assert invoice_bolt11.description == description
     return invoice
 
 
