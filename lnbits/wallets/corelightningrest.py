@@ -227,6 +227,6 @@ class CoreLightningRestWallet(Wallet):
 
             except Exception as exc:
                 logger.debug(
-                    f"lost connection to lnd invoices stream: '{exc}', reconnecting."
+                    f"lost connection to corelightning-rest invoices stream: '{exc}', reconnecting."
                 )
                 await asyncio.sleep(0.02)

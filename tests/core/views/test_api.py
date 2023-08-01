@@ -404,8 +404,8 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     assert not response["paid"]
 
     async def listen():
-        async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["checking_id"]
+        async for checking_id in get_wallet_class().paid_invoices_stream():
+            assert checking_id == invoice["checking_id"]
             return
 
     task = asyncio.create_task(listen())
@@ -629,8 +629,8 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert not response["paid"]
 
     async def listen():
-        async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["checking_id"]
+        async for checking_id in get_wallet_class().paid_invoices_stream():
+            assert checking_id == invoice["checking_id"]
             return
 
     task = asyncio.create_task(listen())
