@@ -711,6 +711,7 @@
                 v-model.trim="parse.data.request"
                 type="textarea"
                 :label="$t('paste_invoice_label')"
+                ref="textArea"
               >
               </q-input>
               <div class="row q-mt-lg">
@@ -721,6 +722,17 @@
                   type="submit"
                   :label="$t('read')"
                 ></q-btn>
+                <q-icon
+                  name="content_paste"
+                  unelevated
+                  color="grey"
+                  class="q-mt-xs q-ml-sm q-mr-auto"
+                  @click="pasteToTextArea"
+                  ><q-tooltip
+                    >{% raw %}{{$t('paste_from_clipboard')}}{% endraw
+                    %}</q-tooltip
+                  ></q-icon
+                >
                 <q-btn
                   v-close-popup
                   flat
