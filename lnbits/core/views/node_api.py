@@ -100,12 +100,19 @@ async def api_create_channel(
 
 @node_api.delete("/channels")
 async def api_delete_channel(
+    short_id: Optional[str],
+    funding_txid: Optional[str],
+    output_index: Optional[int],
+    force: bool = False,
     node: Node = Depends(require_node),
-    short_id: Optional[str] = Body(None),
-    point: Optional[ChannelPoint] = Body(None),
-    force: bool = Body(False),
 ) -> Optional[List[NodeChannel]]:
-    return await node.close_channel(short_id, point, force)
+    return await node.close_channel(
+        short_id,
+        ChannelPoint(funding_txid=funding_txid, output_index=output_index)
+        if funding_txid is not None and output_index is not None
+        else None,
+        force,
+    )
 
 
 @node_api.get("/payments", response_model=Page[NodePayment])

@@ -467,10 +467,10 @@
       },
       showCloseChannelDialog: function (channel) {
         this.closeChannelDialog.show = true
-        this.closeChannelDialog.data = {force: false, short_id: channel.short_id, point: channel.point}
+        this.closeChannelDialog.data = {force: false, short_id: channel.short_id, ...channel.point}
       },
       closeChannel: function () {
-        this.api('DELETE', '/channels', {data: this.closeChannelDialog.data})
+        this.api('DELETE', '/channels', {query: this.closeChannelDialog.data})
           .then(response => {
             this.closeChannelDialog.show = false
             this.getChannels()

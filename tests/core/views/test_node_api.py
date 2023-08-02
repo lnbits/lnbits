@@ -109,10 +109,9 @@ async def test_channel_management(node_client):
     )
     assert close, "No active channel found"
 
-    response = await node_client.request(
-        "DELETE",
+    response = await node_client.delete(
         "/node/api/v1/channels",
-        json={"short_id": close.short_id, "point": close.point.dict()},
+        params={"short_id": close.short_id, **close.point.dict()},
     )
     assert response.status_code == 200
 
@@ -136,7 +135,7 @@ async def test_channel_management(node_client):
         channel.point == created and channel.state == ChannelState.PENDING
         for channel in data
     )
-    
+
     # mine some blocks so that the newly created channel eventually gets confirmed to avoid a situation
     # where no channels are left for testing
     mine_blocks(5)
