@@ -1,9 +1,10 @@
 import pytest
 
+from lnbits.core import api_payments_create_invoice
 from lnbits.nodes.base import NodeChannelsResponse
 from tests.conftest import pytest_asyncio, settings
 
-from ...helpers import WALLET
+from ...helpers import WALLET, get_random_invoice_data
 
 pytestmark = pytest.mark.skipif(
     WALLET.__node_cls__ is None, reason="Cant test if node implementation isnt avilable"
@@ -84,7 +85,13 @@ async def test_node_invoices(node_client, from_super_user, invoice):
 
 
 @pytest.mark.asyncio
-async def test_node_invoices(node_client, from_super_user, invoice):
+async def test_node_invoices(inkey_headers_from, node_client, from_super_user):
+    data = await get_random_invoice_data()
+    response = await node_client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_from
+    )
+    invoice = response.json()
+
     response = await node_client.get(
         "/node/api/v1/invoices", params={"usr": from_super_user.id, "limit": 1}
     )
