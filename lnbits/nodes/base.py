@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, NamedTuple, Optional
+from typing import TYPE_CHECKING, List, NamedTuple, Optional
 
 from pydantic import BaseModel
 
@@ -59,20 +59,6 @@ class NodeChannel(BaseModel):
 class NodeChannelsResponse(BaseModel):
     channels: list[NodeChannel]
     active_balance: ChannelBalance
-
-    @classmethod
-    def from_list(cls, channels: list[NodeChannel]):
-        active = [
-            channel for channel in channels if channel.state == ChannelState.ACTIVE
-        ]
-        return NodeChannelsResponse(
-            channels=channels,
-            active_balance=ChannelBalance(
-                local_msat=sum(channel.balance.local_msat for channel in active),
-                remote_msat=sum(channel.balance.remote_msat for channel in active),
-                total_msat=sum(channel.balance.total_msat for channel in active),
-            ),
-        )
 
 
 class ChannelStats(BaseModel):
@@ -216,7 +202,7 @@ class Node(ABC):
         local_amount: int,
         push_amount: Optional[int] = None,
         fee_rate: Optional[int] = None,
-    ):
+    ) -> ChannelPoint:
         pass
 
     @abstractmethod
@@ -229,7 +215,7 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def get_channels(self) -> NodeChannelsResponse:
+    async def get_channels(self) -> List[NodeChannel]:
         pass
 
     @abstractmethod

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -13,7 +13,7 @@ from ...db import Filters, Page
 from ...nodes.base import (
     ChannelPoint,
     Node,
-    NodeChannelsResponse,
+    NodeChannel,
     NodeInfoResponse,
     NodeInvoice,
     NodeInvoiceFilters,
@@ -83,18 +83,18 @@ async def api_get_info(
 @node_api.get("/channels")
 async def api_get_channels(
     node: Node = Depends(require_node),
-) -> Optional[NodeChannelsResponse]:
+) -> Optional[List[NodeChannel]]:
     return await node.get_channels()
 
 
-@node_api.post("/channels")
+@node_api.post("/channels", response_model=ChannelPoint)
 async def api_create_channel(
     node: Node = Depends(require_node),
     peer_id: str = Body(),
     funding_amount: int = Body(),
     push_amount: Optional[int] = Body(None),
     fee_rate: Optional[int] = Body(None),
-) -> Optional[NodeChannelsResponse]:
+):
     return await node.open_channel(peer_id, funding_amount, push_amount, fee_rate)
 
 
@@ -104,7 +104,7 @@ async def api_delete_channel(
     short_id: Optional[str] = Body(None),
     point: Optional[ChannelPoint] = Body(None),
     force: bool = Body(False),
-) -> Optional[NodeChannelsResponse]:
+) -> Optional[List[NodeChannel]]:
     return await node.close_channel(short_id, point, force)
 
 
@@ -134,8 +134,8 @@ async def api_get_invoices(
     return await node.get_invoices(filters)
 
 
-@node_api.get("/peers", response_model=list[NodePeerInfo])
-async def api_get_peers(node: Node = Depends(require_node)) -> list[NodePeerInfo]:
+@node_api.get("/peers", response_model=List[NodePeerInfo])
+async def api_get_peers(node: Node = Depends(require_node)) -> List[NodePeerInfo]:
     return await node.get_peers()
 
 

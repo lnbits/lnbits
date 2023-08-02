@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from fastapi import HTTPException
 from httpx import HTTPStatusError
@@ -18,7 +18,6 @@ from lnbits.nodes.base import (
     ChannelState,
     ChannelStats,
     NodeChannel,
-    NodeChannelsResponse,
     NodeFees,
     NodeInfoResponse,
     NodeInvoice,
@@ -39,6 +38,14 @@ def msat(raw: str) -> int:
 
 def _decode_bytes(data: str) -> str:
     return base64.b64decode(data).hex()
+
+
+def _parse_channel_point(raw: str) -> ChannelPoint:
+    funding_tx, output_index = raw.split(":")
+    return ChannelPoint(
+        funding_txid=funding_tx,
+        output_index=int(output_index),
+    )
 
 
 class LndRestNode(Node):
@@ -102,8 +109,8 @@ class LndRestNode(Node):
         local_amount: int,
         push_amount: Optional[int] = None,
         fee_rate: Optional[int] = None,
-    ):
-        await self.request(
+    ) -> ChannelPoint:
+        response = await self.request(
             "POST",
             "/v1/channels",
             data=json.dumps(
@@ -116,7 +123,13 @@ class LndRestNode(Node):
                 }
             ),
         )
-        pass
+        return ChannelPoint(
+            # WHY IS THIS REVERSED?!
+            funding_txid=bytes(
+                reversed(base64.b64decode(response["funding_txid_bytes"]))
+            ).hex(),
+            output_index=response["output_index"],
+        )
 
     async def _close_channel(
         self,
@@ -145,7 +158,7 @@ class LndRestNode(Node):
 
         asyncio.create_task(self._close_channel(point, force))
 
-    async def get_channels(self) -> NodeChannelsResponse:
+    async def get_channels(self) -> List[NodeChannel]:
         normal, pending, closed = await asyncio.gather(
             self.get("/v1/channels"),
             self.get("/v1/channels/pending"),
@@ -154,22 +167,30 @@ class LndRestNode(Node):
 
         channels = []
 
-        for channel in pending["pending_open_channels"]:
-            channel = channel["channel"]
-            info = await self.get_peer_info(channel["remote_node_pub"])
-            channels.append(
-                NodeChannel(
-                    peer_id=info.id,
-                    state=ChannelState.PENDING,
-                    name=info.alias,
-                    color=info.color,
-                    balance=ChannelBalance(
-                        local_msat=msat(channel["local_balance"]),
-                        remote_msat=msat(channel["remote_balance"]),
-                        total_msat=msat(channel["capacity"]),
-                    ),
+        async def parse_pending(raw_channels, state):
+            for channel in raw_channels:
+                channel = channel["channel"]
+                info = await self.get_peer_info(channel["remote_node_pub"])
+                channels.append(
+                    NodeChannel(
+                        peer_id=info.id,
+                        state=state,
+                        name=info.alias,
+                        color=info.color,
+                        point=_parse_channel_point(channel["channel_point"]),
+                        balance=ChannelBalance(
+                            local_msat=msat(channel["local_balance"]),
+                            remote_msat=msat(channel["remote_balance"]),
+                            total_msat=msat(channel["capacity"]),
+                        ),
+                    )
                 )
-            )
+
+        await parse_pending(pending["pending_open_channels"], ChannelState.PENDING)
+        await parse_pending(
+            pending["pending_force_closing_channels"], ChannelState.CLOSED
+        )
+        await parse_pending(pending["waiting_close_channels"], ChannelState.CLOSED)
 
         for channel in closed["channels"]:
             info = await self.get_peer_info(channel["remote_pubkey"])
@@ -179,6 +200,7 @@ class LndRestNode(Node):
                     state=ChannelState.CLOSED,
                     name=info.alias,
                     color=info.color,
+                    point=_parse_channel_point(channel["channel_point"]),
                     balance=ChannelBalance(
                         local_msat=0,
                         remote_msat=0,
@@ -189,14 +211,10 @@ class LndRestNode(Node):
 
         for channel in normal["channels"]:
             info = await self.get_peer_info(channel["remote_pubkey"])
-            funding_tx, output_index = channel["channel_point"].split(":")
             channels.append(
                 NodeChannel(
                     short_id=channel["chan_id"],
-                    point=ChannelPoint(
-                        funding_txid=funding_tx,
-                        output_index=output_index,
-                    ),
+                    point=_parse_channel_point(channel["channel_point"]),
                     peer_id=channel["remote_pubkey"],
                     balance=ChannelBalance(
                         local_msat=msat(channel["local_balance"]),
@@ -212,7 +230,7 @@ class LndRestNode(Node):
                 )
             )
 
-        return NodeChannelsResponse.from_list(channels)
+        return channels
 
     async def get_public_info(self) -> PublicNodeInfo:
         info = await self.get("/v1/getinfo")
@@ -225,7 +243,7 @@ class LndRestNode(Node):
             num_peers=info["num_peers"],
             blockheight=info["block_height"],
             addresses=info["uris"],
-            channel_stats=ChannelStats.from_list(channels.channels),
+            channel_stats=ChannelStats.from_list(channels),
         )
 
     async def get_info(self) -> NodeInfoResponse:

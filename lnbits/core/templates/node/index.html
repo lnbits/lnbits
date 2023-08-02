@@ -377,10 +377,7 @@
       getChannels: function () {
         return this.api('GET', '/channels')
           .then(response => {
-            //this.channels = response.data.by_state.active
-            this.channels.data = response.data.channels
-            this.activeBalance = response.data.active_balance
-            console.log('hi', this.channels)
+            this.channels.data = response.data
           })
       },
       getInfo: function () {

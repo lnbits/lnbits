@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from functools import partial, wraps
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import starlette.status as status
 from fastapi import HTTPException
@@ -29,21 +27,10 @@ from lnbits.nodes.base import (
     NodePeerInfo,
 )
 
-from .base import NodeChannel, NodeChannelsResponse, NodeInfoResponse, NodePayment
+from .base import NodeChannel, NodeInfoResponse, NodePayment
 
 if TYPE_CHECKING:
     from lnbits.wallets import CoreLightningWallet
-
-
-def async_wrap(func):
-    @wraps(func)
-    async def run(*args, loop=None, executor=None, **kwargs):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        partial_func = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(executor, partial_func)
-
-    return run
 
 
 def catch_rpc_errors(f):
@@ -81,19 +68,10 @@ class CoreLightningNode(Node):
                     status.HTTP_400_BAD_REQUEST,
                     detail="Connection establishment: No address known for peer",
                 )
-            elif "Connection timed out" in message:
-                raise HTTPException(
-                    status.HTTP_504_GATEWAY_TIMEOUT,
-                    detail="Connection establishment: Connection timed out.",
-                )
-            elif "Connection refused" in message:
-                raise HTTPException(
-                    status.HTTP_504_GATEWAY_TIMEOUT,
-                    detail="Connection establishment: Connection refused.",
-                )
             else:
                 raise
 
+    @catch_rpc_errors
     async def disconnect_peer(self, id: str):
         await self.wallet.ln_rpc("disconnect", id)
 
@@ -104,7 +82,7 @@ class CoreLightningNode(Node):
         local_amount: int,
         push_amount: Optional[int] = None,
         fee_rate: Optional[int] = None,
-    ):
+    ) -> ChannelPoint:
         try:
             result = await self.wallet.ln_rpc(
                 "fundchannel",
@@ -113,7 +91,10 @@ class CoreLightningNode(Node):
                 push_msat=int(push_amount * 1000) if push_amount else None,
                 feerate=fee_rate,
             )
-            return result["txid"]
+            return ChannelPoint(
+                funding_txid=result["txid"],
+                output_index=result["outnum"],
+            )
         except RpcError as e:
             message = e.error["message"]  # type: ignore
 
@@ -142,6 +123,7 @@ class CoreLightningNode(Node):
                 or "Could not afford" in message
             ):
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
+            raise
 
     @catch_rpc_errors
     async def close_channel(
@@ -153,7 +135,6 @@ class CoreLightningNode(Node):
         if not short_id:
             raise HTTPException(status_code=400, detail="Short id required")
         try:
-            self.wallet.ln.close()
             await self.wallet.ln_rpc("close", short_id)
         except RpcError as e:
             message = e.error["message"]  # type: ignore
@@ -171,7 +152,7 @@ class CoreLightningNode(Node):
         return info["id"]
 
     @catch_rpc_errors
-    async def get_peer_ids(self) -> list[str]:
+    async def get_peer_ids(self) -> List[str]:
         peers = await self.wallet.ln_rpc("listpeers")
         return [p["id"] for p in peers["peers"] if p["connected"]]
 
@@ -197,57 +178,53 @@ class CoreLightningNode(Node):
             return NodePeerInfo(id=node["nodeid"])
 
     @catch_rpc_errors
-    async def get_channels(self) -> NodeChannelsResponse:
+    async def get_channels(self) -> List[NodeChannel]:
         funds = await self.wallet.ln_rpc("listfunds")
         nodes = await self.wallet.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
-        return NodeChannelsResponse.from_list(
-            [
-                NodeChannel(
-                    short_id=ch.get("short_channel_id"),
-                    point=ChannelPoint(
-                        funding_txid=ch["funding_txid"],
-                        output_index=ch["funding_output"],
-                    ),
-                    peer_id=ch["peer_id"],
-                    balance=ChannelBalance(
-                        local_msat=ch["our_amount_msat"],
-                        remote_msat=ch["amount_msat"] - ch["our_amount_msat"],
-                        total_msat=ch["amount_msat"],
-                    ),
-                    name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
-                    color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
-                    state=(
-                        ChannelState.ACTIVE
-                        if ch["state"] == "CHANNELD_NORMAL"
-                        else ChannelState.PENDING
-                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
-                        else ChannelState.CLOSED
-                        if ch["state"]
-                        in (
-                            "CHANNELD_CLOSING",
-                            "CLOSINGD_COMPLETE",
-                            "CLOSINGD_SIGEXCHANGE",
-                            "ONCHAIN",
-                        )
-                        else ChannelState.INACTIVE
-                    ),
-                )
-                for ch in funds["channels"]
-            ]
-        )
+        return [
+            NodeChannel(
+                short_id=ch.get("short_channel_id"),
+                point=ChannelPoint(
+                    funding_txid=ch["funding_txid"],
+                    output_index=ch["funding_output"],
+                ),
+                peer_id=ch["peer_id"],
+                balance=ChannelBalance(
+                    local_msat=ch["our_amount_msat"],
+                    remote_msat=ch["amount_msat"] - ch["our_amount_msat"],
+                    total_msat=ch["amount_msat"],
+                ),
+                name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
+                color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
+                state=(
+                    ChannelState.ACTIVE
+                    if ch["state"] == "CHANNELD_NORMAL"
+                    else ChannelState.PENDING
+                    if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
+                    else ChannelState.CLOSED
+                    if ch["state"]
+                    in (
+                        "CHANNELD_CLOSING",
+                        "CLOSINGD_COMPLETE",
+                        "CLOSINGD_SIGEXCHANGE",
+                        "ONCHAIN",
+                    )
+                    else ChannelState.INACTIVE
+                ),
+            )
+            for ch in funds["channels"]
+        ]
 
     @catch_rpc_errors
     async def get_info(self) -> NodeInfoResponse:
         info = await self.wallet.ln_rpc("getinfo")
         funds = await self.wallet.ln_rpc("listfunds")
 
-        channel_response = await self.get_channels()
+        channels = await self.get_channels()
         active_channels = [
-            channel
-            for channel in channel_response.channels
-            if channel.state == ChannelState.ACTIVE
+            channel for channel in channels if channel.state == ChannelState.ACTIVE
         ]
         return NodeInfoResponse(
             id=info["id"],
@@ -260,7 +237,7 @@ class CoreLightningNode(Node):
                 for output in funds["outputs"]
                 if output["status"] == "confirmed"
             ),
-            channel_stats=ChannelStats.from_list(channel_response.channels),
+            channel_stats=ChannelStats.from_list(channels),
             num_peers=info["num_peers"],
             blockheight=info["blockheight"],
             balance_msat=sum(channel.balance.local_msat for channel in active_channels),
@@ -297,22 +274,6 @@ class CoreLightningNode(Node):
         if filters.limit:
             results = results[: filters.limit]
         return Page(data=results, total=count)
-
-    @catch_rpc_errors
-    async def sql(self, query: str, schema: Optional[str] = None) -> list:
-        loop = asyncio.get_event_loop()
-        result: dict = await loop.run_in_executor(  # type: ignore
-            None, lambda: self.wallet.ln.call("sql", [query.replace("\n", " ")])
-        )
-
-        if schema and schema in self.schema_cols:
-            rows = [
-                {self.schema_cols[schema][i]["name"]: val for i, val in enumerate(row)}
-                for row in result["rows"]
-            ]
-        else:
-            rows = result["rows"]
-        return rows
 
     @catch_rpc_errors
     async def get_invoices(

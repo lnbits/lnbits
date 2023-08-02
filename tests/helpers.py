@@ -52,7 +52,7 @@ docker_cmd = "docker exec"
 docker_lightning = f"{docker_cmd} {docker_prefix}-lnd-1-1"
 docker_lightning_cli = f"{docker_lightning} lncli --network regtest --rpcserver=lnd-1"
 
-docker_bitcoin = f"{docker_cmd} {docker_prefix}-bitcoind-1-1"
+docker_bitcoin = f"{docker_cmd} {docker_prefix}-bitcoind-1"
 docker_bitcoin_cli = f"{docker_bitcoin} bitcoin-cli -rpcuser={docker_bitcoin_rpc} -rpcpassword={docker_bitcoin_rpc} -regtest"
 
 
