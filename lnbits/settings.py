@@ -90,6 +90,7 @@ class ThemesSettings(LNbitsSettings):
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: List[str] = Field(default=[])
+    lnbits_default_accounting_currency: Optional[str] = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):

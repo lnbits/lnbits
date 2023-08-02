@@ -10,6 +10,7 @@ from lnbits.core.models import Payment
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
 from lnbits.db import DB_TYPE, SQLITE
+from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoice, api_payments_create_invoice
 
@@ -381,22 +382,33 @@ async def test_update_wallet(client, adminkey_headers_from):
 
 @pytest.mark.asyncio
 async def test_fiat_tracking(client, adminkey_headers_from):
+    async def create_invoice():
+        data = await get_random_invoice_data()
+        response = await client.post(
+            "/api/v1/payments", json=data, headers=adminkey_headers_from
+        )
+        assert response.is_success
+
+        response = await client.get(
+            "/api/v1/payments?limit=1", headers=adminkey_headers_from
+        )
+        assert response.status_code == 200
+        return response.json()[0]
+
+    await client.patch(
+        "/api/v1/wallet", json={"currency": ""}, headers=adminkey_headers_from
+    )
+
+    settings.lnbits_default_accounting_currency = "USD"
+    payment = await create_invoice()
+    assert payment["extra"]["wallet_fiat_currency"] == "USD"
+    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+
     await client.patch(
         "/api/v1/wallet", json={"currency": "EUR"}, headers=adminkey_headers_from
     )
 
-    data = await get_random_invoice_data()
-    data["amount"] = 1000
-    response = await client.post(
-        "/api/v1/payments", json=data, headers=adminkey_headers_from
-    )
-    assert response.is_success
-
-    response = await client.get(
-        "/api/v1/payments?limit=1", headers=adminkey_headers_from
-    )
-    assert response.status_code == 200
-    payment = response.json()[0]
+    payment = await create_invoice()
     assert payment["extra"]["wallet_fiat_currency"] == "EUR"
     assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
 

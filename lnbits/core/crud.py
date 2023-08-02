@@ -249,7 +249,7 @@ async def update_wallet(
     if name:
         set_clause.append("name = ?")
         values.append(name)
-    if currency:
+    if currency is not None:
         set_clause.append("currency = ?")
         values.append(currency)
     values.append(wallet_id)
@@ -544,12 +544,12 @@ async def create_payment(
     wallet = await get_wallet(wallet_id, conn=conn)
     assert wallet, "invalid wallet_id"
 
-    fiat_amount = None
-    if wallet.currency:
-        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, wallet.currency)
+    fiat_currency = wallet.currency or settings.lnbits_default_accounting_currency
+    if fiat_currency:
+        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, fiat_currency)
         fiat_amount = round(fiat_amount, ndigits=3)
         extra = extra or {}
-        extra["wallet_fiat_currency"] = wallet.currency
+        extra["wallet_fiat_currency"] = fiat_currency
         extra["wallet_fiat_amount"] = fiat_amount
 
     await (conn or db).execute(
