@@ -63,7 +63,10 @@ def create_app() -> FastAPI:
     configure_logger()
     app = FastAPI(
         title="LNbits API",
-        description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
+        description=(
+            "API for LNbits, the free and open source bitcoin wallet and "
+            "accounts system with plugins."
+        ),
         version=settings.version,
         license_info={
             "name": "MIT License",
@@ -107,7 +110,9 @@ async def check_funding_source() -> None:
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
-        logger.debug("SIGINT received, terminating LNbits.")
+        logger.debug(
+            f"SIGINT received, terminating LNbits. signal: {signal}, frame: {frame}"
+        )
         sys.exit(1)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -129,17 +134,15 @@ async def check_funding_source() -> None:
                 break
 
             logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                f"The backend for {WALLET.__class__.__name__} isn't "
+                f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
-        except:
+        except Exception:
             pass
 
         if settings.lnbits_admin_ui and retry_counter == timeout:
-            logger.warning(
-                f"Fallback to VoidWallet, because the backend for {WALLET.__class__.__name__} isn't working properly"
-            )
-            set_wallet_class("VoidWallet")
+            set_void_wallet_class()
             WALLET = get_wallet_class()
             break
         else:
@@ -150,16 +153,25 @@ async def check_funding_source() -> None:
     signal.signal(signal.SIGINT, original_sigint_handler)
 
     logger.info(
-        f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
+        f"✔️ Backend {WALLET.__class__.__name__} connected "
+        f"and with a balance of {balance} msat."
     )
+
+
+def set_void_wallet_class():
+    logger.warning(
+        "Fallback to VoidWallet, because the backend for "
+        f"{settings.lnbits_backend_wallet_class} isn't working properly"
+    )
+    set_wallet_class("VoidWallet")
 
 
 async def check_installed_extensions(app: FastAPI):
     """
-    Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
-    One reason might be a docker-container that was re-created.
-    The 'data' directory (where the '.zip' files live) is expected to persist state.
-    Zips that are missing will be re-downloaded.
+    Check extensions that have been installed, but for some reason no longer present in
+    the 'lnbits/extensions' directory. One reason might be a docker-container that was
+    re-created. The 'data' directory (where the '.zip' files live) is expected to
+    persist state. Zips that are missing will be re-downloaded.
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
     await load_disabled_extension_list()
@@ -171,7 +183,8 @@ async def check_installed_extensions(app: FastAPI):
             if not installed:
                 await restore_installed_extension(app, ext)
                 logger.info(
-                    f"✔️ Successfully re-installed extension: {ext.id} ({ext.installed_version})"
+                    "✔️ Successfully re-installed extension: "
+                    f"{ext.id} ({ext.installed_version})"
                 )
         except Exception as e:
             logger.warning(e)
@@ -252,7 +265,8 @@ def register_routes(app: FastAPI) -> None:
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
     # Returns a function that registers new routes for an extension.
-    # The returned function encapsulates (creates a closure around) the `app` object but does expose it.
+    # The returned function encapsulates (creates a closure around)
+    # the `app` object but does expose it.
     def register_new_ext_routes_fn(ext: Extension):
         register_ext_routes(app, ext)
 
@@ -319,7 +333,14 @@ def register_startup(app: FastAPI):
             add_ip_block_middleware(app)
 
             # initialize WALLET
-            set_wallet_class()
+            try:
+                set_wallet_class()
+            except Exception as e:
+                logger.error(
+                    f"Error initializing {settings.lnbits_backend_wallet_class}: "
+                    f"{str(e)}"
+                )
+                set_void_wallet_class()
 
             # initialize funding source
             await check_funding_source()
@@ -493,11 +514,16 @@ def configure_logger() -> None:
 class Formatter:
     def __init__(self):
         self.padding = 0
-        self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
+        self.minimal_fmt: str = (
+            "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
+            "<level>{message}</level>\n"
+        )
         if settings.debug:
             self.fmt: str = (
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | "
-                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
+                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
+                "<level>{level: <4}</level> | "
+                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+                "<level>{message}</level>\n"
             )
         else:
             self.fmt: str = self.minimal_fmt
