@@ -21,6 +21,7 @@ from lnbits.settings import (
     send_admin_user_to_saas,
     settings,
 )
+from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -53,6 +54,25 @@ class PaymentFailure(Exception):
 
 class InvoiceFailure(Exception):
     pass
+
+
+async def calculate_fiat_amounts(
+    amount: int,
+    wallet_id: str,
+    extra: Optional[Dict] = None,
+    conn: Optional[Connection] = None,
+) -> Optional[Dict]:
+    wallet = await get_wallet(wallet_id, conn=conn)
+    assert wallet, "invalid wallet_id"
+
+    fiat_currency = wallet.currency or settings.lnbits_default_accounting_currency
+    if fiat_currency:
+        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, fiat_currency)
+        fiat_amount = round(fiat_amount, ndigits=3)
+        extra = extra or {}
+        extra["wallet_fiat_currency"] = fiat_currency
+        extra["wallet_fiat_amount"] = fiat_amount
+    return extra
 
 
 async def create_invoice(
@@ -89,6 +109,7 @@ async def create_invoice(
     invoice = bolt11.decode(payment_request)
 
     amount_msat = amount * 1000
+    extra = await calculate_fiat_amounts(amount_msat, wallet_id, extra=extra, conn=conn)
     await create_payment(
         wallet_id=wallet_id,
         checking_id=checking_id,
@@ -133,6 +154,10 @@ async def pay_invoice(
             raise ValueError("Amountless invoices not supported.")
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
+
+        extra = await calculate_fiat_amounts(
+            invoice.amount_msat, wallet_id, extra=extra, conn=conn
+        )
 
         # put all parameters that don't change here
         class PaymentKwargs(TypedDict):

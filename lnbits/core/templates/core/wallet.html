@@ -392,9 +392,10 @@
                         <q-select
                           filled
                           dense
+                          clearable
                           v-model="update.currency"
                           type="text"
-                          :label="$t('unit')"
+                          :label="$t('currency')"
                           :options="receive.units"
                         ></q-select>
                       </div>
@@ -404,7 +405,7 @@
                         class="q-mt-sm"
                         color="primary"
                         :label="$t('update_currency')"
-                        @click="updateWallet({ currency: update.currency })"
+                        @click="updateWallet({ currency: update.currency || '' })"
                       ></q-btn>
                     </q-card-section>
                   </q-card>

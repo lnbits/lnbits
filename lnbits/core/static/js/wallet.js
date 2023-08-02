@@ -812,16 +812,6 @@ new Vue({
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
 
-    if (currency) {
-      this.paymentsTable.columns.push({
-        name: 'fiat_amount',
-        align: 'right',
-        label: `${this.$t('amount')} (Fiat)`,
-        field: 'fiat_amount',
-        sortable: false
-      })
-    }
-
     LNbits.api
       .request('GET', '/api/v1/currencies')
       .then(response => {

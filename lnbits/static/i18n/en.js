@@ -30,6 +30,7 @@ window.localisation.en = {
   rename_wallet: 'Rename wallet',
   update_name: 'Update name',
   fiat_tracking: 'Fiat tracking',
+  currency: 'Currency',
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
   donate: 'Donate',

@@ -11,7 +11,6 @@ from lnbits.core.models import WalletType
 from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
-from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
 from . import db
 from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
@@ -540,17 +539,6 @@ async def create_payment(
     except Exception:
         # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
-
-    wallet = await get_wallet(wallet_id, conn=conn)
-    assert wallet, "invalid wallet_id"
-
-    fiat_currency = wallet.currency or settings.lnbits_default_accounting_currency
-    if fiat_currency:
-        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, fiat_currency)
-        fiat_amount = round(fiat_amount, ndigits=3)
-        extra = extra or {}
-        extra["wallet_fiat_currency"] = fiat_currency
-        extra["wallet_fiat_amount"] = fiat_amount
 
     await (conn or db).execute(
         """
