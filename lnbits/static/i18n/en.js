@@ -42,6 +42,8 @@ window.localisation.en = {
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
   credit_label: '%{denomination} to credit',
+  paste: 'Paste',
+  paste_from_clipboard: 'Paste from clipboard',
   paste_request: 'Paste Request',
   create_invoice: 'Create Invoice',
   camera_tooltip: 'Use camera to scan an invoice/QR',
