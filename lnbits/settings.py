@@ -201,7 +201,7 @@ class BoltzExtensionSettings(LNbitsSettings):
 
 
 class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=600)
+    lightning_invoice_expiry: int = Field(default=3600)
 
 
 class FundingSourcesSettings(
@@ -253,6 +253,13 @@ class EditableSettings(
         return cls(
             **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
         )
+
+    # fixes openapi.json validation, remove field env_names
+    class Config:
+        @staticmethod
+        def schema_extra(schema: dict[str, Any]) -> None:
+            for prop in schema.get("properties", {}).values():
+                prop.pop("env_names", None)
 
 
 class EnvSettings(LNbitsSettings):

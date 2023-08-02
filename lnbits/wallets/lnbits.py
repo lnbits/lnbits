@@ -32,7 +32,10 @@ class LNbitsWallet(Wallet):
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.key)
 
     async def cleanup(self):
-        await self.client.aclose()
+        try:
+            await self.client.aclose()
+        except RuntimeError as e:
+            logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -96,7 +99,7 @@ class LNbitsWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["detail"]
-            return PaymentResponse(None, None, None, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
         else:
             data = r.json()
             checking_id = data["payment_hash"]
@@ -121,7 +124,7 @@ class LNbitsWallet(Wallet):
         r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
-            return PaymentStatus(None)
+            return PaymentStatus(False)
         data = r.json()
         if "paid" not in data and "details" not in data:
             return PaymentStatus(None)

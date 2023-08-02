@@ -4,11 +4,7 @@ from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
-from pydantic.schema import (
-    field_schema,
-    get_flat_models_from_fields,
-    get_model_name_map,
-)
+from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
@@ -107,20 +103,11 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
     :param keep_optional: If false, all parameters will be optional, otherwise inferred from model
     """
     fields = list(model.__fields__.values())
-    models = get_flat_models_from_fields(fields, set())
-    namemap = get_model_name_map(models)
     params = []
     for field in fields:
-        schema, definitions, _ = field_schema(field, model_name_map=namemap)
-
-        # Support nested definition
-        if "$ref" in schema:
-            name = schema["$ref"].split("/")[-1]
-            schema = definitions[name]
+        schema, _, _ = field_schema(field, model_name_map={})
 
         description = "Supports Filtering"
-        if schema["type"] == "object":
-            description += f". Nested attributes can be filtered too, e.g. `{field.alias}.[additional].[attributes]`"
         if (
             hasattr(model, "__search_fields__")
             and field.name in model.__search_fields__

@@ -9,62 +9,55 @@ from loguru import logger
 
 class Cached(NamedTuple):
     value: Any
-    stale: float
     expiry: float
 
 
-def _add_prefix(key: str, prefix: str):
-    return prefix + ":" + key if prefix else key
-
-
 class Cache:
+    """
+    Small caching utility providing simple get/set interface (very much like redis)
+    """
+
     def __init__(self):
         self._values: dict[Any, Cached] = {}
 
-    def get(self, key: str, prefix: str = "") -> Optional[Any]:
-        cached = self._values.get(_add_prefix(key, prefix))
+    def get(self, key: str, default=None) -> Optional[Any]:
+        cached = self._values.get(key)
         if cached is not None:
             if cached.expiry > time():
                 return cached.value
             else:
-                self.pop(key, prefix)
-        return None
+                self._values.pop(key)
+        return default
 
-    def set(self, key: str, value: Any, expiry: float = 10, prefix: str = ""):
-        ts = time()
-        self._values[_add_prefix(key, prefix)] = Cached(
-            value, ts + expiry / 2, ts + expiry
-        )
+    def set(self, key: str, value: Any, expiry: float = 10):
+        self._values[key] = Cached(value, time() + expiry)
 
-    def pop(self, key: str, prefix: str = "") -> Optional[Any]:
-        return self._values.pop(_add_prefix(key, prefix), None)
+    def pop(self, key: str, default=None) -> Optional[Any]:
+        cached = self._values.pop(key, None)
+        if cached and cached.expiry > time():
+            return cached.value
+        return default
 
-    async def get_and_revalidate(
-        self, coro, key: str, expiry: float = 20, prefix: str = ""
-    ):
+    async def save_result(self, coro, key: str, expiry: float = 10):
         """
-        Stale while revalidate cache
-        Gets a result from the cache if it exists, otherwise run the coroutine and cache the result
+        If `key` exists, return its value, otherwise call coro and cache its result
         """
-        cached = self._values.get(key)
+        cached = self.get(key)
         if cached:
-            ts = time()
-            if ts < cached.expiry:
-                if ts > cached.stale:
-                    asyncio.create_task(coro()).add_done_callback(
-                        lambda fut: self.set(key, fut.result(), expiry, prefix)
-                    )
-                return cached.value
-        value = await coro()
-        self.set(key, value, expiry, prefix)
-        return value
+            return cached
+        else:
+            value = await coro()
+            self.set(key, value, expiry=expiry)
+            return value
 
-    async def invalidate_forever(self):
+    async def invalidate_forever(self, interval: float = 10):
         while True:
             try:
-                await asyncio.sleep(10)
+                await asyncio.sleep(interval)
                 ts = time()
-                self._values = {k: v for k, v in self._values.items() if v.expiry > ts}
+                expired = [k for k, v in self._values.items() if v.expiry < ts]
+                for k in expired:
+                    self._values.pop(k)
             except Exception:
                 logger.error("Error invalidating cache")
 

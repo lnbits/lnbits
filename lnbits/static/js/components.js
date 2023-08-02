@@ -140,6 +140,7 @@ Vue.component('lnbits-extension-list', {
           <q-item-label lines="1" class="text-caption" v-text="$t('extensions')"></q-item-label>
         </q-item-section>
       </q-item>
+      <div class="lt-md q-mt-xl q-mb-xl"></div>
     </q-list>
   `,
   computed: {

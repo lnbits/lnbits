@@ -1,9 +1,11 @@
 import hashlib
 import json
+import os
 import random
 import secrets
 import string
 from subprocess import PIPE, Popen, run
+from typing import Tuple
 
 from lnbits.core.crud import create_payment
 from lnbits.wallets import get_wallet_class, set_wallet_class
@@ -60,6 +62,21 @@ def run_cmd(cmd: str) -> str:
 
 def run_cmd_json(cmd: str) -> dict:
     return json.loads(run_cmd(cmd))
+
+
+def get_hold_invoice(sats: int) -> Tuple[str, dict]:
+    preimage = os.urandom(32)
+    preimage_hash = hashlib.sha256(preimage).hexdigest()
+    json = run_cmd_json(f"{docker_lightning_cli} addholdinvoice {preimage_hash} {sats}")
+    return preimage.hex(), json
+
+
+def settle_invoice(preimage: str) -> dict:
+    return run_cmd_json(f"{docker_lightning_cli} settleinvoice {preimage}")
+
+
+def cancel_invoice(preimage_hash: str) -> dict:
+    return run_cmd_json(f"{docker_lightning_cli} cancelinvoice {preimage_hash}")
 
 
 def get_real_invoice(sats: int) -> dict:

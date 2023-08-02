@@ -41,6 +41,9 @@ def main(
     # create data dir if it does not exist
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
 
+    # create extension dir if it does not exist
+    Path(settings.lnbits_path, "extensions").mkdir(parents=True, exist_ok=True)
+
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server

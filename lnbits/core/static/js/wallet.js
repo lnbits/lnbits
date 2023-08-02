@@ -795,6 +795,11 @@ new Vue({
         field: 'pending'
       })
       LNbits.utils.exportCSV(columns, this.payments)
+    },
+    pasteToTextArea: function () {
+      navigator.clipboard.readText().then(text => {
+        this.$refs.textArea.value = text
+      })
     }
   },
   watch: {

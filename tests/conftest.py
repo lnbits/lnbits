@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from lnbits.app import create_app
@@ -10,7 +11,12 @@ from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
-from tests.helpers import credit_wallet, get_random_invoice_data, get_real_invoice
+from tests.helpers import (
+    credit_wallet,
+    get_hold_invoice,
+    get_random_invoice_data,
+    get_real_invoice,
+)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -35,6 +41,11 @@ async def client(app):
     await client.aclose()
 
 
+@pytest.fixture(scope="session")
+def test_client(app):
+    return TestClient(app)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def db():
     yield Database("database")
@@ -55,6 +66,12 @@ async def from_wallet(from_user):
         amount=999999999,
     )
     yield wallet
+
+
+@pytest.fixture
+def from_wallet_ws(from_wallet, test_client):
+    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
+        yield ws
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -80,6 +97,12 @@ async def to_wallet(to_user):
         amount=999999999,
     )
     yield wallet
+
+
+@pytest.fixture
+def to_wallet_ws(to_wallet, test_client):
+    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
+        yield ws
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -127,8 +150,15 @@ async def invoice(to_wallet):
     del invoice
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def real_invoice():
     invoice = get_real_invoice(100)
     yield {"bolt11": invoice["payment_request"]}
+    del invoice
+
+
+@pytest_asyncio.fixture(scope="function")
+async def hold_invoice():
+    invoice = get_hold_invoice(100)
+    yield invoice
     del invoice
