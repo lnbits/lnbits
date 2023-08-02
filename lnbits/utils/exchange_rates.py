@@ -183,6 +183,19 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    # https://binance-docs.github.io/apidocs/spot/en/#symbol-price-ticker
+    "binance": Provider(
+        "Binance",
+        "binance.com",
+        "https://api.binance.com/api/v3/ticker/price?symbol={FROM}{TO}",
+        lambda data, replacements: data["price"],
+    ),
+    "exir": Provider(
+        "Exir",
+        "exir.io",
+        "https://api.exir.io/v1/ticker?symbol={from}-{to}",
+        lambda data, replacements: data["last"],
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
@@ -217,6 +230,9 @@ exchange_rate_providers = {
 
 
 async def btc_price(currency: str) -> float:
+    if currency == "USD":
+        currency = "USDT"
+
     replacements = {
         "FROM": "BTC",
         "from": "btc",
