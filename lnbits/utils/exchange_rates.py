@@ -190,6 +190,12 @@ exchange_rate_providers = {
         "https://api.binance.com/api/v3/ticker/price?symbol={FROM}{TO}",
         lambda data, replacements: data["price"],
     ),
+    "blockchain": Provider(
+        "Blockchain",
+        "blockchain.com",
+        "https://blockchain.info/tobtc?currency={TO}&value=1",
+        lambda data, replacements: 1 / data,
+    ),
     "exir": Provider(
         "Exir",
         "exir.io",
@@ -230,9 +236,6 @@ exchange_rate_providers = {
 
 
 async def btc_price(currency: str) -> float:
-    if currency == "USD":
-        currency = "USDT"
-
     replacements = {
         "FROM": "BTC",
         "from": "btc",
