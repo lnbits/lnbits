@@ -50,8 +50,9 @@ class CoreLightningRestWallet(Wallet):
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/getBalance", timeout=5)
         try:
+            r.raise_for_status()
             data = r.json()
-        except:
+        except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.url}, got: '{r.text[:200]}...'", 0
             )
@@ -79,7 +80,8 @@ class CoreLightningRestWallet(Wallet):
         }
         if description_hash and not unhashed_description:
             raise Unsupported(
-                "'description_hash' unsupported by CoreLightningRest, provide 'unhashed_description'"
+                "'description_hash' unsupported by CoreLightningRest, "
+                "provide 'unhashed_description'"
             )
 
         if unhashed_description:
@@ -102,7 +104,7 @@ class CoreLightningRestWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
 
             return InvoiceResponse(False, None, None, error_message)
@@ -133,7 +135,7 @@ class CoreLightningRestWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
             return PaymentResponse(False, None, None, None, error_message)
 
@@ -153,7 +155,8 @@ class CoreLightningRestWallet(Wallet):
     async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
         # get invoice bolt11 from checking_id
         # corelightning-rest wants the "label" here....
-        # NOTE: We can get rid of all labels and use payment_hash when corelightning-rest updates and supports it
+        # NOTE: We can get rid of all labels and use payment_hash when
+        # corelightning-rest updates and supports it
         r = await self.client.get(
             f"{self.url}/v1/invoice/listInvoices",
             params={"label": payment.checking_id},
@@ -165,7 +168,8 @@ class CoreLightningRestWallet(Wallet):
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in cln response")
             return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
-        except:
+        except Exception as e:
+            logger.error(f"Error getting invoice status: {e}")
             return PaymentStatus(None)
 
     async def get_payment_status(self, payment: Payment) -> PaymentStatus:
@@ -192,7 +196,8 @@ class CoreLightningRestWallet(Wallet):
                 preimage = pay["preimage"]
 
             return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
-        except:
+        except Exception as e:
+            logger.error(f"Error getting payment status: {e}")
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -203,17 +208,19 @@ class CoreLightningRestWallet(Wallet):
                     async for line in r.aiter_lines():
                         inv = json.loads(line)
                         if "error" in inv and "message" in inv["error"]:
+                            logger.error("Error in paid_invoices_stream:", inv)
                             raise Exception(inv["error"]["message"])
                         try:
                             paid = inv["status"] == "paid"
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
                                 continue
-                        except:
+                        except Exception:
                             continue
                         logger.trace(f"paid invoice: {inv}")
                         yield inv["label"]
-                        # NOTE: use payment_hash when corelightning-rest updates and supports it
+                        # NOTE: use payment_hash when corelightning-rest updates
+                        # and supports it
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
                         # hack to return payment_hash if the above shouldn't work
@@ -227,6 +234,7 @@ class CoreLightningRestWallet(Wallet):
 
             except Exception as exc:
                 logger.debug(
-                    f"lost connection to corelightning-rest invoices stream: '{exc}', reconnecting."
+                    f"lost connection to corelightning-rest invoices stream: '{exc}', "
+                    "reconnecting..."
                 )
                 await asyncio.sleep(0.02)
