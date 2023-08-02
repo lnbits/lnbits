@@ -248,8 +248,8 @@ async def btc_price(currency: str) -> float:
                 r.raise_for_status()
                 data = r.json()
                 return float(provider.getter(data, replacements))
-        except Exception:
-            logger.warning(f"Failed to fetch Bitcoin price from {provider.name}.")
+        except Exception as e:
+            logger.warning(f"Failed to fetch Bitcoin price for {currency} from {provider.name}: {e}")
             raise
 
     results = await asyncio.gather(
