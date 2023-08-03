@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 from io import BytesIO
 from pathlib import Path
@@ -196,6 +197,8 @@ async def pay_invoice(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
+        invoice_expiry = get_bolt11_expiry(payment_request)
+
         # put all parameters that don't change here
         class PaymentKwargs(TypedDict):
             wallet_id: str
@@ -203,6 +206,7 @@ async def pay_invoice(
             payment_hash: str
             amount: int
             memo: str
+            expiry: Optional[datetime.datetime]
             extra: Optional[Dict]
 
         payment_kwargs: PaymentKwargs = PaymentKwargs(
@@ -210,6 +214,7 @@ async def pay_invoice(
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
             amount=-invoice.amount_msat,
+            expiry=invoice_expiry,
             memo=description or invoice.description or "",
             extra=extra,
         )
@@ -650,3 +655,12 @@ async def get_balance_delta() -> Tuple[int, int, int]:
     if error_message:
         raise Exception(error_message)
     return node_balance - total_balance, node_balance, total_balance
+
+
+def get_bolt11_expiry(payment_request: str) -> datetime.datetime:
+    invoice = bolt11.decode(payment_request)
+    if invoice.expiry:
+        return datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
+    else:
+        # assume maximum bolt11 expiry of 31 days to be on the safe side
+        return datetime.datetime.now() + datetime.timedelta(days=31)
