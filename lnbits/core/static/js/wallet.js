@@ -787,14 +787,10 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = structuredClone(this.paymentsCSV.columns)
-      columns.unshift({
-        name: 'pending',
-        align: 'left',
-        label: 'Pending',
-        field: 'pending'
+      LNbits.api.getPayments(this.g.wallet, {}).then(response => {
+        const payments = response.data.data.map(LNbits.map.payment)
+        LNbits.utils.exportCSV(this.paymentsCSV.columns, payments)
       })
-      LNbits.utils.exportCSV(columns, this.payments)
     },
     pasteToTextArea: function () {
       navigator.clipboard.readText().then(text => {
