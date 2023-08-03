@@ -94,7 +94,7 @@ def create_app() -> FastAPI:
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
-    register_wallet_cleanup(app)
+    register_shutdown(app)
 
     # Allow registering new extensions routes without direct access to the `app` object
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
@@ -337,9 +337,12 @@ def register_startup(app: FastAPI):
             raise ImportError("Failed to run 'startup' event.")
 
 
-def register_wallet_cleanup(app: FastAPI):
+def register_shutdown(app: FastAPI):
     @app.on_event("shutdown")
     async def on_shutdown():
+        cancel_all_tasks()
+        # wait a bit to allow them to finish, so that cleanup can run without problems
+        await asyncio.sleep(0.1)
         WALLET = get_wallet_class()
         await WALLET.cleanup()
 
@@ -401,12 +404,6 @@ def register_async_tasks(app):
         register_task_listeners()
         register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?
-
-    @app.on_event("shutdown")
-    async def stop_listeners():
-        cancel_all_tasks()
-        # wait a bit to allow them to finish, so that cleanup can run without problems
-        await asyncio.sleep(0.1)
 
 
 def register_exception_handlers(app: FastAPI):
