@@ -48,7 +48,7 @@ class CoreLightningRestWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        r = await self.client.get(f"{self.url}/v1/getBalance", timeout=5)
+        r = await self.client.get(f"{self.url}/v1/channel/localremotebal", timeout=5)
         try:
             r.raise_for_status()
             data = r.json()
@@ -62,7 +62,7 @@ class CoreLightningRestWallet(Wallet):
         if len(data) == 0:
             return StatusResponse("no data", 0)
 
-        return StatusResponse(None, int(data.get("totalBalance") * 1000))
+        return StatusResponse(None, int(data.get("localBalance") * 1000))
 
     async def create_invoice(
         self,
