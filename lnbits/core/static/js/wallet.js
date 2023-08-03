@@ -137,6 +137,9 @@ new Vue({
           comment: ''
         },
         paymentChecker: null,
+        copy: {
+          show: false
+        },
         camera: {
           show: false,
           camera: 'auto'
@@ -302,6 +305,8 @@ new Vue({
       this.parse.invoice = null
       this.parse.lnurlpay = null
       this.parse.lnurlauth = null
+      this.parse.copy.show =
+        window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
