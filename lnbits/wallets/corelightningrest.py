@@ -50,16 +50,18 @@ class CoreLightningRestWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/channel/localremotebal", timeout=5)
-        try:
-            r.raise_for_status()
-            data = r.json()
-        except Exception:
+
+        if r.is_error or "error" in r.json():
+            try:
+                data = r.json()
+                error_message = data["error"]
+            except Exception:
+                error_message = r.text
             return StatusResponse(
-                f"Failed to connect to {self.url}, got: '{r.text[:200]}...'", 0
+                f"Failed to connect to {self.url}, got: '{error_message}...'", 0
             )
 
-        if r.is_error:
-            return StatusResponse(data.get("error") or "undefined error", 0)
+        data = r.json()
         if len(data) == 0:
             return StatusResponse("no data", 0)
 
@@ -100,8 +102,7 @@ class CoreLightningRestWallet(Wallet):
             timeout=40,
         )
 
-        # TODO: handle errors correctly
-        if r.is_error:
+        if r.is_error or "error" in r.json():
             try:
                 data = r.json()
                 error_message = data["error"]
@@ -131,8 +132,7 @@ class CoreLightningRestWallet(Wallet):
             timeout=None,
         )
 
-        # TODO: handle errors correctly
-        if "error" in r.json():
+        if r.is_error or "error" in r.json():
             try:
                 data = r.json()
                 error_message = data["error"]
