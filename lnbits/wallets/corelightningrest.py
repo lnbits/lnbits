@@ -36,6 +36,7 @@ class CoreLightningRestWallet(Wallet):
         self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
         self.last_pay_index = 0
         self.statuses = {
+            "paid": True,
             "complete": True,
             "failed": False,
             "pending": None,
