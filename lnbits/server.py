@@ -1,4 +1,5 @@
 import uvloop
+from uvicorn.supervisors import ChangeReload
 
 uvloop.install()
 
@@ -73,7 +74,14 @@ def main(
         )
 
         server = uvicorn.Server(config=config)
-        process = mp.Process(target=server.run)
+
+        if config.should_reload:
+            sock = config.bind_socket()
+            run = ChangeReload(config, target=server.run, sockets=[sock]).run
+        else:
+            run = server.run
+
+        process = mp.Process(target=run)
         process.start()
         server_restart.wait()
         server_restart.clear()
