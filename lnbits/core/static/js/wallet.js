@@ -173,6 +173,12 @@ new Vue({
       paymentsCSV: {
         columns: [
           {
+            name: 'pending',
+            align: 'left',
+            label: 'Pending',
+            field: 'pending'
+          },
+          {
             name: 'memo',
             align: 'left',
             label: this.$t('memo'),
@@ -221,6 +227,18 @@ new Vue({
             align: 'right',
             label: this.$t('webhook'),
             field: 'webhook'
+          },
+          {
+            name: 'fiat_currency',
+            align: 'right',
+            label: 'Fiat Currency',
+            field: row => row.extra.wallet_fiat_currency
+          },
+          {
+            name: 'fiat_amount',
+            align: 'right',
+            label: 'Fiat Amount',
+            field: row => row.extra.wallet_fiat_amount
           }
         ],
         filter: null,
