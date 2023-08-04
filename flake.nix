@@ -14,7 +14,15 @@
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forSystems = systems: f:
         nixpkgs.lib.genAttrs systems
-        (system: f system (import nixpkgs { inherit system; overlays = [ poetry2nix.overlay self.overlays.default ]; }));
+        (system: f system (import nixpkgs { 
+          inherit system; 
+          overlays = [ poetry2nix.overlay self.overlays.default ]; 
+          # This is needed for the dependency "cryptography" of cashu 
+          # which is built with python36 which is using openssl_1_1 injected by peotry2nix's defaultOverrides
+          config.permittedInsecurePackages = [
+            "openssl-1.1.1v"
+          ];
+        }));
       forAllSystems = forSystems supportedSystems;
       projectName = "lnbits";
     in
