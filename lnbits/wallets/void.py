@@ -2,8 +2,13 @@ from typing import AsyncGenerator
 
 from loguru import logger
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class VoidWallet(Wallet):
@@ -26,10 +31,10 @@ class VoidWallet(Wallet):
             ok=False, error_message="VoidWallet cannot pay invoices."
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, *_, **__) -> PaymentStatus:
         return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, *_, **__) -> PaymentStatus:
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

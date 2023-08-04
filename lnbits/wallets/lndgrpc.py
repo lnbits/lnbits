@@ -23,8 +23,13 @@ if imports_ok:
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 def get_ssl_context(cert_path: str):
@@ -170,7 +175,7 @@ class LndWallet(Wallet):
             ).digest()  # as bytes directly
 
         try:
-            req = ln.Invoice(**data)  # type: ignore
+            req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
         except Exception as exc:
             error_message = str(exc)
@@ -182,7 +187,7 @@ class LndWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = router.SendPaymentRequest(  # type: ignore
+        req = router.SendPaymentRequest(
             payment_request=bolt11,
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
@@ -226,9 +231,9 @@ class LndWallet(Wallet):
             statuses[resp.status], checking_id, fee_msat, preimage, error_message
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r_hash = hex_to_bytes(payment.checking_id)
+            r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
                 raise ValueError
         except ValueError:
@@ -236,7 +241,7 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentStatus(None)
         try:
-            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))  # type: ignore
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         except RpcError:
             return PaymentStatus(None)
         if resp.settled:
@@ -244,12 +249,12 @@ class LndWallet(Wallet):
 
         return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
         try:
-            r_hash = hex_to_bytes(payment.checking_id)
+            r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
                 raise ValueError
         except ValueError:
@@ -258,7 +263,7 @@ class LndWallet(Wallet):
             return PaymentStatus(None)
 
         resp = self.routerpc.TrackPaymentV2(
-            router.TrackPaymentRequest(payment_hash=r_hash)  # type: ignore
+            router.TrackPaymentRequest(payment_hash=r_hash)
         )
 
         # # HTLCAttempt.HTLCStatus:
@@ -276,14 +281,14 @@ class LndWallet(Wallet):
         }
 
         try:
-            async for paymentResp in resp:
-                if len(paymentResp.htlcs) and statuses[paymentResp.status]:
+            async for payment in resp:
+                if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentStatus(
                         True,
-                        -paymentResp.htlcs[-1].route.total_fees_msat,
-                        bytes_to_hex(paymentResp.htlcs[-1].preimage),
+                        -payment.htlcs[-1].route.total_fees_msat,
+                        bytes_to_hex(payment.htlcs[-1].preimage),
                     )
-                return PaymentStatus(statuses[paymentResp.status])
+                return PaymentStatus(statuses[payment.status])
         except:  # most likely the payment wasn't found
             return PaymentStatus(None)
 

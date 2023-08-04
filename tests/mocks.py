@@ -1,8 +1,7 @@
 from mock import AsyncMock
 
 from lnbits import bolt11
-from lnbits.core.models import PaymentStatus
-from lnbits.wallets.base import PaymentResponse, StatusResponse
+from lnbits.wallets.base import PaymentResponse, PaymentStatus, StatusResponse
 from lnbits.wallets.fake import FakeWallet
 
 from .helpers import WALLET, get_random_string, is_fake

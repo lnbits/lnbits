@@ -7,8 +7,13 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class LNbitsWallet(Wallet):
@@ -100,18 +105,14 @@ class LNbitsWallet(Wallet):
             checking_id = data["payment_hash"]
 
         # we do this to get the fee and preimage
-        payment: PaymentStatus = await self.get_payment_status(
-            Payment.dummy(
-                checking_id=data["payment_hash"],
-            )
-        )
+        payment: PaymentStatus = await self.get_payment_status(checking_id)
 
         return PaymentResponse(ok, checking_id, payment.fee_msat, payment.preimage)
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.get(
-                url=f"/api/v1/payments/{payment.checking_id}",
+                url=f"/api/v1/payments/{checking_id}",
             )
             if r.is_error:
                 return PaymentStatus(None)
@@ -119,8 +120,8 @@ class LNbitsWallet(Wallet):
         except:
             return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
-        r = await self.client.get(url=f"/api/v1/payments/{payment.checking_id}")
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(False)

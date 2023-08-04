@@ -11,8 +11,13 @@ from websockets.client import connect
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class EclairError(Exception):
@@ -151,11 +156,11 @@ class EclairWallet(Wallet):
             statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
                 "/getreceivedinfo",
-                data={"paymentHash": payment.checking_id},
+                data={"paymentHash": checking_id},
             )
 
             r.raise_for_status()
@@ -173,11 +178,11 @@ class EclairWallet(Wallet):
         except:
             return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
                 "/getsentinfo",
-                data={"paymentHash": payment.checking_id},
+                data={"paymentHash": checking_id},
                 timeout=40,
             )
 

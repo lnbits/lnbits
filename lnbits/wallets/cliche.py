@@ -8,8 +8,13 @@ from websocket import create_connection
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class ClicheWallet(Wallet):
@@ -122,9 +127,9 @@ class ClicheWallet(Wallet):
             payment_ok, checking_id, fee_msat, preimage, error_message
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
-        ws.send(f"check-payment --hash {payment.checking_id}")
+        ws.send(f"check-payment --hash {checking_id}")
         r = ws.recv()
         data = json.loads(r)
 
@@ -135,21 +140,21 @@ class ClicheWallet(Wallet):
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(statuses[data["result"]["status"]])
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
-        ws.send(f"check-payment --hash {payment.checking_id}")
+        ws.send(f"check-payment --hash {checking_id}")
         r = ws.recv()
         data = json.loads(r)
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
             return PaymentStatus(None)
-        paymentResult = data["result"]
+        payment = data["result"]
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(
-            statuses[paymentResult["status"]],
-            paymentResult.get("fee_msatoshi"),
-            paymentResult.get("preimage"),
+            statuses[payment["status"]],
+            payment.get("fee_msatoshi"),
+            payment.get("preimage"),
         )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

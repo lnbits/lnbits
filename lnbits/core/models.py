@@ -4,7 +4,7 @@ import hmac
 import json
 import time
 from sqlite3 import Row
-from typing import Callable, Dict, List, NamedTuple, Optional
+from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from lnurl import encode as lnurl_encode
@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class
+from lnbits.wallets.base import PaymentStatus
 
 
 class Wallet(BaseModel):
@@ -84,30 +86,6 @@ class User(BaseModel):
         return False
 
 
-class PaymentStatus(NamedTuple):
-    paid: Optional[bool] = None
-    fee_msat: Optional[int] = None
-    preimage: Optional[str] = None
-
-    @property
-    def pending(self) -> bool:
-        return self.paid is not True
-
-    @property
-    def failed(self) -> bool:
-        return self.paid is False
-
-    def __str__(self) -> str:
-        if self.paid is True:
-            return "settled"
-        elif self.paid is False:
-            return "failed"
-        elif self.paid is None:
-            return "still pending"
-        else:
-            return "unknown (should never happen)"
-
-
 class Payment(FromRowModel):
     checking_id: str
     pending: bool
@@ -141,25 +119,6 @@ class Payment(FromRowModel):
             wallet_id=row["wallet"],
             webhook=row["webhook"],
             webhook_status=row["webhook_status"],
-        )
-
-    @classmethod
-    def dummy(cls, **kwargs) -> "Payment":
-        return cls(
-            checking_id=kwargs.get("checking_id") or "internal_dummy",
-            payment_hash=kwargs.get("payment_hash") or "0" * 64,
-            bolt11=kwargs.get("bolt11") or "",
-            preimage="0" * 64,
-            extra={},
-            pending=False,
-            amount=0,
-            fee=0,
-            memo="",
-            time=0,
-            expiry=None,
-            wallet_id="",
-            webhook=None,
-            webhook_status=None,
         )
 
     @property
@@ -216,8 +175,6 @@ class Payment(FromRowModel):
         self,
         conn: Optional[Connection] = None,
     ) -> PaymentStatus:
-        from lnbits.wallets import get_wallet_class
-
         if self.is_uncheckable:
             return PaymentStatus(None)
 
@@ -227,9 +184,9 @@ class Payment(FromRowModel):
 
         WALLET = get_wallet_class()
         if self.is_out:
-            status = await WALLET.get_payment_status(self)
+            status = await WALLET.get_payment_status(self.checking_id)
         else:
-            status = await WALLET.get_invoice_status(self)
+            status = await WALLET.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
 
