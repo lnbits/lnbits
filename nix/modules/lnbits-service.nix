@@ -38,6 +38,13 @@ in
           The lnbits state directory which LNBITS_DATA_FOLDER will be set to
         '';
       };
+      extensionsDir = mkOption {
+        type = types.path;
+        default = "${cfg.stateDir}/extensions";
+        description = ''
+          The lnbits extensions directory which is used to store the enabled extensions
+        '';
+      };
       host = mkOption {
         type = types.str;
         default = "127.0.0.1";
@@ -79,6 +86,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir}                            0700 ${cfg.user} ${cfg.group} - -"
+      "d ${cfg.extensionsDir}                        0700 ${cfg.user} ${cfg.group} - -"
     ];
 
     systemd.services.lnbits = {
@@ -89,12 +97,20 @@ in
       environment = {
         LNBITS_DATA_FOLDER = "${cfg.stateDir}";
       };
-      serviceConfig = {
+      serviceConfig = 
+      let
+        package = cfg.package.overrideAttrs (final: prev: {
+          postInstall = ''
+            ln -s ${cfg.extensionsDir} $out/lib/python3.10/site-packages/lnbits/extensions
+          '';
+        });
+      in
+      {
         User = cfg.user;
         Group = cfg.group;
         WorkingDirectory = "${cfg.package.src}";
         StateDirectory = "${cfg.stateDir}";
-        ExecStart = "${lib.getExe cfg.package} --port ${toString cfg.port} --host ${cfg.host}";
+        ExecStart = "${lib.getExe package} --port ${toString cfg.port} --host ${cfg.host}";
         Restart = "always";
         PrivateTmp = true;
       };
