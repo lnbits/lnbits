@@ -59,6 +59,14 @@ in
           The port to run on
         '';
       };
+      env = mkOption {
+        type = types.attrsOf types.str;
+        default = {};
+        description = ''
+          The environment variables that are passed to lnbits. 
+          Reference Variables: https://github.com/lnbits/lnbits/blob/main/.env.example
+        '';
+      };
       user = mkOption {
         type = types.str;
         default = "lnbits";
@@ -94,9 +102,10 @@ in
       description = "lnbits";
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
-      environment = {
-        LNBITS_DATA_FOLDER = "${cfg.stateDir}";
-      };
+      environment = lib.mkMerge [
+        { LNBITS_DATA_FOLDER = "${cfg.stateDir}"; } 
+        cfg.env 
+      ];
       serviceConfig = 
       let
         package = cfg.package.overrideAttrs (final: prev: {
