@@ -7,8 +7,9 @@
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    legacy-nixpkgs.url = "github:nixos/nixpkgs/b511bf59bd6754ad49c637f390dbb6bc1acea000";
   };
-  outputs = { self, nixpkgs, poetry2nix }@inputs:
+  outputs = { self, nixpkgs, poetry2nix, legacy-nixpkgs }@inputs:
     let
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forSystems = systems: f:
@@ -34,7 +35,22 @@
       packages = forAllSystems (system: pkgs: {
         default = self.packages.${system}.${projectName};
         ${projectName} = pkgs.poetry2nix.mkPoetryApplication {
-          projectDir = ./.;
+          projectDir = ./.; 
+          overrides = pkgs.poetry2nix.defaultPoetryOverrides.extend
+          (self: super: {
+            types-mock = super.types-mock.overridePythonAttrs
+            (
+              old: {
+                buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
+              }
+            );
+            cashu = super.cashu.overridePythonAttrs (
+              old: {
+                nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ (import legacy-nixpkgs {inherit system;}).python3Packages.setuptools ];
+              }
+            );
+          });
+          nativeBuildInputs = [(import legacy-nixpkgs {inherit system;}).python3Packages.setuptools];
         };
       });
       nixosModules = {

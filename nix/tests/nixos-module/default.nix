@@ -1,5 +1,6 @@
 { pkgs, makeTest, inputs }:
 makeTest {
+  name = "Try to reach lnbits from a client";
   nodes = {
     client = { config, pkgs, ... }: {
       environment.systemPackages = [ pkgs.curl ];
