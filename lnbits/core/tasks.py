@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Optional
+from typing import Dict
 
 import httpx
 from loguru import logger
@@ -21,14 +21,11 @@ api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
 )
 
-killswitch: Optional[asyncio.Task] = None
-watchdog: Optional[asyncio.Task] = None
-
 
 def register_killswitch():
     """
-    Registers a killswitch which will check lnbits-status repository
-    for a signal from LNbits and will switch to VoidWallet if the killswitch is triggered.
+    Registers a killswitch which will check lnbits-status repository for a signal from
+    LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
     logger.debug("Starting killswitch task")
     create_permanent_task(killswitch_task)
@@ -61,10 +58,9 @@ async def register_watchdog():
     Registers a watchdog which will check lnbits balance and nodebalance
     and will switch to VoidWallet if the watchdog delta is reached.
     """
-    # TODO: implement watchdog porperly
+    # TODO: implement watchdog properly
     # logger.debug("Starting watchdog task")
-    # global watchdog
-    # watchdog = asyncio.create_task(watchdog_task())
+    # create_permanent_task(watchdog_task)
 
 
 async def watchdog_task():

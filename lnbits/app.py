@@ -357,7 +357,7 @@ def initialize_server_logger():
             msg = await serverlog_queue.get()
             await websocketUpdater(super_user_hash, msg)
 
-    asyncio.create_task(update_websocket_serverlog())
+    create_permanent_task(update_websocket_serverlog)
 
     logger.add(
         lambda msg: serverlog_queue.put_nowait(msg),

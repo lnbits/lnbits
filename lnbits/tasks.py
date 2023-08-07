@@ -22,8 +22,8 @@ from .core import db
 tasks: List[asyncio.Task] = []
 
 
-def create_task(coro_or_fut):
-    task = asyncio.create_task(coro_or_fut)
+def create_task(func):
+    task = asyncio.create_task(func)
     tasks.append(task)
     return task
 
@@ -34,7 +34,10 @@ def create_permanent_task(func):
 
 def cancel_all_tasks():
     for task in tasks:
-        task.cancel()
+        try:
+            task.cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task: {str(exc)}")
 
 
 async def catch_everything_and_restart(func):
