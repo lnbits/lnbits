@@ -27,10 +27,6 @@ async def run_sync(func) -> Any:
     return await loop.run_in_executor(None, func)
 
 
-def _paid_invoices_stream(ln, last_pay_index):
-    return ln.waitanyinvoice(last_pay_index)
-
-
 class CoreLightningWallet(Wallet):
     def __init__(self):
         if LightningRpc is None:  # pragma: nocover
