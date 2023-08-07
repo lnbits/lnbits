@@ -5,7 +5,7 @@ except ImportError:  # pragma: nocover
 
 import asyncio
 import random
-from typing import AsyncGenerator, Optional, Any
+from typing import Any, AsyncGenerator, Optional
 
 from loguru import logger
 
@@ -183,7 +183,9 @@ class CoreLightningWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                paid = await run_sync(lambda: self.ln.waitanyinvoice(self.last_pay_index, timeout=2))
+                paid = await run_sync(
+                    lambda: self.ln.waitanyinvoice(self.last_pay_index, timeout=2)
+                )
                 self.last_pay_index = paid["pay_index"]
                 yield paid["payment_hash"]
             except Exception as exc:
