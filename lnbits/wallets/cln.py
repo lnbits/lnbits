@@ -184,6 +184,10 @@ class CoreLightningWallet(Wallet):
                 )
                 self.last_pay_index = paid["pay_index"]
                 yield paid["payment_hash"]
+            except RpcError as exc:
+                # only raise if not a timeout
+                if exc.error["code"] != 904:  # type: ignore
+                    raise
             except Exception as exc:
                 logger.error(
                     f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
