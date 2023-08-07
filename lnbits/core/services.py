@@ -519,7 +519,8 @@ class WebsocketConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, item_id: str):
+        logger.debug(f"Websocket connected to {item_id}")
         await websocket.accept()
         self.active_connections.append(websocket)
 
