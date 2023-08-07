@@ -22,8 +22,8 @@ from .core import db
 tasks: List[asyncio.Task] = []
 
 
-def create_task(func):
-    task = asyncio.create_task(func)
+def create_task(coro):
+    task = asyncio.create_task(coro)
     tasks.append(task)
     return task
 
