@@ -1,14 +1,10 @@
-try:
-    from pyln.client import LightningRpc, RpcError  # type: ignore
-except ImportError:  # pragma: nocover
-    LightningRpc = None
-
 import asyncio
 import random
 from functools import partial, wraps
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
+from pyln.client import LightningRpc, RpcError
 
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
@@ -44,11 +40,6 @@ def _paid_invoices_stream(ln, last_pay_index):
 
 class CoreLightningWallet(Wallet):
     def __init__(self):
-        if LightningRpc is None:  # pragma: nocover
-            raise ImportError(
-                "The `pyln-client` library must be installed to use `CoreLightningWallet`."
-            )
-
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
