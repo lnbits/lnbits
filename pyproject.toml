@@ -94,6 +94,7 @@ module = [
   "ecdsa.*",
   "psycopg2.*",
   "pyngrok.*",
+  "pyln.client.*",
 ]
 ignore_missing_imports = "True"
 
