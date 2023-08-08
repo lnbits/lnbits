@@ -318,23 +318,10 @@ async def m011_optimize_balances_view(db):
         WHERE (pending = false AND amount > 0) OR amount < 0
         GROUP BY wallet
     """
-
-
-async def m012_update_payments_table(db):
-    await db.execute(
-        """
-        ALTER TABLE apipayments ADD COLUMN fiat_currency TEXT
-        """
-    )
-
-    await db.execute(
-        """
-        ALTER TABLE apipayments ADD COLUMN fiat_amount DECIMAL
-        """
     )
 
 
-async def m013_add_currency_to_wallet(db):
+async def m012_add_currency_to_wallet(db):
     await db.execute(
         """
         ALTER TABLE wallets ADD COLUMN currency TEXT

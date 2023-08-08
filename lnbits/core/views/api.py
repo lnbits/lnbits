@@ -196,7 +196,6 @@ async def api_payments_paginated(
 
 
 async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
-    data.extra = data.extra or {}
     description_hash = b""
     unhashed_description = b""
     memo = data.memo or settings.lnbits_site_title

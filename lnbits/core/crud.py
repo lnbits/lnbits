@@ -528,7 +528,6 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
-
     # todo: add this when tests are fixed
     previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     assert previous_payment is None, "Payment already exists"

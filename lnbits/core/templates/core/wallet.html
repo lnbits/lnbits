@@ -213,9 +213,14 @@
                   </q-td>
                   <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}<br />
-                    <i>
+                    <i v-if="props.row.extra.wallet_fiat_currency">
                       {{ props.row.extra.wallet_fiat_currency }} {{
                       props.row.extra.wallet_fiat_amount }}
+                      <br />
+                    </i>
+                    <i v-if="props.row.extra.fiat_currency">
+                      {{ props.row.extra.fiat_currency }} {{
+                      props.row.extra.fiat_amount }}
                     </i>
                   </q-td>
                 </q-tr>

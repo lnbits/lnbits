@@ -65,16 +65,18 @@ async def calculate_fiat_amounts(
 ) -> Tuple[int, Optional[Dict]]:
     wallet = await get_wallet(wallet_id, conn=conn)
     assert wallet, "invalid wallet_id"
+    wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
 
     if currency and currency != "sat":
         amount_sat = await fiat_amount_as_satoshis(amount, currency)
         extra = extra or {}
-        extra["fiat_currency"] = currency
-        extra["fiat_amount"] = round(amount, ndigits=3)
+        if currency != wallet_currency:
+            extra["fiat_currency"] = currency
+            extra["fiat_amount"] = round(amount, ndigits=3)
+            extra["fiat_rate"] = amount_sat / amount
     else:
         amount_sat = int(amount)
 
-    wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
     if wallet_currency:
         if wallet_currency == currency:
             fiat_amount = amount
@@ -83,6 +85,7 @@ async def calculate_fiat_amounts(
         extra = extra or {}
         extra["wallet_fiat_currency"] = wallet_currency
         extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
+        extra["wallet_fiat_rate"] = amount_sat / fiat_amount
     return amount_sat, extra
 
 

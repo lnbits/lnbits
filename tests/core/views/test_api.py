@@ -102,6 +102,7 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     extra = response.json()[0]["extra"]
     assert extra["fiat_amount"] == data["amount"]
     assert extra["fiat_currency"] == data["unit"]
+    assert extra["fiat_rate"]
 
 
 # check POST /api/v1/payments: invoice creation for internal payments only
@@ -410,6 +411,7 @@ async def test_fiat_tracking(client, adminkey_headers_from):
     payment = await create_invoice()
     assert payment["extra"]["wallet_fiat_currency"] == "USD"
     assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+    assert payment["extra"]["wallet_fiat_rate"]
 
     response = await client.patch(
         "/api/v1/wallet", json={"currency": "EUR"}, headers=adminkey_headers_from
