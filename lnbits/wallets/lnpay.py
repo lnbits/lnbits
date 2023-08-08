@@ -102,7 +102,7 @@ class LNPayWallet(Wallet):
 
         try:
             data = r.json()
-        except:
+        except Exception:
             return PaymentResponse(
                 False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
             )

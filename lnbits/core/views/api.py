@@ -513,7 +513,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     try:
         url = lnurl.decode(code)
         domain = urlparse(url).netloc
-    except:
+    except Exception:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
@@ -648,7 +648,7 @@ async def api_payments_decode(data: DecodePayment, response: Response):
                 "route_hints": invoice.route_hints,
                 "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
             }
-    except:
+    except Exception:
         response.status_code = HTTPStatus.BAD_REQUEST
         return {"message": "Failed to decode"}
 
@@ -743,7 +743,7 @@ async def websocket_update_post(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
-    except:
+    except Exception:
         return {"sent": False, "data": data}
 
 
@@ -752,7 +752,7 @@ async def websocket_update_get(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
-    except:
+    except Exception:
         return {"sent": False, "data": data}
 
 
@@ -930,7 +930,7 @@ async def api_create_tinyurl(
                 if tinyurl.wallet == wallet.wallet.inkey:
                     return tinyurl
         return await create_tinyurl(url, endless, wallet.wallet.inkey)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
         )
@@ -948,7 +948,7 @@ async def api_get_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
         )
@@ -967,7 +967,7 @@ async def api_delete_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
         )
@@ -982,7 +982,7 @@ async def api_tinyurl(tinyurl_id: str):
             return response
         else:
             return
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )

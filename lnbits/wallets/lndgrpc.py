@@ -83,7 +83,7 @@ def hex_to_b64(hex_str: str) -> str:
 def hex_to_bytes(hex_str: str) -> bytes:
     try:
         return bytes.fromhex(hex_str)
-    except:
+    except Exception:
         return b""
 
 
@@ -289,7 +289,7 @@ class LndWallet(Wallet):
                         bytes_to_hex(payment.htlcs[-1].preimage),
                     )
                 return PaymentStatus(statuses[payment.status])
-        except:  # most likely the payment wasn't found
+        except Exception:  # most likely the payment wasn't found
             return PaymentStatus(None)
 
         return PaymentStatus(None)

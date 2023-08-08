@@ -388,7 +388,7 @@ try:
         .strip()
         .decode("ascii")
     )
-except:
+except Exception:
     settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")

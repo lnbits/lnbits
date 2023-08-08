@@ -299,7 +299,7 @@ async def redeem_lnurl_withdraw(
             extra=extra,
             conn=conn,
         )
-    except:
+    except Exception:
         logger.warning(
             f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
         )
@@ -495,7 +495,7 @@ def update_cached_settings(sets_dict: dict):
         if key not in readonly_variables:
             try:
                 setattr(settings, key, value)
-            except:
+            except Exception:
                 logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
