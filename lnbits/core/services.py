@@ -21,7 +21,7 @@ from lnbits.settings import (
     send_admin_user_to_saas,
     settings,
 )
-from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
@@ -57,28 +57,40 @@ class InvoiceFailure(Exception):
 
 
 async def calculate_fiat_amounts(
-    amount: int,
+    amount: float,
     wallet_id: str,
+    currency: Optional[str] = None,
     extra: Optional[Dict] = None,
     conn: Optional[Connection] = None,
-) -> Optional[Dict]:
+) -> Tuple[int, Optional[Dict]]:
     wallet = await get_wallet(wallet_id, conn=conn)
     assert wallet, "invalid wallet_id"
 
-    fiat_currency = wallet.currency or settings.lnbits_default_accounting_currency
-    if fiat_currency:
-        fiat_amount = await satoshis_amount_as_fiat(amount / 1000, fiat_currency)
-        fiat_amount = round(fiat_amount, ndigits=3)
+    if currency and currency != "sat":
+        amount_sat = await fiat_amount_as_satoshis(amount, currency)
         extra = extra or {}
-        extra["wallet_fiat_currency"] = fiat_currency
-        extra["wallet_fiat_amount"] = fiat_amount
-    return extra
+        extra["fiat_currency"] = currency
+        extra["fiat_amount"] = round(amount, ndigits=3)
+    else:
+        amount_sat = int(amount)
+
+    wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
+    if wallet_currency:
+        if wallet_currency == currency:
+            fiat_amount = amount
+        else:
+            fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
+        extra = extra or {}
+        extra["wallet_fiat_currency"] = wallet_currency
+        extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
+    return amount_sat, extra
 
 
 async def create_invoice(
     *,
     wallet_id: str,
-    amount: int,  # in satoshis
+    amount: float,
+    currency: Optional[str] = "sat",
     memo: str,
     description_hash: Optional[bytes] = None,
     unhashed_description: Optional[bytes] = None,
@@ -96,8 +108,12 @@ async def create_invoice(
     # use the fake wallet if the invoice is for internal use only
     wallet = FAKE_WALLET if internal else get_wallet_class()
 
+    amount_sat, extra = await calculate_fiat_amounts(
+        amount, wallet_id, currency=currency, extra=extra, conn=conn
+    )
+
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
-        amount=amount,
+        amount=amount_sat,
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
@@ -108,8 +124,7 @@ async def create_invoice(
 
     invoice = bolt11.decode(payment_request)
 
-    amount_msat = amount * 1000
-    extra = await calculate_fiat_amounts(amount_msat, wallet_id, extra=extra, conn=conn)
+    amount_msat = 1000 * amount_sat
     await create_payment(
         wallet_id=wallet_id,
         checking_id=checking_id,
@@ -155,7 +170,7 @@ async def pay_invoice(
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
-        extra = await calculate_fiat_amounts(
+        _, extra = await calculate_fiat_amounts(
             invoice.amount_msat, wallet_id, extra=extra, conn=conn
         )
 

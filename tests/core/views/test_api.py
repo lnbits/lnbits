@@ -97,6 +97,12 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     decode = bolt11.decode(invoice["payment_request"])
     assert decode.amount_msat != data["amount"] * 1000
 
+    response = await client.get("/api/v1/payments?limit=1", headers=inkey_headers_to)
+    assert response.is_success
+    extra = response.json()[0]["extra"]
+    assert extra["fiat_amount"] == data["amount"]
+    assert extra["fiat_currency"] == data["unit"]
+
 
 # check POST /api/v1/payments: invoice creation for internal payments only
 @pytest.mark.asyncio

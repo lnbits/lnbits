@@ -220,20 +220,13 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
 
-    if data.unit == "sat":
-        amount = int(data.amount)
-    else:
-        assert data.unit is not None, "unit not set"
-        price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
-        amount = price_in_sats
-        data.extra.update({"fiat_amount": data.amount, "fiat_currency": data.unit})
-
     async with db.connect() as conn:
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=wallet.id,
-                amount=amount,
+                amount=data.amount,
                 memo=memo,
+                currency=data.unit,
                 description_hash=description_hash,
                 unhashed_description=unhashed_description,
                 expiry=data.expiry,
