@@ -10,7 +10,5 @@ ignore =
     W503,
     # F821: undefined name - should be addressed in future PR
     F821,
-    # E722 do not use bare 'except' - should be addressed in future PR
-    E722,
     # flake8-requirements import checks
     I
