@@ -58,7 +58,7 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, core_app_extra, db
+from .. import core_app, core_app_extra
 from ..crud import (
     add_installed_extension,
     create_tinyurl,
@@ -224,24 +224,22 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
 
-    async with db.connect() as conn:
-        try:
-            _, payment_request = await create_invoice(
-                wallet_id=wallet.id,
-                amount=amount,
-                memo=memo,
-                description_hash=description_hash,
-                unhashed_description=unhashed_description,
-                expiry=data.expiry,
-                extra=data.extra,
-                webhook=data.webhook,
-                internal=data.internal,
-                conn=conn,
-            )
-        except InvoiceFailure as e:
-            raise HTTPException(status_code=520, detail=str(e))
-        except Exception as exc:
-            raise exc
+    try:
+        _, payment_request = await create_invoice(
+            wallet_id=wallet.id,
+            amount=amount,
+            memo=memo,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=data.expiry,
+            extra=data.extra,
+            webhook=data.webhook,
+            internal=data.internal,
+        )
+    except InvoiceFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
 
     invoice = bolt11.decode(payment_request)
 
