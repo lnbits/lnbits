@@ -36,19 +36,17 @@ cashu = "0.9.0"
 slowapi = "^0.1.7"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^6.0.0"
-isort = "^5.12.0"
 pytest = "^7.1.2"
 mock = "^4.0.3"
-black = "^22.6.0"
+black = "^23.7.0"
 pytest-asyncio = "^0.19.0"
 pytest-cov = "^4.1.0"
 mypy = "^0.971"
 types-protobuf = "^3.19.22"
-pylint = "^2.17.2"
 pre-commit = "^3.2.2"
 types-mock = "^5.0.0.6"
 openapi-spec-validator = "^0.5.5"
+ruff = "^0.0.284"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -56,9 +54,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 lnbits = "lnbits.server:main"
-
-[tool.isort]
-profile = "black"
 
 [tool.pyright]
 include = [
@@ -105,35 +100,59 @@ testpaths = [
   "tests"
 ]
 
-[tool.pylint.'MESSAGES CONTROL']
-max-line-length = 300
-disable = "all"
-enable = [
-    "assignment-from-none",
-    "chained-comparison",
-    "consider-merging-isinstance",
-    "consider-using-dict-comprehension",
-    "consider-using-dict-items",
-    "consider-using-f-string",
-    "consider-using-in",
-    "dangerous-default-value",
-    "inconsistent-return-statements",
-    "lost-exception",
-    "pointless-string-statement",
-    "simplifiable-if-statement",
-    "super-init-not-called",
-    "superfluous-parens",
-    "unused-variable",
-    "use-list-literal",
-    "useless-else-on-loop",
-    "useless-object-inheritance",
+[tool.black]
+line-length = 88
+# previously experimental-string-processing = true
+# this should autoformat string poperly but does not work
+preview = true
+
+[tool.ruff]
+# Same as Black.
+line-length = 88
+
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+select = ["E", "F", "I"]
+ignore = [
+    "E501",  # Line length
+    "E402", # Module level import not at top of file
+    "E722", # Do not use bare except
 ]
 
-[tool.pylint.MASTER]
-ignore-paths = [
-  "^lnbits/extensions/.*$",
-  "^lnbits/upgrades/.*$",
-  "^lnbits/wallets/lnd_grpc_files/.*$",
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
 ]
-fail-under = 10.0
-jobs = 0
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.9
+target-version = "py39"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
