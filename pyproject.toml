@@ -101,14 +101,14 @@ testpaths = [
 ]
 
 [tool.black]
-line-length = 88
+line-length = 300
 # previously experimental-string-processing = true
 # this should autoformat string poperly but does not work
 preview = true
 
 [tool.ruff]
 # Same as Black.
-line-length = 88
+line-length = 300
 
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 select = ["E", "F", "I"]
