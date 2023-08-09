@@ -122,9 +122,7 @@ line-length = 88
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 # (`I`) is for `isort`.
 select = ["E", "F", "I"]
-ignore = [
-    "E402", # Module level import not at top of file
-]
+ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
