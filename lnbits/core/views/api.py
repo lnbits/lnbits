@@ -77,7 +77,6 @@ from ..crud import (
     update_wallet,
 )
 from ..services import (
-    InvoiceFailure,
     PaymentFailure,
     check_transaction_status,
     create_invoice,
