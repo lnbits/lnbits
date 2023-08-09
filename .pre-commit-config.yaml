@@ -33,3 +33,10 @@ repos:
     hooks:
       - id: flake8
         entry: poetry run flake8
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: make pylint
+        language: system
+        types: [python]
