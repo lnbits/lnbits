@@ -101,14 +101,20 @@ testpaths = [
 ]
 
 [tool.black]
-line-length = 300
+# line-length = 150
 # previously experimental-string-processing = true
 # this should autoformat string poperly but does not work
-preview = true
+# preview = true
+target-versions = ["py39"]
+extend-exclude = """(
+    lnbits/static
+    | lnbits/extensions
+    | lnbits/wallets/lnd_grpc_files
+)"""
 
 [tool.ruff]
 # Same as Black.
-line-length = 300
+line-length = 150
 
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 select = ["E", "F", "I"]
@@ -127,6 +133,7 @@ unfixable = []
 # Exclude a variety of commonly ignored directories.
 exclude = [
     "lnbits/static",
+    "lnbits/extensions",
     "lnbits/wallets/lnd_grpc_files",
     ".bzr",
     ".direnv",

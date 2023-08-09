@@ -182,7 +182,6 @@ def lnencode(addr, privkey):
     tags_set = set()
 
     for k, v in addr.tags:
-
         # BOLT #11:
         #
         # A writer MUST NOT include more than one `d`, `h`, `n` or `x` fields,
