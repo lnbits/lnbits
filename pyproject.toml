@@ -126,6 +126,7 @@ unfixable = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "lnbits/static",
     "lnbits/wallets/lnd_grpc_files",
     ".bzr",
     ".direnv",

@@ -1,9 +1,7 @@
-name: flake8
-
+name: linter
 on: [push, pull_request]
-
 jobs:
-  check:
+  checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,8 +18,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
-      - name: Install dependencies
-        run: |
-          poetry install --no-root
+
+      - name: Install python packages
+        run: poetry install
+      - name: Check black
+        run: make checkblack
+      - name: Check ruff
+        run: make checkruff
+      - name: Check mypy
+        run: make mypy
+
+      - name: Install node packages
+        run: npm i
       - name: Run tests
-        run: make flake8
+        run: make pyright
+      - name: Check prettier
+        run: make checkprettier
