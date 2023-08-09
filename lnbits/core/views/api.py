@@ -236,10 +236,11 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             webhook=data.webhook,
             internal=data.internal,
         )
-    except InvoiceFailure as e:
-        raise HTTPException(status_code=520, detail=str(e))
-    except Exception as exc:
-        raise exc
+    except InvoiceFailure as exc:
+        raise HTTPException(
+            status_code=520,
+            detail=f"Create invoice failure: {str(exc)}",
+        )
 
     invoice = bolt11.decode(payment_request)
 
