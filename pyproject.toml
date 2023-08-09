@@ -113,9 +113,11 @@ line-length = 88
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 select = ["E", "F", "I"]
 ignore = [
-    "E501",  # Line length
     "E402", # Module level import not at top of file
+    "E501",  # Line length
+    "E721", # do not compare types, use 'isinstance()'
     "E722", # Do not use bare except
+    "F821", # undefined name
 ]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
@@ -124,6 +126,7 @@ unfixable = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "lnbits/wallets/lnd_grpc_files",
     ".bzr",
     ".direnv",
     ".eggs",
