@@ -236,7 +236,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             webhook=data.webhook,
             internal=data.internal,
         )
-    except InvoiceFailure as exc:
+    except Exception as exc:
         raise HTTPException(
             status_code=520,
             detail=f"Create invoice failure: {str(exc)}",
