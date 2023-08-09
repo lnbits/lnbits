@@ -1,10 +1,3 @@
-imports_ok = True
-try:
-    import grpc
-    from grpc import RpcError
-except ImportError:  # pragma: nocover
-    imports_ok = False
-
 import asyncio
 import base64
 import hashlib
@@ -12,14 +5,6 @@ from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
-
-from .macaroon import AESCipher, load_macaroon
-
-if imports_ok:
-    import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
-    import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
-    import lnbits.wallets.lnd_grpc_files.router_pb2 as router
-    import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 
 from lnbits.settings import settings
 
@@ -30,6 +15,20 @@ from .base import (
     StatusResponse,
     Wallet,
 )
+from .macaroon import AESCipher, load_macaroon
+
+imports_ok = True
+try:
+    import grpc
+    from grpc import RpcError
+except ImportError:  # pragma: nocover
+    imports_ok = False
+
+if imports_ok:
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
+    import lnbits.wallets.lnd_grpc_files.router_pb2 as router
+    import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 
 
 def get_ssl_context(cert_path: str):

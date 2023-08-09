@@ -4,8 +4,6 @@ exclude = lnbits/wallets/lnd_grpc_files/, lnbits/extensions/
 ignore =
     # E203 whitespace before ':' black does not like it
     E203
-    # E402: module level import not at top of file
-    E402,
     # W503: line break before binary operator
     W503,
     # E722 do not use bare 'except' - should be addressed in future PR
