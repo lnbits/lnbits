@@ -52,7 +52,7 @@ class AESCipher:
         return data + (chr(length) * length).encode()
 
     def unpad(self, data):
-        return data[: -(data[-1] if type(data[-1]) == int else ord(data[-1]))]
+        return data[: -(data[-1] if isinstance(data[-1], int) else ord(data[-1]))]
 
     @property
     def passphrase(self):
