@@ -93,9 +93,9 @@ class LndRestNode(Node):
             },
         )
 
-    async def disconnect_peer(self, id: str):
+    async def disconnect_peer(self, peer_id: str):
         try:
-            await self.request("DELETE", "/v1/peers/" + id)
+            await self.request("DELETE", "/v1/peers/" + peer_id)
         except HTTPException as e:
             if "unable to disconnect" in e.detail:
                 raise HTTPException(
@@ -103,14 +103,14 @@ class LndRestNode(Node):
                 )
             raise
 
-    async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
+    async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
         try:
-            response = await self.get("/v1/graph/node/" + pubkey)
+            response = await self.get("/v1/graph/node/" + peer_id)
         except HTTPException:
-            return NodePeerInfo(id=pubkey)
+            return NodePeerInfo(id=peer_id)
         node = response["node"]
         return NodePeerInfo(
-            id=pubkey,
+            id=peer_id,
             alias=node["alias"],
             color=node["color"].strip("#"),
             last_timestamp=node["last_update"],

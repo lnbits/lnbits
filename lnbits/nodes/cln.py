@@ -78,9 +78,9 @@ class CoreLightningNode(Node):
                 raise
 
     @catch_rpc_errors
-    async def disconnect_peer(self, id: str):
+    async def disconnect_peer(self, peer_id: str):
         try:
-            await self.ln_rpc("disconnect", id)
+            await self.ln_rpc("disconnect", peer_id)
         except RpcError as e:
             if e.error["code"] == -1:
                 raise HTTPException(
@@ -172,11 +172,11 @@ class CoreLightningNode(Node):
         return [p["id"] for p in peers["peers"] if p["connected"]]
 
     @catch_rpc_errors
-    async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        result = await self.ln_rpc("listnodes", pubkey)
+    async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
+        result = await self.ln_rpc("listnodes", peer_id)
         nodes = result["nodes"]
         if len(nodes) == 0:
-            return NodePeerInfo(id=pubkey)
+            return NodePeerInfo(id=peer_id)
         node = nodes[0]
         if "last_timestamp" in node:
             return NodePeerInfo(

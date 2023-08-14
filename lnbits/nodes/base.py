@@ -168,8 +168,8 @@ class Node(ABC):
         pass
 
     async def get_peers(self) -> list[NodePeerInfo]:
-        ids = await self.get_peer_ids()
-        return [await self.get_peer_info(pubkey) for pubkey in ids]
+        peer_ids = await self.get_peer_ids()
+        return [await self.get_peer_info(peer_id) for peer_id in peer_ids]
 
     @abstractmethod
     async def get_peer_ids(self) -> list[str]:
@@ -180,19 +180,19 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def disconnect_peer(self, id: str):
+    async def disconnect_peer(self, peer_id: str):
         pass
 
     @abstractmethod
-    async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
+    async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
         pass
 
-    async def get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        info = cache.get(f"peers:{pubkey}")
+    async def get_peer_info(self, peer_id: str) -> NodePeerInfo:
+        info = cache.get(f"peers:{peer_id}")
         if not info:
-            info = await self._get_peer_info(pubkey)
+            info = await self._get_peer_info(peer_id)
             if info.last_timestamp:
-                cache.set(f"peers:{pubkey}", info)
+                cache.set(f"peers:{peer_id}", info)
         return info
 
     @abstractmethod
