@@ -25,10 +25,6 @@ from ...nodes.base import (
 from .. import core_app
 
 
-class NodeInfo(NodeInfoResponse):
-    pass
-
-
 def require_node():
     NODE = get_node_class()
     if not NODE:
@@ -153,11 +149,9 @@ async def api_connect_peer(
     return await node.connect_peer(uri)
 
 
-@node_api.delete("/peers")
-async def api_disconnect_peer(
-    id: str = Body(embed=True), node: Node = Depends(require_node)
-):
-    return await node.disconnect_peer(id)
+@node_api.delete("/peers/{peer_id}")
+async def api_disconnect_peer(peer_id: str, node: Node = Depends(require_node)):
+    return await node.disconnect_peer(peer_id)
 
 
 class NodeRank(BaseModel):

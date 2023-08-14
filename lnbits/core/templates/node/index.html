@@ -444,7 +444,7 @@
             'Do you really wanna disconnect this peer?'
           )
           .onOk(() => {
-            this.api('DELETE', '/peers', {data: {id}})
+            this.api('DELETE', `/peers/${id}`)
               .then(response => {
                 this.$q.notify({
                   message: 'Disconnected',
