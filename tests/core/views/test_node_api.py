@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import pytest
@@ -7,7 +8,12 @@ from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
 from tests.conftest import pytest_asyncio, settings
 
-from ...helpers import WALLET, get_random_invoice_data, mine_blocks
+from ...helpers import (
+    WALLET,
+    get_random_invoice_data,
+    get_unconnected_node_uri,
+    mine_blocks,
+)
 
 pytestmark = pytest.mark.skipif(
     WALLET.__node_cls__ is None, reason="Cant test if node implementation isnt avilable"
@@ -57,13 +63,6 @@ async def test_node_info(node_client, from_super_user):
 
 
 @pytest.mark.asyncio
-async def test_node_peers(node_client):
-    response = await node_client.get("/node/api/v1/peers")
-    assert response.status_code == 200
-    assert len(response.json())
-
-
-@pytest.mark.asyncio
 async def test_node_invoices(inkey_headers_from, node_client):
     data = await get_random_invoice_data()
     response = await node_client.post(
@@ -95,15 +94,14 @@ async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
     )
 
 
-async def get_channels(client):
-    response = await client.get("/node/api/v1/channels")
-    assert response.status_code == 200
-    return parse_obj_as(list[NodeChannel], response.json())
-
-
 @pytest.mark.asyncio
 async def test_channel_management(node_client):
-    data = await get_channels(node_client)
+    async def get_channels():
+        response = await node_client.get("/node/api/v1/channels")
+        assert response.status_code == 200
+        return parse_obj_as(list[NodeChannel], response.json())
+
+    data = await get_channels()
     close = random.choice(
         [channel for channel in data if channel.state == ChannelState.ACTIVE]
     )
@@ -115,7 +113,7 @@ async def test_channel_management(node_client):
     )
     assert response.status_code == 200
 
-    data = await get_channels(node_client)
+    data = await get_channels()
     assert any(
         channel.point == close.point and channel.state == ChannelState.CLOSED
         for channel in data
@@ -130,7 +128,7 @@ async def test_channel_management(node_client):
     )
     assert response.status_code == 200
     created = ChannelPoint(**response.json())
-    data = await get_channels(node_client)
+    data = await get_channels()
     assert any(
         channel.point == created and channel.state == ChannelState.PENDING
         for channel in data
@@ -139,3 +137,23 @@ async def test_channel_management(node_client):
     # mine some blocks so that the newly created channel eventually gets confirmed to avoid a situation
     # where no channels are left for testing
     mine_blocks(5)
+
+
+@pytest.mark.asyncio
+async def test_peer_management(node_client):
+    connect_uri = get_unconnected_node_uri()
+    id = connect_uri.split("@")[0]
+    response = await node_client.post("/node/api/v1/peers", json={"uri": connect_uri})
+    assert response.status_code == 200
+
+    response = await node_client.get("/node/api/v1/peers")
+    assert response.status_code == 200
+    assert any(peer["id"] == id for peer in response.json())
+
+    response = await node_client.delete(f"/node/api/v1/peers/{id}")
+    assert response.status_code == 200
+    await asyncio.sleep(0.1)
+
+    response = await node_client.get("/node/api/v1/peers")
+    assert response.status_code == 200
+    assert not any(peer["id"] == id for peer in response.json())

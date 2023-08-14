@@ -52,6 +52,10 @@ docker_cmd = "docker exec"
 docker_lightning = f"{docker_cmd} {docker_prefix}-lnd-1-1"
 docker_lightning_cli = f"{docker_lightning} lncli --network regtest --rpcserver=lnd-1"
 
+docker_lightning_unconnected_cli = (
+    f"{docker_cmd} {docker_prefix}-lnd-2-1 lncli --network regtest --rpcserver=lnd-2"
+)
+
 docker_bitcoin = f"{docker_cmd} {docker_prefix}-bitcoind-1"
 docker_bitcoin_cli = f"{docker_bitcoin} bitcoin-cli -rpcuser={docker_bitcoin_rpc} -rpcpassword={docker_bitcoin_rpc} -regtest"
 
@@ -94,6 +98,13 @@ def pay_real_invoice(invoice: str) -> Popen:
 
 def mine_blocks(blocks: int = 1) -> str:
     return run_cmd(f"{docker_bitcoin_cli} -generate {blocks}")
+
+
+def get_unconnected_node_uri() -> str:
+    pubkey = run_cmd(
+        f"{docker_lightning_unconnected_cli} getinfo | jq .identity_pubkey -r"
+    )
+    return f"{pubkey}@lnd-2:9735"
 
 
 def create_onchain_address(address_type: str = "bech32") -> str:
