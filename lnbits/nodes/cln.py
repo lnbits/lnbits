@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+from http import HTTPStatus
 from typing import TYPE_CHECKING, List, Optional
 
 import starlette.status as status
@@ -11,6 +13,12 @@ from ..cache import cache
 
 try:
     from pyln.client import RpcError  # type: ignore
+
+    if TYPE_CHECKING:
+        # override the false type
+        class RpcError(RpcError):  # type: ignore
+            error: dict
+
 except ImportError:  # pragma: nocover
     LightningRpc = None
 
@@ -38,7 +46,10 @@ def catch_rpc_errors(f):
         try:
             return await f(*args, **kwargs)
         except RpcError as e:
-            raise HTTPException(status_code=500, detail=e.error["message"])  # type: ignore
+            if e.error["code"] == -32602:
+                raise HTTPException(status_code=400, detail=e.error["message"])
+            else:
+                raise HTTPException(status_code=500, detail=e.error["message"])
 
     return wrapper
 
@@ -46,34 +57,38 @@ def catch_rpc_errors(f):
 class CoreLightningNode(Node):
     wallet: CoreLightningWallet
 
-    def __init__(self, wallet: CoreLightningWallet):
-        super().__init__(wallet)
-        try:
-            raw: dict = self.wallet.ln.call("listsqlschemas")  # type: ignore
-            self.schema_cols = {
-                schema["tablename"]: schema["columns"] for schema in raw["schemas"]
-            }
-        except RpcError:
-            self.schema_cols = {}
+    async def ln_rpc(self, method, *args, **kwargs) -> dict:
+        loop = asyncio.get_event_loop()
+        fn = getattr(self.wallet.ln, method)
+        return await loop.run_in_executor(None, lambda: fn(*args, **kwargs))
 
     @catch_rpc_errors
     async def connect_peer(self, uri: str):
+        # https://docs.corelightning.org/reference/lightning-connect
         try:
-            await self.wallet.ln_rpc("connect", uri)
+            await self.ln_rpc("connect", uri)
         except RpcError as e:
-            message = e.error["message"]  # type: ignore
+            message = e.error["message"]
+            code = e.error["code"]
+            print("HII")
 
-            if "no address known for peer" in message:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    detail="Connection establishment: No address known for peer",
-                )
+            if code == 400:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
             else:
                 raise
 
     @catch_rpc_errors
     async def disconnect_peer(self, id: str):
-        await self.wallet.ln_rpc("disconnect", id)
+        try:
+            await self.ln_rpc("disconnect", id)
+        except RpcError as e:
+            if e.error["code"] == -1:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    detail=e.error["message"],
+                )
+            else:
+                raise
 
     @catch_rpc_errors
     async def open_channel(
@@ -84,7 +99,7 @@ class CoreLightningNode(Node):
         fee_rate: Optional[int] = None,
     ) -> ChannelPoint:
         try:
-            result = await self.wallet.ln_rpc(
+            result = await self.ln_rpc(
                 "fundchannel",
                 peer_id,
                 amount=local_amount,
@@ -96,7 +111,7 @@ class CoreLightningNode(Node):
                 output_index=result["outnum"],
             )
         except RpcError as e:
-            message = e.error["message"]  # type: ignore
+            message = e.error["message"]
 
             if "amount: should be a satoshi amount" in message:
                 raise HTTPException(
@@ -135,9 +150,9 @@ class CoreLightningNode(Node):
         if not short_id:
             raise HTTPException(status_code=400, detail="Short id required")
         try:
-            await self.wallet.ln_rpc("close", short_id)
+            await self.ln_rpc("close", short_id)
         except RpcError as e:
-            message = e.error["message"]  # type: ignore
+            message = e.error["message"]
             if (
                 "Short channel ID not active:" in message
                 or "Short channel ID not found" in message
@@ -148,17 +163,17 @@ class CoreLightningNode(Node):
 
     @catch_rpc_errors
     async def _get_id(self) -> str:
-        info = await self.wallet.ln_rpc("getinfo")
+        info = await self.ln_rpc("getinfo")
         return info["id"]
 
     @catch_rpc_errors
     async def get_peer_ids(self) -> List[str]:
-        peers = await self.wallet.ln_rpc("listpeers")
+        peers = await self.ln_rpc("listpeers")
         return [p["id"] for p in peers["peers"] if p["connected"]]
 
     @catch_rpc_errors
     async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        result = await self.wallet.ln_rpc("listnodes", pubkey)
+        result = await self.ln_rpc("listnodes", pubkey)
         nodes = result["nodes"]
         if len(nodes) == 0:
             return NodePeerInfo(id=pubkey)
@@ -179,8 +194,8 @@ class CoreLightningNode(Node):
 
     @catch_rpc_errors
     async def get_channels(self) -> List[NodeChannel]:
-        funds = await self.wallet.ln_rpc("listfunds")
-        nodes = await self.wallet.ln_rpc("listnodes")
+        funds = await self.ln_rpc("listfunds")
+        nodes = await self.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
         return [
@@ -219,8 +234,8 @@ class CoreLightningNode(Node):
 
     @catch_rpc_errors
     async def get_info(self) -> NodeInfoResponse:
-        info = await self.wallet.ln_rpc("getinfo")
-        funds = await self.wallet.ln_rpc("listfunds")
+        info = await self.ln_rpc("getinfo")
+        funds = await self.ln_rpc("listfunds")
 
         channels = await self.get_channels()
         active_channels = [
@@ -250,7 +265,7 @@ class CoreLightningNode(Node):
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
         async def get_payments():
-            result = await self.wallet.ln_rpc("listpays")
+            result = await self.ln_rpc("listpays")
             return [
                 NodePayment(
                     bolt11=pay["bolt11"],
@@ -280,7 +295,7 @@ class CoreLightningNode(Node):
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
         result = await cache.save_result(
-            lambda: self.wallet.ln_rpc("listinvoices"), key="invoices"
+            lambda: self.ln_rpc("listinvoices"), key="invoices"
         )
         invoices = result["invoices"]
         invoices.reverse()

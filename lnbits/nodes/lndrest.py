@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from http import HTTPStatus
 from typing import TYPE_CHECKING, List, Optional
 
 from fastapi import HTTPException
@@ -78,7 +79,10 @@ class LndRestNode(Node):
         return [p["pub_key"] for p in response["peers"]]
 
     async def connect_peer(self, uri: str):
-        pubkey, host = uri.split("@")
+        try:
+            pubkey, host = uri.split("@")
+        except ValueError:
+            raise HTTPException(400, detail="Invalid peer URI")
         await self.request(
             "POST",
             "/v1/peers",
@@ -90,10 +94,20 @@ class LndRestNode(Node):
         )
 
     async def disconnect_peer(self, id: str):
-        await self.request("DELETE", "/v1/peers/" + id)
+        try:
+            await self.request("DELETE", "/v1/peers/" + id)
+        except HTTPException as e:
+            if "unable to disconnect" in e.detail:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST, detail="Peer is not connected"
+                )
+            raise
 
     async def _get_peer_info(self, pubkey: str) -> NodePeerInfo:
-        response = await self.get("/v1/graph/node/" + pubkey)
+        try:
+            response = await self.get("/v1/graph/node/" + pubkey)
+        except HTTPException:
+            return NodePeerInfo(id=pubkey)
         node = response["node"]
         return NodePeerInfo(
             id=pubkey,
