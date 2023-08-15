@@ -277,7 +277,7 @@ class CoreLightningNode(Node):
                 if pay["status"] != "failed"
             ]
 
-        results = await cache.save_result(get_payments, key="payments")
+        results = await cache.save_result(get_payments, key="node:payments")
         count = len(results)
         if filters.offset:
             results = results[filters.offset :]
@@ -290,7 +290,7 @@ class CoreLightningNode(Node):
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
         result = await cache.save_result(
-            lambda: self.ln_rpc("listinvoices"), key="invoices"
+            lambda: self.ln_rpc("listinvoices"), key="node:invoices"
         )
         invoices = result["invoices"]
         invoices.reverse()

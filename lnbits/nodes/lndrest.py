@@ -283,11 +283,12 @@ class LndRestNode(Node):
     async def get_payments(
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
-        payments_count = cache.get("payments_count")
+        count_key = "node:payments_count"
+        payments_count = cache.get(count_key)
         if not payments_count and filters.offset:
             # this forces fetching the payments count
             await self.get_payments(Filters(limit=1))
-            payments_count = cache.get("payments_count")
+            payments_count = cache.get(count_key)
 
         if filters.offset and payments_count:
             index_offset = max(payments_count + 1 - filters.offset, 0)
@@ -308,7 +309,7 @@ class LndRestNode(Node):
         if not filters.offset:
             payments_count = int(response["total_num_payments"])
 
-        cache.set("payments_count", payments_count)
+        cache.set(count_key, payments_count)
 
         payments = [
             NodePayment(
@@ -335,11 +336,12 @@ class LndRestNode(Node):
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        last_invoice_index = cache.get("last_invoice_index")
+        last_invoice_key = "node:last_invoice_index"
+        last_invoice_index = cache.get(last_invoice_key)
         if not last_invoice_index and filters.offset:
             # this forces fetching the last invoice index so
             await self.get_invoices(Filters(limit=1))
-            last_invoice_index = cache.get("last_invoice_index")
+            last_invoice_index = cache.get(last_invoice_key)
 
         if filters.offset and last_invoice_index:
             index_offset = max(last_invoice_index + 1 - filters.offset, 0)
@@ -358,7 +360,7 @@ class LndRestNode(Node):
         if not filters.offset:
             last_invoice_index = int(response["last_index_offset"])
 
-        cache.set("last_invoice_index", last_invoice_index)
+        cache.set(last_invoice_key, last_invoice_index)
 
         invoices = [
             NodeInvoice(
