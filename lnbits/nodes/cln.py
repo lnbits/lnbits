@@ -243,7 +243,7 @@ class CoreLightningNode(Node):
             color=info["color"],
             onchain_balance_sat=sum(output["value"] for output in funds["outputs"]),
             onchain_confirmed_sat=sum(
-                output["value"]
+                output["amount_msat"] / 1000
                 for output in funds["outputs"]
                 if output["status"] == "confirmed"
             ),
