@@ -224,7 +224,7 @@
 
         <lnbits-admin-ui
           v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
-          :node="'{{LNBITS_NODE_UI}}' == 'True'"
+          :has-node="'{{LNBITS_NODE_UI}}' == 'True'"
         ></lnbits-admin-ui>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>

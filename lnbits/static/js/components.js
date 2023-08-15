@@ -178,7 +178,7 @@ Vue.component('lnbits-extension-list', {
 })
 
 Vue.component('lnbits-admin-ui', {
-  props: ['node'],
+  props: ['has-node'],
   data: function () {
     return {
       extensions: [],
@@ -196,7 +196,7 @@ Vue.component('lnbits-admin-ui', {
           <q-item-label lines="1" class="text-caption" v-text="$t('manage_server')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if='node' clickable tag="a" :href="['/node?usr=', user.id].join('')">
+      <q-item v-if='has-node' clickable tag="a" :href="['/node?usr=', user.id].join('')">
         <q-item-section side>
           <q-icon name="developer_board" color="grey-5" size="md"></q-icon>
         </q-item-section>
@@ -224,38 +224,38 @@ Vue.component('lnbits-payment-details', {
   },
   template: `
   <div class="q-py-md" style="text-align: left">
-      
+
   <div v-if="payment.tag" class="row justify-center q-mb-md">
     <q-badge v-if="hasTag" color="yellow" text-color="black">
       #{{ payment.tag }}
     </q-badge>
   </div>
-  
+
   <div class="row">
     <b v-text="$t('created')"></b>:
     {{ payment.date }} ({{ payment.dateFrom }})
   </div>
-  
+
   <div class="row">
    <b v-text="$t('expiry')"></b>:
    {{ payment.expirydate }} ({{ payment.expirydateFrom }})
   </div>
-  
+
   <div class="row">
    <b v-text="$t('amount')"></b>:
     {{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
   </div>
-  
+
   <div class="row">
     <b v-text="$t('fee')"></b>:
     {{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
   </div>
-  
+
   <div class="text-wrap">
     <b style="white-space: nowrap;" v-text="$t('payment_hash')"></b>:&nbsp;{{ payment.payment_hash }}
         <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
   </div>
-  
+
   <div class="text-wrap">
     <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
   </div>
