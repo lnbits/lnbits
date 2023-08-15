@@ -9,8 +9,13 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 from .macaroon import AESCipher, load_macaroon
 
 
@@ -143,8 +148,8 @@ class LndRestWallet(Wallet):
         preimage = base64.b64decode(data["payment_preimage"]).hex()
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
-        r = await self.client.get(url=f"/v1/invoice/{payment.checking_id}")
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        r = await self.client.get(url=f"/v1/invoice/{checking_id}")
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
@@ -153,15 +158,15 @@ class LndRestWallet(Wallet):
 
         return PaymentStatus(True)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
         # convert checking_id from hex to base64 and some LND magic
         try:
-            checking_id = base64.urlsafe_b64encode(
-                bytes.fromhex(payment.checking_id)
-            ).decode("ascii")
+            checking_id = base64.urlsafe_b64encode(bytes.fromhex(checking_id)).decode(
+                "ascii"
+            )
         except ValueError:
             return PaymentStatus(None)
 
@@ -187,12 +192,12 @@ class LndRestWallet(Wallet):
                             else line["error"]
                         )
                         return PaymentStatus(None)
-                    paymentResult = line.get("result")
-                    if paymentResult is not None and paymentResult.get("status"):
+                    payment = line.get("result")
+                    if payment is not None and payment.get("status"):
                         return PaymentStatus(
-                            paid=statuses[paymentResult["status"]],
-                            fee_msat=paymentResult.get("fee_msat"),
-                            preimage=paymentResult.get("payment_preimage"),
+                            paid=statuses[payment["status"]],
+                            fee_msat=payment.get("fee_msat"),
+                            preimage=payment.get("payment_preimage"),
                         )
                     else:
                         return PaymentStatus(None)

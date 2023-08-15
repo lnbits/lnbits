@@ -13,8 +13,14 @@ from loguru import logger
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 def async_wrap(func):
@@ -112,12 +118,7 @@ class CoreLightningWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
 
-        previous_payment = await self.get_payment_status(
-            # create a dummy payment object of which we will only use checking_id in get_payment_status
-            Payment.dummy(
-                checking_id=invoice.payment_hash,
-            )
-        )
+        previous_payment = await self.get_payment_status(invoice.payment_hash)
         if previous_payment.paid:
             return PaymentResponse(False, None, None, None, "invoice already paid")
 
@@ -145,9 +146,9 @@ class CoreLightningWallet(Wallet):
             True, r["payment_hash"], fee_msat, r["payment_preimage"], None
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r: dict = self.ln.listinvoices(payment_hash=payment.checking_id)  # type: ignore
+            r = self.ln.listinvoices(payment_hash=checking_id)
         except RpcError:
             return PaymentStatus(None)
         if not r["invoices"]:
@@ -155,7 +156,7 @@ class CoreLightningWallet(Wallet):
 
         invoice_resp = r["invoices"][-1]
 
-        if invoice_resp["payment_hash"] == payment.checking_id:
+        if invoice_resp["payment_hash"] == checking_id:
             if invoice_resp["status"] == "paid":
                 return PaymentStatus(True)
             elif invoice_resp["status"] == "unpaid":
@@ -163,19 +164,19 @@ class CoreLightningWallet(Wallet):
             elif invoice_resp["status"] == "expired":
                 return PaymentStatus(False)
         else:
-            logger.warning(f"supplied an invalid checking_id: {payment.checking_id}")
+            logger.warning(f"supplied an invalid checking_id: {checking_id}")
         return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r: dict = self.ln.listpays(payment_hash=payment.checking_id)  # type: ignore
+            r = self.ln.listpays(payment_hash=checking_id)
         except:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)
         payment_resp = r["pays"][-1]
 
-        if payment_resp["payment_hash"] == payment.checking_id:
+        if payment_resp["payment_hash"] == checking_id:
             status = payment_resp["status"]
             if status == "complete":
                 fee_msat = -int(
@@ -188,7 +189,7 @@ class CoreLightningWallet(Wallet):
             else:
                 return PaymentStatus(None)
         else:
-            logger.warning(f"supplied an invalid checking_id: {payment.checking_id}")
+            logger.warning(f"supplied an invalid checking_id: {checking_id}")
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

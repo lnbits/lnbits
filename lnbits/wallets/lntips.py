@@ -9,8 +9,13 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class LnTipsWallet(Wallet):
@@ -104,10 +109,10 @@ class LnTipsWallet(Wallet):
         preimage = data["preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                f"/api/v1/invoicestatus/{payment.checking_id}",
+                f"/api/v1/invoicestatus/{checking_id}",
             )
 
             if r.is_error or len(r.text) == 0:
@@ -118,10 +123,10 @@ class LnTipsWallet(Wallet):
         except:
             return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.post(
-                url=f"/api/v1/paymentstatus/{payment.checking_id}",
+                url=f"/api/v1/paymentstatus/{checking_id}",
             )
 
             if r.is_error:

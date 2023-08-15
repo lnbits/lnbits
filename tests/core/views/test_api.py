@@ -378,11 +378,7 @@ async def test_pay_real_invoice(
     payment_status = response.json()
     assert payment_status["paid"]
 
-    # create a dummy payment object of which we will
-    # only use checking_id in get_payment_status
-    status = await WALLET.get_payment_status(
-        Payment.dummy(checking_id=invoice["payment_hash"])
-    )
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     await asyncio.sleep(0.3)
@@ -462,11 +458,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert response["paid"]
 
     # make sure that the backend also thinks it's paid
-    status = await WALLET.get_payment_status(
-        Payment.dummy(
-            checking_id=invoice["payment_hash"],
-        )
-    )
+    status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     # get the outgoing payment from the db

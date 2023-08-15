@@ -9,8 +9,14 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 class OpenNodeWallet(Wallet):
@@ -98,16 +104,16 @@ class OpenNodeWallet(Wallet):
 
         return PaymentResponse(True, checking_id, fee_msat, None, None)
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
-        r = await self.client.get(f"/v1/charge/{payment.checking_id}")
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        r = await self.client.get(f"/v1/charge/{checking_id}")
         if r.is_error:
             return PaymentStatus(None)
         data = r.json()["data"]
         statuses = {"processing": None, "paid": True, "unpaid": None}
         return PaymentStatus(statuses[data.get("status")])
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
-        r = await self.client.get(f"/v1/withdrawal/{payment.checking_id}")
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        r = await self.client.get(f"/v1/withdrawal/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(None)

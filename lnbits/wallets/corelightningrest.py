@@ -9,8 +9,14 @@ from loguru import logger
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
-from ..core.models import Payment, PaymentStatus
-from .base import InvoiceResponse, PaymentResponse, StatusResponse, Unsupported, Wallet
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 from .macaroon import load_macaroon
 
 
@@ -153,14 +159,14 @@ class CoreLightningRestWallet(Wallet):
             self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
 
-    async def get_invoice_status(self, payment: Payment) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         # get invoice bolt11 from checking_id
         # corelightning-rest wants the "label" here....
         # NOTE: We can get rid of all labels and use payment_hash when
         # corelightning-rest updates and supports it
         r = await self.client.get(
             f"{self.url}/v1/invoice/listInvoices",
-            params={"label": payment.checking_id},
+            params={"label": checking_id},
         )
         try:
             r.raise_for_status()
@@ -173,8 +179,12 @@ class CoreLightningRestWallet(Wallet):
             logger.error(f"Error getting invoice status: {e}")
             return PaymentStatus(None)
 
-    async def get_payment_status(self, payment: Payment) -> PaymentStatus:
-        # corelightning-rest wants the "bolt11" here.... sigh
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        from lnbits.core import get_standalone_payment
+
+        payment = await get_standalone_payment(checking_id)
+        if not payment:
+            raise ValueError(f"Payment with checking_id {checking_id} not found")
         r = await self.client.get(
             f"{self.url}/v1/pay/listPays",
             params={"invoice": payment.bolt11},
