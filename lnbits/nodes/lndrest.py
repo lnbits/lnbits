@@ -168,7 +168,9 @@ class LndRestNode(Node):
         force: bool = False,
     ):
         if not point:
-            raise HTTPException(status_code=400, detail="Channel point required")
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
+            )
 
         asyncio.create_task(self._close_channel(point, force))
 

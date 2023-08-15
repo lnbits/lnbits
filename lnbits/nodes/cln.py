@@ -4,7 +4,6 @@ import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING, List, Optional
 
-import starlette.status as status
 from fastapi import HTTPException
 
 from lnbits.db import Filters, Page
@@ -68,12 +67,8 @@ class CoreLightningNode(Node):
         try:
             await self.ln_rpc("connect", uri)
         except RpcError as e:
-            message = e.error["message"]
-            code = e.error["code"]
-            print("HII")
-
-            if code == 400:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
+            if e.error["code"] == 400:
+                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=e.error["message"])
             else:
                 raise
 
@@ -115,20 +110,20 @@ class CoreLightningNode(Node):
 
             if "amount: should be a satoshi amount" in message:
                 raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
+                    HTTPStatus.BAD_REQUEST,
                     detail="The amount is not a valid satoshi amount.",
                 )
 
             if "Unknown peer" in message:
                 raise HTTPException(
-                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
                     detail="We where able to connect to the peer but CLN can't find it when opening a channel.",
                 )
 
             if "Owning subdaemon openingd died" in message:
                 # https://github.com/ElementsProject/lightning/issues/2798#issuecomment-511205719
                 raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
+                    HTTPStatus.BAD_REQUEST,
                     detail="Likely the peer didn't like our channel opening proposal and disconnected from us.",
                 )
 
@@ -137,7 +132,7 @@ class CoreLightningNode(Node):
                 or "exceeds maximum chan size of 10 BTC" in message
                 or "Could not afford" in message
             ):
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
+                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message)
             raise
 
     @catch_rpc_errors
@@ -157,7 +152,7 @@ class CoreLightningNode(Node):
                 "Short channel ID not active:" in message
                 or "Short channel ID not found" in message
             ):
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=message)
+                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message)
             else:
                 raise
 

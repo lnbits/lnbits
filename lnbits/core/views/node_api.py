@@ -176,7 +176,6 @@ class NodeRank(BaseModel):
 async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[NodeRank]:
     node_id = await node.get_id()
     async with httpx.AsyncClient() as client:
-        # node_id = "026165850492521f4ac8abd9bd8088123446d126f648ca35e60f88177dc149ceb2"
         r = await client.get(url=f"https://1ml.com/node/{node_id}/json", timeout=15)
         try:
             r.raise_for_status()

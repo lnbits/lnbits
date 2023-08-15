@@ -77,8 +77,6 @@ class LndRestWallet(Wallet):
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
 
-        self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
-
     async def status(self) -> StatusResponse:
         try:
             r = await self.client.get("/v1/balance/channels")

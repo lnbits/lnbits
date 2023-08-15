@@ -328,8 +328,6 @@ def register_startup(app: FastAPI):
             # check extensions after restart
             await check_installed_extensions(app)
 
-            asyncio.create_task(cache.invalidate_forever())
-
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
 

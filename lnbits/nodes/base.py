@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, List, NamedTuple, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from pydantic import BaseModel
 
@@ -11,13 +11,6 @@ from lnbits.db import FilterModel, Filters, Page
 
 if TYPE_CHECKING:
     from lnbits.wallets.base import Wallet
-
-
-class NodeStatsResponse(NamedTuple):
-    error_message: Optional[str]
-    total: int
-    onchain_confirmed: int
-    channel_balance: int
 
 
 class NodePeerInfo(BaseModel):
@@ -54,11 +47,6 @@ class NodeChannel(BaseModel):
     state: ChannelState
     name: Optional[str]
     color: Optional[str]
-
-
-class NodeChannelsResponse(BaseModel):
-    channels: list[NodeChannel]
-    active_balance: ChannelBalance
 
 
 class ChannelStats(BaseModel):
@@ -132,11 +120,6 @@ class NodeInvoice(BaseModel):
     payment_hash: str
     paid_at: Optional[int] = None
     expiry: Optional[int] = None
-
-
-class NodePaymentsResponse(BaseModel):
-    error_message: Optional[str]
-    payments: list[NodePayment]
 
 
 class NodeInvoiceFilters(FilterModel):
