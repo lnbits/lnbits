@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import List, Optional
 
 import httpx
@@ -29,12 +30,12 @@ def require_node():
     NODE = get_node_class()
     if not NODE:
         raise HTTPException(
-            status_code=400,
+            status_code=HTTPStatus.NOT_IMPLEMENTED,
             detail="Active backend does not implement Node API",
         )
     if not settings.lnbits_node_ui:
         raise HTTPException(
-            status_code=404,
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Not enabled",
         )
     return NODE
@@ -43,7 +44,7 @@ def require_node():
 def check_public():
     if not (settings.lnbits_node_ui and settings.lnbits_public_node_ui):
         raise HTTPException(
-            status_code=404,
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Not enabled",
         )
 
