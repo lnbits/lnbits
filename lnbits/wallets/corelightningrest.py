@@ -28,10 +28,15 @@ class CoreLightningRestWallet(Wallet):
         self.macaroon = load_macaroon(macaroon)
 
         url = settings.corelightning_rest_url
-        if not url or not macaroon:
-            raise Exception("cannot initialize corelightning-rest")
+        if not url:
+            raise Exception("missing url for corelightning-rest")
+        if not macaroon:
+            raise Exception("missing macaroon for corelightning-rest")
 
         self.url = url[:-1] if url.endswith("/") else url
+        self.url = (
+            f"https://{self.url}" if not self.url.startswith("http") else self.url
+        )
         self.auth = {
             "macaroon": self.macaroon,
             "encodingtype": "hex",
@@ -56,7 +61,7 @@ class CoreLightningRestWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/channel/localremotebal", timeout=5)
-
+        r.raise_for_status()
         if r.is_error or "error" in r.json():
             try:
                 data = r.json()
@@ -105,7 +110,6 @@ class CoreLightningRestWallet(Wallet):
         r = await self.client.post(
             f"{self.url}/v1/invoice/genInvoice",
             data=data,
-            timeout=40,
         )
 
         if r.is_error or "error" in r.json():
