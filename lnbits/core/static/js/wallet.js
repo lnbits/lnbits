@@ -137,6 +137,9 @@ new Vue({
           comment: ''
         },
         paymentChecker: null,
+        copy: {
+          show: false
+        },
         camera: {
           show: false,
           camera: 'auto'
@@ -172,6 +175,12 @@ new Vue({
       },
       paymentsCSV: {
         columns: [
+          {
+            name: 'pending',
+            align: 'left',
+            label: 'Pending',
+            field: 'pending'
+          },
           {
             name: 'memo',
             align: 'left',
@@ -221,6 +230,18 @@ new Vue({
             align: 'right',
             label: this.$t('webhook'),
             field: 'webhook'
+          },
+          {
+            name: 'fiat_currency',
+            align: 'right',
+            label: 'Fiat Currency',
+            field: row => row.extra.wallet_fiat_currency
+          },
+          {
+            name: 'fiat_amount',
+            align: 'right',
+            label: 'Fiat Amount',
+            field: row => row.extra.wallet_fiat_amount
           }
         ],
         filter: null,
@@ -302,6 +323,8 @@ new Vue({
       this.parse.invoice = null
       this.parse.lnurlpay = null
       this.parse.lnurlauth = null
+      this.parse.copy.show =
+        window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
@@ -787,14 +810,10 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      let columns = structuredClone(this.paymentsCSV.columns)
-      columns.unshift({
-        name: 'pending',
-        align: 'left',
-        label: 'Pending',
-        field: 'pending'
+      LNbits.api.getPayments(this.g.wallet, {}).then(response => {
+        const payments = response.data.data.map(LNbits.map.payment)
+        LNbits.utils.exportCSV(this.paymentsCSV.columns, payments)
       })
-      LNbits.utils.exportCSV(columns, this.payments)
     },
     pasteToTextArea: function () {
       navigator.clipboard.readText().then(text => {

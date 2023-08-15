@@ -2,30 +2,11 @@ import hashlib
 import json
 import os
 import random
-import secrets
 import string
 from subprocess import PIPE, Popen, run
 from typing import Tuple
 
-from lnbits.core.crud import create_payment
 from lnbits.wallets import get_wallet_class, set_wallet_class
-
-
-async def credit_wallet(wallet_id: str, amount: int):
-    preimage = secrets.token_hex(32)
-    m = hashlib.sha256()
-    m.update(f"{preimage}".encode())
-    payment_hash = m.hexdigest()
-    await create_payment(
-        wallet_id=wallet_id,
-        payment_request="",
-        payment_hash=payment_hash,
-        checking_id=payment_hash,
-        preimage=preimage,
-        memo=f"funding_test_{get_random_string(5)}",
-        amount=amount,  # msat
-        pending=False,  # not pending, so it will increase the wallet's balance
-    )
 
 
 def get_random_string(N: int = 10):
