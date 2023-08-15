@@ -1,5 +1,6 @@
 import asyncio
 import random
+from http import HTTPStatus
 
 import pytest
 from pydantic import parse_obj_as
@@ -41,13 +42,13 @@ async def public_node_client(node_client):
 @pytest.mark.asyncio
 async def test_node_info_not_found(client):
     response = await client.get("/node/api/v1/info")
-    assert response.status_code == 404
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
 @pytest.mark.asyncio
 async def test_public_node_info_not_found(node_client):
     response = await node_client.get("/node/public/api/v1/info")
-    assert response.status_code == 404
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
 @pytest.mark.asyncio
