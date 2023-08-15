@@ -10,6 +10,7 @@ from lnbits.decorators import check_admin, parse_filters
 from lnbits.nodes import get_node_class
 from lnbits.settings import settings
 
+from ...cache import cache
 from ...db import Filters, Page
 from ...nodes.base import (
     ChannelPoint,
@@ -67,7 +68,7 @@ async def api_get_ok():
 
 @public_node_api.get("/info", response_model=PublicNodeInfo)
 async def api_get_public_info(node: Node = Depends(require_node)) -> PublicNodeInfo:
-    return await node.get_public_info()
+    return await cache.save_result(node.get_public_info, key="node:public_info")
 
 
 @node_api.get("/info")
