@@ -22,7 +22,7 @@ function decode(paymentRequest) {
 }
 
 function decodeHumanReadablePart(humanReadablePart) {
-  let prefixes = ['lnbc', 'lntb', 'lnbcrt', 'lnsb']
+  let prefixes = ['lnbc', 'lntb', 'lnbcrt', 'lnsb', 'lntbs']
   let prefix
   prefixes.forEach(value => {
     if (humanReadablePart.substring(0, value.length) === value) {
