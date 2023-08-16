@@ -110,6 +110,7 @@ target-versions = ["py39"]
 extend-exclude = """(
     lnbits/static
     | lnbits/extensions
+    | lnbits/upgrades
     | lnbits/wallets/lnd_grpc_files
 )"""
 
