@@ -165,6 +165,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Assume Python 3.9
 target-version = "py39"
 
+[tool.ruff.extend-per-file-ignores]
+"__init__.py" = ["F401"]
+
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
