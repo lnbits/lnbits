@@ -41,7 +41,7 @@ class Wallet(BaseModel):
         url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
         try:
             return lnurl_encode(url)
-        except:
+        except Exception:
             return ""
 
     def lnurlauth_key(self, domain: str) -> SigningKey:

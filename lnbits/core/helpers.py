@@ -71,7 +71,7 @@ def to_valid_user_id(user_id: str) -> UUID:
         raise ValueError("User ID must have at least 128 bits")
     try:
         int(user_id, 16)
-    except:
+    except Exception:
         raise ValueError("Invalid hex string for User ID.")
 
     return UUID(hex=user_id[:32], version=4)

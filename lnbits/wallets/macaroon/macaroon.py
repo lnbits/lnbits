@@ -27,7 +27,7 @@ def load_macaroon(macaroon: str) -> str:
         # convert the bas64 macaroon to hex
         try:
             macaroon = base64.b64decode(macaroon).hex()
-        except:
+        except Exception:
             pass
     return macaroon
 
