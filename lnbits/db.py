@@ -295,10 +295,10 @@ class Database(Compat):
         yield conn
 
     @classmethod
-    async def clean_ext_db_files(self, ext_id: str) -> bool:
+    async def clean_ext_db_files(cls, ext_id: str) -> bool:
         """
-        If the extension DB is stored directly on the filesystem (like SQLite) then delete the files and return True.
-        Otherwise do nothing and return False.
+        If the extension DB is stored directly on the filesystem (like SQLite) then
+        delete the files and return True. Otherwise do nothing and return False.
         """
 
         if DB_TYPE == SQLITE:
