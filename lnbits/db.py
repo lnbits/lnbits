@@ -462,7 +462,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.search and self.model:
             if DB_TYPE == POSTGRES:
                 where_stmts.append(
-                    f"lower(concat({f', '.join(self.model.__search_fields__)})) LIKE ?"
+                    f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE ?"
                 )
             elif DB_TYPE == SQLITE:
                 where_stmts.append(
