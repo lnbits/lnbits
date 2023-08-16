@@ -135,7 +135,7 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]
-            except:
+            except Exception:
                 error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
@@ -149,7 +149,7 @@ class CoreLightningWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = self.ln.listinvoices(payment_hash=checking_id)
-        except:
+        except Exception:
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
@@ -170,7 +170,7 @@ class CoreLightningWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = self.ln.listpays(payment_hash=checking_id)
-        except:
+        except Exception:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)

@@ -285,7 +285,7 @@ async def test_decode_invoice(client, invoice):
 async def test_api_payment_without_key(invoice):
     # check the payment status
     response = await api_payment(invoice["payment_hash"])
-    assert type(response) == dict
+    assert isinstance(response, dict)
     assert response["paid"] is True
     # no key, that's why no "details"
     assert "details" not in response
@@ -298,7 +298,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
-    assert type(response) == dict
+    assert isinstance(response, dict)
     assert response["paid"] is True
     assert "details" in response
 

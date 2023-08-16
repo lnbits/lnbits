@@ -251,7 +251,7 @@ async def m007_set_invoice_expiries(db):
                         checking_id,
                     ),
                 )
-            except:
+            except Exception:
                 continue
     except OperationalError:
         # this is necessary now because it may be the case that this migration will

@@ -46,8 +46,8 @@ class SseListenersDict(dict):
         self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
 
     def __setitem__(self, key, value):
-        assert type(key) == str, f"{key} is not a string"
-        assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
+        assert isinstance(key, str), f"{key} is not a string"
+        assert isinstance(value, asyncio.Queue), f"{value} is not an asyncio.Queue"
         logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
         return super().__setitem__(key, value)
 

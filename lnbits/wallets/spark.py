@@ -73,7 +73,7 @@ class SparkWallet(Wallet):
 
             try:
                 data = r.json()
-            except:
+            except Exception:
                 raise UnknownError(r.text)
 
             if r.is_error:
