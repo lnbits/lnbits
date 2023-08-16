@@ -122,9 +122,6 @@ select = ["E", "F", "I"]
 ignore = [
     "E402", # Module level import not at top of file
     "E501",  # Line length
-    "E721", # do not compare types, use 'isinstance()'
-    "E722", # Do not use bare except
-    "F821", # undefined name
 ]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
@@ -165,8 +162,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Assume Python 3.9
 target-version = "py39"
 
+# Ignore unused imports in __init__.py files.
 [tool.ruff.extend-per-file-ignores]
-"__init__.py" = ["F401"]
+"__init__.py" = ["F401", "F403"]
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
