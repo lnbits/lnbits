@@ -42,7 +42,7 @@ pytest = "^7.1.2"
 mock = "^4.0.3"
 black = "^22.6.0"
 pytest-asyncio = "^0.19.0"
-pytest-cov = "^3.0.0"
+pytest-cov = "^4.1.0"
 mypy = "^0.971"
 types-protobuf = "^3.19.22"
 pylint = "^2.17.2"
@@ -94,6 +94,7 @@ module = [
   "ecdsa.*",
   "psycopg2.*",
   "pyngrok.*",
+  "pyln.client.*",
 ]
 ignore_missing_imports = "True"
 
