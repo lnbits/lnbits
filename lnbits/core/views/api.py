@@ -4,10 +4,9 @@ import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
-import async_timeout
 import httpx
 import pyqrcode
 from fastapi import (
@@ -421,34 +420,18 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     logger.debug(f"adding sse listener for wallet: {uid}")
     api_invoice_listeners[uid] = payment_queue
 
-    send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
-
-    async def payment_received() -> None:
-        while True:
-            try:
-                async with async_timeout.timeout(1):
-                    payment: Payment = await payment_queue.get()
-                    if payment.wallet_id == this_wallet_id:
-                        logger.debug("sse listener: payment received", payment)
-                        await send_queue.put(("payment-received", payment))
-            except asyncio.TimeoutError:
-                pass
-
-    task = asyncio.create_task(payment_received())
-
     try:
         while True:
             if await request.is_disconnected():
                 await request.close()
                 break
-            typ, data = await send_queue.get()
-            if data:
-                jdata = json.dumps(dict(data.dict(), pending=False))
-                yield dict(data=jdata, event=typ)
+            payment: Payment = await payment_queue.get()
+            if payment.wallet_id == this_wallet_id:
+                logger.debug("sse listener: payment received", payment)
+                yield dict(data=payment.json(), event="payment-received")
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
-        task.cancel()
         return
 
 

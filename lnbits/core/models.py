@@ -170,6 +170,8 @@ class Payment(FromRowModel):
     async def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
 
+        self.pending = pending
+
         await update_payment_status(self.checking_id, pending)
 
     async def check_status(
