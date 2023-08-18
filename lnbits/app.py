@@ -180,6 +180,10 @@ async def check_installed_extensions(app: FastAPI):
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
 
+    logger.info(f"Installed Extensions ({len(installed_extensions)}):")
+    for ext in installed_extensions:
+        logger.info(f"{ext.id} ({ext.installed_version})")
+
 
 async def build_all_installed_extensions_list() -> List[InstallableExtension]:
     """
