@@ -73,7 +73,7 @@ openapi:
 	HOST=0.0.0.0 \
 	PORT=5003 \
 	poetry run lnbits &
-	sleep 7
+	sleep 15
 	curl -s http://0.0.0.0:5003/openapi.json | poetry run openapi-spec-validator --errors=all -
 	# kill -9 %1
 
