@@ -49,16 +49,16 @@ class KeyChecker(SecurityBase):
                 if self._api_key
                 else request.headers.get("X-API-KEY") or request.query_params["api-key"]
             )
-            # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
-            #        Also, we should not return the wallet here - thats silly.
-            #        Possibly store it in a Redis DB
-            self.wallet = await get_wallet_for_key(key_value, self._key_type)  # type: ignore
-            if not self.wallet:
+            # FIXME: Find another way to validate the key. A fetch from DB should be
+            #        avoided here. Also, we should not return the wallet here - thats
+            #        silly. Possibly store it in a Redis DB
+            wallet = await get_wallet_for_key(key_value, self._key_type)
+            self.wallet = wallet  # type: ignore
+            if not wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
                     detail="Invalid key or expired key.",
                 )
-
         except KeyError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
@@ -156,7 +156,8 @@ async def get_key_type(
             if exc.status_code == HTTPStatus.BAD_REQUEST:
                 raise
             elif exc.status_code == HTTPStatus.UNAUTHORIZED:
-                # we pass this in case it is not an invoice key, nor an admin key, and then return NOT_FOUND at the end of this block
+                # we pass this in case it is not an invoice key, nor an admin key,
+                # and then return NOT_FOUND at the end of this block
                 pass
             else:
                 raise

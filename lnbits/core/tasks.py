@@ -48,7 +48,8 @@ async def killswitch_task():
                             await switch_to_voidwallet()
                 except (httpx.ConnectError, httpx.RequestError):
                     logger.error(
-                        f"Cannot fetch lnbits status manifest. {settings.lnbits_status_manifest}"
+                        "Cannot fetch lnbits status manifest."
+                        f" {settings.lnbits_status_manifest}"
                     )
         await asyncio.sleep(settings.lnbits_killswitch_interval * 60)
 
@@ -80,8 +81,8 @@ async def watchdog_task():
 
 def register_task_listeners():
     """
-    Registers an invoice listener queue for the core tasks.
-    Incoming payaments in this queue will eventually trigger the signals sent to all other extensions
+    Registers an invoice listener queue for the core tasks. Incoming payments in this
+    queue will eventually trigger the signals sent to all other extensions
     and fulfill other core tasks such as dispatching webhooks.
     """
     invoice_paid_queue = asyncio.Queue(5)
@@ -93,7 +94,8 @@ def register_task_listeners():
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
-    This worker dispatches events to all extensions, dispatches webhooks and balance notifys.
+    This worker dispatches events to all extensions,
+    dispatches webhooks and balance notifys.
     """
     while True:
         payment = await invoice_paid_queue.get()
@@ -135,11 +137,15 @@ async def dispatch_webhook(payment: Payment):
     """
     Dispatches the webhook to the webhook url.
     """
+    logger.debug("sending webhook", payment.webhook)
+
+    if not payment.webhook:
+        return await mark_webhook_sent(payment, -1)
+
     async with httpx.AsyncClient() as client:
         data = payment.dict()
         try:
-            logger.debug("sending webhook", payment.webhook)
-            r = await client.post(payment.webhook, json=data, timeout=40)  # type: ignore
+            r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
             await mark_webhook_sent(payment, -1)

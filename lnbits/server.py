@@ -46,7 +46,8 @@ def main(
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
-    # this beautiful beast parses all command line arguments and passes them to the uvicorn server
+    # this beautiful beast parses all command line arguments and
+    # passes them to the uvicorn server
     d = dict()
     for a in ctx.args:
         item = a.split("=")

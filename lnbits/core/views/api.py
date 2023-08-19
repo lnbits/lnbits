@@ -309,12 +309,13 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     "/api/v1/payments",
     summary="Create or pay an invoice",
     description="""
-This endpoint can be used both to generate and pay a BOLT11 invoice.
-To generate a new invoice for receiving funds into the authorized account,
-specify at least the first four fields in the POST body: `out: false`, `amount`, `unit`, and `memo`.
-To pay an arbitrary invoice from the funds already in the authorized account,
-specify `out: true` and use the `bolt11` field to supply the BOLT11 invoice to be paid.
-""",
+        This endpoint can be used both to generate and pay a BOLT11 invoice.
+        To generate a new invoice for receiving funds into the authorized account,
+        specify at least the first four fields in the POST body: `out: false`,
+        `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
+        already in the authorized account, specify `out: true` and use the `bolt11`
+        field to supply the BOLT11 invoice to be paid.
+    """,
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
@@ -379,8 +380,10 @@ async def api_payments_pay_lnurl(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=(
-                f"{domain} returned an invalid invoice. Expected {data.amount} msat, "
-                f"got {invoice.amount_msat}.",
+                (
+                    f"{domain} returned an invalid invoice. Expected"
+                    f" {data.amount} msat, got {invoice.amount_msat}."
+                ),
             ),
         )
 
@@ -388,8 +391,10 @@ async def api_payments_pay_lnurl(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=(
-                f"{domain} returned an invalid invoice. Expected description_hash == "
-                f"{data.description_hash}, got {invoice.description_hash}.",
+                (
+                    f"{domain} returned an invalid invoice. Expected description_hash"
+                    f" == {data.description_hash}, got {invoice.description_hash}."
+                ),
             ),
         )
 

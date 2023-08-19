@@ -51,7 +51,8 @@ async def stop_extension_background_work(ext_id: str, user: str):
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extensions SHOULD expose a DELETE enpoint at the root level of their API.
-    This function tries first to call the endpoint using `http` and if if fails it tries using `https`.
+    This function tries first to call the endpoint using `http`
+    and if it fails it tries using `https`.
     """
     async with httpx.AsyncClient() as client:
         try:

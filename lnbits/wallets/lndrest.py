@@ -48,7 +48,8 @@ class LndRestWallet(Wallet):
 
         if not cert:
             logger.warning(
-                "no certificate for lndrest provided, this only works if you have a publicly issued certificate"
+                "no certificate for lndrest provided, this only works if you have a"
+                " publicly issued certificate"
             )
 
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -223,6 +224,7 @@ class LndRestWallet(Wallet):
                         yield payment_hash
             except Exception as exc:
                 logger.error(
-                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5"
+                    " seconds"
                 )
                 await asyncio.sleep(5)

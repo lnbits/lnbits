@@ -50,7 +50,8 @@ class LNPayWallet(Wallet):
         data = r.json()
         if data["statusType"]["name"] != "active":
             return StatusResponse(
-                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}",
+                f"Wallet {data['user_label']} (data['id']) not active, but"
+                f" {data['statusType']['name']}",
                 0,
             )
 

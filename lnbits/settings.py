@@ -113,7 +113,9 @@ class SecuritySettings(LNbitsSettings):
     lnbits_watchdog_interval: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
     lnbits_status_manifest: str = Field(
-        default="https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+        default=(
+            "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+        )
     )
 
 
@@ -376,7 +378,8 @@ def send_admin_user_to_saas():
                 logger.success("sent super_user to saas application")
             except Exception as e:
                 logger.error(
-                    f"error sending super_user to saas: {settings.lnbits_saas_callback}. Error: {str(e)}"
+                    "error sending super_user to saas:"
+                    f" {settings.lnbits_saas_callback}. Error: {str(e)}"
                 )
 
 

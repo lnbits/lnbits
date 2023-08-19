@@ -61,7 +61,8 @@ async def migrate_databases():
             )
         elif conn.type in {POSTGRES, COCKROACH}:
             exists = await conn.fetchone(
-                "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'dbversions'"
+                "SELECT * FROM information_schema.tables WHERE table_schema = 'public'"
+                " AND table_name = 'dbversions'"
             )
 
         if not exists:

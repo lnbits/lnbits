@@ -426,7 +426,10 @@ class InstallableExtension(BaseModel):
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
     def nofiy_upgrade(self) -> None:
-        """Update the list of upgraded extensions. The middleware will perform redirects based on this"""
+        """
+        Update the list of upgraded extensions. The middleware will perform
+        redirects based on this
+        """
 
         clean_upgraded_exts = list(
             filter(
