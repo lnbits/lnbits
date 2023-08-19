@@ -1,1 +1,1 @@
-from .macaroon import AESCipher, load_macaroon  # noqa: F401
+from .macaroon import AESCipher, load_macaroon

@@ -1,1 +1,1 @@
-from tests.mocks import WALLET  # noqa: F401
+from tests.mocks import WALLET
