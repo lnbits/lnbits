@@ -1,0 +1,27 @@
+name: lint
+on:
+  workflow_call:
+
+jobs:
+  black:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: checkblack
+  ruff:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: checkruff
+  mypy:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: mypy
+  pyright:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: pyright
+      npm: true
+  prettier:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: prettier
+      npm: true

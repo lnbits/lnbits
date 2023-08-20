@@ -1,0 +1,31 @@
+name: make
+
+on:
+  workflow_call:
+    inputs:
+      make:
+        description: "make command that is run"
+        required: true
+        type: string
+      npm:
+        description: "use npm install"
+        default: false
+        type: boolean
+
+jobs:
+  make:
+    name: ${{ inputs.make }} (${{ matrix.python-version }})
+    strategy:
+      matrix:
+        os-version: ["ubuntu-latest"]
+        python-version: ["3.9", "3.10"]
+        node-version: ["18.x"]
+    runs-on: ${{ matrix.os-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ matrix.python-version }}
+          node-version: ${{ matrix.node-version }}
+          npm: ${{ inputs.npm }}
+      - run: make ${{ inputs.make }}
