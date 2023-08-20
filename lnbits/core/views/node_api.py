@@ -6,7 +6,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
-from lnbits.decorators import check_admin, parse_filters
+from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.nodes import get_node_class
 from lnbits.settings import settings
 
@@ -51,6 +51,9 @@ def check_public():
 
 
 node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
+super_node_api = APIRouter(
+    prefix="/node/api/v1", dependencies=[Depends(check_super_user)]
+)
 public_node_api = APIRouter(
     prefix="/node/public/api/v1", dependencies=[Depends(check_public)]
 )
@@ -85,7 +88,7 @@ async def api_get_channels(
     return await node.get_channels()
 
 
-@node_api.post("/channels", response_model=ChannelPoint)
+@super_node_api.post("/channels", response_model=ChannelPoint)
 async def api_create_channel(
     node: Node = Depends(require_node),
     peer_id: str = Body(),
@@ -96,7 +99,7 @@ async def api_create_channel(
     return await node.open_channel(peer_id, funding_amount, push_amount, fee_rate)
 
 
-@node_api.delete("/channels")
+@super_node_api.delete("/channels")
 async def api_delete_channel(
     short_id: Optional[str],
     funding_txid: Optional[str],
@@ -144,14 +147,14 @@ async def api_get_peers(node: Node = Depends(require_node)) -> List[NodePeerInfo
     return await node.get_peers()
 
 
-@node_api.post("/peers")
+@super_node_api.post("/peers")
 async def api_connect_peer(
     uri: str = Body(embed=True), node: Node = Depends(require_node)
 ):
     return await node.connect_peer(uri)
 
 
-@node_api.delete("/peers/{peer_id}")
+@super_node_api.delete("/peers/{peer_id}")
 async def api_disconnect_peer(peer_id: str, node: Node = Depends(require_node)):
     return await node.disconnect_peer(peer_id)
 
@@ -187,4 +190,5 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[Node
 
 
 core_app.include_router(node_api)
+core_app.include_router(super_node_api)
 core_app.include_router(public_node_api)
