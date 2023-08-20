@@ -34,7 +34,7 @@ async def api_auditor():
             "node_balance_msats": int(node_balance),
             "lnbits_balance_msats": int(total_balance),
         }
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Could not audit balance.",
@@ -94,7 +94,7 @@ async def api_topup_balance(
 ) -> dict[str, str]:
     try:
         await get_wallet(id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
         )

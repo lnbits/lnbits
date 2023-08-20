@@ -28,7 +28,7 @@ async def api_public_payment_longpolling(payment_hash):
         expiration = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration < datetime.datetime.now():
             return {"status": "expired"}
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid bolt11 invoice."
         )

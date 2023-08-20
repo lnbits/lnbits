@@ -4,17 +4,15 @@ import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
-import async_timeout
 import httpx
 import pyqrcode
 from fastapi import (
     Body,
     Depends,
     Header,
-    Query,
     Request,
     Response,
     WebSocket,
@@ -22,8 +20,6 @@ from fastapi import (
 )
 from fastapi.exceptions import HTTPException
 from loguru import logger
-from pydantic import BaseModel
-from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
 
@@ -32,7 +28,17 @@ from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
 )
-from lnbits.core.models import Payment, PaymentFilters, User, Wallet
+from lnbits.core.models import (
+    Callback,
+    ConversionData,
+    CreateInvoice,
+    CreateLnurl,
+    DecodePayment,
+    Payment,
+    PaymentFilters,
+    User,
+    Wallet,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -179,23 +185,7 @@ async def api_payments_paginated(
     return page
 
 
-class CreateInvoiceData(BaseModel):
-    out: Optional[bool] = True
-    amount: float = Query(None, ge=0)
-    memo: Optional[str] = None
-    unit: Optional[str] = "sat"
-    description_hash: Optional[str] = None
-    unhashed_description: Optional[str] = None
-    expiry: Optional[int] = None
-    lnurl_callback: Optional[str] = None
-    lnurl_balance_check: Optional[str] = None
-    extra: Optional[dict] = None
-    webhook: Optional[str] = None
-    internal: Optional[bool] = False
-    bolt11: Optional[str] = None
-
-
-async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
+async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     if data.description_hash or data.unhashed_description:
         try:
             description_hash = (
@@ -209,7 +199,10 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         except ValueError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="'description_hash' and 'unhashed_description' must be a valid hex strings",
+                detail=(
+                    "'description_hash' and 'unhashed_description' "
+                    "must be a valid hex strings"
+                ),
             )
         memo = ""
     else:
@@ -306,11 +299,19 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 
 @core_app.post(
     "/api/v1/payments",
+    summary="Create or pay an invoice",
+    description="""
+This endpoint can be used both to generate and pay a BOLT11 invoice.
+To generate a new invoice for receiving funds into the authorized account,
+specify at least the first four fields in the POST body: `out: false`, `amount`, `unit`, and `memo`.
+To pay an arbitrary invoice from the funds already in the authorized account,
+specify `out: true` and use the `bolt11` field to supply the BOLT11 invoice to be paid.
+""",
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoiceData = Body(...),
+    invoiceData: CreateInvoice = Body(...),
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -331,17 +332,9 @@ async def api_payments_create(
         )
 
 
-class CreateLNURLData(BaseModel):
-    description_hash: str
-    callback: str
-    amount: int
-    comment: Optional[str] = None
-    description: Optional[str] = None
-
-
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
-    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     domain = urlparse(data.callback).netloc
 
@@ -377,13 +370,19 @@ async def api_payments_pay_lnurl(
     if invoice.amount_msat != data.amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} returned an invalid invoice. Expected {data.amount} msat, got {invoice.amount_msat}.",
+            detail=(
+                f"{domain} returned an invalid invoice. Expected {data.amount} msat, "
+                f"got {invoice.amount_msat}.",
+            ),
         )
 
     if invoice.description_hash != data.description_hash:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
+            detail=(
+                f"{domain} returned an invalid invoice. Expected description_hash == "
+                f"{data.description_hash}, got {invoice.description_hash}.",
+            ),
         )
 
     extra = {}
@@ -421,34 +420,18 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     logger.debug(f"adding sse listener for wallet: {uid}")
     api_invoice_listeners[uid] = payment_queue
 
-    send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
-
-    async def payment_received() -> None:
-        while True:
-            try:
-                async with async_timeout.timeout(1):
-                    payment: Payment = await payment_queue.get()
-                    if payment.wallet_id == this_wallet_id:
-                        logger.debug("sse listener: payment received", payment)
-                        await send_queue.put(("payment-received", payment))
-            except asyncio.TimeoutError:
-                pass
-
-    task = asyncio.create_task(payment_received())
-
     try:
         while True:
             if await request.is_disconnected():
                 await request.close()
                 break
-            typ, data = await send_queue.get()
-            if data:
-                jdata = json.dumps(dict(data.dict(), pending=False))
-                yield dict(data=jdata, event=typ)
+            payment: Payment = await payment_queue.get()
+            if payment.wallet_id == this_wallet_id:
+                logger.debug("sse listener: payment received", payment)
+                yield dict(data=payment.json(), event="payment-received")
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
         api_invoice_listeners.pop(uid)
-        task.cancel()
         return
 
 
@@ -468,10 +451,11 @@ async def api_payments_sse(
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None  # type: ignore
+    wallet = await get_wallet_for_key(X_Api_Key) if isinstance(X_Api_Key, str) else None
 
-    # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
-    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
+    # we have to specify the wallet id here, because postgres and sqlite return
+    # internal payments in different order and get_standalone_payment otherwise
+    # just fetches the first one, causing unpredictable results
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )
@@ -513,7 +497,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     try:
         url = lnurl.decode(code)
         domain = urlparse(url).netloc
-    except:
+    except Exception:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
@@ -623,10 +607,6 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     return params
 
 
-class DecodePayment(BaseModel):
-    data: str
-
-
 @core_app.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
 async def api_payments_decode(data: DecodePayment, response: Response):
     payment_str = data.data
@@ -648,20 +628,16 @@ async def api_payments_decode(data: DecodePayment, response: Response):
                 "route_hints": invoice.route_hints,
                 "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
             }
-    except:
+    except Exception:
         response.status_code = HTTPStatus.BAD_REQUEST
         return {"message": "Failed to decode"}
 
 
-class Callback(BaseModel):
-    callback: str = Query(...)
-
-
 @core_app.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
-    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    err = await perform_lnurlauth(callback.callback, wallet=wallet)
+    err = await perform_lnurlauth(data.callback, wallet=wallet)
     if err:
         raise HTTPException(
             status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason
@@ -678,12 +654,6 @@ async def api_list_currencies_available():
             if item.upper() in settings.lnbits_allowed_currencies
         ]
     return list(currencies.keys())
-
-
-class ConversionData(BaseModel):
-    from_: str = Field("sat", alias="from")
-    amount: float
-    to: str = Query("usd")
 
 
 @core_app.post("/api/v1/conversion")
@@ -705,7 +675,7 @@ async def api_fiat_as_sats(data: ConversionData):
 
 
 @core_app.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
-async def img(request: Request, data):
+async def img(data):
     qr = pyqrcode.create(data)
     stream = BytesIO()
     qr.svg(stream, scale=3)
@@ -725,12 +695,9 @@ async def img(request: Request, data):
     )
 
 
-# UNIVERSAL WEBSOCKET MANAGER
-
-
 @core_app.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
-    await websocketManager.connect(websocket)
+    await websocketManager.connect(websocket, item_id)
     try:
         while True:
             await websocket.receive_text()
@@ -743,7 +710,7 @@ async def websocket_update_post(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
-    except:
+    except Exception:
         return {"sent": False, "data": data}
 
 
@@ -752,7 +719,7 @@ async def websocket_update_get(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
         return {"sent": True, "data": data}
-    except:
+    except Exception:
         return {"sent": False, "data": data}
 
 
@@ -808,7 +775,10 @@ async def api_install_extension(
         ext_info.clean_extension_files()
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Failed to install extension {ext_info.id} ({ext_info.installed_version}).",
+            detail=(
+                f"Failed to install extension {ext_info.id} "
+                f"({ext_info.installed_version})."
+            ),
         )
 
 
@@ -831,7 +801,10 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         if installed_ext and ext_id in installed_ext.dependencies:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Cannot uninstall. Extension '{installed_ext.name}' depends on this one.",
+                detail=(
+                    f"Cannot uninstall. Extension '{installed_ext.name}' "
+                    "depends on this one."
+                ),
             )
 
     try:
@@ -930,7 +903,7 @@ async def api_create_tinyurl(
                 if tinyurl.wallet == wallet.wallet.inkey:
                     return tinyurl
         return await create_tinyurl(url, endless, wallet.wallet.inkey)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
         )
@@ -948,7 +921,7 @@ async def api_get_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
         )
@@ -967,7 +940,7 @@ async def api_delete_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
         )
@@ -982,7 +955,7 @@ async def api_tinyurl(tinyurl_id: str):
             return response
         else:
             return
-    except:
+    except Exception:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )

@@ -1,18 +1,13 @@
-from lnbits.nodes.cln import CoreLightningNode
-
-try:
-    from pyln.client import LightningRpc, RpcError  # type: ignore
-except ImportError:  # pragma: nocover
-    LightningRpc = None
-
 import asyncio
 import random
 from functools import partial, wraps
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
+from pyln.client import LightningRpc, RpcError
 
 from lnbits import bolt11 as lnbits_bolt11
+from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
 
 from .base import (
@@ -48,11 +43,6 @@ class CoreLightningWallet(Wallet):
     __node_cls__ = CoreLightningNode
 
     def __init__(self):
-        if LightningRpc is None:  # pragma: nocover
-            raise ImportError(
-                "The `pyln-client` library must be installed to use `CoreLightningWallet`."
-            )
-
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
@@ -141,7 +131,7 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]
-            except:
+            except Exception:
                 error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
@@ -155,7 +145,7 @@ class CoreLightningWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = self.ln.listinvoices(payment_hash=checking_id)
-        except:
+        except Exception:
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
@@ -176,7 +166,7 @@ class CoreLightningWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = self.ln.listpays(payment_hash=checking_id)
-        except:
+        except Exception:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)

@@ -36,7 +36,7 @@ class ClicheWallet(Wallet):
             )
         try:
             data = json.loads(r)
-        except:
+        except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r[:200]}...'", 0
             )
@@ -168,7 +168,7 @@ class ClicheWallet(Wallet):
                     try:
                         if data["result"]["status"]:
                             yield data["result"]["payment_hash"]
-                    except:
+                    except Exception:
                         continue
             except Exception as exc:
                 logger.error(

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# flake8: noqa: F401
 import importlib
 from typing import Optional
 

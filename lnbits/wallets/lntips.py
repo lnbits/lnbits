@@ -42,7 +42,7 @@ class LnTipsWallet(Wallet):
         r = await self.client.get("/api/v1/balance", timeout=40)
         try:
             data = r.json()
-        except:
+        except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
             )
@@ -76,7 +76,7 @@ class LnTipsWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["message"]
-            except:
+            except Exception:
                 error_message = r.text
 
             return InvoiceResponse(False, None, None, error_message)
@@ -99,7 +99,7 @@ class LnTipsWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
             return PaymentResponse(False, None, 0, None, error_message)
 
@@ -120,7 +120,7 @@ class LnTipsWallet(Wallet):
 
             data = r.json()
             return PaymentStatus(data["paid"])
-        except:
+        except Exception:
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -135,7 +135,7 @@ class LnTipsWallet(Wallet):
 
             paid_to_status = {False: None, True: True}
             return PaymentStatus(paid_to_status[data.get("paid")])
-        except:
+        except Exception:
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -154,7 +154,7 @@ class LnTipsWallet(Wallet):
                             inv = json.loads(data)
                             if not inv.get("payment_hash"):
                                 continue
-                        except:
+                        except Exception:
                             continue
                         yield inv["payment_hash"]
             except Exception:

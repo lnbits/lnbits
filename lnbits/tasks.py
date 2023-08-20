@@ -3,7 +3,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -18,6 +18,26 @@ from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.wallets import get_wallet_class
 
 from .core import db
+
+tasks: List[asyncio.Task] = []
+
+
+def create_task(coro):
+    task = asyncio.create_task(coro)
+    tasks.append(task)
+    return task
+
+
+def create_permanent_task(func):
+    return create_task(catch_everything_and_restart(func))
+
+
+def cancel_all_tasks():
+    for task in tasks:
+        try:
+            task.cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task: {str(exc)}")
 
 
 async def catch_everything_and_restart(func):
@@ -46,8 +66,8 @@ class SseListenersDict(dict):
         self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
 
     def __setitem__(self, key, value):
-        assert type(key) == str, f"{key} is not a string"
-        assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
+        assert isinstance(key, str), f"{key} is not a string"
+        assert isinstance(value, asyncio.Queue), f"{value} is not an asyncio.Queue"
         logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
         return super().__setitem__(key, value)
 

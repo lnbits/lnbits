@@ -275,7 +275,7 @@ async def lnurl_full_withdraw_callback(request: Request):
     async def pay():
         try:
             await pay_invoice(wallet_id=wallet.id, payment_request=pr)
-        except:
+        except Exception:
             pass
 
     asyncio.create_task(pay())

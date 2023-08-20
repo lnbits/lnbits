@@ -28,7 +28,7 @@ def list_parse_fallback(v):
 class LNbitsSettings(BaseSettings):
     @classmethod
     def validate(cls, val):
-        if type(val) == str:
+        if isinstance(val, str):
             val = val.split(",") if val else []
         return val
 
@@ -400,7 +400,7 @@ try:
         .strip()
         .decode("ascii")
     )
-except:
+except Exception:
     settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")
