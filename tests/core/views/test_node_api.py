@@ -25,6 +25,7 @@ pytestmark = pytest.mark.skipif(
 async def node_client(client, from_super_user):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
+    settings.lnbits_node_ui_transactions = True
     params = client.params
     client.params = {"usr": from_super_user.id}
     yield client
