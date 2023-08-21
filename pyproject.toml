@@ -54,6 +54,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 lnbits = "lnbits.server:main"
+lnbits-cli = "lnbits.commands:main"
 
 [tool.pyright]
 include = [
