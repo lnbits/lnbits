@@ -27,12 +27,11 @@ def event_loop():
 
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
-async def app(event_loop):
+async def app():
     app = create_app()
     await app.router.startup()
     yield app
     await app.router.shutdown()
-    await event_loop.shutdown_asyncgens()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -69,8 +68,10 @@ async def from_wallet(from_user):
     yield wallet
 
 
-@pytest.fixture
-def from_wallet_ws(from_wallet, test_client):
+@pytest_asyncio.fixture
+async def from_wallet_ws(from_wallet, test_client):
+    # wait a bit in order to avoid receiving topup notification
+    await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
         yield ws
 
@@ -92,8 +93,10 @@ async def to_wallet(to_user):
     yield wallet
 
 
-@pytest.fixture
-def to_wallet_ws(to_wallet, test_client):
+@pytest_asyncio.fixture
+async def to_wallet_ws(to_wallet, test_client):
+    # wait a bit in order to avoid receiving topup notification
+    await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
         yield ws
 
