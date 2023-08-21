@@ -12,15 +12,15 @@ from loguru import logger
 from pydantic import BaseSettings, Extra, Field, validator
 
 
-def list_parse_fallback(v):
-    try:
-        return json.loads(v)
-    except Exception:
-        replaced = v.replace(" ", "")
-        if replaced:
-            return replaced.split(",")
+def list_parse_fallback(v: str):
+    v = v.replace(" ", "")
+    if len(v) > 0:
+        if v.startswith("[") or v.startswith("{"):
+            return json.loads(v)
         else:
-            return []
+            return v.split(",")
+    else:
+        return []
 
 
 class LNbitsSettings(BaseSettings):
