@@ -3,7 +3,8 @@ import hashlib
 import hmac
 import json
 import time
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
@@ -64,18 +65,16 @@ class WalletType(Enum):
     admin = 0
     invoice = 1
     invalid = 2
-    
+
+    # backwards compatibility
     def __eq__(self, other):
         return self.value == other
 
 
+@dataclass
 class WalletTypeInfo:
     wallet_type: WalletType
     wallet: Wallet
-
-    def __init__(self, wallet_type: WalletType, wallet: Wallet) -> None:
-        self.wallet_type = wallet_type
-        self.wallet = wallet
 
 
 class User(BaseModel):
