@@ -61,9 +61,12 @@ class Wallet(BaseModel):
 
 
 class WalletType(Enum):
-    admin = auto()
-    invoice = auto()
-    invalid = auto()
+    admin = 0
+    invoice = 1
+    invalid = 2
+    
+    def __eq__(self, other):
+        return self.value == other
 
 
 class WalletTypeInfo:
