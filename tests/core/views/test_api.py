@@ -132,9 +132,7 @@ async def test_create_invoice_custom_expiry(client, inkey_headers_to):
 
 # check POST /api/v1/payments: make payment
 @pytest.mark.asyncio
-async def test_pay_invoice(
-    client, from_wallet_ws, to_wallet_ws, invoice, adminkey_headers_from
-):
+async def test_pay_invoice(client, from_wallet_ws, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
