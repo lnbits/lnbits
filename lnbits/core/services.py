@@ -516,7 +516,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
 
 
 class WebsocketConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, item_id: str):

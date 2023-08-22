@@ -17,7 +17,7 @@ class Cache:
     Small caching utility providing simple get/set interface (very much like redis)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._values: dict[Any, Cached] = {}
 
     def get(self, key: str, default=None) -> Optional[Any]:
