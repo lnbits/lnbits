@@ -59,6 +59,15 @@ else:
         )
 
 
+def compat_timestamp_placeholder():
+    if DB_TYPE == POSTGRES:
+        return "to_timestamp(?)"
+    elif DB_TYPE == COCKROACH:
+        return "cast(? AS timestamp)"
+    else:
+        return "?"
+
+
 class Compat:
     type: Optional[str] = "<inherited>"
     schema: Optional[str] = "<inherited>"
@@ -107,15 +116,9 @@ class Compat:
             return "BIGINT"
         return "INT"
 
-    @classmethod
     @property
-    def timestamp_placeholder(cls):
-        if DB_TYPE == POSTGRES:
-            return "to_timestamp(?)"
-        elif DB_TYPE == COCKROACH:
-            return "cast(? AS timestamp)"
-        else:
-            return "?"
+    def timestamp_placeholder(self) -> str:
+        return compat_timestamp_placeholder()
 
 
 class Connection(Compat):
@@ -402,7 +405,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
     @property
     def statement(self):
         if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
-            placeholder = Compat.timestamp_placeholder
+            placeholder = compat_timestamp_placeholder()
         else:
             placeholder = "?"
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
