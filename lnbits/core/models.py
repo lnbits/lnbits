@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
+from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
@@ -57,6 +59,22 @@ class Wallet(BaseModel):
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
+
+
+class WalletType(Enum):
+    admin = 0
+    invoice = 1
+    invalid = 2
+
+    # backwards compatibility
+    def __eq__(self, other):
+        return self.value == other
+
+
+@dataclass
+class WalletTypeInfo:
+    wallet_type: WalletType
+    wallet: Wallet
 
 
 class User(BaseModel):

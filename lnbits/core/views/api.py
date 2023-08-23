@@ -38,6 +38,7 @@ from lnbits.core.models import (
     PaymentFilters,
     User,
     Wallet,
+    WalletType,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -102,7 +103,7 @@ async def health():
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet_type == 0:
+    if wallet.wallet_type == WalletType.admin:
         return {
             "id": wallet.wallet.id,
             "name": wallet.wallet.name,
@@ -186,6 +187,7 @@ async def api_payments_paginated(
 
 
 async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
+    extra = data.extra or {}
     if data.description_hash or data.unhashed_description:
         try:
             description_hash = (
@@ -216,6 +218,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         assert data.unit is not None, "unit not set"
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
+        extra.update({"fiat_amount": data.amount, "fiat_currency": data.unit})
 
     async with db.connect() as conn:
         try:
@@ -318,7 +321,7 @@ async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     invoiceData: CreateInvoice = Body(...),
 ):
-    if invoiceData.out is True and wallet.wallet_type == 0:
+    if invoiceData.out is True and wallet.wallet_type == WalletType.admin:
         if not invoiceData.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
