@@ -749,13 +749,13 @@ socks = ["socksio (==1.*)"]
 
 [[package]]
 name = "identify"
-version = "2.5.26"
+version = "2.5.27"
 description = "File identification library for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "identify-2.5.26-py2.py3-none-any.whl", hash = "sha256:c22a8ead0d4ca11f1edd6c9418c3220669b3b7533ada0a0ffa6cc0ef85cf9b54"},
-    {file = "identify-2.5.26.tar.gz", hash = "sha256:7243800bce2f58404ed41b7c002e53d4d22bcf3ae1b7900c2d7aefd95394bf7f"},
+    {file = "identify-2.5.27-py2.py3-none-any.whl", hash = "sha256:fdb527b2dfe24602809b2201e033c2a113d7bdf716db3ca8e3243f735dcecaba"},
+    {file = "identify-2.5.27.tar.gz", hash = "sha256:287b75b04a0e22d727bc9a41f0d4f3c1bcada97490fa6eabb5b28f0e9097e733"},
 ]
 
 [package.extras]
@@ -1452,28 +1452,27 @@ files = [
 
 [[package]]
 name = "pyln-client"
-version = "0.11.1"
+version = "23.8"
 description = "Client library and plugin library for Core Lightning"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pyln-client-0.11.1.tar.gz", hash = "sha256:f5ea648840b030e2bbcf8c66ee72d25a5817f89854434a28d30e887547138c8e"},
-    {file = "pyln_client-0.11.1-py3-none-any.whl", hash = "sha256:497db443406b80c98c0434e2938eb1b2a17e88fd9aa63b018124068198df6141"},
+    {file = "pyln_client-23.8-py3-none-any.whl", hash = "sha256:a63a9541f422ed3d1d42483a5f37cdfa0014715b620616384d8ee048c4f95f42"},
+    {file = "pyln_client-23.8.tar.gz", hash = "sha256:578004c640d869707ed8de267f35e01994c092035d20ebc5a325415412b52021"},
 ]
 
 [package.dependencies]
-pyln-bolt7 = ">=1.0,<2.0"
-pyln-proto = ">=0.11,<0.12"
+pyln-bolt7 = ">=1.0"
+pyln-proto = ">=23"
 
 [[package]]
 name = "pyln-proto"
-version = "0.11.1"
+version = "23.5"
 description = "This package implements some of the Lightning Network protocol in pure python. It is intended for protocol testing and some minor tooling only. It is not deemed secure enough to handle any amount of real funds (you have been warned!)."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "pyln-proto-0.11.1.tar.gz", hash = "sha256:9bed240f41917c4fd526b767218a77d0fbe69242876eef72c35a856796f922d6"},
-    {file = "pyln_proto-0.11.1-py3-none-any.whl", hash = "sha256:27b2e04a81b894f69018279c0ce4aa2e7ccd03b86dd9783f96b9d8d1498c8393"},
+    {file = "pyln-proto-23.5.tar.gz", hash = "sha256:2c6ee345a48498e16d4ae0420105d71acfcd9a16b45ac46724456a0be1ed2389"},
 ]
 
 [package.dependencies]
@@ -2285,4 +2284,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "e19d925a0033a695153c81ac7d7decce0b8cb78253ea550c29ea95185262fb37"
+content-hash = "e3d7e1cba4ce9213f39e6f972400ad01e81a561078bf90eb1c1fbfd752a8cac2"
