@@ -234,8 +234,9 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
                 internal=data.internal,
                 conn=conn,
             )
-            # NOTE: we get the checking_id with a seperate query because create_invoice does not return it
-            # and it would be a big hustle to change its return type (used across extensions)
+            # NOTE: we get the checking_id with a seperate query because create_invoice
+            # does not return it and it would be a big hustle to change its return type
+            # (used across extensions)
             payment_db = await get_standalone_payment(payment_hash, conn=conn)
             assert payment_db is not None, "payment not found"
             checking_id = payment_db.checking_id
