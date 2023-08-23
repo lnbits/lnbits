@@ -94,7 +94,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir}                            0700 ${cfg.user} ${cfg.group} - -"
-      "d ${cfg.extensionsDir}                        0700 ${cfg.user} ${cfg.group} - -"
+      "d ${cfg.extensionsDir}                       0700 ${cfg.user} ${cfg.group} - -"
     ];
 
     systemd.services.lnbits = {
