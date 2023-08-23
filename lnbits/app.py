@@ -140,7 +140,8 @@ async def check_funding_source() -> None:
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
             pass
 
         if settings.lnbits_admin_ui and retry_counter == timeout:

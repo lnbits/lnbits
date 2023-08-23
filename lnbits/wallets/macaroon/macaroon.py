@@ -18,12 +18,19 @@ def load_macaroon(macaroon: str) -> str:
     :rtype: str
     """
 
-    # if the macaroon is a file path, load it
+    # if the macaroon is a file path, load it and return hex version
     if macaroon.split(".")[-1] == "macaroon":
         with open(macaroon, "rb") as f:
             macaroon_bytes = f.read()
             return macaroon_bytes.hex()
     else:
+        # if macaroon is a provided string
+        # check if it is hex, if so, return
+        try:
+            bytes.fromhex(macaroon)
+            return macaroon
+        except ValueError:
+            pass
         # convert the bas64 macaroon to hex
         try:
             macaroon = base64.b64decode(macaroon).hex()
