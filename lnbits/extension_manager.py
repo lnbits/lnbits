@@ -204,7 +204,7 @@ class Extension(NamedTuple):
 
 
 class ExtensionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         p = Path(settings.lnbits_path, "extensions")
         Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]

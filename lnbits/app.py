@@ -518,19 +518,19 @@ def configure_logger() -> None:
 class Formatter:
     def __init__(self):
         self.padding = 0
-        self.minimal_fmt: str = (
+        self.minimal_fmt = (
             "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
             "<level>{message}</level>\n"
         )
         if settings.debug:
-            self.fmt: str = (
+            self.fmt = (
                 "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
                 "<level>{level: <4}</level> | "
                 "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
                 "<level>{message}</level>\n"
             )
         else:
-            self.fmt: str = self.minimal_fmt
+            self.fmt = self.minimal_fmt
 
     def format(self, record):
         function = "{function}".format(**record)
