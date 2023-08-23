@@ -307,8 +307,8 @@ async def redeem_lnurl_withdraw(
         )
     except Exception:
         logger.warning(
-            f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params:"
-            f" {res}"
+            f"failed to create invoice on redeem_lnurl_withdraw "
+            f"from {lnurl}. params: {res}"
         )
         return None
 
