@@ -101,6 +101,13 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `PHOENIXD_API_ENDPOINT`: http://localhost:9740/
 - `PHOENIXD_API_PASSWORD`: PhoenixdApiPassword
 
+### Breez SDK
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BreezSdkWallet**
+- `BREEZ_API_KEY`: ...
+- `BREEZ_GREENLIGHT_SEED`: ...
+- `BREEZ_GREENLIGHT_INVITE_CODE`: ... (a GreenLight certificate can be used directly instead of a Breez/GreenLight invite code)
+
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
