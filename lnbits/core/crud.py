@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import shortuuid
 
 from lnbits import bolt11
+from lnbits.core.models import WalletType
 from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
@@ -294,7 +295,7 @@ async def get_wallet_for_key(
     if not row:
         return None
 
-    if key_type == "admin" and row["adminkey"] != key:
+    if key_type == WalletType.admin and row["adminkey"] != key:
         return None
 
     return Wallet(**row)
