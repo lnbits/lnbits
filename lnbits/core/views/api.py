@@ -198,7 +198,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
             except ValueError:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
-                    detail="'description_hash' must be a valid hex strings",
+                    detail="'description_hash' must be a valid hex string",
                 )
         if data.unhashed_description:
             try:
