@@ -46,14 +46,14 @@ class CoreLightningWallet(Wallet):
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
-        # check if description_hash is supported (from CLN>=v0.11.0)
+        # check if description_hash is supported (from corelightning>=v0.11.0)
         self.supports_description_hash = (
-            "deschashonly" in self.ln.help("invoice")["help"][0]["command"]
+            "deschashonly" in self.ln.help("invoice")["help"][0]["command"]  # type: ignore
         )
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
-        invoices = self.ln.listinvoices()
+        invoices: dict = self.ln.listinvoices()  # type: ignore
         for inv in invoices["invoices"][::-1]:
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
@@ -61,7 +61,7 @@ class CoreLightningWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            funds = self.ln.listfunds()
+            funds: dict = self.ln.listfunds()  # type: ignore
             return StatusResponse(
                 None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
@@ -82,11 +82,11 @@ class CoreLightningWallet(Wallet):
         try:
             if description_hash and not unhashed_description:
                 raise Unsupported(
-                    "'description_hash' unsupported by CLN, provide 'unhashed_description'"
+                    "'description_hash' unsupported by CoreLightning, provide 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
                 raise Unsupported("unhashed_description")
-            r = self.ln.invoice(
+            r: dict = self.ln.invoice(  # type: ignore
                 msatoshi=msat,
                 label=label,
                 description=unhashed_description.decode()
@@ -99,12 +99,12 @@ class CoreLightningWallet(Wallet):
                 expiry=kwargs.get("expiry"),
             )
 
-            if r.get("code") and r.get("code") < 0:
+            if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+            error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
@@ -130,9 +130,9 @@ class CoreLightningWallet(Wallet):
             r = await wrapped(self.ln, payload)
         except RpcError as exc:
             try:
-                error_message = exc.error["attempts"][-1]["fail_reason"]
+                error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
-                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+                error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
@@ -144,8 +144,8 @@ class CoreLightningWallet(Wallet):
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listinvoices(payment_hash=checking_id)
-        except Exception:
+            r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
+        except RpcError:
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
@@ -165,7 +165,7 @@ class CoreLightningWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listpays(payment_hash=checking_id)
+            r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
@@ -197,6 +197,6 @@ class CoreLightningWallet(Wallet):
                 yield paid["payment_hash"]
             except Exception as exc:
                 logger.error(
-                    f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to corelightning invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)

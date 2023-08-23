@@ -305,26 +305,30 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    WALLET.__class__.__name__ in ["CoreLightningWallet"],
+    WALLET.__class__.__name__ in ["CoreLightningWallet", "CoreLightningRestWallet"],
     reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
-    descr_hash = hashlib.sha256("asdasdasd".encode()).hexdigest()
+    description = "asdasdasd"
+    descr_hash = hashlib.sha256(description.encode()).hexdigest()
     data["description_hash"] = descr_hash
-
+    data["unhashed_description"] = description.encode().hex()
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to
     )
     invoice = response.json()
-
     invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+
     assert invoice_bolt11.description_hash == descr_hash
-    assert invoice_bolt11.description is None
     return invoice
 
 
+@pytest.mark.skipif(
+    WALLET.__class__.__name__ in ["CoreLightningRestWallet"],
+    reason="wallet does not support unhashed_description",
+)
 @pytest.mark.asyncio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
@@ -367,10 +371,12 @@ async def test_pay_real_invoice(
     assert payment.payment_hash == invoice["payment_hash"]
 
     # check the payment status
-    response = await api_payment(
-        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    response = await client.get(
+        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
-    assert response["paid"]
+    assert response.status_code < 300
+    payment_status = response.json()
+    assert payment_status["paid"]
 
     status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
@@ -392,23 +398,32 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response.status_code < 300
     invoice = response.json()
-    response = await api_payment(
-        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+
+    response = await client.get(
+        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
-    assert not response["paid"]
+    assert response.status_code < 300
+    payment_status = response.json()
+    assert not payment_status["paid"]
 
     async def listen():
-        async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["payment_hash"]
-            return
+        found_checking_id = False
+        async for checking_id in get_wallet_class().paid_invoices_stream():
+            if checking_id == invoice["checking_id"]:
+                found_checking_id = True
+                return
+        assert found_checking_id
 
     task = asyncio.create_task(listen())
     pay_real_invoice(invoice["payment_request"])
     await asyncio.wait_for(task, timeout=3)
-    response = await api_payment(
-        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+
+    response = await client.get(
+        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
-    assert response["paid"]
+    assert response.status_code < 300
+    payment_status = response.json()
+    assert payment_status["paid"]
 
     await asyncio.sleep(0.3)
     balance = await get_node_balance_sats()
@@ -442,6 +457,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     )
     assert response["paid"]
 
+    # make sure that the backend also thinks it's paid
     status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
@@ -618,8 +634,8 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert not response["paid"]
 
     async def listen():
-        async for payment_hash in get_wallet_class().paid_invoices_stream():
-            assert payment_hash == invoice["payment_hash"]
+        async for checking_id in get_wallet_class().paid_invoices_stream():
+            assert checking_id == invoice["checking_id"]
             return
 
     task = asyncio.create_task(listen())

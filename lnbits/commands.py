@@ -13,8 +13,40 @@ from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import get_valid_extensions
 
 
-@click.command("migrate")
-def db_migrate():
+@click.group()
+def command_group():
+    """
+    Python CLI for LNbits
+    """
+
+
+@click.command("superuser")
+def superuser():
+    """Prints the superuser"""
+    with open(".super_user", "r") as file:
+        print(f"http://{settings.host}:{settings.port}/wallet?usr={file.readline()}")
+
+
+@click.command("delete-settings")
+def delete_settings():
+    """Deletes the settings"""
+
+    async def wrap():
+        async with core_db.connect() as conn:
+            await conn.execute("DELETE from settings")
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(wrap())
+
+
+@click.command("database-migrate")
+def database_migrate():
+    """Migrate databases"""
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(migrate_databases())
+
+
+async def db_migrate():
     asyncio.create_task(migrate_databases())
 
 
@@ -46,13 +78,33 @@ async def migrate_databases():
     logger.info("✔️ All migrations done.")
 
 
+@click.command("database-versions")
+def database_versions():
+    """Show current database versions"""
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(db_versions())
+
+
 async def db_versions():
+    """Show current database versions"""
     async with core_db.connect() as conn:
-        current_versions = await get_dbversions(conn)
-        return current_versions
+        return await get_dbversions(conn)
 
 
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions()
     settings.lnbits_deactivated_extensions += inactive_extensions
+
+
+def main():
+    """main function"""
+    command_group.add_command(superuser)
+    command_group.add_command(delete_settings)
+    command_group.add_command(database_migrate)
+    command_group.add_command(database_versions)
+    command_group()
+
+
+if __name__ == "__main__":
+    main()
