@@ -8,6 +8,7 @@ from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
+from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 
