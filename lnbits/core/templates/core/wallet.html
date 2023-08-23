@@ -428,7 +428,7 @@
         </div>
       </div>
 
-      <q-dialog v-model="receive.show" @hide="closeReceiveDialog">
+      <q-dialog v-model="receive.show">
         {% raw %}
         <q-card
           v-if="!receive.paymentReq"
@@ -726,6 +726,7 @@
                   name="content_paste"
                   color="grey"
                   class="q-mt-xs q-ml-sm q-mr-auto"
+                  v-if="parse.copy.show"
                   @click="pasteToTextArea"
                   ><q-tooltip
                     >{% raw %}{{$t('paste_from_clipboard')}}{% endraw

@@ -1,11 +1,16 @@
 import asyncio
-from typing import Dict, Optional
+from typing import Dict
 
 import httpx
 from loguru import logger
 
 from lnbits.settings import get_wallet_class, settings
-from lnbits.tasks import SseListenersDict, register_invoice_listener
+from lnbits.tasks import (
+    SseListenersDict,
+    create_permanent_task,
+    create_task,
+    register_invoice_listener,
+)
 
 from . import db
 from .crud import get_balance_notify, get_wallet
@@ -16,28 +21,14 @@ api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
 )
 
-killswitch: Optional[asyncio.Task] = None
-watchdog: Optional[asyncio.Task] = None
 
-
-async def register_killswitch():
+def register_killswitch():
     """
-    Registers a killswitch which will check lnbits-status repository
-    for a signal from LNbits and will switch to VoidWallet if the killswitch is triggered.
+    Registers a killswitch which will check lnbits-status repository for a signal from
+    LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
     logger.debug("Starting killswitch task")
-    global killswitch
-    killswitch = asyncio.create_task(killswitch_task())
-
-
-async def unregister_killswitch():
-    """
-    Unregisters a killswitch taskl
-    """
-    global killswitch
-    if killswitch:
-        logger.debug("Stopping killswitch task")
-        killswitch.cancel()
+    create_permanent_task(killswitch_task)
 
 
 async def killswitch_task():
@@ -67,20 +58,9 @@ async def register_watchdog():
     Registers a watchdog which will check lnbits balance and nodebalance
     and will switch to VoidWallet if the watchdog delta is reached.
     """
-    # TODO: implement watchdog porperly
+    # TODO: implement watchdog properly
     # logger.debug("Starting watchdog task")
-    # global watchdog
-    # watchdog = asyncio.create_task(watchdog_task())
-
-
-async def unregister_watchdog():
-    """
-    Unregisters a watchdog task
-    """
-    global watchdog
-    if watchdog:
-        logger.debug("Stopping watchdog task")
-        watchdog.cancel()
+    # create_permanent_task(watchdog_task)
 
 
 async def watchdog_task():
@@ -98,7 +78,7 @@ async def watchdog_task():
         await asyncio.sleep(settings.lnbits_watchdog_interval * 60)
 
 
-async def register_task_listeners():
+def register_task_listeners():
     """
     Registers an invoice listener queue for the core tasks.
     Incoming payaments in this queue will eventually trigger the signals sent to all other extensions
@@ -108,7 +88,7 @@ async def register_task_listeners():
     # we register invoice_paid_queue to receive all incoming invoices
     register_invoice_listener(invoice_paid_queue, "core/tasks.py")
     # register a worker that will react to invoices
-    asyncio.create_task(wait_for_paid_invoices(invoice_paid_queue))
+    create_task(wait_for_paid_invoices(invoice_paid_queue))
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):

@@ -2,9 +2,9 @@
 
 all: format check
 
-format: prettier isort black
+format: prettier black ruff
 
-check: mypy pyright pylint flake8 checkisort checkblack checkprettier
+check: mypy pyright checkblack checkruff checkprettier
 
 prettier:
 	poetry run ./node_modules/.bin/prettier --write lnbits
@@ -12,20 +12,17 @@ prettier:
 pyright:
 	poetry run ./node_modules/.bin/pyright
 
-black:
-	poetry run black .
-
-flake8:
-	poetry run flake8
-
 mypy:
 	poetry run mypy
 
-isort:
-	poetry run isort .
+black:
+	poetry run black .
 
-pylint:
-	poetry run pylint *.py lnbits/ tools/ tests/
+ruff:
+	poetry run ruff check . --fix
+
+checkruff:
+	poetry run ruff check .
 
 checkprettier:
 	poetry run ./node_modules/.bin/prettier --check lnbits
@@ -33,8 +30,8 @@ checkprettier:
 checkblack:
 	poetry run black --check .
 
-checkisort:
-	poetry run isort --check-only .
+dev:
+	poetry run lnbits --reload
 
 test:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \

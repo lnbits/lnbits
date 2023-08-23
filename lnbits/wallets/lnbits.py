@@ -47,7 +47,7 @@ class LNbitsWallet(Wallet):
 
         try:
             data = r.json()
-        except:
+        except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
             )
@@ -117,7 +117,7 @@ class LNbitsWallet(Wallet):
             if r.is_error:
                 return PaymentStatus(None)
             return PaymentStatus(r.json()["paid"])
-        except:
+        except Exception:
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:

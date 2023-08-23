@@ -86,7 +86,7 @@ def get_current_extension_name() -> str:
         with open(config_path) as json_file:
             config = json.load(json_file)
         ext_name = config["name"]
-    except:
+    except Exception:
         ext_name = extension_director_name
     return ext_name
 

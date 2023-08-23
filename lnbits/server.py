@@ -1,15 +1,15 @@
-import uvloop
-
-uvloop.install()
-
 import multiprocessing as mp
 import time
 from pathlib import Path
 
 import click
 import uvicorn
+import uvloop
+from uvicorn.supervisors import ChangeReload
 
 from lnbits.settings import set_cli_settings, settings
+
+uvloop.install()
 
 
 @click.command(
@@ -73,7 +73,14 @@ def main(
         )
 
         server = uvicorn.Server(config=config)
-        process = mp.Process(target=server.run)
+
+        if config.should_reload:
+            sock = config.bind_socket()
+            run = ChangeReload(config, target=server.run, sockets=[sock]).run
+        else:
+            run = server.run
+
+        process = mp.Process(target=run)
         process.start()
         server_restart.wait()
         server_restart.clear()

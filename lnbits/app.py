@@ -14,7 +14,6 @@ from typing import Callable, List
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -28,9 +27,9 @@ from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
     register_killswitch,
     register_task_listeners,
-    unregister_killswitch,
 )
 from lnbits.settings import settings
+from lnbits.tasks import cancel_all_tasks, create_permanent_task
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
@@ -45,6 +44,7 @@ from .core.views.generic import core_html_routes
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
 from .middleware import (
+    CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
     add_ip_block_middleware,
@@ -52,7 +52,6 @@ from .middleware import (
 )
 from .requestvars import g
 from .tasks import (
-    catch_everything_and_restart,
     check_pending_payments,
     internal_invoice_listener,
     invoice_listener,
@@ -64,7 +63,10 @@ def create_app() -> FastAPI:
     configure_logger()
     app = FastAPI(
         title="LNbits API",
-        description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
+        description=(
+            "API for LNbits, the free and open source bitcoin wallet and "
+            "accounts system with plugins."
+        ),
         version=settings.version,
         license_info={
             "name": "MIT License",
@@ -85,7 +87,9 @@ def create_app() -> FastAPI:
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
 
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(
+        CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
+    )
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
@@ -108,7 +112,9 @@ async def check_funding_source() -> None:
     original_sigint_handler = signal.getsignal(signal.SIGINT)
 
     def signal_handler(signal, frame):
-        logger.debug("SIGINT received, terminating LNbits.")
+        logger.debug(
+            f"SIGINT received, terminating LNbits. signal: {signal}, frame: {frame}"
+        )
         sys.exit(1)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -130,7 +136,8 @@ async def check_funding_source() -> None:
                 break
 
             logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                f"The backend for {WALLET.__class__.__name__} isn't "
+                f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except Exception as e:
@@ -138,10 +145,7 @@ async def check_funding_source() -> None:
             pass
 
         if settings.lnbits_admin_ui and retry_counter == timeout:
-            logger.warning(
-                f"Fallback to VoidWallet, because the backend for {WALLET.__class__.__name__} isn't working properly"
-            )
-            set_wallet_class("VoidWallet")
+            set_void_wallet_class()
             WALLET = get_wallet_class()
             break
         else:
@@ -152,16 +156,25 @@ async def check_funding_source() -> None:
     signal.signal(signal.SIGINT, original_sigint_handler)
 
     logger.info(
-        f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
+        f"✔️ Backend {WALLET.__class__.__name__} connected "
+        f"and with a balance of {balance} msat."
     )
+
+
+def set_void_wallet_class():
+    logger.warning(
+        "Fallback to VoidWallet, because the backend for "
+        f"{settings.lnbits_backend_wallet_class} isn't working properly"
+    )
+    set_wallet_class("VoidWallet")
 
 
 async def check_installed_extensions(app: FastAPI):
     """
-    Check extensions that have been installed, but for some reason no longer present in the 'lnbits/extensions' directory.
-    One reason might be a docker-container that was re-created.
-    The 'data' directory (where the '.zip' files live) is expected to persist state.
-    Zips that are missing will be re-downloaded.
+    Check extensions that have been installed, but for some reason no longer present in
+    the 'lnbits/extensions' directory. One reason might be a docker-container that was
+    re-created. The 'data' directory (where the '.zip' files live) is expected to
+    persist state. Zips that are missing will be re-downloaded.
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
     await load_disabled_extension_list()
@@ -173,13 +186,18 @@ async def check_installed_extensions(app: FastAPI):
             if not installed:
                 await restore_installed_extension(app, ext)
                 logger.info(
-                    f"✔️ Successfully re-installed extension: {ext.id} ({ext.installed_version})"
+                    "✔️ Successfully re-installed extension: "
+                    f"{ext.id} ({ext.installed_version})"
                 )
         except Exception as e:
             logger.warning(e)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
+
+    logger.info(f"Installed Extensions ({len(installed_extensions)}):")
+    for ext in installed_extensions:
+        logger.info(f"{ext.id} ({ext.installed_version})")
 
 
 async def build_all_installed_extensions_list() -> List[InstallableExtension]:
@@ -254,7 +272,8 @@ def register_routes(app: FastAPI) -> None:
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
     # Returns a function that registers new routes for an extension.
-    # The returned function encapsulates (creates a closure around) the `app` object but does expose it.
+    # The returned function encapsulates (creates a closure around)
+    # the `app` object but does expose it.
     def register_new_ext_routes_fn(ext: Extension):
         register_ext_routes(app, ext)
 
@@ -321,7 +340,14 @@ def register_startup(app: FastAPI):
             add_ip_block_middleware(app)
 
             # initialize WALLET
-            set_wallet_class()
+            try:
+                set_wallet_class()
+            except Exception as e:
+                logger.error(
+                    f"Error initializing {settings.lnbits_backend_wallet_class}: "
+                    f"{str(e)}"
+                )
+                set_void_wallet_class()
 
             # initialize funding source
             await check_funding_source()
@@ -342,6 +368,9 @@ def register_startup(app: FastAPI):
 def register_shutdown(app: FastAPI):
     @app.on_event("shutdown")
     async def on_shutdown():
+        cancel_all_tasks()
+        # wait a bit to allow them to finish, so that cleanup can run without problems
+        await asyncio.sleep(0.1)
         WALLET = get_wallet_class()
         await WALLET.cleanup()
 
@@ -356,7 +385,7 @@ def initialize_server_logger():
             msg = await serverlog_queue.get()
             await websocketUpdater(super_user_hash, msg)
 
-    asyncio.create_task(update_websocket_serverlog())
+    create_permanent_task(update_websocket_serverlog)
 
     logger.add(
         lambda msg: serverlog_queue.put_nowait(msg),
@@ -397,20 +426,12 @@ def register_async_tasks(app):
 
     @app.on_event("startup")
     async def listeners():
-        loop = asyncio.get_event_loop()
-        loop.create_task(catch_everything_and_restart(check_pending_payments))
-        loop.create_task(catch_everything_and_restart(invoice_listener))
-        loop.create_task(catch_everything_and_restart(internal_invoice_listener))
-        await register_task_listeners()
-        # await register_watchdog()
-        await register_killswitch()
+        create_permanent_task(check_pending_payments)
+        create_permanent_task(invoice_listener)
+        create_permanent_task(internal_invoice_listener)
+        register_task_listeners()
+        register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?
-
-    @app.on_event("shutdown")
-    async def stop_listeners():
-        # await unregister_watchdog()
-        await unregister_killswitch()
-        pass
 
 
 def register_exception_handlers(app: FastAPI):
@@ -497,17 +518,22 @@ def configure_logger() -> None:
 class Formatter:
     def __init__(self):
         self.padding = 0
-        self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
+        self.minimal_fmt: str = (
+            "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
+            "<level>{message}</level>\n"
+        )
         if settings.debug:
             self.fmt: str = (
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | "
-                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
+                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
+                "<level>{level: <4}</level> | "
+                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+                "<level>{message}</level>\n"
             )
         else:
             self.fmt: str = self.minimal_fmt
 
     def format(self, record):
-        function = "{function}".format(**record)  # pylint: disable=C0209
+        function = "{function}".format(**record)
         if function == "emit":  # uvicorn logs
             return self.minimal_fmt
         return self.fmt

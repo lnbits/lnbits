@@ -1,11 +1,8 @@
 import asyncio
 import hashlib
-import json
-from http import HTTPStatus
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
-from fastapi import HTTPException
 from loguru import logger
 
 from lnbits.settings import settings
@@ -65,7 +62,7 @@ class LNPayWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
@@ -102,7 +99,7 @@ class LNPayWallet(Wallet):
 
         try:
             data = r.json()
-        except:
+        except Exception:
             return PaymentResponse(
                 False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
             )
@@ -139,25 +136,26 @@ class LNPayWallet(Wallet):
             yield value
 
     async def webhook_listener(self):
+        logger.error("LNPay webhook listener disabled.")
+        return
         # TODO: request.get_data is undefined, was it something with Flask or quart?
         # probably issue introduced when refactoring?
-        text: str = await request.get_data()  # type: ignore
-        try:
-            data = json.loads(text)
-        except json.decoder.JSONDecodeError:
-            logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
-            data = None
-        if (
-            type(data) is not dict
-            or "event" not in data
-            or data["event"].get("name") != "wallet_receive"
-        ):
-            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+        # text: str = await request.get_data()
+        # try:
+        #     data = json.loads(text)
+        # except json.decoder.JSONDecodeError:
+        #     logger.error(f"error on lnpay webhook endpoint: {text[:200]}")
+        #     data = None
+        # if (
+        #     type(data) is not dict
+        #     or "event" not in data
+        #     or data["event"].get("name") != "wallet_receive"
+        # ):
+        #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-        lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        r = await self.client.get(f"/lntx/{lntx_id}?fields=settled")
-        data = r.json()
-        if data["settled"]:
-            await self.queue.put(lntx_id)
-
-        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+        # lntx_id = data["data"]["wtx"]["lnTx"]["id"]
+        # r = await self.client.get(f"/lntx/{lntx_id}?fields=settled")
+        # data = r.json()
+        # if data["settled"]:
+        #     await self.queue.put(lntx_id)
+        # raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

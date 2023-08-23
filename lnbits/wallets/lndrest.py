@@ -201,7 +201,7 @@ class LndRestWallet(Wallet):
                         )
                     else:
                         return PaymentStatus(None)
-                except:
+                except Exception:
                     continue
 
         return PaymentStatus(None)
@@ -216,7 +216,7 @@ class LndRestWallet(Wallet):
                             inv = json.loads(line)["result"]
                             if not inv["settled"]:
                                 continue
-                        except:
+                        except Exception:
                             continue
 
                         payment_hash = base64.b64decode(inv["r_hash"]).hex()

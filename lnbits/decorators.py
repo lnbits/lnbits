@@ -173,7 +173,7 @@ async def get_key_type(
                 pass
             else:
                 raise
-        except:
+        except Exception:
             raise
     raise HTTPException(
         status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."

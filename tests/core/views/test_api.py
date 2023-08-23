@@ -11,7 +11,7 @@ from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
 from lnbits.db import DB_TYPE, SQLITE
 from lnbits.wallets import get_wallet_class
-from tests.conftest import CreateInvoiceData, api_payments_create_invoice
+from tests.conftest import CreateInvoice, api_payments_create_invoice
 
 from ...helpers import (
     cancel_invoice,
@@ -219,9 +219,9 @@ async def test_get_payments(client, from_wallet, adminkey_headers_from):
     ts = time()
 
     fake_data = [
-        CreateInvoiceData(amount=10, memo="aaaa"),
-        CreateInvoiceData(amount=100, memo="bbbb"),
-        CreateInvoiceData(amount=1000, memo="aabb"),
+        CreateInvoice(amount=10, memo="aaaa"),
+        CreateInvoice(amount=100, memo="bbbb"),
+        CreateInvoice(amount=1000, memo="aabb"),
     ]
 
     for invoice in fake_data:
@@ -285,7 +285,7 @@ async def test_decode_invoice(client, invoice):
 async def test_api_payment_without_key(invoice):
     # check the payment status
     response = await api_payment(invoice["payment_hash"])
-    assert type(response) == dict
+    assert isinstance(response, dict)
     assert response["paid"] is True
     # no key, that's why no "details"
     assert "details" not in response
@@ -298,7 +298,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
-    assert type(response) == dict
+    assert isinstance(response, dict)
     assert response["paid"] is True
     assert "details" in response
 
@@ -390,7 +390,7 @@ async def test_pay_real_invoice(
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
     prev_balance = await get_node_balance_sats()
-    create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
+    create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
         json=create_invoice.dict(),
@@ -620,7 +620,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     5. We recheck the state of the invoice with the backend
     6. We verify that the invoice is now marked as paid in the database
     """
-    create_invoice = CreateInvoiceData(out=False, amount=1000, memo="test")
+    create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
         json=create_invoice.dict(),

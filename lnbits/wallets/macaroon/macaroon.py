@@ -34,7 +34,7 @@ def load_macaroon(macaroon: str) -> str:
         # convert the bas64 macaroon to hex
         try:
             macaroon = base64.b64decode(macaroon).hex()
-        except:
+        except Exception:
             pass
     return macaroon
 
@@ -59,7 +59,7 @@ class AESCipher:
         return data + (chr(length) * length).encode()
 
     def unpad(self, data):
-        return data[: -(data[-1] if type(data[-1]) == int else ord(data[-1]))]
+        return data[: -(data[-1] if isinstance(data[-1], int) else ord(data[-1]))]
 
     @property
     def passphrase(self):

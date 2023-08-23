@@ -1,14 +1,10 @@
-try:
-    from pyln.client import LightningRpc, RpcError  # type: ignore
-except ImportError:  # pragma: nocover
-    LightningRpc = None
-
 import asyncio
 import random
 from functools import partial, wraps
 from typing import AsyncGenerator, Optional
 
 from loguru import logger
+from pyln.client import LightningRpc, RpcError
 
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
@@ -44,11 +40,6 @@ def _paid_invoices_stream(ln, last_pay_index):
 
 class CoreLightningWallet(Wallet):
     def __init__(self):
-        if LightningRpc is None:  # pragma: nocover
-            raise ImportError(
-                "The `pyln-client` library must be installed to use `CoreLightningWallet`."
-            )
-
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
@@ -135,7 +126,7 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
-            except:
+            except Exception:
                 error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
@@ -148,7 +139,7 @@ class CoreLightningWallet(Wallet):
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listinvoices(payment_hash=checking_id)
+            r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
         except RpcError:
             return PaymentStatus(None)
         if not r["invoices"]:
@@ -169,8 +160,8 @@ class CoreLightningWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listpays(payment_hash=checking_id)
-        except:
+            r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
+        except Exception:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)

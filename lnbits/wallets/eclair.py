@@ -53,7 +53,7 @@ class EclairWallet(Wallet):
         r = await self.client.post("/globalbalance", timeout=5)
         try:
             data = r.json()
-        except:
+        except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.url}, got: '{r.text[:200]}...'", 0
             )
@@ -93,7 +93,7 @@ class EclairWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
 
             return InvoiceResponse(False, None, None, error_message)
@@ -112,7 +112,7 @@ class EclairWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
             return PaymentResponse(False, None, None, None, error_message)
 
@@ -136,7 +136,7 @@ class EclairWallet(Wallet):
             try:
                 data = r.json()
                 error_message = data["error"]
-            except:
+            except Exception:
                 error_message = r.text
             return PaymentResponse(None, checking_id, None, preimage, error_message)
 
@@ -175,7 +175,7 @@ class EclairWallet(Wallet):
                 "pending": None,
             }
             return PaymentStatus(statuses.get(data["status"]["type"]))
-        except:
+        except Exception:
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -206,7 +206,7 @@ class EclairWallet(Wallet):
             return PaymentStatus(
                 statuses.get(data["status"]["type"]), fee_msat, preimage
             )
-        except:
+        except Exception:
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

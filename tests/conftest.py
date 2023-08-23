@@ -8,15 +8,15 @@ from httpx import AsyncClient
 from lnbits.app import create_app
 from lnbits.commands import migrate_databases
 from lnbits.core.crud import create_account, create_wallet
-from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
+from lnbits.core.models import CreateInvoice
+from lnbits.core.services import update_wallet_balance
+from lnbits.core.views.api import api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
-from tests.helpers import (
-    credit_wallet,
-    get_hold_invoice,
-    get_random_invoice_data,
-    get_real_invoice,
-)
+from tests.helpers import get_hold_invoice, get_random_invoice_data, get_real_invoice
+
+# dont install extensions for tests
+settings.lnbits_extensions_default_install = []
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -68,7 +68,7 @@ async def from_user():
 async def from_wallet(from_user):
     user = from_user
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
-    await credit_wallet(
+    await update_wallet_balance(
         wallet_id=wallet.id,
         amount=999999999,
     )
@@ -91,7 +91,7 @@ async def to_user():
 async def to_wallet(to_user):
     user = to_user
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
-    await credit_wallet(
+    await update_wallet_balance(
         wallet_id=wallet.id,
         amount=999999999,
     )
@@ -143,7 +143,7 @@ async def adminkey_headers_to(to_wallet):
 @pytest_asyncio.fixture(scope="session")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
-    invoiceData = CreateInvoiceData(**data)
+    invoiceData = CreateInvoice(**data)
     invoice = await api_payments_create_invoice(invoiceData, to_wallet)
     yield invoice
     del invoice
