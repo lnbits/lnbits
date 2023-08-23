@@ -21,6 +21,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.responses import JSONResponse
 
+from lnbits.cache import cache
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
@@ -330,6 +331,8 @@ def register_startup(app: FastAPI):
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
+
+            asyncio.create_task(cache.invalidate_forever())
 
         except Exception as e:
             logger.error(str(e))
