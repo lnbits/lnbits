@@ -206,7 +206,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
             except ValueError:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
-                    detail="'unhashed_description' must be a valid hex strings",
+                    detail="'unhashed_description' must be a valid hex string",
                 )
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
