@@ -401,7 +401,7 @@
                           v-model="update.currency"
                           type="text"
                           :label="$t('currency')"
-                          :options="receive.units"
+                          :options="receive.units.filter((u) => u !== 'sat')"
                         ></q-select>
                       </div>
                       <q-btn
