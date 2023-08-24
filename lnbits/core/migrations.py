@@ -306,7 +306,8 @@ async def m010_create_installed_extensions_table(db):
 
 async def m011_optimize_balances_view(db):
     """
-    Make the calculation of the balance a single aggregation over the payments table instead of 2.
+    Make the calculation of the balance a single aggregation
+    over the payments table instead of 2.
     """
     await db.execute("DROP VIEW balances")
     await db.execute(
