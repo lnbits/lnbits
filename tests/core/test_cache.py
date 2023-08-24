@@ -18,8 +18,15 @@ async def test_cache_get_set():
 
 @pytest.mark.asyncio
 async def test_cache_expiry():
+    # gets expired by `get` call
+    cache.set(key, value, expiry=0.01)
+    await asyncio.sleep(0.02)
+    assert not cache.get(key)
+
+    # gets expired by invalidation task
     cache.set(key, value, expiry=0.1)
     await asyncio.sleep(0.2)
+    assert key not in cache._values
     assert not cache.get(key)
 
 
