@@ -268,6 +268,7 @@ class EnvSettings(LNbitsSettings):
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
     forwarded_allow_ips: str = Field(default="*")
+    lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")

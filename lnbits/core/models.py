@@ -319,3 +319,12 @@ class CreateInvoice(BaseModel):
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
+
+
+class CreateTopup(BaseModel):
+    id: str
+    amount: int
+
+
+class CreateLnurlAuth(BaseModel):
+    callback: str

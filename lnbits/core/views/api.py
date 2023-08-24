@@ -29,10 +29,10 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import (
-    Callback,
     ConversionData,
     CreateInvoice,
     CreateLnurl,
+    CreateLnurlAuth,
     DecodePayment,
     Payment,
     PaymentFilters,
@@ -649,7 +649,7 @@ async def api_payments_decode(data: DecodePayment, response: Response):
 
 @core_app.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
-    data: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateLnurlAuth, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     err = await perform_lnurlauth(data.callback, wallet=wallet)
     if err:
@@ -906,7 +906,11 @@ async def delete_extension_db(ext_id: str):
 # TINYURL
 
 
-@core_app.post("/api/v1/tinyurl")
+@core_app.post(
+    "/api/v1/tinyurl",
+    name="Tinyurl",
+    description="creates a tinyurl",
+)
 async def api_create_tinyurl(
     url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -923,7 +927,11 @@ async def api_create_tinyurl(
         )
 
 
-@core_app.get("/api/v1/tinyurl/{tinyurl_id}")
+@core_app.get(
+    "/api/v1/tinyurl/{tinyurl_id}",
+    name="Tinyurl",
+    description="get a tinyurl by id",
+)
 async def api_get_tinyurl(
     tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -941,7 +949,11 @@ async def api_get_tinyurl(
         )
 
 
-@core_app.delete("/api/v1/tinyurl/{tinyurl_id}")
+@core_app.delete(
+    "/api/v1/tinyurl/{tinyurl_id}",
+    name="Tinyurl",
+    description="delete a tinyurl by id",
+)
 async def api_delete_tinyurl(
     tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -960,16 +972,17 @@ async def api_delete_tinyurl(
         )
 
 
-@core_app.get("/t/{tinyurl_id}")
+@core_app.get(
+    "/t/{tinyurl_id}",
+    name="Tinyurl",
+    description="redirects a tinyurl by id",
+)
 async def api_tinyurl(tinyurl_id: str):
-    try:
-        tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl:
-            response = RedirectResponse(url=tinyurl.url)
-            return response
-        else:
-            return
-    except Exception:
+    tinyurl = await get_tinyurl(tinyurl_id)
+    if tinyurl:
+        response = RedirectResponse(url=tinyurl.url)
+        return response
+    else:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
