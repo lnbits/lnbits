@@ -65,6 +65,9 @@ jobs:
           LND_GRPC_CERT: docker/data/lnd-3/tls.cert
           LND_GRPC_MACAROON: docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
           CORELIGHTNING_RPC: ./docker/data/clightning-1/regtest/lightning-rpc
+          CORELIGHTNING_REST_URL: https://localhost:3001
+          CORELIGHTNING_REST_MACAROON: ./docker/data/clightning-2-rest/access.macaroon
+          CORELIGHTNING_REST_CERT: ./docker/data/clightning-2-rest/certificate.pem
           LNBITS_ENDPOINT: http://localhost:5001
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
