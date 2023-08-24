@@ -397,15 +397,20 @@ async def test_fiat_tracking(client, adminkey_headers_from):
         assert response.is_success
 
         response = await client.get(
-            "/api/v1/payments?limit=1", headers=adminkey_headers_from
+            f"/api/v1/payments/{response.json()['payment_hash']}",
+            headers=adminkey_headers_from,
         )
         assert response.is_success
-        return response.json()[0]
+        return response.json()["details"]
 
-    response = await client.patch(
-        "/api/v1/wallet", json={"currency": ""}, headers=adminkey_headers_from
-    )
-    assert response.is_success
+    async def update_currency(currency):
+        response = await client.patch(
+            "/api/v1/wallet", json={"currency": currency}, headers=adminkey_headers_from
+        )
+        assert response.is_success
+        assert response.json()["currency"] == currency
+
+    await update_currency("")
 
     settings.lnbits_default_accounting_currency = "USD"
     payment = await create_invoice()
@@ -413,16 +418,12 @@ async def test_fiat_tracking(client, adminkey_headers_from):
     assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
     assert payment["extra"]["wallet_fiat_rate"]
 
-    response = await client.patch(
-        "/api/v1/wallet", json={"currency": "EUR"}, headers=adminkey_headers_from
-    )
-    assert response.is_success
-
-    await asyncio.sleep(0.25)
+    await update_currency("EUR")
 
     payment = await create_invoice()
     assert payment["extra"]["wallet_fiat_currency"] == "EUR"
     assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+    assert payment["extra"]["wallet_fiat_rate"]
 
 
 async def get_node_balance_sats():
