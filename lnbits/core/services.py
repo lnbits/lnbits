@@ -86,6 +86,9 @@ async def calculate_fiat_amounts(
         extra["wallet_fiat_currency"] = wallet_currency
         extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
         extra["wallet_fiat_rate"] = amount_sat / fiat_amount
+
+    logger.debug(f"Calculated fiat amounts for {wallet}: {extra=}")
+
     return amount_sat, extra
 
 
