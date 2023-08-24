@@ -38,7 +38,7 @@ websocket-client = "1.6.3"
 secp256k1 = "0.14.0"
 pycryptodomex = "3.19.0"
 packaging = "23.1"
-bolt11 = "2.0.4"
+bolt11 = "^2.0.5"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

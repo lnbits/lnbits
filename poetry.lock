@@ -146,13 +146,13 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "bolt11"
-version = "2.0.4"
+version = "2.0.5"
 description = "A library for encoding and decoding BOLT11 payment requests."
 optional = false
 python-versions = ">=3.8.1"
 files = [
-    {file = "bolt11-2.0.4-py3-none-any.whl", hash = "sha256:a94ab866e15e81d1119009c72ffa21911473913cc4035abb35e16aa552fee84d"},
-    {file = "bolt11-2.0.4.tar.gz", hash = "sha256:965c7281bc74a2ef8ea7ba99d4bda1cca8a7a391b8a35c67cfd3ae80ccaaadd5"},
+    {file = "bolt11-2.0.5-py3-none-any.whl", hash = "sha256:6791c2edee804a4a8a7d092c689f8d2c01212271a33963ede4a988b7a6ce1b81"},
+    {file = "bolt11-2.0.5.tar.gz", hash = "sha256:e6be2748b0c4a017900761f63d9944c1dde8f22fd2829006679a0e2346eaa47b"},
 ]
 
 [package.dependencies]
@@ -2437,4 +2437,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "e6647cf79bc395e1003d8ffe0bd22a05beb5469d1c04d27e665d98b523a77f51"
+content-hash = "4fd361a6f46c9a1ad34b000ad13a56c076593398eab4f4bad157c608bfa6d6f4"

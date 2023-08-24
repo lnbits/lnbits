@@ -5,11 +5,15 @@ from datetime import datetime
 from os import urandom
 from typing import AsyncGenerator, Optional
 
-from bolt11.decode import decode
-from bolt11.encode import encode
-from bolt11.exceptions import Bolt11Exception
-from bolt11.models.tags import TagChar, Tags
-from bolt11.types import Bolt11, MilliSatoshi
+from bolt11 import (
+    Bolt11,
+    Bolt11Exception,
+    MilliSatoshi,
+    TagChar,
+    Tags,
+    decode,
+    encode,
+)
 from loguru import logger
 
 from lnbits.settings import settings
