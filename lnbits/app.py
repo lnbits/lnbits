@@ -358,8 +358,6 @@ def register_startup(app: FastAPI):
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
 
-            asyncio.create_task(cache.invalidate_forever())
-
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
@@ -431,6 +429,7 @@ def register_async_tasks(app):
         create_permanent_task(check_pending_payments)
         create_permanent_task(invoice_listener)
         create_permanent_task(internal_invoice_listener)
+        create_permanent_task(cache.invalidate_forever)
         register_task_listeners()
         register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?

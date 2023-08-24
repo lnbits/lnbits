@@ -2,25 +2,14 @@ import asyncio
 
 import pytest
 
-from lnbits.cache import Cache
-from tests.conftest import pytest_asyncio
-
-
-@pytest_asyncio.fixture(scope="session")
-async def cache():
-    cache = Cache()
-
-    task = asyncio.create_task(cache.invalidate_forever(interval=0.1))
-    yield cache
-    task.cancel()
-
+from lnbits.cache import cache
 
 key = "foo"
 value = "bar"
 
 
 @pytest.mark.asyncio
-async def test_cache_get_set(cache):
+async def test_cache_get_set():
     cache.set(key, value)
     assert cache.get(key) == value
     assert cache.get(key, default="default") == value
@@ -28,14 +17,14 @@ async def test_cache_get_set(cache):
 
 
 @pytest.mark.asyncio
-async def test_cache_expiry(cache):
+async def test_cache_expiry():
     cache.set(key, value, expiry=0.1)
     await asyncio.sleep(0.2)
     assert not cache.get(key)
 
 
 @pytest.mark.asyncio
-async def test_cache_pop(cache):
+async def test_cache_pop():
     cache.set(key, value)
     assert cache.pop(key) == value
     assert not cache.get(key)
@@ -43,7 +32,7 @@ async def test_cache_pop(cache):
 
 
 @pytest.mark.asyncio
-async def test_cache_coro(cache):
+async def test_cache_coro():
     called = 0
 
     async def test():
