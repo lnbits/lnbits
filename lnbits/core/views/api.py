@@ -187,30 +187,29 @@ async def api_payments_paginated(
 
 
 async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
-    extra = data.extra or {}
+    data.extra = data.extra or {}
+    description_hash = b""
+    unhashed_description = b""
+    memo = data.memo or settings.lnbits_site_title
     if data.description_hash or data.unhashed_description:
-        try:
-            description_hash = (
-                bytes.fromhex(data.description_hash) if data.description_hash else b""
-            )
-            unhashed_description = (
-                bytes.fromhex(data.unhashed_description)
-                if data.unhashed_description
-                else b""
-            )
-        except ValueError:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=(
-                    "'description_hash' and 'unhashed_description' "
-                    "must be a valid hex strings"
-                ),
-            )
+        if data.description_hash:
+            try:
+                description_hash = bytes.fromhex(data.description_hash)
+            except ValueError:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="'description_hash' must be a valid hex string",
+                )
+        if data.unhashed_description:
+            try:
+                unhashed_description = bytes.fromhex(data.unhashed_description)
+            except ValueError:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="'unhashed_description' must be a valid hex string",
+                )
+        # do not save memo if description_hash or unhashed_description is set
         memo = ""
-    else:
-        description_hash = b""
-        unhashed_description = b""
-        memo = data.memo or settings.lnbits_site_title
 
     if data.unit == "sat":
         amount = int(data.amount)
@@ -218,7 +217,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         assert data.unit is not None, "unit not set"
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
-        extra.update({"fiat_amount": data.amount, "fiat_currency": data.unit})
+        data.extra.update({"fiat_amount": data.amount, "fiat_currency": data.unit})
 
     async with db.connect() as conn:
         try:
