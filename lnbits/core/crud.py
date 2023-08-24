@@ -281,7 +281,9 @@ async def get_wallet(
 
 
 async def get_wallet_for_key(
-    key: str, key_type: str = "invoice", conn: Optional[Connection] = None
+    key: str,
+    key_type: WalletType = WalletType.invoice,
+    conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
         """
