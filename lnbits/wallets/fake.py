@@ -31,7 +31,8 @@ class FakeWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         logger.info(
-            "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
+            "FakeWallet funding source is for using LNbits as a centralised,"
+            " stand-alone payment system with brrrrrr."
         )
         return StatusResponse(None, 1000000000)
 

@@ -413,9 +413,11 @@ def get_db_vendor_name():
     return (
         "PostgreSQL"
         if db_url and db_url.startswith("postgres://")
-        else "CockroachDB"
-        if db_url and db_url.startswith("cockroachdb://")
-        else "SQLite"
+        else (
+            "CockroachDB"
+            if db_url and db_url.startswith("cockroachdb://")
+            else "SQLite"
+        )
     )
 
 

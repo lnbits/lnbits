@@ -58,7 +58,9 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         )
         wallets = await (conn or db).fetchall(
             """
-            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
+            SELECT *, COALESCE((
+                SELECT balance FROM balances WHERE wallet = wallets.id
+            ), 0) AS balance_msat
             FROM wallets
             WHERE "user" = ?
             """,
@@ -89,9 +91,9 @@ async def add_installed_extension(
     conn: Optional[Connection] = None,
 ) -> None:
     meta = {
-        "installed_release": dict(ext.installed_release)
-        if ext.installed_release
-        else None,
+        "installed_release": (
+            dict(ext.installed_release) if ext.installed_release else None
+        ),
         "dependencies": ext.dependencies,
     }
 
@@ -99,9 +101,11 @@ async def add_installed_extension(
 
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, name, short_description, icon, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (id) DO
-        UPDATE SET (version, name, active, short_description, icon, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO installed_extensions
+        (id, version, name, short_description, icon, stars, meta)
+        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
+        (version, name, active, short_description, icon, stars, meta) =
+        (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ext.id,
@@ -270,9 +274,8 @@ async def get_wallet(
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
-        FROM wallets
-        WHERE id = ?
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE id = ?
         """,
         (wallet_id,),
     )
@@ -287,9 +290,8 @@ async def get_wallet_for_key(
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
-        FROM wallets
-        WHERE adminkey = ? OR inkey = ?
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE adminkey = ? OR inkey = ?
         """,
         (key, key),
     )
@@ -544,9 +546,11 @@ async def create_payment(
             pending,
             memo,
             fee,
-            json.dumps(extra)
-            if extra and extra != {} and type(extra) is dict
-            else None,
+            (
+                json.dumps(extra)
+                if extra and extra != {} and type(extra) is dict
+                else None
+            ),
             webhook,
             db.datetime_to_timestamp(expiration_date),
         ),
@@ -608,7 +612,8 @@ async def update_payment_extra(
 ) -> None:
     """
     Only update the `extra` field for the payment.
-    Old values in the `extra` JSON object will be kept unless the new `extra` overwrites them.
+    Old values in the `extra` JSON object will be kept
+    unless the new `extra` overwrites them.
     """
 
     amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
@@ -662,7 +667,10 @@ async def check_internal(
 async def check_internal_pending(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
-    """Returns False if the internal payment is not pending anymore (and thus paid), otherwise True"""
+    """
+    Returns False if the internal payment is not pending anymore
+    (and thus paid), otherwise True
+    """
     row = await (conn or db).fetchone(
         """
         SELECT pending FROM apipayments

@@ -210,10 +210,10 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 @pytest.mark.asyncio
 async def test_get_payments(client, from_wallet, adminkey_headers_from):
-    # Because sqlite only stores timestamps with milliseconds we have to wait a second to ensure
-    # a different timestamp than previous invoices
-    # due to this limitation both payments (normal and paginated) are tested at the same time as they are almost
-    # identical anyways
+    # Because sqlite only stores timestamps with milliseconds we have to wait a second
+    # to ensure a different timestamp than previous invoices due to this limitation
+    # both payments (normal and paginated) are tested at the same time as they are
+    # almost identical anyways
     if DB_TYPE == SQLITE:
         await asyncio.sleep(1)
     ts = time()

@@ -93,9 +93,11 @@ def get_current_extension_name() -> str:
 
 def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False):
     """
-    Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
+    Generate openapi documentation for Filters. This is intended to be used along
+    parse_filters (see example)
     :param model: Filter model
-    :param keep_optional: If false, all parameters will be optional, otherwise inferred from model
+    :param keep_optional: If false, all parameters will be optional,
+    otherwise inferred from model
     """
     fields = list(model.__fields__.values())
     params = []

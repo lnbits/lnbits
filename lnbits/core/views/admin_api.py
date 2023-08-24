@@ -126,10 +126,10 @@ async def api_download_backup() -> FileResponse:
         p = urlparse(db_url)
         command = (
             f"pg_dump --host={p.hostname} "
-            f'--dbname={p.path.replace("/", "")} '
+            f"--dbname={p.path.replace('/', '')} "
             f"--username={p.username} "
-            f"--no-password "
-            f"--format=c "
+            "--no-password "
+            "--format=c "
             f"--file={pg_backup_filename}"
         )
         proc = Popen(

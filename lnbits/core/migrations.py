@@ -239,7 +239,8 @@ async def m007_set_invoice_expiries(db):
                     invoice.date + invoice.expiry
                 )
                 logger.info(
-                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice"
+                    f" {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
                     """

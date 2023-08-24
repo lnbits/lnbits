@@ -421,8 +421,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
     Generic helper class for filtering and sorting data.
     For usage in an api endpoint, use the `parse_filters` dependency.
 
-    When constructing this class manually always make sure to pass a model so that the values can be validated.
-    Otherwise, make sure to validate the inputs manually.
+    When constructing this class manually always make sure to pass a model so that
+    the values can be validated. Otherwise, make sure to validate the inputs manually.
     """
 
     filters: List[Filter[TFilterModel]] = []

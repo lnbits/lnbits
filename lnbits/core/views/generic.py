@@ -132,12 +132,12 @@ async def extensions_install(
                     "isAvailable": ext.id in all_extensions,
                     "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
-                    "latestRelease": dict(ext.latest_release)
-                    if ext.latest_release
-                    else None,
-                    "installedRelease": dict(ext.installed_release)
-                    if ext.installed_release
-                    else None,
+                    "latestRelease": (
+                        dict(ext.latest_release) if ext.latest_release else None
+                    ),
+                    "installedRelease": (
+                        dict(ext.installed_release) if ext.installed_release else None
+                    ),
                 },
                 installable_exts,
             )
@@ -160,13 +160,13 @@ async def extensions_install(
     "/wallet",
     response_class=HTMLResponse,
     description="""
-Args:
-
-just **wallet_name**: create a new user, then create a new wallet for user with wallet_name<br>
-just **user_id**: return the first user wallet or create one if none found (with default wallet_name)<br>
-**user_id** and **wallet_name**: create a new wallet for user with wallet_name<br>
-**user_id** and **wallet_id**: return that wallet if user is the owner<br>
-nothing: create everything<br>
+just **wallet_name**: create a new user, then create a new wallet
+                      for user with wallet_name
+just **user_id**: return the first user wallet or create one if none found
+                  (with default wallet_name)
+**user_id** and **wallet_name**: create a new wallet for user with wallet_name
+**user_id** and **wallet_id**: return that wallet if user is the owner
+nothing: create everything
 """,
 )
 async def wallet(
@@ -210,7 +210,8 @@ async def wallet(
         else:
             wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
             logger.info(
-                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"
+                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for"
+                f" user {user.id}"
             )
 
         return RedirectResponse(
@@ -219,7 +220,9 @@ async def wallet(
         )
 
     logger.debug(
-        f"Access {'user '+ user.id + ' ' if user else ''} {'wallet ' + wallet_name if wallet_name else ''}"
+        "Access "
+        f"{'user '+ user.id + ' ' if user else ''} "
+        f"{'wallet ' + wallet_name if wallet_name else ''}"
     )
     userwallet = user.get_wallet(wallet_id)
     if not userwallet:
@@ -255,7 +258,9 @@ async def lnurl_full_withdraw(request: Request):
         "k1": "0",
         "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
         "maxWithdrawable": wallet.withdrawable_balance,
-        "defaultDescription": f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}",
+        "defaultDescription": (
+            f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}"
+        ),
         "balanceCheck": url_for("/withdraw", external=True, usr=user.id, wal=wallet.id),
     }
 
@@ -362,9 +367,11 @@ async def manifest(usr: str):
         "name": settings.lnbits_site_title + " Wallet",
         "icons": [
             {
-                "src": settings.lnbits_custom_logo
-                if settings.lnbits_custom_logo
-                else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                "src": (
+                    settings.lnbits_custom_logo
+                    if settings.lnbits_custom_logo
+                    else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png"
+                ),
                 "type": "image/png",
                 "sizes": "900x900",
             }

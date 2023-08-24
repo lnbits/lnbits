@@ -44,9 +44,8 @@ class CoreLightningWallet(Wallet):
         self.ln = LightningRpc(self.rpc)
 
         # check if description_hash is supported (from corelightning>=v0.11.0)
-        self.supports_description_hash = (
-            "deschashonly" in self.ln.help("invoice")["help"][0]["command"]  # type: ignore
-        )
+        command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
+        self.supports_description_hash = "deschashonly" in command
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
@@ -79,20 +78,21 @@ class CoreLightningWallet(Wallet):
         try:
             if description_hash and not unhashed_description:
                 raise Unsupported(
-                    "'description_hash' unsupported by CoreLightning, provide 'unhashed_description'"
+                    "'description_hash' unsupported by CoreLightning, provide"
+                    " 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
                 raise Unsupported("unhashed_description")
             r: dict = self.ln.invoice(  # type: ignore
                 msatoshi=msat,
                 label=label,
-                description=unhashed_description.decode()
-                if unhashed_description
-                else memo,
+                description=(
+                    unhashed_description.decode() if unhashed_description else memo
+                ),
                 exposeprivatechannels=True,
-                deschashonly=True
-                if unhashed_description
-                else False,  # we can't pass None here
+                deschashonly=(
+                    True if unhashed_description else False
+                ),  # we can't pass None here
                 expiry=kwargs.get("expiry"),
             )
 
@@ -101,7 +101,10 @@ class CoreLightningWallet(Wallet):
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
+            error_message = (
+                f"CoreLightning method '{exc.method}' failed with"
+                f" '{exc.error.get('message') or exc.error}'."  # type: ignore
+            )
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
@@ -114,11 +117,12 @@ class CoreLightningWallet(Wallet):
             return PaymentResponse(False, None, None, None, "invoice already paid")
 
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-
+        # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi
+        # (which is default value of exemptfee)
         payload = {
             "bolt11": bolt11,
             "maxfeepercent": f"{fee_limit_percent:.11}",
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
+            "exemptfee": 0,
         }
         try:
             wrapped = async_wrap(_pay_invoice)
@@ -127,7 +131,10 @@ class CoreLightningWallet(Wallet):
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
-                error_message = f"CoreLightning method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."  # type: ignore
+                error_message = (
+                    f"CoreLightning method '{exc.method}' failed with"
+                    f" '{exc.error.get('message') or exc.error}'."  # type: ignore
+                )
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
@@ -192,6 +199,7 @@ class CoreLightningWallet(Wallet):
                 yield paid["payment_hash"]
             except Exception as exc:
                 logger.error(
-                    f"lost connection to corelightning invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to corelightning invoices stream: '{exc}', "
+                    "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)

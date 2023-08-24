@@ -18,7 +18,8 @@ from lnbits.settings import settings
 class InstalledExtensionMiddleware:
     # This middleware class intercepts calls made to the extensions API and:
     #  - it blocks the calls if the extension has been disabled or uninstalled.
-    #  - it redirects the calls to the latest version of the extension if the extension has been upgraded.
+    #  - it redirects the calls to the latest version of the extension
+    #    if the extension has been upgraded.
     #  - otherwise it has no effect
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -89,9 +90,10 @@ class InstalledExtensionMiddleware:
         self, headers: List[Any], msg: str, status_code: HTTPStatus
     ) -> Union[HTMLResponse, JSONResponse]:
         """
-        Build an HTTP response containing the `msg` as HTTP body and the `status_code` as HTTP code.
-        If the `accept` HTTP header is present int the request and contains the value of `text/html`
-        then return an `HTMLResponse`, otherwise return an `JSONResponse`.
+        Build an HTTP response containing the `msg` as HTTP body and the `status_code`
+        as HTTP code. If the `accept` HTTP header is present int the request and
+        contains the value of `text/html` then return an `HTMLResponse`,
+        otherwise return an `JSONResponse`.
         """
         accept_header: str = next(
             (
@@ -129,8 +131,8 @@ class CustomGZipMiddleware(GZipMiddleware):
 
 
 class ExtensionsRedirectMiddleware:
-    # Extensions are allowed to specify redirect paths.
-    # A call to a path outside the scope of the extension can be redirected to one of the extension's endpoints.
+    # Extensions are allowed to specify redirect paths. A call to a path outside the
+    # scope of the extension can be redirected to one of the extension's endpoints.
     # Eg: redirect `GET /.well-known` to `GET /lnurlp/api/v1/well-known`
 
     def __init__(self, app: ASGIApp) -> None:
@@ -231,7 +233,8 @@ def add_ip_block_middleware(app: FastAPI):
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
             )
-        # this try: except: block is not needed on latest FastAPI (await call_next(request) is enough)
+        # this try: except: block is not needed on latest FastAPI
+        # (await call_next(request) is enough)
         # https://stackoverflow.com/questions/71222144/runtimeerror-no-response-returned-in-fastapi-when-refresh-request
         # TODO: remove after https://github.com/lnbits/lnbits/pull/1609 is merged
         try:

@@ -115,16 +115,17 @@ async def pay_invoice(
 ) -> str:
     """
     Pay a Lightning invoice.
-    First, we create a temporary payment in the database with fees set to the reserve fee.
-    We then check whether the balance of the payer would go negative.
-    We then attempt to pay the invoice through the backend.
-    If the payment is successful, we update the payment in the database with the payment details.
+    First, we create a temporary payment in the database with fees set to the reserve
+    fee. We then check whether the balance of the payer would go negative.
+    We then attempt to pay the invoice through the backend. If the payment is
+    successful, we update the payment in the database with the payment details.
     If the payment is unsuccessful, we delete the temporary payment.
-    If the payment is still in flight, we hope that some other process will regularly check for the payment.
+    If the payment is still in flight, we hope that some other process
+    will regularly check for the payment.
     """
     invoice = bolt11.decode(payment_request)
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
-    async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
@@ -151,11 +152,13 @@ async def pay_invoice(
             extra=extra,
         )
 
-        # we check if an internal invoice exists that has already been paid (not pending anymore)
+        # we check if an internal invoice exists that has already been paid
+        # (not pending anymore)
         if not await check_internal_pending(invoice.payment_hash, conn=conn):
             raise PaymentFailure("Internal invoice already paid.")
 
-        # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        # (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
             # perform additional checks on the internal payment
@@ -202,7 +205,8 @@ async def pay_invoice(
             logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
-                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
+                    " cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
@@ -232,7 +236,8 @@ async def pay_invoice(
 
         if payment.checking_id and payment.checking_id != temp_id:
             logger.warning(
-                f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
+                f"backend sent unexpected checking_id (expected: {temp_id} got:"
+                f" {payment.checking_id})"
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
@@ -267,7 +272,8 @@ async def pay_invoice(
             )
         else:
             logger.warning(
-                f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
+                "didn't receive checking_id from backend, payment may be stuck in"
+                f" database: {temp_id}"
             )
 
     return invoice.payment_hash
@@ -301,7 +307,8 @@ async def redeem_lnurl_withdraw(
         )
     except Exception:
         logger.warning(
-            f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
+            f"failed to create invoice on redeem_lnurl_withdraw "
+            f"from {lnurl}. params: {res}"
         )
         return None
 
@@ -420,7 +427,8 @@ async def check_transaction_status(
     return status
 
 
-# WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
+# WARN: this same value must be used for balance check and passed to
+# WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent

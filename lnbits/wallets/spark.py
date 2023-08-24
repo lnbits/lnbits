@@ -46,7 +46,8 @@ class SparkWallet(Wallet):
         async def call(*args, **kwargs):
             if args and kwargs:
                 raise TypeError(
-                    f"must supply either named arguments or a list of arguments, not both: {args} {kwargs}"
+                    "must supply either named arguments or a list of arguments, not"
+                    f" both: {args} {kwargs}"
                 )
             elif args:
                 params = args
@@ -161,7 +162,8 @@ class SparkWallet(Wallet):
 
             if len(pays) > 1:
                 raise SparkError(
-                    f"listpays({payment_hash}) returned an unexpected response: {listpays}"
+                    f"listpays({payment_hash}) returned an unexpected response:"
+                    f" {listpays}"
                 )
 
             if pay["status"] == "failed":

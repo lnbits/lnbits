@@ -100,7 +100,8 @@ class LndWallet(Wallet):
     def __init__(self):
         if not imports_ok:  # pragma: nocover
             raise ImportError(
-                "The `grpcio` and `protobuf` library must be installed to use `GRPC LndWallet`. Alternatively try using the LndRESTWallet."
+                "The `grpcio` and `protobuf` library must be installed to use `GRPC"
+                " LndWallet`. Alternatively try using the LndRESTWallet."
             )
 
         endpoint = settings.lnd_grpc_endpoint
@@ -305,6 +306,7 @@ class LndWallet(Wallet):
                     yield checking_id
             except Exception as exc:
                 logger.error(
-                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to lnd invoices stream: '{exc}', "
+                    "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)

@@ -164,6 +164,7 @@ class LnTipsWallet(Wallet):
             # since the backend is expected to drop the connection after 90s
             if last_connected is None or time.time() - last_connected < 10:
                 logger.error(
-                    f"lost connection to {self.endpoint}/api/v1/invoicestream, retrying in 5 seconds"
+                    f"lost connection to {self.endpoint}/api/v1/invoicestream, retrying"
+                    " in 5 seconds"
                 )
                 await asyncio.sleep(5)

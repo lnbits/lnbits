@@ -87,8 +87,8 @@ invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listener
 
 def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
     """
-    A method intended for extensions (and core/tasks.py) to call when they want to be notified about
-    new invoice payments incoming. Will emit all incoming payments.
+    A method intended for extensions (and core/tasks.py) to call when they want to be
+    notified about new invoice payments incoming. Will emit all incoming payments.
     """
     name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
     logger.trace(f"sse: registering invoice listener {name_unique}")
@@ -147,7 +147,8 @@ async def check_pending_payments():
     while True:
         async with db.connect() as conn:
             logger.info(
-                f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
+                f"Task: checking all pending payments (incoming={incoming},"
+                f" outgoing={outgoing}) of last 15 days"
             )
             start_time = time.time()
             pending_payments = await get_payments(
@@ -163,7 +164,8 @@ async def check_pending_payments():
                 await payment.check_status(conn=conn)
 
             logger.info(
-                f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
+                f"Task: pending check finished for {len(pending_payments)} payments"
+                f" (took {time.time() - start_time:0.3f} s)"
             )
             # we delete expired invoices once upon the first pending check
             if incoming:
@@ -171,7 +173,8 @@ async def check_pending_payments():
                 start_time = time.time()
                 await delete_expired_invoices(conn=conn)
                 logger.info(
-                    f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
+                    "Task: expired invoice deletion finished (took"
+                    f" {time.time() - start_time:0.3f} s)"
                 )
 
         # after the first check we will only check outgoing, not incoming
