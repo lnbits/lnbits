@@ -128,15 +128,3 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
     return {
         "parameters": params,
     }
-
-
-def get_push_notification_pubkey():
-    push_notification_key_file = os.path.join(
-        settings.lnbits_data_folder, "push_notification_vapid.{}"
-    )
-
-    privkey = Vapid().from_file(push_notification_key_file.format("pem"))
-    pubkey = privkey.public_key.public_bytes(
-        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
-    )
-    return b64urlencode(pubkey)

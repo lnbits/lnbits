@@ -336,10 +336,6 @@ class CreateWebPushSubscription(BaseModel):
     subscription: str
 
 
-class CreatePushNotificationSubscription(BaseModel):
-    subscription: str
-
-
 class WebPushSubscription(BaseModel):
     endpoint: str
     user: str
