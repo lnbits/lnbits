@@ -398,17 +398,32 @@ Vue.component('lnbits-notifications-btn', {
       this.isSubscribed ? this.unsubscribe() : this.subscribe()
     },
     saveUserSubscribed(user) {
-      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      let subscribedUsers =
+        JSON.parse(
+          this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')
+        ) || []
       if (!subscribedUsers.includes(user)) subscribedUsers.push(user)
-      this.$q.localStorage.set('lnbits.webpush.subscribedUsers', JSON.stringify(subscribedUsers))
+      this.$q.localStorage.set(
+        'lnbits.webpush.subscribedUsers',
+        JSON.stringify(subscribedUsers)
+      )
     },
     removeUserSubscribed(user) {
-      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      let subscribedUsers =
+        JSON.parse(
+          this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')
+        ) || []
       subscribedUsers = subscribedUsers.filter(arr => arr !== user)
-      this.$q.localStorage.set('lnbits.webpush.subscribedUsers', JSON.stringify(subscribedUsers))
+      this.$q.localStorage.set(
+        'lnbits.webpush.subscribedUsers',
+        JSON.stringify(subscribedUsers)
+      )
     },
     isUserSubscribed(user) {
-      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      let subscribedUsers =
+        JSON.parse(
+          this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')
+        ) || []
       return subscribedUsers.includes(user)
     },
     subscribe() {
@@ -431,47 +446,45 @@ Vue.component('lnbits-notifications-btn', {
 
       // create push subscription
       navigator.serviceWorker.ready.then(registration => {
-        navigator.serviceWorker
-          .getRegistration()
-          .then(registration => {
-            registration.pushManager
-              .getSubscription()
-              .then(function (subscription) {
-                if (
-                  subscription === null ||
-                  !self.isUserSubscribed(self.g.user.id)
-                ) {
-                  const applicationServerKey = self.urlB64ToUint8Array(
-                    self.pubkey
-                  )
-                  const options = {applicationServerKey, userVisibleOnly: true}
+        navigator.serviceWorker.getRegistration().then(registration => {
+          registration.pushManager
+            .getSubscription()
+            .then(function (subscription) {
+              if (
+                subscription === null ||
+                !self.isUserSubscribed(self.g.user.id)
+              ) {
+                const applicationServerKey = self.urlB64ToUint8Array(
+                  self.pubkey
+                )
+                const options = {applicationServerKey, userVisibleOnly: true}
 
-                  registration.pushManager
-                    .subscribe(options)
-                    .then(function (subscription) {
-                      LNbits.api
-                        .request(
-                          'POST',
-                          '/api/v1/webpush',
-                          self.g.user.wallets[0].adminkey,
-                          {
-                            subscription: JSON.stringify(subscription)
-                          }
-                        )
-                        .then(function (response) {
-                          self.saveUserSubscribed(response.data.user)
-                          self.isSubscribed = true
-                        })
-                        .catch(function (error) {
-                          LNbits.utils.notifyApiError(error)
-                        })
-                    })
-                }
-              })
-              .catch(function (e) {
-                console.log(e)
-              })
-          })
+                registration.pushManager
+                  .subscribe(options)
+                  .then(function (subscription) {
+                    LNbits.api
+                      .request(
+                        'POST',
+                        '/api/v1/webpush',
+                        self.g.user.wallets[0].adminkey,
+                        {
+                          subscription: JSON.stringify(subscription)
+                        }
+                      )
+                      .then(function (response) {
+                        self.saveUserSubscribed(response.data.user)
+                        self.isSubscribed = true
+                      })
+                      .catch(function (error) {
+                        LNbits.utils.notifyApiError(error)
+                      })
+                  })
+              }
+            })
+            .catch(function (e) {
+              console.log(e)
+            })
+        })
       })
     },
     unsubscribe() {
@@ -529,7 +542,8 @@ Vue.component('lnbits-notifications-btn', {
       await navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
-            self.isSubscribed = (!!subscription && self.isUserSubscribed(self.g.user.id))
+            self.isSubscribed =
+              !!subscription && self.isUserSubscribed(self.g.user.id)
           })
         })
         .catch(function (e) {
