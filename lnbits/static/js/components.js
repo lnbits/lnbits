@@ -215,38 +215,38 @@ Vue.component('lnbits-payment-details', {
   },
   template: `
   <div class="q-py-md" style="text-align: left">
-      
+
   <div v-if="payment.tag" class="row justify-center q-mb-md">
     <q-badge v-if="hasTag" color="yellow" text-color="black">
       #{{ payment.tag }}
     </q-badge>
   </div>
-  
+
   <div class="row">
     <b v-text="$t('created')"></b>:
     {{ payment.date }} ({{ payment.dateFrom }})
   </div>
-  
+
   <div class="row">
    <b v-text="$t('expiry')"></b>:
    {{ payment.expirydate }} ({{ payment.expirydateFrom }})
   </div>
-  
+
   <div class="row">
    <b v-text="$t('amount')"></b>:
     {{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
   </div>
-  
+
   <div class="row">
     <b v-text="$t('fee')"></b>:
     {{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
   </div>
-  
+
   <div class="text-wrap">
     <b style="white-space: nowrap;" v-text="$t('payment_hash')"></b>:&nbsp;{{ payment.payment_hash }}
         <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
   </div>
-  
+
   <div class="text-wrap">
     <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
   </div>
@@ -433,7 +433,10 @@ Vue.component('lnbits-notifications-btn', {
             registration.pushManager
               .getSubscription()
               .then(function (subscription) {
-                if (subscription === null || !self.isUserSubscribed(self.g.user.id)) {
+                if (
+                  subscription === null ||
+                  !self.isUserSubscribed(self.g.user.id)
+                ) {
                   const applicationServerKey = self.urlB64ToUint8Array(
                     self.pubkey
                   )
@@ -451,7 +454,7 @@ Vue.component('lnbits-notifications-btn', {
                             subscription: JSON.stringify(subscription)
                           }
                         )
-                        .then(function(response){
+                        .then(function (response) {
                           self.saveUserSubscribed(response.data.user)
                           self.isSubscribed = true
                         })
@@ -480,7 +483,7 @@ Vue.component('lnbits-notifications-btn', {
                   '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
                   self.g.user.wallets[0].adminkey
                 )
-                .then(function() {
+                .then(function () {
                   self.removeUserSubscribed(self.g.user.id)
                   self.isSubscribed = false
                 })
@@ -503,12 +506,15 @@ Vue.component('lnbits-notifications-btn', {
       this.isSupported = https && serviceWorkerApi && notificationApi && pushApi
 
       if (!this.isSupported) {
-        console.log('Notifications disabled because requirements are not met:', {
-          HTTPS: https,
-          'Service Worker API': serviceWorkerApi,
-          'Notification API': notificationApi,
-          'Push API': pushApi
-        })
+        console.log(
+          'Notifications disabled because requirements are not met:',
+          {
+            HTTPS: https,
+            'Service Worker API': serviceWorkerApi,
+            'Notification API': notificationApi,
+            'Push API': pushApi
+          }
+        )
       }
     },
     updateSubscriptionStatus: async function () {

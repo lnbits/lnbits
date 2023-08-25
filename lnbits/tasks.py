@@ -8,7 +8,6 @@ from typing import Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
-
 from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
@@ -19,8 +18,8 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-from lnbits.wallets import get_wallet_class
 from lnbits.settings import settings
+from lnbits.wallets import get_wallet_class
 
 from .core import db
 
@@ -218,7 +217,7 @@ async def send_push_notification(subscription, title, body, url=""):
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
             settings.lnbits_webpush_privkey,
-            {"aud": "", "sub": "mailto:devnull@example.com"},
+            {"aud": "", "sub": "mailto:alan@lnbits.com"},
         )
     except WebPushException as e:
         if e.response.status_code == HTTPStatus.GONE:

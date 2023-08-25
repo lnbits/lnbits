@@ -23,7 +23,6 @@ from .models import (
     BalanceCheck,
     Payment,
     PaymentFilters,
-    PushNotificationSubscription,
     TinyURL,
     User,
     Wallet,
@@ -889,64 +888,6 @@ async def delete_tinyurl(tinyurl_id: str):
     )
 
 
-# db versions
-# --------------
-async def get_dbversions(conn: Optional[Connection] = None):
-    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
-    return {row["db"]: row["version"] for row in rows}
-
-
-async def update_migration_version(conn, db_name, version):
-    await (conn or db).execute(
-        """
-        INSERT INTO dbversions (db, version) VALUES (?, ?)
-        ON CONFLICT (db) DO UPDATE SET version = ?
-        """,
-        (db_name, version, version),
-    )
-
-
-# tinyurl
-# -------
-
-
-async def create_tinyurl(domain: str, endless: bool, wallet: str):
-    tinyurl_id = shortuuid.uuid()[:8]
-    await db.execute(
-        f"INSERT INTO tiny_url (id, url, endless, wallet) VALUES (?, ?, ?, ?)",
-        (
-            tinyurl_id,
-            domain,
-            endless,
-            wallet,
-        ),
-    )
-    return await get_tinyurl(tinyurl_id)
-
-
-async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
-    row = await db.fetchone(
-        f"SELECT * FROM tiny_url WHERE id = ?",
-        (tinyurl_id,),
-    )
-    return TinyURL.from_row(row) if row else None
-
-
-async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
-    rows = await db.fetchall(
-        f"SELECT * FROM tiny_url WHERE url = ?",
-        (url,),
-    )
-    return [TinyURL.from_row(row) for row in rows]
-
-
-async def delete_tinyurl(tinyurl_id: str):
-    row = await db.execute(
-        f"DELETE FROM tiny_url WHERE id = ?",
-        (tinyurl_id,),
-    )
-
-
 # push_notification
 # -----------------
 
@@ -972,7 +913,10 @@ async def get_webpush_subscription(
 ) -> Optional[WebPushSubscription]:
     row = await db.fetchone(
         "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
-        (endpoint, user,),
+        (
+            endpoint,
+            user,
+        ),
     )
     return WebPushSubscription(**dict(row)) if row else None
 
@@ -1010,12 +954,14 @@ async def create_webpush_subscription(
 async def delete_webpush_subscription(endpoint: str, user: str) -> None:
     await db.execute(
         "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
-        (endpoint, user,)
+        (
+            endpoint,
+            user,
+        ),
     )
 
 
 async def delete_webpush_subscriptions(endpoint: str) -> None:
     await db.execute(
-        "DELETE FROM webpush_subscriptions WHERE endpoint = ?",
-        (endpoint,)
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ?", (endpoint,)
     )

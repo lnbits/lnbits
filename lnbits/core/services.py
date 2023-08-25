@@ -6,12 +6,11 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl
 from loguru import logger
-
-from cryptography.hazmat.primitives import serialization
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
@@ -565,18 +564,23 @@ async def check_webpush_settings():
 
         privkey = vapid.private_pem()
         pubkey = vapid.public_key.public_bytes(
-            serialization.Encoding.X962,
-            serialization.PublicFormat.UncompressedPoint
+            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
         )
 
-        webpush_settings = await create_webpush_settings({
-            'lnbits_webpush_privkey': privkey.decode("utf-8"),
-            'lnbits_webpush_pubkey': b64urlencode(pubkey)
-        })
+        webpush_settings = await create_webpush_settings(
+            {
+                "lnbits_webpush_privkey": privkey.decode("utf-8"),
+                "lnbits_webpush_pubkey": b64urlencode(pubkey),
+            }
+        )
         logger.info("Initialized webpush settings with generated VAPID key pair.")
 
-    setattr(settings, 'lnbits_webpush_privkey', vapid.from_pem(bytes(webpush_settings.lnbits_webpush_privkey, "utf-8")))
-    setattr(settings, 'lnbits_webpush_pubkey', webpush_settings.lnbits_webpush_pubkey)
+    setattr(
+        settings,
+        "lnbits_webpush_privkey",
+        vapid.from_pem(bytes(webpush_settings.lnbits_webpush_privkey, "utf-8")),
+    )
+    setattr(settings, "lnbits_webpush_pubkey", webpush_settings.lnbits_webpush_pubkey)
 
 
 def update_cached_settings(sets_dict: dict):

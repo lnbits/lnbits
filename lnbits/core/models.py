@@ -331,8 +331,10 @@ class CreateTopup(BaseModel):
 class CreateLnurlAuth(BaseModel):
     callback: str
 
+
 class CreateWebPushSubscription(BaseModel):
     subscription: str
+
 
 class CreatePushNotificationSubscription(BaseModel):
     subscription: str
