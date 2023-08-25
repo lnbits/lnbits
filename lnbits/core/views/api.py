@@ -6,7 +6,7 @@ import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse, unquote
+from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
@@ -34,10 +34,8 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
-    CreatePushNotificationSubscription,
-    DecodePayment,
-    DeletePushNotificationSubscription,
     CreateWebPushSubscription,
+    DecodePayment,
     Payment,
     PaymentFilters,
     User,
@@ -73,29 +71,19 @@ from lnbits.utils.exchange_rates import (
 from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
-    create_push_notification_subscription,
     create_tinyurl,
+    create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
-    delete_push_notification_subscriptions,
     delete_tinyurl,
+    delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
     get_payments_paginated,
-    get_push_notification_subscriptions_for_endpoint,
-    add_installed_extension,
-    create_tinyurl,
-    create_webpush_subscription,
-    delete_installed_extension,
-    delete_tinyurl,
-    delete_webpush_subscription,
-    get_dbversions,
-    get_payments,
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
-    get_user,
     get_wallet_for_key,
     save_balance_check,
     update_wallet,
@@ -726,44 +714,6 @@ async def img(data):
     )
 
 
-@core_app.post("/api/v1/push_notification", status_code=HTTPStatus.CREATED)
-async def api_create_push_notification_subscription(
-    request: Request,
-    data: CreatePushNotificationSubscription,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
-    subscription = json.loads(data.subscription)
-    endpoint = subscription["endpoint"]
-    host = urlparse(str(request.url)).netloc
-    wallet_ids = [wallet.wallet.id]
-
-    user = await get_user(wallet.wallet.user)
-    if user:
-        wallet_ids = user.wallet_ids
-
-    for wallet_id in wallet_ids:
-        new_subscription = await create_push_notification_subscription(
-            endpoint, wallet_id, data.subscription, host
-        )
-        assert (
-            new_subscription
-        ), "Newly created push notification subscription couldn't be retrieved"
-
-    return ""
-
-
-@core_app.delete("/api/v1/push_notification", status_code=HTTPStatus.NO_CONTENT)
-async def api_delete_push_notification_subscriptions(
-    data: DeletePushNotificationSubscription,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
-    await delete_push_notification_subscriptions(data.endpoint)
-    return ""
-
-
-##################UNIVERSAL WEBSOCKET MANAGER########################
-
-
 @core_app.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket, item_id)
@@ -796,7 +746,6 @@ async def websocket_update_get(item_id: str, data: str):
 async def api_install_extension(
     data: CreateExtension, user: User = Depends(check_admin)
 ):
-
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
     )
@@ -881,10 +830,6 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         # call stop while the old routes are still active
         await stop_extension_background_work(ext_id, user.id)
 
-                detail=f"Cannot uninstall. Extension '{installed_ext.name}' depends on this one.",
-            )
-
-    try:
         if ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [ext_id]
 
@@ -1059,7 +1004,9 @@ async def api_create_webpush_subscription(
     endpoint = subscription["endpoint"]
     host = urlparse(str(request.url)).netloc
 
-    new_subscription = await create_webpush_subscription(endpoint, wallet.wallet.user, data.subscription, host)
+    new_subscription = await create_webpush_subscription(
+        endpoint, wallet.wallet.user, data.subscription, host
+    )
     return new_subscription
 
 
@@ -1068,5 +1015,7 @@ async def api_delete_webpush_subscription(
     request: Request,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    endpoint = unquote(base64.b64decode(request.query_params.get("endpoint")).decode("utf-8"))
+    endpoint = unquote(
+        base64.b64decode(request.query_params.get("endpoint")).decode("utf-8")
+    )
     await delete_webpush_subscription(endpoint, wallet.wallet.user)
