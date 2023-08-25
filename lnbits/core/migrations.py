@@ -334,13 +334,7 @@ async def m012_create_push_notification_subscriptions_table(db):
         );
     """
     )
-    await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS webpush_settings (
-            vapid_keypair TEXT NOT NULL DEFAULT '{}'
-        );
-    """
-    )
+
 
 async def m013_add_currency_to_wallet(db):
     await db.execute(

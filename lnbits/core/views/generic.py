@@ -17,7 +17,6 @@ from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import settings
-from lnbits.tasks import get_push_notification_pubkey
 from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
@@ -242,7 +241,7 @@ async def wallet(
             "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
-            "push_notification_pubkey": get_push_notification_pubkey(),
+            "push_notification_pubkey": settings.lnbits_webpush_pubkey,
         },
     )
 

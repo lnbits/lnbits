@@ -92,7 +92,7 @@ module = [
   "psycopg2.*",
   "pyngrok.*",
   "pyln.client.*",
-  "py-vapid.*",
+  "py_vapid.*",
   "pywebpush.*",
 ]
 ignore_missing_imports = "True"
