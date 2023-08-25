@@ -27,7 +27,7 @@ class ClicheWallet(Wallet):
             raise Exception("cannot initialize cliche")
         self.next_id = 0
         self.futures = {}
-        self.ws: WebSocketApp = None
+        self.ws: Optional[WebSocketApp] = None
 
     async def connect(self):
         self.ws = WebSocketApp(
@@ -43,6 +43,7 @@ class ClicheWallet(Wallet):
         if params is not None:
             command["params"] = params
 
+        assert self.ws, "cliche not connected"
         self.ws.send(json.dumps(command))
         future: Future = Future()
         self.futures[self.next_id] = future
@@ -88,7 +89,6 @@ class ClicheWallet(Wallet):
                 },
             )
         else:
-
             r = await self.send_command(
                 method="create-invoice",
                 params={"msatoshi": amount * 1000, "description": memo},
@@ -115,7 +115,6 @@ class ClicheWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-
         checking_id, fee_msat, preimage, error_message, payment_ok = (
             None,
             None,
@@ -168,7 +167,6 @@ class ClicheWallet(Wallet):
         return PaymentStatus(statuses[data["result"]["status"]])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-
         r = await self.send_command(
             method="check-payment", params={"hash": checking_id}
         )
@@ -204,6 +202,7 @@ class ClicheWallet(Wallet):
 
     def on_close(self):
         logger.error("Websocket closed")
+        assert self.ws, "Websocket is not initialized"
         self.ws.close()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -211,13 +210,14 @@ class ClicheWallet(Wallet):
             try:
                 await self.connect()
                 while True:
+                    assert self.ws, "Websocket is not initialized"
                     r = self.ws.recv()
                     data = json.loads(r)
-                    
+
                     try:
                         if data["result"]["status"]:
                             yield data["result"]["payment_hash"]
-                    except:
+                    except Exception:
                         continue
 
             except Exception as exc:
