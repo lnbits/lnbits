@@ -355,8 +355,7 @@ Vue.component('lnbits-notifications-btn', {
       isSupported: false,
       isSubscribed: false,
       isPermissionGranted: false,
-      isPermissionDenied: false,
-      subscribedUsers: []
+      isPermissionDenied: false
     }
   },
   template: `
@@ -399,13 +398,18 @@ Vue.component('lnbits-notifications-btn', {
       this.isSubscribed ? this.unsubscribe() : this.subscribe()
     },
     saveUserSubscribed(user) {
-      this.$q.localStorage.set('lnbits.webpushSubscribed_' + user, true)
+      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      if (!subscribedUsers.includes(user)) subscribedUsers.push(user)
+      this.$q.localStorage.set('lnbits.webpush.subscribedUsers', JSON.stringify(subscribedUsers))
     },
     removeUserSubscribed(user) {
-      this.$q.localStorage.remove('lnbits.webpushSubscribed_' + user)
+      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      subscribedUsers = subscribedUsers.filter(arr => arr !== user)
+      this.$q.localStorage.set('lnbits.webpush.subscribedUsers', JSON.stringify(subscribedUsers))
     },
     isUserSubscribed(user) {
-      return !!this.$q.localStorage.getItem('lnbits.webpushSubscribed_' + user)
+      let subscribedUsers = JSON.parse(this.$q.localStorage.getItem('lnbits.webpush.subscribedUsers')) || []
+      return subscribedUsers.includes(user)
     },
     subscribe() {
       var self = this
@@ -428,7 +432,7 @@ Vue.component('lnbits-notifications-btn', {
       // create push subscription
       navigator.serviceWorker.ready.then(registration => {
         navigator.serviceWorker
-          .getRegistration('/service_worker.js')
+          .getRegistration()
           .then(registration => {
             registration.pushManager
               .getSubscription()
@@ -516,6 +520,8 @@ Vue.component('lnbits-notifications-btn', {
           }
         )
       }
+
+      return this.isSupported
     },
     updateSubscriptionStatus: async function () {
       var self = this
@@ -523,11 +529,7 @@ Vue.component('lnbits-notifications-btn', {
       await navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
-            if (!!subscription && self.isUserSubscribed(self.g.user.id)) {
-              self.isSubscribed = true
-            } else {
-              self.isSubscribed = false
-            }
+            self.isSubscribed = (!!subscription && self.isUserSubscribed(self.g.user.id))
           })
         })
         .catch(function (e) {
@@ -538,9 +540,7 @@ Vue.component('lnbits-notifications-btn', {
   created: function () {
     this.isPermissionDenied = Notification.permission === 'denied'
 
-    this.checkSupported()
-
-    if (this.isSupported) {
+    if (this.checkSupported()) {
       this.updateSubscriptionStatus()
     }
   }
