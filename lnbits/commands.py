@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import click
 from loguru import logger
@@ -20,11 +21,22 @@ def command_group():
     """
 
 
+def get_super_user() -> str:
+    """Get the superuser"""
+    with open(Path(settings.lnbits_data_folder) / ".super_user", "r") as file:
+        return file.readline()
+
+
 @click.command("superuser")
 def superuser():
     """Prints the superuser"""
-    with open(".super_user", "r") as file:
-        print(f"http://{settings.host}:{settings.port}/wallet?usr={file.readline()}")
+    click.echo(get_super_user())
+
+
+@click.command("superuser-url")
+def superuser_url():
+    """Prints the superuser"""
+    click.echo(f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}")
 
 
 @click.command("delete-settings")
@@ -101,6 +113,7 @@ async def load_disabled_extension_list() -> None:
 def main():
     """main function"""
     command_group.add_command(superuser)
+    command_group.add_command(superuser_url)
     command_group.add_command(delete_settings)
     command_group.add_command(database_migrate)
     command_group.add_command(database_versions)
