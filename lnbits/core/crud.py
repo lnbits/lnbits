@@ -797,11 +797,11 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
     return admin_settings
 
 
-async def delete_admin_settings():
+async def delete_admin_settings() -> None:
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: dict):
+async def update_admin_settings(data: dict) -> None:
     row = await db.fetchone("SELECT editable_settings FROM settings")
     if not row:
         return None
