@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from lnbits.cache import cache
+from lnbits.utils.cache import cache
 
 key = "foo"
 value = "bar"

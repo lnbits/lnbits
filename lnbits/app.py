@@ -20,7 +20,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.responses import JSONResponse
 
-from lnbits.cache import cache
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
@@ -30,6 +29,7 @@ from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
 )
 from lnbits.settings import settings
 from lnbits.tasks import cancel_all_tasks, create_permanent_task
+from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
