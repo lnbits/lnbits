@@ -5,8 +5,6 @@ from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
-from cryptography.hazmat.primitives import serialization
-from py_vapid import Vapid, b64urlencode
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
