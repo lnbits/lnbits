@@ -1011,7 +1011,12 @@ async def api_create_webpush_subscription(
     if subscription:
         return subscription
     else:
-        return await create_webpush_subscription(endpoint, wallet.wallet.user, data.subscription, host)
+        return await create_webpush_subscription(
+            endpoint,
+            wallet.wallet.user,
+            data.subscription,
+            host,
+        )
 
 
 @core_app.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
