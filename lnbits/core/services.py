@@ -44,6 +44,7 @@ from .crud import (
     get_total_balance,
     get_wallet,
     get_wallet_payment,
+    update_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -559,16 +560,21 @@ async def check_webpush_settings():
         vapid.generate_keys()
         privkey = vapid.private_pem()
         assert vapid.public_key, "VAPID public key does not exist"
-        pubkey = vapid.public_key.public_bytes(
-            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+        pubkey = b64urlencode(
+            vapid.public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
         )
-        update_cached_settings(
-            {
-                "lnbits_webpush_privkey": vapid.from_pem(privkey),
-                "lnbits_webpush_pubkey": b64urlencode(pubkey),
-            }
-        )
-        logger.info("Initialized webpush settings with generated VAPID key pair.")
+        push_settings = {
+            "lnbits_webpush_privkey": privkey.decode(),
+            "lnbits_webpush_pubkey": pubkey,
+        }
+        update_cached_settings(push_settings)
+        await update_admin_settings(push_settings)
+
+    logger.info("Initialized webpush settings with generated VAPID key pair.")
+    logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
 
 
 def update_cached_settings(sets_dict: dict):

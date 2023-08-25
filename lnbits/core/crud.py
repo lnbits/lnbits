@@ -12,7 +12,6 @@ from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import (
     AdminSettings,
-    EditableSettings,
     SuperSettings,
     WebPushSettings,
     settings,
@@ -802,8 +801,16 @@ async def delete_admin_settings():
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: EditableSettings):
-    await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+async def update_admin_settings(data: dict):
+    row = await db.fetchone("SELECT editable_settings FROM settings")
+    if not row:
+        return None
+    editable_settings = json.loads(row["editable_settings"])
+    for key, value in data.items():
+        editable_settings[key] = value
+    await db.execute(
+        "UPDATE settings SET editable_settings = ?", (json.dumps(editable_settings),)
+    )
 
 
 async def update_super_user(super_user: str) -> SuperSettings:
