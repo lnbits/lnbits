@@ -359,8 +359,6 @@ def register_startup(app: FastAPI):
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
 
-            create_push_notification_keypair()
-
         except Exception as e:
             logger.error(str(e))
             raise ImportError("Failed to run 'startup' event.")
