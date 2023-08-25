@@ -16,8 +16,8 @@ from lnbits.tasks import (
 from . import db
 from .crud import (
     get_balance_notify,
-    get_webpush_subscriptions_for_user,
     get_wallet,
+    get_webpush_subscriptions_for_user,
 )
 from .models import Payment
 from .services import get_balance_delta, send_payment_notification, switch_to_voidwallet
