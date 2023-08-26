@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 from fastapi.exceptions import HTTPException
 from loguru import logger
 from pywebpush import WebPushException, webpush
+from py_vapid import Vapid
 
 from lnbits.core.crud import (
     delete_expired_invoices,
@@ -211,12 +212,13 @@ async def invoice_callback_dispatcher(checking_id: str):
 
 
 async def send_push_notification(subscription, title, body, url=""):
+    vapid = Vapid()
     try:
         logger.debug("sending push notification")
         webpush(
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
-            settings.lnbits_webpush_privkey,
+            vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8")),
             {"aud": "", "sub": "mailto:alan@lnbits.com"},
         )
     except WebPushException as e:
