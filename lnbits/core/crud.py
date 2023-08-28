@@ -63,7 +63,6 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
             ), 0) AS balance_msat
             FROM wallets
             WHERE "user" = ?
-            AND deleted = false
             """,
             (user_id,),
         )
@@ -284,7 +283,7 @@ async def get_wallet(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
         AS balance_msat FROM wallets
-        WHERE id = ? AND deleted = false
+        WHERE id = ?
         """,
         (wallet_id,),
     )
@@ -300,7 +299,7 @@ async def get_wallet_for_key(
     row = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE adminkey = ? OR inkey = ? AND deleted = false
+        AS balance_msat FROM wallets WHERE adminkey = ? OR inkey = ?
         """,
         (key, key),
     )

@@ -29,6 +29,7 @@ class Wallet(BaseModel):
     inkey: str
     currency: Optional[str]
     balance_msat: int
+    deleted: bool
 
     @property
     def balance(self) -> int:
