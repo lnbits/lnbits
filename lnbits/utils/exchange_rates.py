@@ -4,7 +4,7 @@ from typing import Callable, NamedTuple
 import httpx
 from loguru import logger
 
-from lnbits.cache import cache
+from lnbits.utils.cache import cache
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
