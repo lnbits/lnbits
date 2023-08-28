@@ -67,6 +67,18 @@
           ></q-select>
           <br />
         </div>
+        <div class="col-12 col-md-6">
+          <p>Default Accounting Currency</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_default_accounting_currency"
+            clearable
+            hint="Default currency for accounting"
+            label="Currency"
+            :options="formData.lnbits_allowed_currencies.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
+          ></q-select>
+          <br />
+        </div>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">

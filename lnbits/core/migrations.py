@@ -319,3 +319,11 @@ async def m011_optimize_balances_view(db):
         GROUP BY wallet
     """
     )
+
+
+async def m012_add_currency_to_wallet(db):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN currency TEXT
+        """
+    )

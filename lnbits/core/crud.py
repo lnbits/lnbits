@@ -238,15 +238,25 @@ async def create_wallet(
 
 
 async def update_wallet(
-    wallet_id: str, new_name: str, conn: Optional[Connection] = None
+    wallet_id: str,
+    name: Optional[str] = None,
+    currency: Optional[str] = None,
+    conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
+    set_clause = []
+    values = []
+    if name:
+        set_clause.append("name = ?")
+        values.append(name)
+    if currency is not None:
+        set_clause.append("currency = ?")
+        values.append(currency)
+    values.append(wallet_id)
     await (conn or db).execute(
-        """
-        UPDATE wallets SET
-            name = ?
-        WHERE id = ?
+        f"""
+        UPDATE wallets SET {', '.join(set_clause)} WHERE id = ?
         """,
-        (new_name, wallet_id),
+        tuple(values),
     )
     wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
     assert wallet, "updated created wallet couldn't be retrieved"
@@ -519,8 +529,8 @@ async def create_payment(
     conn: Optional[Connection] = None,
 ) -> Payment:
     # todo: add this when tests are fixed
-    # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
-    # assert previous_payment is None, "Payment already exists"
+    previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    assert previous_payment is None, "Payment already exists"
 
     try:
         invoice = bolt11.decode(payment_request)

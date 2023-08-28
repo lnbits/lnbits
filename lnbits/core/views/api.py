@@ -114,7 +114,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
-async def api_update_wallet(
+async def api_update_wallet_name(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     await update_wallet(wallet.wallet.id, new_name)
@@ -123,6 +123,15 @@ async def api_update_wallet(
         "name": wallet.wallet.name,
         "balance": wallet.wallet.balance_msat,
     }
+
+
+@core_app.patch("/api/v1/wallet", response_model=Wallet)
+async def api_update_wallet(
+    name: Optional[str] = Body(None),
+    currency: Optional[str] = Body(None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    return await update_wallet(wallet.wallet.id, name, currency)
 
 
 @core_app.get(
@@ -187,7 +196,6 @@ async def api_payments_paginated(
 
 
 async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
-    data.extra = data.extra or {}
     description_hash = b""
     unhashed_description = b""
     memo = data.memo or settings.lnbits_site_title
@@ -211,20 +219,13 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
 
-    if data.unit == "sat":
-        amount = int(data.amount)
-    else:
-        assert data.unit is not None, "unit not set"
-        price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
-        amount = price_in_sats
-        data.extra.update({"fiat_amount": data.amount, "fiat_currency": data.unit})
-
     async with db.connect() as conn:
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=wallet.id,
-                amount=amount,
+                amount=data.amount,
                 memo=memo,
+                currency=data.unit,
                 description_hash=description_hash,
                 unhashed_description=unhashed_description,
                 expiry=data.expiry,

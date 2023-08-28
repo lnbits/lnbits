@@ -27,6 +27,7 @@ class Wallet(BaseModel):
     user: str
     adminkey: str
     inkey: str
+    currency: Optional[str]
     balance_msat: int
 
     @property

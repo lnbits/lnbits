@@ -10,6 +10,7 @@ from lnbits.core.models import Payment
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
 from lnbits.db import DB_TYPE, SQLITE
+from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 from tests.conftest import CreateInvoice, api_payments_create_invoice
 
@@ -95,6 +96,13 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     invoice = response.json()
     decode = bolt11.decode(invoice["payment_request"])
     assert decode.amount_msat != data["amount"] * 1000
+
+    response = await client.get("/api/v1/payments?limit=1", headers=inkey_headers_to)
+    assert response.is_success
+    extra = response.json()[0]["extra"]
+    assert extra["fiat_amount"] == data["amount"]
+    assert extra["fiat_currency"] == data["unit"]
+    assert extra["fiat_rate"]
 
 
 # check POST /api/v1/payments: invoice creation for internal payments only
@@ -355,6 +363,65 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
     return invoice
+
+
+@pytest.mark.asyncio
+async def test_update_wallet(client, adminkey_headers_from):
+    name = "new name"
+    currency = "EUR"
+
+    response = await client.patch(
+        "/api/v1/wallet", json={"name": name}, headers=adminkey_headers_from
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == name
+
+    response = await client.patch(
+        "/api/v1/wallet", json={"currency": currency}, headers=adminkey_headers_from
+    )
+    assert response.status_code == 200
+    assert response.json()["currency"] == currency
+    # name is not changed because updates are partial
+    assert response.json()["name"] == name
+
+
+@pytest.mark.asyncio
+async def test_fiat_tracking(client, adminkey_headers_from):
+    async def create_invoice():
+        data = await get_random_invoice_data()
+        response = await client.post(
+            "/api/v1/payments", json=data, headers=adminkey_headers_from
+        )
+        assert response.is_success
+
+        response = await client.get(
+            f"/api/v1/payments/{response.json()['payment_hash']}",
+            headers=adminkey_headers_from,
+        )
+        assert response.is_success
+        return response.json()["details"]
+
+    async def update_currency(currency):
+        response = await client.patch(
+            "/api/v1/wallet", json={"currency": currency}, headers=adminkey_headers_from
+        )
+        assert response.is_success
+        assert response.json()["currency"] == currency
+
+    await update_currency("")
+
+    settings.lnbits_default_accounting_currency = "USD"
+    payment = await create_invoice()
+    assert payment["extra"]["wallet_fiat_currency"] == "USD"
+    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+    assert payment["extra"]["wallet_fiat_rate"]
+
+    await update_currency("EUR")
+
+    payment = await create_invoice()
+    assert payment["extra"]["wallet_fiat_currency"] == "EUR"
+    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
+    assert payment["extra"]["wallet_fiat_rate"]
 
 
 async def get_node_balance_sats():

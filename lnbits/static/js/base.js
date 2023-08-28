@@ -178,7 +178,8 @@ window.LNbits = {
         id: data.id,
         name: data.name,
         adminkey: data.adminkey,
-        inkey: data.inkey
+        inkey: data.inkey,
+        currency: data.currency
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.round(data.balance_msat / 1000)
@@ -203,7 +204,9 @@ window.LNbits = {
         extra: data.extra,
         wallet_id: data.wallet_id,
         webhook: data.webhook,
-        webhook_status: data.webhook_status
+        webhook_status: data.webhook_status,
+        fiat_amount: data.fiat_amount,
+        fiat_currency: data.fiat_currency
       }
 
       obj.date = Quasar.utils.date.formatDate(

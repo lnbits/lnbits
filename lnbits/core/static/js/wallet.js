@@ -256,7 +256,10 @@ new Vue({
       },
       balance: 0,
       credit: 0,
-      newName: ''
+      update: {
+        name: null,
+        currency: null
+      }
     }
   },
   computed: {
@@ -717,16 +720,12 @@ new Vue({
           }
         })
     },
-    updateWalletName: function () {
-      let newName = this.newName
-      let adminkey = this.g.wallet.adminkey
-      if (!newName || !newName.length) return
+    updateWallet: function (data) {
       LNbits.api
-        .request('PUT', '/api/v1/wallet/' + newName, adminkey, {})
+        .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(res => {
-          this.newName = ''
           this.$q.notify({
-            message: `Wallet named updated.`,
+            message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })
@@ -737,7 +736,6 @@ new Vue({
           )
         })
         .catch(err => {
-          this.newName = ''
           LNbits.utils.notifyApiError(err)
         })
     },
@@ -810,6 +808,9 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
+
+    this.update.name = this.g.wallet.name
+    this.update.currency = this.g.wallet.currency
 
     LNbits.api
       .request('GET', '/api/v1/currencies')
