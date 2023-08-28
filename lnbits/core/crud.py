@@ -282,8 +282,7 @@ async def get_wallet(
     row = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets
-        WHERE id = ?
+        AS balance_msat FROM wallets WHERE id = ?
         """,
         (wallet_id,),
     )
