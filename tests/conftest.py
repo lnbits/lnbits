@@ -1,12 +1,15 @@
 import asyncio
 
+import uvloop
+
+uvloop.install()  # noqa
+
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from lnbits.app import create_app
-from lnbits.commands import migrate_databases
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.models import CreateInvoice
 from lnbits.core.services import update_wallet_balance
@@ -28,17 +31,11 @@ def event_loop():
 
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
-def app(event_loop):
+async def app():
     app = create_app()
-    # use redefined version of the event loop for scope="session"
-    # loop = asyncio.get_event_loop()
-    loop = event_loop
-    loop.run_until_complete(migrate_databases())
+    await app.router.startup()
     yield app
-    # # get the current event loop and gracefully stop any running tasks
-    # loop = event_loop
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    # loop.close()
+    await app.router.shutdown()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -75,8 +72,10 @@ async def from_wallet(from_user):
     yield wallet
 
 
-@pytest.fixture
-def from_wallet_ws(from_wallet, test_client):
+@pytest_asyncio.fixture
+async def from_wallet_ws(from_wallet, test_client):
+    # wait a bit in order to avoid receiving topup notification
+    await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
         yield ws
 
@@ -98,8 +97,10 @@ async def to_wallet(to_user):
     yield wallet
 
 
-@pytest.fixture
-def to_wallet_ws(to_wallet, test_client):
+@pytest_asyncio.fixture
+async def to_wallet_ws(to_wallet, test_client):
+    # wait a bit in order to avoid receiving topup notification
+    await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
         yield ws
 

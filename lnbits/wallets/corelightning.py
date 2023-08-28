@@ -1,7 +1,6 @@
 import asyncio
 import random
-from functools import partial, wraps
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
@@ -19,23 +18,9 @@ from .base import (
 )
 
 
-def async_wrap(func):
-    @wraps(func)
-    async def run(*args, loop=None, executor=None, **kwargs):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        partial_func = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(executor, partial_func)
-
-    return run
-
-
-def _pay_invoice(ln, payload):
-    return ln.call("pay", payload)
-
-
-def _paid_invoices_stream(ln, last_pay_index):
-    return ln.waitanyinvoice(last_pay_index)
+async def run_sync(func) -> Any:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, func)
 
 
 class CoreLightningWallet(Wallet):
@@ -125,8 +110,7 @@ class CoreLightningWallet(Wallet):
             "exemptfee": 0,
         }
         try:
-            wrapped = async_wrap(_pay_invoice)
-            r = await wrapped(self.ln, payload)
+            r = await run_sync(lambda: self.ln.call("pay", payload))
         except RpcError as exc:
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
@@ -193,10 +177,15 @@ class CoreLightningWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                wrapped = async_wrap(_paid_invoices_stream)
-                paid = await wrapped(self.ln, self.last_pay_index)
+                paid = await run_sync(
+                    lambda: self.ln.waitanyinvoice(self.last_pay_index, timeout=2)
+                )
                 self.last_pay_index = paid["pay_index"]
                 yield paid["payment_hash"]
+            except RpcError as exc:
+                # only raise if not a timeout
+                if exc.error["code"] != 904:  # type: ignore
+                    raise
             except Exception as exc:
                 logger.error(
                     f"lost connection to corelightning invoices stream: '{exc}', "
