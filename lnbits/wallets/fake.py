@@ -62,7 +62,7 @@ class FakeWallet(Wallet):
             data["tags_set"] = ["h"]
             data["description_hash"] = description_hash
         elif unhashed_description:
-            data["tags_set"] = ["d"]
+            data["tags_set"] = ["h"]
             data["description_hash"] = hashlib.sha256(unhashed_description).digest()
         else:
             data["tags_set"] = ["d"]
