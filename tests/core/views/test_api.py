@@ -96,10 +96,14 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     invoice = response.json()
     decode = bolt11.decode(invoice["payment_request"])
     assert decode.amount_msat != data["amount"] * 1000
+    assert decode.payment_hash
 
-    response = await client.get("/api/v1/payments?limit=1", headers=inkey_headers_to)
+    response = await client.get(
+        f"/api/v1/payments/{decode.payment_hash}", headers=inkey_headers_to
+    )
     assert response.is_success
-    extra = response.json()[0]["extra"]
+    res_data = response.json()
+    extra = res_data["details"]["extra"]
     assert extra["fiat_amount"] == data["amount"]
     assert extra["fiat_currency"] == data["unit"]
     assert extra["fiat_rate"]
@@ -456,6 +460,7 @@ async def test_pay_real_invoice(
     payment_status = response.json()
     assert payment_status["paid"]
 
+    WALLET = get_wallet_class()
     status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
@@ -537,6 +542,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert response["paid"]
 
     # make sure that the backend also thinks it's paid
+    WALLET = get_wallet_class()
     status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
