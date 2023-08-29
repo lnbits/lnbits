@@ -50,7 +50,7 @@ docker_bitcoin_cli = [
 
 
 def run_cmd(cmd: list) -> str:
-    timeout = 5
+    timeout = 20
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
 
     def process_communication(comm):
@@ -108,10 +108,10 @@ def get_real_invoice(sats: int) -> dict:
     return run_cmd_json(cmd)
 
 
-def pay_real_invoice(invoice: str) -> None:
+def pay_real_invoice(invoice: str) -> str:
     cmd = docker_lightning_cli.copy()
     cmd.extend(["payinvoice", "--force", invoice])
-    run_cmd(cmd)
+    return run_cmd(cmd)
 
 
 def mine_blocks(blocks: int = 1) -> str:

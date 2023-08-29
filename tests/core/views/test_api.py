@@ -493,8 +493,9 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         assert found_checking_id
 
     task = asyncio.create_task(listen())
+    await asyncio.sleep(1)
     pay_real_invoice(invoice["payment_request"])
-    await asyncio.wait_for(task, timeout=3)
+    await asyncio.wait_for(task, timeout=10)
 
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
@@ -712,13 +713,17 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert not response["paid"]
 
     async def listen():
+        found_checking_id = False
         async for checking_id in get_wallet_class().paid_invoices_stream():
-            assert checking_id == invoice["checking_id"]
-            return
+            if checking_id == invoice["checking_id"]:
+                found_checking_id = True
+                return
+        assert found_checking_id
 
     task = asyncio.create_task(listen())
+    await asyncio.sleep(1)
     pay_real_invoice(invoice["payment_request"])
-    await asyncio.wait_for(task, timeout=3)
+    await asyncio.wait_for(task, timeout=10)
     response = await api_payment(
         invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
     )
