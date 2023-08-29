@@ -44,7 +44,11 @@ docker_bitcoin_cli = (
 
 def run_cmd(cmd: str) -> str:
     logger.debug(f"running command {cmd}")
-    return run(cmd, shell=True, capture_output=True).stdout.decode("UTF-8").strip()
+    return (
+        run(cmd, shell=True, capture_output=True, timeout=10)
+        .stdout.decode("UTF-8")
+        .strip()
+    )
 
 
 def run_cmd_json(cmd: str) -> dict:
@@ -67,8 +71,8 @@ def settle_invoice(preimage: str) -> dict:
     return run_cmd_json(f"{docker_lightning_cli} settleinvoice {preimage}")
 
 
-def cancel_invoice(preimage_hash: str) -> dict:
-    return run_cmd_json(f"{docker_lightning_cli} cancelinvoice {preimage_hash}")
+def cancel_invoice(preimage_hash: str) -> str:
+    return run_cmd(f"{docker_lightning_cli} cancelinvoice {preimage_hash}")
 
 
 def get_real_invoice(sats: int) -> dict:
