@@ -221,7 +221,14 @@ class CoreLightningRestWallet(Wallet):
                 url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
                 async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():
-                        inv = json.loads(line)
+                        try:
+                            inv = json.loads(line)
+                        except json.JSONDecodeError:
+                            logger.error(
+                                "CoreLightningRest paid_invoices_stream "
+                                f"decoding json: {line}"
+                            )
+                            continue
                         if "error" in inv and "message" in inv["error"]:
                             logger.error("Error in paid_invoices_stream:", inv)
                             raise Exception(inv["error"]["message"])
