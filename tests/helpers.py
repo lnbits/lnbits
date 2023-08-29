@@ -6,6 +6,8 @@ import string
 from subprocess import PIPE, Popen, run
 from typing import Tuple
 
+from loguru import logger
+
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 
@@ -41,11 +43,17 @@ docker_bitcoin_cli = (
 
 
 def run_cmd(cmd: str) -> str:
+    logger.debug(f"running command {cmd}")
     return run(cmd, shell=True, capture_output=True).stdout.decode("UTF-8").strip()
 
 
 def run_cmd_json(cmd: str) -> dict:
-    return json.loads(run_cmd(cmd))
+    output = run_cmd(cmd)
+    try:
+        return json.loads(output)
+    except json.decoder.JSONDecodeError:
+        logger.error(f"failed to decode json from cmd `{cmd}`: {output}")
+        raise
 
 
 def get_hold_invoice(sats: int) -> Tuple[str, dict]:
