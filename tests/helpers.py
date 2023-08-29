@@ -69,8 +69,8 @@ def get_hold_invoice(sats: int) -> Tuple[str, dict]:
     return preimage.hex(), json
 
 
-def settle_invoice(preimage: str) -> dict:
-    return run_cmd_json(f"{docker_lightning_cli} settleinvoice {preimage}")
+def settle_invoice(preimage: str) -> str:
+    return run_cmd(f"{docker_lightning_cli} settleinvoice {preimage}")
 
 
 def cancel_invoice(preimage_hash: str) -> str:
