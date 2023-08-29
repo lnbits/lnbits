@@ -459,7 +459,7 @@ async def test_pay_real_invoice(
     status = await WALLET.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(1)
     balance = await get_node_balance_sats()
     assert prev_balance - balance == 100
 
@@ -504,7 +504,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     payment_status = response.json()
     assert payment_status["paid"]
 
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(1)
     balance = await get_node_balance_sats()
     assert balance - prev_balance == create_invoice.amount
 
