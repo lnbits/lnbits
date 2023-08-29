@@ -44,11 +44,13 @@ docker_bitcoin_cli = (
 
 def run_cmd(cmd: str) -> str:
     logger.debug(f"running command {cmd}")
-    return (
+    output = (
         run(cmd, shell=True, capture_output=True, timeout=10)
         .stdout.decode("UTF-8")
         .strip()
     )
+    logger.debug(f"command output: {output}")
+    return output
 
 
 def run_cmd_json(cmd: str) -> dict:
