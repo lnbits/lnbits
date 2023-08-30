@@ -95,7 +95,7 @@ module = [
 ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
-log_cli = true
+log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
   "tests"
