@@ -19,7 +19,7 @@ on:
 jobs:
   regtest:
     runs-on: ${{ inputs.os-version }}
-
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
 
