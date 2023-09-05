@@ -12,7 +12,12 @@ from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from lnbits.app import create_app
-from lnbits.core.crud import create_account, create_wallet, get_user
+from lnbits.core.crud import (
+    create_account,
+    create_wallet,
+    get_user,
+    update_payment_status,
+)
 from lnbits.core.models import CreateInvoice
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.api import api_payments_create_invoice
@@ -175,7 +180,7 @@ async def real_invoice():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def fake_payments(from_wallet):
+async def fake_payments(client, adminkey_headers_from):
     # Because sqlite only stores timestamps with milliseconds
     # we have to wait a second to ensure a different timestamp than previous invoices
     if DB_TYPE == SQLITE:
@@ -183,13 +188,17 @@ async def fake_payments(from_wallet):
     ts = time()
 
     fake_data = [
-        CreateInvoice(amount=10, memo="aaaa"),
-        CreateInvoice(amount=100, memo="bbbb"),
-        CreateInvoice(amount=1000, memo="aabb"),
+        CreateInvoice(amount=10, memo="aaaa", out=False),
+        CreateInvoice(amount=100, memo="bbbb", out=False),
+        CreateInvoice(amount=1000, memo="aabb", out=False),
     ]
 
     for invoice in fake_data:
-        await api_payments_create_invoice(invoice, from_wallet)
+        response = await client.post(
+            "/api/v1/payments", headers=adminkey_headers_from, json=invoice.dict()
+        )
+        assert response.is_success
+        await update_payment_status(response.json()["checking_id"], pending=False)
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params

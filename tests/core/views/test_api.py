@@ -248,8 +248,8 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 
 @pytest.mark.asyncio
-async def test_get_payments(client, from_wallet, adminkey_headers_from, fake_payments):
-    _, filters = fake_payments
+async def test_get_payments(client, adminkey_headers_from, fake_payments):
+    fake_data, filters = fake_payments
 
     async def get_payments(params: dict):
         response = await client.get(
@@ -313,10 +313,10 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
     data = response.json()
     assert len(data) == 1
     assert data[0]["spending"] == sum(
-        payment.amount * 1000 for payment in fake_data if not payment.out
+        payment.amount * 1000 for payment in fake_data if payment.out
     )
     assert data[0]["income"] == sum(
-        payment.amount * 1000 for payment in fake_data if payment.out
+        payment.amount * 1000 for payment in fake_data if not payment.out
     )
 
     response = await client.get(
