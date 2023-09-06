@@ -25,7 +25,7 @@ def list_parse_fallback(v: str):
 
 class LNbitsSettings(BaseSettings):
     @classmethod
-    def validate(cls, val):
+    def validate_list(cls, val):
         if isinstance(val, str):
             val = val.split(",") if val else []
         return val
@@ -35,7 +35,6 @@ class LNbitsSettings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
-        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
@@ -253,7 +252,7 @@ class EditableSettings(
     )
     @classmethod
     def validate_editable_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -338,7 +337,7 @@ class ReadOnlySettings(
     )
     @classmethod
     def validate_readonly_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def readonly_fields(cls):

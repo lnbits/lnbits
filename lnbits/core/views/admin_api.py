@@ -61,7 +61,7 @@ async def api_get_settings(
 async def api_update_settings(
     data: EditableSettings, user: User = Depends(check_admin)
 ):
-    await update_admin_settings(EditableSettings(**data))  # type: ignore
+    await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."
     update_cached_settings(admin_settings.dict())
