@@ -211,7 +211,7 @@ async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
 
 # check POST /api/v1/payments: payment with self payment
 @pytest.mark.asyncio
-async def test_pay_invoice_self_payment(client, invoice, adminkey_headers_from):
+async def test_pay_invoice_self_payment(client, adminkey_headers_from):
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
