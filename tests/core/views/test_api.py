@@ -209,6 +209,24 @@ async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
     assert response.status_code >= 300  # should fail
 
 
+# check POST /api/v1/payments: payment with self payment
+@pytest.mark.asyncio
+async def test_pay_invoice_self_payment(client, invoice, adminkey_headers_from):
+    create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    response = await client.post(
+        "/api/v1/payments",
+        json=create_invoice.dict(),
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    json_data = response.json()
+    data = {"out": True, "bolt11": json_data["payment_request"]}
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+
+
 # check POST /api/v1/payments: payment with invoice key [should fail]
 @pytest.mark.asyncio
 async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
