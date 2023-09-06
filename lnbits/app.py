@@ -3,6 +3,7 @@ import glob
 import importlib
 import logging
 import os
+from pathlib import Path
 import shutil
 import signal
 import sys
@@ -229,7 +230,7 @@ def check_installed_extension_files(ext: InstallableExtension) -> bool:
         return True
 
     zip_files = glob.glob(
-        os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
+        os.path.join("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code/lnbits", "zips", "*.zip")
     )
 
     if f"./{str(ext.zip_path)}" not in zip_files:
@@ -295,7 +296,18 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    ext_module = importlib.import_module(ext.module_name) # here
+    # ext_module = importlib.import_module(ext.module_name) # here
+    
+    full_module_path = Path(settings.lnbits_external_code_path, ext.module_path, "__init__.py")
+    spec = importlib.util.spec_from_file_location(name=ext.module_name, location=full_module_path, submodule_search_locations=[settings.lnbits_external_code_path])   
+    assert spec
+    
+    # importing the module as ext_module
+    ext_module = importlib.util.module_from_spec(spec)  
+    sys.modules[ext.module_name] = ext_module 
+    assert spec.loader
+    sys.path.append(settings.lnbits_external_code_path)    
+    spec.loader.exec_module(ext_module)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 

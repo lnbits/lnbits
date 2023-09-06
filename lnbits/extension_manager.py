@@ -188,6 +188,14 @@ class Extension(NamedTuple):
             if self.upgrade_hash == ""
             else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
         )
+    
+    @property
+    def module_path(self):
+        return (
+            f"lnbits/extensions/{self.code}"
+            if self.upgrade_hash == ""
+            else f"lnbits/upgrades/{self.code}-{self.upgrade_hash}/{self.code}"
+        )
 
     @classmethod
     def from_installable_ext(cls, ext_info: "InstallableExtension") -> "Extension":
@@ -202,8 +210,8 @@ class Extension(NamedTuple):
 
 # All subdirectories in the current directory, not recursive.
 
-lnbits_temp_code = "/Users/moto/Documents/GitHub/motorina0/lnbits/data/code/lnbits"
-sys.path.append("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code")
+lnbits_temp_code = settings.lnbits_external_code_path + "/lnbits"
+# sys.path.append("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code")
 
 class ExtensionManager:
     def __init__(self) -> None:

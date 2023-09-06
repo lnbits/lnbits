@@ -39,7 +39,7 @@ def main(
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
 
     # create extension dir if it does not exist
-    Path(settings.lnbits_path, "extensions").mkdir(parents=True, exist_ok=True)
+    Path("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code/lnbits", "extensions").mkdir(parents=True, exist_ok=True)
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
