@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from lnbits.app import create_app
-from lnbits.core.crud import create_account, create_wallet
+from lnbits.core.crud import create_account, create_wallet, get_user
 from lnbits.core.models import CreateInvoice
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.api import api_payments_create_invoice
@@ -84,6 +84,12 @@ async def from_wallet_ws(from_wallet, test_client):
 @pytest_asyncio.fixture(scope="session")
 async def to_user():
     user = await create_account()
+    yield user
+
+
+@pytest_asyncio.fixture(scope="session")
+async def to_superuser():
+    user = await get_user(settings.super_user)
     yield user
 
 
