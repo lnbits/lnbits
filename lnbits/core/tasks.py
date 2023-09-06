@@ -332,6 +332,7 @@ async def _process_payment(job: PaymentJob) -> str:
 async def payment_processor():
     while True:
         job = await payment_queue.get()
+        logger.debug(f"processing payment {job=}")
         try:
             payment = await _process_payment(job)
             job.fut.set_result(payment)

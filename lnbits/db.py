@@ -237,7 +237,7 @@ class Database(Compat):
             self.schema = None
 
         self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
-        self.use_lock = use_lock
+        self.use_lock = use_lock or self.type == SQLITE
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")
