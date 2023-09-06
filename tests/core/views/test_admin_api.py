@@ -1,5 +1,7 @@
 import pytest
 
+from lnbits.settings import settings
+
 
 @pytest.mark.asyncio
 async def test_admin_get_settings_permission_denied(client, to_user):
@@ -17,14 +19,16 @@ async def test_admin_get_settings(client, to_superuser):
 
 @pytest.mark.asyncio
 async def test_admin_update_settings(client, to_superuser):
+    new_site_title = "UPDATED SITETITLE"
     response = await client.put(
         f"/admin/api/v1/settings/?usr={to_superuser.id}",
-        json={"lnbits_site_title": "UPDATED SITETITLE"},
+        json={"lnbits_site_title": new_site_title},
     )
     assert response.status_code == 200
     result = response.json()
     assert "status" in result
     assert result.get("status") == "Success"
+    assert settings.lnbits_site_title == new_site_title
 
 
 @pytest.mark.asyncio
@@ -33,4 +37,4 @@ async def test_admin_update_noneditable_settings(client, to_superuser):
         f"/admin/api/v1/settings/?usr={to_superuser.id}",
         json={"super_user": "UPDATED"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
