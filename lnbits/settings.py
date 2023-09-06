@@ -9,7 +9,7 @@ from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, BaseSettings, Field, validator
 
 
 def list_parse_fallback(v: str):
@@ -23,18 +23,12 @@ def list_parse_fallback(v: str):
         return []
 
 
-class LNbitsSettings(BaseSettings):
+class LNbitsSettings(BaseModel):
     @classmethod
     def validate_list(cls, val):
         if isinstance(val, str):
             val = val.split(",") if val else []
         return val
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
 
 
 class UsersSettings(LNbitsSettings):
@@ -344,11 +338,17 @@ class ReadOnlySettings(
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings):
+class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
         return cls(**data)
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
 
 
 class SuperSettings(EditableSettings):
