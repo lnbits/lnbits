@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from fastapi import Depends
 from fastapi.responses import FileResponse
+from pydantic import Extra
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
@@ -54,13 +55,16 @@ async def api_get_settings(
     return admin_settings
 
 
+class UpdateSettings(EditableSettings):
+    class Config:
+        extra = Extra.forbid
+
+
 @core_app.put(
     "/admin/api/v1/settings/",
     status_code=HTTPStatus.OK,
 )
-async def api_update_settings(
-    data: EditableSettings, user: User = Depends(check_admin)
-):
+async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."
