@@ -184,9 +184,9 @@ class Extension(NamedTuple):
     @property
     def module_name(self):
         return (
-            f"lnbits.extensions.{self.code}"
+            f"extensions.{self.code}"
             if self.upgrade_hash == ""
-            else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
+            else f"upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
         )
 
     @classmethod
@@ -205,7 +205,7 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self) -> None:
-        p = Path(settings.lnbits_path, "extensions")
+        p = Path(settings.lnbits_extension_path)
         Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
@@ -336,7 +336,7 @@ class InstallableExtension(BaseModel):
 
     @property
     def ext_dir(self) -> Path:
-        return Path(settings.lnbits_path, "extensions", self.id)
+        return Path(settings.lnbits_extension_path, self.id)
 
     @property
     def ext_upgrade_dir(self) -> Path:
@@ -421,7 +421,7 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
             Path(self.ext_upgrade_dir, self.id),
-            Path(settings.lnbits_path, "extensions", self.id),
+            Path(settings.lnbits_extension_path, self.id),
         )
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 

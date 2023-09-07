@@ -30,7 +30,11 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
-        folders.extend(additional_folders)
+        replaced = [
+            f.replace("lnbits/extensions", settings.lnbits_extension_path)
+            for f in additional_folders
+        ]
+        folders.extend(replaced)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
 
     if settings.lnbits_ad_space_enabled:

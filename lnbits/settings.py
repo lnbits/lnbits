@@ -44,6 +44,7 @@ class UsersSettings(LNbitsSettings):
 
 
 class ExtensionsSettings(LNbitsSettings):
+    lnbits_extension_path: str = Field(default="./extensions")
     lnbits_admin_extensions: List[str] = Field(default=[])
     lnbits_extensions_manifests: List[str] = Field(
         default=[
