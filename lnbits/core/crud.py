@@ -539,6 +539,11 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
+    # we don't allow the creation of the same invoice twice
+    # note: this can be removed if the db uniquess constarints are set appropriately
+    previous_payment = await get_standalone_payment(checking_id, conn=conn)
+    assert previous_payment is None, "Payment already exists"
+
     try:
         invoice = bolt11.decode(payment_request)
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
@@ -650,12 +655,6 @@ async def update_payment_extra(
     )
 
 
-async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
-    await (conn or db).execute(
-        "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
-    )
-
-
 async def delete_wallet_payment(
     checking_id: str, wallet_id: str, conn: Optional[Connection] = None
 ) -> None:
@@ -668,6 +667,10 @@ async def delete_wallet_payment(
 async def check_internal(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[str]:
+    """
+    Returns the checking_id of the internal payment if it exists,
+    otherwise None
+    """
     row = await (conn or db).fetchone(
         """
         SELECT checking_id FROM apipayments
