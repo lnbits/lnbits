@@ -234,9 +234,9 @@ class Payment(FromRowModel):
         return status
 
     async def delete(self, conn: Optional[Connection] = None) -> None:
-        from .crud import delete_payment
+        from .crud import delete_wallet_payment
 
-        await delete_payment(self.checking_id, conn=conn)
+        await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
 class PaymentFilters(FilterModel):
