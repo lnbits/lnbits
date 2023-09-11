@@ -571,7 +571,7 @@ async def create_payment(
             fee,
             (
                 json.dumps(extra)
-                if extra and extra != {} and type(extra) is dict
+                if extra and extra != {} and isinstance(extra, dict)
                 else None
             ),
             webhook,
