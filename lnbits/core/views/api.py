@@ -1013,6 +1013,6 @@ async def api_delete_webpush_subscription(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     endpoint = unquote(
-        base64.b64decode(request.query_params.get("endpoint")).decode("utf-8")
+        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
     )
     await delete_webpush_subscription(endpoint, wallet.wallet.user)
