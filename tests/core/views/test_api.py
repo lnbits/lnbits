@@ -23,10 +23,40 @@ from ...helpers import (
 WALLET = get_wallet_class()
 
 
-# check if the client is working
+# create account POST /api/v1/account
 @pytest.mark.asyncio
-async def test_core_views_generic(client):
-    response = await client.get("/")
+async def test_create_account(client):
+    response = await client.post("/api/v1/account", json={"name": "test"})
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert result["name"] == "test"
+    assert "balance_msat" in result
+    assert "id" in result
+    assert "user" in result
+
+
+# check POST and DELETE /api/v1/wallet with adminkey:
+# create additional wallet and delete it
+@pytest.mark.asyncio
+async def test_create_wallet_and_delete(client, adminkey_headers_to):
+    response = await client.post(
+        "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_to
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert result["name"] == "test"
+    assert "balance_msat" in result
+    assert "id" in result
+    assert "adminkey" in result
+    response = await client.delete(
+        "/api/v1/wallet",
+        headers={
+            "X-Api-Key": result["adminkey"],
+            "Content-type": "application/json",
+        },
+    )
     assert response.status_code == 200
 
 

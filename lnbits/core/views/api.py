@@ -152,7 +152,7 @@ async def api_update_wallet(
     return await update_wallet(wallet.wallet.id, name, currency)
 
 
-@api_router.delete("/api/v1/wallet", response_model=Wallet)
+@api_router.delete("/api/v1/wallet")
 async def api_delete_wallet(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> None:
