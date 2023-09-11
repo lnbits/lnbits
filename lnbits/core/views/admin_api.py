@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 from fastapi import Depends
 from fastapi.responses import FileResponse
-from pydantic import Extra
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
@@ -20,7 +19,7 @@ from lnbits.core.services import (
 )
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, EditableSettings, settings
+from lnbits.settings import AdminSettings, UpdateSettings, settings
 
 from .. import core_app, core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -53,11 +52,6 @@ async def api_get_settings(
 ) -> Optional[AdminSettings]:
     admin_settings = await get_admin_settings(user.super_user)
     return admin_settings
-
-
-class UpdateSettings(EditableSettings):
-    class Config:
-        extra = Extra.forbid
 
 
 @core_app.put(

@@ -9,7 +9,7 @@ from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Field, validator
+from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v: str):
@@ -260,6 +260,11 @@ class EditableSettings(
         def schema_extra(schema: dict[str, Any]) -> None:
             for prop in schema.get("properties", {}).values():
                 prop.pop("env_names", None)
+
+
+class UpdateSettings(EditableSettings):
+    class Config:
+        extra = Extra.forbid
 
 
 class EnvSettings(LNbitsSettings):
