@@ -8,8 +8,8 @@ from typing import Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
-from pywebpush import WebPushException, webpush
 from py_vapid import Vapid
+from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
     delete_expired_invoices,
