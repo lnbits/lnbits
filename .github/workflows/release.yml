@@ -1,4 +1,5 @@
 name: release
+
 on:
   push:
     tags:
@@ -33,6 +34,7 @@ jobs:
           gh release create "$tag" --generate-notes
 
   docker:
+    needs: [ release ]
     uses: ./.github/workflows/docker.yml
     with:
       tag: ${{ github.ref_name }}
