@@ -702,7 +702,7 @@ new Vue({
 
       LNbits.api
         .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
-        .then(response => {
+        .then(_ => {
           dismissAuthMsg()
           this.$q.notify({
             message: `Authentication successful.`,
@@ -728,27 +728,34 @@ new Vue({
     updateWallet: function (data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
-        .then(res => {
+        .then(_ => {
           this.$q.notify({
             message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })
-          LNbits.href.updateWallet(
-            res.data.name,
-            this.user.id,
-            this.g.wallet.id
-          )
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
-    deleteWallet: function (walletId, user) {
+    deleteWallet: function () {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
         .onOk(() => {
-          LNbits.href.deleteWallet(walletId, user)
+          LNbits.api
+            .deleteWallet(this.g.wallet)
+            .then(_ => {
+              this.$q.notify({
+                timeout: 3000,
+                message: `Wallet deleted!`,
+                spinner: true
+              })
+            })
+            .catch(err => {
+              this.paymentsTable.loading = false
+              LNbits.utils.notifyApiError(err)
+            })
         })
     },
     fetchPayments: function (props) {

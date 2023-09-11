@@ -339,6 +339,10 @@ class CreateLnurlAuth(BaseModel):
     callback: str
 
 
+class CreateWallet(BaseModel):
+    name: Optional[str] = None
+
+
 class CreateWebPushSubscription(BaseModel):
     subscription: str
 
