@@ -1,0 +1,38 @@
+name: release
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: update version in pyproject.toml
+        env:
+          tag: ${{ github.ref_name }}
+        run: |
+          sed -i "s/^version.*/version = \"$tag\"/g" pyproject.toml
+          git config --global user.name 'Alan Bits'
+          git config --global user.email 'alan@lnbits.com'
+          git commit -am "update version to $tag"
+          git push
+
+      - name: Create github release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" --generate-notes
+
+  docker:
+    uses: ./.github/workflows/docker.yml
+    with:
+      tag: ${{ github.ref_name }}
