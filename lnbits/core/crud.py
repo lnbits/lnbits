@@ -10,10 +10,23 @@ from lnbits import bolt11
 from lnbits.core.models import WalletType
 from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
-from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
+from lnbits.settings import (
+    AdminSettings,
+    SuperSettings,
+    WebPushSettings,
+    settings,
+)
 
 from . import db
-from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
+from .models import (
+    BalanceCheck,
+    Payment,
+    PaymentFilters,
+    TinyURL,
+    User,
+    Wallet,
+    WebPushSubscription,
+)
 
 # accounts
 # --------
@@ -788,8 +801,16 @@ async def delete_admin_settings():
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: EditableSettings):
-    await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+async def update_admin_settings(data: dict):
+    row = await db.fetchone("SELECT editable_settings FROM settings")
+    if not row:
+        return None
+    editable_settings = json.loads(row["editable_settings"])
+    for key, value in data.items():
+        editable_settings[key] = value
+    await db.execute(
+        "UPDATE settings SET editable_settings = ?", (json.dumps(editable_settings),)
+    )
 
 
 async def update_super_user(super_user: str) -> SuperSettings:
@@ -871,4 +892,83 @@ async def delete_tinyurl(tinyurl_id: str):
     await db.execute(
         "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
+    )
+
+
+# push_notification
+# -----------------
+
+
+async def get_webpush_settings() -> Optional[WebPushSettings]:
+    row = await db.fetchone("SELECT * FROM webpush_settings")
+    if not row:
+        return None
+    vapid_keypair = json.loads(row["vapid_keypair"])
+    return WebPushSettings(**vapid_keypair)
+
+
+async def create_webpush_settings(webpush_settings: dict):
+    await db.execute(
+        "INSERT INTO webpush_settings (vapid_keypair) VALUES (?)",
+        (json.dumps(webpush_settings),),
+    )
+    return await get_webpush_settings()
+
+
+async def get_webpush_subscription(
+    endpoint: str, user: str
+) -> Optional[WebPushSubscription]:
+    row = await db.fetchone(
+        "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        (
+            endpoint,
+            user,
+        ),
+    )
+    return WebPushSubscription(**dict(row)) if row else None
+
+
+async def get_webpush_subscriptions_for_user(
+    user: str,
+) -> List[WebPushSubscription]:
+    rows = await db.fetchall(
+        "SELECT * FROM webpush_subscriptions WHERE user = ?",
+        (user,),
+    )
+    return [WebPushSubscription(**dict(row)) for row in rows]
+
+
+async def create_webpush_subscription(
+    endpoint: str, user: str, data: str, host: str
+) -> WebPushSubscription:
+    await db.execute(
+        """
+        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            endpoint,
+            user,
+            data,
+            host,
+        ),
+    )
+    subscription = await get_webpush_subscription(endpoint, user)
+    assert subscription, "Newly created webpush subscription couldn't be retrieved"
+    return subscription
+
+
+async def delete_webpush_subscription(endpoint: str, user: str) -> None:
+    await db.execute(
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        (
+            endpoint,
+            user,
+        ),
+    )
+
+
+async def delete_webpush_subscriptions(endpoint: str) -> None:
+    await db.execute(
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ?", (endpoint,)
     )

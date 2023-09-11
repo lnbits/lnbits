@@ -378,3 +378,18 @@ async def m014_set_deleted_wallets(db):
         # catching errors like this won't be necessary in anymore now that we
         # keep track of db versions so no migration ever runs twice.
         pass
+
+
+async def m015_create_push_notification_subscriptions_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS webpush_subscriptions (
+            endpoint TEXT NOT NULL,
+            "user" TEXT NOT NULL,
+            data TEXT NOT NULL,
+            host TEXT NOT NULL,
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            PRIMARY KEY (endpoint, "user")
+        );
+    """
+    )

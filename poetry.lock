@@ -704,6 +704,19 @@ files = [
 ]
 
 [[package]]
+name = "http-ece"
+version = "1.1.0"
+description = "Encrypted Content Encoding for HTTP"
+optional = false
+python-versions = "*"
+files = [
+    {file = "http_ece-1.1.0.tar.gz", hash = "sha256:932ebc2fa7c216954c320a188ae9c1f04d01e67bec9cdce1bfbc912813b0b4f8"},
+]
+
+[package.dependencies]
+cryptography = ">=2.5"
+
+[[package]]
 name = "httpcore"
 version = "0.15.0"
 description = "A minimal low-level HTTP client."
@@ -1330,6 +1343,19 @@ files = [
 ]
 
 [[package]]
+name = "py-vapid"
+version = "1.9.0"
+description = "Simple VAPID header generation library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "py-vapid-1.9.0.tar.gz", hash = "sha256:0664ab7899742ef2b287397a4d461ef691ed0cc2f587205128d8cf617ffdb919"},
+]
+
+[package.dependencies]
+cryptography = ">=2.5"
+
+[[package]]
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
@@ -1614,6 +1640,23 @@ files = [
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "pywebpush"
+version = "1.14.0"
+description = "WebPush publication library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pywebpush-1.14.0.tar.gz", hash = "sha256:6c36e1679268219e693ba940db2bf254c240ca02664de102b7269afc3c545731"},
+]
+
+[package.dependencies]
+cryptography = ">=2.6.1"
+http-ece = ">=1.1.0"
+py-vapid = ">=1.7.0"
+requests = ">=2.21.0"
+six = ">=1.15.0"
 
 [[package]]
 name = "pyyaml"
@@ -2272,4 +2315,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "3b1b73b1df182fae17e692b1ebd6d35a8791ca62df3ece145b05ae7f4465ae16"
+content-hash = "d294784e932335e91b4d096f406664b1240d2e20a7820060524bd6ef651d30ec"

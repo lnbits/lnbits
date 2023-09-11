@@ -1,6 +1,7 @@
 import asyncio
 from http import HTTPStatus
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
@@ -359,7 +360,9 @@ async def service_worker():
 
 
 @core_html_routes.get("/manifest/{usr}.webmanifest")
-async def manifest(usr: str):
+async def manifest(request: Request, usr: str):
+    host = urlparse(str(request.url)).netloc
+
     user = await get_user(usr)
     if not user:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -393,6 +396,7 @@ async def manifest(usr: str):
             }
             for wallet in user.wallets
         ],
+        "url_handlers": [{"origin": f"https://{host}"}],
     }
 
 

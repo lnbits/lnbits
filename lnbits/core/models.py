@@ -330,3 +330,15 @@ class CreateTopup(BaseModel):
 
 class CreateLnurlAuth(BaseModel):
     callback: str
+
+
+class CreateWebPushSubscription(BaseModel):
+    subscription: str
+
+
+class WebPushSubscription(BaseModel):
+    endpoint: str
+    user: str
+    data: str
+    host: str
+    timestamp: str

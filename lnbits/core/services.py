@@ -6,10 +6,13 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl
 from loguru import logger
+from py_vapid import Vapid
+from py_vapid.utils import b64urlencode
 
 from lnbits import bolt11
 from lnbits.db import Connection
@@ -41,6 +44,7 @@ from .crud import (
     get_total_balance,
     get_wallet,
     get_wallet_payment,
+    update_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -524,7 +528,7 @@ async def check_admin_settings():
             # create new settings if table is empty
             logger.warning("Settings DB empty. Inserting default settings.")
             settings_db = await init_admin_settings(settings.super_user)
-            logger.warning("Initialized settings from enviroment variables.")
+            logger.warning("Initialized settings from environment variables.")
 
         if settings.super_user and settings.super_user != settings_db.super_user:
             # .env super_user overwrites DB super_user
@@ -548,6 +552,29 @@ async def check_admin_settings():
             "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
             "to get the superuser."
         )
+
+
+async def check_webpush_settings():
+    if not settings.lnbits_webpush_privkey:
+        vapid = Vapid()
+        vapid.generate_keys()
+        privkey = vapid.private_pem()
+        assert vapid.public_key, "VAPID public key does not exist"
+        pubkey = b64urlencode(
+            vapid.public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
+        )
+        push_settings = {
+            "lnbits_webpush_privkey": privkey.decode(),
+            "lnbits_webpush_pubkey": pubkey,
+        }
+        update_cached_settings(push_settings)
+        await update_admin_settings(push_settings)
+
+    logger.info("Initialized webpush settings with generated VAPID key pair.")
+    logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
 
 
 def update_cached_settings(sets_dict: dict):

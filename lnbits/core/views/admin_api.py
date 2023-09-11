@@ -19,7 +19,7 @@ from lnbits.core.services import (
 )
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, EditableSettings, settings
+from lnbits.settings import AdminSettings, settings
 
 from .. import core_app, core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -58,9 +58,7 @@ async def api_get_settings(
     "/admin/api/v1/settings/",
     status_code=HTTPStatus.OK,
 )
-async def api_update_settings(
-    data: EditableSettings, user: User = Depends(check_admin)
-):
+async def api_update_settings(data: dict, user: User = Depends(check_admin)):
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."

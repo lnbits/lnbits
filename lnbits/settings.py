@@ -228,6 +228,11 @@ class FundingSourcesSettings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
 
+class WebPushSettings(LNbitsSettings):
+    lnbits_webpush_pubkey: str = Field(default=None)
+    lnbits_webpush_privkey: str = Field(default=None)
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -237,6 +242,7 @@ class EditableSettings(
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
+    WebPushSettings,
 ):
     @validator(
         "lnbits_admin_users",

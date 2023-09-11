@@ -1,11 +1,12 @@
 import asyncio
+import base64
 import hashlib
 import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
@@ -33,12 +34,14 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
+    CreateWebPushSubscription,
     DecodePayment,
     Payment,
     PaymentFilters,
     User,
     Wallet,
     WalletType,
+    WebPushSubscription,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -69,9 +72,11 @@ from .. import core_app, core_app_extra, db
 from ..crud import (
     add_installed_extension,
     create_tinyurl,
+    create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
+    delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
@@ -80,6 +85,7 @@ from ..crud import (
     get_tinyurl,
     get_tinyurl_by_url,
     get_wallet_for_key,
+    get_webpush_subscription,
     save_balance_check,
     update_wallet,
 )
@@ -986,3 +992,39 @@ async def api_tinyurl(tinyurl_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
+
+
+############################WEBPUSH##################################
+
+
+@core_app.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
+async def api_create_webpush_subscription(
+    request: Request,
+    data: CreateWebPushSubscription,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> WebPushSubscription:
+    subscription = json.loads(data.subscription)
+    endpoint = subscription["endpoint"]
+    host = urlparse(str(request.url)).netloc
+
+    subscription = await get_webpush_subscription(endpoint, wallet.wallet.user)
+    if subscription:
+        return subscription
+    else:
+        return await create_webpush_subscription(
+            endpoint,
+            wallet.wallet.user,
+            data.subscription,
+            host,
+        )
+
+
+@core_app.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
+async def api_delete_webpush_subscription(
+    request: Request,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    endpoint = unquote(
+        base64.b64decode(request.query_params.get("endpoint")).decode("utf-8")
+    )
+    await delete_webpush_subscription(endpoint, wallet.wallet.user)
