@@ -2,7 +2,7 @@ import asyncio
 
 import uvloop
 
-uvloop.install()  # noqa
+uvloop.install()
 
 import pytest
 import pytest_asyncio
@@ -16,7 +16,12 @@ from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.api import api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import settings
-from tests.helpers import get_hold_invoice, get_random_invoice_data, get_real_invoice
+from tests.helpers import (
+    clean_database,
+    get_hold_invoice,
+    get_random_invoice_data,
+    get_real_invoice,
+)
 
 # dont install extensions for tests
 settings.lnbits_extensions_default_install = []
@@ -32,6 +37,7 @@ def event_loop():
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
 async def app():
+    clean_database(settings)
     app = create_app()
     await app.router.startup()
     yield app
