@@ -1,8 +1,9 @@
+# ruff: noqa: E402
 import asyncio
 
 import uvloop
 
-uvloop.install()  # noqa
+uvloop.install()
 
 import pytest
 import pytest_asyncio
