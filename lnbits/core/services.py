@@ -1,6 +1,7 @@
 import asyncio
 import json
 from io import BytesIO
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
@@ -528,11 +529,8 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
-        logger.success(f"✔️ Access super user account at: {admin_url}")
-
-        # saving it to .super_user file
-        with open(".super_user", "w") as file:
+        # saving superuser to {data_dir}/.super_user file
+        with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
             file.write(settings.super_user)
 
         # callback for saas
@@ -542,6 +540,11 @@ async def check_admin_settings():
             and settings.lnbits_saas_instance_id
         ):
             send_admin_user_to_saas()
+
+        logger.success(
+            "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
+            "to get the superuser."
+        )
 
 
 def update_cached_settings(sets_dict: dict):
