@@ -994,10 +994,7 @@ async def api_tinyurl(tinyurl_id: str):
         )
 
 
-############################WEBPUSH##################################
-
-
-@core_app.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
+@api_router.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
 async def api_create_webpush_subscription(
     request: Request,
     data: CreateWebPushSubscription,
@@ -1019,7 +1016,7 @@ async def api_create_webpush_subscription(
         )
 
 
-@core_app.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
+@api_router.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
 async def api_delete_webpush_subscription(
     request: Request,
     wallet: WalletTypeInfo = Depends(require_admin_key),
