@@ -19,6 +19,7 @@ from lnbits.settings import settings
 from tests.helpers import get_hold_invoice, get_random_invoice_data, get_real_invoice
 
 # override settings for tests
+settings.lnbits_admin_extensions = []
 settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
 settings.lnbits_extensions_default_install = []
@@ -89,7 +90,7 @@ async def to_user():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def to_superuser():
+async def superuser():
     user = await get_user(settings.super_user)
     yield user
 
