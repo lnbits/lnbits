@@ -268,11 +268,8 @@ async def delete_wallet(
 ) -> None:
     await (conn or db).execute(
         """
-        UPDATE wallets AS w
-        SET
-            "user" = 'del:' || w."user",
-            adminkey = 'del:' || w.adminkey,
-            inkey = 'del:' || w.inkey
+        UPDATE wallets
+        SET deleted = true
         WHERE id = ? AND "user" = ?
         """,
         (wallet_id, user_id),

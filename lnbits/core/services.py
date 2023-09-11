@@ -110,6 +110,9 @@ async def create_invoice(
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
 
+    if await get_wallet(wallet_id, conn=conn) is None:
+        raise InvoiceFailure("Wallet does not exist.")
+
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
