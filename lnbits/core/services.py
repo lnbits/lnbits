@@ -573,7 +573,7 @@ async def check_webpush_settings():
             "lnbits_webpush_pubkey": pubkey,
         }
         update_cached_settings(push_settings)
-        await update_admin_settings(push_settings)
+        await update_admin_settings(EditableSettings(**push_settings))
 
     logger.info("Initialized webpush settings with generated VAPID key pair.")
     logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
