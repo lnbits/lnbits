@@ -218,7 +218,7 @@ class Connection(Compat):
 
 
 class Database(Compat):
-    def __init__(self, db_name: str):
+    def __init__(self, db_name: str, use_lock: bool = True):
         self.name = db_name
         self.schema = self.name
         self.type = DB_TYPE
@@ -237,13 +237,15 @@ class Database(Compat):
             self.schema = None
 
         self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+        self.use_lock = use_lock
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
     async def connect(self):
-        await self.lock.acquire()
+        if self.use_lock:
+            await self.lock.acquire()
         try:
             async with self.engine.connect() as conn:  # type: ignore
                 async with conn.begin() as txn:
@@ -261,7 +263,8 @@ class Database(Compat):
 
                     yield wconn
         finally:
-            self.lock.release()
+            if self.use_lock:
+                self.lock.release()
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         async with self.connect() as conn:
