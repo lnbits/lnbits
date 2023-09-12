@@ -23,8 +23,10 @@ jobs:
           sed -i "s/^version.*/version = \"$tag\"/g" pyproject.toml
           git config --global user.name 'Alan Bits'
           git config --global user.email 'alan@lnbits.com'
-          git commit -am "update version to $tag"
+          git commit -am "[CHORE] update version to $tag"
           git push
+          git tag -fa $tag
+          git push origin --tags
 
       - name: Create github release
         env:
