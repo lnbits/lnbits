@@ -92,7 +92,9 @@ async def calculate_fiat_amounts(
         extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
         extra["wallet_fiat_rate"] = amount_sat / fiat_amount
 
-    logger.debug(f"Calculated fiat amounts for {wallet}: {extra=}")
+    logger.debug(
+        f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {extra=}"
+    )
 
     return amount_sat, extra
 
@@ -185,7 +187,7 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
-            invoice.amount_msat, wallet_id, extra=extra, conn=conn
+            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
         # put all parameters that don't change here
