@@ -258,6 +258,13 @@ class PaymentFilters(FilterModel):
     webhook_status: Optional[int]
 
 
+class PaymentHistoryPoint(BaseModel):
+    date: datetime.datetime
+    income: int
+    spending: int
+    balance: int
+
+
 class BalanceCheck(BaseModel):
     wallet: str
     service: str

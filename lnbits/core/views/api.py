@@ -40,6 +40,8 @@ from lnbits.core.models import (
     DecodePayment,
     Payment,
     PaymentFilters,
+    PaymentHistoryPoint,
+    Query,
     User,
     Wallet,
     WalletType,
@@ -71,6 +73,7 @@ from lnbits.utils.exchange_rates import (
 )
 
 from ..crud import (
+    DateTrunc,
     add_installed_extension,
     create_tinyurl,
     create_webpush_subscription,
@@ -81,6 +84,7 @@ from ..crud import (
     drop_extension_db,
     get_dbversions,
     get_payments,
+    get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
     get_tinyurl,
@@ -88,6 +92,7 @@ from ..crud import (
     get_wallet_for_key,
     get_webpush_subscription,
     save_balance_check,
+    update_pending_payments,
     update_wallet,
 )
 from ..services import (
@@ -155,22 +160,28 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending_payments = await get_payments(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending_payments:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     return await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
     )
+
+
+@api_router.get(
+    "/api/v1/payments/history",
+    name="Get payments history",
+    response_model=List[PaymentHistoryPoint],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_history(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    group: DateTrunc = Query("day"),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+    await update_pending_payments(wallet.wallet.id)
+    return await get_payments_history(wallet.wallet.id, group, filters)
 
 
 @api_router.get(
@@ -185,16 +196,7 @@ async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending = await get_payments_paginated(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending.data:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     page = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
         pending=True,
