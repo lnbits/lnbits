@@ -1,15 +1,14 @@
 import datetime
 import json
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
-from bolt11.decode import decode
 
-from lnbits.core.db import db
+from lnbits import bolt11
 from lnbits.core.models import WalletType
-from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
+from lnbits.db import Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import (
     AdminSettings,
@@ -19,11 +18,11 @@ from lnbits.settings import (
     settings,
 )
 
+from . import db
 from .models import (
     BalanceCheck,
     Payment,
     PaymentFilters,
-    PaymentHistoryPoint,
     TinyURL,
     User,
     Wallet,
@@ -77,7 +76,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
                 SELECT balance FROM balances WHERE wallet = wallets.id
             ), 0) AS balance_msat
             FROM wallets
-            WHERE "user" = ? and wallets.deleted = false
+            WHERE "user" = ?
             """,
             (user_id,),
         )
@@ -545,11 +544,10 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
-    invoice = decode(payment_request)
-
-    if invoice.expiry:
+    try:
+        invoice = bolt11.decode(payment_request)
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    else:
+    except Exception:
         # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 
@@ -572,7 +570,7 @@ async def create_payment(
             fee,
             (
                 json.dumps(extra)
-                if extra and extra != {} and isinstance(extra, dict)
+                if extra and extra != {} and type(extra) is dict
                 else None
             ),
             webhook,
@@ -655,79 +653,6 @@ async def update_payment_extra(
         f"UPDATE apipayments SET extra = ? WHERE hash = ? {amount_clause} ",
         (json.dumps(db_extra), payment_hash),
     )
-
-
-async def update_pending_payments(wallet_id: str):
-    pending_payments = await get_payments(
-        wallet_id=wallet_id,
-        pending=True,
-        exclude_uncheckable=True,
-    )
-    for payment in pending_payments:
-        await payment.check_status()
-
-
-DateTrunc = Literal["hour", "day", "month"]
-sqlite_formats = {
-    "hour": "%Y-%m-%d %H:00:00",
-    "day": "%Y-%m-%d 00:00:00",
-    "month": "%Y-%m-01 00:00:00",
-}
-
-
-async def get_payments_history(
-    wallet_id: Optional[str] = None,
-    group: DateTrunc = "day",
-    filters: Optional[Filters] = None,
-) -> List[PaymentHistoryPoint]:
-    if not filters:
-        filters = Filters()
-    where = ["(pending = False OR amount < 0)"]
-    values = []
-    if wallet_id:
-        where.append("wallet = ?")
-        values.append(wallet_id)
-
-    if DB_TYPE == SQLITE and group in sqlite_formats:
-        date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
-    elif group in ("day", "hour", "month"):
-        date_trunc = f"date_trunc('{group}', time)"
-    else:
-        raise ValueError(f"Invalid group value: {group}")
-
-    transactions = await db.fetchall(
-        f"""
-        SELECT {date_trunc} date,
-               SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
-               SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
-        FROM apipayments
-        {filters.where(where)}
-        GROUP BY date
-        ORDER BY date DESC
-        """,
-        filters.values(values),
-    )
-    if wallet_id:
-        wallet = await get_wallet(wallet_id)
-        if wallet:
-            balance = wallet.balance_msat
-        else:
-            raise ValueError("Unknown wallet")
-    else:
-        balance = await get_total_balance()
-
-    # since we dont know the balance at the starting point,
-    # we take the current balance and walk backwards
-    results: list[PaymentHistoryPoint] = []
-    for row in transactions:
-        results.insert(
-            0,
-            PaymentHistoryPoint(
-                balance=balance, date=row[0], income=row[1], spending=row[2]
-            ),
-        )
-        balance -= row.income - row.spending
-    return results
 
 
 async def delete_wallet_payment(
