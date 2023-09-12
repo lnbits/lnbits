@@ -24,7 +24,6 @@ from ...nodes.base import (
     PublicNodeInfo,
 )
 from ...utils.cache import cache
-from .. import core_app
 
 
 def require_node():
@@ -50,16 +49,16 @@ def check_public():
         )
 
 
-node_api = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
-super_node_api = APIRouter(
+node_router = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
+super_node_router = APIRouter(
     prefix="/node/api/v1", dependencies=[Depends(check_super_user)]
 )
-public_node_api = APIRouter(
+public_node_router = APIRouter(
     prefix="/node/public/api/v1", dependencies=[Depends(check_public)]
 )
 
 
-@node_api.get(
+@node_router.get(
     "/ok",
     description="Check if node api can be enabled",
     status_code=200,
@@ -69,26 +68,26 @@ async def api_get_ok():
     pass
 
 
-@public_node_api.get("/info", response_model=PublicNodeInfo)
+@public_node_router.get("/info", response_model=PublicNodeInfo)
 async def api_get_public_info(node: Node = Depends(require_node)) -> PublicNodeInfo:
     return await cache.save_result(node.get_public_info, key="node:public_info")
 
 
-@node_api.get("/info")
+@node_router.get("/info")
 async def api_get_info(
     node: Node = Depends(require_node),
 ) -> Optional[NodeInfoResponse]:
     return await node.get_info()
 
 
-@node_api.get("/channels")
+@node_router.get("/channels")
 async def api_get_channels(
     node: Node = Depends(require_node),
 ) -> Optional[List[NodeChannel]]:
     return await node.get_channels()
 
 
-@super_node_api.post("/channels", response_model=ChannelPoint)
+@super_node_router.post("/channels", response_model=ChannelPoint)
 async def api_create_channel(
     node: Node = Depends(require_node),
     peer_id: str = Body(),
@@ -99,7 +98,7 @@ async def api_create_channel(
     return await node.open_channel(peer_id, funding_amount, push_amount, fee_rate)
 
 
-@super_node_api.delete("/channels")
+@super_node_router.delete("/channels")
 async def api_delete_channel(
     short_id: Optional[str],
     funding_txid: Optional[str],
@@ -116,7 +115,7 @@ async def api_delete_channel(
     )
 
 
-@node_api.get("/payments", response_model=Page[NodePayment])
+@node_router.get("/payments", response_model=Page[NodePayment])
 async def api_get_payments(
     node: Node = Depends(require_node),
     filters: Filters = Depends(parse_filters(NodePaymentsFilters)),
@@ -129,7 +128,7 @@ async def api_get_payments(
     return await node.get_payments(filters)
 
 
-@node_api.get("/invoices", response_model=Page[NodeInvoice])
+@node_router.get("/invoices", response_model=Page[NodeInvoice])
 async def api_get_invoices(
     node: Node = Depends(require_node),
     filters: Filters = Depends(parse_filters(NodeInvoiceFilters)),
@@ -142,19 +141,19 @@ async def api_get_invoices(
     return await node.get_invoices(filters)
 
 
-@node_api.get("/peers", response_model=List[NodePeerInfo])
+@node_router.get("/peers", response_model=List[NodePeerInfo])
 async def api_get_peers(node: Node = Depends(require_node)) -> List[NodePeerInfo]:
     return await node.get_peers()
 
 
-@super_node_api.post("/peers")
+@super_node_router.post("/peers")
 async def api_connect_peer(
     uri: str = Body(embed=True), node: Node = Depends(require_node)
 ):
     return await node.connect_peer(uri)
 
 
-@super_node_api.delete("/peers/{peer_id}")
+@super_node_router.delete("/peers/{peer_id}")
 async def api_disconnect_peer(peer_id: str, node: Node = Depends(require_node)):
     return await node.disconnect_peer(peer_id)
 
@@ -168,12 +167,12 @@ class NodeRank(BaseModel):
 
 
 # Same for public and private api
-@node_api.get(
+@node_router.get(
     "/rank",
     description="Retrieve node ranks from https://1ml.com",
     response_model=Optional[NodeRank],
 )
-@public_node_api.get(
+@public_node_router.get(
     "/rank",
     description="Retrieve node ranks from https://1ml.com",
     response_model=Optional[NodeRank],
@@ -187,8 +186,3 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[Node
             return r.json()["noderank"]
         except httpx.HTTPStatusError:
             raise HTTPException(status_code=404, detail="Node not found on 1ml.com")
-
-
-core_app.include_router(node_api)
-core_app.include_router(super_node_api)
-core_app.include_router(public_node_api)
