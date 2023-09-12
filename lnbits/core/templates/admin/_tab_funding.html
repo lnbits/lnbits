@@ -31,8 +31,13 @@
           <div class="row">
             <div class="col-12">
               <p>Active Funding<small> (Requires server restart)</small></p>
-              <q-select :disable="!isSuperUser" filled v-model="formData.lnbits_backend_wallet_class"
-                hint="Select the active funding wallet" :options="settings.lnbits_allowed_funding_sources"></q-select>
+              <q-select
+                :disable="!isSuperUser"
+                filled
+                v-model="formData.lnbits_backend_wallet_class"
+                hint="Select the active funding wallet"
+                :options="settings.lnbits_allowed_funding_sources"
+              ></q-select>
             </div>
           </div>
         </div>
@@ -40,20 +45,36 @@
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-4">
               <p>Invoice Expiry</p>
-              <q-input filled v-model.number="formData.lightning_invoice_expiry" type="number"
-                label="Invoice expiry (seconds)" mask="#######">
+              <q-input
+                filled
+                v-model.number="formData.lightning_invoice_expiry"
+                type="number"
+                label="Invoice expiry (seconds)"
+                mask="#######"
+              >
               </q-input>
             </div>
             <div class="col-12 col-md-8">
               <p>Fee reserve</p>
               <div class="row q-col-gutter-md">
                 <div class="col-6">
-                  <q-input type="number" filled v-model="formData.lnbits_reserve_fee_min" label="Reserve fee in msats">
+                  <q-input
+                    type="number"
+                    filled
+                    v-model="formData.lnbits_reserve_fee_min"
+                    label="Reserve fee in msats"
+                  >
                   </q-input>
                 </div>
                 <div class="col-6">
-                  <q-input type="number" filled name="lnbits_reserve_fee_percent"
-                    v-model="formData.lnbits_reserve_fee_percent" label="Reserve fee in percent" step="0.1"></q-input>
+                  <q-input
+                    type="number"
+                    filled
+                    name="lnbits_reserve_fee_percent"
+                    v-model="formData.lnbits_reserve_fee_percent"
+                    label="Reserve fee in percent"
+                    step="0.1"
+                  ></q-input>
                 </div>
               </div>
             </div>
@@ -64,13 +85,30 @@
         <p class="q-my-md">
           Funding Sources<small> (Requires server restart)</small>
         </p>
-        <q-list v-for="(fund, idx) in settings.lnbits_allowed_funding_sources" :key="idx">
-          <q-expansion-item expand-separator icon="payments" :label="prettyFunding.get(fund) || fund"
-            v-if="funding_sources.get(fund)">
+        <q-list
+          v-for="(fund, idx) in settings.lnbits_allowed_funding_sources"
+          :key="idx"
+        >
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="prettyFunding.get(fund) || fund"
+            v-if="funding_sources.get(fund)"
+          >
             <q-card>
-              <q-card-section v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))" :key="i">
-                <q-input dense filled type="text" v-model="formData[key]" :label="prop.label" class="q-pr-md"
-                  :hint="prop.hint"></q-input>
+              <q-card-section
+                v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
+                :key="i"
+              >
+                <q-input
+                  dense
+                  filled
+                  type="text"
+                  v-model="formData[key]"
+                  :label="prop.label"
+                  class="q-pr-md"
+                  :hint="prop.hint"
+                ></q-input>
               </q-card-section>
             </q-card>
           </q-expansion-item>
