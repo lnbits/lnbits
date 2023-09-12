@@ -187,7 +187,7 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
-            invoice.amount_msat, wallet_id, extra=extra, conn=conn
+            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
         # put all parameters that don't change here
