@@ -65,7 +65,7 @@ window.LNbits = {
       })
     },
     createAccount: function (name) {
-      return this.request('post', '/api/v1/wallet', null, {
+      return this.request('post', '/api/v1/account', null, {
         name: name
       })
     },
