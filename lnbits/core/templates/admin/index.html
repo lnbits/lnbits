@@ -2,63 +2,26 @@
 %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-my-md">
-    <q-btn
-      :label="$t('save')"
-      color="primary"
-      @click="updateSettings"
-      :disabled="!checkChanges"
-    >
-      <q-tooltip v-if="checkChanges"
-        >{%raw%}{{ $t('save_tooltip') }}{%endraw%}</q-tooltip
-      >
+    <q-btn :label="$t('save')" color="primary" @click="updateSettings" :disabled="!checkChanges">
+      <q-tooltip v-if="checkChanges">{%raw%}{{ $t('save_tooltip') }}{%endraw%}</q-tooltip>
 
-      <q-badge
-        v-if="checkChanges"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
+      <q-badge v-if="checkChanges" color="red" rounded floating style="padding: 6px; border-radius: 6px" />
     </q-btn>
 
-    <q-btn
-      v-if="isSuperUser"
-      :label="$t('restart')"
-      color="primary"
-      @click="restartServer"
-    >
-      <q-tooltip v-if="needsRestart"
-        >{%raw%}{{ $t('restart_tooltip') }}{%endraw%}</q-tooltip
-      >
+    <q-btn v-if="isSuperUser" :label="$t('restart')" color="primary" @click="restartServer">
+      <q-tooltip v-if="needsRestart">{%raw%}{{ $t('restart_tooltip') }}{%endraw%}</q-tooltip>
 
-      <q-badge
-        v-if="needsRestart"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
+      <q-badge v-if="needsRestart" color="red" rounded floating style="padding: 6px; border-radius: 6px" />
     </q-btn>
 
-    <q-btn
-      v-if="isSuperUser"
-      :label="$t('topup')"
-      color="primary"
-      @click="topUpDialog.show = true"
-    >
+    <q-btn v-if="isSuperUser" :label="$t('topup')" color="primary" @click="topUpDialog.show = true">
       <q-tooltip>{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
 
     <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
 
-    <q-btn
-      flat
-      v-if="isSuperUser"
-      :label="$t('reset_defaults')"
-      color="primary"
-      @click="deleteSettings"
-      class="float-right"
-    >
+    <q-btn flat v-if="isSuperUser" :label="$t('reset_defaults')" color="primary" @click="deleteSettings"
+      class="float-right">
       <q-tooltip>{%raw%}{{ $t('reset_defaults_tooltip') }}{%endraw%}</q-tooltip>
     </q-btn>
   </div>
@@ -70,35 +33,15 @@
       <div class="q-pa-md">
         <div class="q-gutter-y-md">
           <q-tabs v-model="tab" active-color="primary" align="justify">
-            <q-tab
-              name="funding"
-              :label="$t('funding')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="funding" :label="$t('funding')" @update="val => tab = val.name"></q-tab>
 
-            <q-tab
-              name="users"
-              :label="$t('users')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="users" :label="$t('users')" @update="val => tab = val.name"></q-tab>
 
-            <q-tab
-              name="server"
-              :label="$t('server')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="server" :label="$t('server')" @update="val => tab = val.name"></q-tab>
 
-            <q-tab
-              name="security"
-              :label="$t('security')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="security" :label="$t('security')" @update="val => tab = val.name"></q-tab>
 
-            <q-tab
-              name="theme"
-              :label="$t('theme')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="theme" :label="$t('theme')" @update="val => tab = val.name"></q-tab>
           </q-tabs>
         </div>
       </div>
@@ -122,43 +65,20 @@
 
       <div class="row">
         <div class="col-12">
-          <q-input
-            dense
-            type="text"
-            filled
-            v-model="wallet.id"
-            label="Wallet ID"
-            :hint="$t('topup_hint')"
-          ></q-input>
+          <q-input dense type="text" filled v-model="wallet.id" label="Wallet ID" :hint="$t('topup_hint')"></q-input>
 
           <br />
         </div>
 
         <div class="col-12">
-          <q-input
-            dense
-            type="number"
-            filled
-            v-model="wallet.amount"
-            :label="$t('amount')"
-          ></q-input>
+          <q-input dense type="number" filled v-model="wallet.amount" :label="$t('amount')"></q-input>
         </div>
       </div>
 
       <div class="row q-mt-lg">
-        <q-btn
-          :label="$t('topup')"
-          color="primary"
-          @click="topupWallet"
-        ></q-btn>
+        <q-btn :label="$t('topup')" color="primary" @click="topupWallet"></q-btn>
 
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          :label="$t('cancel')"
-        ></q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
       </div>
     </q-form>
   </q-card>
@@ -217,19 +137,19 @@
         tab: 'funding',
         needsRestart: false,
         prettyFunding: new Map([
-          ['VoidWallet', 'Void Wallet'],
-          ['FakeWallet', 'Fake Wallet'],
-          ['CoreLightningWallet', 'Core Lightning'],
-          ['CoreLightningRestWallet', 'Core Lightning'],
-          ['LndRestWallet', 'Lightning Network Daemon (LND Rest)'],
-          ['LndWallet', 'Lightning Network Daemon (LND)'],
-          ['LnTipsWallet', 'LN.Tips'],
-          ['LNPayWallet', 'LN Pay'],
-          ['EclairWallet', 'Eclair (ACINQ)'],
-          ['LNbitsWallet', 'LNBits'],
-          ['OpenNodeWallet', 'OpenNode'],
-          ['ClicheWallet', 'Cliche (NBD)'],
-          ['SparkWallet', 'Spark']
+          ["VoidWallet", "Void Wallet"],
+          ["FakeWallet", "Fake Wallet"],
+          ["CoreLightningWallet", "Core Lightning"],
+          ["CoreLightningRestWallet", "Core Lightning"],
+          ["LndRestWallet", "Lightning Network Daemon (LND Rest)"],
+          ["LndWallet", "Lightning Network Daemon (LND)"],
+          ["LnTipsWallet", "LN.Tips"],
+          ["LNPayWallet", "LN Pay"],
+          ["EclairWallet", "Eclair (ACINQ)"],
+          ["LNbitsWallet", "LNBits"],
+          ["OpenNodeWallet", "OpenNode"],
+          ["ClicheWallet", "Cliche (NBD)"],
+          ["SparkWallet", "Spark"]
         ]),
         funding_sources: new Map([
           ['VoidWallet', null],
@@ -486,7 +406,7 @@
             '/api/v1/ws/' +
             digestHex
           this.ws = new WebSocket(localUrl)
-          this.ws.addEventListener('message', async ({data}) => {
+          this.ws.addEventListener('message', async ({ data }) => {
             this.logs.push(data.toString())
             const scrollArea = this.$refs.logScroll
             if (scrollArea) {
@@ -625,7 +545,7 @@
           .then(response => {
             this.isSuperUser = response.data.is_super_user || false
             this.settings = response.data
-            this.formData = {...this.settings}
+            this.formData = { ...this.settings }
             this.updateFundingData()
             this.getNotifications()
           })
@@ -648,17 +568,16 @@
           .then(response => {
             this.needsRestart =
               this.settings.lnbits_backend_wallet_class !==
-                this.formData.lnbits_backend_wallet_class ||
+              this.formData.lnbits_backend_wallet_class ||
               this.settings.lnbits_killswitch !==
-                this.formData.lnbits_killswitch
+              this.formData.lnbits_killswitch
             this.settings = this.formData
             this.formData = _.clone(this.settings)
             this.updateFundingData()
             this.$q.notify({
               type: 'positive',
-              message: `Success! Settings changed! ${
-                this.needsRestart ? 'Restart required!' : ''
-              }`,
+              message: `Success! Settings changed! ${this.needsRestart ? 'Restart required!' : ''
+                }`,
               icon: null
             })
           })
