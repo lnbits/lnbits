@@ -72,7 +72,7 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    createWallet: function (name, wallet) {
+    createWallet: function (wallet, name) {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
         name: name
       }).then(res => {
