@@ -265,9 +265,8 @@ async def pay_invoice(
     assert wallet, "Wallet for balancecheck could not be fetched"
     if wallet.balance_msat < 0:
         logger.debug("balance is too low, deleting temporary payment")
+        await delete_wallet_payment(temp_id, wallet_id)
         if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
-            logger.debug(f"deleting temporary payment {temp_id}")
-            await delete_wallet_payment(temp_id, wallet_id)
             raise PaymentFailure(
                 f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
                 " cover potential routing fees."
