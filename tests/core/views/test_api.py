@@ -59,6 +59,16 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
     )
     assert response.status_code == 200
 
+    # get deleted wallet
+    response = await client.get(
+        "/api/v1/wallet",
+        headers={
+            "X-Api-Key": result["adminkey"],
+            "Content-type": "application/json",
+        },
+    )
+    assert response.status_code == 404
+
 
 # check GET /api/v1/wallet with inkey: wallet info, no balance
 @pytest.mark.asyncio
