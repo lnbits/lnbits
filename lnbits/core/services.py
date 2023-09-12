@@ -183,8 +183,8 @@ async def pay_invoice(
         raise ValueError("Amount in invoice is too high.")
 
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
+    temp_id = invoice.payment_hash
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
-        temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
         if invoice.amount_msat == 0:
@@ -260,17 +260,19 @@ async def pay_invoice(
                 # happens if the same wallet tries to pay an invoice twice
                 raise PaymentFailure("Could not make payment.")
 
-        # do the balance check
-        wallet = await get_wallet(wallet_id, conn=conn)
-        assert wallet, "Wallet for balancecheck could not be fetched"
-        if wallet.balance_msat < 0:
-            logger.debug("balance is too low, deleting temporary payment")
-            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
-                raise PaymentFailure(
-                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
-                    " cover potential routing fees."
-                )
-            raise PermissionError("Insufficient balance.")
+    # do the balance check
+    wallet = await get_wallet(wallet_id)
+    assert wallet, "Wallet for balancecheck could not be fetched"
+    if wallet.balance_msat < 0:
+        logger.debug("balance is too low, deleting temporary payment")
+        if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+            logger.debug(f"deleting temporary payment {temp_id}")
+            await delete_wallet_payment(temp_id, wallet_id)
+            raise PaymentFailure(
+                f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
+                " cover potential routing fees."
+            )
+        raise PermissionError("Insufficient balance.")
 
     if internal_checking_id:
         logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
