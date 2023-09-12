@@ -1,7 +1,6 @@
 name: docker
 
 on:
-  push: main
   workflow_call:
     inputs:
       tag:
