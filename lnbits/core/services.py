@@ -15,6 +15,7 @@ from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
 from lnbits import bolt11
+from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
@@ -29,7 +30,6 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
-from . import db
 from .crud import (
     check_internal,
     check_internal_pending,

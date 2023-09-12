@@ -6,11 +6,11 @@ from uuid import UUID
 import httpx
 from loguru import logger
 
+from lnbits.core.db import db as core_db
 from lnbits.db import Connection
 from lnbits.extension_manager import Extension
 from lnbits.settings import settings
 
-from . import db as core_db
 from .crud import update_migration_version
 
 

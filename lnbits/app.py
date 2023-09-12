@@ -33,14 +33,11 @@ from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
-from .core import (
-    add_installed_extension,
-    core_app,
-    core_app_extra,
-    update_installed_extension_state,
-)
+from .core import init_core_routers
+from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.views.generic import core_html_routes
+from .core.views.api import add_installed_extension
+from .core.views.generic import update_installed_extension_state
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
 from .middleware import (
@@ -257,8 +254,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
-    app.include_router(core_app)
-    app.include_router(core_html_routes)
+    init_core_routers(app)
 
     for ext in get_valid_extensions():
         try:

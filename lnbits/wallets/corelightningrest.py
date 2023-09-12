@@ -184,7 +184,7 @@ class CoreLightningRestWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        from lnbits.core import get_standalone_payment
+        from lnbits.core.services import get_standalone_payment
 
         payment = await get_standalone_payment(checking_id)
         if not payment:
