@@ -48,7 +48,7 @@ async def api_auditor():
         )
 
 
-@admin_router.get("/admin/api/v1/settings/", response_model=Optional[AdminSettings])
+@admin_router.get("/admin/api/v1/settings/")
 async def api_get_settings(
     user: User = Depends(check_admin),
 ) -> Optional[AdminSettings]:

@@ -16,11 +16,11 @@ from fastapi import (
     Depends,
     Header,
     Request,
+    Response,
     WebSocket,
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
@@ -36,13 +36,10 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
-    CreateWallet,
     CreateWebPushSubscription,
     DecodePayment,
     Payment,
     PaymentFilters,
-    PaymentHistoryPoint,
-    Query,
     User,
     Wallet,
     WalletType,
@@ -74,21 +71,16 @@ from lnbits.utils.exchange_rates import (
 )
 
 from ..crud import (
-    DateTrunc,
     add_installed_extension,
-    create_account,
     create_tinyurl,
-    create_wallet,
     create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
-    delete_wallet,
     delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
-    get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
     get_tinyurl,
@@ -96,7 +88,6 @@ from ..crud import (
     get_wallet_for_key,
     get_webpush_subscription,
     save_balance_check,
-    update_pending_payments,
     update_wallet,
 )
 from ..services import (
@@ -152,35 +143,6 @@ async def api_update_wallet(
     return await update_wallet(wallet.wallet.id, name, currency)
 
 
-@api_router.delete("/api/v1/wallet")
-async def api_delete_wallet(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> None:
-    await delete_wallet(
-        user_id=wallet.wallet.user,
-        wallet_id=wallet.wallet.id,
-    )
-
-
-@api_router.post("/api/v1/wallet", response_model=Wallet)
-async def api_create_wallet(
-    data: CreateWallet,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> Wallet:
-    return await create_wallet(user_id=wallet.wallet.user, wallet_name=data.name)
-
-
-@api_router.post("/api/v1/account", response_model=Wallet)
-async def api_create_account(data: CreateWallet) -> Wallet:
-    if len(settings.lnbits_allowed_users) > 0:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Account creation is disabled.",
-        )
-    account = await create_account()
-    return await create_wallet(user_id=account.id, wallet_name=data.name)
-
-
 @api_router.get(
     "/api/v1/payments",
     name="Payment List",
@@ -193,28 +155,22 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
+    pending_payments = await get_payments(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        filters=filters,
+    )
+    for payment in pending_payments:
+        await check_transaction_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
     return await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
     )
-
-
-@api_router.get(
-    "/api/v1/payments/history",
-    name="Get payments history",
-    response_model=List[PaymentHistoryPoint],
-    openapi_extra=generate_filter_params_openapi(PaymentFilters),
-)
-async def api_payments_history(
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    group: DateTrunc = Query("day"),
-    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-):
-    await update_pending_payments(wallet.wallet.id)
-    return await get_payments_history(wallet.wallet.id, group, filters)
 
 
 @api_router.get(
@@ -229,7 +185,16 @@ async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
+    pending = await get_payments_paginated(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        filters=filters,
+    )
+    for payment in pending.data:
+        await check_transaction_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
     page = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -432,6 +397,17 @@ async def api_payments_pay_lnurl(
             ),
         )
 
+    if invoice.description_hash != data.description_hash:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=(
+                (
+                    f"{domain} returned an invalid invoice. Expected description_hash"
+                    f" == {data.description_hash}, got {invoice.description_hash}."
+                ),
+            ),
+        )
+
     extra = {}
 
     if params.get("successAction"):
@@ -478,10 +454,8 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 yield dict(data=payment.json(), event="payment-received")
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
-    except Exception as exc:
-        logger.error(f"Error in sse: {exc}")
-    finally:
         api_invoice_listeners.pop(uid)
+        return
 
 
 @api_router.get("/api/v1/payments/sse")
@@ -657,20 +631,29 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
 
 @api_router.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
-async def api_payments_decode(data: DecodePayment) -> JSONResponse:
+async def api_payments_decode(data: DecodePayment, response: Response):
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
             url = lnurl.decode(payment_str)
-            return JSONResponse({"domain": url})
+            return {"domain": url}
         else:
             invoice = bolt11.decode(payment_str)
-            return JSONResponse(invoice.data)
-    except Exception as exc:
-        return JSONResponse(
-            {"message": f"Failed to decode: {str(exc)}"},
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
+            return {
+                "payment_hash": invoice.payment_hash,
+                "amount_msat": invoice.amount_msat,
+                "description": invoice.description,
+                "description_hash": invoice.description_hash,
+                "payee": invoice.payee,
+                "date": invoice.date,
+                "expiry": invoice.expiry,
+                "secret": invoice.secret,
+                "route_hints": invoice.route_hints,
+                "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
+            }
+    except Exception:
+        response.status_code = HTTPStatus.BAD_REQUEST
+        return {"message": "Failed to decode"}
 
 
 @api_router.post("/api/v1/lnurlauth")
@@ -1039,6 +1022,6 @@ async def api_delete_webpush_subscription(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     endpoint = unquote(
-        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
+        base64.b64decode(request.query_params.get("endpoint")).decode("utf-8")
     )
     await delete_webpush_subscription(endpoint, wallet.wallet.user)

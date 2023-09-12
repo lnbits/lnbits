@@ -18,6 +18,7 @@ from lnbits.core.crud import (
     get_payments,
     get_standalone_payment,
 )
+from lnbits.core.db import db
 from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
