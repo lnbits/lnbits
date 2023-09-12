@@ -85,7 +85,9 @@ window.LNbits = {
       })
     },
     deleteWallet: function (wallet) {
-      return this.request('delete', '/api/v1/wallet', wallet.adminkey)
+      return this.request('delete', '/api/v1/wallet', wallet.adminkey).then(res => {
+        window.location = '/wallet?usr=' + res.data.user
+      })
     },
     getPayments: function (wallet, query) {
       const params = new URLSearchParams(query)

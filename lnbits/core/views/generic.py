@@ -1,6 +1,6 @@
 import asyncio
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlparse
 
 from fastapi import Depends, Query, Request, status
@@ -165,17 +165,24 @@ async def extensions_install(
 async def wallet(
     request: Request,
     usr: UUID4 = Query(...),
-    wal: UUID4 = Query(...),
+    wal: Optional[UUID4] = Query(None),
 ):
     user_id = usr.hex
-    wallet_id = wal.hex
-
     user = await get_user(user_id)
 
     if not user:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "User does not exist."}
         )
+
+    if not wal:
+        if len(user.wallets) == 0:
+            return template_renderer().TemplateResponse(
+                "error.html", {"request": request, "err": "User has no wallets."}
+            )
+        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
+    else:
+        wallet_id = wal.hex
 
     userwallet = user.get_wallet(wallet_id)
     if not userwallet or userwallet.deleted:
