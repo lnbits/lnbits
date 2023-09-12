@@ -734,6 +734,7 @@ new Vue({
             type: 'positive',
             timeout: 3500
           })
+          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
