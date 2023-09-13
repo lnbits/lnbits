@@ -183,10 +183,16 @@ class Extension(NamedTuple):
 
     @property
     def module_name(self):
+        if settings.has_custom_extension_path:
+            return (
+                self.code
+                if self.upgrade_hash == ""
+                else f"{self.code}-{self.upgrade_hash}"
+            )
         return (
             f"lnbits.extensions.{self.code}"
             if self.upgrade_hash == ""
-            else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
+            else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}"
         )
 
     @classmethod
@@ -330,7 +336,7 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
-        extensions_data_dir = Path(settings.lnbits_extensions_path, "zips")
+        extensions_data_dir = Path(settings.lnbits_data_folder, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
         return Path(extensions_data_dir, f"{self.id}.zip")
 

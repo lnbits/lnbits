@@ -16,8 +16,8 @@ from .crud import update_migration_version
 
 async def migrate_extension_database(ext: Extension, current_version):
     try:
-        ext_migrations = importlib.import_module(f"{ext.code}.migrations")
-        ext_db = importlib.import_module(ext.code).db
+        ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
+        ext_db = importlib.import_module(ext.module_name).db
     except ImportError as e:
         logger.error(e)
         raise ImportError(
