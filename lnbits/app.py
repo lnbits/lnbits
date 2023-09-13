@@ -59,9 +59,6 @@ from .tasks import (
     webhook_handler,
 )
 
-# print("### sys.path 1:", sys.path)
-# import tpos
-
 
 def create_app() -> FastAPI:
     configure_logger()
@@ -232,13 +229,7 @@ def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
-    zip_files = glob.glob(
-        os.path.join(
-            "/Users/moto/Documents/GitHub/motorina0/lnbits/data/code/lnbits",
-            "zips",
-            "*.zip",
-        )
-    )
+    zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
@@ -306,17 +297,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     print("### sys.path", sys.path)
     ext_module = importlib.import_module(ext.code)  # here
     print("### ext_module", ext_module)
-
-    # full_module_path = Path(settings.lnbits_external_code_path, ext.module_path, "__init__.py")
-    # spec = importlib.util.spec_from_file_location(name=ext.module_name, location=full_module_path, submodule_search_locations=[settings.lnbits_external_code_path])
-    # assert spec
-
-    # # importing the module as ext_module
-    # ext_module = importlib.util.module_from_spec(spec)
-    # sys.modules[ext.module_name] = ext_module
-    # assert spec.loader
-    # sys.path.append(settings.lnbits_external_code_path)
-    # spec.loader.exec_module(ext_module)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
