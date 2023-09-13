@@ -177,9 +177,8 @@ async def wallet(
 
     if not wal:
         if len(user.wallets) == 0:
-            return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": "User has no wallets."}
-            )
+            wallet = await create_wallet(user_id=user.id)
+            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
         return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
     else:
         wallet_id = wal.hex
