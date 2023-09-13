@@ -271,9 +271,7 @@ class EnvSettings(LNbitsSettings):
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
-    lnbits_external_code_path: str = Field(
-        default="/Users/moto/Documents/GitHub/motorina0/lnbits/data/code"
-    )
+    lnbits_extensions_path: str = Field(default="lnbits")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")

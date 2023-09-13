@@ -205,7 +205,7 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self) -> None:
-        p = Path(settings.lnbits_external_code_path, "extensions")
+        p = Path(settings.lnbits_extensions_path, "extensions")
         Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
@@ -330,18 +330,18 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
-        extensions_data_dir = Path(settings.lnbits_external_code_path, "zips")
+        extensions_data_dir = Path(settings.lnbits_extensions_path, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
         return Path(extensions_data_dir, f"{self.id}.zip")
 
     @property
     def ext_dir(self) -> Path:
-        return Path(settings.lnbits_external_code_path, "extensions", self.id)
+        return Path(settings.lnbits_extensions_path, "extensions", self.id)
 
     @property
     def ext_upgrade_dir(self) -> Path:
         return Path(
-            settings.lnbits_external_code_path, "upgrades", f"{self.id}-{self.hash}"
+            settings.lnbits_extensions_path, "upgrades", f"{self.id}-{self.hash}"
         )
 
     @property
@@ -391,7 +391,7 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
-        Path(settings.lnbits_external_code_path, "upgrades").mkdir(
+        Path(settings.lnbits_extensions_path, "upgrades").mkdir(
             parents=True, exist_ok=True
         )
         shutil.rmtree(self.ext_upgrade_dir, True)
@@ -425,7 +425,7 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
             Path(self.ext_upgrade_dir, self.id),
-            Path(settings.lnbits_external_code_path, "extensions", self.id),
+            Path(settings.lnbits_extensions_path, "extensions", self.id),
         )
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
