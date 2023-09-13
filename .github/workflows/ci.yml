@@ -48,3 +48,10 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
+
+  docker:
+    if: github.ref == 'refs/heads/main'
+    needs: [ lint ]
+    uses: ./.github/workflows/docker.yml
+    with:
+      tag: main

@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: update version in pyproject.toml
         env:
@@ -25,8 +27,9 @@ jobs:
           git config --global user.email 'alan@lnbits.com'
           git commit -am "[CHORE] update version to $tag"
           git push
-          git tag -fa $tag
-          git push origin --tags
+          git push --delete origin $tag
+          git tag -fa $tag -m "update via workflow"
+          git push --tags
 
       - name: Create github release
         env:
