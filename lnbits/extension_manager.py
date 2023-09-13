@@ -202,13 +202,10 @@ class Extension(NamedTuple):
 
 # All subdirectories in the current directory, not recursive.
 
-lnbits_temp_code = settings.lnbits_external_code_path + "/lnbits"
-# sys.path.append("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code")
-
 
 class ExtensionManager:
     def __init__(self) -> None:
-        p = Path(lnbits_temp_code, "extensions")
+        p = Path(settings.lnbits_external_code_path, "extensions")
         Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
@@ -333,17 +330,19 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
-        extensions_data_dir = Path(lnbits_temp_code, "zips")
+        extensions_data_dir = Path(settings.lnbits_external_code_path, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
         return Path(extensions_data_dir, f"{self.id}.zip")
 
     @property
     def ext_dir(self) -> Path:
-        return Path(lnbits_temp_code, "extensions", self.id)
+        return Path(settings.lnbits_external_code_path, "extensions", self.id)
 
     @property
     def ext_upgrade_dir(self) -> Path:
-        return Path(lnbits_temp_code, "upgrades", f"{self.id}-{self.hash}")
+        return Path(
+            settings.lnbits_external_code_path, "upgrades", f"{self.id}-{self.hash}"
+        )
 
     @property
     def module_name(self) -> str:
@@ -392,7 +391,9 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
-        Path(lnbits_temp_code, "upgrades").mkdir(parents=True, exist_ok=True)
+        Path(settings.lnbits_external_code_path, "upgrades").mkdir(
+            parents=True, exist_ok=True
+        )
         shutil.rmtree(self.ext_upgrade_dir, True)
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(self.ext_upgrade_dir)
@@ -424,7 +425,7 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(
             Path(self.ext_upgrade_dir, self.id),
-            Path(lnbits_temp_code, "extensions", self.id),
+            Path(settings.lnbits_external_code_path, "extensions", self.id),
         )
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 

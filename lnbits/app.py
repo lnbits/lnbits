@@ -307,16 +307,16 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
-            static_files = (
-                StaticFiles(
-                    directory=Path(settings.lnbits_external_code_path, s["app"])
-                )
-                if isinstance(s["app"], str)
-                else s["app"]
-            )
+            print("### s", *s["path"].split("/"))
             app.mount(
                 s["path"],
-                static_files,
+                StaticFiles(
+                    directory=Path(
+                        settings.lnbits_external_code_path,
+                        "extensions",
+                        *s["path"].split("/"),
+                    )
+                ),
                 s["name"],
             )
 
