@@ -4,18 +4,26 @@ from typing import Dict
 import httpx
 from loguru import logger
 
+from lnbits.core.crud import (
+    get_balance_notify,
+    get_wallet,
+    get_webpush_subscriptions_for_user,
+)
+from lnbits.core.db import db
+from lnbits.core.models import Payment
+from lnbits.core.services import (
+    get_balance_delta,
+    send_payment_notification,
+    switch_to_voidwallet,
+)
 from lnbits.settings import get_wallet_class, settings
 from lnbits.tasks import (
     SseListenersDict,
     create_permanent_task,
     create_task,
     register_invoice_listener,
+    send_push_notification,
 )
-
-from . import db
-from .crud import get_balance_notify, get_wallet
-from .models import Payment
-from .services import get_balance_delta, send_payment_notification, switch_to_voidwallet
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
     "api_invoice_listeners"
@@ -119,6 +127,8 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
 
+        await send_payment_push_notification(payment)
+
 
 async def dispatch_api_invoice_listeners(payment: Payment):
     """
@@ -159,3 +169,24 @@ async def mark_webhook_sent(payment: Payment, status: int) -> None:
         """,
         (status, payment.payment_hash),
     )
+
+
+async def send_payment_push_notification(payment: Payment):
+    wallet = await get_wallet(payment.wallet_id)
+
+    if wallet:
+        subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
+
+        amount = int(payment.amount / 1000)
+
+        title = f"LNbits: {wallet.name}"
+        body = f"You just received {amount} sat{'s'[:amount^1]}!"
+
+        if payment.memo:
+            body += f"\r\n{payment.memo}"
+
+        for subscription in subscriptions:
+            url = (
+                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+            )
+            await send_push_notification(subscription, title, body, url)

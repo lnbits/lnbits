@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.10.10"
+version = "0.11.0"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 
@@ -10,42 +10,46 @@ bech32 = "1.2.0"
 bitstring = "3.1.9"
 click = "8.1.7"
 ecdsa = "0.18.0"
-embit = "^0.7.0"
-fastapi = "0.101.1"
-httpx = "0.24.1"
+embit = "0.7.0"
+fastapi = "0.103.0"
+httpx = "0.25.0"
 jinja2 = "3.0.1"
 lnurl = "0.3.6"
-psycopg2-binary = "2.9.1"
-pydantic = "1.10.4"
+psycopg2-binary = "2.9.6"
+pydantic = "1.10.9"
 pyqrcode = "1.2.1"
 shortuuid = "1.0.11"
 sqlalchemy = "1.3.24"
 sqlalchemy-aio = "0.17.0"
-sse-starlette = "0.6.2"
-typing-extensions = "4.5.0"
-uvicorn = "0.18.3"
-uvloop = "0.16.0"
-websockets = "10.0"
-loguru = "0.7.0"
-grpcio = "1.51.1"
-protobuf = "4.21.12"
+sse-starlette = "1.6.5"
+typing-extensions = "4.7.0"
+uvicorn = "0.23.2"
+uvloop = "0.17.0"
+websockets = "11.0.3"
+loguru = "0.7.1"
+grpcio = "1.58.0"
+protobuf = "4.24.3"
 Cerberus = "1.3.4"
-async-timeout = "4.0.2"
+async-timeout = "4.0.3"
 pyln-client = "23.8"
-slowapi = "^0.1.7"
-cashu = {path = "../cashu"}
+pywebpush = "1.14.0"
+slowapi = "0.1.8"
+python-dotenv = "1.0.0"
+websocket-client = "1.6.3"
+secp256k1 = "0.14.0"
+pycryptodomex = "3.18.0"
+packaging = "23.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.1.2"
 black = "^23.7.0"
-pytest-asyncio = "^0.19.0"
+pytest-asyncio = "^0.21.0"
+pytest = "^7.3.2"
 pytest-cov = "^4.1.0"
 mypy = "^1.5.1"
-types-protobuf = "^3.19.22"
+types-protobuf = "^4.24.0.1"
 pre-commit = "^3.2.2"
-types-mock = "^5.0.0.6"
-openapi-spec-validator = "^0.5.5"
-ruff = "^0.0.284"
+openapi-spec-validator = "^0.6.0"
+ruff = "^0.0.287"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -91,11 +95,13 @@ module = [
   "psycopg2.*",
   "pyngrok.*",
   "pyln.client.*",
+  "py_vapid.*",
+  "pywebpush.*",
 ]
 ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
-log_cli = true
+log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
   "tests"
@@ -119,9 +125,7 @@ line-length = 88
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 # (`I`) is for `isort`.
 select = ["E", "F", "I"]
-ignore = [
-    "E402", # Module level import not at top of file
-]
+ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

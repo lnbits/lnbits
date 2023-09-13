@@ -56,3 +56,32 @@ self.addEventListener('fetch', event => {
     )
   }
 })
+
+// Handle and show incoming push notifications
+self.addEventListener('push', function (event) {
+  if (!(self.Notification && self.Notification.permission === 'granted')) {
+    return
+  }
+
+  let data = event.data.json()
+  const title = data.title
+  const body = data.body
+  const url = data.url
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: body,
+      icon: '/favicon.ico',
+      data: {
+        url: url
+      }
+    })
+  )
+})
+
+// User can click on the notification message to open wallet
+// Installed app will open when `url_handlers` in web app manifest is supported
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close()
+  event.waitUntil(clients.openWindow(event.notification.data.url))
+})
