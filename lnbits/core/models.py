@@ -29,6 +29,7 @@ class Wallet(BaseModel):
     inkey: str
     currency: Optional[str]
     balance_msat: int
+    deleted: bool
 
     @property
     def balance(self) -> int:
@@ -234,9 +235,9 @@ class Payment(FromRowModel):
         return status
 
     async def delete(self, conn: Optional[Connection] = None) -> None:
-        from .crud import delete_payment
+        from .crud import delete_wallet_payment
 
-        await delete_payment(self.checking_id, conn=conn)
+        await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
 class PaymentFilters(FilterModel):
@@ -255,6 +256,13 @@ class PaymentFilters(FilterModel):
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+
+
+class PaymentHistoryPoint(BaseModel):
+    date: datetime.datetime
+    income: int
+    spending: int
+    balance: int
 
 
 class BalanceCheck(BaseModel):
@@ -329,3 +337,15 @@ class CreateTopup(BaseModel):
 
 class CreateLnurlAuth(BaseModel):
     callback: str
+
+
+class CreateWebPushSubscription(BaseModel):
+    subscription: str
+
+
+class WebPushSubscription(BaseModel):
+    endpoint: str
+    user: str
+    data: str
+    host: str
+    timestamp: str

@@ -327,3 +327,69 @@ async def m012_add_currency_to_wallet(db):
         ALTER TABLE wallets ADD COLUMN currency TEXT
         """
     )
+
+
+async def m013_add_deleted_to_wallets(db):
+    """
+    Adds deleted column to wallets.
+    """
+    try:
+        await db.execute(
+            "ALTER TABLE wallets ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT false"
+        )
+    except OperationalError:
+        pass
+
+
+async def m014_set_deleted_wallets(db):
+    """
+    Sets deleted column to wallets.
+    """
+    try:
+        rows = await (
+            await db.execute(
+                """
+                SELECT *
+                FROM wallets
+                WHERE user LIKE 'del:%'
+                AND adminkey LIKE 'del:%'
+                AND inkey LIKE 'del:%'
+                """
+            )
+        ).fetchall()
+
+        for row in rows:
+            try:
+                user = row[2].split(":")[1]
+                adminkey = row[3].split(":")[1]
+                inkey = row[4].split(":")[1]
+                await db.execute(
+                    """
+                    UPDATE wallets SET user = ?, adminkey = ?, inkey = ?, deleted = true
+                    WHERE id = ?
+                    """,
+                    (user, adminkey, inkey, row[0]),
+                )
+            except Exception:
+                continue
+    except OperationalError:
+        # this is necessary now because it may be the case that this migration will
+        # run twice in some environments.
+        # catching errors like this won't be necessary in anymore now that we
+        # keep track of db versions so no migration ever runs twice.
+        pass
+
+
+async def m015_create_push_notification_subscriptions_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS webpush_subscriptions (
+            endpoint TEXT NOT NULL,
+            "user" TEXT NOT NULL,
+            data TEXT NOT NULL,
+            host TEXT NOT NULL,
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            PRIMARY KEY (endpoint, "user")
+        );
+    """
+    )
