@@ -189,14 +189,6 @@ class Extension(NamedTuple):
             else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
         )
 
-    @property
-    def module_path(self):
-        return (
-            f"lnbits/extensions/{self.code}"
-            if self.upgrade_hash == ""
-            else f"lnbits/upgrades/{self.code}-{self.upgrade_hash}/{self.code}"
-        )
-
     @classmethod
     def from_installable_ext(cls, ext_info: "InstallableExtension") -> "Extension":
         return Extension(
