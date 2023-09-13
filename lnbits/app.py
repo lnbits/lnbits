@@ -294,9 +294,7 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    print("### sys.path", sys.path)
-    ext_module = importlib.import_module(ext.code)  # here
-    print("### ext_module", ext_module)
+    ext_module = importlib.import_module(ext.code)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
