@@ -188,7 +188,7 @@ class Extension(NamedTuple):
             if self.upgrade_hash == ""
             else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
         )
-    
+
     @property
     def module_path(self):
         return (
@@ -212,6 +212,7 @@ class Extension(NamedTuple):
 
 lnbits_temp_code = settings.lnbits_external_code_path + "/lnbits"
 # sys.path.append("/Users/moto/Documents/GitHub/motorina0/lnbits/data/code")
+
 
 class ExtensionManager:
     def __init__(self) -> None:
