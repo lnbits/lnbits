@@ -357,7 +357,7 @@ def register_startup(app: FastAPI):
 
         except Exception as e:
             logger.error(str(e))
-            raise ImportError("Failed to run 'startup' event.")
+            # raise ImportError("Failed to run 'startup' event.")
 
 
 def register_shutdown(app: FastAPI):

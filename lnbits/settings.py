@@ -305,6 +305,7 @@ class SuperUserSettings(LNbitsSettings):
             "LNPayWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
+            "CashuWallet",
         ]
     )
 

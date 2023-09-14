@@ -39,6 +39,7 @@ websocket-client = "1.6.3"
 secp256k1 = "0.14.0"
 pycryptodomex = "3.18.0"
 packaging = "23.1"
+cashu = {path = "../cashu"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
