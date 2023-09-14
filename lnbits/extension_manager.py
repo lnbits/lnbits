@@ -35,8 +35,6 @@ class ExplicitRelease(BaseModel):
     critical_notification: Optional[str]
 
     def is_version_compatible(self):
-        print("### settings.version", settings.version)
-        return True
         if not self.min_lnbits_version:
             return True
         return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
@@ -75,8 +73,6 @@ class ExtensionConfig(BaseModel):
     min_lnbits_version: Optional[str]
 
     def is_version_compatible(self):
-        print("### is_version_compatible", settings.version)
-        return True
         if not self.min_lnbits_version:
             return True
         return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
