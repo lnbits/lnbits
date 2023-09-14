@@ -406,11 +406,11 @@ class InstallableExtension(BaseModel):
 
         tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
         shutil.rmtree(tmp_dir, True)
-        shutil.rmtree(self.ext_upgrade_dir, True)
 
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(tmp_dir)
         generated_dir_name = os.listdir(tmp_dir)[0]
+        shutil.rmtree(self.ext_upgrade_dir, True)
         shutil.copytree(
             Path(tmp_dir, generated_dir_name),
             Path(self.ext_upgrade_dir),
