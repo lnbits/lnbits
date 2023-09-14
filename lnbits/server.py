@@ -38,7 +38,7 @@ def main(
     # create data dir if it does not exist
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
 
-    # create extension dir if it does not exist
+    # create `extensions`` dir if it does not exist
     Path(settings.lnbits_extensions_path, "extensions").mkdir(
         parents=True, exist_ok=True
     )
