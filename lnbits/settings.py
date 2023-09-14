@@ -277,8 +277,8 @@ class EnvSettings(LNbitsSettings):
     version: str = Field(default="0.0.0")
 
     @property
-    def has_custom_extension_path(self) -> bool:
-        return self.lnbits_extensions_path != "./lnbits"
+    def has_default_extension_path(self) -> bool:
+        return self.lnbits_extensions_path == "./lnbits"
 
 
 class SaaSSettings(LNbitsSettings):
