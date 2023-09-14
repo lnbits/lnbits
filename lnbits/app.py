@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
+    register_customl_extensions_path()
     register_startup(app)
     register_routes(app)
     register_async_tasks(app)
@@ -269,6 +270,12 @@ def register_routes(app: FastAPI) -> None:
             )
 
 
+def register_customl_extensions_path():
+    if not settings.has_default_extension_path:
+        sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
+        sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
+
+
 def register_new_ext_routes(app: FastAPI) -> Callable:
     # Returns a function that registers new routes for an extension.
     # The returned function encapsulates (creates a closure around)
@@ -294,7 +301,7 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    ext_module = importlib.import_module(ext.code)
+    ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
