@@ -273,14 +273,15 @@ def register_routes(app: FastAPI) -> None:
 def register_custom_extensions_path():
     if settings.has_default_extension_path:
         return
-    if len(os.listdir("lnbits/extensions")) != 0:
+    default_ext_path = "lnbits/extensions"
+    if os.path.isdir(default_ext_path) and len(os.listdir(default_ext_path)) != 0:
         logger.warning(
             "You are using a custom extensions path, "
             + "but the default extensions directory is not empty. "
-            + "Please clean-up the 'lnbits/extensions' directory."
+            + f"Please clean-up the '{default_ext_path}' directory."
         )
         logger.warning(
-            "You can move the existing 'lnbits/extensions' directory to: "
+            f"You can move the existing '{default_ext_path}' directory to: "
             + f" '{settings.lnbits_extensions_path}/extensions'"
         )
 
