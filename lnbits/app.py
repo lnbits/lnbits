@@ -96,7 +96,7 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
-    register_customl_extensions_path()
+    register_custom_extensions_path()
     register_startup(app)
     register_routes(app)
     register_async_tasks(app)
@@ -270,7 +270,7 @@ def register_routes(app: FastAPI) -> None:
             )
 
 
-def register_customl_extensions_path():
+def register_custom_extensions_path():
     if settings.has_default_extension_path:
         return
     if len(os.listdir("lnbits/extensions")) != 0:
