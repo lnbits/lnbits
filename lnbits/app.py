@@ -271,9 +271,21 @@ def register_routes(app: FastAPI) -> None:
 
 
 def register_customl_extensions_path():
-    if not settings.has_default_extension_path:
-        sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
-        sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
+    if settings.has_default_extension_path:
+        return
+    if len(os.listdir("lnbits/extensions")) != 0:
+        logger.warning(
+            "You are using a custom extensions path, "
+            + "but the default extensions directory is not empty. "
+            + "Please clean-up the 'lnbits/extensions' directory."
+        )
+        logger.warning(
+            "You can move the existing 'lnbits/extensions' directory to: "
+            + f" '{settings.lnbits_extensions_path}/extensions'"
+        )
+
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
