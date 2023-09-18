@@ -260,10 +260,7 @@ def register_routes(app: FastAPI) -> None:
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(str(e))
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` follows conventions."
-            )
+            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
