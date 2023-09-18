@@ -62,7 +62,9 @@ async def get_account(
 
 
 async def get_user(
-    user_id: str, conn: Optional[Connection] = None, deleted: Optional[bool] = False
+    user_id: str,
+    conn: Optional[Connection] = None,
+    include_deleted_wallets: Optional[bool] = False,
 ) -> Optional[User]:
     user = await (conn or db).fetchone(
         "SELECT id, email FROM accounts WHERE id = ?", (user_id,)
@@ -72,7 +74,7 @@ async def get_user(
         clauses = ["user = ?"]
         values: List[Any] = [user_id]
 
-        if not deleted:
+        if not include_deleted_wallets:
             clauses.append("deleted = ?")
             values.append(False)
 
