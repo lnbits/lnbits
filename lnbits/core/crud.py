@@ -61,25 +61,37 @@ async def get_account(
     return User(**row) if row else None
 
 
-async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
+async def get_user(
+    user_id: str,
+    conn: Optional[Connection] = None,
+    include_deleted_wallets: Optional[bool] = False,
+) -> Optional[User]:
     user = await (conn or db).fetchone(
         "SELECT id, email FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
+        clauses = ["user = ?"]
+        values: List[Any] = [user_id]
+
+        if not include_deleted_wallets:
+            clauses.append("deleted = ?")
+            values.append(False)
+
+        where = "WHERE " + " AND ".join(clauses) if clauses else ""
         extensions = await (conn or db).fetchall(
             """SELECT extension FROM extensions WHERE "user" = ? AND active""",
             (user_id,),
         )
         wallets = await (conn or db).fetchall(
-            """
+            f"""
             SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet = wallets.id
             ), 0) AS balance_msat
             FROM wallets
-            WHERE "user" = ?
+            {where}
             """,
-            (user_id,),
+            tuple(values),
         )
     else:
         return None
