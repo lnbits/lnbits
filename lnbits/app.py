@@ -273,7 +273,7 @@ def register_routes(app: FastAPI) -> None:
 def register_custom_extensions_path():
     if settings.has_default_extension_path:
         return
-    default_ext_path = "lnbits/extensions"
+    default_ext_path = os.path.join("lnbits", "extensions")
     if os.path.isdir(default_ext_path) and len(os.listdir(default_ext_path)) != 0:
         logger.warning(
             "You are using a custom extensions path, "
