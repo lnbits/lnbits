@@ -535,3 +535,15 @@ video {
 .q-card code {
   overflow-wrap: break-word;
 }
+
+.qrcode__image {
+  background-color: #fff;
+  border: 2rem solid #fff;
+  border-radius: 2rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
+  left: 50%;
+  overflow: hidden;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.15);
+}
