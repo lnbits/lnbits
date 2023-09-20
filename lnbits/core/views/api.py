@@ -399,17 +399,6 @@ async def api_payments_pay_lnurl(
             ),
         )
 
-    if invoice.description_hash != data.description_hash:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                (
-                    f"{domain} returned an invalid invoice. Expected description_hash"
-                    f" == {data.description_hash}, got {invoice.description_hash}."
-                ),
-            ),
-        )
-
     extra = {}
 
     if params.get("successAction"):
