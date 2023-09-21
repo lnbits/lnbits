@@ -357,14 +357,20 @@ Vue.component('lnbits-lnurlpay-success-action', {
 })
 
 Vue.component('lnbits-qrcode', {
+  mixins: [windowMixin],
   props: ['value'],
-  components: {qrcode: VueQrcode},
+  components: {[VueQrcode.name]: VueQrcode},
+  data() {
+    return {
+      logo: LNBITS_QR_LOGO
+    }
+  },
   template: `
-  <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+  <div class="qrcode__wrapper">
     <qrcode :value="value"
-    :options="{width: 800, errorCorrectionLevel: 'Q'}" class="rounded-borders"></qrcode>
-    <img class="qrcode__image" src="https://raw.githubusercontent.com/lnbits/lnbits/3260acbcc7e907fa9c9c60d0582bf974031f917b/docs/logos/lnbits.svg" alt="Chen Fengyuan" />
-  </q-responsive>
+    :options="{errorCorrectionLevel: 'Q'}" class="rounded-borders"></qrcode>
+    <img class="qrcode__image" :src="logo" alt="..." />
+  </div>
   `
 })
 
