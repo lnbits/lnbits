@@ -536,14 +536,21 @@ video {
   overflow-wrap: break-word;
 }
 
+.qrcode__wrapper > canvas {
+  min-width: 100%;
+  min-height: 100%;
+}
+
 .qrcode__image {
-  background-color: #fff;
-  border: 2rem solid #fff;
-  border-radius: 2rem;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
+  width: 15%;
+  height: 15%;
+  filter: drop-shadow(0 0 0.4rem black);
+  border-radius: 50%;
+  overflow: hidden;
+  /* background-color: #fff; */
   left: 50%;
   overflow: hidden;
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%) scale(0.15);
+  transform: translate(-50%, -50%);
 }
