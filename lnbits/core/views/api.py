@@ -924,8 +924,6 @@ async def api_get_tinyurl(tinyurl_id: str):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
         if tinyurl:
-            tinyurl = tinyurl.dict()
-            del tinyurl["wallet"]
             return tinyurl
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
