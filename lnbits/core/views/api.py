@@ -924,7 +924,12 @@ async def api_get_tinyurl(tinyurl_id: str):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
         if tinyurl:
-            return tinyurl
+            return {
+                "id": tinyurl.id,
+                "url": tinyurl.url,
+                "endless": tinyurl.endless,
+                "time": tinyurl.time,
+            }
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
