@@ -920,14 +920,11 @@ async def api_create_tinyurl(
     name="Tinyurl",
     description="get a tinyurl by id",
 )
-async def api_get_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_get_tinyurl(tinyurl_id: str):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
         if tinyurl:
-            if tinyurl.wallet == wallet.wallet.inkey:
-                return tinyurl
+            return tinyurl
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
