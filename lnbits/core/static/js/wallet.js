@@ -335,6 +335,7 @@ new Vue({
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
+      this.focusInput('textArea')
     },
     updateBalance: function (credit) {
       LNbits.api
