@@ -28,6 +28,13 @@ def db():
     """
 
 
+@lnbits_cli.group()
+def extensions():
+    """
+    Extensions related commands
+    """
+
+
 def get_super_user() -> str:
     """Get the superuser"""
     with open(Path(settings.lnbits_data_folder) / ".super_user", "r") as file:
@@ -118,6 +125,35 @@ async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions()
     settings.lnbits_deactivated_extensions += inactive_extensions
+
+
+@extensions.command("list")
+def extensions_list():
+    """Show currently installed extensions"""
+    click.echo("Installed extensions:")
+
+
+@extensions.command("upgrade")
+def extensions_upgrade():
+    """Update all extension"""
+
+
+@extensions.command("update")
+@click.argument("extension")
+def extensions_update(extension: str):
+    """Update a extension"""
+
+
+@extensions.command("install")
+@click.argument("extension")
+def extensions_install(extension: str):
+    """Install a extension"""
+
+
+@extensions.command("uninstall")
+@click.argument("extension")
+def extensions_uninstall(extension: str):
+    """Uninstall a extension"""
 
 
 def main():
