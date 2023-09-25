@@ -275,9 +275,14 @@ class EnvSettings(LNbitsSettings):
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
+    lnbits_extensions_path: str = Field(default="lnbits")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+
+    @property
+    def has_default_extension_path(self) -> bool:
+        return self.lnbits_extensions_path == "lnbits"
 
 
 class SaaSSettings(LNbitsSettings):
