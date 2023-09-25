@@ -357,6 +357,12 @@ window.LNbits = {
           icon: null
         })
       }
+    },
+    convertMarkdown(text) {
+      const converter = new showdown.Converter()
+      converter.setFlavor('github')
+      converter.setOption('simpleLineBreaks', true)
+      return converter.makeHtml(text)
     }
   }
 }

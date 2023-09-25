@@ -30,7 +30,8 @@
     "/static/i18n/br.js",
     "/static/js/base.js",
     "/static/js/components.js",
-    "/static/js/bolt11-decoder.js"
+    "/static/js/bolt11-decoder.js",
+    "/static/vendor/showdown.js"
   ],
   "css": [
     "/static/vendor/quasar.css",
