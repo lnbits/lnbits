@@ -335,6 +335,7 @@ new Vue({
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
+      this.focusInput('textArea')
     },
     updateBalance: function (credit) {
       LNbits.api
@@ -799,6 +800,7 @@ new Vue({
       })
     },
     pasteToTextArea: function () {
+      this.$refs.textArea.focus() // Set cursor to textarea
       navigator.clipboard.readText().then(text => {
         this.$refs.textArea.value = text
       })
