@@ -163,7 +163,7 @@ async def check_pending_payments():
         )
         for payment in pending_payments:
             await payment.check_status()
-            await asyncio.sleep(0.1)  # to avoid complete blocking
+            await asyncio.sleep(0.01)  # to avoid complete blocking
 
         logger.info(
             f"Task: pending check finished for {len(pending_payments)} payments"
