@@ -77,7 +77,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
                 SELECT balance FROM balances WHERE wallet = wallets.id
             ), 0) AS balance_msat
             FROM wallets
-            WHERE "user" = ?
+            WHERE "user" = ? and wallets.deleted = false
             """,
             (user_id,),
         )
