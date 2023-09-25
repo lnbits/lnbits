@@ -36,16 +36,12 @@ from .models import (
 
 async def create_account(
     conn: Optional[Connection] = None, user_id: Optional[str] = None
-) -> Optional[User]:
+) -> User:
     if user_id:
         user_uuid4 = UUID(hex=user_id, version=4)
         assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
     else:
         user_id = uuid4().hex
-    
-    if len(settings.lnbits_allowed_users) > 0 and user_id not in settings.lnbits_allowed_users:
-        return None
-
 
     await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
