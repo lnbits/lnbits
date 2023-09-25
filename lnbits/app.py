@@ -81,12 +81,10 @@ def create_app() -> FastAPI:
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
     setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
-    app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
-    app.mount(
-        "/core/static",
-        StaticFiles(packages=[("lnbits.core", "static")]),
-        name="core_static",
-    )
+    # register static files
+    static_path = Path("lnbits/static")
+    static = StaticFiles(directory=static_path)
+    app.mount("/static", static, name="static")
 
     g().base_url = f"http://{settings.host}:{settings.port}"
 

@@ -1,5 +1,5 @@
 {% extends "public.html" %} {% block scripts %}
-<script src="/core/static/js/index.js"></script>
+<script src="{{ static_url_for('static', 'js/index.js') }}"></script>
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
@@ -85,7 +85,7 @@
             <a href="https://github.com/ElementsProject/lightning">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/cln.png' : '/static/images/clnl.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -93,7 +93,7 @@
             <a href="https://github.com/lightningnetwork/lnd">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/lnd.png' : '/static/images/lnd.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -104,7 +104,7 @@
             <a href="https://opennode.com">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/opennode.png' : '/static/images/opennodel.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -112,7 +112,7 @@
             <a href="https://lnpay.co/">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/lnpay.png' : '/static/images/lnpayl.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -123,7 +123,7 @@
             <a href="https://github.com/rootzoll/raspiblitz">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/blitz.png' : '/static/images/blitzl.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -131,7 +131,7 @@
             <a href="https://start9.com/">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/start9.png' : '/static/images/start9l.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -141,7 +141,7 @@
             <a href="https://getumbrel.com/">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/umbrel.png' : '/static/images/umbrell.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -149,7 +149,7 @@
             <a href="https://mynodebtc.com">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/mynode.png' : '/static/images/mynodel.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -159,7 +159,7 @@
             <a href="https://github.com/shesek/spark-wallet">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/spark.png' : '/static/images/sparkl.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
               ></q-img>
             </a>
           </div>
@@ -167,7 +167,7 @@
             <a href="https://voltage.cloud">
               <q-img
                 contain
-                :src="($q.dark.isActive) ? '/static/images/voltage.png' : '/static/images/voltagel.png'"
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
               ></q-img>
             </a>
           </div>

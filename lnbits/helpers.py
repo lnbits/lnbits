@@ -29,6 +29,10 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
+def static_url_for(static: str, path: str) -> str:
+    return f"/{static}/{path}?v={settings.cache_version}"
+
+
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
@@ -38,6 +42,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         ]
         folders.extend(additional_folders)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
+    t.env.globals["static_url_for"] = static_url_for
 
     if settings.lnbits_ad_space_enabled:
         t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
@@ -67,8 +72,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
     if settings.bundle_assets:
-        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
-        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
+        t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
+        t.env.globals["INCLUDED_CSS"] = ["bundle.min.css"]
     else:
         vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
         with open(vendor_filepath) as vendor_file:

@@ -34,9 +34,5 @@
     "/static/js/components/lnbits-funding-sources.js",
     "/static/js/bolt11-decoder.js"
   ],
-  "css": [
-    "/static/vendor/quasar.css",
-    "/static/vendor/Chart.css",
-    "/static/css/base.css"
-  ]
+  "css": ["vendor/quasar.css", "vendor/Chart.css", "css/base.css"]
 }
