@@ -221,7 +221,7 @@ window.LNbits = {
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
-      obj.tag = obj.extra.tag
+      obj.tag = obj.extra?.tag
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
@@ -261,6 +261,9 @@ window.LNbits = {
     },
     formatSat: function (value) {
       return new Intl.NumberFormat(window.LOCALE).format(value)
+    },
+    formatMsat: function (value) {
+      return this.formatSat(value / 1000)
     },
     notifyApiError: function (error) {
       var types = {
@@ -348,6 +351,7 @@ window.windowMixin = {
   i18n: window.i18n,
   data: function () {
     return {
+      toggleSubs: true,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,
@@ -451,7 +455,7 @@ window.windowMixin = {
             return !obj.hidden
           })
           .filter(function (obj) {
-            if (window.user.admin) return obj
+            if (window.user?.admin) return obj
             return !obj.isAdminOnly
           })
           .map(function (obj) {

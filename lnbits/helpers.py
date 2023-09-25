@@ -7,6 +7,7 @@ import shortuuid
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
+from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -51,6 +52,10 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_NODE_UI"] = (
+        settings.lnbits_node_ui and get_node_class() is not None
+    )
+    t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
     t.env.globals["EXTENSIONS"] = [
         e
         for e in get_valid_extensions()
