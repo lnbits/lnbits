@@ -132,28 +132,42 @@ def extensions_list():
     """Show currently installed extensions"""
     click.echo("Installed extensions:")
 
+    async def wrap():
+        from lnbits.app import build_all_installed_extensions_list
+
+        for ext in await build_all_installed_extensions_list():
+            assert ext.installed_release, f"Extension {ext.id} has no installed_release"
+            click.echo(f"  - {ext.id} ({ext.installed_release.version})")
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(wrap())
+
 
 @extensions.command("upgrade")
 def extensions_upgrade():
     """Update all extension"""
+    click.echo("Updating all extensions...")
 
 
 @extensions.command("update")
 @click.argument("extension")
 def extensions_update(extension: str):
     """Update a extension"""
+    click.echo(f"Updating {extension}...")
 
 
 @extensions.command("install")
 @click.argument("extension")
 def extensions_install(extension: str):
     """Install a extension"""
+    click.echo(f"Installing {extension}...")
 
 
 @extensions.command("uninstall")
 @click.argument("extension")
 def extensions_uninstall(extension: str):
     """Uninstall a extension"""
+    click.echo(f"Uninstalling {extension}...")
 
 
 def main():
