@@ -7,7 +7,6 @@ from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
 
