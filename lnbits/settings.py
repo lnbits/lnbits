@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import importlib
 import importlib.metadata
 import inspect
 import json
+import subprocess
 from os import path
 from sqlite3 import Row
 from typing import Any, List, Optional
@@ -227,16 +226,6 @@ class WebPushSettings(LNbitsSettings):
     lnbits_webpush_privkey: str = Field(default=None)
 
 
-class NodeUISettings(LNbitsSettings):
-    # on-off switch for node ui
-    lnbits_node_ui: bool = Field(default=False)
-    # whether to display the public node ui (only if lnbits_node_ui is True)
-    lnbits_public_node_ui: bool = Field(default=False)
-    # can be used to disable the transactions tab in the node ui
-    # (recommended for large cln nodes)
-    lnbits_node_ui_transactions: bool = Field(default=False)
-
-
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -247,7 +236,6 @@ class EditableSettings(
     BoltzExtensionSettings,
     LightningSettings,
     WebPushSettings,
-    NodeUISettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -288,6 +276,7 @@ class EnvSettings(LNbitsSettings):
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
     lnbits_extensions_path: str = Field(default="lnbits")
+    lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
 
@@ -418,13 +407,19 @@ settings = Settings()
 
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
-settings.version = importlib.metadata.version("lnbits")
+try:
+    settings.lnbits_commit = (
+        subprocess.check_output(
+            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        )
+        .strip()
+        .decode("ascii")
+    )
+except Exception:
+    settings.lnbits_commit = "docker"
 
-# printing environment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
-        logger.debug(f"{key}: {value}")
+settings.version = importlib.metadata.version("lnbits")
 
 
 def get_wallet_class():
