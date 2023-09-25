@@ -64,8 +64,34 @@ window.LNbits = {
         callback
       })
     },
+    createAccount: function (name) {
+      return this.request('post', '/api/v1/account', null, {
+        name: name
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
+    },
+    createWallet: function (wallet, name) {
+      return this.request('post', '/api/v1/wallet', wallet.adminkey, {
+        name: name
+      }).then(res => {
+        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+      })
+    },
+    updateWallet: function (name, wallet) {
+      return this.request('patch', '/api/v1/wallet', wallet.adminkey, {
+        name: name
+      })
+    },
+    deleteWallet: function (wallet) {
+      return this.request('delete', '/api/v1/wallet', wallet.adminkey).then(
+        _ => {
+          let url = new URL(window.location.href)
+          url.searchParams.delete('wal')
+          window.location = url
+        }
+      )
     },
     getPayments: function (wallet, query) {
       const params = new URLSearchParams(query)
@@ -116,18 +142,6 @@ window.LNbits = {
           delete this.listeners[wallet.inkey]
         }
       }
-    }
-  },
-  href: {
-    createWallet: function (walletName, userId) {
-      window.location.href =
-        '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
-    },
-    updateWallet: function (walletName, userId, walletId) {
-      window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`
-    },
-    deleteWallet: function (walletId, userId) {
-      window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
     }
   },
   map: {

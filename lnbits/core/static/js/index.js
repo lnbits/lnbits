@@ -12,7 +12,9 @@ new Vue({
   },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName)
+      LNbits.api.createAccount(this.walletName).then(res => {
+        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+      })
     },
     processing: function () {
       this.$q.notify({

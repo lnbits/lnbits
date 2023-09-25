@@ -86,7 +86,7 @@ Vue.component('lnbits-wallet-list', {
   },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName, this.user.id)
+      LNbits.api.createWallet(this.user.wallets[0], this.walletName)
     },
     updateWalletBalance: function (payload) {
       this.activeBalance = payload

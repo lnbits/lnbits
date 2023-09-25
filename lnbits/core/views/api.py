@@ -36,6 +36,7 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
+    CreateWallet,
     CreateWebPushSubscription,
     DecodePayment,
     Payment,
@@ -75,11 +76,14 @@ from lnbits.utils.exchange_rates import (
 from ..crud import (
     DateTrunc,
     add_installed_extension,
+    create_account,
     create_tinyurl,
+    create_wallet,
     create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
+    delete_wallet,
     delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
@@ -146,6 +150,30 @@ async def api_update_wallet(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     return await update_wallet(wallet.wallet.id, name, currency)
+
+
+@api_router.delete("/api/v1/wallet")
+async def api_delete_wallet(
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> None:
+    await delete_wallet(
+        user_id=wallet.wallet.user,
+        wallet_id=wallet.wallet.id,
+    )
+
+
+@api_router.post("/api/v1/wallet", response_model=Wallet)
+async def api_create_wallet(
+    data: CreateWallet,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> Wallet:
+    return await create_wallet(user_id=wallet.wallet.user, wallet_name=data.name)
+
+
+@api_router.post("/api/v1/account", response_model=Wallet)
+async def api_create_account(data: CreateWallet) -> Wallet:
+    account = await create_account()
+    return await create_wallet(user_id=account.id, wallet_name=data.name)
 
 
 @api_router.get(
