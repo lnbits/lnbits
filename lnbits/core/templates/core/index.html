@@ -6,29 +6,13 @@
     <q-card>
       <q-card-section>
         {% if lnurl %}
-        <q-btn
-          unelevated
-          color="primary"
-          @click="processing"
-          type="a"
-          href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
-          v-text="$t('press_to_claim')"
-        ></q-btn>
+        <q-btn unelevated color="primary" @click="processing" type="a"
+          href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}" v-text="$t('press_to_claim')"></q-btn>
         {% else %}
         <q-form @submit="createWallet" class="q-gutter-md">
-          <q-input
-            filled
-            dense
-            v-model="walletName"
-            :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
-          ></q-input>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="walletName == ''"
-            type="submit"
-            :label="$t('add_wallet')"
-          ></q-btn>
+          <q-input filled dense v-model="walletName"
+            :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'></q-input>
+          <q-btn unelevated color="primary" :disable="walletName == ''" type="submit" :label="$t('add_wallet')"></q-btn>
         </q-form>
         {% endif %}
       </q-card-section>
@@ -41,27 +25,16 @@
         <div v-if="'{{SITE_TITLE}}' == 'LNbits'">
           <p v-text="$t('lnbits_description')"></p>
           <div class="row q-mt-md q-gutter-sm">
-            <q-btn
-              outline
-              color="grey"
-              type="a"
-              href="https://github.com/lnbits/lnbits"
-              target="_blank"
-              rel="noopener"
-              :label="$t('view_github')"
-            ></q-btn>
-            <q-btn
-              outline
-              color="grey"
-              type="a"
-              href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
-              target="_blank"
-              rel="noopener"
-              :label="$t('donate')"
-            ></q-btn>
+            <q-btn outline color="grey" type="a" href="https://github.com/lnbits/lnbits" target="_blank" rel="noopener"
+              :label="$t('view_github')"></q-btn>
+            <q-btn outline color="grey" type="a" href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
+              target="_blank" rel="noopener" :label="$t('donate')"></q-btn>
           </div>
         </div>
-        <p v-else>{{SITE_DESCRIPTION | safe}}</p>
+        <div v-else>
+          <div v-html="formatDescription"></div>
+        </div>
+        <!-- <p v-else>{{SITE_DESCRIPTION}}</p> -->
       </q-card-section>
     </q-card>
   </div>
@@ -70,27 +43,16 @@
   <div class="col-12 col-md-3 col-lg-3" v-if="'{{SITE_TITLE}}' == 'LNbits'">
     <div class="row q-col-gutter-lg justify-center">
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-        <q-btn
-          flat
-          color="secondary"
-          :label="$t('runs_on')"
-          class="full-width"
-        ></q-btn>
+        <q-btn flat color="secondary" :label="$t('runs_on')" class="full-width"></q-btn>
         <div class="row">
           <div class="col">
             <a href="https://github.com/ElementsProject/lightning">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/cln.png' : '/static/images/clnl.png'"
-              ></q-img>
+              <q-img contain :src="($q.dark.isActive) ? '/static/images/cln.png' : '/static/images/clnl.png'"></q-img>
             </a>
           </div>
           <div class="col q-pl-md">
             <a href="https://github.com/lightningnetwork/lnd">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/lnd.png' : '/static/images/lnd.png'"
-              ></q-img>
+              <q-img contain :src="($q.dark.isActive) ? '/static/images/lnd.png' : '/static/images/lnd.png'"></q-img>
             </a>
           </div>
         </div>
@@ -98,18 +60,14 @@
         <div class="row">
           <div class="col">
             <a href="https://opennode.com">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/opennode.png' : '/static/images/opennodel.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/opennode.png' : '/static/images/opennodel.png'"></q-img>
             </a>
           </div>
           <div class="col q-pl-md">
             <a href="https://lnpay.co/">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/lnpay.png' : '/static/images/lnpayl.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/lnpay.png' : '/static/images/lnpayl.png'"></q-img>
             </a>
           </div>
         </div>
@@ -117,54 +75,42 @@
         <div class="row">
           <div class="col">
             <a href="https://github.com/rootzoll/raspiblitz">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/blitz.png' : '/static/images/blitzl.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/blitz.png' : '/static/images/blitzl.png'"></q-img>
             </a>
           </div>
           <div class="col q-pl-md">
             <a href="https://start9.com/">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/start9.png' : '/static/images/start9l.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/start9.png' : '/static/images/start9l.png'"></q-img>
             </a>
           </div>
         </div>
         <div class="row">
           <div class="col">
             <a href="https://getumbrel.com/">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/umbrel.png' : '/static/images/umbrell.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/umbrel.png' : '/static/images/umbrell.png'"></q-img>
             </a>
           </div>
           <div class="col q-pl-md">
             <a href="https://mynodebtc.com">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/mynode.png' : '/static/images/mynodel.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/mynode.png' : '/static/images/mynodel.png'"></q-img>
             </a>
           </div>
         </div>
         <div class="row">
           <div class="col">
             <a href="https://github.com/shesek/spark-wallet">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/spark.png' : '/static/images/sparkl.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/spark.png' : '/static/images/sparkl.png'"></q-img>
             </a>
           </div>
           <div class="col q-pl-md">
             <a href="https://voltage.cloud">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '/static/images/voltage.png' : '/static/images/voltagel.png'"
-              ></q-img>
+              <q-img contain
+                :src="($q.dark.isActive) ? '/static/images/voltage.png' : '/static/images/voltagel.png'"></q-img>
             </a>
           </div>
         </div>
@@ -172,16 +118,10 @@
 
       {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-        <q-btn flat color="secondary" class="full-width q-mb-md"
-          >{{ AD_TITLE }}</q-btn
-        >
+        <q-btn flat color="secondary" class="full-width q-mb-md">{{ AD_TITLE }}</q-btn>
 
         <a href="{{ AD[0] }}" class="q-ma-md">
-          <img
-            v-if="($q.dark.isActive)"
-            src="{{ AD[1] }}"
-            style="max-width: 90%"
-          />
+          <img v-if="($q.dark.isActive)" src="{{ AD[1] }}" style="max-width: 90%" />
           <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
         </a>
       </div>

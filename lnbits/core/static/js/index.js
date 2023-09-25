@@ -5,9 +5,15 @@ new Vue({
     return {
       disclaimerDialog: {
         show: false,
-        data: {}
+        data: {},
+        description: ''
       },
       walletName: ''
+    }
+  },
+  computed: {
+    formatDescription() {   
+      return LNbits.utils.convertMarkdown(this.description)
     }
   },
   methods: {
@@ -22,6 +28,9 @@ new Vue({
         message: 'Processing...',
         icon: null
       })
-    }
+    },
+  },
+  created() {
+    this.description = SITE_DESCRIPTION
   }
 })
