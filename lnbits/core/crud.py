@@ -5,8 +5,8 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
+from bolt11.decode import decode
 
-from lnbits import bolt11
 from lnbits.core.db import db
 from lnbits.core.models import WalletType
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
@@ -545,10 +545,11 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
-    try:
-        invoice = bolt11.decode(payment_request)
+    invoice = decode(payment_request)
+
+    if invoice.expiry:
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    except Exception:
+    else:
         # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 

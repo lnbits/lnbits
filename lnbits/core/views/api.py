@@ -16,11 +16,11 @@ from fastapi import (
     Depends,
     Header,
     Request,
-    Response,
     WebSocket,
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
@@ -622,29 +622,20 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
 
 @api_router.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
-async def api_payments_decode(data: DecodePayment, response: Response):
+async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
             url = lnurl.decode(payment_str)
-            return {"domain": url}
+            return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
-            return {
-                "payment_hash": invoice.payment_hash,
-                "amount_msat": invoice.amount_msat,
-                "description": invoice.description,
-                "description_hash": invoice.description_hash,
-                "payee": invoice.payee,
-                "date": invoice.date,
-                "expiry": invoice.expiry,
-                "secret": invoice.secret,
-                "route_hints": invoice.route_hints,
-                "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
-            }
-    except Exception:
-        response.status_code = HTTPStatus.BAD_REQUEST
-        return {"message": "Failed to decode"}
+            return JSONResponse(invoice.data)
+    except Exception as exc:
+        return JSONResponse(
+            {"message": f"Failed to decode: {str(exc)}"},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
 
 
 @api_router.post("/api/v1/lnurlauth")
