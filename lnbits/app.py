@@ -71,6 +71,10 @@ def create_app() -> FastAPI:
         },
     )
 
+    # Allow registering new extensions routes without direct access to the `app` object
+    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
+    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
+
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
         "/core/static",
@@ -92,15 +96,15 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
+    # adds security middleware
+    add_ip_block_middleware(app)
+    add_ratelimit_middleware(app)
+
     register_startup(app)
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
     register_shutdown(app)
-
-    # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     return app
 
@@ -328,10 +332,6 @@ def register_startup(app: FastAPI):
             await check_webpush_settings()
 
             log_server_info()
-
-            # adds security middleware
-            add_ratelimit_middleware(app)
-            add_ip_block_middleware(app)
 
             # initialize WALLET
             try:
