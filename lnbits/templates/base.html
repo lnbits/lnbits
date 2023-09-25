@@ -70,6 +70,10 @@
           >
             <span>OFFLINE</span>
           </q-badge>
+          <lnbits-notifications-btn
+            v-if="g.user"
+            pubkey="{{ WEBPUSH_PUBKEY }}"
+          ></lnbits-notifications-btn>
           <q-btn-dropdown
             dense
             flat

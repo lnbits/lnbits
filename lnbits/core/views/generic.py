@@ -1,16 +1,16 @@
 import asyncio
 from http import HTTPStatus
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
-from starlette.responses import HTMLResponse, JSONResponse
 
-from lnbits.core import db
+from lnbits.core.db import db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -35,24 +35,24 @@ from ..crud import (
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
 
-core_html_routes: APIRouter = APIRouter(
+generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
 )
 
 
-@core_html_routes.get("/favicon.ico", response_class=FileResponse)
+@generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return FileResponse("lnbits/core/static/favicon.ico")
 
 
-@core_html_routes.get("/", response_class=HTMLResponse)
+@generic_router.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
         "core/index.html", {"request": request, "lnurl": lightning}
     )
 
 
-@core_html_routes.get("/robots.txt", response_class=HTMLResponse)
+@generic_router.get("/robots.txt", response_class=HTMLResponse)
 async def robots():
     data = """
     User-agent: *
@@ -61,7 +61,7 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/extensions", name="install.extensions", response_class=HTMLResponse
 )
 async def extensions_install(
@@ -158,7 +158,7 @@ async def extensions_install(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/wallet",
     response_class=HTMLResponse,
     description="""
@@ -172,7 +172,7 @@ nothing: create everything
 """,
 )
 async def wallet(
-    request: Request = Query(None),
+    request: Request,
     nme: Optional[str] = Query(None),
     usr: Optional[UUID4] = Query(None),
     wal: Optional[UUID4] = Query(None),
@@ -244,13 +244,21 @@ async def wallet(
     )
 
 
-@core_html_routes.get("/withdraw", response_class=JSONResponse)
+@generic_router.get("/withdraw", response_class=JSONResponse)
 async def lnurl_full_withdraw(request: Request):
-    user = await get_user(request.query_params.get("usr"))
+    usr_param = request.query_params.get("usr")
+    if not usr_param:
+        return {"status": "ERROR", "reason": "usr parameter not provided."}
+
+    user = await get_user(usr_param)
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.query_params.get("wal"))
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    wallet = user.get_wallet(wal_param)
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
@@ -267,17 +275,27 @@ async def lnurl_full_withdraw(request: Request):
     }
 
 
-@core_html_routes.get("/withdraw/cb", response_class=JSONResponse)
+@generic_router.get("/withdraw/cb", response_class=JSONResponse)
 async def lnurl_full_withdraw_callback(request: Request):
-    user = await get_user(request.query_params.get("usr"))
+    usr_param = request.query_params.get("usr")
+    if not usr_param:
+        return {"status": "ERROR", "reason": "usr parameter not provided."}
+
+    user = await get_user(usr_param)
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.query_params.get("wal"))
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    wallet = user.get_wallet(wal_param)
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
     pr = request.query_params.get("pr")
+    if not pr:
+        return {"status": "ERROR", "reason": "payment_request not provided."}
 
     async def pay():
         try:
@@ -294,7 +312,7 @@ async def lnurl_full_withdraw_callback(request: Request):
     return {"status": "OK"}
 
 
-@core_html_routes.get("/deletewallet", response_class=RedirectResponse)
+@generic_router.get("/deletewallet", response_class=RedirectResponse)
 async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
     if not user:
@@ -320,14 +338,18 @@ async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
     )
 
 
-@core_html_routes.get("/withdraw/notify/{service}")
+@generic_router.get("/withdraw/notify/{service}")
 async def lnurl_balance_notify(request: Request, service: str):
-    bc = await get_balance_check(request.query_params.get("wal"), service)
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    bc = await get_balance_check(wal_param, service)
     if bc:
         await redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
 )
 async def lnurlwallet(request: Request):
@@ -337,10 +359,14 @@ async def lnurlwallet(request: Request):
         assert user, "Newly created user not found."
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
+    lightning_param = request.query_params.get("lightning")
+    if not lightning_param:
+        return {"status": "ERROR", "reason": "lightning parameter not provided."}
+
     asyncio.create_task(
         redeem_lnurl_withdraw(
             wallet.id,
-            request.query_params.get("lightning"),
+            lightning_param,
             "LNbits initial funding: voucher redeem.",
             {"tag": "lnurlwallet"},
             5,  # wait 5 seconds before sending the invoice to the service
@@ -353,13 +379,15 @@ async def lnurlwallet(request: Request):
     )
 
 
-@core_html_routes.get("/service-worker.js", response_class=FileResponse)
+@generic_router.get("/service-worker.js", response_class=FileResponse)
 async def service_worker():
     return FileResponse("lnbits/core/static/js/service-worker.js")
 
 
-@core_html_routes.get("/manifest/{usr}.webmanifest")
-async def manifest(usr: str):
+@generic_router.get("/manifest/{usr}.webmanifest")
+async def manifest(request: Request, usr: str):
+    host = urlparse(str(request.url)).netloc
+
     user = await get_user(usr)
     if not user:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -393,10 +421,11 @@ async def manifest(usr: str):
             }
             for wallet in user.wallets
         ],
+        "url_handlers": [{"origin": f"https://{host}"}],
     }
 
 
-@core_html_routes.get("/admin", response_class=HTMLResponse)
+@generic_router.get("/admin", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -416,7 +445,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
     )
 
 
-@core_html_routes.get("/uuidv4/{hex_value}")
+@generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
         user_id = to_valid_user_id(hex_value).hex

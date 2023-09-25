@@ -1,29 +1,32 @@
 import asyncio
+import base64
 import hashlib
 import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
 from fastapi import (
+    APIRouter,
     Body,
     Depends,
     Header,
     Request,
-    Response,
     WebSocket,
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 from starlette.responses import RedirectResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
+from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import (
     migrate_extension_database,
     stop_extension_background_work,
@@ -33,12 +36,16 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     CreateLnurlAuth,
+    CreateWebPushSubscription,
     DecodePayment,
     Payment,
     PaymentFilters,
+    PaymentHistoryPoint,
+    Query,
     User,
     Wallet,
     WalletType,
+    WebPushSubscription,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -65,22 +72,27 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from .. import core_app, core_app_extra, db
 from ..crud import (
+    DateTrunc,
     add_installed_extension,
     create_tinyurl,
+    create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
     delete_tinyurl,
+    delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
+    get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
     get_tinyurl,
     get_tinyurl_by_url,
     get_wallet_for_key,
+    get_webpush_subscription,
     save_balance_check,
+    update_pending_payments,
     update_wallet,
 )
 from ..services import (
@@ -95,13 +107,15 @@ from ..services import (
 )
 from ..tasks import api_invoice_listeners
 
+api_router = APIRouter()
 
-@core_app.get("/api/v1/health", status_code=HTTPStatus.OK)
+
+@api_router.get("/api/v1/health", status_code=HTTPStatus.OK)
 async def health():
     return
 
 
-@core_app.get("/api/v1/wallet")
+@api_router.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet_type == WalletType.admin:
         return {
@@ -113,7 +127,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
-@core_app.put("/api/v1/wallet/{new_name}")
+@api_router.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet_name(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
@@ -125,7 +139,7 @@ async def api_update_wallet_name(
     }
 
 
-@core_app.patch("/api/v1/wallet", response_model=Wallet)
+@api_router.patch("/api/v1/wallet", response_model=Wallet)
 async def api_update_wallet(
     name: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
@@ -134,7 +148,7 @@ async def api_update_wallet(
     return await update_wallet(wallet.wallet.id, name, currency)
 
 
-@core_app.get(
+@api_router.get(
     "/api/v1/payments",
     name="Payment List",
     summary="get list of payments",
@@ -146,16 +160,7 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending_payments = await get_payments(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending_payments:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     return await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -164,7 +169,22 @@ async def api_payments(
     )
 
 
-@core_app.get(
+@api_router.get(
+    "/api/v1/payments/history",
+    name="Get payments history",
+    response_model=List[PaymentHistoryPoint],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_history(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    group: DateTrunc = Query("day"),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+    await update_pending_payments(wallet.wallet.id)
+    return await get_payments_history(wallet.wallet.id, group, filters)
+
+
+@api_router.get(
     "/api/v1/payments/paginated",
     name="Payment List",
     summary="get paginated list of payments",
@@ -176,16 +196,7 @@ async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    pending = await get_payments_paginated(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        exclude_uncheckable=True,
-        filters=filters,
-    )
-    for payment in pending.data:
-        await check_transaction_status(
-            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
-        )
+    await update_pending_payments(wallet.wallet.id)
     page = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -306,7 +317,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     }
 
 
-@core_app.post(
+@api_router.post(
     "/api/v1/payments",
     summary="Create or pay an invoice",
     description="""
@@ -342,7 +353,7 @@ async def api_payments_create(
         )
 
 
-@core_app.post("/api/v1/payments/lnurl")
+@api_router.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
     data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
@@ -384,17 +395,6 @@ async def api_payments_pay_lnurl(
                 (
                     f"{domain} returned an invalid invoice. Expected"
                     f" {data.amount} msat, got {invoice.amount_msat}."
-                ),
-            ),
-        )
-
-    if invoice.description_hash != data.description_hash:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                (
-                    f"{domain} returned an invalid invoice. Expected description_hash"
-                    f" == {data.description_hash}, got {invoice.description_hash}."
                 ),
             ),
         )
@@ -449,7 +449,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
         return
 
 
-@core_app.get("/api/v1/payments/sse")
+@api_router.get("/api/v1/payments/sse")
 async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -461,12 +461,12 @@ async def api_payments_sse(
 
 
 # TODO: refactor this route into a public and admin one
-@core_app.get("/api/v1/payments/{payment_hash}")
+@api_router.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
     wallet = await get_wallet_for_key(X_Api_Key) if isinstance(X_Api_Key, str) else None
-
+    wallet = wallet if wallet and not wallet.deleted else None
     # we have to specify the wallet id here, because postgres and sqlite return
     # internal payments in different order and get_standalone_payment otherwise
     # just fetches the first one, causing unpredictable results
@@ -506,7 +506,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
-@core_app.get("/api/v1/lnurlscan/{code}")
+@api_router.get("/api/v1/lnurlscan/{code}")
 async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
         url = lnurl.decode(code)
@@ -621,33 +621,24 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     return params
 
 
-@core_app.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
-async def api_payments_decode(data: DecodePayment, response: Response):
+@api_router.post("/api/v1/payments/decode", status_code=HTTPStatus.OK)
+async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
             url = lnurl.decode(payment_str)
-            return {"domain": url}
+            return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
-            return {
-                "payment_hash": invoice.payment_hash,
-                "amount_msat": invoice.amount_msat,
-                "description": invoice.description,
-                "description_hash": invoice.description_hash,
-                "payee": invoice.payee,
-                "date": invoice.date,
-                "expiry": invoice.expiry,
-                "secret": invoice.secret,
-                "route_hints": invoice.route_hints,
-                "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
-            }
-    except Exception:
-        response.status_code = HTTPStatus.BAD_REQUEST
-        return {"message": "Failed to decode"}
+            return JSONResponse(invoice.data)
+    except Exception as exc:
+        return JSONResponse(
+            {"message": f"Failed to decode: {str(exc)}"},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
 
 
-@core_app.post("/api/v1/lnurlauth")
+@api_router.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
     data: CreateLnurlAuth, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
@@ -659,7 +650,7 @@ async def api_perform_lnurlauth(
     return ""
 
 
-@core_app.get("/api/v1/currencies")
+@api_router.get("/api/v1/currencies")
 async def api_list_currencies_available():
     if len(settings.lnbits_allowed_currencies) > 0:
         return [
@@ -670,7 +661,7 @@ async def api_list_currencies_available():
     return list(currencies.keys())
 
 
-@core_app.post("/api/v1/conversion")
+@api_router.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
     if data.from_ == "sat":
@@ -688,7 +679,7 @@ async def api_fiat_as_sats(data: ConversionData):
         return output
 
 
-@core_app.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
+@api_router.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
 async def img(data):
     qr = pyqrcode.create(data)
     stream = BytesIO()
@@ -709,7 +700,7 @@ async def img(data):
     )
 
 
-@core_app.websocket("/api/v1/ws/{item_id}")
+@api_router.websocket("/api/v1/ws/{item_id}")
 async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocketManager.connect(websocket, item_id)
     try:
@@ -719,7 +710,7 @@ async def websocket_connect(websocket: WebSocket, item_id: str):
         websocketManager.disconnect(websocket)
 
 
-@core_app.post("/api/v1/ws/{item_id}")
+@api_router.post("/api/v1/ws/{item_id}")
 async def websocket_update_post(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
@@ -728,7 +719,7 @@ async def websocket_update_post(item_id: str, data: str):
         return {"sent": False, "data": data}
 
 
-@core_app.get("/api/v1/ws/{item_id}/{data}")
+@api_router.get("/api/v1/ws/{item_id}/{data}")
 async def websocket_update_get(item_id: str, data: str):
     try:
         await websocketUpdater(item_id, data)
@@ -737,7 +728,7 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": False, "data": data}
 
 
-@core_app.post("/api/v1/extension")
+@api_router.post("/api/v1/extension")
 async def api_install_extension(
     data: CreateExtension, user: User = Depends(check_admin)
 ):
@@ -796,7 +787,7 @@ async def api_install_extension(
         )
 
 
-@core_app.delete("/api/v1/extension/{ext_id}")
+@api_router.delete("/api/v1/extension/{ext_id}")
 async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
     installable_extensions = await InstallableExtension.get_installable_extensions()
 
@@ -839,7 +830,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
         )
 
 
-@core_app.get(
+@api_router.get(
     "/api/v1/extension/{ext_id}/releases", dependencies=[Depends(check_admin)]
 )
 async def get_extension_releases(ext_id: str):
@@ -856,7 +847,7 @@ async def get_extension_releases(ext_id: str):
         )
 
 
-@core_app.get(
+@api_router.get(
     "/api/v1/extension/release/{org}/{repo}/{tag_name}",
     dependencies=[Depends(check_admin)],
 )
@@ -877,7 +868,7 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
         )
 
 
-@core_app.delete(
+@api_router.delete(
     "/api/v1/extension/{ext_id}/db",
     dependencies=[Depends(check_admin)],
 )
@@ -903,10 +894,7 @@ async def delete_extension_db(ext_id: str):
         )
 
 
-# TINYURL
-
-
-@core_app.post(
+@api_router.post(
     "/api/v1/tinyurl",
     name="Tinyurl",
     description="creates a tinyurl",
@@ -927,7 +915,7 @@ async def api_create_tinyurl(
         )
 
 
-@core_app.get(
+@api_router.get(
     "/api/v1/tinyurl/{tinyurl_id}",
     name="Tinyurl",
     description="get a tinyurl by id",
@@ -949,7 +937,7 @@ async def api_get_tinyurl(
         )
 
 
-@core_app.delete(
+@api_router.delete(
     "/api/v1/tinyurl/{tinyurl_id}",
     name="Tinyurl",
     description="delete a tinyurl by id",
@@ -972,7 +960,7 @@ async def api_delete_tinyurl(
         )
 
 
-@core_app.get(
+@api_router.get(
     "/t/{tinyurl_id}",
     name="Tinyurl",
     description="redirects a tinyurl by id",
@@ -986,3 +974,36 @@ async def api_tinyurl(tinyurl_id: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
+
+
+@api_router.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
+async def api_create_webpush_subscription(
+    request: Request,
+    data: CreateWebPushSubscription,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> WebPushSubscription:
+    subscription = json.loads(data.subscription)
+    endpoint = subscription["endpoint"]
+    host = urlparse(str(request.url)).netloc
+
+    subscription = await get_webpush_subscription(endpoint, wallet.wallet.user)
+    if subscription:
+        return subscription
+    else:
+        return await create_webpush_subscription(
+            endpoint,
+            wallet.wallet.user,
+            data.subscription,
+            host,
+        )
+
+
+@api_router.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
+async def api_delete_webpush_subscription(
+    request: Request,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    endpoint = unquote(
+        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
+    )
+    await delete_webpush_subscription(endpoint, wallet.wallet.user)

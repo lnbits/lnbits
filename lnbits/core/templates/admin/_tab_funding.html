@@ -92,7 +92,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="fund"
+            :label="prettyFunding.get(fund) || fund"
             v-if="funding_sources.get(fund)"
           >
             <q-card>

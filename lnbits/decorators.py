@@ -53,12 +53,12 @@ class KeyChecker(SecurityBase):
             #        avoided here. Also, we should not return the wallet here - thats
             #        silly. Possibly store it in a Redis DB
             wallet = await get_wallet_for_key(key_value, self._key_type)
-            self.wallet = wallet  # type: ignore
-            if not wallet:
+            if not wallet or wallet.deleted:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="Invalid key or expired key.",
+                    detail="Invalid key or wallet.",
                 )
+            self.wallet = wallet  # type: ignore
         except KeyError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."

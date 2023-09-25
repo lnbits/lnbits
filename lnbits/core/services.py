@@ -1,16 +1,21 @@
 import asyncio
 import json
 from io import BytesIO
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl
 from loguru import logger
+from py_vapid import Vapid
+from py_vapid.utils import b64urlencode
 
 from lnbits import bolt11
+from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
@@ -25,7 +30,6 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
-from . import db
 from .crud import (
     check_internal,
     check_internal_pending,
@@ -40,6 +44,7 @@ from .crud import (
     get_total_balance,
     get_wallet,
     get_wallet_payment,
+    update_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -87,7 +92,9 @@ async def calculate_fiat_amounts(
         extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
         extra["wallet_fiat_rate"] = amount_sat / fiat_amount
 
-    logger.debug(f"Calculated fiat amounts for {wallet}: {extra=}")
+    logger.debug(
+        f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {extra=}"
+    )
 
     return amount_sat, extra
 
@@ -108,6 +115,9 @@ async def create_invoice(
 ) -> Tuple[str, str]:
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
+
+    if await get_wallet(wallet_id, conn=conn) is None:
+        raise InvoiceFailure("Wallet does not exist.")
 
     invoice_memo = None if description_hash else memo
 
@@ -166,6 +176,12 @@ async def pay_invoice(
     will regularly check for the payment.
     """
     invoice = bolt11.decode(payment_request)
+
+    if not invoice.amount_msat or not invoice.amount_msat > 0:
+        raise ValueError("Amountless invoices not supported.")
+    if max_sat and invoice.amount_msat > max_sat * 1000:
+        raise ValueError("Amount in invoice is too high.")
+
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
@@ -177,7 +193,7 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
-            invoice.amount_msat, wallet_id, extra=extra, conn=conn
+            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
         # put all parameters that don't change here
@@ -520,7 +536,7 @@ async def check_admin_settings():
             # create new settings if table is empty
             logger.warning("Settings DB empty. Inserting default settings.")
             settings_db = await init_admin_settings(settings.super_user)
-            logger.warning("Initialized settings from enviroment variables.")
+            logger.warning("Initialized settings from environment variables.")
 
         if settings.super_user and settings.super_user != settings_db.super_user:
             # .env super_user overwrites DB super_user
@@ -528,11 +544,8 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
-        logger.success(f"✔️ Access super user account at: {admin_url}")
-
-        # saving it to .super_user file
-        with open(".super_user", "w") as file:
+        # saving superuser to {data_dir}/.super_user file
+        with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
             file.write(settings.super_user)
 
         # callback for saas
@@ -542,6 +555,34 @@ async def check_admin_settings():
             and settings.lnbits_saas_instance_id
         ):
             send_admin_user_to_saas()
+
+        logger.success(
+            "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
+            "to get the superuser."
+        )
+
+
+async def check_webpush_settings():
+    if not settings.lnbits_webpush_privkey:
+        vapid = Vapid()
+        vapid.generate_keys()
+        privkey = vapid.private_pem()
+        assert vapid.public_key, "VAPID public key does not exist"
+        pubkey = b64urlencode(
+            vapid.public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
+        )
+        push_settings = {
+            "lnbits_webpush_privkey": privkey.decode(),
+            "lnbits_webpush_pubkey": pubkey,
+        }
+        update_cached_settings(push_settings)
+        await update_admin_settings(EditableSettings(**push_settings))
+
+    logger.info("Initialized webpush settings with generated VAPID key pair.")
+    logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
 
 
 def update_cached_settings(sets_dict: dict):
