@@ -7,6 +7,7 @@ from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
 
+from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
 
 from .base import (
@@ -25,6 +26,8 @@ async def run_sync(func) -> Any:
 
 
 class CoreLightningWallet(Wallet):
+    __node_cls__ = CoreLightningNode
+
     def __init__(self):
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
@@ -117,6 +120,9 @@ class CoreLightningWallet(Wallet):
             "bolt11": bolt11,
             "maxfeepercent": f"{fee_limit_percent:.11}",
             "exemptfee": 0,
+            # so fee_limit_percent is applied even on payments with fee < 5000
+            # millisatoshi (which is default value of exemptfee)
+            "description": invoice.description,
         }
         try:
             r = await run_sync(lambda: self.ln.call("pay", payload))

@@ -425,6 +425,44 @@ async def manifest(request: Request, usr: str):
     }
 
 
+@generic_router.get("/node", response_class=HTMLResponse)
+async def node(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_node_ui:
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "node/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
+            "balance": balance,
+            "wallets": user.wallets[0].dict(),
+        },
+    )
+
+
+@generic_router.get("/node/public", response_class=HTMLResponse)
+async def node_public(request: Request):
+    if not settings.lnbits_public_node_ui:
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "node/public.html",
+        {
+            "request": request,
+            "settings": settings.dict(),
+            "balance": balance,
+        },
+    )
+
+
 @generic_router.get("/admin", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
