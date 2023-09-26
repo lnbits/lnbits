@@ -172,6 +172,11 @@ async def api_create_wallet(
 
 @api_router.post("/api/v1/account", response_model=Wallet)
 async def api_create_account(data: CreateWallet) -> Wallet:
+    if len(settings.lnbits_allowed_users) > 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Account creation is disabled.",
+        )
     account = await create_account()
     return await create_wallet(user_id=account.id, wallet_name=data.name)
 
