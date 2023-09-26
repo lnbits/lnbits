@@ -12,7 +12,7 @@ new Vue({
     }
   },
   computed: {
-    formatDescription() {   
+    formatDescription() {
       return LNbits.utils.convertMarkdown(this.description)
     }
   },
@@ -28,7 +28,7 @@ new Vue({
         message: 'Processing...',
         icon: null
       })
-    },
+    }
   },
   created() {
     this.description = SITE_DESCRIPTION
