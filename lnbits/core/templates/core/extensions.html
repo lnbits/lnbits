@@ -165,7 +165,7 @@
           <q-toggle
             v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
             :label="extension.isActive ? $t('activated'):  $t('deactivated') "
-            color="secodary"
+            color="secondary"
             style="max-height: 21px"
             v-model="extension.isActive"
             @input="toggleExtension(extension)"
