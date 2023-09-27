@@ -26,7 +26,7 @@ Vue.component('lnbits-node-ranks', {
         <div class='row items-center'>
           <div class='col-9'>{{ stat.label }}</div>
           <div class='col-3 text-subtitle1 text-bold'>
-            {{ (this.ranks && this.ranks[stat.key]) ?? '-' }}
+            {{ (ranks && ranks[stat.key]) ?? '-' }}
           </div>
         </div>
       </div>
@@ -110,7 +110,7 @@ Vue.component('lnbits-node-qrcode', {
             <qrcode
               :value="info.addresses[0]"
               :options="{width: 250}"
-              v-if='info.addresses[0]' 
+              v-if='info.addresses[0]'
               class="rounded-borders"
             ></qrcode>
             <div v-else class='text-subtitle1'>
