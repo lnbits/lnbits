@@ -478,8 +478,10 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 yield dict(data=payment.json(), event="payment-received")
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
+    except Exception as exc:
+        logger.error(f"Error in sse: {exc}")
+    finally:
         api_invoice_listeners.pop(uid)
-        return
 
 
 @api_router.get("/api/v1/payments/sse")
