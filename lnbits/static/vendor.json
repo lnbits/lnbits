@@ -12,6 +12,7 @@
     "/static/vendor/quasar.umd.js",
     "/static/vendor/Chart.bundle.js",
     "/static/vendor/vue-i18n.js",
+    "/static/vendor/showdown.js",
     "/static/i18n/i18n.js",
     "/static/i18n/de.js",
     "/static/i18n/en.js",
