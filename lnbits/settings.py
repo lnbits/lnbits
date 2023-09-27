@@ -126,10 +126,6 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_invoice_key: Optional[str] = Field(default=None)
 
 
-class ClicheFundingSource(LNbitsSettings):
-    cliche_endpoint: Optional[str] = Field(default=None)
-
-
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
     clightning_rpc: Optional[str] = Field(default=None)
@@ -209,7 +205,6 @@ class LightningSettings(LNbitsSettings):
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
-    ClicheFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
     EclairFundingSource,
