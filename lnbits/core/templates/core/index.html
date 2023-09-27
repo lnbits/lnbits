@@ -61,7 +61,9 @@
             ></q-btn>
           </div>
         </div>
-        <p v-else>{{SITE_DESCRIPTION | safe}}</p>
+        <div v-else>
+          <div v-html="formatDescription"></div>
+        </div>
       </q-card-section>
     </q-card>
   </div>
