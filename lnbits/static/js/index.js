@@ -12,7 +12,8 @@ new Vue({
       username: '',
       password: '',
       password_repeat: '',
-      walletName: ''
+      walletName: '',
+      signup: false
     }
   },
   computed: {
