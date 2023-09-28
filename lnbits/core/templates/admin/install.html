@@ -1,0 +1,67 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-my-md">
+   <h6 class="q-my-none">Nix-bitcoin App installer</h6>
+  </div>
+</div>
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
+    <q-card>
+      <div class="q-pa-md">
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" active-color="primary" align="justify">
+            <q-tab
+              name="apps"
+              :label="$t('apps')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
+              name="config"
+              :label="$t('config_file')"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
+
+      <q-form name="settings_form" id="settings_form">
+        <q-tab-panels v-model="tab" animated>
+          {% include "admin/_tab_install_apps.html" %} {% include
+          "admin/_tab_install_config.html" %}
+        </q-tab-panels>
+      </q-form>
+    </q-card>
+  </div>
+</div>
+
+<q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form class="q-gutter-md">
+    
+    </q-form>
+  </q-card>
+</q-dialog>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        tab: 'apps',
+      }
+    },
+    created() {
+
+    },
+    computed: {
+    },
+    methods: {
+      
+    }
+  })
+</script>
+{% endblock %}
