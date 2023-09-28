@@ -20,7 +20,7 @@
           </elementProp>
           <elementProp name="scheme" elementType="Argument">
             <stringProp name="Argument.name">scheme</stringProp>
-            <stringProp name="Argument.value">${__property(scheme,,https)}</stringProp>
+            <stringProp name="Argument.value">${__property(scheme,,http)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="port" elementType="Argument">
@@ -40,13 +40,15 @@
           </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
             <stringProp name="Argument.name">adminUserId</stringProp>
-            <stringProp name="Argument.value">33bb910bdd404824a3b95d5b2aeff483</stringProp>
+            <stringProp name="Argument.value">bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">admin user with some funds</stringProp>
           </elementProp>
           <elementProp name="adminWalletKey" elementType="Argument">
             <stringProp name="Argument.name">adminWalletKey</stringProp>
-            <stringProp name="Argument.value">4983de883a13453799d1595dd50d2d36</stringProp>
+            <stringProp name="Argument.value">8b1f7387f61f458096ad03166407215f</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">this wallet is going to make some payments</stringProp>
           </elementProp>
           <elementProp name="paidChargeCount" elementType="Argument">
             <stringProp name="Argument.name">paidChargeCount</stringProp>
@@ -76,8 +78,9 @@
         <stringProp name="HTTPSampler.contentEncoding"></stringProp>
         <stringProp name="HTTPSampler.path"></stringProp>
         <stringProp name="HTTPSampler.concurrentPool">6</stringProp>
-        <stringProp name="HTTPSampler.connect_timeout"></stringProp>
-        <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        <stringProp name="HTTPSampler.implementation">Java</stringProp>
+        <stringProp name="HTTPSampler.connect_timeout">10000</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">60000</stringProp>
       </ConfigTestElement>
       <hashTree/>
       <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
@@ -163,14 +166,13 @@
             <hashTree/>
           </hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[wallet] Create new wallet" enabled="true">
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
               <collectionProp name="Arguments.arguments">
-                <elementProp name="nme" elementType="HTTPArgument">
+                <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.name">nme</stringProp>
-                  <stringProp name="Argument.value">w1</stringProp>
+                  <stringProp name="Argument.value">{&quot;name&quot;:&quot;a1&quot;}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
-                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
@@ -178,8 +180,8 @@
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-            <stringProp name="HTTPSampler.path">/wallet</stringProp>
-            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/account</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -187,22 +189,25 @@
             <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
             <stringProp name="HTTPSampler.connect_timeout"></stringProp>
             <stringProp name="HTTPSampler.response_timeout"></stringProp>
-            <stringProp name="TestPlan.comments">Detected the start of a redirect chain</stringProp>
           </HTTPSamplerProxy>
           <hashTree>
             <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
-                  <stringProp name="Header.value">en-US,en;q=0.5</stringProp>
+                  <stringProp name="Header.value">en-US,en;q=0.${paidChargeCount}</stringProp>
                 </elementProp>
-                <elementProp name="Upgrade-Insecure-Requests" elementType="Header">
-                  <stringProp name="Header.name">Upgrade-Insecure-Requests</stringProp>
-                  <stringProp name="Header.value">1</stringProp>
+                <elementProp name="Origin" elementType="Header">
+                  <stringProp name="Header.name">Origin</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000</stringProp>
+                </elementProp>
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Encoding" elementType="Header">
                   <stringProp name="Header.name">Accept-Encoding</stringProp>
@@ -210,11 +215,11 @@
                 </elementProp>
                 <elementProp name="User-Agent" elementType="Header">
                   <stringProp name="Header.name">User-Agent</stringProp>
-                  <stringProp name="Header.value">Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0) Gecko/20100101 Firefox/105.0</stringProp>
+                  <stringProp name="Header.value">Mozilla/${paidChargeCount}.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/117.0</stringProp>
                 </elementProp>
                 <elementProp name="Accept" elementType="Header">
                   <stringProp name="Header.name">Accept</stringProp>
-                  <stringProp name="Header.value">text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8</stringProp>
+                  <stringProp name="Header.value">application/json, text/plain, */*</stringProp>
                 </elementProp>
               </collectionProp>
             </HeaderManager>
@@ -229,45 +234,18 @@
               <intProp name="Assertion.test_type">8</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Extract userId and walletId" enabled="true">
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Extract user and wallet" enabled="true">
               <stringProp name="cacheKey">true</stringProp>
               <stringProp name="filename"></stringProp>
               <stringProp name="parameters"></stringProp>
-              <stringProp name="script">vars.put(&quot;userId&quot;, &quot;no-user-id&quot;);	
-vars.put(&quot;walletId&quot;, &quot;no-wallet-id&quot;);	
+              <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
 
-var query = prev.getURL().getQuery().split(&apos;&amp;&apos;)
-for (var i =0; i&lt;query.length; i++) {
-	var param = query[i].split(&quot;=&quot;)
-	if (param[0] === &quot;usr&quot;) {
-	   vars.put(&quot;userId&quot;, param[1]);	
-	}
-	if (param[0] === &quot;wal&quot;) {
-	   vars.put(&quot;walletId&quot;, param[1]);	
-	}
-}
-
+vars.put(&quot;userId&quot;, resp.user || &quot;no-user-id&quot;);
+vars.put(&quot;walletId&quot;, resp.id || &quot;no-wallet-id&quot;);
+vars.put(&quot;inkey&quot;, resp.inkey || &apos;no-inkey&apos;);
+vars.put(&quot;adminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
 </stringProp>
               <stringProp name="scriptLanguage">javascript</stringProp>
-            </JSR223PostProcessor>
-            <hashTree/>
-            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Extract Wallet Details" enabled="true">
-              <stringProp name="scriptLanguage">javascript</stringProp>
-              <stringProp name="parameters"></stringProp>
-              <stringProp name="filename"></stringProp>
-              <stringProp name="cacheKey">true</stringProp>
-              <stringProp name="script">var bodyLines = prev.getResponseDataAsString().split(&apos;\n&apos;)
-
-for (var i =0; i &lt; bodyLines.length; i++) {
-  var line = bodyLines[i].trim()
-  if (line.startsWith(&apos;window.wallet =&apos;)) {
-  	var walletJson = line.split(&apos;=&apos;)[1]
-  	if (walletJson.endsWith(&apos;;&apos;)) walletJson = walletJson.substring(0, walletJson.length -1)
-  	var wallet = JSON.parse(walletJson)
-  	vars.put(&quot;inkey&quot;, wallet.inkey || &apos;no-inkey&apos;);
-	vars.put(&quot;adminkey&quot;, wallet.adminkey || &apos;no-adminkey&apos;);
-  }
-}</stringProp>
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
@@ -588,10 +566,6 @@ if (resp.balance !== 0) {
           <hashTree>
             <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
               <collectionProp name="HeaderManager.headers">
-                <elementProp name="Referer" elementType="Header">
-                  <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/extensions?usr=${userId}</stringProp>
-                </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
                   <stringProp name="Header.value">en-US,en;q=0.5</stringProp>
@@ -2910,7 +2884,7 @@ if (!resp.redirect_url || !resp.redirect_url.startsWith(&quot;/satspay/&quot;)) 
 vars.put(&quot;tipChargeUrl&quot;, resp.redirect_url || &apos;no-tip-charge-url&apos;);
 
 if (resp.redirect_url) {
-	var tipChargeId = resp.redirect_url.split(&quot;/&quot;)[2]	
+	var tipChargeId = resp.redirect_url.split(&quot;/&quot;)[2]
 	vars.put(&quot;tipChargeId&quot;, tipChargeId || &apos;no-tip-charge-id&apos;);
 }</stringProp>
             </JSR223PostProcessor>
