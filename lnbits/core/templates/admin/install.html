@@ -2,7 +2,7 @@
 %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-my-md">
-   <h6 class="q-my-none">Nix-bitcoin App installer</h6>
+    <h6 class="q-my-none">App Installer</h6>
   </div>
 </div>
 
@@ -37,30 +37,63 @@
   </div>
 </div>
 
-<q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
-  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-    <q-form class="q-gutter-md">
-    
-    </q-form>
-  </q-card>
-</q-dialog>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
+  var mapPackages = function (obj) {
+    return obj
+  }
+  var mapConfig = function (obj) {
+    return obj
+  }
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
       return {
         tab: 'apps',
+        packages: [],
+        config: ''
+      }
+    },
+    computed: {},
+    methods: {
+      getPackages() {
+        self = this
+        LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
+          self.packages = response.data.map(function (obj) {
+            return this.mapPackages(obj)
+          })
+        })
+      },
+      getNixConfig() {
+        self = this
+        LNbits.api.request('GET', '/admin/api/v1/config').then(response => {
+          self.config = response.data
+        })
+      },
+      updateConfig() {
+        self = this
+        LNbits.api
+          .request('POST', '/admin/api/v1/updateconfig', 'null', {
+            config: this.config
+          })
+          .then(response => {
+            console.log(response)
+            this.$q.notify({
+              type: 'positive',
+              message: 'Saved',
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       }
     },
     created() {
-
-    },
-    computed: {
-    },
-    methods: {
-      
+      this.getPackages()
+      this.getNixConfig()
+      console.log(this.config)
     }
   })
 </script>

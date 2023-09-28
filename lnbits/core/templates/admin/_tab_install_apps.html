@@ -1,14 +1,25 @@
 <q-tab-panel name="apps">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">Apps</h6>
-    <br />
     <div>
-      <div class="row">
-        <div class="col">
-          <p>Apps fgo heree</p>
-
-          <br />
-        </div>
+      <div class="q-pa-md row items-start q-gutter-md">
+        <q-card
+          class="my-card"
+          v-for="item in packages"
+          style="width: 100%; max-width: 150px"
+        >
+          <q-img :src="'core/static/images/nix.png'">
+            <div class="absolute-bottom">
+              <div class="text-caption">
+                {% raw %}{{item.toUpperCase()}}{% endraw %}
+              </div>
+            </div>
+          </q-img>
+          <q-card-actions>
+            <q-btn color="primary">Add</q-btn>
+            <q-btn color="primary" v-if="item.installed">Remove</q-btn>
+          </q-card-actions>
+        </q-card>
+        <br />
       </div>
     </div>
   </q-card-section>

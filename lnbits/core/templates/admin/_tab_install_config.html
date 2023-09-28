@@ -4,17 +4,15 @@
     <br />
     <div>
       <div class="row">
-        <div class="col">
-          <p>NIX config file</p>
-
-          <br />
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-some stuff
-        </div>
+        <q-input
+          borderless
+          v-model="config"
+          autogrow
+          style="width: 100%; background-color: rgb(41, 41, 41)"
+          type="textarea"
+        ></q-input>
       </div>
     </div>
+    <q-btn color="primary" @click="updateConfig()">Update</q-btn>
   </q-card-section>
 </q-tab-panel>
