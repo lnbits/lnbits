@@ -5,10 +5,12 @@ from shutil import make_archive
 from subprocess import Popen
 from typing import Optional
 from urllib.parse import urlparse
-
+from typing import List, Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException
+from loguru import logger
+from pydantic import BaseModel
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import CreateTopup, User
@@ -26,7 +28,22 @@ from ..crud import delete_admin_settings, get_admin_settings, update_admin_setti
 
 install_router = APIRouter()
 
-class InstallableExtension(BaseModel):
+class PackageRelease(BaseModel):
+    name: str
+    version: str
+    archive: str
+    source_repo: str
+    is_github_release: bool = False
+    hash: Optional[str] = None
+    min_lnbits_version: Optional[str] = None
+    is_version_compatible: Optional[bool] = True
+    html_url: Optional[str] = None
+    description: Optional[str] = None
+    warning: Optional[str] = None
+    repo: Optional[str] = None
+    icon: Optional[str] = None
+
+class InstallablePackage(BaseModel):
     id: str
     name: str
     short_description: Optional[str] = None
@@ -35,104 +52,58 @@ class InstallableExtension(BaseModel):
     is_admin_only: bool = False
     stars: int = 0
     featured = False
-    latest_release: Optional[ExtensionRelease] = None
-    installed_release: Optional[ExtensionRelease] = None
+    latest_release: Optional[PackageRelease] = None
+    installed_release: Optional[PackageRelease] = None
     archive: Optional[str] = None
-
-@install_router.get("/apps")
-async def get_installable_packages(
-    cls,
-    dependencies=[Depends(check_super_user)],
-) -> List["InstallableExtension"]:
-    extension_list: List[InstallableExtension] = []
-    extension_id_list: List[str] = []
-    for url in settings.lnbits_extensions_manifests:
-        try:
-            manifest = await fetch_manifest(url)
-
-            for r in manifest.repos:
-                ext = await InstallableExtension.from_github_release(r)
-                if not ext:
-                    continue
-                existing_ext = next(
-                    (ee for ee in extension_list if ee.id == r.id), None
-                )
-                if existing_ext:
-                    existing_ext.check_latest_version(ext.latest_release)
-                    continue
-
-                ext.featured = ext.id in manifest.featured
-                extension_list += [ext]
-                extension_id_list += [ext.id]
-
-            for e in manifest.extensions:
-                release = ExtensionRelease.from_explicit_release(url, e)
-                existing_ext = next(
-                    (ee for ee in extension_list if ee.id == e.id), None
-                )
-                if existing_ext:
-                    existing_ext.check_latest_version(release)
-                    continue
-                ext = InstallableExtension.from_explicit_release(e)
-                ext.check_latest_version(release)
-                ext.featured = ext.id in manifest.featured
-                extension_list += [ext]
-                extension_id_list += [e.id]
-        except Exception as e:
-            logger.warning(f"Manifest {url} failed with '{str(e)}'")
-
-    return extension_list
-
-@install_router.get("/config")
-async def get_extension_releases(cls, ext_id: str,
-    dependencies=[Depends(check_super_user)],) -> List["ExtensionRelease"]:
-    extension_releases: List[ExtensionRelease] = []
-
-    for url in settings.lnbits_extensions_manifests:
-        try:
-            manifest = await fetch_manifest(url)
-            for r in manifest.repos:
-                if r.id == ext_id:
-                    repo_releases = await ExtensionRelease.all_releases(
-                        r.organisation, r.repository
-                    )
-                    extension_releases += repo_releases
-
-            for e in manifest.extensions:
-                if e.id == ext_id:
-                    extension_releases += [
-                        ExtensionRelease.from_explicit_release(url, e)
-                    ]
-
-        except Exception as e:
-            logger.warning(f"Manifest {url} failed with '{str(e)}'")
-
-    return extension_releases
-
-@node_router.get("/installed",
-dependencies=[Depends(check_super_user)],)
-async def get_extension_release(
-    cls, ext_id: str, source_repo: str, archive: str
-) -> Optional["ExtensionRelease"]:
-    all_releases: List[
-        ExtensionRelease
-    ] = await InstallableExtension.get_extension_releases(ext_id)
-    selected_release = [
-        r
-        for r in all_releases
-        if r.archive == archive and r.source_repo == source_repo
-    ]
-
-    return selected_release[0] if len(selected_release) != 0 else None
-
 
 class CreateExtension(BaseModel):
     ext_id: str
     archive: str
     source_repo: str
 
+class Manifest(BaseModel):
+    featured: List[str] = []
+    extensions: List["PackageRelease"] = []
 
-def get_valid_extensions() -> List[Extension]:
-    return [
-        extension for extension in ExtensionManager().extensions if extension.is_valid
-    ]
+@install_router.get("/apps")
+async def get_installable_packages(
+    cls,
+    dependencies=[Depends(check_super_user)],
+) -> List["InstallablePackage"]:
+    return await fetch_nix_apps()
+
+@install_router.get("/config")
+async def get_nix_config(cls, ext_id: str,
+    dependencies=[Depends(check_super_user)],) -> List["PackageRelease"]:
+    extension_releases: List[PackageRelease] = []
+
+    return extension_releases
+
+@install_router.get("/installed")
+async def get_installed(
+    dependencies=[Depends(check_super_user)],) -> List["PackageRelease"]:
+    extension_releases: List[PackageRelease] = []
+
+    return extension_releases
+
+async def fetch_nix_apps() -> Manifest:
+    url = "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/modules.nix"
+    error_msg = "Cannot fetch extensions manifest"
+    manifest = await github_api_get(url, error_msg)
+    return Manifest.parse_obj(manifest)
+
+async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
+    async with httpx.AsyncClient() as client:
+        headers = (
+            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
+            if settings.lnbits_ext_github_token
+            else None
+        )
+        resp = await client.get(
+            url,
+            headers=headers,
+        )
+        if resp.status_code != 200:
+            logger.warning(f"{error_msg} ({url}): {resp.text}")
+        resp.raise_for_status()
+        return resp.json()
