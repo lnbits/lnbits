@@ -22,6 +22,8 @@ from lnbits.core.services import (
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, UpdateSettings, settings
+import httpx
+import re
 
 from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -61,36 +63,39 @@ class CreateExtension(BaseModel):
     archive: str
     source_repo: str
 
+class SaveConfig(BaseModel):
+    config: str
+
 class Manifest(BaseModel):
     featured: List[str] = []
     extensions: List["PackageRelease"] = []
 
-@install_router.get("/apps")
-async def get_installable_packages(
-    cls,
-    dependencies=[Depends(check_super_user)],
-) -> List["InstallablePackage"]:
-    return await fetch_nix_apps()
-
-@install_router.get("/config")
-async def get_nix_config(cls, ext_id: str,
-    dependencies=[Depends(check_super_user)],) -> List["PackageRelease"]:
-    extension_releases: List[PackageRelease] = []
-
-    return extension_releases
-
-@install_router.get("/installed")
-async def get_installed(
-    dependencies=[Depends(check_super_user)],) -> List["PackageRelease"]:
-    extension_releases: List[PackageRelease] = []
-
-    return extension_releases
-
-async def fetch_nix_apps() -> Manifest:
+@install_router.get("/admin/api/v1/apps")
+async def get_installable_packages():
     url = "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/modules.nix"
     error_msg = "Cannot fetch extensions manifest"
     manifest = await github_api_get(url, error_msg)
-    return Manifest.parse_obj(manifest)
+    return manifest
+
+@install_router.get("/admin/api/v1/installed")
+async def get_installed():
+    extension_releases: List[PackageRelease] = []
+    return "extension_releases"
+
+@install_router.get("/admin/api/v1/config")
+async def get_nix_config():
+    file_contents = ""
+    with open('lnbits/core/static/nix/config.nix', 'r') as file:
+        file_contents = file.read()
+    return file_contents
+
+@install_router.post("/admin/api/v1/updateconfig")
+async def get_nix_update_config(data: SaveConfig):
+    file_contents = ""
+    logger.debug(data.config)
+    with open("lnbits/core/static/nix/config.nix", "w") as file:
+        file.write(data.config)
+    return data.config
 
 async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
     async with httpx.AsyncClient() as client:
@@ -106,4 +111,10 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
         if resp.status_code != 200:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
         resp.raise_for_status()
-        return resp.json()
+        imports_match = re.search(r'imports\s*=\s*\[([\s\S]*?)\];', resp.text)
+        if imports_match:
+            imports_text = imports_match.group(1)
+            imports_list = re.findall(r'\./[\w/.-]+', imports_text)
+            for x, imp in enumerate(imports_list):
+                imports_list[x] = re.sub(r'\./|\.nix', '', imp)
+        return imports_list
