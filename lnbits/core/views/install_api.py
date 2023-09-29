@@ -72,10 +72,15 @@ class Manifest(BaseModel):
 
 @install_router.get("/admin/api/v1/apps")
 async def get_installable_packages():
-    url = "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/modules.nix"
-    error_msg = "Cannot fetch extensions manifest"
-    manifest = await github_api_get(url, error_msg)
-    return manifest
+   ####### LATER FOR BEING FANCY AND PULLING FROM THE NIX REPO #########
+   # url = "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/modules.nix"
+   # error_msg = "Cannot fetch extensions manifest"
+   # manifest = await github_api_get(url, error_msg)
+   # return manifest
+    file_contents = ""
+    with open('lnbits/core/static/nix/nix.json', 'r') as file:
+        file_contents = file.read()
+    return file_contents
 
 @install_router.get("/admin/api/v1/installed")
 async def get_installed():
