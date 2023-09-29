@@ -1,44 +1,206 @@
-[
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  },
-  {
-    "flake": "",
-    "repo": "",
-    "icon": "",
-    "port": ""
-  }
-]
+{
+  "paackages": [
+    {
+      "package": "Bitcoind",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/bitcoind.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Core Lightning",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning.nix",
+      "icon": "core/static/images/clightning.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Core Lightning Plugins",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning-plugins.nix",
+      "icon": "core/static/images/clightning.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Core Lightning Rest",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning-rest.nix",
+      "icon": "core/static/images/clightning.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Core Lightning Replication",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning-replication.nix",
+      "icon": "core/static/images/clightning.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "LND",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/lnd.nix",
+      "icon": "core/static/images/lnd.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Lightning Loop",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/lightning-loop.nix",
+      "icon": "core/static/images/lnd.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Lightning Pool",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/lightning-pool.nix",
+      "icon": "core/static/images/lnd.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Charge LND",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/charge-lnd.nix",
+      "icon": "core/static/images/lnd.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "LND Connect",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/lndconnect.nix",
+      "icon": "core/static/images/lndconnect.png",
+      "port": "",
+      "dependencies": "onion-addresses"
+    },
+    {
+      "package": "RTL",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/rtl.nix",
+      "icon": "core/static/images/rtl.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "electrs",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/electrs.nix",
+      "icon": "core/static/images/electrs.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Fulcrum",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/fulcrum.nix",
+      "icon": "core/static/images/fulcrum.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Liquid",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/liquid.nix",
+      "icon": "core/static/images/liquid.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "BTCPayServer",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/btcpayserver.nix",
+      "icon": "core/static/images/btcpayserver.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Joinmarket",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/joinmarket.nix",
+      "icon": "core/static/images/joinmarket.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Joinmarket OB Watcher",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/joinmarket-ob-watcher.nix",
+      "icon": "core/static/images/joinmarket.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Hardware Wallets",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/hardware-wallets.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    }
+  ],
+  "support_packages": [
+    {
+      "package": "Versioning",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/versioning.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Security",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/security.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Onion Addresses",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/onion-addresses.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Onion Services",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/onion-services.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Netns Isolation",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/netns-isolation.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Node Info",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/nodeinfo.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    },
+    {
+      "package": "Backups",
+      "description": "",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/backups.nix",
+      "icon": "core/static/images/nix.png",
+      "port": "",
+      "dependencies": ""
+    }
+  ]
+}
