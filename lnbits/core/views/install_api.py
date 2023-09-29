@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from http import HTTPStatus
 from shutil import make_archive
 from subprocess import Popen
@@ -78,8 +79,8 @@ async def get_installable_packages():
    # manifest = await github_api_get(url, error_msg)
    # return manifest
     file_contents = ""
-    with open('lnbits/core/static/nix/nix.json', 'r') as file:
-        file_contents = file.read()
+    with open('lnbits/core/static/nix/nix.json', 'r') as json_file:
+        file_contents = json.load(json_file)
     return file_contents
 
 @install_router.get("/admin/api/v1/installed")

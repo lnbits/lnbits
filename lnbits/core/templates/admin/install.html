@@ -60,9 +60,7 @@
       getPackages() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
-          self.packages = response.data.map(function (obj) {
-            return this.mapPackages(obj)
-          })
+          self.packages = response.data
         })
       },
       getNixConfig() {
