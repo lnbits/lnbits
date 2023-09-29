@@ -51,6 +51,12 @@ async def home(request: Request, lightning: str = ""):
         "core/index.html", {"request": request, "lnurl": lightning}
     )
 
+@generic_router.get("/login", response_class=HTMLResponse)
+async def home(request: Request):
+    return template_renderer().TemplateResponse(
+        "core/login.html", {"request": request}
+    )
+
 
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
 async def robots():
@@ -374,7 +380,6 @@ async def manifest(request: Request, usr: str):
         ],
         "url_handlers": [{"origin": f"https://{host}"}],
     }
-
 
 @generic_router.get("/node", response_class=HTMLResponse)
 async def node(request: Request, user: User = Depends(check_admin)):
