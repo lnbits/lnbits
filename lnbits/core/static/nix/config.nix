@@ -17,6 +17,7 @@
     ./security.nix
     ./onion-addresses.nix
     ./backups.nix
+   ./lnbits.nix
   ];
 
   disabledModules = [ "services/networking/bitcoind.nix" ];
