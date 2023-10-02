@@ -39,7 +39,6 @@ window.localisation.nl = {
   toggle_darkmode: 'Donkere modus aan/uit',
   view_swagger_docs: 'Bekijk LNbits Swagger API-documentatie',
   api_docs: 'API-documentatie',
-  commit_version: 'Commit-versie',
   lnbits_version: 'LNbits-versie',
   runs_on: 'Draait op',
   credit_hint: 'Druk op Enter om de rekening te crediteren',

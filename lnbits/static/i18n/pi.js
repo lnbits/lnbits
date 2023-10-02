@@ -38,7 +38,6 @@ window.localisation.pi = {
   toggle_darkmode: 'Toggle Dark Mode, arr!',
   view_swagger_docs: 'View LNbits Swagger API docs and learn the secrets',
   api_docs: 'API docs for the scallywags',
-  commit_version: 'Commit version like a true pirate',
   lnbits_version: 'LNbits version, arr!',
   runs_on: 'Runs on, matey',
   credit_hint: 'Press Enter to credit account and make it richer',
