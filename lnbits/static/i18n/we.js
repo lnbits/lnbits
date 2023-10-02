@@ -37,7 +37,6 @@ window.localisation.we = {
   toggle_darkmode: 'Toglo Modd Tywyll',
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
   api_docs: 'Api docs',
-  commit_version: 'fersiwn ymrwymo',
   lnbits_version: 'Fersiwn LNbits',
   Runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',

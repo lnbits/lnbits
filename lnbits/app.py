@@ -418,7 +418,6 @@ def log_server_info():
     logger.info(f"Site title: {settings.lnbits_site_title}")
     logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
-    logger.info(f"Git version: {settings.lnbits_commit}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
 

@@ -49,7 +49,6 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
-    t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
     t.env.globals["LNBITS_NODE_UI"] = (

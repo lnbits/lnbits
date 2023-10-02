@@ -58,7 +58,6 @@ window.localisation.en = {
   toggle_darkmode: 'Toggle Dark Mode',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'Api docs',
-  commit_version: 'Commit version',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
