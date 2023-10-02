@@ -4,7 +4,6 @@ import importlib
 import importlib.metadata
 import inspect
 import json
-import subprocess
 from os import path
 from sqlite3 import Row
 from typing import Any, List, Optional
@@ -289,7 +288,6 @@ class EnvSettings(LNbitsSettings):
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
     lnbits_extensions_path: str = Field(default="lnbits")
-    lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
 
@@ -419,18 +417,6 @@ transient_variables = TransientSettings.readonly_fields()
 settings = Settings()
 
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
-
-try:
-    settings.lnbits_commit = (
-        subprocess.check_output(
-            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
-            stderr=subprocess.DEVNULL,
-        )
-        .strip()
-        .decode("ascii")
-    )
-except Exception:
-    settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")
 
