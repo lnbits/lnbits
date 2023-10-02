@@ -36,7 +36,6 @@ window.localisation.jp = {
   toggle_dark_mode: 'ダークモードを切り替える',
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
-  commit_version: 'コミットバージョン',
   runs_on: 'で実行',
   credit_hint:
     'クレジットカードを使用して資金を追加するには、LNbitsを使用してください。',
