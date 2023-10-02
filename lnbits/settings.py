@@ -4,6 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import os
 import subprocess
 from os import path
 from sqlite3 import Row
@@ -430,7 +431,11 @@ try:
         .decode("ascii")
     )
 except Exception:
-    settings.lnbits_commit = "docker"
+    # Check if the LNBITS_COMMIT environment variable is set
+    if "LNBITS_COMMIT" in os.environ:
+        settings.lnbits_commit = os.environ["LNBITS_COMMIT"]
+    else:
+        settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")
 
