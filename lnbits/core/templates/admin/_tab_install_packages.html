@@ -1,0 +1,59 @@
+<q-tab-panel name="packages">
+  <q-card-section class="q-pa-none">
+    <div>
+      <div class="row items-start q-gutter-md">
+        <q-card
+          style="
+            width: 100%;
+            max-width: 300px;
+            min-height: 230px;
+            max-height: 230px;
+          "
+          v-for="item in packages"
+          class="q-ml-none q-mt-none q-mr-md q-mb-md"
+        >
+          <q-card-section horizontal>
+            <q-card-section
+              style="min-height: 180px; max-height: 180px"
+              class="q-pt-xs q-pr-xs q-pl-sm q-pb-xs col-8"
+            >
+              <div class="text-subtitle2 q-mt-sm q-mb-xs">
+                {% raw %} {{ item.package }} {% endraw %}
+              </div>
+              <div class="text-caption text-grey">
+                {% raw %} {{ item.description }} {% endraw %}
+              </div>
+              <div class="text-caption text-grey">
+                <br />
+              </div>
+            </q-card-section>
+
+            <q-card-section class="col-4 q-pr-sm q-pl-xs">
+              <q-img class="rounded-borders" :src="item.icon"></q-img>
+            </q-card-section>
+          </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-actions>
+            <div class="col-9">
+              <q-btn v-if="item.installed" flat color="primary"> Remove </q-btn>
+              <q-btn v-else flat color="primary"> Add </q-btn>
+            </div>
+            <div class="col-3">
+              <q-btn flat type="a" :href="item.repo" color="primary">
+                Flake
+                <q-tooltip
+                  >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length
+                  - 1] }} {% endraw %}</q-tooltip
+                >
+              </q-btn>
+            </div>
+          </q-card-actions>
+        </q-card>
+
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

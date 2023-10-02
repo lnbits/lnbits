@@ -1,23 +1,29 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-my-md">
-    <h6 class="q-my-none">App Installer</h6>
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-sm-9 col-xs-12">
+    <p class="text-h4 gt-sm">
+      {%raw%}{{ $t('nix_package_installer') }}{%endraw%}
+    </p>
   </div>
 </div>
 
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-gutter-y-md">
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
     <q-card>
-      <div class="q-pa-md">
+      <div class="q-pa-xs">
         <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" active-color="primary" align="justify">
+          <q-tabs v-model="tab" active-color="primary" align="left">
             <q-tab
-              name="apps"
-              :label="$t('apps')"
+              name="packages"
+              :label="$t('packages')"
               @update="val => tab = val.name"
             ></q-tab>
-
+            <q-tab
+              name="supported_packages"
+              :label="$t('supported_packages')"
+              @update="val => tab = val.name"
+            ></q-tab>
             <q-tab
               name="config"
               :label="$t('config_file')"
@@ -26,33 +32,39 @@
           </q-tabs>
         </div>
       </div>
-
-      <q-form name="settings_form" id="settings_form">
-        <q-tab-panels v-model="tab" animated>
-          {% include "admin/_tab_install_apps.html" %} {% include
-          "admin/_tab_install_config.html" %}
-        </q-tab-panels>
-      </q-form>
     </q-card>
   </div>
 </div>
+<q-card class="no-border no-outline no-box-shadow">
+  <q-form
+    name="settings_form"
+    id="settings_form"
+    class="no-border no-outline no-box-shadow"
+  >
+    <q-tab-panels
+      v-model="tab"
+      animated
+      class="bg-dark no-border no-outline no-box-shadow"
+    >
+      {% include "admin/_tab_install_packages.html" %}{% include
+      "admin/_tab_install_supported_packages.html" %} {% include
+      "admin/_tab_install_config.html" %}
+    </q-tab-panels>
+  </q-form>
+</q-card>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapPackages = function (obj) {
-    return obj
-  }
-  var mapConfig = function (obj) {
-    return obj
-  }
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
       return {
-        tab: 'apps',
-        packages: [],
-        config: ''
+        tab: 'packages',
+        packages: null,
+        installedPackages: [],
+        config: '',
+        configAr: []
       }
     },
     computed: {},
@@ -60,13 +72,25 @@
       getPackages() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
-          self.packages = response.data
+          var packages = JSON.stringify(response.data.packages)
+          this.packages = JSON.parse(packages)
+          for (var i = 0; i < this.packages.length; i++) {
+            const flake = this.packages[i].repo.trim().split('/')
+            const flakeStr = './' + flake[flake.length - 1]
+            if (self.configAr.includes(flakeStr)) {
+              this.packages[i].installed = true
+            }
+          }
+          console.log(self.configAr)
         })
       },
       getNixConfig() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/config').then(response => {
           self.config = response.data
+          self.configAr = self.config.split(/\r\n|\r|\n/).map(function (item) {
+            return item.trim()
+          })
         })
       },
       updateConfig() {
@@ -89,9 +113,8 @@
       }
     },
     created() {
-      this.getPackages()
       this.getNixConfig()
-      console.log(this.config)
+      this.getPackages()
     }
   })
 </script>
