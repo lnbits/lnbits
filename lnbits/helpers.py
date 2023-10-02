@@ -7,6 +7,7 @@ import shortuuid
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
+from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -30,6 +31,10 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
+        additional_folders += [
+            Path(settings.lnbits_extensions_path, "extensions", f)
+            for f in additional_folders
+        ]
         folders.extend(additional_folders)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
 
@@ -47,6 +52,10 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_NODE_UI"] = (
+        settings.lnbits_node_ui and get_node_class() is not None
+    )
+    t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
     t.env.globals["EXTENSIONS"] = [
         e
         for e in get_valid_extensions()
@@ -64,6 +73,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
             vendor_files = json.loads(vendor_file.read())
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
+
+    t.env.globals["WEBPUSH_PUBKEY"] = settings.lnbits_webpush_pubkey
 
     return t
 
@@ -93,9 +104,11 @@ def get_current_extension_name() -> str:
 
 def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False):
     """
-    Generate openapi documentation for Filters. This is intended to be used along parse_filters (see example)
+    Generate openapi documentation for Filters. This is intended to be used along
+    parse_filters (see example)
     :param model: Filter model
-    :param keep_optional: If false, all parameters will be optional, otherwise inferred from model
+    :param keep_optional: If false, all parameters will be optional,
+    otherwise inferred from model
     """
     fields = list(model.__fields__.values())
     params = []

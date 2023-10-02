@@ -6,12 +6,12 @@ from subprocess import Popen
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import Body, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_wallet
-from lnbits.core.models import User
+from lnbits.core.models import CreateTopup, User
 from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
@@ -19,13 +19,20 @@ from lnbits.core.services import (
 )
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, EditableSettings, settings
+from lnbits.settings import AdminSettings, UpdateSettings, settings
 
-from .. import core_app, core_app_extra
+from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
 
+admin_router = APIRouter()
 
-@core_app.get("/admin/api/v1/audit", dependencies=[Depends(check_admin)])
+
+@admin_router.get(
+    "/admin/api/v1/audit",
+    name="Audit",
+    description="show the current balance of the node and the LNbits database",
+    dependencies=[Depends(check_admin)],
+)
 async def api_auditor():
     try:
         delta, node_balance, total_balance = await get_balance_delta()
@@ -41,7 +48,7 @@ async def api_auditor():
         )
 
 
-@core_app.get("/admin/api/v1/settings/")
+@admin_router.get("/admin/api/v1/settings/", response_model=Optional[AdminSettings])
 async def api_get_settings(
     user: User = Depends(check_admin),
 ) -> Optional[AdminSettings]:
@@ -49,13 +56,11 @@ async def api_get_settings(
     return admin_settings
 
 
-@core_app.put(
+@admin_router.put(
     "/admin/api/v1/settings/",
     status_code=HTTPStatus.OK,
 )
-async def api_update_settings(
-    data: EditableSettings, user: User = Depends(check_admin)
-):
+async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."
@@ -64,7 +69,7 @@ async def api_update_settings(
     return {"status": "Success"}
 
 
-@core_app.delete(
+@admin_router.delete(
     "/admin/api/v1/settings/",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
@@ -74,7 +79,7 @@ async def api_delete_settings() -> None:
     server_restart.set()
 
 
-@core_app.get(
+@admin_router.get(
     "/admin/api/v1/restart/",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
@@ -84,16 +89,15 @@ async def api_restart_server() -> dict[str, str]:
     return {"status": "Success"}
 
 
-@core_app.put(
+@admin_router.put(
     "/admin/api/v1/topup/",
+    name="Topup",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
-async def api_topup_balance(
-    id: str = Body(...), amount: int = Body(...)
-) -> dict[str, str]:
+async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
     try:
-        await get_wallet(id)
+        await get_wallet(data.id)
     except Exception:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
@@ -104,12 +108,12 @@ async def api_topup_balance(
             status_code=HTTPStatus.FORBIDDEN, detail="VoidWallet active"
         )
 
-    await update_wallet_balance(wallet_id=id, amount=int(amount))
+    await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
 
     return {"status": "Success"}
 
 
-@core_app.get(
+@admin_router.get(
     "/admin/api/v1/backup/",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
@@ -126,10 +130,10 @@ async def api_download_backup() -> FileResponse:
         p = urlparse(db_url)
         command = (
             f"pg_dump --host={p.hostname} "
-            f'--dbname={p.path.replace("/", "")} '
+            f"--dbname={p.path.replace('/', '')} "
             f"--username={p.username} "
-            f"--no-password "
-            f"--format=c "
+            "--no-password "
+            "--format=c "
             f"--file={pg_backup_filename}"
         )
         proc = Popen(

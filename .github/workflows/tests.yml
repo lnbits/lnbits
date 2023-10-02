@@ -1,70 +1,58 @@
 name: tests
 
-on: [push, pull_request]
+on:
+  workflow_call:
+    inputs:
+      make:
+        default: test
+        type: string
+      python-version:
+        default: "3.9"
+        type: string
+      os-version:
+        default: "ubuntu-latest"
+        type: string
+      db-url:
+        default: ""
+        type: string
+      db-name:
+        default: "lnbits"
+        type: string
 
 jobs:
-  sqlite:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10"]
-        poetry-version: ["1.5.1"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
-        run: make test
-  postgres:
-    runs-on: ubuntu-latest
+  tests:
+    runs-on: ${{ inputs.os-version }}
+
     services:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_USER: lnbits
+          POSTGRES_PASSWORD: lnbits
+          POSTGRES_DB: ${{ inputs.db-name }}
         ports:
-          # maps tcp port 5432 on service container to the host
           - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10"]
-        poetry-version: ["1.5.1"]
+
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
+
+      - uses: ./.github/actions/prepare
         with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
+          python-version: ${{ inputs.python-version }}
+
+      - name: Run Tests
         env:
-          LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
-        run: make test
+          LNBITS_DATABASE_URL: ${{ inputs.db-url }}
+          LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+        run: make ${{ inputs.make }}
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml

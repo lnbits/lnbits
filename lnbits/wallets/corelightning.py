@@ -1,12 +1,13 @@
 import asyncio
 import random
-from functools import partial, wraps
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 
+from bolt11.decode import decode as bolt11_decode
+from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
 
-from lnbits import bolt11 as lnbits_bolt11
+from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
 
 from .base import (
@@ -19,38 +20,25 @@ from .base import (
 )
 
 
-def async_wrap(func):
-    @wraps(func)
-    async def run(*args, loop=None, executor=None, **kwargs):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        partial_func = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(executor, partial_func)
-
-    return run
-
-
-def _pay_invoice(ln, payload):
-    return ln.call("pay", payload)
-
-
-def _paid_invoices_stream(ln, last_pay_index):
-    return ln.waitanyinvoice(last_pay_index)
+async def run_sync(func) -> Any:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, func)
 
 
 class CoreLightningWallet(Wallet):
+    __node_cls__ = CoreLightningNode
+
     def __init__(self):
         self.rpc = settings.corelightning_rpc or settings.clightning_rpc
         self.ln = LightningRpc(self.rpc)
 
-        # check if description_hash is supported (from CLN>=v0.11.0)
-        self.supports_description_hash = (
-            "deschashonly" in self.ln.help("invoice")["help"][0]["command"]
-        )
+        # check if description_hash is supported (from corelightning>=v0.11.0)
+        command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
+        self.supports_description_hash = "deschashonly" in command
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
-        invoices = self.ln.listinvoices()
+        invoices: dict = self.ln.listinvoices()  # type: ignore
         for inv in invoices["invoices"][::-1]:
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
@@ -58,7 +46,7 @@ class CoreLightningWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            funds = self.ln.listfunds()
+            funds: dict = self.ln.listfunds()  # type: ignore
             return StatusResponse(
                 None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
@@ -79,55 +67,73 @@ class CoreLightningWallet(Wallet):
         try:
             if description_hash and not unhashed_description:
                 raise Unsupported(
-                    "'description_hash' unsupported by CLN, provide 'unhashed_description'"
+                    "'description_hash' unsupported by CoreLightning, provide"
+                    " 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
                 raise Unsupported("unhashed_description")
-            r = self.ln.invoice(
+            r: dict = self.ln.invoice(  # type: ignore
                 msatoshi=msat,
                 label=label,
-                description=unhashed_description.decode()
-                if unhashed_description
-                else memo,
+                description=(
+                    unhashed_description.decode() if unhashed_description else memo
+                ),
                 exposeprivatechannels=True,
-                deschashonly=True
-                if unhashed_description
-                else False,  # we can't pass None here
+                deschashonly=(
+                    True if unhashed_description else False
+                ),  # we can't pass None here
                 expiry=kwargs.get("expiry"),
             )
 
-            if r.get("code") and r.get("code") < 0:
+            if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+            error_message = (
+                f"CoreLightning method '{exc.method}' failed with"
+                f" '{exc.error.get('message') or exc.error}'."  # type: ignore
+            )
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        invoice = lnbits_bolt11.decode(bolt11)
+        try:
+            invoice = bolt11_decode(bolt11)
+        except Bolt11Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
 
         previous_payment = await self.get_payment_status(invoice.payment_hash)
         if previous_payment.paid:
             return PaymentResponse(False, None, None, None, "invoice already paid")
 
-        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
+        if not invoice.amount_msat or invoice.amount_msat <= 0:
+            return PaymentResponse(
+                False, None, None, None, "CLN 0 amount invoice not supported"
+            )
 
+        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
+        # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi
+        # (which is default value of exemptfee)
         payload = {
             "bolt11": bolt11,
             "maxfeepercent": f"{fee_limit_percent:.11}",
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
+            "exemptfee": 0,
+            # so fee_limit_percent is applied even on payments with fee < 5000
+            # millisatoshi (which is default value of exemptfee)
+            "description": invoice.description,
         }
         try:
-            wrapped = async_wrap(_pay_invoice)
-            r = await wrapped(self.ln, payload)
+            r = await run_sync(lambda: self.ln.call("pay", payload))
         except RpcError as exc:
             try:
-                error_message = exc.error["attempts"][-1]["fail_reason"]
+                error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
-                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+                error_message = (
+                    f"CoreLightning method '{exc.method}' failed with"
+                    f" '{exc.error.get('message') or exc.error}'."  # type: ignore
+                )
             return PaymentResponse(False, None, None, None, error_message)
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
@@ -139,8 +145,8 @@ class CoreLightningWallet(Wallet):
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listinvoices(payment_hash=checking_id)
-        except Exception:
+            r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
+        except RpcError:
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
@@ -160,7 +166,7 @@ class CoreLightningWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = self.ln.listpays(payment_hash=checking_id)
+            r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
             return PaymentStatus(None)
         if "pays" not in r or not r["pays"]:
@@ -186,12 +192,18 @@ class CoreLightningWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
-                wrapped = async_wrap(_paid_invoices_stream)
-                paid = await wrapped(self.ln, self.last_pay_index)
+                paid = await run_sync(
+                    lambda: self.ln.waitanyinvoice(self.last_pay_index, timeout=2)
+                )
                 self.last_pay_index = paid["pay_index"]
                 yield paid["payment_hash"]
+            except RpcError as exc:
+                # only raise if not a timeout
+                if exc.error["code"] != 904:  # type: ignore
+                    raise
             except Exception as exc:
                 logger.error(
-                    f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to corelightning invoices stream: '{exc}', "
+                    "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)

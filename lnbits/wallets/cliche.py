@@ -55,13 +55,16 @@ class ClicheWallet(Wallet):
             description_hash_str = (
                 description_hash.hex()
                 if description_hash
-                else hashlib.sha256(unhashed_description).hexdigest()
-                if unhashed_description
-                else None
+                else (
+                    hashlib.sha256(unhashed_description).hexdigest()
+                    if unhashed_description
+                    else None
+                )
             )
             ws = create_connection(self.endpoint)
             ws.send(
-                f"create-invoice --msatoshi {amount*1000} --description_hash {description_hash_str}"
+                f"create-invoice --msatoshi {amount*1000} --description_hash"
+                f" {description_hash_str}"
             )
             r = ws.recv()
         else:
@@ -172,7 +175,8 @@ class ClicheWallet(Wallet):
                         continue
             except Exception as exc:
                 logger.error(
-                    f"lost connection to cliche's invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to cliche's invoices stream: '{exc}', retrying in"
+                    " 5 seconds"
                 )
                 await asyncio.sleep(5)
                 continue

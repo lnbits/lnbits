@@ -64,8 +64,34 @@ window.LNbits = {
         callback
       })
     },
+    createAccount: function (name) {
+      return this.request('post', '/api/v1/account', null, {
+        name: name
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
+    },
+    createWallet: function (wallet, name) {
+      return this.request('post', '/api/v1/wallet', wallet.adminkey, {
+        name: name
+      }).then(res => {
+        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+      })
+    },
+    updateWallet: function (name, wallet) {
+      return this.request('patch', '/api/v1/wallet', wallet.adminkey, {
+        name: name
+      })
+    },
+    deleteWallet: function (wallet) {
+      return this.request('delete', '/api/v1/wallet', wallet.adminkey).then(
+        _ => {
+          let url = new URL(window.location.href)
+          url.searchParams.delete('wal')
+          window.location = url
+        }
+      )
     },
     getPayments: function (wallet, query) {
       const params = new URLSearchParams(query)
@@ -118,18 +144,6 @@ window.LNbits = {
       }
     }
   },
-  href: {
-    createWallet: function (walletName, userId) {
-      window.location.href =
-        '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
-    },
-    updateWallet: function (walletName, userId, walletId) {
-      window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`
-    },
-    deleteWallet: function (walletId, userId) {
-      window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
-    }
-  },
   map: {
     extension: function (data) {
       var obj = _.object(
@@ -178,7 +192,8 @@ window.LNbits = {
         id: data.id,
         name: data.name,
         adminkey: data.adminkey,
-        inkey: data.inkey
+        inkey: data.inkey,
+        currency: data.currency
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.round(data.balance_msat / 1000)
@@ -203,7 +218,9 @@ window.LNbits = {
         extra: data.extra,
         wallet_id: data.wallet_id,
         webhook: data.webhook,
-        webhook_status: data.webhook_status
+        webhook_status: data.webhook_status,
+        fiat_amount: data.fiat_amount,
+        fiat_currency: data.fiat_currency
       }
 
       obj.date = Quasar.utils.date.formatDate(
@@ -218,7 +235,7 @@ window.LNbits = {
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
-      obj.tag = obj.extra.tag
+      obj.tag = obj.extra?.tag
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
@@ -258,6 +275,9 @@ window.LNbits = {
     },
     formatSat: function (value) {
       return new Intl.NumberFormat(window.LOCALE).format(value)
+    },
+    formatMsat: function (value) {
+      return this.formatSat(value / 1000)
     },
     notifyApiError: function (error) {
       var types = {
@@ -337,6 +357,12 @@ window.LNbits = {
           icon: null
         })
       }
+    },
+    convertMarkdown(text) {
+      const converter = new showdown.Converter()
+      converter.setFlavor('github')
+      converter.setOption('simpleLineBreaks', true)
+      return converter.makeHtml(text)
     }
   }
 }
@@ -345,6 +371,7 @@ window.windowMixin = {
   i18n: window.i18n,
   data: function () {
     return {
+      toggleSubs: true,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,
@@ -448,7 +475,7 @@ window.windowMixin = {
             return !obj.hidden
           })
           .filter(function (obj) {
-            if (window.user.admin) return obj
+            if (window.user?.admin) return obj
             return !obj.isAdminOnly
           })
           .map(function (obj) {

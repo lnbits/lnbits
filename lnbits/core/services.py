@@ -1,16 +1,21 @@
 import asyncio
 import json
 from io import BytesIO
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl
 from loguru import logger
+from py_vapid import Vapid
+from py_vapid.utils import b64urlencode
 
 from lnbits import bolt11
+from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
@@ -21,10 +26,10 @@ from lnbits.settings import (
     send_admin_user_to_saas,
     settings,
 )
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
-from . import db
 from .crud import (
     check_internal,
     check_internal_pending,
@@ -39,6 +44,7 @@ from .crud import (
     get_total_balance,
     get_wallet,
     get_wallet_payment,
+    update_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
@@ -55,10 +61,49 @@ class InvoiceFailure(Exception):
     pass
 
 
+async def calculate_fiat_amounts(
+    amount: float,
+    wallet_id: str,
+    currency: Optional[str] = None,
+    extra: Optional[Dict] = None,
+    conn: Optional[Connection] = None,
+) -> Tuple[int, Optional[Dict]]:
+    wallet = await get_wallet(wallet_id, conn=conn)
+    assert wallet, "invalid wallet_id"
+    wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
+
+    if currency and currency != "sat":
+        amount_sat = await fiat_amount_as_satoshis(amount, currency)
+        extra = extra or {}
+        if currency != wallet_currency:
+            extra["fiat_currency"] = currency
+            extra["fiat_amount"] = round(amount, ndigits=3)
+            extra["fiat_rate"] = amount_sat / amount
+    else:
+        amount_sat = int(amount)
+
+    if wallet_currency:
+        if wallet_currency == currency:
+            fiat_amount = amount
+        else:
+            fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
+        extra = extra or {}
+        extra["wallet_fiat_currency"] = wallet_currency
+        extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
+        extra["wallet_fiat_rate"] = amount_sat / fiat_amount
+
+    logger.debug(
+        f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {extra=}"
+    )
+
+    return amount_sat, extra
+
+
 async def create_invoice(
     *,
     wallet_id: str,
-    amount: int,  # in satoshis
+    amount: float,
+    currency: Optional[str] = "sat",
     memo: str,
     description_hash: Optional[bytes] = None,
     unhashed_description: Optional[bytes] = None,
@@ -71,13 +116,20 @@ async def create_invoice(
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
 
+    if await get_wallet(wallet_id, conn=conn) is None:
+        raise InvoiceFailure("Wallet does not exist.")
+
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
     wallet = FAKE_WALLET if internal else get_wallet_class()
 
+    amount_sat, extra = await calculate_fiat_amounts(
+        amount, wallet_id, currency=currency, extra=extra, conn=conn
+    )
+
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
-        amount=amount,
+        amount=amount_sat,
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
@@ -88,7 +140,7 @@ async def create_invoice(
 
     invoice = bolt11.decode(payment_request)
 
-    amount_msat = amount * 1000
+    amount_msat = 1000 * amount_sat
     await create_payment(
         wallet_id=wallet_id,
         checking_id=checking_id,
@@ -115,16 +167,23 @@ async def pay_invoice(
 ) -> str:
     """
     Pay a Lightning invoice.
-    First, we create a temporary payment in the database with fees set to the reserve fee.
-    We then check whether the balance of the payer would go negative.
-    We then attempt to pay the invoice through the backend.
-    If the payment is successful, we update the payment in the database with the payment details.
+    First, we create a temporary payment in the database with fees set to the reserve
+    fee. We then check whether the balance of the payer would go negative.
+    We then attempt to pay the invoice through the backend. If the payment is
+    successful, we update the payment in the database with the payment details.
     If the payment is unsuccessful, we delete the temporary payment.
-    If the payment is still in flight, we hope that some other process will regularly check for the payment.
+    If the payment is still in flight, we hope that some other process
+    will regularly check for the payment.
     """
     invoice = bolt11.decode(payment_request)
+
+    if not invoice.amount_msat or not invoice.amount_msat > 0:
+        raise ValueError("Amountless invoices not supported.")
+    if max_sat and invoice.amount_msat > max_sat * 1000:
+        raise ValueError("Amount in invoice is too high.")
+
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
-    async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
@@ -132,6 +191,10 @@ async def pay_invoice(
             raise ValueError("Amountless invoices not supported.")
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
+
+        _, extra = await calculate_fiat_amounts(
+            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
+        )
 
         # put all parameters that don't change here
         class PaymentKwargs(TypedDict):
@@ -151,11 +214,13 @@ async def pay_invoice(
             extra=extra,
         )
 
-        # we check if an internal invoice exists that has already been paid (not pending anymore)
+        # we check if an internal invoice exists that has already been paid
+        # (not pending anymore)
         if not await check_internal_pending(invoice.payment_hash, conn=conn):
             raise PaymentFailure("Internal invoice already paid.")
 
-        # check_internal() returns the checking_id of the invoice we're waiting for (pending only)
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        # (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
             # perform additional checks on the internal payment
@@ -202,7 +267,8 @@ async def pay_invoice(
             logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
-                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
+                    " cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
@@ -232,7 +298,8 @@ async def pay_invoice(
 
         if payment.checking_id and payment.checking_id != temp_id:
             logger.warning(
-                f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
+                f"backend sent unexpected checking_id (expected: {temp_id} got:"
+                f" {payment.checking_id})"
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
@@ -267,7 +334,8 @@ async def pay_invoice(
             )
         else:
             logger.warning(
-                f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
+                "didn't receive checking_id from backend, payment may be stuck in"
+                f" database: {temp_id}"
             )
 
     return invoice.payment_hash
@@ -301,7 +369,8 @@ async def redeem_lnurl_withdraw(
         )
     except Exception:
         logger.warning(
-            f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
+            f"failed to create invoice on redeem_lnurl_withdraw "
+            f"from {lnurl}. params: {res}"
         )
         return None
 
@@ -420,7 +489,8 @@ async def check_transaction_status(
     return status
 
 
-# WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
+# WARN: this same value must be used for balance check and passed to
+# WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
@@ -466,7 +536,7 @@ async def check_admin_settings():
             # create new settings if table is empty
             logger.warning("Settings DB empty. Inserting default settings.")
             settings_db = await init_admin_settings(settings.super_user)
-            logger.warning("Initialized settings from enviroment variables.")
+            logger.warning("Initialized settings from environment variables.")
 
         if settings.super_user and settings.super_user != settings_db.super_user:
             # .env super_user overwrites DB super_user
@@ -474,11 +544,8 @@ async def check_admin_settings():
 
         update_cached_settings(settings_db.dict())
 
-        admin_url = f'{settings.lnbits_baseurl}wallet?usr=<ID from ".super_user" file>'
-        logger.success(f"✔️ Access super user account at: {admin_url}")
-
-        # saving it to .super_user file
-        with open(".super_user", "w") as file:
+        # saving superuser to {data_dir}/.super_user file
+        with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
             file.write(settings.super_user)
 
         # callback for saas
@@ -488,6 +555,34 @@ async def check_admin_settings():
             and settings.lnbits_saas_instance_id
         ):
             send_admin_user_to_saas()
+
+        logger.success(
+            "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
+            "to get the superuser."
+        )
+
+
+async def check_webpush_settings():
+    if not settings.lnbits_webpush_privkey:
+        vapid = Vapid()
+        vapid.generate_keys()
+        privkey = vapid.private_pem()
+        assert vapid.public_key, "VAPID public key does not exist"
+        pubkey = b64urlencode(
+            vapid.public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
+        )
+        push_settings = {
+            "lnbits_webpush_privkey": privkey.decode(),
+            "lnbits_webpush_pubkey": pubkey,
+        }
+        update_cached_settings(push_settings)
+        await update_admin_settings(EditableSettings(**push_settings))
+
+    logger.info("Initialized webpush settings with generated VAPID key pair.")
+    logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
 
 
 def update_cached_settings(sets_dict: dict):
@@ -516,7 +611,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
 
 
 class WebsocketConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, item_id: str):

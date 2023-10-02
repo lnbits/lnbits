@@ -1,8 +1,10 @@
 import asyncio
-from typing import Callable, List, NamedTuple
+from typing import Callable, NamedTuple
 
 import httpx
 from loguru import logger
+
+from lnbits.utils.cache import cache
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -181,6 +183,19 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    # https://binance-docs.github.io/apidocs/spot/en/#symbol-price-ticker
+    "binance": Provider(
+        "Binance",
+        "binance.com",
+        "https://api.binance.com/api/v3/ticker/price?symbol={FROM}{TO}",
+        lambda data, replacements: data["price"],
+    ),
+    "blockchain": Provider(
+        "Blockchain",
+        "blockchain.com",
+        "https://blockchain.info/tobtc?currency={TO}&value=1",
+        lambda data, replacements: 1 / data,
+    ),
     "exir": Provider(
         "Exir",
         "exir.io",
@@ -227,28 +242,6 @@ async def btc_price(currency: str) -> float:
         "TO": currency.upper(),
         "to": currency.lower(),
     }
-    rates: List[float] = []
-    tasks: List[asyncio.Task] = []
-
-    send_channel: asyncio.Queue = asyncio.Queue()
-
-    async def controller():
-        failures = 0
-        while True:
-            rate = await send_channel.get()
-            if rate:
-                rates.append(rate)
-            else:
-                failures += 1
-
-            if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
-                for t in tasks:
-                    t.cancel()
-                break
-            if failures == len(exchange_rate_providers):
-                for t in tasks:
-                    t.cancel()
-                break
 
     async def fetch_price(provider: Provider):
         url = provider.api_url.format(**replacements)
@@ -257,37 +250,33 @@ async def btc_price(currency: str) -> float:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
                 data = r.json()
-                rate = float(provider.getter(data, replacements))
-                await send_channel.put(rate)
-        except (
-            TypeError,  # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
-            KeyError,  # Kraken's response dictionary doesn't include keys we look up for
-            httpx.ConnectTimeout,
-            httpx.ConnectError,
-            httpx.ReadTimeout,
-            httpx.HTTPStatusError,  # Some providers throw a 404 when a currency pair is not found
-        ):
-            await send_channel.put(None)
+                return float(provider.getter(data, replacements))
+        except Exception as e:
+            logger.warning(
+                f"Failed to fetch Bitcoin price "
+                f"for {currency} from {provider.name}: {e}"
+            )
+            raise
 
-    asyncio.create_task(controller())
-    for _, provider in exchange_rate_providers.items():
-        tasks.append(asyncio.create_task(fetch_price(provider)))
-
-    try:
-        await asyncio.gather(*tasks)
-    except asyncio.CancelledError:
-        pass
+    results = await asyncio.gather(
+        *[fetch_price(provider) for provider in exchange_rate_providers.values()],
+        return_exceptions=True,
+    )
+    rates = [r for r in results if not isinstance(r, Exception)]
 
     if not rates:
         return 9999999999
     elif len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
 
-    return sum([rate for rate in rates]) / len(rates)
+    return sum(rates) / len(rates)
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:
-    return float(100_000_000 / (await btc_price(currency)))
+    price = await cache.save_result(
+        lambda: btc_price(currency), f"btc-price-{currency}"
+    )
+    return float(100_000_000 / price)
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:

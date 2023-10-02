@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 import traceback
 import uuid
@@ -7,17 +8,19 @@ from typing import Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
+from py_vapid import Vapid
+from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
     delete_expired_invoices,
+    delete_webpush_subscriptions,
     get_balance_checks,
     get_payments,
     get_standalone_payment,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
+from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
-
-from .core import db
 
 tasks: List[asyncio.Task] = []
 
@@ -87,8 +90,8 @@ invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listener
 
 def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
     """
-    A method intended for extensions (and core/tasks.py) to call when they want to be notified about
-    new invoice payments incoming. Will emit all incoming payments.
+    A method intended for extensions (and core/tasks.py) to call when they want to be
+    notified about new invoice payments incoming. Will emit all incoming payments.
     """
     name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
     logger.trace(f"sse: registering invoice listener {name_unique}")
@@ -145,34 +148,36 @@ async def check_pending_payments():
     incoming = True
 
     while True:
-        async with db.connect() as conn:
-            logger.info(
-                f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
-            )
-            start_time: float = time.time()
-            pending_payments = await get_payments(
-                since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-                complete=False,
-                pending=True,
-                outgoing=outgoing,
-                incoming=incoming,
-                exclude_uncheckable=True,
-                conn=conn,
-            )
-            for payment in pending_payments:
-                await payment.check_status(conn=conn)
+        logger.info(
+            f"Task: checking all pending payments (incoming={incoming},"
+            f" outgoing={outgoing}) of last 15 days"
+        )
+        start_time = time.time()
+        pending_payments = await get_payments(
+            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+            complete=False,
+            pending=True,
+            outgoing=outgoing,
+            incoming=incoming,
+            exclude_uncheckable=True,
+        )
+        for payment in pending_payments:
+            await payment.check_status()
+            await asyncio.sleep(0.01)  # to avoid complete blocking
 
+        logger.info(
+            f"Task: pending check finished for {len(pending_payments)} payments"
+            f" (took {time.time() - start_time:0.3f} s)"
+        )
+        # we delete expired invoices once upon the first pending check
+        if incoming:
+            logger.debug("Task: deleting all expired invoices")
+            start_time = time.time()
+            await delete_expired_invoices()
             logger.info(
-                f"Task: pending check finished for {len(pending_payments)} payments (took {time.time() - start_time:0.3f} s)"
+                "Task: expired invoice deletion finished (took"
+                f" {time.time() - start_time:0.3f} s)"
             )
-            # we delete expired invoices once upon the first pending check
-            if incoming:
-                logger.debug("Task: deleting all expired invoices")
-                start_time: float = time.time()
-                await delete_expired_invoices(conn=conn)
-                logger.info(
-                    f"Task: expired invoice deletion finished (took {time.time() - start_time:0.3f} s)"
-                )
 
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
@@ -201,3 +206,21 @@ async def invoice_callback_dispatcher(checking_id: str):
         for chan_name, send_chan in invoice_listeners.items():
             logger.trace(f"sse sending to chan: {chan_name}")
             await send_chan.put(payment)
+
+
+async def send_push_notification(subscription, title, body, url=""):
+    vapid = Vapid()
+    try:
+        logger.debug("sending push notification")
+        webpush(
+            json.loads(subscription.data),
+            json.dumps({"title": title, "body": body, "url": url}),
+            vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8")),
+            {"aud": "", "sub": "mailto:alan@lnbits.com"},
+        )
+    except WebPushException as e:
+        if e.response.status_code == HTTPStatus.GONE:
+            # cleanup unsubscribed or expired push subscriptions
+            await delete_webpush_subscriptions(subscription.endpoint)
+        else:
+            logger.error(f"failed sending push notification: {e.response.text}")

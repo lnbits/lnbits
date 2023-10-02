@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import importlib.metadata
 import inspect
@@ -9,33 +11,26 @@ from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
 
-def list_parse_fallback(v):
-    try:
-        return json.loads(v)
-    except Exception:
-        replaced = v.replace(" ", "")
-        if replaced:
-            return replaced.split(",")
+def list_parse_fallback(v: str):
+    v = v.replace(" ", "")
+    if len(v) > 0:
+        if v.startswith("[") or v.startswith("{"):
+            return json.loads(v)
         else:
-            return []
+            return v.split(",")
+    else:
+        return []
 
 
-class LNbitsSettings(BaseSettings):
+class LNbitsSettings(BaseModel):
     @classmethod
-    def validate(cls, val):
+    def validate_list(cls, val):
         if isinstance(val, str):
             val = val.split(",") if val else []
         return val
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
-        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
@@ -90,6 +85,7 @@ class ThemesSettings(LNbitsSettings):
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: List[str] = Field(default=[])
+    lnbits_default_accounting_currency: Optional[str] = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
@@ -113,7 +109,9 @@ class SecuritySettings(LNbitsSettings):
     lnbits_watchdog_interval: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
     lnbits_status_manifest: str = Field(
-        default="https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+        default=(
+            "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
+        )
     )
 
 
@@ -135,6 +133,12 @@ class ClicheFundingSource(LNbitsSettings):
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
     clightning_rpc: Optional[str] = Field(default=None)
+
+
+class CoreLightningRestFundingSource(LNbitsSettings):
+    corelightning_rest_url: Optional[str] = Field(default=None)
+    corelightning_rest_macaroon: Optional[str] = Field(default=None)
+    corelightning_rest_cert: Optional[str] = Field(default=None)
 
 
 class EclairFundingSource(LNbitsSettings):
@@ -207,6 +211,7 @@ class FundingSourcesSettings(
     LNbitsFundingSource,
     ClicheFundingSource,
     CoreLightningFundingSource,
+    CoreLightningRestFundingSource,
     EclairFundingSource,
     LndRestFundingSource,
     LndGrpcFundingSource,
@@ -218,6 +223,21 @@ class FundingSourcesSettings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
 
+class WebPushSettings(LNbitsSettings):
+    lnbits_webpush_pubkey: str = Field(default=None)
+    lnbits_webpush_privkey: str = Field(default=None)
+
+
+class NodeUISettings(LNbitsSettings):
+    # on-off switch for node ui
+    lnbits_node_ui: bool = Field(default=False)
+    # whether to display the public node ui (only if lnbits_node_ui is True)
+    lnbits_public_node_ui: bool = Field(default=False)
+    # can be used to disable the transactions tab in the node ui
+    # (recommended for large cln nodes)
+    lnbits_node_ui_transactions: bool = Field(default=False)
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -227,6 +247,8 @@ class EditableSettings(
     FundingSourcesSettings,
     BoltzExtensionSettings,
     LightningSettings,
+    WebPushSettings,
+    NodeUISettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -237,7 +259,7 @@ class EditableSettings(
     )
     @classmethod
     def validate_editable_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -253,16 +275,27 @@ class EditableSettings(
                 prop.pop("env_names", None)
 
 
+class UpdateSettings(EditableSettings):
+    class Config:
+        extra = Extra.forbid
+
+
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
     forwarded_allow_ips: str = Field(default="*")
+    lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
+    lnbits_extensions_path: str = Field(default="lnbits")
     lnbits_commit: str = Field(default="unknown")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+
+    @property
+    def has_default_extension_path(self) -> bool:
+        return self.lnbits_extensions_path == "lnbits"
 
 
 class SaaSSettings(LNbitsSettings):
@@ -282,6 +315,7 @@ class SuperUserSettings(LNbitsSettings):
             "VoidWallet",
             "FakeWallet",
             "CoreLightningWallet",
+            "CoreLightningRestWallet",
             "LndRestWallet",
             "EclairWallet",
             "LndWallet",
@@ -320,18 +354,24 @@ class ReadOnlySettings(
     )
     @classmethod
     def validate_readonly_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings):
+class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
         return cls(**data)
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
 
 
 class SuperSettings(EditableSettings):
@@ -368,7 +408,8 @@ def send_admin_user_to_saas():
                 logger.success("sent super_user to saas application")
             except Exception as e:
                 logger.error(
-                    f"error sending super_user to saas: {settings.lnbits_saas_callback}. Error: {str(e)}"
+                    "error sending super_user to saas:"
+                    f" {settings.lnbits_saas_callback}. Error: {str(e)}"
                 )
 
 
@@ -392,6 +433,12 @@ except Exception:
     settings.lnbits_commit = "docker"
 
 settings.version = importlib.metadata.version("lnbits")
+
+# printing environment variable for debugging
+if not settings.lnbits_admin_ui:
+    logger.debug("Environment Settings:")
+    for key, value in settings.dict(exclude_none=True).items():
+        logger.debug(f"{key}: {value}")
 
 
 def get_wallet_class():

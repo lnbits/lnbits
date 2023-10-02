@@ -17,7 +17,8 @@ class Cache:
     Small caching utility providing simple get/set interface (very much like redis)
     """
 
-    def __init__(self):
+    def __init__(self, interval: float = 10) -> None:
+        self.interval = interval
         self._values: dict[Any, Cached] = {}
 
     def get(self, key: str, default=None) -> Optional[Any]:
@@ -50,10 +51,10 @@ class Cache:
             self.set(key, value, expiry=expiry)
             return value
 
-    async def invalidate_forever(self, interval: float = 10):
+    async def invalidate_forever(self):
         while True:
             try:
-                await asyncio.sleep(interval)
+                await asyncio.sleep(self.interval)
                 ts = time()
                 expired = [k for k, v in self._values.items() if v.expiry < ts]
                 for k in expired:

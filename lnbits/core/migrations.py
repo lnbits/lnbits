@@ -239,7 +239,8 @@ async def m007_set_invoice_expiries(db):
                     invoice.date + invoice.expiry
                 )
                 logger.info(
-                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice {invoice.payment_hash} to {expiration_date}"
+                    f"Migration: {i+1}/{len(rows)} setting expiry of invoice"
+                    f" {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
                     """
@@ -298,6 +299,97 @@ async def m010_create_installed_extensions_table(db):
             stars INT NOT NULL DEFAULT 0,
             active BOOLEAN DEFAULT false,
             meta TEXT NOT NULL DEFAULT '{}'
+        );
+    """
+    )
+
+
+async def m011_optimize_balances_view(db):
+    """
+    Make the calculation of the balance a single aggregation
+    over the payments table instead of 2.
+    """
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT wallet, SUM(amount - abs(fee)) AS balance
+        FROM apipayments
+        WHERE (pending = false AND amount > 0) OR amount < 0
+        GROUP BY wallet
+    """
+    )
+
+
+async def m012_add_currency_to_wallet(db):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN currency TEXT
+        """
+    )
+
+
+async def m013_add_deleted_to_wallets(db):
+    """
+    Adds deleted column to wallets.
+    """
+    try:
+        await db.execute(
+            "ALTER TABLE wallets ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT false"
+        )
+    except OperationalError:
+        pass
+
+
+async def m014_set_deleted_wallets(db):
+    """
+    Sets deleted column to wallets.
+    """
+    try:
+        rows = await (
+            await db.execute(
+                """
+                SELECT *
+                FROM wallets
+                WHERE user LIKE 'del:%'
+                AND adminkey LIKE 'del:%'
+                AND inkey LIKE 'del:%'
+                """
+            )
+        ).fetchall()
+
+        for row in rows:
+            try:
+                user = row[2].split(":")[1]
+                adminkey = row[3].split(":")[1]
+                inkey = row[4].split(":")[1]
+                await db.execute(
+                    """
+                    UPDATE wallets SET user = ?, adminkey = ?, inkey = ?, deleted = true
+                    WHERE id = ?
+                    """,
+                    (user, adminkey, inkey, row[0]),
+                )
+            except Exception:
+                continue
+    except OperationalError:
+        # this is necessary now because it may be the case that this migration will
+        # run twice in some environments.
+        # catching errors like this won't be necessary in anymore now that we
+        # keep track of db versions so no migration ever runs twice.
+        pass
+
+
+async def m015_create_push_notification_subscriptions_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS webpush_subscriptions (
+            endpoint TEXT NOT NULL,
+            "user" TEXT NOT NULL,
+            data TEXT NOT NULL,
+            host TEXT NOT NULL,
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            PRIMARY KEY (endpoint, "user")
         );
     """
     )

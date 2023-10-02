@@ -3,12 +3,14 @@ from __future__ import annotations
 import importlib
 from typing import Optional
 
+from lnbits.nodes import set_node_class
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
 from .cliche import ClicheWallet
-from .cln import CoreLightningWallet
-from .cln import CoreLightningWallet as CLightningWallet
+from .corelightning import CoreLightningWallet
+from .corelightning import CoreLightningWallet as CLightningWallet
+from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
@@ -26,6 +28,8 @@ def set_wallet_class(class_name: Optional[str] = None):
     wallet_class = getattr(wallets_module, backend_wallet_class)
     global WALLET
     WALLET = wallet_class()
+    if WALLET.__node_cls__:
+        set_node_class(WALLET.__node_cls__(WALLET))
 
 
 def get_wallet_class() -> Wallet:
@@ -33,7 +37,7 @@ def get_wallet_class() -> Wallet:
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET: Wallet = FakeWallet()
+FAKE_WALLET = FakeWallet()
 
 # initialize as fake wallet
 WALLET: Wallet = FAKE_WALLET

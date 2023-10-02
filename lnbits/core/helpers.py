@@ -6,11 +6,11 @@ from uuid import UUID
 import httpx
 from loguru import logger
 
+from lnbits.core.db import db as core_db
 from lnbits.db import Connection
 from lnbits.extension_manager import Extension
 from lnbits.settings import settings
 
-from . import db as core_db
 from .crud import update_migration_version
 
 
@@ -51,7 +51,8 @@ async def stop_extension_background_work(ext_id: str, user: str):
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extensions SHOULD expose a DELETE enpoint at the root level of their API.
-    This function tries first to call the endpoint using `http` and if if fails it tries using `https`.
+    This function tries first to call the endpoint using `http`
+    and if it fails it tries using `https`.
     """
     async with httpx.AsyncClient() as client:
         try:

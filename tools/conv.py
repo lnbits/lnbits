@@ -55,7 +55,8 @@ def check_db_versions(sqdb):
             version = dbpost[key]
             if value != version:
                 raise Exception(
-                    f"sqlite database version ({value}) of {key} doesn't match postgres database version {version}"
+                    f"sqlite database version ({value}) of {key} doesn't match postgres"
+                    f" database version {version}"
                 )
 
     connection = postgres.connection
@@ -174,7 +175,10 @@ parser.add_argument(
     dest="sqlite_path",
     const=True,
     nargs="?",
-    help=f"SQLite DB folder *or* single extension db file to migrate. Default: {sqfolder}",
+    help=(
+        "SQLite DB folder *or* single extension db file to migrate. Default:"
+        f" {sqfolder}"
+    ),
     default=sqfolder,
     type=str,
 )

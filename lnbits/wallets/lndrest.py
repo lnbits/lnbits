@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
 
 from .base import (
@@ -21,6 +22,8 @@ from .macaroon import AESCipher, load_macaroon
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
+
+    __node_cls__ = LndRestNode
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
@@ -48,7 +51,8 @@ class LndRestWallet(Wallet):
 
         if not cert:
             logger.warning(
-                "no certificate for lndrest provided, this only works if you have a publicly issued certificate"
+                "no certificate for lndrest provided, this only works if you have a"
+                " publicly issued certificate"
             )
 
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -223,6 +227,7 @@ class LndRestWallet(Wallet):
                         yield payment_hash
             except Exception as exc:
                 logger.error(
-                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5"
+                    " seconds"
                 )
                 await asyncio.sleep(5)

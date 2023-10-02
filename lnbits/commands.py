@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import click
 from loguru import logger
@@ -14,20 +15,38 @@ from .extension_manager import get_valid_extensions
 
 
 @click.group()
-def command_group():
+def lnbits_cli():
     """
     Python CLI for LNbits
     """
 
 
-@click.command("superuser")
+@lnbits_cli.group()
+def db():
+    """
+    Database related commands
+    """
+
+
+def get_super_user() -> str:
+    """Get the superuser"""
+    with open(Path(settings.lnbits_data_folder) / ".super_user", "r") as file:
+        return file.readline()
+
+
+@lnbits_cli.command("superuser")
 def superuser():
     """Prints the superuser"""
-    with open(".super_user", "r") as file:
-        print(f"http://{settings.host}:{settings.port}/wallet?usr={file.readline()}")
+    click.echo(get_super_user())
 
 
-@click.command("delete-settings")
+@lnbits_cli.command("superuser-url")
+def superuser_url():
+    """Prints the superuser"""
+    click.echo(f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}")
+
+
+@lnbits_cli.command("delete-settings")
 def delete_settings():
     """Deletes the settings"""
 
@@ -39,7 +58,7 @@ def delete_settings():
     loop.run_until_complete(wrap())
 
 
-@click.command("database-migrate")
+@db.command("migrate")
 def database_migrate():
     """Migrate databases"""
     loop = asyncio.get_event_loop()
@@ -61,7 +80,8 @@ async def migrate_databases():
             )
         elif conn.type in {POSTGRES, COCKROACH}:
             exists = await conn.fetchone(
-                "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'dbversions'"
+                "SELECT * FROM information_schema.tables WHERE table_schema = 'public'"
+                " AND table_name = 'dbversions'"
             )
 
         if not exists:
@@ -78,7 +98,7 @@ async def migrate_databases():
     logger.info("✔️ All migrations done.")
 
 
-@click.command("database-versions")
+@db.command("versions")
 def database_versions():
     """Show current database versions"""
     loop = asyncio.get_event_loop()
@@ -99,11 +119,7 @@ async def load_disabled_extension_list() -> None:
 
 def main():
     """main function"""
-    command_group.add_command(superuser)
-    command_group.add_command(delete_settings)
-    command_group.add_command(database_migrate)
-    command_group.add_command(database_versions)
-    command_group()
+    lnbits_cli()
 
 
 if __name__ == "__main__":

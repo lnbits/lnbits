@@ -1,18 +1,34 @@
 import datetime
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
+from bolt11.decode import decode
 
-from lnbits import bolt11
-from lnbits.db import Connection, Database, Filters, Page
+from lnbits.core.db import db
+from lnbits.core.models import WalletType
+from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
-from lnbits.settings import AdminSettings, EditableSettings, SuperSettings, settings
+from lnbits.settings import (
+    AdminSettings,
+    EditableSettings,
+    SuperSettings,
+    WebPushSettings,
+    settings,
+)
 
-from . import db
-from .models import BalanceCheck, Payment, PaymentFilters, TinyURL, User, Wallet
+from .models import (
+    BalanceCheck,
+    Payment,
+    PaymentFilters,
+    PaymentHistoryPoint,
+    TinyURL,
+    User,
+    Wallet,
+    WebPushSubscription,
+)
 
 # accounts
 # --------
@@ -57,9 +73,11 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         )
         wallets = await (conn or db).fetchall(
             """
-            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
+            SELECT *, COALESCE((
+                SELECT balance FROM balances WHERE wallet = wallets.id
+            ), 0) AS balance_msat
             FROM wallets
-            WHERE "user" = ?
+            WHERE "user" = ? and wallets.deleted = false
             """,
             (user_id,),
         )
@@ -88,9 +106,9 @@ async def add_installed_extension(
     conn: Optional[Connection] = None,
 ) -> None:
     meta = {
-        "installed_release": dict(ext.installed_release)
-        if ext.installed_release
-        else None,
+        "installed_release": (
+            dict(ext.installed_release) if ext.installed_release else None
+        ),
         "dependencies": ext.dependencies,
     }
 
@@ -98,9 +116,11 @@ async def add_installed_extension(
 
     await (conn or db).execute(
         """
-        INSERT INTO installed_extensions (id, version, name, short_description, icon, stars, meta) VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (id) DO
-        UPDATE SET (version, name, active, short_description, icon, stars, meta) = (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO installed_extensions
+        (id, version, name, short_description, icon, stars, meta)
+        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
+        (version, name, active, short_description, icon, stars, meta) =
+        (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ext.id,
@@ -233,15 +253,25 @@ async def create_wallet(
 
 
 async def update_wallet(
-    wallet_id: str, new_name: str, conn: Optional[Connection] = None
+    wallet_id: str,
+    name: Optional[str] = None,
+    currency: Optional[str] = None,
+    conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
+    set_clause = []
+    values = []
+    if name:
+        set_clause.append("name = ?")
+        values.append(name)
+    if currency is not None:
+        set_clause.append("currency = ?")
+        values.append(currency)
+    values.append(wallet_id)
     await (conn or db).execute(
-        """
-        UPDATE wallets SET
-            name = ?
-        WHERE id = ?
+        f"""
+        UPDATE wallets SET {', '.join(set_clause)} WHERE id = ?
         """,
-        (new_name, wallet_id),
+        tuple(values),
     )
     wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
     assert wallet, "updated created wallet couldn't be retrieved"
@@ -253,11 +283,8 @@ async def delete_wallet(
 ) -> None:
     await (conn or db).execute(
         """
-        UPDATE wallets AS w
-        SET
-            "user" = 'del:' || w."user",
-            adminkey = 'del:' || w.adminkey,
-            inkey = 'del:' || w.inkey
+        UPDATE wallets
+        SET deleted = true
         WHERE id = ? AND "user" = ?
         """,
         (wallet_id, user_id),
@@ -269,9 +296,8 @@ async def get_wallet(
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
-        FROM wallets
-        WHERE id = ?
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE id = ?
         """,
         (wallet_id,),
     )
@@ -280,13 +306,14 @@ async def get_wallet(
 
 
 async def get_wallet_for_key(
-    key: str, key_type: str = "invoice", conn: Optional[Connection] = None
+    key: str,
+    key_type: WalletType = WalletType.invoice,
+    conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
-        FROM wallets
-        WHERE adminkey = ? OR inkey = ?
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE adminkey = ? OR inkey = ?
         """,
         (key, key),
     )
@@ -294,7 +321,7 @@ async def get_wallet_for_key(
     if not row:
         return None
 
-    if key_type == "admin" and row["adminkey"] != key:
+    if key_type == WalletType.admin and row["adminkey"] != key:
         return None
 
     return Wallet(**row)
@@ -513,14 +540,16 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
-    # todo: add this when tests are fixed
-    # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
-    # assert previous_payment is None, "Payment already exists"
+    # we don't allow the creation of the same invoice twice
+    # note: this can be removed if the db uniquess constarints are set appropriately
+    previous_payment = await get_standalone_payment(checking_id, conn=conn)
+    assert previous_payment is None, "Payment already exists"
 
-    try:
-        invoice = bolt11.decode(payment_request)
+    invoice = decode(payment_request)
+
+    if invoice.expiry:
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    except Exception:
+    else:
         # assume maximum bolt11 expiry of 31 days to be on the safe side
         expiration_date = datetime.datetime.now() + datetime.timedelta(days=31)
 
@@ -541,9 +570,11 @@ async def create_payment(
             pending,
             memo,
             fee,
-            json.dumps(extra)
-            if extra and extra != {} and type(extra) is dict
-            else None,
+            (
+                json.dumps(extra)
+                if extra and extra != {} and isinstance(extra, dict)
+                else None
+            ),
             webhook,
             db.datetime_to_timestamp(expiration_date),
         ),
@@ -605,7 +636,8 @@ async def update_payment_extra(
 ) -> None:
     """
     Only update the `extra` field for the payment.
-    Old values in the `extra` JSON object will be kept unless the new `extra` overwrites them.
+    Old values in the `extra` JSON object will be kept
+    unless the new `extra` overwrites them.
     """
 
     amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
@@ -625,10 +657,77 @@ async def update_payment_extra(
     )
 
 
-async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
-    await (conn or db).execute(
-        "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
+async def update_pending_payments(wallet_id: str):
+    pending_payments = await get_payments(
+        wallet_id=wallet_id,
+        pending=True,
+        exclude_uncheckable=True,
     )
+    for payment in pending_payments:
+        await payment.check_status()
+
+
+DateTrunc = Literal["hour", "day", "month"]
+sqlite_formats = {
+    "hour": "%Y-%m-%d %H:00:00",
+    "day": "%Y-%m-%d 00:00:00",
+    "month": "%Y-%m-01 00:00:00",
+}
+
+
+async def get_payments_history(
+    wallet_id: Optional[str] = None,
+    group: DateTrunc = "day",
+    filters: Optional[Filters] = None,
+) -> List[PaymentHistoryPoint]:
+    if not filters:
+        filters = Filters()
+    where = ["(pending = False OR amount < 0)"]
+    values = []
+    if wallet_id:
+        where.append("wallet = ?")
+        values.append(wallet_id)
+
+    if DB_TYPE == SQLITE and group in sqlite_formats:
+        date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
+    elif group in ("day", "hour", "month"):
+        date_trunc = f"date_trunc('{group}', time)"
+    else:
+        raise ValueError(f"Invalid group value: {group}")
+
+    transactions = await db.fetchall(
+        f"""
+        SELECT {date_trunc} date,
+               SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
+               SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
+        FROM apipayments
+        {filters.where(where)}
+        GROUP BY date
+        ORDER BY date DESC
+        """,
+        filters.values(values),
+    )
+    if wallet_id:
+        wallet = await get_wallet(wallet_id)
+        if wallet:
+            balance = wallet.balance_msat
+        else:
+            raise ValueError("Unknown wallet")
+    else:
+        balance = await get_total_balance()
+
+    # since we dont know the balance at the starting point,
+    # we take the current balance and walk backwards
+    results: list[PaymentHistoryPoint] = []
+    for row in transactions:
+        results.insert(
+            0,
+            PaymentHistoryPoint(
+                balance=balance, date=row[0], income=row[1], spending=row[2]
+            ),
+        )
+        balance -= row.income - row.spending
+    return results
 
 
 async def delete_wallet_payment(
@@ -643,6 +742,10 @@ async def delete_wallet_payment(
 async def check_internal(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[str]:
+    """
+    Returns the checking_id of the internal payment if it exists,
+    otherwise None
+    """
     row = await (conn or db).fetchone(
         """
         SELECT checking_id FROM apipayments
@@ -659,7 +762,10 @@ async def check_internal(
 async def check_internal_pending(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
-    """Returns False if the internal payment is not pending anymore (and thus paid), otherwise True"""
+    """
+    Returns False if the internal payment is not pending anymore
+    (and thus paid), otherwise True
+    """
     row = await (conn or db).fetchone(
         """
         SELECT pending FROM apipayments
@@ -766,12 +872,17 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
     return admin_settings
 
 
-async def delete_admin_settings():
+async def delete_admin_settings() -> None:
     await db.execute("DELETE FROM settings")
 
 
-async def update_admin_settings(data: EditableSettings):
-    await db.execute("UPDATE settings SET editable_settings = ?", (json.dumps(data),))
+async def update_admin_settings(data: EditableSettings) -> None:
+    row = await db.fetchone("SELECT editable_settings FROM settings")
+    editable_settings = json.loads(row["editable_settings"]) if row else {}
+    editable_settings.update(data.dict(exclude_unset=True))
+    await db.execute(
+        "UPDATE settings SET editable_settings = ?", (json.dumps(editable_settings),)
+    )
 
 
 async def update_super_user(super_user: str) -> SuperSettings:
@@ -853,4 +964,83 @@ async def delete_tinyurl(tinyurl_id: str):
     await db.execute(
         "DELETE FROM tiny_url WHERE id = ?",
         (tinyurl_id,),
+    )
+
+
+# push_notification
+# -----------------
+
+
+async def get_webpush_settings() -> Optional[WebPushSettings]:
+    row = await db.fetchone("SELECT * FROM webpush_settings")
+    if not row:
+        return None
+    vapid_keypair = json.loads(row["vapid_keypair"])
+    return WebPushSettings(**vapid_keypair)
+
+
+async def create_webpush_settings(webpush_settings: dict):
+    await db.execute(
+        "INSERT INTO webpush_settings (vapid_keypair) VALUES (?)",
+        (json.dumps(webpush_settings),),
+    )
+    return await get_webpush_settings()
+
+
+async def get_webpush_subscription(
+    endpoint: str, user: str
+) -> Optional[WebPushSubscription]:
+    row = await db.fetchone(
+        "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        (
+            endpoint,
+            user,
+        ),
+    )
+    return WebPushSubscription(**dict(row)) if row else None
+
+
+async def get_webpush_subscriptions_for_user(
+    user: str,
+) -> List[WebPushSubscription]:
+    rows = await db.fetchall(
+        "SELECT * FROM webpush_subscriptions WHERE user = ?",
+        (user,),
+    )
+    return [WebPushSubscription(**dict(row)) for row in rows]
+
+
+async def create_webpush_subscription(
+    endpoint: str, user: str, data: str, host: str
+) -> WebPushSubscription:
+    await db.execute(
+        """
+        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            endpoint,
+            user,
+            data,
+            host,
+        ),
+    )
+    subscription = await get_webpush_subscription(endpoint, user)
+    assert subscription, "Newly created webpush subscription couldn't be retrieved"
+    return subscription
+
+
+async def delete_webpush_subscription(endpoint: str, user: str) -> None:
+    await db.execute(
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        (
+            endpoint,
+            user,
+        ),
+    )
+
+
+async def delete_webpush_subscriptions(endpoint: str) -> None:
+    await db.execute(
+        "DELETE FROM webpush_subscriptions WHERE endpoint = ?", (endpoint,)
     )

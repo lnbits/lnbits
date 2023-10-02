@@ -9,6 +9,7 @@ import sys
 import traceback
 from hashlib import sha256
 from http import HTTPStatus
+from pathlib import Path
 from typing import Callable, List
 
 from fastapi import FastAPI, HTTPException, Request
@@ -20,7 +21,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.responses import JSONResponse
 
-from lnbits.cache import cache
 from lnbits.core.crud import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
@@ -30,17 +30,15 @@ from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
 )
 from lnbits.settings import settings
 from lnbits.tasks import cancel_all_tasks, create_permanent_task
+from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
-from .core import (
-    add_installed_extension,
-    core_app,
-    core_app_extra,
-    update_installed_extension_state,
-)
-from .core.services import check_admin_settings
-from .core.views.generic import core_html_routes
+from .core import init_core_routers
+from .core.db import core_app_extra
+from .core.services import check_admin_settings, check_webpush_settings
+from .core.views.api import add_installed_extension
+from .core.views.generic import update_installed_extension_state
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
 from .middleware import (
@@ -62,7 +60,7 @@ from .tasks import (
 def create_app() -> FastAPI:
     configure_logger()
     app = FastAPI(
-        title="LNbits API",
+        title=settings.lnbits_title,
         description=(
             "API for LNbits, the free and open source bitcoin wallet and "
             "accounts system with plugins."
@@ -73,6 +71,10 @@ def create_app() -> FastAPI:
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
         },
     )
+
+    # Allow registering new extensions routes without direct access to the `app` object
+    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
+    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
@@ -95,15 +97,17 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
+    register_custom_extensions_path()
+
+    # adds security middleware
+    add_ip_block_middleware(app)
+    add_ratelimit_middleware(app)
+
     register_startup(app)
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
     register_shutdown(app)
-
-    # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     return app
 
@@ -140,7 +144,8 @@ async def check_funding_source() -> None:
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
             pass
 
         if settings.lnbits_admin_ui and retry_counter == timeout:
@@ -227,9 +232,7 @@ def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
-    zip_files = glob.glob(
-        os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
-    )
+    zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
@@ -256,17 +259,32 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
-    app.include_router(core_app)
-    app.include_router(core_html_routes)
+    init_core_routers(app)
 
     for ext in get_valid_extensions():
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(str(e))
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` follows conventions."
-            )
+            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+
+
+def register_custom_extensions_path():
+    if settings.has_default_extension_path:
+        return
+    default_ext_path = os.path.join("lnbits", "extensions")
+    if os.path.isdir(default_ext_path) and len(os.listdir(default_ext_path)) != 0:
+        logger.warning(
+            "You are using a custom extensions path, "
+            + "but the default extensions directory is not empty. "
+            + f"Please clean-up the '{default_ext_path}' directory."
+        )
+        logger.warning(
+            f"You can move the existing '{default_ext_path}' directory to: "
+            + f" '{settings.lnbits_extensions_path}/extensions'"
+        )
+
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
@@ -305,7 +323,10 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
-            app.mount(s["path"], s["app"], s["name"])
+            static_dir = Path(
+                settings.lnbits_extensions_path, "extensions", *s["path"].split("/")
+            )
+            app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
@@ -331,12 +352,9 @@ def register_startup(app: FastAPI):
 
             # setup admin settings
             await check_admin_settings()
+            await check_webpush_settings()
 
             log_server_info()
-
-            # adds security middleware
-            add_ratelimit_middleware(app)
-            add_ip_block_middleware(app)
 
             # initialize WALLET
             try:
@@ -356,8 +374,6 @@ def register_startup(app: FastAPI):
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
-
-            asyncio.create_task(cache.invalidate_forever())
 
         except Exception as e:
             logger.error(str(e))
@@ -412,9 +428,11 @@ def get_db_vendor_name():
     return (
         "PostgreSQL"
         if db_url and db_url.startswith("postgres://")
-        else "CockroachDB"
-        if db_url and db_url.startswith("cockroachdb://")
-        else "SQLite"
+        else (
+            "CockroachDB"
+            if db_url and db_url.startswith("cockroachdb://")
+            else "SQLite"
+        )
     )
 
 
@@ -428,6 +446,7 @@ def register_async_tasks(app):
         create_permanent_task(check_pending_payments)
         create_permanent_task(invoice_listener)
         create_permanent_task(internal_invoice_listener)
+        create_permanent_task(cache.invalidate_forever)
         register_task_listeners()
         register_killswitch()
         # await run_deferred_async() # calle: doesn't do anyting?
@@ -517,19 +536,19 @@ def configure_logger() -> None:
 class Formatter:
     def __init__(self):
         self.padding = 0
-        self.minimal_fmt: str = (
+        self.minimal_fmt = (
             "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
             "<level>{message}</level>\n"
         )
         if settings.debug:
-            self.fmt: str = (
+            self.fmt = (
                 "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
                 "<level>{level: <4}</level> | "
                 "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
                 "<level>{message}</level>\n"
             )
         else:
-            self.fmt: str = self.minimal_fmt
+            self.fmt = self.minimal_fmt
 
     def format(self, record):
         function = "{function}".format(**record)

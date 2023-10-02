@@ -1,223 +1,81 @@
 name: regtest
 
-on: [push, pull_request]
+on:
+  workflow_call:
+    inputs:
+      make:
+        default: test
+        type: string
+      python-version:
+        default: "3.9"
+        type: string
+      os-version:
+        default: "ubuntu-latest"
+        type: string
+      backend-wallet-class:
+        required: true
+        type: string
 
 jobs:
-  LndRestWallet:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-        poetry-version: ["1.5.1"]
+  regtest:
+    runs-on: ${{ inputs.os-version }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
+
+      - name: Set up Docker Buildx
+        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
+        uses: docker/build-push-action@v4
         with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
+            context: .
+            push: false
+            tags: lnbitsdocker/lnbits-legend:latest
+            cache-from: type=registry,ref=lnbitsdocker/lnbits-legend:latest
+            cache-to: type=inline
+
       - name: Setup Regtest
         run: |
-          docker build -t lnbitsdocker/lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
+
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Create fake admin
+        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
+        run: docker exec lnbits-legend-lnbits-1 poetry run python tools/create_fake_admin.py
+
+      - name: Run Tests
         env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
+          LNBITS_DATABASE_URL: ${{ inputs.db-url }}
+          LNBITS_BACKEND_WALLET_CLASS: ${{ inputs.backend-wallet-class }}
           LND_REST_ENDPOINT: https://localhost:8081/
           LND_REST_CERT: ./docker/data/lnd-3/tls.cert
           LND_REST_MACAROON: ./docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-  LndWallet:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-        poetry-version: ["1.5.1"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Setup Regtest
-        run: |
-          docker build -t lnbitsdocker/lnbits-legend .
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
-          chmod +x ./tests
-          ./tests
-          sudo chmod -R a+rwx .
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
-        env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: LndWallet
           LND_GRPC_ENDPOINT: localhost
           LND_GRPC_PORT: 10009
           LND_GRPC_CERT: docker/data/lnd-3/tls.cert
           LND_GRPC_MACAROON: docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-  CoreLightningWallet:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-        poetry-version: ["1.5.1"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Setup Regtest
-        run: |
-          docker build -t lnbitsdocker/lnbits-legend .
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
-          chmod +x ./tests
-          ./tests
-          sudo chmod -R a+rwx .
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
-        env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: CoreLightningWallet
           CORELIGHTNING_RPC: ./docker/data/clightning-1/regtest/lightning-rpc
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-  LNbitsWallet:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-        poetry-version: ["1.5.1"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Setup Regtest
-        run: |
-          docker build -t lnbitsdocker/lnbits-legend .
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
-          chmod +x ./tests
-          ./tests
-          sudo chmod -R a+rwx .
-          docker exec lnbits-legend-lnbits-1 /bin/bash -c "poetry run python tools/create_fake_admin.py"
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
-        env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: LNbitsWallet
+          CORELIGHTNING_REST_URL: https://localhost:3001
+          CORELIGHTNING_REST_MACAROON: ./docker/data/clightning-2-rest/access.macaroon
+          CORELIGHTNING_REST_CERT: ./docker/data/clightning-2-rest/certificate.pem
           LNBITS_ENDPOINT: http://localhost:5001
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-  EclairWallet:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-        poetry-version: ["1.5.1"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Poetry ${{ matrix.poetry-version }}
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
-      - name: Setup Regtest
-        run: |
-          docker build -t lnbitsdocker/lnbits-legend .
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
-          chmod +x ./tests
-          ./tests
-          sudo chmod -R a+rwx .
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: Run tests
-        env:
-          PYTHONUNBUFFERED: 1
-          PORT: 5123
-          LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: EclairWallet
           ECLAIR_URL: http://127.0.0.1:8082
           ECLAIR_PASS: lnbits
-        run: |
-          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
-          make test-real-wallet
+        run: make test-real-wallet
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml

@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Literal, Optional, Type
 
-from fastapi import Query, Request, Security, status
+from fastapi import Query, Request, Security
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery
@@ -9,7 +9,7 @@ from fastapi.security.base import SecurityBase
 from pydantic.types import UUID4
 
 from lnbits.core.crud import get_user, get_wallet_for_key
-from lnbits.core.models import User, Wallet
+from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.requestvars import g
 from lnbits.settings import settings
@@ -25,7 +25,7 @@ class KeyChecker(SecurityBase):
     ):
         self.scheme_name = scheme_name or self.__class__.__name__
         self.auto_error = auto_error
-        self._key_type = "invoice"
+        self._key_type = WalletType.invoice
         self._api_key = api_key
         if api_key:
             key = APIKey(
@@ -39,7 +39,7 @@ class KeyChecker(SecurityBase):
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
-        self.wallet = None  # type: ignore
+        self.wallet = None
         self.model: APIKey = key
 
     async def __call__(self, request: Request):
@@ -49,16 +49,16 @@ class KeyChecker(SecurityBase):
                 if self._api_key
                 else request.headers.get("X-API-KEY") or request.query_params["api-key"]
             )
-            # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
-            #        Also, we should not return the wallet here - thats silly.
-            #        Possibly store it in a Redis DB
-            self.wallet = await get_wallet_for_key(key_value, self._key_type)  # type: ignore
-            if not self.wallet:
+            # FIXME: Find another way to validate the key. A fetch from DB should be
+            #        avoided here. Also, we should not return the wallet here - thats
+            #        silly. Possibly store it in a Redis DB
+            wallet = await get_wallet_for_key(key_value, self._key_type)
+            if not wallet or wallet.deleted:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="Invalid key or expired key.",
+                    detail="Invalid key or wallet.",
                 )
-
+            self.wallet = wallet  # type: ignore
         except KeyError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
@@ -81,7 +81,7 @@ class WalletInvoiceKeyChecker(KeyChecker):
         api_key: Optional[str] = None,
     ):
         super().__init__(scheme_name, auto_error, api_key)
-        self._key_type = "invoice"
+        self._key_type = WalletType.invoice
 
 
 class WalletAdminKeyChecker(KeyChecker):
@@ -100,16 +100,7 @@ class WalletAdminKeyChecker(KeyChecker):
         api_key: Optional[str] = None,
     ):
         super().__init__(scheme_name, auto_error, api_key)
-        self._key_type = "admin"
-
-
-class WalletTypeInfo:
-    wallet_type: int
-    wallet: Wallet
-
-    def __init__(self, wallet_type: int, wallet: Wallet) -> None:
-        self.wallet_type = wallet_type
-        self.wallet = wallet
+        self._key_type = WalletType.admin
 
 
 api_key_header = APIKeyHeader(
@@ -129,11 +120,6 @@ async def get_key_type(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ) -> WalletTypeInfo:
-    # 0: admin
-    # 1: invoice
-    # 2: invalid
-    pathname = r["path"].split("/")[1]
-
     token = api_key_header or api_key_query
 
     if not token:
@@ -142,34 +128,36 @@ async def get_key_type(
             detail="Invoice (or Admin) key required.",
         )
 
-    for typenr, WalletChecker in zip(
-        [0, 1], [WalletAdminKeyChecker, WalletInvoiceKeyChecker]
+    for wallet_type, WalletChecker in zip(
+        [WalletType.admin, WalletType.invoice],
+        [WalletAdminKeyChecker, WalletInvoiceKeyChecker],
     ):
         try:
             checker = WalletChecker(api_key=token)
             await checker.__call__(r)
-            wallet = WalletTypeInfo(typenr, checker.wallet)  # type: ignore
-            if wallet is None or wallet.wallet is None:
+            if checker.wallet is None:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
                 )
+            wallet = WalletTypeInfo(wallet_type, checker.wallet)
             if (
                 wallet.wallet.user != settings.super_user
                 and wallet.wallet.user not in settings.lnbits_admin_users
             ) and (
                 settings.lnbits_admin_extensions
-                and pathname in settings.lnbits_admin_extensions
+                and r["path"].split("/")[1] in settings.lnbits_admin_extensions
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN,
                     detail="User not authorized for this extension.",
                 )
             return wallet
-        except HTTPException as e:
-            if e.status_code == HTTPStatus.BAD_REQUEST:
+        except HTTPException as exc:
+            if exc.status_code == HTTPStatus.BAD_REQUEST:
                 raise
-            elif e.status_code == HTTPStatus.UNAUTHORIZED:
-                # we pass this in case it is not an invoice key, nor an admin key, and then return NOT_FOUND at the end of this block
+            elif exc.status_code == HTTPStatus.UNAUTHORIZED:
+                # we pass this in case it is not an invoice key, nor an admin key,
+                # and then return NOT_FOUND at the end of this block
                 pass
             else:
                 raise
@@ -199,7 +187,7 @@ async def require_admin_key(
         # If wallet type is not admin then return the unauthorized status
         # This also covers when the user passes an invalid key type
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin key required."
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Admin key required."
         )
     else:
         return wallet
@@ -220,11 +208,12 @@ async def require_invoice_key(
 
     wallet = await get_key_type(r, token)
 
-    if wallet.wallet_type > 1:
-        # If wallet type is not invoice then return the unauthorized status
-        # This also covers when the user passes an invalid key type
+    if (
+        wallet.wallet_type != WalletType.admin
+        and wallet.wallet_type != WalletType.invoice
+    ):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail="Invoice (or Admin) key required.",
         )
     else:

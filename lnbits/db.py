@@ -50,13 +50,19 @@ if settings.lnbits_database_url:
 
     register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
 else:
-    if os.path.isdir(settings.lnbits_data_folder):
-        DB_TYPE = SQLITE
+    if not os.path.isdir(settings.lnbits_data_folder):
+        os.mkdir(settings.lnbits_data_folder)
+        logger.info(f"Created {settings.lnbits_data_folder}")
+    DB_TYPE = SQLITE
+
+
+def compat_timestamp_placeholder():
+    if DB_TYPE == POSTGRES:
+        return "to_timestamp(?)"
+    elif DB_TYPE == COCKROACH:
+        return "cast(? AS timestamp)"
     else:
-        raise NotADirectoryError(
-            f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
-            f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
-        )
+        return "?"
 
 
 class Compat:
@@ -107,15 +113,9 @@ class Compat:
             return "BIGINT"
         return "INT"
 
-    @classmethod
     @property
-    def timestamp_placeholder(cls):
-        if DB_TYPE == POSTGRES:
-            return "to_timestamp(?)"
-        elif DB_TYPE == COCKROACH:
-            return "cast(? AS timestamp)"
-        else:
-            return "?"
+    def timestamp_placeholder(self) -> str:
+        return compat_timestamp_placeholder()
 
 
 class Connection(Compat):
@@ -402,7 +402,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
     @property
     def statement(self):
         if self.model and self.model.__fields__[self.field].type_ == datetime.datetime:
-            placeholder = Compat.timestamp_placeholder
+            placeholder = compat_timestamp_placeholder()
         else:
             placeholder = "?"
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
@@ -418,8 +418,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
     Generic helper class for filtering and sorting data.
     For usage in an api endpoint, use the `parse_filters` dependency.
 
-    When constructing this class manually always make sure to pass a model so that the values can be validated.
-    Otherwise, make sure to validate the inputs manually.
+    When constructing this class manually always make sure to pass a model so that
+    the values can be validated. Otherwise, make sure to validate the inputs manually.
     """
 
     filters: List[Filter[TFilterModel]] = []

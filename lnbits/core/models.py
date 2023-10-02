@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
+from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
@@ -25,7 +27,9 @@ class Wallet(BaseModel):
     user: str
     adminkey: str
     inkey: str
+    currency: Optional[str]
     balance_msat: int
+    deleted: bool
 
     @property
     def balance(self) -> int:
@@ -57,6 +61,22 @@ class Wallet(BaseModel):
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
+
+
+class WalletType(Enum):
+    admin = 0
+    invoice = 1
+    invalid = 2
+
+    # backwards compatibility
+    def __eq__(self, other):
+        return self.value == other
+
+
+@dataclass
+class WalletTypeInfo:
+    wallet_type: WalletType
+    wallet: Wallet
 
 
 class User(BaseModel):
@@ -215,9 +235,9 @@ class Payment(FromRowModel):
         return status
 
     async def delete(self, conn: Optional[Connection] = None) -> None:
-        from .crud import delete_payment
+        from .crud import delete_wallet_payment
 
-        await delete_payment(self.checking_id, conn=conn)
+        await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
 class PaymentFilters(FilterModel):
@@ -236,6 +256,13 @@ class PaymentFilters(FilterModel):
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+
+
+class PaymentHistoryPoint(BaseModel):
+    date: datetime.datetime
+    income: int
+    spending: int
+    balance: int
 
 
 class BalanceCheck(BaseModel):
@@ -301,3 +328,28 @@ class CreateInvoice(BaseModel):
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
+
+
+class CreateTopup(BaseModel):
+    id: str
+    amount: int
+
+
+class CreateLnurlAuth(BaseModel):
+    callback: str
+
+
+class CreateWallet(BaseModel):
+    name: Optional[str] = None
+
+
+class CreateWebPushSubscription(BaseModel):
+    subscription: str
+
+
+class WebPushSubscription(BaseModel):
+    endpoint: str
+    user: str
+    data: str
+    host: str
+    timestamp: str
