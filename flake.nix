@@ -28,13 +28,29 @@
       });
       overlays = {
         default = final: prev: {
-          ${projectName} = self.packages.${final.hostPlatform.system}.${projectName};
+          ${projectName} = self.packages.${prev.stdenv.hostPlatform.system}.${projectName};
         };
       };
       packages = forAllSystems (system: pkgs: {
         default = self.packages.${system}.${projectName};
         ${projectName} = pkgs.poetry2nix.mkPoetryApplication {
           projectDir = ./.;
+          meta.rev = self.dirtyRev or self.rev;
+          overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
+            ruff = prev.ruff.override { preferWheel = true; };
+            fastapi = prev.fastapi.overridePythonAttrs (old: {
+              postPatch = ''
+                substituteInPlace pyproject.toml \
+                  --replace '"Framework :: Pydantic",' "" \
+                  --replace '"Framework :: Pydantic :: 1",' ""
+              '';
+            });
+            bolt11 = prev.bolt11.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                prev.poetry
+              ];
+            });
+          });
         };
       });
       nixosModules = {

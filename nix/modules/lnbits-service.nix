@@ -88,6 +88,9 @@ in
       after = [ "network-online.target" ];
       environment = {
         LNBITS_DATA_FOLDER = "${cfg.stateDir}";
+        LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}/extensions";
+        LNBITS_PATH = "${cfg.package.src}";
+        LNBITS_COMMIT = "${cfg.package.meta.rev}";
       };
       serviceConfig = {
         User = cfg.user;
