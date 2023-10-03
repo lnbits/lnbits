@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Any, List, Tuple, Union
 from urllib.parse import parse_qs
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -233,15 +233,6 @@ def add_ip_block_middleware(app: FastAPI):
                 status_code=403,  # Forbidden
                 content={"detail": "IP is blocked"},
             )
-        # this try: except: block is not needed on latest FastAPI
-        # (await call_next(request) is enough)
-        # https://stackoverflow.com/questions/71222144/runtimeerror-no-response-returned-in-fastapi-when-refresh-request
-        # TODO: remove after https://github.com/lnbits/lnbits/pull/1609 is merged
-        try:
-            return await call_next(request)
-        except RuntimeError as exc:
-            if str(exc) == "No response returned." and await request.is_disconnected():
-                return Response(status_code=HTTPStatus.NO_CONTENT)
-            raise  # bubble up different exceptions
+        return await call_next(request)
 
     app.middleware("http")(block_allow_ip_middleware)
