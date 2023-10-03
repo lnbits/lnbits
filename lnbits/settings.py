@@ -360,6 +360,7 @@ class SaaSSettings(LNbitsSettings):
 
 
 class PersistenceSettings(LNbitsSettings):
+    first_install: bool = Field(default=True)
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
 
