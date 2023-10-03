@@ -50,10 +50,11 @@ async def home(request: Request, lightning: str = ""):
         "core/index.html", {"request": request, "lnurl": lightning}
     )
 
-@generic_router.get("/login", response_class=HTMLResponse)
-async def home(request: Request):
+
+@generic_router.get("/first_install", response_class=HTMLResponse)
+async def first_install(request: Request):
     return template_renderer().TemplateResponse(
-        "core/login.html", {"request": request}
+        "core/first_install.html", {"request": request}
     )
 
 
@@ -377,6 +378,7 @@ async def manifest(request: Request, usr: str):
         ],
         "url_handlers": [{"origin": f"https://{host}"}],
     }
+
 
 @generic_router.get("/node", response_class=HTMLResponse)
 async def node(request: Request, user: User = Depends(check_admin)):
