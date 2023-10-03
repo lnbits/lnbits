@@ -6,7 +6,10 @@
       "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/bitcoind.nix",
       "icon": "core/static/images/nix.png",
       "port": "",
-      "dependencies": ""
+      "dependencies": "",
+      "options": {
+        "prune": 100000
+      }
     },
     {
       "package": "Core Lightning",
