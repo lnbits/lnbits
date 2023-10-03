@@ -1,0 +1,214 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h3 class="q-my-none">
+          <center><strong>Welcome to LNbits</strong></center>
+        </h3>
+        <h6 class="q-my-md">
+          Fill in the information below to setup your LNbits instance. Details
+          can be changed later.
+        </h6>
+        <p></p>
+        <div class="q-pa-md">
+          <q-form
+            @submit="LaunchLNbits"
+            @reset="cancelAdmin"
+            class="q-gutter-md"
+          >
+            <h6 class="q-my-md">Branding</h6>
+            <div class="row">
+              <div class="col">
+                <q-input
+                  filled
+                  v-model="data.admin.site_title"
+                  label="Site title"
+                  class="q-pr-md"
+                ></q-input>
+              </div>
+              <div class="col">
+                <q-input
+                  filled
+                  v-model="data.admin.tagline"
+                  label="Tagline"
+                ></q-input>
+              </div>
+            </div>
+
+            <h6 class="q-my-md">Service settings</h6>
+            <div class="row">
+              <div class="col">
+                <q-input
+                  filled
+                  v-model="data.admin.default_wallet_name"
+                  label="Default wallet name"
+                  hint="Default name for wallets generated without being named"
+                ></q-input>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <q-select
+                  filled
+                  v-model="data.admin.disabled_ext"
+                  multiple
+                  hint="Disable extensions *amilk disabled by default as resource heavy"
+                  :options="options"
+                  label="Disable extensions"
+                ></q-select>
+              </div>
+            </div>
+            <h6 class="q-my-md">
+              Funding source information (at least one required)<small
+                ><br />*if installed through RaspiBlitz, MyNode, etc, details
+                should be filled in for you</small
+              >
+            </h6>
+
+            <q-select
+              outlined
+              v-model="data.admin.funding_source_primary"
+              label="Select main funding source"
+              :options="data.funding_source"
+              label="Outlined"
+            ></q-select>
+            <div>
+              <q-btn
+                label="Launch LNbits!"
+                type="submit"
+                color="primary"
+              ></q-btn>
+              <q-btn
+                v-if="cancel.on"
+                label="Cancel"
+                type="reset"
+                color="primary"
+                flat
+                class="q-ml-sm"
+              ></q-btn>
+            </div>
+          </q-form>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        cancel: {},
+        data: {
+          funding_source: [
+            'CLightningWallet',
+            'LndRestWallet',
+            'LndWallet',
+            'LntxbotWallet',
+            'LNPayWallet',
+            'LnbitsWallet',
+            'OpenNodeWallet'
+          ],
+
+          admin: {
+            site_title: 'LNbits',
+            tagline: 'Free and open source wallet system',
+            primary_color: '#FF00FF',
+            secondary_color: '#FF00FF',
+            funding_source_primary: '',
+            funding_source_edited: '',
+            service_fee: 0,
+            disabled_ext: '',
+            edited: [],
+            CLightningWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              '',
+              '',
+              0,
+              'CLightningWallet'
+            ],
+            LndRestWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              'LndRestWallet',
+              '',
+              0,
+              'LndRestWallet'
+            ],
+            LndWallet: ['', '', '', '', '', 'LndWallet', '', 0, 'LndWallet'],
+            LntxbotWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              'LntxbotWallet',
+              '',
+              0,
+              'LntxbotWallet'
+            ],
+            LNPayWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              'LNPayWallet',
+              '',
+              0,
+              'LNPayWallet'
+            ],
+            LnbitsWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              'LnbitsWallet',
+              '',
+              0,
+              'LnbitsWallet'
+            ],
+            OpenNodeWallet: [
+              '',
+              '',
+              '',
+              '',
+              '',
+              'OpenNodeWallet',
+              '',
+              0,
+              'OpenNodeWallet'
+            ],
+            senddata: {}
+          }
+        },
+
+        options: [
+          'lnurlw',
+          'lnurlp',
+          'usermanager',
+          'events',
+          'lndhub',
+          'lntickets',
+          'paywall',
+          'tpos',
+          'amilk'
+        ]
+      }
+    },
+    created: function () {},
+    methods: {}
+  })
+</script>
+{% endblock %}
