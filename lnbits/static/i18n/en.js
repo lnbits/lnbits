@@ -14,8 +14,8 @@ window.localisation.en = {
   config_file: 'Config file',
   apps: 'Apps',
   packages: 'Packages',
-  supported_packages: 'Supported Packages',
-  nix_package_installer: "Nix Package Installer"
+  support_packages: 'Support Packages',
+  nix_package_installer: 'Nix Package Installer',
   total_capacity: 'Total Capacity',
   avg_channel_size: 'Avg. Channel Size',
   biggest_channel_size: 'Biggest Channel Size',
