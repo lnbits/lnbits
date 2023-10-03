@@ -20,8 +20,8 @@
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
-              name="supported_packages"
-              :label="$t('supported_packages')"
+              name="support_packages"
+              :label="$t('support_packages')"
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
@@ -47,7 +47,7 @@
       class="bg-dark no-border no-outline no-box-shadow"
     >
       {% include "admin/_tab_install_packages.html" %}{% include
-      "admin/_tab_install_supported_packages.html" %} {% include
+      "admin/_tab_install_support_packages.html" %} {% include
       "admin/_tab_install_config.html" %}
     </q-tab-panels>
   </q-form>
@@ -62,7 +62,7 @@
       return {
         tab: 'packages',
         packages: null,
-        installedPackages: [],
+        supportpackages: null,
         config: '',
         configAr: []
       }
@@ -72,6 +72,7 @@
       getPackages() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
+
           var packages = JSON.stringify(response.data.packages)
           this.packages = JSON.parse(packages)
           for (var i = 0; i < this.packages.length; i++) {
@@ -82,6 +83,18 @@
             }
           }
           console.log(self.configAr)
+
+          var supportpackages = JSON.stringify(response.data.support_packages)
+          this.supportpackages = JSON.parse(supportpackages)
+          for (var i = 0; i < this.supportpackages.length; i++) {
+            const flake = this.supportpackages[i].repo.trim().split('/')
+            const flakeStr = './' + flake[flake.length - 1]
+            if (self.configAr.includes(flakeStr)) {
+              this.supportpackages[i].installed = true
+            }
+          }
+          console.log(self.configAr)
+
         })
       },
       getNixConfig() {
