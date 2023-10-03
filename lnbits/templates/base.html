@@ -31,8 +31,8 @@
     {% endif %} {% block head_scripts %}{% endblock %}
   </head>
 
-  <body data-theme="bitcoin">
-    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
+  <body data-theme="bitcoin" id="vue">
+    <q-layout view="hHh lpR lfr" v-cloak>
       <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
           {% block drawer_toggle %}
@@ -305,7 +305,7 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!---->
-    <script type="text/javascript">
+    <script>
       const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
       const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
@@ -330,6 +330,9 @@
         { value: 'br', label: 'Português', display: 'BR' }
       ]
     </script>
-    {% block scripts %}{% endblock %}
+    {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
+    <script src="{{ static_url_for('static', url) }}"></script>
+    {% endfor %}
+    <script src="/static/js/components.js"></script>
   </body>
 </html>

@@ -74,12 +74,14 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
         t.env.globals["INCLUDED_CSS"] = ["bundle.min.css"]
+        t.env.globals["INCLUDED_COMPONENTS"] = ["bundle-components.min.js"]
     else:
         vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
         with open(vendor_filepath) as vendor_file:
             vendor_files = json.loads(vendor_file.read())
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
+            t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
 
     t.env.globals["WEBPUSH_PUBKEY"] = settings.lnbits_webpush_pubkey
 

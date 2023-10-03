@@ -26,8 +26,7 @@
   {% endblock %} {% block scripts %}
 
   <script>
-    new Vue({
-      el: '#vue',
+    window.app = Vue.createApp({
       mixins: [windowMixin],
       data: function () {
         return {}

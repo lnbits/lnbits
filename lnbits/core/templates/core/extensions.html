@@ -451,8 +451,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  new Vue({
-    el: '#vue',
+  window.app = Vue.createApp({
     data: function () {
       return {
         searchTerm: '',

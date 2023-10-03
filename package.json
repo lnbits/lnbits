@@ -6,8 +6,10 @@
     "vendor_json": "node -e \"require('fs').writeFileSync('./lnbits/static/vendor.json', JSON.stringify(require('./package.json').bundle))\"",
     "vendor_bundle_css": "node -e \"require('concat')(require('./package.json').bundle.css.map(a => 'lnbits/static/'+a), './lnbits/static/bundle.css')\"",
     "vendor_bundle_js": "node -e \"require('concat')(require('./package.json').bundle.js.map(a => 'lnbits/static/'+a),'./lnbits/static/bundle.js')\"",
+    "vendor_bundle_components": "node -e \"require('concat')(require('./package.json').bundle.components.map(a => 'lnbits/static/'+a),'./lnbits/static/bundle-components.js')\"",
     "vendor_minify_css": "./node_modules/.bin/minify ./lnbits/static/bundle.css > ./lnbits/static/bundle.min.css",
-    "vendor_minify_js": "./node_modules/.bin/minify ./lnbits/static/bundle.js > ./lnbits/static/bundle.min.js"
+    "vendor_minify_js": "./node_modules/.bin/minify ./lnbits/static/bundle.js > ./lnbits/static/bundle.min.js",
+    "vendor_minify_components": "./node_modules/.bin/minify ./lnbits/static/bundle-components.js > ./lnbits/static/bundle-components.min.js"
   },
   "devDependencies": {
     "concat": "^1.0.3",
@@ -34,16 +36,16 @@
     "./node_modules/moment/moment.js",
     "./node_modules/underscore/underscore.js",
     "./node_modules/axios/dist/axios.js",
-    "./node_modules/vue/dist/vue.runtime.global.js",
-    "./node_modules/vue-router/dist/vue-router.global.js",
-    "./node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.js",
-    "./node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.js",
+    "./node_modules/vue/dist/vue.global.prod.js",
+    "./node_modules/quasar/dist/quasar.umd.prod.js",
     "./node_modules/vuex/dist/vuex.global.js",
-    "./node_modules/quasar/dist/quasar.umd.js",
+    "./node_modules/vue-i18n/dist/vue-i18n.global.js",
+    "./node_modules/vue-router/dist/vue-router.global.js",
+    "./node_modules/vue-qrcode-reader/dist/vue-qrcode-reader.umd.cjs",
+    "./node_modules/@chenfengyuan/vue-qrcode/dist/vue-qrcode.js",
     "./node_modules/chart.js/dist/Chart.bundle.js",
     "./node_modules/quasar/dist/quasar.css",
     "./node_modules/chart.js/dist/Chart.css",
-    "./node_modules/vue-i18n/dist/vue-i18n.runtime.global.js",
     "./node_modules/showdown/dist/showdown.js"
   ],
   "bundle": {
@@ -51,14 +53,12 @@
       "vendor/moment.js",
       "vendor/underscore.js",
       "vendor/axios.js",
-      "vendor/vue.js",
-      "vendor/vue-router.js",
-      "vendor/VueQrcodeReader.umd.js",
-      "vendor/vue-qrcode.js",
-      "vendor/vuex.js",
-      "vendor/quasar.umd.js",
+      "vendor/vue.global.prod.js",
+      "vendor/quasar.umd.prod.js",
+      "vendor/vuex.global.js",
+      "vendor/vue-i18n.global.js",
+      "vendor/vue-router.global.js",
       "vendor/Chart.bundle.js",
-      "vendor/vue-i18n.js",
       "vendor/showdown.js",
       "i18n/i18n.js",
       "i18n/de.js",
@@ -77,10 +77,12 @@
       "i18n/pt.js",
       "i18n/br.js",
       "js/base.js",
+      "js/bolt11-decoder.js"
+    ],
+    "components": [
       "js/components.js",
       "js/components/lnbits-funding-sources.js",
-      "js/components/extension-settings.js",
-      "js/bolt11-decoder.js"
+      "js/components/extension-settings.js"
     ],
     "css": [
       "vendor/quasar.css",
