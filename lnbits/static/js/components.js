@@ -600,6 +600,9 @@ Vue.component('lnbits-dynamic-controls', {
           <q-input v-if="option.type === 'number'" type="number" :label="option.name" :hint="option.description" filled
             dense>
           </q-input>
+          <q-input v-else-if="option.type === 'text'" type="textarea" rows="5" :label="option.name"
+            :hint="option.description" filled dense>
+          </q-input>
           <div v-else-if="option.type === 'bool'">
             <q-item tag="label" v-ripple>
               <q-item-section avatar top>
