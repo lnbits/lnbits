@@ -60,8 +60,8 @@ function handleOptions(options, lines, depth) {
       options.push({
         name: lines[i].trim().split(' ')[0]
       })
-      const x = extractObject(lines.slice(i + 1), nextDepth)
-      console.log('### x', x)
+      //   const x = extractObject(lines.slice(i + 1), nextDepth)
+      //   console.log('### x', x)
     } else if (lines[i].endsWith(' = {')) {
       const option = {
         name: lines[i].trim().split(' ')[0],
@@ -69,10 +69,10 @@ function handleOptions(options, lines, depth) {
       }
       const nestedObject = extractObject(lines.slice(i + 1), nextDepth)
       handleOptions(option.options, nestedObject, nextDepth)
-      if (option.options.length){
+      if (option.options.length) {
         options.push(option)
       }
-      return
+      i = i + nestedObject.length
     }
   }
 }
