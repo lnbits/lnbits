@@ -75,7 +75,7 @@
             clearable
             hint="Default currency for accounting"
             label="Currency"
-            :options="formData.lnbits_allowed_currencies.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
+            :options="formData.lnbits_allowed_currencies?.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
           ></q-select>
           <br />
         </div>
