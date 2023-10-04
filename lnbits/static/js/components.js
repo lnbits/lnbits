@@ -222,7 +222,6 @@ Vue.component('lnbits-admin-ui', {
   }
 })
 
-
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
   mixins: [windowMixin],
@@ -583,12 +582,14 @@ Vue.component('lnbits-dynamic-controls', {
   props: ['options'],
   data() {
     return {
-      mockBool: false
+      mockBool: false,
+      mockText: ''
     }
   },
+
   template: `
   <div>
-    <div class="row q-mb-sm" v-for="option in options">
+    <div class="row q-mb-lg" v-for="option in options">
       <div class="col auto-width">
         <p v-if=option.options?.length class="q-ml-xl">
           <span v-text="option.name"></span> <small v-if="option.description"> (<span
@@ -614,8 +615,11 @@ Vue.component('lnbits-dynamic-controls', {
               </q-item-section>
             </q-item>
           </div>
+          <q-select v-else-if="option.type === 'select'" v-model="mockText" :label="option.name"
+            :hint="option.description" :options="option.values"></q-select>
 
           <q-input v-else :label="option.name" :hint="option.description" filled dense>
+            <q-btn v-if="option.isList" @click="addMockValue" dense flat icon="add"></q-btn>
           </q-input>
         </div>
       </div>
@@ -623,7 +627,9 @@ Vue.component('lnbits-dynamic-controls', {
   </div>
   `,
   methods: {
-
+    addMockValue(value) {
+      console.log('### addMockValue', value)
+    }
   },
   created: function () {
     console.log('### 1111')
