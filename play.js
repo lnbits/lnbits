@@ -6,7 +6,7 @@ const path = require('path')
 const indentSpaceCount = 2
 const nixDir = ''
 // '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
-const allFiles = ['play.nix']
+const allFiles = ['sample.config.nix']
 // fs.readdirSync(nixDir)
 // .filter(f => f === 'netns-isolation.nix')
 
@@ -129,10 +129,25 @@ function extractOption(lines, depth) {
       const types = line
         .substring('type ='.length + 1, line.length - 1)
         .split(' ')
+        .join(';')
+        .split('[')
+        .join(';')
+        .split(']')
+        .join(';')
+        .split('(')
+        .join(';')
+        .split(')')
+        .join(';')
+        .split(';')
+        .filter(v => v.length)
         .map(t => (t.startsWith('types.') ? t.slice('types.'.length) : t))
 
       op.isList = types.includes('listOf')
       op.isOptional = types.includes('nullOr')
+      const enumIndex = types.indexOf('enum')
+      if (enumIndex !== -1) {
+        op.values = types.slice(enumIndex + 1).map(v => extractValue(v))
+      }
       if (types.find(t => t.startsWith('ints.'))) {
         op.type = 'number'
       } else {

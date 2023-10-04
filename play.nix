@@ -13,6 +13,11 @@ let
           With `only-outgoing`, incoming i2p connections are disabled.
         '';
       };
+      lightningBackend = mkOption {
+        type = types.nullOr (types.enum [ "clightning" "lnd" ]);
+        default = null;
+        description = mdDoc "The lightning node implementation to use.";
+      };
     };
   };
 

@@ -83,6 +83,7 @@
               "isList": false,
               "isOptional": false,
               "type": "bool",
+              "default": false,
               "description": "Listen for peer connections at `address:port`\nand `address:onionPort` (if {option}`onionPort` is set).",
               "name": "listen"
             },
@@ -90,6 +91,7 @@
               "isList": false,
               "isOptional": false,
               "type": "bool",
+              "default": false,
               "description": "Listen for peer connections at `address:whitelistedPort`.\nPeers connected through this socket are automatically whitelisted.",
               "name": "listenWhitelisted"
             },
@@ -178,6 +180,7 @@
               "isList": false,
               "isOptional": false,
               "type": "bool",
+              "default": false,
               "description": "Enable regtest mode.",
               "name": "regtest"
             },
@@ -197,7 +200,13 @@
             {
               "isList": false,
               "isOptional": false,
+              "values": [
+                false,
+                true,
+                "only-outgoing"
+              ],
               "type": "select",
+              "default": false,
               "description": "Enable peer connections via i2p.\nWith `only-outgoing`, incoming i2p connections are disabled.",
               "name": "i2p"
             },
@@ -205,6 +214,7 @@
               "isList": false,
               "isOptional": false,
               "type": "bool",
+              "default": false,
               "description": "If enabled, data dir content is readable by the bitcoind service group.\nWarning: This disables bitcoind's wallet support.",
               "name": "dataDirReadableByGroup"
             },
@@ -225,7 +235,7 @@
             {
               "isList": false,
               "isOptional": true,
-              "type": "str",
+              "type": "number",
               "description": "Override the default database cache size in MiB.",
               "name": "dbCache"
             },
@@ -241,6 +251,7 @@
               "isList": false,
               "isOptional": false,
               "type": "bool",
+              "default": false,
               "description": "Enable the transaction index.",
               "name": "txindex"
             },
