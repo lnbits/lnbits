@@ -579,59 +579,73 @@ Vue.component('lnbits-notifications-btn', {
 
 Vue.component('lnbits-dynamic-controls', {
   mixins: [windowMixin],
-  props: ['options'],
+  props: ['options', 'data'],
   data() {
     return {
+      _data: {},
       mockBool: false,
       mockText: ''
     }
   },
 
   template: `
-  <div>
-    <div class="row q-mb-lg" v-for="option in options">
-      <div class="col auto-width">
-        <p v-if=option.options?.length class="q-ml-xl">
-          <span v-text="option.name"></span> <small v-if="option.description"> (<span
-              v-text="option.description"></span>)</small>
-        </p>
-        <lnbits-dynamic-controls v-if=option.options?.length :options=option.options class="q-ml-xl">
-        </lnbits-dynamic-controls>
-        <div v-else>
-          <q-input v-if="option.type === 'number'" type="number" :label="option.name" :hint="option.description" filled
-            dense>
-          </q-input>
-          <q-input v-else-if="option.type === 'text'" type="textarea" rows="5" :label="option.name"
-            :hint="option.description" filled dense>
-          </q-input>
-          <div v-else-if="option.type === 'bool'">
-            <q-item tag="label" v-ripple>
-              <q-item-section avatar top>
-                <q-checkbox v-model="mockBool" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label><span v-text="option.name"></span></q-item-label>
-                <q-item-label caption> <span v-text="option.description"></span> </q-item-label>
-              </q-item-section>
-            </q-item>
-          </div>
-          <q-select v-else-if="option.type === 'select'" v-model="mockText" :label="option.name"
-            :hint="option.description" :options="option.values"></q-select>
+    <div>
+      <div class="row q-mb-lg" v-for="o in options" :key="o.name">
+        <div class="col auto-width">
+          <p v-if=o.options?.length class="q-ml-xl">
+            <span v-text="o.name"></span> <small v-if="o.description"> (<span v-text="o.description"></span>)</small>
+          </p>
+          <lnbits-dynamic-controls v-if="o.options?.length" :options="o.options" :data="_data[o.name]" class="q-ml-xl">
+          </lnbits-dynamic-controls>
+          <div v-else>
+            <q-input v-if="o.type === 'number'" v-model="_data[o.name]" type="number" :label="o.name" :hint="o.description"
+              filled dense>
+            </q-input>
+            <q-input v-else-if="o.type === 'text'" v-model="_data[o.name]" type="textarea" rows="5" :label="o.name"
+              :hint="o.description" filled dense>
+            </q-input>
+            <div v-else-if="o.type === 'bool'">
+              <q-item tag="label" v-ripple>
+                <q-item-section avatar top>
+                  <q-checkbox v-model="_data[o.name]" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label><span v-text="o.name"></span></q-item-label>
+                  <q-item-label caption> <span v-text="o.description"></span> </q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <q-select v-else-if="o.type === 'select'" v-model="_data[o.name]" :label="o.name" :hint="o.description"
+              :options="o.values"></q-select>
 
-          <q-input v-else :label="option.name" :hint="option.description" filled dense>
-            <q-btn v-if="option.isList" @click="addMockValue" dense flat icon="add"></q-btn>
-          </q-input>
+            <q-input v-else v-model="_data[o.name]" :label="o.name" :hint="o.description" filled dense>
+              <q-btn v-if="o.isList" @click="addMockValue" dense flat icon="add"></q-btn>
+            </q-input>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   `,
   methods: {
     addMockValue(value) {
       console.log('### addMockValue', value)
+    },
+    buildData(options, data = {}) {
+      return options.reduce((d, o) => {
+        if (o.options?.length) {
+          d[o.name] = this.buildData(o.options, data[o.name])
+        } else {
+          d[o.name] = data[o.name] ?? o.default
+        }
+        return d
+      }, {})
     }
   },
   created: function () {
     console.log('### 1111')
+    this._data = this.buildData(this.options, this.data)
+    console.log('### _data:', this._data)
+
+    // this.data = this.data || {} // do not mutate
   }
 })

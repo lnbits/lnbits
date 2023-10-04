@@ -10,7 +10,7 @@
 
 <div class="row">
   <div class="col-12">
-    <lnbits-dynamic-controls :options="nixOptions.options"></lnbits-dynamic-controls>
+    <lnbits-dynamic-controls :options="nixOptions.options" :data="nixData"></lnbits-dynamic-controls>
   </div>
 </div>
 
@@ -321,6 +321,12 @@
               "name": "cli"
             }
           ]
+        },
+        nixData: {
+          port: 5000,
+          rpc: {
+            address: 'localhost'
+          }
         }
       }
 
