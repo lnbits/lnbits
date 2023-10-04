@@ -110,12 +110,13 @@ let
               rpcwhitelist = [ "getnetworkinfo" "getpeerinfo" ];
             };
           };
+          # todo: parse at some point
           type = with types; attrsOf (submodule ({ name, ... }: {
             options = {
               name = mkOption {
                 type = types.str;
                 default = name;
-                example = "alice";
+                exampleY = "alice";
                 description = mdDoc ''
                   Username for JSON-RPC connections.
                 '';
