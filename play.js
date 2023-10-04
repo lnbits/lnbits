@@ -5,8 +5,8 @@ const path = require('path')
 
 const indentSpaceCount = 2
 const nixDir = ''
-  // '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
-const allFiles = ['sample.config.nix']
+// '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
+const allFiles = ['play.nix']
 // fs.readdirSync(nixDir)
 // .filter(f => f === 'netns-isolation.nix')
 
@@ -154,8 +154,8 @@ function extractOption(lines, depth) {
 function extractValue(value) {
   if (!Number.isNaN(+value)) {
     return +value
-  } else if (typeof value === 'boolean') {
-    return value
+  } else if (value === 'true' || value === 'false') {
+    return value === 'true'
   } else if (value.startsWith('"') && value.endsWith('"')) {
     return value.slice(1, value.length - 1)
   } else if (value.startsWith('[') && value.endsWith(']')) {
