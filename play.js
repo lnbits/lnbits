@@ -81,6 +81,7 @@ function handleOptions(options, lines, depth) {
 
 function extractOption(lines, depth) {
   console.log('### extractOption', lines)
+  const nextDepth = depth + indentSpaceCount
   const op = {}
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
@@ -89,6 +90,13 @@ function extractOption(lines, depth) {
         `description = mdDoc "`.length,
         line.length - 2
       )
+    } else if (
+      line.startsWith(`description = mdDoc ''`) ||
+      line.startsWith(`description = ''`)
+    ) {
+      const longDescriptionLines = extractObject(lines.slice(i + 1), nextDepth)
+      op.description = longDescriptionLines.map(l => l.trim()).join('\n')
+      i += longDescriptionLines
     }
   }
 
