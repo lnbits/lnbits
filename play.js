@@ -9,7 +9,8 @@ console.log('### data', lines.length)
 const indentSpaceCount = 2
 
 const result = {
-  service: ''
+  service: '',
+  options: []
 }
 
 handleData(lines, indentSpaceCount)
@@ -20,7 +21,11 @@ function handleData(lines, depth) {
     const servicesPrefix = nested('options.services.', depth)
     if (lines[i].startsWith(servicesPrefix)) {
       result.service = lines[i].substring(servicesPrefix.length).split(' ')[0]
-      handleOptions(extractObject(lines.slice(i + 1), nextDepth), nextDepth)
+      handleOptions(
+        result.options,
+        extractObject(lines.slice(i + 1), nextDepth),
+        nextDepth
+      )
       return
     }
     if (lines[i].startsWith(nested('options', depth))) {
@@ -39,13 +44,37 @@ function handleService(lines, depth) {
         .substring(serviceNamePrefix.length)
         .split(' ')[0]
     }
-    handleOptions(extractObject(lines.slice(i + 1), nextDepth), nextDepth)
+    handleOptions(
+      result.options,
+      extractObject(lines.slice(i + 1), nextDepth),
+      nextDepth
+    )
     return
   }
 }
 
-function handleOptions(lines, depth) {
-  console.log('### option.lines', lines.length, depth)
+function handleOptions(options, lines, depth) {
+  const nextDepth = depth + indentSpaceCount
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].endsWith('= mkOption {')) {
+      options.push({
+        name: lines[i].trim().split(' ')[0]
+      })
+      const x = extractObject(lines.slice(i + 1), nextDepth)
+      console.log('### x', x)
+    } else if (lines[i].endsWith(' = {')) {
+      const option = {
+        name: lines[i].trim().split(' ')[0],
+        options: []
+      }
+      const nestedObject = extractObject(lines.slice(i + 1), nextDepth)
+      handleOptions(option.options, nestedObject, nextDepth)
+      if (option.options.length){
+        options.push(option)
+      }
+      return
+    }
+  }
 }
 
 function extractObject(lines, nestingLevel) {
@@ -66,4 +95,5 @@ function nested(str, level) {
   return prefix + str
 }
 
-console.log('### result', result)
+console.log('### result', JSON.stringify(result, null, 2))
+// console.log('### result', result)
