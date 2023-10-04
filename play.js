@@ -7,6 +7,11 @@ const indentSpaceCount = 2
 const nixDir =
   '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
 const allFiles = fs.readdirSync(nixDir)
+// .filter(f => f === 'netns-isolation.nix')
+
+//nix-bitcoin.nix, nodeinfo.nix = missing options attrs
+// different nesting onion-services.nix, security.nix
+//
 
 const typesMap = {
   attrs: 'attrs',
@@ -40,19 +45,16 @@ function handleData(lines, depth) {
     options: []
   }
   for (let i = 0; i < lines.length; i++) {
-    const servicesPrefix = nested('options.services.', depth)
+    const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
+    const servicesPrefix = nested('options.', depth)
     if (lines[i].startsWith(servicesPrefix)) {
       result.service = lines[i].substring(servicesPrefix.length).split(' ')[0]
-      handleOptions(
-        result.options,
-        extractObject(lines.slice(i + 1), nextDepth),
-        nextDepth
-      )
+
+      handleOptions(result.options, optionsLines, nextDepth)
       return result
     }
     if (lines[i].startsWith(nested('options', depth))) {
-      handleService(extractObject(lines.slice(i + 1), nextDepth), nextDepth)
-      return result
+      return handleService(optionsLines, nextDepth)
     }
   }
   return result
@@ -71,11 +73,8 @@ function handleService(lines, depth) {
         .substring(serviceNamePrefix.length)
         .split(' ')[0]
     }
-    handleOptions(
-      result.options,
-      extractObject(lines.slice(i + 1), nextDepth),
-      nextDepth
-    )
+    const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
+    handleOptions(result.options, optionsLines, nextDepth)
     return result
   }
   return result
@@ -84,7 +83,7 @@ function handleService(lines, depth) {
 function handleOptions(options, lines, depth) {
   const nextDepth = depth + indentSpaceCount
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].endsWith('= mkOption {')) {
+    if (lines[i].endsWith(' mkOption {')) {
       const optionLines = extractObject(lines.slice(i + 1), nextDepth)
       const option = extractOption(optionLines, nextDepth)
       option.name = lines[i].trim().split(' ')[0]
@@ -171,7 +170,7 @@ function extractObject(lines, nestingLevel) {
   const prefix = nested('', nestingLevel)
   const objectLines = []
   for (const line of lines) {
-    if (line.startsWith(prefix)) {
+    if (!line.length || line.startsWith(prefix)) {
       objectLines.push(line)
     } else {
       return objectLines

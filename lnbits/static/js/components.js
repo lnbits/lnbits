@@ -577,3 +577,38 @@ Vue.component('lnbits-notifications-btn', {
     }
   }
 })
+
+Vue.component('lnbits-dynamic-controls', {
+  mixins: [windowMixin],
+  props: ['options'],
+  data() {
+    return {
+
+    }
+  },
+  template: `
+    <div>
+      <div class="row" v-for="option in options" class="q-mb-sm">
+        <div class="col auto-width">
+          <p v-if=option.options?.length class="q-ml-xl">
+            <span v-text="option.name"></span> <small v-if="option.description"> (<span
+                v-text="option.description"></span>)</small>
+          </p>
+          <lnbits-dynamic-controls v-if=option.options?.length :options=option.options class="q-ml-xl">
+          </lnbits-dynamic-controls>
+          <q-input v-else-if="option.type" filled dense :label="option.name" :hint="option.description">
+          </q-input>
+          <div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `,
+  methods: {
+
+  },
+  created: function () {
+    console.log('### 1111')
+  }
+})
