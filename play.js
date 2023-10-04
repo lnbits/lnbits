@@ -2,9 +2,22 @@ console.log('### play.js')
 
 const fs = require('fs')
 
-const data = fs.readFileSync('sample.config.nix', 'utf8')
+const data = fs.readFileSync('sample.config6.nix', 'utf8')
 const lines = data.split('\n')
 console.log('### data', lines.length)
+
+//nullOr, listOf
+const typesMap = {
+  attrs: 'attrs',
+  float: 'number',
+  bool: 'bool',
+  enum: 'select',
+  lines: 'text',
+  package: 'str',
+  path: 'str',
+  port: 'str',
+  str: 'str'
+}
 
 const indentSpaceCount = 2
 
@@ -80,7 +93,6 @@ function handleOptions(options, lines, depth) {
 }
 
 function extractOption(lines, depth) {
-  console.log('### extractOption', lines)
   const nextDepth = depth + indentSpaceCount
   const op = {}
   for (let i = 0; i < lines.length; i++) {
@@ -97,6 +109,30 @@ function extractOption(lines, depth) {
       const longDescriptionLines = extractObject(lines.slice(i + 1), nextDepth)
       op.description = longDescriptionLines.map(l => l.trim()).join('\n')
       i += longDescriptionLines
+    } else if (line.startsWith('type =') && line.endsWith(';')) {
+      // todo: handle with types
+      const types = line
+        .substring('type ='.length + 1, line.length - 1)
+        .split(' ')
+        .map(t => (t.startsWith('types.') ? t.slice('types.'.length) : t))
+
+      op.isList = types.includes('listOf')
+      op.isOptional = types.includes('nullOr')
+      if (types.find(t => t.startsWith('ints.'))) {
+        op.type = 'number'
+      } else {
+        const type = types.find(t => typesMap[t])
+        op.type = type ? typesMap[type] : 'str'
+      }
+    } else if (line.startsWith('default =') && line.endsWith(';')) {
+      const value = line.slice('default ='.length, line.length - 1).trim()
+      if (!Number.isNaN(+value)) {
+        op.default = +value
+      } else if (typeof value === 'boolean') {
+        op.default = value
+      } else if (value.startsWith(`"`) && value.endsWith(`"`)) {
+        op.default = value.slice(1, value.length - 1)
+      }
     }
   }
 

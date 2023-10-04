@@ -1,80 +1,121 @@
-// play.json
 {
   "service": "bitcoind",
   "options": [
     {
+      "type": [
+        "types.str"
+      ],
+      "description": "Address to listen for peer connections.",
       "name": "address"
     },
     {
+      "type": [
+        "types.port"
+      ],
+      "description": "Port to listen for peer connections.",
       "name": "port"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.port"
+      ],
+      "description": "Port to listen for Tor peer connections.\nIf set, inbound connections to this port are tagged as onion peers.",
       "name": "onionPort"
     },
     {
+      "type": [
+        "types.bool"
+      ],
+      "description": "Listen for peer connections at `address:port`\nand `address:onionPort` (if {option}`onionPort` is set).",
       "name": "listen"
     },
     {
+      "type": [
+        "types.bool"
+      ],
+      "description": "Listen for peer connections at `address:whitelistedPort`.\nPeers connected through this socket are automatically whitelisted.",
       "name": "listenWhitelisted"
     },
     {
+      "type": [
+        "types.port"
+      ],
+      "description": "See `listenWhitelisted`.",
       "name": "whitelistedPort"
     },
     {
+      "type": [
+        "types.str"
+      ],
+      "description": "Bash expression which outputs the public service address to announce to peers.\nIf left empty, no address is announced.",
       "name": "getPublicAddressCmd"
     },
     {
+      "type": [
+        "types.package"
+      ],
+      "description": "The package providing bitcoin binaries.",
       "name": "package"
     },
     {
+      "type": [
+        "types.lines"
+      ],
+      "description": "Extra lines appended to {file}`bitcoin.conf`.",
       "name": "extraConfig"
     },
     {
+      "type": [
+        "types.path"
+      ],
+      "description": "The data directory for bitcoind.",
       "name": "dataDir"
     },
     {
       "name": "rpc",
       "options": [
         {
+          "type": [
+            "types.str"
+          ],
+          "description": "Address to listen for JSON-RPC connections.",
           "name": "address"
         },
         {
+          "type": [
+            "types.port"
+          ],
+          "description": "Port to listen for JSON-RPC connections.",
           "name": "port"
         },
         {
+          "type": [
+            "types.nullOr",
+            "types.ints.u16"
+          ],
+          "description": "The number of threads to service RPC calls.",
           "name": "threads"
         },
         {
+          "type": [
+            "types.listOf",
+            "types.str"
+          ],
+          "description": "Allow JSON-RPC connections from specified sources.",
           "name": "allowip"
         },
         {
+          "description": "Allowed users for JSON-RPC connections.",
           "name": "users"
-        },
-        {
-          "name": "example",
-          "options": [
-            {
-              "name": "options",
-              "options": [
-                {
-                  "name": "name"
-                },
-                {
-                  "name": "passwordHMAC"
-                },
-                {
-                  "name": "passwordHMACFromFile"
-                },
-                {
-                  "name": "rpcwhitelist"
-                }
-              ]
-            }
-          ]
         }
       ]
     },
     {
+      "type": [
+        "types.bool"
+      ],
+      "description": "Enable regtest mode.",
       "name": "regtest"
     },
     {
@@ -84,54 +125,139 @@
       "name": "makeNetworkName"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.str"
+      ],
+      "description": "Connect through SOCKS5 proxy",
       "name": "proxy"
     },
     {
+      "type": [
+        "types.enum",
+        "[",
+        "false",
+        "true",
+        "\"only-outgoing\"",
+        "]"
+      ],
+      "description": "Enable peer connections via i2p.\nWith `only-outgoing`, incoming i2p connections are disabled.",
       "name": "i2p"
     },
     {
+      "type": [
+        "types.bool"
+      ],
+      "description": "If enabled, data dir content is readable by the bitcoind service group.\nWarning: This disables bitcoind's wallet support.",
       "name": "dataDirReadableByGroup"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.bool"
+      ],
+      "description": "Create new files with system default permissions, instead of umask 077\n(only effective with disabled wallet functionality)",
       "name": "sysperms"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.bool"
+      ],
+      "description": "Do not load the wallet and disable wallet RPC calls",
       "name": "disablewallet"
     },
     {
+      "type": [
+        "types.nullOr",
+        "(types.ints.between",
+        "4",
+        "16384)"
+      ],
+      "description": "Override the default database cache size in MiB.",
       "name": "dbCache"
     },
     {
+      "type": [
+        "types.ints.unsigned"
+      ],
+      "description": "Automatically prune block files to stay under the specified target size in MiB.\nValue 0 disables pruning.",
       "name": "prune"
     },
     {
+      "type": [
+        "types.bool"
+      ],
+      "description": "Enable the transaction index.",
       "name": "txindex"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.str"
+      ],
+      "description": "ZMQ address for zmqpubrawblock notifications",
       "name": "zmqpubrawblock"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.str"
+      ],
+      "description": "ZMQ address for zmqpubrawtx notifications",
       "name": "zmqpubrawtx"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.str"
+      ],
+      "description": "If this block is in the chain assume that it and its ancestors are\nvalid and potentially skip their script verification.",
       "name": "assumevalid"
     },
     {
+      "type": [
+        "types.listOf",
+        "types.str"
+      ],
+      "description": "Add nodes to connect to and attempt to keep the connections open",
       "name": "addnodes"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.bool"
+      ],
+      "description": "Discover own IP addresses",
       "name": "discover"
     },
     {
+      "type": [
+        "types.nullOr",
+        "types.str"
+      ],
+      "description": "The type of addresses to use",
       "name": "addresstype"
     },
     {
+      "type": [
+        "types.str"
+      ],
+      "description": "The user as which to run bitcoind.",
       "name": "user"
     },
     {
+      "type": [
+        "types.str"
+      ],
+      "description": "The group as which to run bitcoind.",
       "name": "group"
     },
     {
+      "type": [
+        "types.package"
+      ],
+      "description": "Binary to connect with the bitcoind instance.",
       "name": "cli"
     }
   ]
