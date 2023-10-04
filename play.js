@@ -57,13 +57,13 @@ function handleOptions(options, lines, depth) {
   const nextDepth = depth + indentSpaceCount
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].endsWith('= mkOption {')) {
-      options.push({
-        name: lines[i].trim().split(' ')[0]
-      })
-      const option = extractObject(lines.slice(i + 1), nextDepth)
+      const optionLines = extractObject(lines.slice(i + 1), nextDepth)
+      const option = extractOption(optionLines, nextDepth)
+      option.name = lines[i].trim().split(' ')[0]
+      options.push(option)
       // handle option
       //   console.log('### x', x)
-      i += option.length
+      i += optionLines.length
     } else if (lines[i].endsWith(' = {')) {
       const option = {
         name: lines[i].trim().split(' ')[0],
@@ -77,6 +77,22 @@ function handleOptions(options, lines, depth) {
       i += nestedObject.length
     }
   }
+}
+
+function extractOption(lines, depth) {
+  console.log('### extractOption', lines)
+  const op = {}
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (line.startsWith(`description = mdDoc "`)) {
+      op.description = line.slice(
+        `description = mdDoc "`.length,
+        line.length - 2
+      )
+    }
+  }
+
+  return op
 }
 
 function extractObject(lines, nestingLevel) {
