@@ -25,11 +25,9 @@
           </ul>
           <br />
         </div>
-      </div>
-      <div class="row">
         <div class="col">
           <div v-if="'{{LNBITS_NODE_UI_AVAILABLE}}' === 'True'">
-            <div>Node Management</div>
+            <p>Node Management</p>
             <q-toggle
               label="Node UI"
               v-model="formData.lnbits_node_ui"
@@ -39,102 +37,89 @@
               label="Public node UI"
               v-model="formData.lnbits_public_node_ui"
             ></q-toggle>
+            <br />
             <q-toggle
               v-if="formData.lnbits_node_ui"
               label="Transactions Tab (Disable on large CLN nodes)"
               v-model="formData.lnbits_node_ui_transactions"
             ></q-toggle>
-            <br />
           </div>
           <p v-else>Node Management not supported by active funding source</p>
         </div>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
-          <div class="row">
-            <div class="col-12">
-              <p>Active Funding<small> (Requires server restart)</small></p>
-              <q-select
-                :disable="!isSuperUser"
-                filled
-                v-model="formData.lnbits_backend_wallet_class"
-                hint="Select the active funding wallet"
-                :options="settings.lnbits_allowed_funding_sources"
-              ></q-select>
-            </div>
-          </div>
+          <p>Invoice Expiry</p>
+          <q-input
+            filled
+            v-model.number="formData.lightning_invoice_expiry"
+            type="number"
+            label="Invoice expiry (seconds)"
+            mask="#######"
+          >
+          </q-input>
         </div>
         <div class="col-12 col-md-8">
+          <p>Fee reserve</p>
           <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-4">
-              <p>Invoice Expiry</p>
+            <div class="col-6">
               <q-input
-                filled
-                v-model.number="formData.lightning_invoice_expiry"
                 type="number"
-                label="Invoice expiry (seconds)"
-                mask="#######"
+                filled
+                v-model="formData.lnbits_reserve_fee_min"
+                label="Reserve fee in msats"
               >
               </q-input>
             </div>
-            <div class="col-12 col-md-8">
-              <p>Fee reserve</p>
-              <div class="row q-col-gutter-md">
-                <div class="col-6">
-                  <q-input
-                    type="number"
-                    filled
-                    v-model="formData.lnbits_reserve_fee_min"
-                    label="Reserve fee in msats"
-                  >
-                  </q-input>
-                </div>
-                <div class="col-6">
-                  <q-input
-                    type="number"
-                    filled
-                    name="lnbits_reserve_fee_percent"
-                    v-model="formData.lnbits_reserve_fee_percent"
-                    label="Reserve fee in percent"
-                    step="0.1"
-                  ></q-input>
-                </div>
-              </div>
+            <div class="col-6">
+              <q-input
+                type="number"
+                filled
+                name="lnbits_reserve_fee_percent"
+                v-model="formData.lnbits_reserve_fee_percent"
+                label="Reserve fee in percent"
+                step="0.1"
+              ></q-input>
             </div>
           </div>
         </div>
       </div>
       <div v-if="isSuperUser">
-        <p class="q-my-md">
-          Funding Sources<small> (Requires server restart)</small>
-        </p>
+        <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
+        <div class="row">
+          <div class="col-12">
+            <p>Active Funding<small> (Requires server restart)</small></p>
+            <q-select
+              :disable="!isSuperUser"
+              filled
+              v-model="formData.lnbits_backend_wallet_class"
+              hint="Select the active funding wallet"
+              :options="settings.lnbits_allowed_funding_sources"
+            ></q-select>
+          </div>
+        </div>
         <q-list
+          class="q-mt-md"
+          v-if="funding_sources.get(fund) && fund === formData.lnbits_backend_wallet_class"
           v-for="(fund, idx) in settings.lnbits_allowed_funding_sources"
           :key="idx"
         >
-          <q-expansion-item
-            expand-separator
-            icon="payments"
-            :label="prettyFunding.get(fund) || fund"
-            v-if="funding_sources.get(fund)"
+          <div
+            class="row"
+            v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
+            :key="i"
           >
-            <q-card>
-              <q-card-section
-                v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
-                :key="i"
-              >
-                <q-input
-                  dense
-                  filled
-                  type="text"
-                  v-model="formData[key]"
-                  :label="prop.label"
-                  class="q-pr-md"
-                  :hint="prop.hint"
-                ></q-input>
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
+            <div class="col-12">
+              <q-input
+                filled
+                type="text"
+                class="q-mt-sm"
+                v-model="formData[key]"
+                :label="prop.label"
+                :hint="prop.hint"
+              ></q-input>
+            </div>
+          </div>
         </q-list>
       </div>
     </div>
