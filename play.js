@@ -1,12 +1,13 @@
 console.log('### play.js')
 
 const fs = require('fs')
+const path = require('path')
 
-const data = fs.readFileSync('sample.config6.nix', 'utf8')
-const lines = data.split('\n')
-console.log('### data', lines.length)
+const indentSpaceCount = 2
+const nixDir =
+  '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
+const allFiles = fs.readdirSync(nixDir)
 
-//nullOr, listOf
 const typesMap = {
   attrs: 'attrs',
   float: 'number',
@@ -19,17 +20,25 @@ const typesMap = {
   str: 'str'
 }
 
-const indentSpaceCount = 2
+for (const f of allFiles) {
+  if (f.endsWith('.nix')) {
+    console.log('### file', f)
+    const data = fs.readFileSync(path.join(nixDir, f), 'utf8')
+    const lines = data.split('\n')
+    console.log('### file.lines', lines.length)
 
-const result = {
-  service: '',
-  options: []
+    const result = handleData(lines, indentSpaceCount)
+
+    console.log('### result', JSON.stringify(result, null, 2))
+  }
 }
-
-handleData(lines, indentSpaceCount)
 
 function handleData(lines, depth) {
   const nextDepth = depth + indentSpaceCount
+  const result = {
+    service: '',
+    options: []
+  }
   for (let i = 0; i < lines.length; i++) {
     const servicesPrefix = nested('options.services.', depth)
     if (lines[i].startsWith(servicesPrefix)) {
@@ -39,17 +48,22 @@ function handleData(lines, depth) {
         extractObject(lines.slice(i + 1), nextDepth),
         nextDepth
       )
-      return
+      return result
     }
     if (lines[i].startsWith(nested('options', depth))) {
       handleService(extractObject(lines.slice(i + 1), nextDepth), nextDepth)
-      return
+      return result
     }
   }
+  return result
 }
 
 function handleService(lines, depth) {
   const nextDepth = depth + indentSpaceCount
+  const result = {
+    service: '',
+    options: []
+  }
   const serviceNamePrefix = nested('services.', depth)
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].startsWith(serviceNamePrefix)) {
@@ -62,8 +76,9 @@ function handleService(lines, depth) {
       extractObject(lines.slice(i + 1), nextDepth),
       nextDepth
     )
-    return
+    return result
   }
+  return result
 }
 
 function handleOptions(options, lines, depth) {
@@ -125,18 +140,31 @@ function extractOption(lines, depth) {
         op.type = type ? typesMap[type] : 'str'
       }
     } else if (line.startsWith('default =') && line.endsWith(';')) {
-      const value = line.slice('default ='.length, line.length - 1).trim()
-      if (!Number.isNaN(+value)) {
-        op.default = +value
-      } else if (typeof value === 'boolean') {
+      const value = extractValue(
+        line.slice('default ='.length, line.length - 1).trim()
+      )
+      if (value !== undefined) {
         op.default = value
-      } else if (value.startsWith(`"`) && value.endsWith(`"`)) {
-        op.default = value.slice(1, value.length - 1)
       }
     }
   }
 
   return op
+}
+function extractValue(value) {
+  if (!Number.isNaN(+value)) {
+    return +value
+  } else if (typeof value === 'boolean') {
+    return value
+  } else if (value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, value.length - 1)
+  } else if (value.startsWith('[') && value.endsWith(']')) {
+    return value
+      .slice(1, value.length - 1)
+      .split(' ')
+      .filter(v => v !== '')
+      .map(v => extractValue(v))
+  }
 }
 
 function extractObject(lines, nestingLevel) {
@@ -157,5 +185,5 @@ function nested(str, level) {
   return prefix + str
 }
 
-console.log('### result', JSON.stringify(result, null, 2))
+// console.log('### result', JSON.stringify(result, null, 2))
 // console.log('### result', result)
