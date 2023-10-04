@@ -67,7 +67,7 @@
             {
               "isList": false,
               "isOptional": false,
-              "type": "str",
+              "type": "number",
               "default": 8333,
               "description": "Port to listen for peer connections.",
               "name": "port"
@@ -75,7 +75,7 @@
             {
               "isList": false,
               "isOptional": true,
-              "type": "str",
+              "type": "number",
               "description": "Port to listen for Tor peer connections.\nIf set, inbound connections to this port are tagged as onion peers.",
               "name": "onionPort"
             },
@@ -96,7 +96,7 @@
             {
               "isList": false,
               "isOptional": false,
-              "type": "str",
+              "type": "number",
               "default": 8335,
               "description": "See `listenWhitelisted`.",
               "name": "whitelistedPort"
@@ -146,7 +146,7 @@
                 {
                   "isList": false,
                   "isOptional": false,
-                  "type": "str",
+                  "type": "number",
                   "default": 8332,
                   "description": "Port to listen for JSON-RPC connections.",
                   "name": "port"
@@ -312,6 +312,7 @@
           ]
         }
       }
+
     },
     computed: {},
     methods: {

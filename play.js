@@ -4,9 +4,10 @@ const fs = require('fs')
 const path = require('path')
 
 const indentSpaceCount = 2
-const nixDir =
-  '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
-const allFiles = fs.readdirSync(nixDir)
+const nixDir = ''
+  // '/Users/moto/Documents/GitHub/motorina0/nixos/nix-bitcoin/modules'
+const allFiles = ['sample.config.nix']
+// fs.readdirSync(nixDir)
 // .filter(f => f === 'netns-isolation.nix')
 
 //nix-bitcoin.nix, nodeinfo.nix = missing options attrs
@@ -21,7 +22,7 @@ const typesMap = {
   lines: 'text',
   package: 'str',
   path: 'str',
-  port: 'str',
+  port: 'number',
   str: 'str'
 }
 
