@@ -80,9 +80,13 @@ async def get_installed():
 async def get_nix_config(packageId: str):
     try:
         conf = await fetch_nix_packages_config()
-        assert "packages" in conf, "NIX packages config has no packages"
+        packages = []
+        if "packages" in conf:
+            packages += conf["packages"]
+        if "support_packages" in conf:
+            packages += conf["support_packages"]
 
-        package = next((p for p in conf["packages"] if p["id"] == packageId), None)
+        package = next((p for p in packages if p["id"] == packageId), None)
         assert package, f"Package '{packageId}' could not be found"
         assert "repo" in package, f"Package '{package}' has no repo filed"
 

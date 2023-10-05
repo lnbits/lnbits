@@ -9,7 +9,7 @@
             min-height: 230px;
             max-height: 230px;
           "
-          v-for="item in supportpackages"
+          v-for="item in supportPackages"
           class="q-ml-none q-mt-none q-mr-md q-mb-md"
         >
           <q-card-section horizontal>
@@ -41,7 +41,7 @@
               <q-btn v-else flat color="primary"> Add </q-btn>
             </div>
             <div class="col-3">
-              <q-btn flat type="a" :href="item.repo" color="primary">
+              <q-btn flat @click="showPackageConfigDialog(item.id)" color="primary">
                 Flake
                 <q-tooltip
                   >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length
