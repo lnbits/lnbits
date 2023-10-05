@@ -579,35 +579,33 @@ Vue.component('lnbits-notifications-btn', {
 
 Vue.component('lnbits-dynamic-controls', {
   mixins: [windowMixin],
-  props: ['options', 'data'],
+  props: ['options', 'value'],
   data() {
     return {
-      _data: {},
-      mockBool: false,
-      mockText: ''
+      formData: null
     }
   },
 
   template: `
-    <div>
-      <div class="row q-mb-lg" v-for="o in options" :key="o.name">
+    <div v-if="formData">
+      <div class="row q-mb-lg" v-for="o in options">
         <div class="col auto-width">
           <p v-if=o.options?.length class="q-ml-xl">
             <span v-text="o.name"></span> <small v-if="o.description"> (<span v-text="o.description"></span>)</small>
           </p>
-          <lnbits-dynamic-controls v-if="o.options?.length" :options="o.options" :data="_data[o.name]" class="q-ml-xl">
+          <lnbits-dynamic-controls v-if="o.options?.length" :options="o.options" v-model="formData[o.name]" class="q-ml-xl">
           </lnbits-dynamic-controls>
           <div v-else>
-            <q-input v-if="o.type === 'number'" v-model="_data[o.name]" type="number" :label="o.name" :hint="o.description"
-              filled dense>
+            <q-input v-if="o.type === 'number'" v-model="formData[o.name]" @input="handleValueChanged" type="number"
+              :label="o.name" :hint="o.description" filled dense>
             </q-input>
-            <q-input v-else-if="o.type === 'text'" v-model="_data[o.name]" type="textarea" rows="5" :label="o.name"
-              :hint="o.description" filled dense>
+            <q-input v-else-if="o.type === 'text'" v-model="formData[o.name]" @input="handleValueChanged" type="textarea"
+              rows="5" :label="o.name" :hint="o.description" filled dense>
             </q-input>
             <div v-else-if="o.type === 'bool'">
               <q-item tag="label" v-ripple>
                 <q-item-section avatar top>
-                  <q-checkbox v-model="_data[o.name]" />
+                  <q-checkbox v-model="formData[o.name]" @input="handleValueChanged" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label><span v-text="o.name"></span></q-item-label>
@@ -615,10 +613,11 @@ Vue.component('lnbits-dynamic-controls', {
                 </q-item-section>
               </q-item>
             </div>
-            <q-select v-else-if="o.type === 'select'" v-model="_data[o.name]" :label="o.name" :hint="o.description"
-              :options="o.values"></q-select>
+            <q-select v-else-if="o.type === 'select'" v-model="formData[o.name]" @input="handleValueChanged" :label="o.name"
+              :hint="o.description" :options="o.values"></q-select>
 
-            <q-input v-else v-model="_data[o.name]" :label="o.name" :hint="o.description" filled dense>
+            <q-input v-else emit-value v-model="formData[o.name]" @input="handleValueChanged" :label="o.name"
+              :hint="o.description" filled dense>
               <q-btn v-if="o.isList" @click="addMockValue" dense flat icon="add"></q-btn>
             </q-input>
           </div>
@@ -626,26 +625,32 @@ Vue.component('lnbits-dynamic-controls', {
       </div>
     </div>
   `,
+  watch: {
+    formData: function(n, o) {
+      console.log('### watch formData: ', n)
+    }
+  },
   methods: {
     addMockValue(value) {
       console.log('### addMockValue', value)
     },
     buildData(options, data = {}) {
-      return options.reduce((d, o) => {
-        if (o.options?.length) {
-          d[o.name] = this.buildData(o.options, data[o.name])
+      return options.reduce((d, option) => {
+        if (option.options?.length) {
+          d[option.name] = this.buildData(option.options, data[option.name])
         } else {
-          d[o.name] = data[o.name] ?? o.default
+          d[option.name] = data[option.name] ?? option.default
         }
         return d
       }, {})
+    },
+    handleValueChanged() {
+      this.$emit('input', this.formData)
     }
   },
   created: function () {
     console.log('### 1111')
-    this._data = this.buildData(this.options, this.data)
-    console.log('### _data:', this._data)
-
-    // this.data = this.data || {} // do not mutate
+    this.formData = this.buildData(this.options, this.value)
+    console.log('### formData:', this.formData)
   }
 })

@@ -10,7 +10,10 @@
 
 <div class="row">
   <div class="col-12">
-    <lnbits-dynamic-controls :options="nixOptions.options" :data="nixData"></lnbits-dynamic-controls>
+    <lnbits-dynamic-controls :options="nixOptions.options" v-model="nixData"></lnbits-dynamic-controls>
+  </div>
+  <div class="col-12">
+    <span v-text="JSON.stringify(nixData)"></span>
   </div>
 </div>
 
@@ -332,6 +335,11 @@
 
     },
     computed: {},
+    watch: {
+      nixData(n, o){
+        console.log('### nixData', n)
+      }
+    },
     methods: {
       getPackages() {
         self = this
@@ -346,7 +354,7 @@
               this.packages[i].installed = true
             }
           }
-          console.log(self.configAr)
+          // console.log(self.configAr)
 
           var supportpackages = JSON.stringify(response.data.support_packages)
           this.supportpackages = JSON.parse(supportpackages)
@@ -357,7 +365,7 @@
               this.supportpackages[i].installed = true
             }
           }
-          console.log(self.configAr)
+          // console.log(self.configAr)
 
         })
       },
