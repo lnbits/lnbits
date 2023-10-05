@@ -147,6 +147,15 @@
           LNbits.utils.notifyApiError(error)
         }
       },
+      getConfig() {
+        self = this
+        LNbits.api.request('GET', '/admin/api/v1/config').then(response => {
+          self.config = response.data
+          self.configAr = self.config.split(/\r\n|\r|\n/).map(function (item) {
+            return item.trim()
+          })
+        })
+      },
       async updateConfig() {
         try {
           const {data} = await LNbits.api.request(
@@ -170,6 +179,7 @@
     },
     created() {
       this.getPackages()
+      this.getConfig()
     }
   })
 </script>
