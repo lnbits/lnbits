@@ -247,7 +247,9 @@ class CoreLightningNode(Node):
             backend_name="CLN",
             alias=info["alias"],
             color=info["color"],
-            onchain_balance_sat=sum(output["value"] for output in funds["outputs"]),
+            onchain_balance_sat=sum(
+                output["amount_msat"] / 1000 for output in funds["outputs"]
+            ),
             onchain_confirmed_sat=sum(
                 output["amount_msat"] / 1000
                 for output in funds["outputs"]
