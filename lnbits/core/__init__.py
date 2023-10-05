@@ -6,9 +6,9 @@ from .views.api import api_router
 
 # this compat is needed for usermanager extension
 from .views.generic import generic_router, update_user_extension
+from .views.install_api import install_router
 from .views.node_api import node_router, public_node_router, super_node_router
 from .views.public_api import public_router
-from .views.install_api import install_router
 
 # backwards compatibility for extensions
 core_app = APIRouter(tags=["Core"])

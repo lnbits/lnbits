@@ -432,7 +432,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
 
 
 @generic_router.get("/install", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):
+async def install(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
@@ -449,6 +449,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "currencies": list(currencies.keys()),
         },
     )
+
 
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
