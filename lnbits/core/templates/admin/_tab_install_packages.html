@@ -3,7 +3,10 @@
     <div v-for="item in packages" class="col-12 col-md-4 col-lg-3">
       <q-card>
         <q-card-section horizontal>
-          <q-card-section style="min-height: 180px; max-height: 180px" class="q-pt-xs q-pr-xs q-pl-sm q-pb-xs col-8">
+          <q-card-section
+            style="min-height: 180px; max-height: 180px"
+            class="q-pt-xs q-pr-xs q-pl-sm q-pb-xs col-8"
+          >
             <div class="text-subtitle2 q-mt-sm q-mb-xs">
               {% raw %} {{ item.package }} {% endraw %}
             </div>
@@ -28,10 +31,16 @@
             <q-btn v-else flat color="primary"> Add </q-btn>
           </div>
           <div class="col-3">
-            <q-btn flat @click="showPackageConfigDialog(item.id)" color="primary">
+            <q-btn
+              flat
+              @click="showPackageConfigDialog(item.id)"
+              color="primary"
+            >
               Flake
-              <q-tooltip>{% raw %} {{ item.repo.split("/")[item.repo.split("/").length -
-                1] }} {% endraw %}</q-tooltip>
+              <q-tooltip
+                >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length -
+                1] }} {% endraw %}</q-tooltip
+              >
             </q-btn>
           </div>
         </q-card-actions>

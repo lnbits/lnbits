@@ -113,12 +113,14 @@ async def get_nix_config(packageId: str):
             detail=(f"Failed to get package '{packageId}' config"),
         )
 
+
 @install_router.get("/admin/api/v1/config")
 async def get_nix_config_file():
     file_contents = ""
-    with open('lnbits/core/static/nix/config.nix', 'r') as file:
+    with open("lnbits/core/static/nix/config.nix", "r") as file:
         file_contents = file.read()
     return file_contents
+
 
 @install_router.put("/admin/api/v1/config/{packageId}")
 async def get_nix_update_config(packageId: str, data: SaveConfig):
