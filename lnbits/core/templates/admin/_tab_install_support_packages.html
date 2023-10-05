@@ -41,7 +41,11 @@
               <q-btn v-else flat color="primary"> Add </q-btn>
             </div>
             <div class="col-3">
-              <q-btn flat @click="showPackageConfigDialog(item.id)" color="primary">
+              <q-btn
+                flat
+                @click="showPackageConfigDialog(item.id)"
+                color="primary"
+              >
                 Flake
                 <q-tooltip
                   >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length
