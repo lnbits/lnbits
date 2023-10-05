@@ -368,8 +368,8 @@ Vue.component('lnbits-qrcode', {
   template: `
   <div class="qrcode__wrapper">
     <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q'}" class="rounded-borders"></qrcode>
-    <img class="qrcode__image" :src="logo" alt="..." />
+    :options="{errorCorrectionLevel: 'Q'}" class="rounded-borders"></qrcode>    
+    <img class="qrcode__image" :src="logo" alt="..." />    
   </div>
   `
 })
