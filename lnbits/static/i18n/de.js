@@ -40,7 +40,6 @@ window.localisation.de = {
   toggle_darkmode: 'Auf Dark Mode umschalten',
   view_swagger_docs: 'LNbits Swagger API-Dokumente',
   api_docs: 'API docs',
-  commit_version: 'Commit Version',
   runs_on: 'Läuft auf',
   credit_hint: 'Klicke Enter, um das Konto zu belasten',
   credit_label: '%{denomination} zu belasten',

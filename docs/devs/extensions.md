@@ -6,13 +6,13 @@ nav_order: 2
 ---
 
 
-Making extensions
+Extension set up
 =================
 
-Start off by cloning the [example extension](https://github.com/lnbits/example) into your `lnbits/extensions` folder and renaming it to `mysuperplugin`:
+Start off by creating a fork of the [example extension](https://github.com/lnbits/example) into own GitHub repository and rename the repository to `mysuperplugin`:
 ```sh
-cd lnbits/extensions
-git clone https://github.com/lnbits/example.git --depth=1 mysuperplugin # Let's not use dashes or anything; it doesn't like those.
+cd [my-working-folder]
+git clone https://github.com/[my-user-name]/mysuperplugin.git --depth=1 # Let's not use dashes or anything; it doesn't like those.
 cd mysuperplugin
 rm -rf .git/
 find . -type f -print0 | xargs -0 sed -i 's/example/mysuperplugin/g' # Change all occurrences of 'example' to your plugin name 'mysuperplugin'.
@@ -20,7 +20,18 @@ mv templates/example templates/mysuperplugin # Rename templates folder.
 ```
 - if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 
-Going over the example extension's structure:
+1. Edit `manifest.json` and change the organisation name to your GitHub username.
+1. Push your changes to GitHub. 
+1. In GitHub create a new release for your extension repo. Tag the release with `0.0.1`
+1. Copy the URL of the extension's raw `manifest.json` URL `https://raw.githubusercontent.com/[my-user-name]/mysuperplugin/master/manifest.json`
+1. If you are using the LMNbits Admin UI, go to the Admin UI > Server > Extension Sources, click "Add", paste the URL, then click "Save"
+1. If you are configuring LNbits via environment variables, add the URL to the .env file's `LNBITS_EXTENSIONS_MANIFESTS` variable. Restart the LNbits python process
+1. You will now see your extension in the LNbits > Extensions list. Click "Enable" to enable it.
+1. ...
+1. Profit!!!
+
+Extension structure explained
+-----------------------------
 * views_api.py: This is where your public API would go. It will be exposed at "$DOMAIN/$PLUGIN/$ROUTE". For example: https://lnbits.com/mysuperplugin/api/v1/tools.
 * views.py: The `/` path will show up as your plugin's home page in lnbits' UI. Other pages you can define yourself. The `templates` folder should explain itself in relation to this.
 * migrations.py: Create database tables for your plugin. They'll be created automatically when you start lnbits.

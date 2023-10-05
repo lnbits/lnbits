@@ -15,6 +15,7 @@ from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
 from lnbits import bolt11
+from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
@@ -29,7 +30,6 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
-from . import db
 from .crud import (
     check_internal,
     check_internal_pending,
@@ -92,7 +92,9 @@ async def calculate_fiat_amounts(
         extra["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
         extra["wallet_fiat_rate"] = amount_sat / fiat_amount
 
-    logger.debug(f"Calculated fiat amounts for {wallet}: {extra=}")
+    logger.debug(
+        f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {extra=}"
+    )
 
     return amount_sat, extra
 
@@ -174,6 +176,12 @@ async def pay_invoice(
     will regularly check for the payment.
     """
     invoice = bolt11.decode(payment_request)
+
+    if not invoice.amount_msat or not invoice.amount_msat > 0:
+        raise ValueError("Amountless invoices not supported.")
+    if max_sat and invoice.amount_msat > max_sat * 1000:
+        raise ValueError("Amount in invoice is too high.")
+
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
@@ -185,7 +193,7 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
-            invoice.amount_msat, wallet_id, extra=extra, conn=conn
+            invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
         # put all parameters that don't change here
@@ -571,7 +579,7 @@ async def check_webpush_settings():
             "lnbits_webpush_pubkey": pubkey,
         }
         update_cached_settings(push_settings)
-        await update_admin_settings(push_settings)
+        await update_admin_settings(EditableSettings(**push_settings))
 
     logger.info("Initialized webpush settings with generated VAPID key pair.")
     logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")

@@ -15,9 +15,16 @@ from .extension_manager import get_valid_extensions
 
 
 @click.group()
-def command_group():
+def lnbits_cli():
     """
     Python CLI for LNbits
+    """
+
+
+@lnbits_cli.group()
+def db():
+    """
+    Database related commands
     """
 
 
@@ -27,19 +34,19 @@ def get_super_user() -> str:
         return file.readline()
 
 
-@click.command("superuser")
+@lnbits_cli.command("superuser")
 def superuser():
     """Prints the superuser"""
     click.echo(get_super_user())
 
 
-@click.command("superuser-url")
+@lnbits_cli.command("superuser-url")
 def superuser_url():
     """Prints the superuser"""
     click.echo(f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}")
 
 
-@click.command("delete-settings")
+@lnbits_cli.command("delete-settings")
 def delete_settings():
     """Deletes the settings"""
 
@@ -51,7 +58,7 @@ def delete_settings():
     loop.run_until_complete(wrap())
 
 
-@click.command("database-migrate")
+@db.command("migrate")
 def database_migrate():
     """Migrate databases"""
     loop = asyncio.get_event_loop()
@@ -86,12 +93,15 @@ async def migrate_databases():
 
     for ext in get_valid_extensions():
         current_version = current_versions.get(ext.code, 0)
-        await migrate_extension_database(ext, current_version)
+        try:
+            await migrate_extension_database(ext, current_version)
+        except Exception as e:
+            logger.exception(f"Error migrating extension {ext.code}: {e}")
 
     logger.info("✔️ All migrations done.")
 
 
-@click.command("database-versions")
+@db.command("versions")
 def database_versions():
     """Show current database versions"""
     loop = asyncio.get_event_loop()
@@ -112,12 +122,7 @@ async def load_disabled_extension_list() -> None:
 
 def main():
     """main function"""
-    command_group.add_command(superuser)
-    command_group.add_command(superuser_url)
-    command_group.add_command(delete_settings)
-    command_group.add_command(database_migrate)
-    command_group.add_command(database_versions)
-    command_group()
+    lnbits_cli()
 
 
 if __name__ == "__main__":

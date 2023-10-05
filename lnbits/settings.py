@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 import importlib
 import importlib.metadata
 import inspect
 import json
-import subprocess
 from os import path
 from sqlite3 import Row
 from typing import Any, List, Optional
 
 import httpx
 from loguru import logger
-from pydantic import BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v: str):
@@ -23,19 +24,12 @@ def list_parse_fallback(v: str):
         return []
 
 
-class LNbitsSettings(BaseSettings):
+class LNbitsSettings(BaseModel):
     @classmethod
-    def validate(cls, val):
+    def validate_list(cls, val):
         if isinstance(val, str):
             val = val.split(",") if val else []
         return val
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
-        extra = Extra.ignore
 
 
 class UsersSettings(LNbitsSettings):
@@ -233,6 +227,16 @@ class WebPushSettings(LNbitsSettings):
     lnbits_webpush_privkey: str = Field(default=None)
 
 
+class NodeUISettings(LNbitsSettings):
+    # on-off switch for node ui
+    lnbits_node_ui: bool = Field(default=False)
+    # whether to display the public node ui (only if lnbits_node_ui is True)
+    lnbits_public_node_ui: bool = Field(default=False)
+    # can be used to disable the transactions tab in the node ui
+    # (recommended for large cln nodes)
+    lnbits_node_ui_transactions: bool = Field(default=False)
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -243,6 +247,7 @@ class EditableSettings(
     BoltzExtensionSettings,
     LightningSettings,
     WebPushSettings,
+    NodeUISettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -253,7 +258,7 @@ class EditableSettings(
     )
     @classmethod
     def validate_editable_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -269,6 +274,11 @@ class EditableSettings(
                 prop.pop("env_names", None)
 
 
+class UpdateSettings(EditableSettings):
+    class Config:
+        extra = Extra.forbid
+
+
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
@@ -277,9 +287,13 @@ class EnvSettings(LNbitsSettings):
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
-    lnbits_commit: str = Field(default="unknown")
+    lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+
+    @property
+    def has_default_extension_path(self) -> bool:
+        return self.lnbits_extensions_path == "lnbits"
 
 
 class SaaSSettings(LNbitsSettings):
@@ -338,18 +352,24 @@ class ReadOnlySettings(
     )
     @classmethod
     def validate_readonly_settings(cls, val):
-        return super().validate(val)
+        return super().validate_list(val)
 
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings):
+class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
     @classmethod
     def from_row(cls, row: Row) -> "Settings":
         data = dict(row)
         return cls(**data)
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+        json_loads = list_parse_fallback
 
 
 class SuperSettings(EditableSettings):
@@ -398,19 +418,13 @@ settings = Settings()
 
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
-try:
-    settings.lnbits_commit = (
-        subprocess.check_output(
-            ["git", "-C", settings.lnbits_path, "rev-parse", "HEAD"],
-            stderr=subprocess.DEVNULL,
-        )
-        .strip()
-        .decode("ascii")
-    )
-except Exception:
-    settings.lnbits_commit = "docker"
-
 settings.version = importlib.metadata.version("lnbits")
+
+# printing environment variable for debugging
+if not settings.lnbits_admin_ui:
+    logger.debug("Environment Settings:")
+    for key, value in settings.dict(exclude_none=True).items():
+        logger.debug(f"{key}: {value}")
 
 
 def get_wallet_class():

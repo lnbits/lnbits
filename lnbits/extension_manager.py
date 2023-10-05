@@ -182,12 +182,19 @@ class Extension(NamedTuple):
     upgrade_hash: Optional[str] = ""
 
     @property
-    def module_name(self):
-        return (
-            f"lnbits.extensions.{self.code}"
-            if self.upgrade_hash == ""
-            else f"lnbits.upgrades.{self.code}-{self.upgrade_hash}.{self.code}"
-        )
+    def module_name(self) -> str:
+        if self.is_upgrade_extension:
+            if settings.has_default_extension_path:
+                return f"lnbits.upgrades.{self.code}-{self.upgrade_hash}"
+            return f"{self.code}-{self.upgrade_hash}"
+
+        if settings.has_default_extension_path:
+            return f"lnbits.extensions.{self.code}"
+        return self.code
+
+    @property
+    def is_upgrade_extension(self) -> bool:
+        return self.upgrade_hash != ""
 
     @classmethod
     def from_installable_ext(cls, ext_info: "InstallableExtension") -> "Extension":
@@ -205,7 +212,7 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self) -> None:
-        p = Path(settings.lnbits_path, "extensions")
+        p = Path(settings.lnbits_extensions_path, "extensions")
         Path(p).mkdir(parents=True, exist_ok=True)
         self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
 
@@ -330,21 +337,25 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
-        extensions_data_dir = Path(settings.lnbits_data_folder, "extensions")
+        extensions_data_dir = Path(settings.lnbits_data_folder, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
         return Path(extensions_data_dir, f"{self.id}.zip")
 
     @property
     def ext_dir(self) -> Path:
-        return Path(settings.lnbits_path, "extensions", self.id)
+        return Path(settings.lnbits_extensions_path, "extensions", self.id)
 
     @property
     def ext_upgrade_dir(self) -> Path:
-        return Path("lnbits", "upgrades", f"{self.id}-{self.hash}")
+        return Path(
+            settings.lnbits_extensions_path, "upgrades", f"{self.id}-{self.hash}"
+        )
 
     @property
     def module_name(self) -> str:
-        return f"lnbits.extensions.{self.id}"
+        if settings.has_default_extension_path:
+            return f"lnbits.extensions.{self.id}"
+        return self.id
 
     @property
     def module_installed(self) -> bool:
@@ -389,21 +400,26 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
-        Path("lnbits", "upgrades").mkdir(parents=True, exist_ok=True)
-        shutil.rmtree(self.ext_upgrade_dir, True)
-        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
-            zip_ref.extractall(self.ext_upgrade_dir)
-        generated_dir_name = os.listdir(self.ext_upgrade_dir)[0]
-        os.rename(
-            Path(self.ext_upgrade_dir, generated_dir_name),
-            Path(self.ext_upgrade_dir, self.id),
+        Path(settings.lnbits_extensions_path, "upgrades").mkdir(
+            parents=True, exist_ok=True
         )
+
+        tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
+        shutil.rmtree(tmp_dir, True)
+
+        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        generated_dir_name = os.listdir(tmp_dir)[0]
+        shutil.rmtree(self.ext_upgrade_dir, True)
+        shutil.copytree(
+            Path(tmp_dir, generated_dir_name),
+            Path(self.ext_upgrade_dir),
+        )
+        shutil.rmtree(tmp_dir, True)
 
         # Pre-packed extensions can be upgraded
         # Mark the extension as installed so we know it is not the pre-packed version
-        with open(
-            Path(self.ext_upgrade_dir, self.id, "config.json"), "r+"
-        ) as json_file:
+        with open(Path(self.ext_upgrade_dir, "config.json"), "r+") as json_file:
             config_json = json.load(json_file)
 
             self.name = config_json.get("name")
@@ -419,10 +435,7 @@ class InstallableExtension(BaseModel):
                 )
 
         shutil.rmtree(self.ext_dir, True)
-        shutil.copytree(
-            Path(self.ext_upgrade_dir, self.id),
-            Path(settings.lnbits_path, "extensions", self.id),
-        )
+        shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
     def nofiy_upgrade(self) -> None:

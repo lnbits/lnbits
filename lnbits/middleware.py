@@ -10,7 +10,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from lnbits.core import core_app_extra
+from lnbits.core.db import core_app_extra
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 

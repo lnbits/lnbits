@@ -1,15 +1,24 @@
-from fastapi.routing import APIRouter
+from fastapi import APIRouter
 
-from lnbits.core.models import CoreAppExtra
-from lnbits.db import Database
+from .db import core_app_extra, db
+from .views.admin_api import admin_router
+from .views.api import api_router
 
-db = Database("database")
+# this compat is needed for usermanager extension
+from .views.generic import generic_router, update_user_extension
+from .views.node_api import node_router, public_node_router, super_node_router
+from .views.public_api import public_router
 
-core_app: APIRouter = APIRouter(tags=["Core"])
+# backwards compatibility for extensions
+core_app = APIRouter(tags=["Core"])
 
-core_app_extra: CoreAppExtra = CoreAppExtra()
 
-from .views.admin_api import *
-from .views.api import *
-from .views.generic import *
-from .views.public_api import *
+def init_core_routers(app):
+    app.include_router(core_app)
+    app.include_router(generic_router)
+    app.include_router(public_router)
+    app.include_router(api_router)
+    app.include_router(node_router)
+    app.include_router(super_node_router)
+    app.include_router(public_node_router)
+    app.include_router(admin_router)

@@ -50,13 +50,10 @@ if settings.lnbits_database_url:
 
     register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
 else:
-    if os.path.isdir(settings.lnbits_data_folder):
-        DB_TYPE = SQLITE
-    else:
-        raise NotADirectoryError(
-            f"LNBITS_DATA_FOLDER named {settings.lnbits_data_folder} was not created"
-            f" - please 'mkdir {settings.lnbits_data_folder}' and try again"
-        )
+    if not os.path.isdir(settings.lnbits_data_folder):
+        os.mkdir(settings.lnbits_data_folder)
+        logger.info(f"Created {settings.lnbits_data_folder}")
+    DB_TYPE = SQLITE
 
 
 def compat_timestamp_placeholder():

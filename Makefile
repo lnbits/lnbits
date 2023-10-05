@@ -30,6 +30,9 @@ checkprettier:
 checkblack:
 	poetry run black --check .
 
+checkeditorconfig:
+	editorconfig-checker
+
 dev:
 	poetry run lnbits --reload
 
@@ -48,18 +51,17 @@ test-real-wallet:
 	poetry run pytest
 
 test-migration:
-	rm -rf ./migration-data
-	mkdir -p ./migration-data
-	unzip tests/data/mock_data.zip -d ./migration-data
+	LNBITS_ADMIN_UI=True \
+	make test
 	HOST=0.0.0.0 \
 	PORT=5002 \
-	LNBITS_DATA_FOLDER="./migration-data" \
+	LNBITS_DATA_FOLDER="./tests/data" \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-	LNBITS_DATA_FOLDER="./migration-data" \
+	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
 	poetry run python tools/conv.py
 

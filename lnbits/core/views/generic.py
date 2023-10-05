@@ -5,13 +5,12 @@ from urllib.parse import urlparse
 
 from fastapi import Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
-from starlette.responses import HTMLResponse, JSONResponse
 
-from lnbits.core import db
+from lnbits.core.db import db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -24,7 +23,6 @@ from ...utils.exchange_rates import currencies
 from ..crud import (
     create_account,
     create_wallet,
-    delete_wallet,
     get_balance_check,
     get_dbversions,
     get_inactive_extensions,
@@ -36,24 +34,24 @@ from ..crud import (
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
 
-core_html_routes: APIRouter = APIRouter(
+generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
 )
 
 
-@core_html_routes.get("/favicon.ico", response_class=FileResponse)
+@generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return FileResponse("lnbits/core/static/favicon.ico")
 
 
-@core_html_routes.get("/", response_class=HTMLResponse)
+@generic_router.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
         "core/index.html", {"request": request, "lnurl": lightning}
     )
 
 
-@core_html_routes.get("/robots.txt", response_class=HTMLResponse)
+@generic_router.get("/robots.txt", response_class=HTMLResponse)
 async def robots():
     data = """
     User-agent: *
@@ -62,7 +60,7 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/extensions", name="install.extensions", response_class=HTMLResponse
 )
 async def extensions_install(
@@ -159,79 +157,54 @@ async def extensions_install(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/wallet",
     response_class=HTMLResponse,
-    description="""
-just **wallet_name**: create a new user, then create a new wallet
-                      for user with wallet_name
-just **user_id**: return the first user wallet or create one if none found
-                  (with default wallet_name)
-**user_id** and **wallet_name**: create a new wallet for user with wallet_name
-**user_id** and **wallet_id**: return that wallet if user is the owner
-nothing: create everything
-""",
+    description="show wallet page",
 )
 async def wallet(
-    request: Request = Query(None),
-    nme: Optional[str] = Query(None),
-    usr: Optional[UUID4] = Query(None),
+    request: Request,
+    usr: UUID4 = Query(...),
     wal: Optional[UUID4] = Query(None),
 ):
-    user_id = usr.hex if usr else None
-    wallet_id = wal.hex if wal else None
-    wallet_name = nme
+    user_id = usr.hex
+    user = await get_user(user_id)
 
-    if not user_id:
-        new_user = await create_account()
-        user = await get_user(new_user.id)
-        assert user, "Newly created user has to exist."
-        logger.info(f"Create user {user.id}")
-    else:
-        user = await get_user(user_id)
-        if not user:
-            return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": "User does not exist."}
-            )
-        if (
-            len(settings.lnbits_allowed_users) > 0
-            and user_id not in settings.lnbits_allowed_users
-            and user_id not in settings.lnbits_admin_users
-            and user_id != settings.super_user
-        ):
-            return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": "User not authorized."}
-            )
-        if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
-            user.admin = True
-        if user_id == settings.super_user:
-            user.super_user = True
-
-    if not wallet_id:
-        if user.wallets and not wallet_name:
-            wallet = user.wallets[0]
-        else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
-            logger.info(
-                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for"
-                f" user {user.id}"
-            )
-
-        return RedirectResponse(
-            f"/wallet?usr={user.id}&wal={wallet.id}",
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    if not user:
+        return template_renderer().TemplateResponse(
+            "error.html", {"request": request, "err": "User does not exist."}
         )
 
-    logger.debug(
-        "Access "
-        f"{'user '+ user.id + ' ' if user else ''} "
-        f"{'wallet ' + wallet_name if wallet_name else ''}"
-    )
+    if not wal:
+        if len(user.wallets) == 0:
+            wallet = await create_wallet(user_id=user.id)
+            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
+        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
+    else:
+        wallet_id = wal.hex
+
     userwallet = user.get_wallet(wallet_id)
-    if not userwallet:
+    if not userwallet or userwallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
+
+    if (
+        len(settings.lnbits_allowed_users) > 0
+        and user_id not in settings.lnbits_allowed_users
+        and user_id not in settings.lnbits_admin_users
+        and user_id != settings.super_user
+    ):
+        return template_renderer().TemplateResponse(
+            "error.html", {"request": request, "err": "User not authorized."}
+        )
+
+    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
+        user.admin = True
+    if user_id == settings.super_user:
+        user.super_user = True
+
+    logger.debug(f"Access user {user.id} wallet {userwallet.name}")
 
     return template_renderer().TemplateResponse(
         "core/wallet.html",
@@ -245,13 +218,21 @@ async def wallet(
     )
 
 
-@core_html_routes.get("/withdraw", response_class=JSONResponse)
+@generic_router.get("/withdraw", response_class=JSONResponse)
 async def lnurl_full_withdraw(request: Request):
-    user = await get_user(request.query_params.get("usr"))
+    usr_param = request.query_params.get("usr")
+    if not usr_param:
+        return {"status": "ERROR", "reason": "usr parameter not provided."}
+
+    user = await get_user(usr_param)
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.query_params.get("wal"))
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    wallet = user.get_wallet(wal_param)
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
@@ -268,17 +249,27 @@ async def lnurl_full_withdraw(request: Request):
     }
 
 
-@core_html_routes.get("/withdraw/cb", response_class=JSONResponse)
+@generic_router.get("/withdraw/cb", response_class=JSONResponse)
 async def lnurl_full_withdraw_callback(request: Request):
-    user = await get_user(request.query_params.get("usr"))
+    usr_param = request.query_params.get("usr")
+    if not usr_param:
+        return {"status": "ERROR", "reason": "usr parameter not provided."}
+
+    user = await get_user(usr_param)
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.query_params.get("wal"))
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    wallet = user.get_wallet(wal_param)
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
     pr = request.query_params.get("pr")
+    if not pr:
+        return {"status": "ERROR", "reason": "payment_request not provided."}
 
     async def pay():
         try:
@@ -295,40 +286,18 @@ async def lnurl_full_withdraw_callback(request: Request):
     return {"status": "OK"}
 
 
-@core_html_routes.get("/deletewallet", response_class=RedirectResponse)
-async def deletewallet(wal: str = Query(...), usr: str = Query(...)):
-    user = await get_user(usr)
-    if not user:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "User not found.")
-
-    user_wallet_ids = [u.id for u in user.wallets]
-
-    if wal not in user_wallet_ids:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
-    else:
-        await delete_wallet(user_id=user.id, wallet_id=wal)
-        user_wallet_ids.remove(wal)
-        logger.debug("Deleted wallet {wal} of user {user.id}")
-
-    if user_wallet_ids:
-        return RedirectResponse(
-            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-        )
-
-    return RedirectResponse(
-        url_for("/"), status_code=status.HTTP_307_TEMPORARY_REDIRECT
-    )
-
-
-@core_html_routes.get("/withdraw/notify/{service}")
+@generic_router.get("/withdraw/notify/{service}")
 async def lnurl_balance_notify(request: Request, service: str):
-    bc = await get_balance_check(request.query_params.get("wal"), service)
+    wal_param = request.query_params.get("wal")
+    if not wal_param:
+        return {"status": "ERROR", "reason": "wal parameter not provided."}
+
+    bc = await get_balance_check(wal_param, service)
     if bc:
         await redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get(
+@generic_router.get(
     "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
 )
 async def lnurlwallet(request: Request):
@@ -338,10 +307,14 @@ async def lnurlwallet(request: Request):
         assert user, "Newly created user not found."
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
+    lightning_param = request.query_params.get("lightning")
+    if not lightning_param:
+        return {"status": "ERROR", "reason": "lightning parameter not provided."}
+
     asyncio.create_task(
         redeem_lnurl_withdraw(
             wallet.id,
-            request.query_params.get("lightning"),
+            lightning_param,
             "LNbits initial funding: voucher redeem.",
             {"tag": "lnurlwallet"},
             5,  # wait 5 seconds before sending the invoice to the service
@@ -354,12 +327,12 @@ async def lnurlwallet(request: Request):
     )
 
 
-@core_html_routes.get("/service-worker.js", response_class=FileResponse)
+@generic_router.get("/service-worker.js", response_class=FileResponse)
 async def service_worker():
     return FileResponse("lnbits/core/static/js/service-worker.js")
 
 
-@core_html_routes.get("/manifest/{usr}.webmanifest")
+@generic_router.get("/manifest/{usr}.webmanifest")
 async def manifest(request: Request, usr: str):
     host = urlparse(str(request.url)).netloc
 
@@ -400,7 +373,45 @@ async def manifest(request: Request, usr: str):
     }
 
 
-@core_html_routes.get("/admin", response_class=HTMLResponse)
+@generic_router.get("/node", response_class=HTMLResponse)
+async def node(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_node_ui:
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "node/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
+            "balance": balance,
+            "wallets": user.wallets[0].dict(),
+        },
+    )
+
+
+@generic_router.get("/node/public", response_class=HTMLResponse)
+async def node_public(request: Request):
+    if not settings.lnbits_public_node_ui:
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+    WALLET = get_wallet_class()
+    _, balance = await WALLET.status()
+
+    return template_renderer().TemplateResponse(
+        "node/public.html",
+        {
+            "request": request,
+            "settings": settings.dict(),
+            "balance": balance,
+        },
+    )
+
+
+@generic_router.get("/admin", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -420,7 +431,7 @@ async def index(request: Request, user: User = Depends(check_admin)):
     )
 
 
-@core_html_routes.get("/uuidv4/{hex_value}")
+@generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
         user_id = to_valid_user_id(hex_value).hex

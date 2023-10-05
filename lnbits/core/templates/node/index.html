@@ -1,0 +1,500 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<q-dialog v-model="nodeInfoDialog.show">
+  <lnbits-node-qrcode :info="nodeInfoDialog.data"></lnbits-node-qrcode>
+</q-dialog>
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
+    <q-card>
+      <div class="q-pa-md">
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" active-color="primary" align="justify">
+            <q-tab
+              name="dashboard"
+              :label="$t('dashboard')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="channels"
+              :label="$t('channels')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="transactions"
+              :label="$t('transactions')"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
+
+      <q-form name="settings_form" id="settings_form">
+        <q-tab-panels v-model="tab" animated>
+          {% include "node/_tab_dashboard.html" %} {% include
+          "node/_tab_channels.html" %} {% include "node/_tab_transactions.html"
+          %}
+        </q-tab-panels>
+      </q-form>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/core/static/js/node.js"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+  Vue.use(VueQrcodeReader)
+
+  {% raw %}
+  Vue.component('lnbits-stat',
+    {
+      props: ['title', 'amount', 'msat', 'btc'],
+      computed: {
+        value: function () {
+          return this.amount ?? (this.btc ? LNbits.utils.formatSat(this.btc) : LNbits.utils.formatMsat(this.msat))
+        }
+      },
+      template: `
+        <q-card>
+        <q-card-section>
+          <div class='text-overline text-primary'>
+            {{ title }}
+          </div>
+          <div>
+            <span class='text-h4 text-bold q-my-none'>{{ value }}</span>
+            <span class='text-h5' v-if='msat != undefined'>sats</span>
+            <span class='text-h5' v-if='btc != undefined'>BTC</span>
+          </div>
+        </q-card-section>
+        </q-card>
+      `
+    }
+  )
+
+
+  Vue.component('lnbits-channel-balance',
+    {
+      props: ['balance', 'color'],
+      methods: {
+        formatMsat: function (msat) {
+          return LNbits.utils.formatMsat(msat)
+        }
+      },
+      template: `
+        <div>
+                        <div class="row items-center justify-between">
+                          <span class="text-weight-thin">
+                            Local: {{ formatMsat(balance.local_msat) }}
+                            sats
+                          </span>
+                          <span class="text-weight-thin">
+                            Remote: {{ formatMsat(balance.remote_msat) }}
+                            sats
+                          </span>
+                        </div>
+
+                        <q-linear-progress
+                          rounded
+                          size="25px"
+                          :value="balance.local_msat / balance.total_msat"
+                          :color="color"
+                          :style="\`color: #\${this.color}\`"
+                        >
+                          <div class="absolute-full flex flex-center">
+                            <q-badge
+                              color="white"
+                              text-color="accent"
+                              :label="formatMsat(balance.total_msat) + ' sats'"
+                            >
+                              {{ balance.alias }}
+                            </q-badge>
+                          </div>
+                        </q-linear-progress>
+        </div>
+      `
+    }
+  )
+
+  Vue.component('lnbits-date',
+    {
+      props: ['ts'],
+      computed: {
+        date: function () {
+          return Quasar.utils.date.formatDate(
+            new Date(this.ts * 1000),
+            'YYYY-MM-DD HH:mm'
+          )
+        },
+        dateFrom: function () {
+          return moment(this.date).fromNow()
+        }
+      },
+      template: `
+        <div>
+          <q-tooltip>{{ this.date }}</q-tooltip>
+          {{ this.dateFrom }}
+        </div>
+      `
+    }
+  )
+
+
+  Vue.component('lnbits-date',
+    {
+      props: ['ts'],
+      computed: {
+        date: function () {
+          return Quasar.utils.date.formatDate(
+            new Date(this.ts * 1000),
+            'YYYY-MM-DD HH:mm'
+          )
+        },
+        dateFrom: function () {
+          return moment(this.date).fromNow()
+        }
+      },
+      template: `
+        <div>
+          <q-tooltip>{{ this.date }}</q-tooltip>
+          {{ this.dateFrom }}
+        </div>
+      `
+    }
+  )
+
+  {% endraw %}
+
+
+  new Vue({
+    el: '#vue',
+    config: {
+      globalProperties: {
+        LNbits,
+        msg: 'hello'
+      }
+    },
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        isSuperUser: false,
+        wallet: {},
+        tab: 'dashboard',
+        payments: 1000,
+        info: {},
+        channel_stats: {},
+
+        channels: {
+          data: [],
+          filter: ''
+        },
+
+
+        activeBalance: {},
+        ranks: {},
+
+        peers: {
+          data: [],
+          filter: '',
+        },
+
+        connectPeerDialog: {
+          show: false,
+          data: {}
+        },
+
+        openChannelDialog: {
+          show: false,
+          data: {}
+        },
+
+        closeChannelDialog: {
+          show: false,
+          data: {}
+        },
+
+        nodeInfoDialog: {
+          show: false,
+          data: {}
+        },
+
+        transactionDetailsDialog: {
+          show: false,
+          data: {}
+        },
+
+        states: [
+          {label: 'Active', value: 'active', color: 'green'},
+          {label: 'Pending', value: 'pending', color: 'orange'},
+          {label: 'Inactive', value: 'inactive', color: 'grey'},
+          {label: 'Closed', value: 'closed', color: 'red'}
+        ],
+
+        stateFilters: [
+          {label: 'Active', value: 'active'},
+          {label: 'Pending', value: 'pending'}
+        ],
+
+        paymentsTable: {
+          data: [],
+          columns: [
+            {
+              name: 'pending',
+              label: ''
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'memo'
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: this.$t('date'),
+              field: 'date',
+              sortable: true
+            },
+            {
+              name: 'sat',
+              align: 'right',
+              label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+              field: row => this.formatMsat(row.amount),
+              sortable: true
+            },
+            {
+              name: 'fee',
+              align: 'right',
+              label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
+              field: 'fee'
+            },
+            {
+              name: 'destination',
+              align: 'right',
+              label: 'Destination',
+              field: 'destination'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10,
+            page: 1,
+            rowsNumber: 10
+          },
+          filter: null
+        },
+        invoiceTable: {
+          data: [],
+          columns: [
+            {
+              name: 'pending',
+              label: ''
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'memo'
+            },
+            {
+              name: 'paid_at',
+              field: 'paid_at',
+              align: 'right',
+              label: 'Paid at',
+              sortable: true
+            },
+            {
+              name: 'expiry',
+              label: this.$t('expiry'),
+              field: 'expiry',
+              align: 'right',
+              sortable: true
+            },
+            {
+              name: 'amount',
+              label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+              field: row => this.formatMsat(row.amount),
+              sortable: true
+            },
+          ],
+          pagination: {
+            rowsPerPage: 10,
+            page: 1,
+            rowsNumber: 10
+          },
+          filter: null
+        }
+      }
+    },
+    created: function () {
+      this.getInfo()
+      this.get1MLStats()
+    },
+    watch: {
+      tab: function (val) {
+        if (val === 'transactions' && !this.paymentsTable.data.length) {
+          this.getPayments()
+          this.getInvoices()
+        } else if (val === 'channels' && !this.channels.data.length) {
+          this.getChannels()
+          this.getPeers()
+        }
+      }
+    },
+    computed: {
+      checkChanges() {
+        return !_.isEqual(this.settings, this.formData)
+      },
+      filteredChannels: function () {
+        return this.stateFilters ? this.channels.data.filter(channel => {
+          return this.stateFilters.find(({value}) => value == channel.state)
+        }) : this.channels.data
+      },
+      totalBalance: function () {
+        return this.filteredChannels.reduce(
+          (balance, channel) => {
+            balance.local_msat += channel.balance.local_msat
+            balance.remote_msat += channel.balance.remote_msat
+            balance.total_msat += channel.balance.total_msat
+            return balance
+          },
+          {local_msat: 0, remote_msat: 0, total_msat: 0}
+        )
+      },
+    },
+    methods: {
+      formatMsat: function (msat) {
+        return LNbits.utils.formatMsat(msat)
+      },
+      api: function (method, url, options) {
+        const params = new URLSearchParams(options?.query)
+        params.set('usr', this.g.user.id)
+        return LNbits.api.request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getChannels: function () {
+        return this.api('GET', '/channels')
+          .then(response => {
+            this.channels.data = response.data
+          })
+      },
+      getInfo: function () {
+        return this.api('GET', '/info')
+          .then(response => {
+            this.info = response.data
+            this.channel_stats = response.data.channel_stats
+          })
+      },
+      get1MLStats: function () {
+        return this.api('GET', '/rank')
+          .then(response => {
+            this.ranks = response.data
+          })
+      },
+      getPayments: function (props) {
+        if (props) {
+          this.paymentsTable.pagination = props.pagination
+        }
+        let pagination = this.paymentsTable.pagination
+        const query = {
+          limit: pagination.rowsPerPage,
+          offset: ((pagination.page - 1) * pagination.rowsPerPage) ?? 0,
+        }
+        return this.api('GET', '/payments', {query})
+          .then(response => {
+            this.paymentsTable.data = response.data.data
+            this.paymentsTable.pagination.rowsNumber = response.data.total
+          })
+      },
+      getInvoices: function (props) {
+        if (props) {
+          this.invoiceTable.pagination = props.pagination
+        }
+        let pagination = this.invoiceTable.pagination
+        const query = {
+          limit: pagination.rowsPerPage,
+          offset: ((pagination.page - 1) * pagination.rowsPerPage) ?? 0,
+        }
+        return this.api('GET', '/invoices', {query})
+          .then(response => {
+            this.invoiceTable.data = response.data.data
+            this.invoiceTable.pagination.rowsNumber = response.data.total
+          })
+      },
+      getPeers: function () {
+        return this.api('GET', '/peers')
+          .then(response => {
+            this.peers.data = response.data
+            console.log('peers', this.peers)
+          })
+      },
+      connectPeer: function () {
+        console.log('peer', this.connectPeerDialog)
+        this.api('POST', '/peers', {data: this.connectPeerDialog.data})
+          .then(() => {
+            this.connectPeerDialog.show = false
+            this.getPeers()
+          })
+      },
+      disconnectPeer: function(id) {
+        LNbits.utils
+          .confirmDialog(
+            'Do you really wanna disconnect this peer?'
+          )
+          .onOk(() => {
+            this.api('DELETE', `/peers/${id}`)
+              .then(response => {
+                this.$q.notify({
+                  message: 'Disconnected',
+                  icon: null
+                })
+                this.needsRestart = true
+                this.getPeers()
+              })
+          })
+      },
+      openChannel: function () {
+        this.api('POST', '/channels', {data: this.openChannelDialog.data})
+          .then(response => {
+            this.openChannelDialog.show = false
+            this.getChannels()
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
+      showCloseChannelDialog: function (channel) {
+        this.closeChannelDialog.show = true
+        this.closeChannelDialog.data = {force: false, short_id: channel.short_id, ...channel.point}
+      },
+      closeChannel: function () {
+        this.api('DELETE', '/channels', {query: this.closeChannelDialog.data})
+          .then(response => {
+            this.closeChannelDialog.show = false
+            this.getChannels()
+          })
+      },
+      showOpenChannelDialog: function (peer_id) {
+        this.openChannelDialog.show = true
+        this.openChannelDialog.data = {peer_id, funding_amount: 0}
+      },
+      showNodeInfoDialog: function (node) {
+        this.nodeInfoDialog.show = true
+        this.nodeInfoDialog.data = node
+      },
+      showTransactionDetailsDialog: function (details) {
+        this.transactionDetailsDialog.show = true
+        this.transactionDetailsDialog.data = details
+        console.log('details', details)
+      },
+      exportCSV: function () {
+
+      },
+      shortenNodeId
+    }
+  })
+</script>
+
+{% endblock %}

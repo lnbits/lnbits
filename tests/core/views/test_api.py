@@ -1,23 +1,21 @@
 import asyncio
 import hashlib
-from time import time
 
 import pytest
 
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
-from lnbits.core.models import Payment
+from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
-from lnbits.db import DB_TYPE, SQLITE
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
-from tests.conftest import CreateInvoice, api_payments_create_invoice
 
 from ...helpers import (
     cancel_invoice,
     get_random_invoice_data,
     is_fake,
+    is_regtest,
     pay_real_invoice,
     settle_invoice,
 )
@@ -25,11 +23,51 @@ from ...helpers import (
 WALLET = get_wallet_class()
 
 
-# check if the client is working
+# create account POST /api/v1/account
 @pytest.mark.asyncio
-async def test_core_views_generic(client):
-    response = await client.get("/")
+async def test_create_account(client):
+    response = await client.post("/api/v1/account", json={"name": "test"})
     assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert result["name"] == "test"
+    assert "balance_msat" in result
+    assert "id" in result
+    assert "user" in result
+
+
+# check POST and DELETE /api/v1/wallet with adminkey:
+# create additional wallet and delete it
+@pytest.mark.asyncio
+async def test_create_wallet_and_delete(client, adminkey_headers_to):
+    response = await client.post(
+        "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_to
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert result["name"] == "test"
+    assert "balance_msat" in result
+    assert "id" in result
+    assert "adminkey" in result
+    response = await client.delete(
+        "/api/v1/wallet",
+        headers={
+            "X-Api-Key": result["adminkey"],
+            "Content-type": "application/json",
+        },
+    )
+    assert response.status_code == 200
+
+    # get deleted wallet
+    response = await client.get(
+        "/api/v1/wallet",
+        headers={
+            "X-Api-Key": result["adminkey"],
+            "Content-type": "application/json",
+        },
+    )
+    assert response.status_code == 404
 
 
 # check GET /api/v1/wallet with inkey: wallet info, no balance
@@ -209,6 +247,24 @@ async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
     assert response.status_code >= 300  # should fail
 
 
+# check POST /api/v1/payments: payment with self payment
+@pytest.mark.asyncio
+async def test_pay_invoice_self_payment(client, adminkey_headers_from):
+    create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    response = await client.post(
+        "/api/v1/payments",
+        json=create_invoice.dict(),
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    json_data = response.json()
+    data = {"out": True, "bolt11": json_data["payment_request"]}
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+
+
 # check POST /api/v1/payments: payment with invoice key [should fail]
 @pytest.mark.asyncio
 async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
@@ -232,29 +288,13 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 
 @pytest.mark.asyncio
-async def test_get_payments(client, from_wallet, adminkey_headers_from):
-    # Because sqlite only stores timestamps with milliseconds we have to wait a second
-    # to ensure a different timestamp than previous invoices due to this limitation
-    # both payments (normal and paginated) are tested at the same time as they are
-    # almost identical anyways
-    if DB_TYPE == SQLITE:
-        await asyncio.sleep(1)
-    ts = time()
-
-    fake_data = [
-        CreateInvoice(amount=10, memo="aaaa"),
-        CreateInvoice(amount=100, memo="bbbb"),
-        CreateInvoice(amount=1000, memo="aabb"),
-    ]
-
-    for invoice in fake_data:
-        await api_payments_create_invoice(invoice, from_wallet)
+async def test_get_payments(client, adminkey_headers_from, fake_payments):
+    fake_data, filters = fake_payments
 
     async def get_payments(params: dict):
-        params["time[ge]"] = ts
         response = await client.get(
             "/api/v1/payments",
-            params=params,
+            params=filters | params,
             headers=adminkey_headers_from,
         )
         assert response.status_code == 200
@@ -280,15 +320,52 @@ async def test_get_payments(client, from_wallet, adminkey_headers_from):
     payments = await get_payments({"amount[gt]": 10000})
     assert len(payments) == 2
 
+
+@pytest.mark.asyncio
+async def test_get_payments_paginated(client, adminkey_headers_from, fake_payments):
+    fake_data, filters = fake_payments
+
     response = await client.get(
         "/api/v1/payments/paginated",
-        params={"limit": 2, "time[ge]": ts},
+        params=filters | {"limit": 2},
         headers=adminkey_headers_from,
     )
     assert response.status_code == 200
     paginated = response.json()
     assert len(paginated["data"]) == 2
     assert paginated["total"] == len(fake_data)
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    is_regtest, reason="payments wont be confirmed rightaway in regtest"
+)
+async def test_get_payments_history(client, adminkey_headers_from, fake_payments):
+    fake_data, filters = fake_payments
+
+    response = await client.get(
+        "/api/v1/payments/history",
+        params=filters,
+        headers=adminkey_headers_from,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["spending"] == sum(
+        payment.amount * 1000 for payment in fake_data if payment.out
+    )
+    assert data[0]["income"] == sum(
+        payment.amount * 1000 for payment in fake_data if not payment.out
+    )
+
+    response = await client.get(
+        "/api/v1/payments/history?group=INVALID",
+        params=filters,
+        headers=adminkey_headers_from,
+    )
+
+    assert response.status_code == 400
 
 
 # check POST /api/v1/payments/decode
@@ -342,8 +419,8 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
         "/api/v1/payments", json=data, headers=inkey_headers_to
     )
     invoice = response.json()
-    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
 
+    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
     assert invoice_bolt11.description_hash == descr_hash
     return invoice
 
@@ -355,8 +432,9 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
 @pytest.mark.asyncio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
-    descr_hash = hashlib.sha256("asdasdasd".encode()).hexdigest()
-    data["unhashed_description"] = "asdasdasd".encode().hex()
+    description = "test description"
+    descr_hash = hashlib.sha256(description.encode()).hexdigest()
+    data["unhashed_description"] = description.encode().hex()
 
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to

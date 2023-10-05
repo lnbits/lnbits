@@ -7,8 +7,12 @@ import time
 from subprocess import PIPE, Popen, TimeoutExpired
 from typing import Tuple
 
+import psycopg2
 from loguru import logger
+from sqlalchemy.engine.url import make_url
 
+from lnbits import core
+from lnbits.db import DB_TYPE, POSTGRES
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 
@@ -46,6 +50,17 @@ docker_bitcoin_cli = [
     "-rpcuser=lnbits",
     "-rpcpassword=lnbits",
     "-regtest",
+]
+
+
+docker_lightning_unconnected_cli = [
+    "docker",
+    "exec",
+    "lnbits-legend-lnd-2-1",
+    "lncli",
+    "--network",
+    "regtest",
+    "--rpcserver=lnd-2",
 ]
 
 
@@ -120,6 +135,14 @@ def mine_blocks(blocks: int = 1) -> str:
     return run_cmd(cmd)
 
 
+def get_unconnected_node_uri() -> str:
+    cmd = docker_lightning_unconnected_cli.copy()
+    cmd.append("getinfo")
+    info = run_cmd_json(cmd)
+    pubkey = info["identity_pubkey"]
+    return f"{pubkey}@lnd-2:9735"
+
+
 def create_onchain_address(address_type: str = "bech32") -> str:
     cmd = docker_bitcoin_cli.copy()
     cmd.extend(["getnewaddress", address_type])
@@ -131,3 +154,28 @@ def pay_onchain(address: str, sats: int) -> str:
     cmd = docker_bitcoin_cli.copy()
     cmd.extend(["sendtoaddress", address, str(btc)])
     return run_cmd(cmd)
+
+
+def clean_database(settings):
+    if DB_TYPE == POSTGRES:
+        db_url = make_url(settings.lnbits_database_url)
+
+        conn = psycopg2.connect(settings.lnbits_database_url)
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            try:
+                cur.execute("DROP DATABASE lnbits_test")
+            except psycopg2.errors.InvalidCatalogName:
+                pass
+            cur.execute("CREATE DATABASE lnbits_test")
+
+        db_url.database = "lnbits_test"
+        settings.lnbits_database_url = str(db_url)
+
+        core.db.__init__("database")
+
+        conn.close()
+    else:
+        # FIXME: do this once mock data is removed from test data folder
+        # os.remove(settings.lnbits_data_folder + "/database.sqlite3")
+        pass

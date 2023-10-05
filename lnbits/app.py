@@ -9,6 +9,7 @@ import sys
 import traceback
 from hashlib import sha256
 from http import HTTPStatus
+from pathlib import Path
 from typing import Callable, List
 
 from fastapi import FastAPI, HTTPException, Request
@@ -33,14 +34,11 @@ from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 from .commands import db_versions, load_disabled_extension_list, migrate_databases
-from .core import (
-    add_installed_extension,
-    core_app,
-    core_app_extra,
-    update_installed_extension_state,
-)
+from .core import init_core_routers
+from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.views.generic import core_html_routes
+from .core.views.api import add_installed_extension
+from .core.views.generic import update_installed_extension_state
 from .extension_manager import Extension, InstallableExtension, get_valid_extensions
 from .helpers import template_renderer
 from .middleware import (
@@ -74,6 +72,10 @@ def create_app() -> FastAPI:
         },
     )
 
+    # Allow registering new extensions routes without direct access to the `app` object
+    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
+    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
+
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
         "/core/static",
@@ -95,15 +97,17 @@ def create_app() -> FastAPI:
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
+    register_custom_extensions_path()
+
+    # adds security middleware
+    add_ip_block_middleware(app)
+    add_ratelimit_middleware(app)
+
     register_startup(app)
     register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
     register_shutdown(app)
-
-    # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     return app
 
@@ -228,9 +232,7 @@ def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
-    zip_files = glob.glob(
-        os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
-    )
+    zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
@@ -257,17 +259,32 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
 def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
-    app.include_router(core_app)
-    app.include_router(core_html_routes)
+    init_core_routers(app)
 
     for ext in get_valid_extensions():
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(str(e))
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` follows conventions."
-            )
+            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+
+
+def register_custom_extensions_path():
+    if settings.has_default_extension_path:
+        return
+    default_ext_path = os.path.join("lnbits", "extensions")
+    if os.path.isdir(default_ext_path) and len(os.listdir(default_ext_path)) != 0:
+        logger.warning(
+            "You are using a custom extensions path, "
+            + "but the default extensions directory is not empty. "
+            + f"Please clean-up the '{default_ext_path}' directory."
+        )
+        logger.warning(
+            f"You can move the existing '{default_ext_path}' directory to: "
+            + f" '{settings.lnbits_extensions_path}/extensions'"
+        )
+
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
@@ -306,7 +323,10 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
-            app.mount(s["path"], s["app"], s["name"])
+            static_dir = Path(
+                settings.lnbits_extensions_path, "extensions", *s["path"].split("/")
+            )
+            app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
@@ -335,10 +355,6 @@ def register_startup(app: FastAPI):
             await check_webpush_settings()
 
             log_server_info()
-
-            # adds security middleware
-            add_ratelimit_middleware(app)
-            add_ip_block_middleware(app)
 
             # initialize WALLET
             try:
@@ -402,7 +418,6 @@ def log_server_info():
     logger.info(f"Site title: {settings.lnbits_site_title}")
     logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
-    logger.info(f"Git version: {settings.lnbits_commit}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
 

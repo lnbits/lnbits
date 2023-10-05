@@ -18,6 +18,12 @@ A backend wallet can be configured using the following LNbits environment variab
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
 - `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
+### CoreLightning REST
+- `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningRestWallet**
+- `CORELIGHTNING_REST_URL`: http://127.0.0.1:8185/
+- `CORELIGHTNING_REST_MACAROON`: /file/path/admin.macaroon or Base64/Hex
+- `CORELIGHTNING_REST_CERT`: /home/lightning/clnrest/tls.cert
+
 ### Spark (Core Lightning)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **SparkWallet**
@@ -29,7 +35,7 @@ A backend wallet can be configured using the following LNbits environment variab
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndRestWallet**
 - `LND_REST_ENDPOINT`: http://10.147.17.230:8080/
 - `LND_REST_CERT`: /file/path/tls.cert
-- `LND_REST_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
+- `LND_REST_MACAROON`: /file/path/admin.macaroon or Base64/Hex
 
 or
 
@@ -41,7 +47,7 @@ or
 - `LND_GRPC_ENDPOINT`: ip_address
 - `LND_GRPC_PORT`: port
 - `LND_GRPC_CERT`: /file/path/tls.cert
-- `LND_GRPC_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
+- `LND_GRPC_MACAROON`: /file/path/admin.macaroon or Base64/Hex
 
 You can also use an AES-encrypted macaroon (more info) instead by using
 

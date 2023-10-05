@@ -38,7 +38,6 @@ window.localisation.it = {
   toggle_darkmode: 'Attiva la modalità notturna',
   view_swagger_docs: "Visualizza i documenti dell'API Swagger di LNbits",
   api_docs: 'Documenti API',
-  commit_version: 'Commit version',
   lnbits_version: 'Versione di LNbits',
   runs_on: 'Esegue su',
   credit_hint: 'Premere Invio per accreditare i fondi',

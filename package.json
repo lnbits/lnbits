@@ -22,6 +22,7 @@
     "chart.js": "2.9",
     "moment": "^2.29.4",
     "quasar": "1.13.2",
+    "showdown": "^2.1.0",
     "underscore": "^1.13.6",
     "vue": "2.6.12",
     "vue-i18n": "^8.28.2",
@@ -43,7 +44,8 @@
     "./node_modules/chart.js/dist/Chart.bundle.js",
     "./node_modules/quasar/dist/quasar.css",
     "./node_modules/chart.js/dist/Chart.css",
-    "./node_modules/vue-i18n/dist/vue-i18n.js"
+    "./node_modules/vue-i18n/dist/vue-i18n.js",
+    "./node_modules/showdown/dist/showdown.js"
   ],
   "bundle": {
     "js": [
@@ -59,6 +61,7 @@
       "/static/vendor/quasar.umd.js",
       "/static/vendor/Chart.bundle.js",
       "/static/vendor/vue-i18n.js",
+      "/static/vendor/showdown.js",
       "/static/i18n/i18n.js",
       "/static/i18n/de.js",
       "/static/i18n/en.js",

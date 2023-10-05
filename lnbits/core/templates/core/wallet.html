@@ -335,7 +335,7 @@
                           :options="{width:240}"
                         ></qrcode>
                       </a>
-                      <p v-text="$('drain_funds_desc')"></p>
+                      <p v-text="$t('drain_funds_desc')"></p>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
@@ -428,7 +428,7 @@
                       <q-btn
                         unelevated
                         color="red-10"
-                        @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
+                        @click="deleteWallet()"
                         :label="$t('delete_wallet')"
                       ></q-btn>
                     </q-card-section>
@@ -481,7 +481,7 @@
               filled
               dense
               v-model.number="receive.data.amount"
-              :label="$('amount')+' ({{LNBITS_DENOMINATION}}) *'"
+              :label="$t('amount')+' ({{LNBITS_DENOMINATION}}) *'"
               mask="#.##"
               fill-mask="0"
               reverse-fill-mask
@@ -827,6 +827,19 @@
       <q-dialog v-model="paymentsChart.show">
         <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
           <q-card-section>
+            <div class="row q-gutter-sm justify-between">
+              <div class="text-h6">Payments Chart</div>
+              <q-select
+                label="Group"
+                filled
+                dense
+                v-model="paymentsChart.group"
+                style="min-width: 120px"
+                :options="paymentsChart.groupOptions"
+              >
+              </q-select>
+            </div>
+
             <canvas ref="canvas" width="600" height="400"></canvas>
           </q-card-section>
         </q-card>

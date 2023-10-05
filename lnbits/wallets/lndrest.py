@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
 
 from .base import (
@@ -21,6 +22,8 @@ from .macaroon import AESCipher, load_macaroon
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
+
+    __node_cls__ = LndRestNode
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint

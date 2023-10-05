@@ -5,14 +5,22 @@ new Vue({
     return {
       disclaimerDialog: {
         show: false,
-        data: {}
+        data: {},
+        description: ''
       },
       walletName: ''
     }
   },
+  computed: {
+    formatDescription() {
+      return LNbits.utils.convertMarkdown(this.description)
+    }
+  },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName)
+      LNbits.api.createAccount(this.walletName).then(res => {
+        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+      })
     },
     processing: function () {
       this.$q.notify({
@@ -21,5 +29,8 @@ new Vue({
         icon: null
       })
     }
+  },
+  created() {
+    this.description = SITE_DESCRIPTION
   }
 })
