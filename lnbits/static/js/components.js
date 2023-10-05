@@ -625,11 +625,6 @@ Vue.component('lnbits-dynamic-controls', {
       </div>
     </div>
   `,
-  watch: {
-    formData: function(n, o) {
-      console.log('### watch formData: ', n)
-    }
-  },
   methods: {
     addMockValue(value) {
       console.log('### addMockValue', value)
