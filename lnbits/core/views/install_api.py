@@ -1,8 +1,7 @@
 import json
-import re
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter
@@ -62,16 +61,14 @@ class Manifest(BaseModel):
 
 @install_router.get("/admin/api/v1/apps")
 async def get_installable_packages():
-    ####### LATER FOR BEING FANCY AND PULLING FROM THE NIX REPO #########
-    # url = "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/modules.nix"
-    # error_msg = "Cannot fetch extensions manifest"
-    # manifest = await github_api_get(url, error_msg)
-    # return manifest
-    file_contents = ""
-    with open("lnbits/core/static/nix/nix.json", "r") as json_file:
-        file_contents = json.load(json_file)
-    return file_contents
-
+    try:
+        return await fetch_nix_packages_config()
+    except Exception as e:
+        logger.warning(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=("Failed to get installable packages config"),
+        )
 
 @install_router.get("/admin/api/v1/installed")
 async def get_installed():
@@ -81,11 +78,7 @@ async def get_installed():
 @install_router.get("/admin/api/v1/config/{packageId}")
 async def get_nix_config(packageId: str):
     try:
-        packages_conf = None
-        with open("lnbits/core/static/nix/nix.json", "r") as file:
-            packages_conf = file.read()
-        assert packages_conf, "Cannot find NIX packages config file."
-        conf = json.loads(packages_conf)
+        conf = await fetch_nix_packages_config()
         assert "packages" in conf, "NIX packages config has no packages"
 
         package = next((p for p in conf["packages"] if p["id"] == packageId), None)
@@ -132,24 +125,12 @@ async def get_nix_update_config(packageId: str, data: SaveConfig):
         )
 
 
-async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
+async def fetch_nix_packages_config():
+    # todo: use env var for this
+    pachages_config_url = (
+        "https://raw.githubusercontent.com/lnbits/nix-lnbits/main/nix-packages.json"
+    )
     async with httpx.AsyncClient() as client:
-        headers = (
-            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
-            if settings.lnbits_ext_github_token
-            else None
-        )
-        resp = await client.get(
-            url,
-            headers=headers,
-        )
-        if resp.status_code != 200:
-            logger.warning(f"{error_msg} ({url}): {resp.text}")
-        resp.raise_for_status()
-        imports_match = re.search(r"imports\s*=\s*\[([\s\S]*?)\];", resp.text)
-        if imports_match:
-            imports_text = imports_match.group(1)
-            imports_list = re.findall(r"\./[\w/.-]+", imports_text)
-            for x, imp in enumerate(imports_list):
-                imports_list[x] = re.sub(r"\./|\.nix", "", imp)
-        return imports_list
+        r = await client.get(pachages_config_url, timeout=15)
+        r.raise_for_status()
+    return json.loads(r.text)

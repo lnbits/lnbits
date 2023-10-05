@@ -67,7 +67,9 @@
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn @click="updateConfig()" color="primary">Update</q-btn>
+      <q-btn v-close-popup @click="updateConfig()" color="primary"
+        >Update</q-btn
+      >
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
     </div>
   </q-card>
@@ -155,6 +157,11 @@
               config: JSON.stringify(this.packageDialog.nixData, null, 2)
             }
           )
+          this.$q.notify({
+            message: 'Nix configuration updated',
+            type: 'positive',
+            timeout: 5
+          })
         } catch (error) {
           console.warn(error)
           LNbits.utils.notifyApiError(error)
