@@ -67,9 +67,9 @@ class ChannelStats(BaseModel):
             avg_size=int(
                 sum(channel.balance.total_msat for channel in channels) / len(channels)
             ),
-            biggest_size=max(channel.balance.total_msat for channel in channels),
-            smallest_size=min(channel.balance.total_msat for channel in channels),
-            total_capacity=sum(channel.balance.total_msat for channel in channels),
+            biggest_size=max(channel.balance.total_msat for channel in channels if channel.state == ChannelState.ACTIVE),
+            smallest_size=min(channel.balance.total_msat for channel in channels if channel.state == ChannelState.ACTIVE),
+            total_capacity=sum(channel.balance.total_msat for channel in channels if channel.state == ChannelState.ACTIVE),
         )
 
 
