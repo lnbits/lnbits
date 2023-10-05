@@ -66,15 +66,13 @@ class Manifest(BaseModel):
 async def get_installable_packages():
     try:
         conf = await fetch_nix_packages_config()
-        print("### packages_config", conf)
         packages = []
         if "packages" in conf:
             packages += conf["packages"]
         if "support_packages" in conf:
             packages += conf["support_packages"]
-        print("### packages", packages)
+
         os_nix_packages = get_os_nix_packges()
-        print("### os_nix_packages", os_nix_packages)
         for package in packages:
             try:
                 installed_package = next(
@@ -85,7 +83,6 @@ async def get_installable_packages():
             except Exception as e:
                 logger.debug(e)
 
-        print("### packages", packages)
         return conf
 
     except Exception as e:
