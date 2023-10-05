@@ -38,20 +38,21 @@
           <q-card-actions>
             <div class="col-9">
               <q-btn v-if="item.installed" flat color="primary"> Remove </q-btn>
-              <q-btn v-else flat color="primary"> Add </q-btn>
-            </div>
-            <div class="col-3">
               <q-btn
+                v-else
                 flat
                 @click="showPackageConfigDialog(item.id)"
                 color="primary"
               >
-                Module
+                Add
                 <q-tooltip
                   >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length
                   - 1] }} {% endraw %}</q-tooltip
                 >
               </q-btn>
+            </div>
+            <div class="col-3">
+              <q-btn flat color="primary"> Module </q-btn>
             </div>
           </q-card-actions>
         </q-card>
