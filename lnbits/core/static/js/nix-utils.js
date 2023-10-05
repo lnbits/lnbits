@@ -24,7 +24,6 @@ function initNix() {
       const servicesPrefix = nested('options.', depth)
       if (lines[i].startsWith(servicesPrefix)) {
         result.service = lines[i].substring(servicesPrefix.length).split(' ')[0]
-
         handleOptions(result.options, optionsLines, nextDepth)
         return result
       }
@@ -48,6 +47,10 @@ function initNix() {
           .substring(serviceNamePrefix.length)
           .split(' ')[0]
       }
+      if (lines[i].endsWith(' mkOption {')) {
+        handleOptions(result.options, lines.slice(i), nextDepth)
+        return result
+      }
       const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
       handleOptions(result.options, optionsLines, nextDepth)
       return result
@@ -61,7 +64,7 @@ function initNix() {
       if (lines[i].endsWith(' mkOption {')) {
         const optionLines = extractObject(lines.slice(i + 1), nextDepth)
         const option = extractOption(optionLines, nextDepth)
-        option.name = lines[i].trim().split(' ')[0]
+        option.name = lines[i].trim().split(' ')[0].split('.').slice(-1)[0]
         options.push(option)
         i += optionLines.length
       } else if (lines[i].endsWith(' = {')) {
