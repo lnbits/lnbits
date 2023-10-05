@@ -25,27 +25,27 @@
           </ul>
           <br />
         </div>
+        {% if LNBITS_NODE_UI_AVAILABLE %}
         <div class="col">
-          <div v-if="'{{LNBITS_NODE_UI_AVAILABLE}}' === 'True'">
-            <p>Node Management</p>
-            <q-toggle
-              label="Node UI"
-              v-model="formData.lnbits_node_ui"
-            ></q-toggle>
-            <q-toggle
-              v-if="formData.lnbits_node_ui"
-              label="Public node UI"
-              v-model="formData.lnbits_public_node_ui"
-            ></q-toggle>
-            <br />
-            <q-toggle
-              v-if="formData.lnbits_node_ui"
-              label="Transactions Tab (Disable on large CLN nodes)"
-              v-model="formData.lnbits_node_ui_transactions"
-            ></q-toggle>
-          </div>
+          <p>Node Management</p>
+          <q-toggle
+            label="Node UI"
+            v-model="formData.lnbits_node_ui"
+          ></q-toggle>
+          <q-toggle
+            v-if="formData.lnbits_node_ui"
+            label="Public node UI"
+            v-model="formData.lnbits_public_node_ui"
+          ></q-toggle>
+          <br />
+          <q-toggle
+            v-if="formData.lnbits_node_ui"
+            label="Transactions Tab (Disable on large CLN nodes)"
+            v-model="formData.lnbits_node_ui_transactions"
+          ></q-toggle>
           <p v-else>Node Management not supported by active funding source</p>
         </div>
+        {% endif %}
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
@@ -85,42 +85,10 @@
         </div>
       </div>
       <div v-if="isSuperUser">
-        <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
-        <div class="row">
-          <div class="col-12">
-            <p>Active Funding<small> (Requires server restart)</small></p>
-            <q-select
-              :disable="!isSuperUser"
-              filled
-              v-model="formData.lnbits_backend_wallet_class"
-              hint="Select the active funding wallet"
-              :options="settings.lnbits_allowed_funding_sources"
-            ></q-select>
-          </div>
-        </div>
-        <q-list
-          class="q-mt-md"
-          v-if="funding_sources.get(fund) && fund === formData.lnbits_backend_wallet_class"
-          v-for="(fund, idx) in settings.lnbits_allowed_funding_sources"
-          :key="idx"
-        >
-          <div
-            class="row"
-            v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
-            :key="i"
-          >
-            <div class="col-12">
-              <q-input
-                filled
-                type="text"
-                class="q-mt-sm"
-                v-model="formData[key]"
-                :label="prop.label"
-                :hint="prop.hint"
-              ></q-input>
-            </div>
-          </div>
-        </q-list>
+        <lnbits-funding-sources
+          :form-data="formData"
+          :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
+        />
       </div>
     </div>
   </q-card-section>
