@@ -644,8 +644,6 @@ Vue.component('lnbits-dynamic-controls', {
     }
   },
   created: function () {
-    console.log('### 1111')
     this.formData = this.buildData(this.options, this.value)
-    console.log('### formData:', this.formData)
   }
 })

@@ -15,9 +15,21 @@
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
           <q-tabs v-model="tab" active-color="primary" align="left">
-            <q-tab name="packages" :label="$t('packages')" @update="val => tab = val.name"></q-tab>
-            <q-tab name="support_packages" :label="$t('support_packages')" @update="val => tab = val.name"></q-tab>
-            <q-tab name="config" :label="$t('config_file')" @update="val => tab = val.name"></q-tab>
+            <q-tab
+              name="packages"
+              :label="$t('packages')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="support_packages"
+              :label="$t('support_packages')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="config"
+              :label="$t('config_file')"
+              @update="val => tab = val.name"
+            ></q-tab>
           </q-tabs>
         </div>
       </div>
@@ -25,8 +37,16 @@
   </div>
 </div>
 <q-card class="no-border no-outline no-box-shadow">
-  <q-form name="settings_form" id="settings_form" class="no-border no-outline no-box-shadow">
-    <q-tab-panels v-model="tab" animated class="bg-dark no-border no-outline no-box-shadow">
+  <q-form
+    name="settings_form"
+    id="settings_form"
+    class="no-border no-outline no-box-shadow"
+  >
+    <q-tab-panels
+      v-model="tab"
+      animated
+      class="bg-dark no-border no-outline no-box-shadow"
+    >
       {% include "admin/_tab_install_packages.html" %}{% include
       "admin/_tab_install_support_packages.html" %} {% include
       "admin/_tab_install_config.html" %}
@@ -40,8 +60,10 @@
 
     <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
       <div class="col">
-        <lnbits-dynamic-controls :options="packageDialog.nixConfig.options"
-          v-model="packageDialog.nixData"></lnbits-dynamic-controls>
+        <lnbits-dynamic-controls
+          :options="packageDialog.nixConfig.options"
+          v-model="packageDialog.nixData"
+        ></lnbits-dynamic-controls>
       </div>
     </div>
     <div class="row q-mt-lg">
@@ -111,13 +133,11 @@
       },
       async getNixConfig(packageId) {
         try {
-          const { data } = await LNbits.api.request(
+          const {data} = await LNbits.api.request(
             'GET',
             `/admin/api/v1/config/${packageId}`,
             this.g.user.wallets[0].adminkey
           )
-          console.log('### data', data)
-          console.log('### data', nixConfigToJson(data.config))
           this.packageDialog.nixConfig = nixConfigToJson(data.config)
           this.packageDialog.nixData = data.data || {}
         } catch (error) {
@@ -127,7 +147,7 @@
       },
       async updateConfig() {
         try {
-          const { data } = await LNbits.api.request(
+          const {data} = await LNbits.api.request(
             'PUT',
             `/admin/api/v1/config/${this.packageDialog.packageId}`,
             this.g.user.wallets[0].adminkey,

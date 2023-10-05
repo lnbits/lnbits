@@ -63,8 +63,6 @@ function initNix() {
         const option = extractOption(optionLines, nextDepth)
         option.name = lines[i].trim().split(' ')[0]
         options.push(option)
-        // handle option
-        //   console.log('### x', x)
         i += optionLines.length
       } else if (lines[i].endsWith(' = {')) {
         const option = {
