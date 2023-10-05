@@ -70,6 +70,7 @@ async def get_installable_packages():
             detail=("Failed to get installable packages config"),
         )
 
+
 @install_router.get("/admin/api/v1/installed")
 async def get_installed():
     return "extension_releases"
