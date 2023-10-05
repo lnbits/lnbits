@@ -101,7 +101,15 @@
         </q-btn>
       </q-toolbar>
     </q-header>
-
+    {% block drawer %}
+      <q-drawer
+        v-model="g.visibleDrawer"
+        side="left"
+        :width="($q.screen.lt.md) ? 260 : 230"
+        show-if-above
+        :elevated="$q.screen.lt.md"
+      >
+        <lnbits-wallet-list></lnbits-wallet-list>
         <lnbits-admin-ui
           v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
