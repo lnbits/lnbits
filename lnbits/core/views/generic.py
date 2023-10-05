@@ -450,6 +450,7 @@ async def install(request: Request, user: User = Depends(check_admin)):
         },
     )
 
+
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
