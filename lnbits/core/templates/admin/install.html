@@ -9,39 +9,15 @@
   </div>
 </div>
 
-<div class="row">
-  <div class="col-12">
-    <lnbits-dynamic-controls
-      :options="nixOptions.options"
-      v-model="nixData"
-    ></lnbits-dynamic-controls>
-  </div>
-  <div class="col-12">
-    <span v-text="JSON.stringify(nixData)"></span>
-  </div>
-</div>
-
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-12">
     <q-card>
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
           <q-tabs v-model="tab" active-color="primary" align="left">
-            <q-tab
-              name="packages"
-              :label="$t('packages')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="support_packages"
-              :label="$t('support_packages')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="config"
-              :label="$t('config_file')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="packages" :label="$t('packages')" @update="val => tab = val.name"></q-tab>
+            <q-tab name="support_packages" :label="$t('support_packages')" @update="val => tab = val.name"></q-tab>
+            <q-tab name="config" :label="$t('config_file')" @update="val => tab = val.name"></q-tab>
           </q-tabs>
         </div>
       </div>
@@ -49,22 +25,31 @@
   </div>
 </div>
 <q-card class="no-border no-outline no-box-shadow">
-  <q-form
-    name="settings_form"
-    id="settings_form"
-    class="no-border no-outline no-box-shadow"
-  >
-    <q-tab-panels
-      v-model="tab"
-      animated
-      class="bg-dark no-border no-outline no-box-shadow"
-    >
+  <q-form name="settings_form" id="settings_form" class="no-border no-outline no-box-shadow">
+    <q-tab-panels v-model="tab" animated class="bg-dark no-border no-outline no-box-shadow">
       {% include "admin/_tab_install_packages.html" %}{% include
       "admin/_tab_install_support_packages.html" %} {% include
       "admin/_tab_install_config.html" %}
     </q-tab-panels>
   </q-form>
 </q-card>
+
+<q-dialog v-model="packageDialog.show" position="top">
+  <q-card class="q-pa-lg" style="width: 800px; max-width: unset">
+    <h6>Nix Configurations</h6>
+
+    <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
+      <div class="col">
+        <lnbits-dynamic-controls :options="packageDialog.nixConfig.options"
+          v-model="packageDialog.nixData"></lnbits-dynamic-controls>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn outline color="primary">Update</q-btn>
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+    </div>
+  </q-card>
+</q-dialog>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="/core/static/js/nix-utils.js"></script>
@@ -79,291 +64,27 @@
         supportpackages: null,
         config: '',
         configAr: [],
-        nixOptions: {
-          service: 'bitcoind',
-          options: [
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              default: '127.0.0.1',
-              description: 'Address to listen for peer connections.',
-              name: 'address'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'number',
-              default: 8333,
-              description: 'Port to listen for peer connections.',
-              name: 'port'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'number',
-              description:
-                'Port to listen for Tor peer connections.\nIf set, inbound connections to this port are tagged as onion peers.',
-              name: 'onionPort'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'bool',
-              default: false,
-              description:
-                'Listen for peer connections at `address:port`\nand `address:onionPort` (if {option}`onionPort` is set).',
-              name: 'listen'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'bool',
-              default: false,
-              description:
-                'Listen for peer connections at `address:whitelistedPort`.\nPeers connected through this socket are automatically whitelisted.',
-              name: 'listenWhitelisted'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'number',
-              default: 8335,
-              description: 'See `listenWhitelisted`.',
-              name: 'whitelistedPort'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              default: '',
-              description:
-                'Bash expression which outputs the public service address to announce to peers.\nIf left empty, no address is announced.',
-              name: 'getPublicAddressCmd'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              description: 'The package providing bitcoin binaries.',
-              name: 'package'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'text',
-              default: '',
-              description: 'Extra lines appended to {file}`bitcoin.conf`.',
-              name: 'extraConfig'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              default: '/var/lib/bitcoind',
-              description: 'The data directory for bitcoind.',
-              name: 'dataDir'
-            },
-            {
-              name: 'rpc',
-              options: [
-                {
-                  isList: false,
-                  isOptional: false,
-                  type: 'str',
-                  default: '127.0.0.1',
-                  description: 'Address to listen for JSON-RPC connections.',
-                  name: 'address'
-                },
-                {
-                  isList: false,
-                  isOptional: false,
-                  type: 'number',
-                  default: 8332,
-                  description: 'Port to listen for JSON-RPC connections.',
-                  name: 'port'
-                },
-                {
-                  isList: false,
-                  isOptional: true,
-                  type: 'number',
-                  description: 'The number of threads to service RPC calls.',
-                  name: 'threads'
-                },
-                {
-                  isList: true,
-                  isOptional: false,
-                  type: 'str',
-                  default: ['127.0.0.1'],
-                  description:
-                    'Allow JSON-RPC connections from specified sources.',
-                  name: 'allowip'
-                },
-                {
-                  description: 'Allowed users for JSON-RPC connections.',
-                  name: 'users'
-                }
-              ]
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'bool',
-              default: false,
-              description: 'Enable regtest mode.',
-              name: 'regtest'
-            },
-            {
-              name: 'network'
-            },
-            {
-              name: 'makeNetworkName'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'str',
-              description: 'Connect through SOCKS5 proxy',
-              name: 'proxy'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              values: [false, true, 'only-outgoing'],
-              type: 'select',
-              default: false,
-              description:
-                'Enable peer connections via i2p.\nWith `only-outgoing`, incoming i2p connections are disabled.',
-              name: 'i2p'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'bool',
-              default: false,
-              description:
-                "If enabled, data dir content is readable by the bitcoind service group.\nWarning: This disables bitcoind's wallet support.",
-              name: 'dataDirReadableByGroup'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'bool',
-              description:
-                'Create new files with system default permissions, instead of umask 077\n(only effective with disabled wallet functionality)',
-              name: 'sysperms'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'bool',
-              description:
-                'Do not load the wallet and disable wallet RPC calls',
-              name: 'disablewallet'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'number',
-              description: 'Override the default database cache size in MiB.',
-              name: 'dbCache'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'number',
-              default: 0,
-              description:
-                'Automatically prune block files to stay under the specified target size in MiB.\nValue 0 disables pruning.',
-              name: 'prune'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'bool',
-              default: false,
-              description: 'Enable the transaction index.',
-              name: 'txindex'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'str',
-              description: 'ZMQ address for zmqpubrawblock notifications',
-              name: 'zmqpubrawblock'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'str',
-              description: 'ZMQ address for zmqpubrawtx notifications',
-              name: 'zmqpubrawtx'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'str',
-              description:
-                'If this block is in the chain assume that it and its ancestors are\nvalid and potentially skip their script verification.',
-              name: 'assumevalid'
-            },
-            {
-              isList: true,
-              isOptional: false,
-              type: 'str',
-              default: [],
-              description:
-                'Add nodes to connect to and attempt to keep the connections open',
-              name: 'addnodes'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'bool',
-              description: 'Discover own IP addresses',
-              name: 'discover'
-            },
-            {
-              isList: false,
-              isOptional: true,
-              type: 'str',
-              description: 'The type of addresses to use',
-              name: 'addresstype'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              default: 'bitcoin',
-              description: 'The user as which to run bitcoind.',
-              name: 'user'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              description: 'The group as which to run bitcoind.',
-              name: 'group'
-            },
-            {
-              isList: false,
-              isOptional: false,
-              type: 'str',
-              description: 'Binary to connect with the bitcoind instance.',
-              name: 'cli'
-            }
-          ]
-        },
-        nixData: {
-          port: 5000,
-          rpc: {
-            address: 'localhost'
-          }
+        packageDialog: {
+          show: false,
+          packageId: null,
+          nixConfig: null,
+          nixData: null
         }
+
       }
     },
     computed: {},
     methods: {
+      async showPackageConfigDialog(packageId) {
+        this.packageDialog = {
+          show: true,
+          packageId,
+          nixConfig: null,
+          nixData: null
+        }
+        // this.packageDialog.show = true
+        await this.getNixConfig(packageId)
+      },
       getPackages() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
@@ -392,13 +113,15 @@
       },
       async getNixConfig(packageId) {
         try {
-          const {data} = await LNbits.api.request(
+          const { data } = await LNbits.api.request(
             'GET',
             `/admin/api/v1/config/${packageId}`,
             this.g.user.wallets[0].adminkey
           )
           console.log('### data', data)
           console.log('### data', nixConfigToJson(data.config))
+          this.packageDialog.nixConfig = nixConfigToJson(data.config)
+          this.packageDialog.nixData = data.data || {}
         } catch (error) {
           console.warn(error)
           LNbits.utils.notifyApiError(error)
@@ -424,7 +147,6 @@
       }
     },
     created() {
-      // this.getNixConfig()
       this.getPackages()
     }
   })

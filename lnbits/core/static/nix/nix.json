@@ -20,7 +20,7 @@
       "package": "Core Lightning Plugins",
       "id": "clightning-plugins",
       "description": "Power up your Core Lightning node and tailor it for your business needs with community built plugins.",
-      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning-plugins.nix",
+      "repo": "https://raw.githubusercontent.com/fort-nix/nix-bitcoin/master/modules/clightning-plugins/summary.nix",
       "icon": "core/static/images/clightning.png",
       "dependencies": ""
     },
