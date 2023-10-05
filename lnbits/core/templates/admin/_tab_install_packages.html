@@ -35,14 +35,18 @@
               color="primary"
             >
               Add
+            </q-btn>
+          </div>
+            <div class="col-3">
+            <q-btn flat type="a" :href="item.repo" color="primary">
+              Module
               <q-tooltip
                 >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length -
                 1] }} {% endraw %}</q-tooltip
               >
             </q-btn>
-            <q-btn flat color="primary"> Module </q-btn>
+            </div>
           </div>
-          <div class="col-3"></div>
         </q-card-actions>
       </q-card>
 
