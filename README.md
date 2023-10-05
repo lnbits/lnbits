@@ -1,11 +1,11 @@
-# LNbits
+# LNbits BETA
 
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
-# LNbits v0.10 BETA, free and open-source Lightning wallet accounts system
+# Free and Open-Source Lightning Wallet Accounts System
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
