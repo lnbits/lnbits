@@ -222,7 +222,6 @@ Vue.component('lnbits-admin-ui', {
   }
 })
 
-
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
   mixins: [windowMixin],
