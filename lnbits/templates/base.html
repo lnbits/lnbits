@@ -1,107 +1,222 @@
 <!DOCTYPE html>
 
 <html lang="en">
+  <head>
+    {% for url in INCLUDED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    {% endfor %} {% block styles %}{% endblock %}
+    <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    {% if web_manifest %}
+    <link async="async" rel="manifest" href="{{ web_manifest }}" />
+    {% endif %} {% block head_scripts %}{% endblock %}
+  </head>
 
-<head>
-  {% for url in INCLUDED_CSS %}
-  <link rel="stylesheet" type="text/css" href="{{ url }}" />
-  {% endfor %} {% block styles %}{% endblock %}
-  <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  {% if web_manifest %}
-  <link async="async" rel="manifest" href="{{ web_manifest }}" />
-  {% endif %} {% block head_scripts %}{% endblock %}
-</head>
+  <body data-theme="bitcoin">
+    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
+      <q-header bordered class="bg-marginal-bg">
+        <q-toolbar>
+          {% block drawer_toggle %}
+          <q-btn
+            dense
+            flat
+            round
+            icon="menu"
+            @click="g.visibleDrawer = !g.visibleDrawer"
+          ></q-btn>
+          {% endblock %}
+          <q-toolbar-title>
+            <q-btn flat no-caps dense size="lg" type="a" href="/">
+              {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
+              <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
+              {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
+              %}
+              <span><strong>LN</strong>bits</span> {% endif %} {%endif%} {%
+              endblock %}
+            </q-btn>
+            {% block toolbar_subtitle %}{%if user and user.super_user%}
+            <q-badge align="middle">Super User</q-badge>
+            {% elif user and user.admin %}
+            <q-badge align="middle">Admin User</q-badge>
+            {%endif%}{% endblock %}
+          </q-toolbar-title>
+          {% block beta %} {% if VOIDWALLET %}
+          <q-badge color="red" text-color="black" class="q-mr-md">
+            {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
+          </q-badge>
+          {%endif%}
+          <q-badge
+            v-show="$q.screen.gt.sm"
+            color="yellow"
+            text-color="black"
+            class="q-mr-md"
+          >
+            <span
+              v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
+            ></span>
+          </q-badge>
+          {% endblock %}
+          <q-badge
+            v-if="g.offline"
+            color="red"
+            text-color="white"
+            class="q-mr-md"
+          >
+            <span>OFFLINE</span>
+          </q-badge>
+          <lnbits-notifications-btn
+            v-if="g.user"
+            pubkey="{{ WEBPUSH_PUBKEY }}"
+          ></lnbits-notifications-btn>
+          <q-btn-dropdown
+            dense
+            flat
+            round
+            size="sm"
+            icon="language"
+            class="q-pl-md"
+          >
+            <q-list v-for="(lang, index) in g.langs" :key="index">
+              <q-item
+                clickable
+                v-close-popup
+                :active="activeLanguage(lang.value)"
+                @click="changeLanguage(lang.value)"
+                ><q-item-section>
+                  {% raw %}
+                  <q-item-label
+                    >{{lang.display ?? lang.value.toUpperCase()}}</q-item-label
+                  >
+                  <q-tooltip>{{lang.label}}</q-tooltip>
+                  {% endraw %}
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+          <q-btn-dropdown
+            v-if="g.allowedThemes && g.allowedThemes.length > 1"
+            dense
+            flat
+            round
+            size="sm"
+            icon="dashboard_customize"
+            class="q-pl-md"
+          >
+            <div class="row no-wrap q-pa-md">
+              <q-btn
+                v-if="g.allowedThemes.includes('classic')"
+                dense
+                flat
+                @click="changeColor('classic')"
+                icon="format_color_fill"
+                color="deep-purple"
+                size="md"
+                ><q-tooltip>classic</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('bitcoin')"
+                dense
+                flat
+                @click="changeColor('bitcoin')"
+                icon="format_color_fill"
+                color="orange"
+                size="md"
+                ><q-tooltip>bitcoin</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('mint')"
+                dense
+                flat
+                @click="changeColor('mint')"
+                icon="format_color_fill"
+                color="green"
+                size="md"
+                ><q-tooltip>mint</q-tooltip> </q-btn
+              ><q-btn
+                v-if="g.allowedThemes.includes('autumn')"
+                dense
+                flat
+                @click="changeColor('autumn')"
+                icon="format_color_fill"
+                color="brown"
+                size="md"
+                ><q-tooltip>autumn</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('monochrome')"
+                dense
+                flat
+                @click="changeColor('monochrome')"
+                icon="format_color_fill"
+                color="grey"
+                size="md"
+                ><q-tooltip>monochrome</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('salvador')"
+                dense
+                flat
+                @click="changeColor('salvador')"
+                icon="format_color_fill"
+                color="blue-10"
+                size="md"
+                ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('freedom')"
+                dense
+                flat
+                @click="changeColor('freedom')"
+                icon="format_color_fill"
+                color="pink-13"
+                size="md"
+                ><q-tooltip>freedom</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('cyber')"
+                dense
+                flat
+                @click="changeColor('cyber')"
+                icon="format_color_fill"
+                color="light-green-9"
+                size="md"
+                ><q-tooltip>cyber</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('flamingo')"
+                dense
+                flat
+                @click="changeColor('flamingo')"
+                icon="format_color_fill"
+                color="pink-3"
+                size="md"
+                ><q-tooltip>flamingo</q-tooltip>
+              </q-btn>
+            </div>
+          </q-btn-dropdown>
 
-<body data-theme="bitcoin">
-  <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-    <q-header bordered class="bg-marginal-bg">
-      <q-toolbar>
-        {% block drawer_toggle %}
-        <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
-        {% endblock %}
-        <q-toolbar-title>
-          <q-btn flat no-caps dense size="lg" type="a" href="/">
-            {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
-            <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
-            {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
-            %}
-            <span><strong>LN</strong>bits</span> {% endif %} {%endif%} {%
-            endblock %}
+          <q-btn
+            dense
+            flat
+            round
+            @click="toggleDarkMode"
+            :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
+            size="sm"
+          >
+            <q-tooltip
+              >{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip
+            >
           </q-btn>
-          {% block toolbar_subtitle %}{%if user and user.super_user%}
-          <q-badge align="middle">Super User</q-badge>
-          {% elif user and user.admin %}
-          <q-badge align="middle">Admin User</q-badge>
-          {%endif%}{% endblock %}
-        </q-toolbar-title>
-        {% block beta %} {% if VOIDWALLET %}
-        <q-badge color="red" text-color="black" class="q-mr-md">
-          {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
-        </q-badge>
-        {%endif%}
-        <q-badge v-show="$q.screen.gt.sm" color="yellow" text-color="black" class="q-mr-md">
-          <span v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'></span>
-        </q-badge>
-        {% endblock %}
-        <q-badge v-if="g.offline" color="red" text-color="white" class="q-mr-md">
-          <span>OFFLINE</span>
-        </q-badge>
-        <lnbits-notifications-btn v-if="g.user" pubkey="{{ WEBPUSH_PUBKEY }}"></lnbits-notifications-btn>
-        <q-btn-dropdown dense flat round size="sm" icon="language" class="q-pl-md">
-          <q-list v-for="(lang, index) in g.langs" :key="index">
-            <q-item clickable v-close-popup :active="activeLanguage(lang.value)"
-              @click="changeLanguage(lang.value)"><q-item-section>
-                {% raw %}
-                <q-item-label>{{lang.display ?? lang.value.toUpperCase()}}</q-item-label>
-                <q-tooltip>{{lang.label}}</q-tooltip>
-                {% endraw %}
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-btn-dropdown>
-        <q-btn-dropdown v-if="g.allowedThemes && g.allowedThemes.length > 1" dense flat round size="sm"
-          icon="dashboard_customize" class="q-pl-md">
-          <div class="row no-wrap q-pa-md">
-            <q-btn v-if="g.allowedThemes.includes('classic')" dense flat @click="changeColor('classic')"
-              icon="format_color_fill" color="deep-purple" size="md"><q-tooltip>classic</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('bitcoin')" dense flat @click="changeColor('bitcoin')"
-              icon="format_color_fill" color="orange" size="md"><q-tooltip>bitcoin</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('mint')" dense flat @click="changeColor('mint')"
-              icon="format_color_fill" color="green" size="md"><q-tooltip>mint</q-tooltip> </q-btn><q-btn
-              v-if="g.allowedThemes.includes('autumn')" dense flat @click="changeColor('autumn')"
-              icon="format_color_fill" color="brown" size="md"><q-tooltip>autumn</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('monochrome')" dense flat @click="changeColor('monochrome')"
-              icon="format_color_fill" color="grey" size="md"><q-tooltip>monochrome</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('salvador')" dense flat @click="changeColor('salvador')"
-              icon="format_color_fill" color="blue-10" size="md"><q-tooltip>elSalvador</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('freedom')" dense flat @click="changeColor('freedom')"
-              icon="format_color_fill" color="pink-13" size="md"><q-tooltip>freedom</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('cyber')" dense flat @click="changeColor('cyber')"
-              icon="format_color_fill" color="light-green-9" size="md"><q-tooltip>cyber</q-tooltip>
-            </q-btn>
-            <q-btn v-if="g.allowedThemes.includes('flamingo')" dense flat @click="changeColor('flamingo')"
-              icon="format_color_fill" color="pink-3" size="md"><q-tooltip>flamingo</q-tooltip>
-            </q-btn>
-          </div>
-        </q-btn-dropdown>
+        </q-toolbar>
+      </q-header>
 
-        <q-btn dense flat round @click="toggleDarkMode" :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
-          size="sm">
-          <q-tooltip>{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip>
-        </q-btn>
-      </q-toolbar>
-    </q-header>
-    {% block drawer %}
+      {% block drawer %}
       <q-drawer
         v-model="g.visibleDrawer"
         side="left"
@@ -110,6 +225,7 @@
         :elevated="$q.screen.lt.md"
       >
         <lnbits-wallet-list></lnbits-wallet-list>
+
         <lnbits-admin-ui
           v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
@@ -168,30 +284,8 @@
         </q-toolbar>
       </q-footer>
 
-    <q-footer class="bg-transparent q-px-lg q-py-md" :class="{'text-dark': !$q.dark.isActive}">
-      <q-space class="q-py-lg lt-md"></q-space>
-      <q-toolbar class="gt-sm">
-        <q-toolbar-title class="text-caption">
-          {{ SITE_TITLE }}, {{SITE_TAGLINE}}
-          <br />
-          <small>{% raw %}{{ $t('lnbits_version') }}{% endraw %}:
-            {{LNBITS_VERSION}},
-          </small>
-          <small>{% raw %}{{ $t('commit_version') }}{% endraw %}:
-            {{COMMIT_VERSION}}</small>
-        </q-toolbar-title>
-        <q-space></q-space>
-        <q-btn flat dense :color="($q.dark.isActive) ? 'white' : 'primary'" type="a" href="/docs" target="_blank"
-          rel="noopener">
-          {% raw %}{{ $t('api_docs') }}{% endraw %}
-          <q-tooltip>{% raw %}{{ $t('view_swagger_docs') }}{% endraw %}</q-tooltip>
-        </q-btn>
-        <q-btn flat dense :color="($q.dark.isActive) ? 'white' : 'primary'" icon="code" type="a"
-          href="https://github.com/lnbits/lnbits" target="_blank" rel="noopener">
-          <q-tooltip>{% raw %}{{ $t('view_github') }}{% endraw %}</q-tooltip>
-        </q-btn>
-      </q-toolbar>
-    </q-footer>
+      {% endblock %}
+    </q-layout>
 
     {% block vue_templates %}{% endblock %}
     <!---->
@@ -204,6 +298,7 @@
       const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
       const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
+      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
       if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
@@ -225,39 +320,4 @@
     </script>
     {% block scripts %}{% endblock %}
   </body>
-</html>
-
-  {% block vue_templates %}{% endblock %}
-  <!---->
-  {% for url in INCLUDED_JS %}
-  <script src="{{ url }}"></script>
-  {% endfor %}
-  <!---->
-  <script type="text/javascript">
-    const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-    const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-    const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-    const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-    if (themes && themes.length) {
-      window.allowedThemes = themes.map(str => str.trim())
-    }
-    window.langs = [
-      { value: 'en', label: 'English', display: 'EN' },
-      { value: 'de', label: 'Deutsch', display: 'DE' },
-      { value: 'es', label: 'Español', display: 'ES' },
-      { value: 'jp', label: '日本語', display: 'JP' },
-      { value: 'cn', label: '中文', display: 'CN' },
-      { value: 'fr', label: 'Français', display: 'FR' },
-      { value: 'it', label: 'Italiano', display: 'IT' },
-      { value: 'pi', label: 'Pirate', display: 'PI' },
-      { value: 'nl', label: 'Nederlands', display: 'NL' },
-      { value: 'we', label: 'Cymraeg', display: 'CY' },
-      { value: 'pl', label: 'Polski', display: 'PL' },
-      { value: 'pt', label: 'Português', display: 'PT' },
-      { value: 'br', label: 'Português', display: 'BR' }
-    ]
-  </script>
-  {% block scripts %}{% endblock %}
-</body>
-
 </html>
