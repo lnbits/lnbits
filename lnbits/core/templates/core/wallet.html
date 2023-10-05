@@ -347,9 +347,9 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <lnbits-qrcode
+                      <qrcode
                         :value="'{{request.base_url}}' +'wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                      ></lnbits-qrcode>
+                      ></qrcode>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
