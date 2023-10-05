@@ -45,7 +45,7 @@
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn outline color="primary">Update</q-btn>
+      <q-btn @click="updateConfig()" color="primary">Update</q-btn>
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
     </div>
   </q-card>
@@ -70,7 +70,6 @@
           nixConfig: null,
           nixData: null
         }
-
       }
     },
     computed: {},
@@ -82,7 +81,6 @@
           nixConfig: null,
           nixData: null
         }
-        // this.packageDialog.show = true
         await this.getNixConfig(packageId)
       },
       getPackages() {
@@ -127,23 +125,21 @@
           LNbits.utils.notifyApiError(error)
         }
       },
-      updateConfig() {
-        self = this
-        LNbits.api
-          .request('POST', '/admin/api/v1/updateconfig', 'null', {
-            config: this.config
-          })
-          .then(response => {
-            console.log(response)
-            this.$q.notify({
-              type: 'positive',
-              message: 'Saved',
-              icon: null
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+      async updateConfig() {
+        try {
+          const { data } = await LNbits.api.request(
+            'PUT',
+            `/admin/api/v1/config/${this.packageDialog.packageId}`,
+            this.g.user.wallets[0].adminkey,
+            {
+              config: JSON.stringify(this.packageDialog.nixData, null, 2)
+            }
+          )
+          console.log('### data', data)
+        } catch (error) {
+          console.warn(error)
+          LNbits.utils.notifyApiError(error)
+        }
       }
     },
     created() {

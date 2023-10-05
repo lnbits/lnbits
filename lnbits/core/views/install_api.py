@@ -97,13 +97,14 @@ async def get_nix_config(packageId: str):
             r.raise_for_status()
 
         package_data_file = Path(
-            settings.lnbits_data_folder, "nix", f"{packageId}.json"
+            settings.lnbits_data_folder, "nix", "config", f"{packageId}.json"
         )
 
         package_data = None
         if package_data_file.exists():
             with open(package_data_file, "r") as file:
-                package_data = file.read()
+                text = file.read()
+                package_data = json.loads(text)
 
         return {"config": r.text, "data": package_data}
 
@@ -115,12 +116,20 @@ async def get_nix_config(packageId: str):
         )
 
 
-@install_router.post("/admin/api/v1/updateconfig")
-async def get_nix_update_config(data: SaveConfig):
-    logger.debug(data.config)
-    with open("lnbits/core/static/nix/config.nix", "w") as file:
-        file.write(data.config)
-    return data.config
+@install_router.put("/admin/api/v1/config/{packageId}")
+async def get_nix_update_config(packageId: str, data: SaveConfig):
+    try:
+        nix_config_dir = Path(settings.lnbits_data_folder, "nix", "config")
+        nix_config_dir.mkdir(parents=True, exist_ok=True)
+        package_data_file = Path(nix_config_dir, f"{packageId}.json")
+        with open(package_data_file, "w") as file:
+            file.write(data.config)
+    except Exception as e:
+        logger.warning(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to get package '{packageId}' config"),
+        )
 
 
 async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
