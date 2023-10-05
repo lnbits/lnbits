@@ -85,7 +85,7 @@
       return {
         tab: 'packages',
         packages: null,
-        supportpackages: null,
+        supportPackages: null,
         config: '',
         configAr: [],
         packageDialog: {
@@ -121,13 +121,13 @@
           }
           // console.log(self.configAr)
 
-          var supportpackages = JSON.stringify(response.data.support_packages)
-          this.supportpackages = JSON.parse(supportpackages)
-          for (var i = 0; i < this.supportpackages.length; i++) {
-            const flake = this.supportpackages[i].repo.trim().split('/')
+          var supportPackages = JSON.stringify(response.data.support_packages)
+          this.supportPackages = JSON.parse(supportPackages)
+          for (var i = 0; i < this.supportPackages.length; i++) {
+            const flake = this.supportPackages[i].repo.trim().split('/')
             const flakeStr = './' + flake[flake.length - 1]
             if (self.configAr.includes(flakeStr)) {
-              this.supportpackages[i].installed = true
+              this.supportPackages[i].installed = true
             }
           }
           // console.log(self.configAr)
