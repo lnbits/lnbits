@@ -1,4 +1,6 @@
 import json
+import os
+import subprocess
 from http import HTTPStatus
 from pathlib import Path
 from typing import List, Optional
@@ -6,6 +8,7 @@ from typing import List, Optional
 import httpx
 from fastapi import APIRouter
 from loguru import logger
+from packaging import version
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 
@@ -62,7 +65,29 @@ class Manifest(BaseModel):
 @install_router.get("/admin/api/v1/apps")
 async def get_installable_packages():
     try:
-        return await fetch_nix_packages_config()
+        conf = await fetch_nix_packages_config()
+        print("### packages_config", conf)
+        packages = []
+        if "packages" in conf:
+            packages += conf["packages"]
+        if "support_packages" in conf:
+            packages += conf["support_packages"]
+        print("### packages", packages)
+        os_nix_packages = get_os_nix_packges()
+        print("### os_nix_packages", os_nix_packages)
+        for package in packages:
+            try:
+                installed_package = next(
+                    (p for p in os_nix_packages if p[0] == package["id"]), None
+                )
+                package["version"] = installed_package[1]
+                package["installed"] = True
+            except Exception as e:
+                logger.debug(e)
+
+        print("### packages", packages)
+        return conf
+
     except Exception as e:
         logger.warning(e)
         raise HTTPException(
@@ -125,6 +150,16 @@ async def get_nix_config_file():
 @install_router.put("/admin/api/v1/config/{packageId}")
 async def get_nix_update_config(packageId: str, data: SaveConfig):
     try:
+        path = (
+            subprocess.check_output(
+                ["echo", "$PATH"],
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()
+            .decode("ascii")
+        )
+        print("### path", path)
+
         nix_config_dir = Path(settings.lnbits_data_folder, "nix", "config")
         nix_config_dir.mkdir(parents=True, exist_ok=True)
         package_data_file = Path(nix_config_dir, f"{packageId}.json")
@@ -147,3 +182,22 @@ async def fetch_nix_packages_config():
         r = await client.get(pachages_config_url, timeout=15)
         r.raise_for_status()
     return json.loads(r.text)
+
+
+def get_os_nix_packges():
+    path = os.environ["PATH"]
+    nix_packages = []
+    for path in path.split(os.pathsep):
+        p = [p for p in path.split(os.path.sep) if p != ""]
+        if len(p) >= 3 and p[0] == "nix" and p[1] == "store":
+            name_parts = []
+            version_parts = []
+            for x in p[2].split("-")[1:]:
+                try:
+                    version.parse(x)
+                    version_parts.append(x)
+                except Exception as _:
+                    name_parts.append(x)
+
+            nix_packages.append(("-".join(name_parts), "-".join(version_parts)))
+    return nix_packages

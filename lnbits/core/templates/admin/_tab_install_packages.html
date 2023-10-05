@@ -26,8 +26,8 @@
         <q-separator></q-separator>
 
         <q-card-actions>
-          <div class="col-9">
-            <q-btn v-if="item.installed" flat color="primary"> Remove </q-btn>
+          <div class="col-10">
+            <q-btn v-if="item.installed" flat color="grey"> Remove </q-btn>
             <q-btn
               v-else
               flat
@@ -36,8 +36,7 @@
             >
               Add
             </q-btn>
-          </div>
-          <div class="col-3">
+
             <q-btn
               flat
               type="a"
@@ -46,11 +45,18 @@
               color="primary"
             >
               Module
-              <q-tooltip
-                >{% raw %} {{ item.repo.split("/")[item.repo.split("/").length -
-                1] }} {% endraw %}</q-tooltip
-              >
+              <q-tooltip><span v-text="item.id"></span></q-tooltip>
             </q-btn>
+          </div>
+          <div class="col-2">
+            <div v-if="item.installed" class="float-right">
+              <q-badge>
+                {% raw %}{{ item.version }}{% endraw %}<q-tooltip
+                  >{%raw%}{{ $t('extension_installed_version')
+                  }}{%endraw%}</q-tooltip
+                >
+              </q-badge>
+            </div>
           </div>
         </q-card-actions>
       </q-card>
