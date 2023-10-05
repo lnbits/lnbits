@@ -70,7 +70,7 @@ class ChannelStats(BaseModel):
 
         return cls(
             counts=counts,
-            avg_size=int(sum(active_channel_sizes) / len(channels)),
+            avg_size=int(sum(active_channel_sizes) / len(active_channel_sizes)),
             biggest_size=max(active_channel_sizes),
             smallest_size=min(active_channel_sizes),
             total_capacity=sum(active_channel_sizes),
