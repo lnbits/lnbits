@@ -27,7 +27,7 @@ superuser_router = APIRouter(
 
 
 @superuser_router.delete(
-    "/settings",
+    "/settings/",
     status_code=HTTPStatus.OK,
 )
 async def api_delete_settings() -> None:
@@ -36,7 +36,7 @@ async def api_delete_settings() -> None:
 
 
 @superuser_router.get(
-    "/restart",
+    "/restart/",
     status_code=HTTPStatus.OK,
 )
 async def api_restart_server() -> dict[str, str]:
@@ -45,7 +45,7 @@ async def api_restart_server() -> dict[str, str]:
 
 
 @superuser_router.put(
-    "/topup",
+    "/topup/",
     name="Topup",
     status_code=HTTPStatus.OK,
 )
@@ -68,7 +68,7 @@ async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
 
 
 @superuser_router.get(
-    "/backup",
+    "/backup/",
     status_code=HTTPStatus.OK,
     response_class=FileResponse,
 )

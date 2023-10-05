@@ -22,7 +22,7 @@ admin_router = APIRouter(
 
 
 @admin_router.get(
-    "/audit",
+    "/audit/",
     name="Audit",
     description="show the current balance of the node and the LNbits database",
 )
@@ -42,7 +42,7 @@ async def api_auditor():
 
 
 @admin_router.get(
-    "/settings",
+    "/settings/",
     response_model=Optional[AdminSettings],
 )
 async def api_get_settings(
@@ -53,7 +53,7 @@ async def api_get_settings(
 
 
 @admin_router.put(
-    "/settings",
+    "/settings/",
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
