@@ -222,7 +222,6 @@ Vue.component('lnbits-admin-ui', {
   }
 })
 
-
 Vue.component('lnbits-payment-details', {
   props: ['payment'],
   mixins: [windowMixin],
@@ -363,24 +362,6 @@ Vue.component('lnbits-lnurlpay-success-action', {
       }
     )
   }
-})
-
-Vue.component('lnbits-qrcode', {
-  mixins: [windowMixin],
-  props: ['value'],
-  components: {[VueQrcode.name]: VueQrcode},
-  data() {
-    return {
-      logo: LNBITS_QR_LOGO
-    }
-  },
-  template: `
-  <div class="qrcode__wrapper">
-    <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
-    <img class="qrcode__image" :src="logo" alt="..." />
-  </div>
-  `
 })
 
 Vue.component('lnbits-notifications-btn', {
@@ -596,7 +577,7 @@ Vue.component('lnbits-notifications-btn', {
   }
 })
 
-Vue.component('lnbits-dynamic-fields', {
+Vue.component('lnbits-dynamic-controls', {
   mixins: [windowMixin],
   props: ['options', 'value'],
   data() {
@@ -612,9 +593,8 @@ Vue.component('lnbits-dynamic-fields', {
           <p v-if=o.options?.length class="q-ml-xl">
             <span v-text="o.name"></span> <small v-if="o.description"> (<span v-text="o.description"></span>)</small>
           </p>
-          <lnbits-dynamic-fields v-if="o.options?.length" :options="o.options" v-model="formData[o.name]"
-            @input="handleValueChanged" class="q-ml-xl">
-          </lnbits-dynamic-fields>
+          <lnbits-dynamic-controls v-if="o.options?.length" :options="o.options" v-model="formData[o.name]" class="q-ml-xl">
+          </lnbits-dynamic-controls>
           <div v-else>
             <q-input v-if="o.type === 'number'" v-model="formData[o.name]" @input="handleValueChanged" type="number"
               :label="o.name" :hint="o.description" filled dense>
@@ -636,20 +616,19 @@ Vue.component('lnbits-dynamic-fields', {
             <q-select v-else-if="o.type === 'select'" v-model="formData[o.name]" @input="handleValueChanged" :label="o.name"
               :hint="o.description" :options="o.values"></q-select>
 
-            <q-select v-else-if="o.isList" filled multiple dense v-model.trim="formData[o.name]" use-input use-chips
-              @input="handleValueChanged" multiple hide-dropdown-icon input-debounce="0" new-value-mode="add-unique"
-              :label="o.name" :hint="o.description">
-            </q-select>
-            <q-input v-else v-model="formData[o.name]" @input="handleValueChanged" :label="o.name" :hint="o.description"
-              filled dense>
+            <q-input v-else emit-value v-model="formData[o.name]" @input="handleValueChanged" :label="o.name"
+              :hint="o.description" filled dense>
+              <q-btn v-if="o.isList" @click="addMockValue" dense flat icon="add"></q-btn>
             </q-input>
-
           </div>
         </div>
       </div>
     </div>
   `,
   methods: {
+    addMockValue(value) {
+      console.log('### addMockValue', value)
+    },
     buildData(options, data = {}) {
       return options.reduce((d, option) => {
         if (option.options?.length) {

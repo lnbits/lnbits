@@ -1,5 +1,6 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
+
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-9 col-xs-12">
     <p class="text-h4 gt-sm">
@@ -53,7 +54,27 @@
   </q-form>
 </q-card>
 
+<q-dialog v-model="packageDialog.show" position="top">
+  <q-card class="q-pa-lg" style="width: 800px; max-width: unset">
+    <h6>Nix Configurations</h6>
+
+    <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
+      <div class="col">
+        <lnbits-dynamic-controls
+          :options="packageDialog.nixConfig.options"
+          v-model="packageDialog.nixData"
+        ></lnbits-dynamic-controls>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn @click="updateConfig()" color="primary">Update</q-btn>
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/core/static/js/nix-utils.js"></script>
 <script>
   new Vue({
     el: '#vue',
@@ -64,15 +85,29 @@
         packages: null,
         supportpackages: null,
         config: '',
-        configAr: []
+        configAr: [],
+        packageDialog: {
+          show: false,
+          packageId: null,
+          nixConfig: null,
+          nixData: null
+        }
       }
     },
     computed: {},
     methods: {
+      async showPackageConfigDialog(packageId) {
+        this.packageDialog = {
+          show: true,
+          packageId,
+          nixConfig: null,
+          nixData: null
+        }
+        await this.getNixConfig(packageId)
+      },
       getPackages() {
         self = this
         LNbits.api.request('GET', '/admin/api/v1/apps').then(response => {
-
           var packages = JSON.stringify(response.data.packages)
           this.packages = JSON.parse(packages)
           for (var i = 0; i < this.packages.length; i++) {
@@ -82,7 +117,7 @@
               this.packages[i].installed = true
             }
           }
-          console.log(self.configAr)
+          // console.log(self.configAr)
 
           var supportpackages = JSON.stringify(response.data.support_packages)
           this.supportpackages = JSON.parse(supportpackages)
@@ -93,40 +128,40 @@
               this.supportpackages[i].installed = true
             }
           }
-          console.log(self.configAr)
-
+          // console.log(self.configAr)
         })
       },
-      getNixConfig() {
-        self = this
-        LNbits.api.request('GET', '/admin/api/v1/config').then(response => {
-          self.config = response.data
-          self.configAr = self.config.split(/\r\n|\r|\n/).map(function (item) {
-            return item.trim()
-          })
-        })
+      async getNixConfig(packageId) {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/admin/api/v1/config/${packageId}`,
+            this.g.user.wallets[0].adminkey
+          )
+          this.packageDialog.nixConfig = nixConfigToJson(data.config)
+          this.packageDialog.nixData = data.data || {}
+        } catch (error) {
+          console.warn(error)
+          LNbits.utils.notifyApiError(error)
+        }
       },
-      updateConfig() {
-        self = this
-        LNbits.api
-          .request('POST', '/admin/api/v1/updateconfig', 'null', {
-            config: this.config
-          })
-          .then(response => {
-            console.log(response)
-            this.$q.notify({
-              type: 'positive',
-              message: 'Saved',
-              icon: null
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+      async updateConfig() {
+        try {
+          const {data} = await LNbits.api.request(
+            'PUT',
+            `/admin/api/v1/config/${this.packageDialog.packageId}`,
+            this.g.user.wallets[0].adminkey,
+            {
+              config: JSON.stringify(this.packageDialog.nixData, null, 2)
+            }
+          )
+        } catch (error) {
+          console.warn(error)
+          LNbits.utils.notifyApiError(error)
+        }
       }
     },
     created() {
-      this.getNixConfig()
       this.getPackages()
     }
   })
