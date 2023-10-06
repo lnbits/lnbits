@@ -38,7 +38,9 @@ websocket-client = "1.6.3"
 secp256k1 = "0.14.0"
 pycryptodomex = "3.19.0"
 packaging = "23.1"
-bolt11 = "^2.0.5"
+bolt11 = "2.0.5"
+# keep for backwards compatibility with lnurlp and cashu
+environs = "9.5.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
