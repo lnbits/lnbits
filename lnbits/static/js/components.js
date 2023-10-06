@@ -575,7 +575,7 @@ Vue.component('lnbits-funding-sources', {
   computed: {
     funding_sources() {
       let tmp = []
-      for (let [key, _, obj] of this.raw_funding_sources) {
+      for (const [key, _, obj] of this.raw_funding_sources) {
         let tmp_obj = {}
         if (obj !== null) {
           for (let [k, v] of Object.entries(obj)) {
