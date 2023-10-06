@@ -104,7 +104,7 @@ class NodePayment(BaseModel):
     fee: Optional[int] = None
     memo: Optional[str] = None
     time: int
-    bolt11: Optional[str]
+    bolt11: Optional[str] = None
     preimage: Optional[str]
     payment_hash: str
     expiry: Optional[float] = None
