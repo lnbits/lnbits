@@ -573,23 +573,23 @@ Vue.component('lnbits-funding-sources', {
   mixins: [windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
   computed: {
-    funding_sources() {
+    fundingSources() {
       let tmp = []
-      for (const [key, _, obj] of this.raw_funding_sources) {
+      for (const [key, _, obj] of this.rawFundingSources) {
         const tmpObj = {}
         if (obj !== null) {
           for (let [k, v] of Object.entries(obj)) {
-            tmp_obj[k] = {label: v, value: null}
+            tmpObj[k] = {label: v, value: null}
           }
         }
-        tmp.push([key, tmp_obj])
+        tmp.push([key, tmpObj])
       }
       return new Map(tmp)
     }
   },
   data() {
     return {
-      raw_funding_sources: [
+      rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
           'FakeWallet',
@@ -713,9 +713,9 @@ Vue.component('lnbits-funding-sources', {
           v-for="(fund, idx) in allowedFundingSources"
           :key="idx"
         >
-          <div v-if="funding_sources.get(fund) && fund === formData.lnbits_backend_wallet_class">
+          <div v-if="fundingSources.get(fund) && fund === formData.lnbits_backend_wallet_class">
             <div class="row"
-              v-for="([key, prop], i) in Object.entries(funding_sources.get(fund))"
+              v-for="([key, prop], i) in Object.entries(fundingSources.get(fund))"
               :key="i"
             >
               <div class="col-12">
