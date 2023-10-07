@@ -1,13 +1,14 @@
 Vue.component('extension-settings', {
   name: 'extension-settings',
-  props: ['settings-data', 'settings-endpoint', 'adminkey'],
+  props: ['settings-data', 'settings-endpoint'],
   data: function () {
     return {
-      internalSettings: {},
+      interalSettings: this.settingsData,
+      usr: undefined,
+      admin: false,
       show: false
     }
   },
-
   computed: {
     settings: {
       get() {
@@ -16,10 +17,10 @@ Vue.component('extension-settings', {
       set(value) {
         value.isLoaded = true
         this.internalSettings = JSON.parse(JSON.stringify(value))
-        // this.$emit(
-        //   'update:settings-data',
-        //   JSON.parse(JSON.stringify(this.internalSettings))
-        // )
+        this.$emit(
+          'update:settings-data',
+          JSON.parse(JSON.stringify(this.internalSettings))
+        )
       }
     }
   },
@@ -28,12 +29,12 @@ Vue.component('extension-settings', {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          this.settingsEndpoint,
-          this.adminkey,
-          this.settings
+          this.settingsEndpoint + '?usr=' + window.user.id,
+          null,
+          this.interalSettings
         )
         this.show = false
-        this.settings = data
+        this.interalSettings = data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
@@ -42,44 +43,38 @@ Vue.component('extension-settings', {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          this.settingsEndpoint,
-          this.adminkey
+          this.settingsEndpoint + '?usr=' + this.usr
         )
-        this.settings = data
+        this.interalSettings = data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
     },
     resetSettings: async function () {
       try {
-        const {data} = await LNbits.api.request(
+        await LNbits.api.request(
           'DELETE',
-          this.settingsEndpoint,
-          this.adminkey
+          this.settingsEndpoint + '?usr=' + this.usr
         )
-        this.settings = data
+        this.getSettings()
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
     }
   },
   created: async function () {
-    await this.getSettings()
+    if (window.user.admin) {
+      this.admin = true
+      this.usr = window.user.id
+      await this.getSettings()
+    }
   },
   template: `
-      <div class="extension-settings">
-        <q-card>
-          <div class="row items-center no-wrap q-mb-md q-pt-sm q-pb-sm">
-            <div class="col-lg-2 col-sm-3 q-ml-lg">
-              <q-btn unelevated @click="show = true" color="primary" icon="settings">
-              </q-btn>
-            </div>
-          </div>
-        </q-card>
+    <q-btn v-if="admin" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
         <q-dialog v-model="show" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
             <q-form @submit="updateSettings" class="q-gutter-md">
-              <q-slot name="formDialog"></q-slot>
+              <slot v-bind:settings="settings"></slot>
               <div class="row q-mt-lg">
                 <q-btn unelevated color="primary" type="submit">Update</q-btn>
                 <q-btn unelevated color="danger" @click="resetSettings" >Reset</q-btn>
@@ -88,6 +83,6 @@ Vue.component('extension-settings', {
             </q-form>
           </q-card>
         </q-dialog>
-      </div>
+    </q-btn>
   `
 })
