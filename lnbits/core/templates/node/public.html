@@ -56,11 +56,6 @@ context %} {% block page %}
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)
 
-  {% raw %}
-
-  {% endraw %}
-
-
   new Vue({
     el: '#vue',
     config: {
@@ -109,7 +104,7 @@ context %} {% block page %}
           {label: 'Pending', value: 'pending', color: 'orange'},
           {label: 'Inactive', value: 'inactive', color: 'grey'},
           {label: 'Closed', value: 'closed', color: 'red'}
-        ],
+        ]
       }
     },
     created: function () {
@@ -124,18 +119,16 @@ context %} {% block page %}
         return LNbits.api.request(method, '/node/public/api/v1' + url, {}, data)
       },
       getInfo: function () {
-        this.api('GET', '/info', {})
-          .then(response => {
-            this.info = response.data
-            this.channel_stats = response.data.channel_stats
-          })
+        this.api('GET', '/info', {}).then(response => {
+          this.info = response.data
+          this.channel_stats = response.data.channel_stats
+        })
       },
       get1MLStats: function () {
-        this.api('GET', '/rank', {})
-          .then(response => {
-            this.ranks = response.data
-          })
-      },
+        this.api('GET', '/rank', {}).then(response => {
+          this.ranks = response.data
+        })
+      }
     }
   })
 </script>
