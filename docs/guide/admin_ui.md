@@ -8,7 +8,7 @@ nav_order: 4
 Admin UI
 ========
 The LNbits Admin UI lets you change LNbits settings via the LNbits frontend.
-It is disabled by default and the first time you set the environment variable LNBITS_ADMIN_UI=true
+It is disabled by default and the first time you set the environment variable `LNBITS_ADMIN_UI=true`
 the settings are initialized and saved to the database and will be used from there as long the UI is enabled.
 From there on the settings from the database are used.
 
@@ -32,14 +32,17 @@ There is also the possibility of posting the super user via webhook to another s
 
 Admin Users
 ===========
-environment variable: LNBITS_ADMIN_USERS, comma-separated list of user ids
-Admin Users can change settings in the admin ui as well, with the exception of funding source settings, because they require e server restart and could potentially make the server inaccessable. Also they have access to all the extension defined in LNBITS_ADMIN_EXTENSIONS.
+environment variable: `LNBITS_ADMIN_USERS`, comma-separated list of user ids
+Admin Users can change settings in the admin ui as well, with the exception of funding source settings, because they require e server restart and could potentially make the server inaccessable. Also they have access to all the extension defined in `LNBITS_ADMIN_EXTENSIONS`.
 
 
 Allowed Users
 =============
-environment variable: LNBITS_ALLOWED_USERS, comma-separated list of user ids
+environment variable: `LNBITS_ALLOWED_USERS`, comma-separated list of user ids
 By defining this users, LNbits will no longer be usable by the public, only defined users and admins can then access the LNbits frontend.
+
+Setting this environment variable also disables account creation.
+Account creation can be also disabled by setting `LNBITS_ALLOW_NEW_ACCOUNTS=false`
 
 
 How to activate
