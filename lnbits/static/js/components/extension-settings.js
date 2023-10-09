@@ -1,5 +1,5 @@
-Vue.component('extension-settings', {
-  name: 'extension-settings',
+Vue.component('lnbits-extension-settings', {
+  name: 'lnbits-extension-settings',
   props: ['options', 'name'],
   data: function () {
     return {
@@ -19,7 +19,7 @@ Vue.component('extension-settings', {
           'PUT',
           this.endpoint(),
           null,
-          this.interalSettings
+          this.settings
         )
         this.show = false
         this.settings = data
