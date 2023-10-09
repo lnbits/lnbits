@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
+from pydantic import BaseModel
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
@@ -135,3 +136,25 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
     return {
         "parameters": params,
     }
+
+
+def insert_query(table_name: str, model: BaseModel) -> str:
+    """
+    Generate an insert query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    """
+    placeholders = ", ".join(["?"] * len(model.dict().keys()))
+    fields = ", ".join(model.dict().keys())
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({placeholders})"
+
+
+def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?") -> str:
+    """
+    Generate an update query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    :param where: Where string, default to `WHERE id = ?`
+    """
+    query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
+    return f"UPDATE {table_name} SET ({query}) {where}"
