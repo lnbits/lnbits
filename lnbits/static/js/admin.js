@@ -209,15 +209,6 @@ new Vue({
           LNbits.utils.notifyApiError(error)
         })
     },
-    updateFundingData() {
-      this.settings.lnbits_allowed_funding_sources.map(f => {
-        let opts = this.funding_sources.get(f)
-        if (!opts) return
-        Object.keys(opts).forEach(e => {
-          opts[e].value = this.settings[e]
-        })
-      })
-    },
     formatDate(date) {
       return moment(date * 1000).fromNow()
     },
@@ -261,7 +252,6 @@ new Vue({
           this.isSuperUser = response.data.is_super_user || false
           this.settings = response.data
           this.formData = {...this.settings}
-          this.updateFundingData()
           this.getNotifications()
         })
         .catch(function (error) {
@@ -287,7 +277,6 @@ new Vue({
             this.settings.lnbits_killswitch !== this.formData.lnbits_killswitch
           this.settings = this.formData
           this.formData = _.clone(this.settings)
-          this.updateFundingData()
           this.$q.notify({
             type: 'positive',
             message: `Success! Settings changed! ${
