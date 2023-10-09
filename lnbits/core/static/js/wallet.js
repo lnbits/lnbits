@@ -804,7 +804,11 @@ new Vue({
       // and would cause duplication in the list
       LNbits.api.getPayments(this.g.wallet, {}).then(response => {
         const payments = response.data.data.map(LNbits.map.payment)
-        LNbits.utils.exportCSV(this.paymentsCSV.columns, payments)
+        LNbits.utils.exportCSV(
+          this.paymentsCSV.columns,
+          payments,
+          this.g.wallet.name + '-payments'
+        )
       })
     },
     pasteToTextArea: function () {
