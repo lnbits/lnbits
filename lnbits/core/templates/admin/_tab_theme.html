@@ -6,12 +6,22 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Site Title</p>
-          <q-input filled type="text" v-model="formData.lnbits_site_title" label="Site title"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_site_title"
+            label="Site title"
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
           <p>Site Tagline</p>
-          <q-input filled type="text" v-model="formData.lnbits_site_tagline" label="Site tagline"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_site_tagline"
+            label="Site tagline"
+          ></q-input>
           <br />
         </div>
       </div>
@@ -28,50 +38,88 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
           <p>Default Wallet Name</p>
-          <q-input filled type="text" v-model="formData.lnbits_default_wallet_name" label="LNbits wallet"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_default_wallet_name"
+            label="LNbits wallet"
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-4">
           <p>Denomination</p>
-          <q-input filled type="text" v-model="formData.lnbits_denomination" label="sats"
-            hint="The name for the FakeWallet token"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_denomination"
+            label="sats"
+            hint="The name for the FakeWallet token"
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-4">
           <p>QR code logo</p>
-          <q-input filled type="text" v-model="formData.lnbits_qr_logo" label="https://example.com/image.svg"
-            hint="URL to logo image in QR code"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_qr_logo"
+            label="https://example.com/image.svg"
+            hint="URL to logo image in QR code"
+          ></q-input>
           <br />
         </div>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Themes</p>
-          <q-select filled v-model="formData.lnbits_theme_options" multiple hint="Choose themes available for users"
-            :options="lnbits_theme_options" label="Themes"></q-select>
+          <q-select
+            filled
+            v-model="formData.lnbits_theme_options"
+            multiple
+            hint="Choose themes available for users"
+            :options="lnbits_theme_options"
+            label="Themes"
+          ></q-select>
           <br />
         </div>
         <div class="col-12 col-md-6">
           <p>Custom Logo</p>
-          <q-input filled type="text" v-model="formData.lnbits_custom_logo" label="https://example.com/image.png"
-            hint="URL to logo image"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_custom_logo"
+            label="https://example.com/image.png"
+            hint="URL to logo image"
+          ></q-input>
           <br />
         </div>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Ad Space Title</p>
-          <q-input filled type="text" v-model="formData.lnbits_ad_space_title" label="Supported by"></q-input>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_ad_space_title"
+            label="Supported by"
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
           <p>Advertisement Slots</p>
-          <q-input class="q-mb-md" filled v-model="formData.lnbits_ad_space" type="text"
+          <q-input
+            class="q-mb-md"
+            filled
+            v-model="formData.lnbits_ad_space"
+            type="text"
             label="url;img_light_url;img_dark_url, url..."
-            hint="Ad url and image filepaths in CSV format, extensions can choose to honor">
+            hint="Ad url and image filepaths in CSV format, extensions can choose to honor"
+          >
           </q-input>
-          <q-toggle v-model="formData.lnbits_ad_space_enabled"
-            :label="formData.lnbits_ad_space_enabled ? 'Ads enabled' : 'Ads disabled'" />
+          <q-toggle
+            v-model="formData.lnbits_ad_space_enabled"
+            :label="formData.lnbits_ad_space_enabled ? 'Ads enabled' : 'Ads disabled'"
+          />
           <br />
         </div>
       </div>
