@@ -1,12 +1,11 @@
-Vue.component('lnbits-extension-settings', {
-  name: 'lnbits-extension-settings',
-  props: ['options', 'name'],
+Vue.component('lnbits-extension-settings-form', {
+  name: 'lnbits-extension-settings-form',
+  props: ['options', 'name', 'cancel'],
   data: function () {
     return {
       settings: undefined,
       usr: undefined,
-      admin: false,
-      show: false
+      admin: false
     }
   },
   methods: {
@@ -21,7 +20,6 @@ Vue.component('lnbits-extension-settings', {
           null,
           this.settings
         )
-        this.show = false
         this.settings = data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -38,7 +36,7 @@ Vue.component('lnbits-extension-settings', {
     resetSettings: async function () {
       try {
         await LNbits.api.request('DELETE', this.endpoint())
-        this.getSettings()
+        await this.getSettings()
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
@@ -48,23 +46,68 @@ Vue.component('lnbits-extension-settings', {
     if (window.user.admin) {
       this.admin = true
       this.usr = window.user.id
-      await this.getSettings()
+      this.getSettings()
     }
   },
   template: `
-    <q-btn v-if="admin && settings" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
+    <q-form v-if="admin && settings" @submit="updateSettings" class="q-gutter-md">
+      <lnbits-dynamic-fields :options="options" v-model="settings"></lnbits-dynamic-fields>
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup unelevated color="primary" type="submit">Update</q-btn>
+        <q-btn v-close-popup unelevated color="danger" @click="resetSettings" >Reset</q-btn>
+        <q-btn v-if="cancel" v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-form>
+  `
+})
+
+Vue.component('lnbits-extension-settings-btn-dialog', {
+  name: 'lnbits-extension-settings-btn-dialog',
+  props: ['options', 'name'],
+  data: function () {
+    return {
+      admin: false,
+      show: false
+    }
+  },
+  created: async function () {
+    if (window.user.admin) {
+      this.admin = true
+    }
+  },
+  template: `
+    <q-btn v-if="admin && options" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
         <q-dialog v-model="show" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <q-form @submit="updateSettings" class="q-gutter-md">
-              <lnbits-dynamic-fields :options="options" v-model="settings"></lnbits-dynamic-fields>
-              <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit">Update</q-btn>
-                <q-btn unelevated color="danger" @click="resetSettings" >Reset</q-btn>
-                <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-              </div>
-            </q-form>
+            <lnbits-extension-settings-form :options="options" :name="name" :cancel="true" />
           </q-card>
         </q-dialog>
     </q-btn>
+  `
+})
+
+Vue.component('lnbits-extension-settings-tab-accordion', {
+  name: 'lnbits-extension-settings-tab-accordion',
+  props: ['options', 'name'],
+  data: function () {
+    return {
+      admin: false
+    }
+  },
+  created: async function () {
+    if (window.user.admin) {
+      this.admin = true
+    }
+  },
+  template: `
+    <q-expansion-item
+      v-if="admin && options"
+      icon="settings"
+      label="Extension Settings"
+    >
+      <q-card-section>
+        <lnbits-extension-settings-form :options="options" :name="name" />
+      </q-card-section>
+    </q-expansion-item>
   `
 })
