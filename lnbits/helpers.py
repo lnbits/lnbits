@@ -157,4 +157,4 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     :param where: Where string, default to `WHERE id = ?`
     """
     query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
-    return f"UPDATE {table_name} SET ({query}) {where}"
+    return f"UPDATE {table_name} SET {query} {where}"
