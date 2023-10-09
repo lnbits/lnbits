@@ -62,14 +62,18 @@ class ChannelStats(BaseModel):
         for channel in channels:
             counts[channel.state] = counts.get(channel.state, 0) + 1
 
+        active_channel_sizes = [
+            channel.balance.total_msat
+            for channel in channels
+            if channel.state == ChannelState.ACTIVE
+        ]
+
         return cls(
             counts=counts,
-            avg_size=int(
-                sum(channel.balance.total_msat for channel in channels) / len(channels)
-            ),
-            biggest_size=max(channel.balance.total_msat for channel in channels),
-            smallest_size=min(channel.balance.total_msat for channel in channels),
-            total_capacity=sum(channel.balance.total_msat for channel in channels),
+            avg_size=int(sum(active_channel_sizes) / len(active_channel_sizes)),
+            biggest_size=max(active_channel_sizes),
+            smallest_size=min(active_channel_sizes),
+            total_capacity=sum(active_channel_sizes),
         )
 
 
