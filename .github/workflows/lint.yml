@@ -23,5 +23,5 @@ jobs:
   prettier:
     uses: ./.github/workflows/make.yml
     with:
-      make: prettier
+      make: checkprettier
       npm: true
