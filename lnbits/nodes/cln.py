@@ -271,7 +271,7 @@ class CoreLightningNode(Node):
             result = await self.ln_rpc("listpays")
             return [
                 NodePayment(
-                    bolt11=pay["bolt11"],
+                    bolt11=pay.get("bolt11"),
                     amount=pay["amount_msat"],
                     fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
                     memo=pay.get("description"),
