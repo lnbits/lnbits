@@ -200,14 +200,6 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
-# todo: must be extracted
-class BoltzExtensionSettings(LNbitsSettings):
-    boltz_network: str = Field(default="main")
-    boltz_url: str = Field(default="https://boltz.exchange/api")
-    boltz_mempool_space_url: str = Field(default="https://mempool.space")
-    boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
-
-
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600)
 
@@ -251,7 +243,6 @@ class EditableSettings(
     OpsSettings,
     SecuritySettings,
     FundingSourcesSettings,
-    BoltzExtensionSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
