@@ -356,6 +356,24 @@ Vue.component('lnbits-lnurlpay-success-action', {
   }
 })
 
+Vue.component('lnbits-qrcode', {
+  mixins: [windowMixin],
+  props: ['value'],
+  components: {[VueQrcode.name]: VueQrcode},
+  data() {
+    return {
+      logo: LNBITS_QR_LOGO
+    }
+  },
+  template: `
+  <div class="qrcode__wrapper">
+    <qrcode :value="value"
+    :options="{errorCorrectionLevel: 'Q'}" class="rounded-borders"></qrcode>    
+    <img class="qrcode__image" :src="logo" alt="..." />    
+  </div>
+  `
+})
+
 Vue.component('lnbits-notifications-btn', {
   mixins: [windowMixin],
   props: ['pubkey'],

@@ -298,6 +298,7 @@
       const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
       const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
+      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
       if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }

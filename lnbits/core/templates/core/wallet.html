@@ -240,11 +240,9 @@
                         >
                           <a :href="'lightning:' + props.row.bolt11">
                             <q-responsive :ratio="1" class="q-mx-xl">
-                              <qrcode
+                              <lnbits-qrcode
                                 :value="'lightning:' + props.row.bolt11.toUpperCase()"
-                                :options="{width: 340}"
-                                class="rounded-borders"
-                              ></qrcode>
+                              ></lnbits-qrcode>
                             </q-responsive>
                           </a>
                         </div>
@@ -330,10 +328,9 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <a href="lightning:{{wallet.lnurlwithdraw_full}}">
-                        <qrcode
-                          value="lightning:{{wallet.lnurlwithdraw_full}}"
-                          :options="{width:240}"
-                        ></qrcode>
+                        <lnbits-qrcode
+                          :value="lightning:{{wallet.lnurlwithdraw_full}}"
+                        ></lnbits-qrcode>
                       </a>
                       <p v-text="$t('drain_funds_desc')"></p>
                     </q-card-section>
@@ -352,7 +349,6 @@
                       <p v-text="$t('export_to_phone_desc')"></p>
                       <qrcode
                         :value="'{{request.base_url}}' +'wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                        :options="{width:240}"
                       ></qrcode>
                     </q-card-section>
                   </q-card>
@@ -552,11 +548,9 @@
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
               <q-responsive :ratio="1" class="q-mx-xl">
-                <qrcode
+                <lnbits-qrcode
                   :value="'lightning:' + receive.paymentReq.toUpperCase()"
-                  :options="{width: 340}"
-                  class="rounded-borders"
-                ></qrcode>
+                ></lnbits-qrcode>
               </q-responsive>
             </a>
           </div>

@@ -36,7 +36,7 @@
       </div>
       <br />
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
           <p>Default Wallet Name</p>
           <q-input
             filled
@@ -46,7 +46,7 @@
           ></q-input>
           <br />
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
           <p>Denomination</p>
           <q-input
             filled
@@ -54,6 +54,17 @@
             v-model="formData.lnbits_denomination"
             label="sats"
             hint="The name for the FakeWallet token"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12 col-md-4">
+          <p>QR code logo</p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_qr_logo"
+            label="https://example.com/image.svg"
+            hint="URL to logo image in QR code"
           ></q-input>
           <br />
         </div>
