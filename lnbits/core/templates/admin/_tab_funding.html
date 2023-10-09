@@ -25,8 +25,8 @@
           </ul>
           <br />
         </div>
-        {% if LNBITS_NODE_UI_AVAILABLE %}
         <div class="col">
+          {% if LNBITS_NODE_UI_AVAILABLE %}
           <p>Node Management</p>
           <q-toggle
             label="Node UI"
@@ -43,9 +43,10 @@
             label="Transactions Tab (Disable on large CLN nodes)"
             v-model="formData.lnbits_node_ui_transactions"
           ></q-toggle>
-          <p v-else>Node Management not supported by active funding source</p>
+          {% else %}
+          <p>Node Management not supported by active funding source</p>
+          {% endif %}
         </div>
-        {% endif %}
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
