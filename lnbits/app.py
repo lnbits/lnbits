@@ -527,15 +527,17 @@ def configure_logger() -> None:
     formatter = Formatter()
     logger.add(sys.stdout, level=log_level, format=formatter.format)
 
-    if settings.log_file:
+    if settings.enable_log_to_file:
         logger.add(
-            Path(settings.lnbits_data_folder, "lnbits.log"),
+            Path(settings.lnbits_data_folder, "logs", "lnbits.log"),
+            rotation=settings.log_rotation,
             retention=settings.log_retention,
             level="INFO",
             format=formatter.format,
         )
         logger.add(
-            Path(settings.lnbits_data_folder, "debug.log"),
+            Path(settings.lnbits_data_folder, "logs", "debug.log"),
+            rotation=settings.log_rotation,
             retention=settings.log_retention,
             level="DEBUG",
             format=formatter.format,
