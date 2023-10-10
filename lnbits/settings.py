@@ -4,7 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
-from os import path
+from os import path, urandom
 from sqlite3 import Row
 from time import time
 from typing import Any, List, Optional
@@ -302,9 +302,7 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
-    login_secret: str = Field(
-        default="xxxxx33497535c9d8f344cd5e0d85df82d7ccd6a4dbyyyyy"
-    )
+    login_secret: str = Field(default=urandom(24).hex())
 
     @property
     def has_default_extension_path(self) -> bool:
