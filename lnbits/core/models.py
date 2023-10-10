@@ -102,9 +102,7 @@ class User(BaseModel):
 
     def login(self, password: str) -> bool:
         pwd_bytes: bytes = password.encode("utf-8")
-        if not self.password:
-            raise Exception("User does not have a password.")
-        if not checkpw(pwd_bytes, self.password.encode("utf-8")):
+        if not self.password or not checkpw(pwd_bytes, self.password.encode("utf-8")):
             raise Exception("Incorrect login.")
         return True
 
