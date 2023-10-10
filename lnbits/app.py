@@ -526,6 +526,21 @@ def configure_logger() -> None:
     log_level: str = "DEBUG" if settings.debug else "INFO"
     formatter = Formatter()
     logger.add(sys.stdout, level=log_level, format=formatter.format)
+
+    if settings.log_file:
+        logger.add(
+            Path(settings.lnbits_data_folder, "lnbits.log"),
+            retention=settings.log_retention,
+            level="INFO",
+            format=formatter.format,
+        )
+        logger.add(
+            Path(settings.lnbits_data_folder, "debug.log"),
+            retention=settings.log_retention,
+            level="DEBUG",
+            format=formatter.format,
+        )
+
     logging.getLogger("uvicorn").handlers = [InterceptHandler()]
     logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
     logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]

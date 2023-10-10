@@ -291,6 +291,8 @@ class EnvSettings(LNbitsSettings):
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+    log_file: bool = Field(default=True)
+    log_retention: str = Field(default="30 days")
 
     @property
     def has_default_extension_path(self) -> bool:
