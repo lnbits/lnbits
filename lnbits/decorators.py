@@ -16,23 +16,23 @@ from lnbits.settings import settings
 # from pydantic.types import UUID4
 
 
-def is_user(request: Request):
+def require_user(request: Request):
     user = request.state.user
     if user is None:
         raise HTTPException(401)
     return user
 
 
-def is_admin(request: Request):
-    user = is_user(request)
+def require_admin(request: Request):
+    user = require_user(request)
     if not user.is_admin and not user.super_user:
         raise HTTPException(401)
 
     return user
 
 
-def is_super_user(request: Request):
-    user = is_user(request)
+def require_super_user(request: Request):
+    user = require_user(request)
     if not user.super_user:
         raise HTTPException(401)
     return user
