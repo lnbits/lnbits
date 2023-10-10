@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, Response, status
 from fastapi.responses import JSONResponse
 
 from ..crud import create_user, get_account_by_email, get_user
-from ..models import User, createUser
+from ..models import CreateUser, User
 from ..services import load_user, login_manager
 
 user_router = APIRouter()
@@ -58,7 +58,7 @@ async def logout(response: Response) -> JSONResponse:
 
 
 @user_router.post("/api/v1/register")
-async def register_endpoint(data: createUser, response: Response) -> JSONResponse:
+async def register_endpoint(data: CreateUser, response: Response) -> JSONResponse:
     if data.password != data.password_repeat:
         return JSONResponse(
             {
