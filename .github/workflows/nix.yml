@@ -1,0 +1,28 @@
+name: LNbits CI / nix
+
+on:
+  push:
+    branches:
+        - main
+        - dev
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+  pull_request:
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+
+jobs:
+  nix:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v23
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+    - run: nix build
