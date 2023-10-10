@@ -37,10 +37,9 @@
               <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
               {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
               %}
-              <span><strong>LN</strong>bits</span> {% endif %} {%endif%} {%
-              endblock %}
-            </q-btn>
-            {% block toolbar_subtitle %}{%if user and user.super_user%}
+              <span><strong>LN</strong>bits</span> {% endif %} {%endif%} </q-btn
+            >{% endblock %} {% block toolbar_subtitle %}{%if user and
+            user.super_user%}
             <q-badge align="middle">Super User</q-badge>
             {% elif user and user.admin %}
             <q-badge align="middle">Admin User</q-badge>
