@@ -149,6 +149,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
+        expiry=get_bolt11_expiry(invoice),
         memo=memo,
         extra=extra,
         webhook=webhook,
