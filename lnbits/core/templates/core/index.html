@@ -67,62 +67,67 @@
       </q-card-section>
     </q-card>
 
-        <div class="row">
+    <div class="row">
       <div class="col">
-    <q-card>
-      <q-card-section>
-        <b>Login with usr</b><br /><br />
-        <q-form @submit="login_usr" class="q-gutter-md">
-          <q-input
-            filled
-            dense
-            v-model="usr"
-            label="usr"
-            type="password"
-          ></q-input>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="usr == ''"
-            type="submit"
-            label="Login"
-          ></q-btn>
-        </q-form>
-      </q-card-section>
-    </q-card>
+        <q-card>
+          <q-card-section>
+            <b>Login with usr</b><br /><br />
+            <q-form @submit="login_usr" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model="usr"
+                label="usr"
+                type="password"
+              ></q-input>
+              <q-btn
+                unelevated
+                color="primary"
+                :disable="usr == ''"
+                type="submit"
+                label="Login"
+              ></q-btn>
+            </q-form>
+          </q-card-section>
+        </q-card>
       </div>
       <div class="col q-pl-md">
-      <card>
-     <q-card-section>
-        <b>Login</b><br /><br />
-        <q-form @submit="login" class="q-gutter-md">
-          <q-input filled dense v-model="username" label="Username"></q-input>
-          <q-input
-            filled
-            dense
-            v-model="password"
-            label="Password"
-            type="password"
-          ></q-input>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="password == '' || username == ''"
-            type="submit"
-            label="Login"
-          ></q-btn>
-           <q-btn
-            unelevated
-            color="primary"
-            @click="signup = true"
-            label="Signup"
-          ></q-btn>
-        </q-form>
-      </q-card-section>
-    </q-card>
+        <q-card>
+          <q-card-section>
+            <b>Login</b><br /><br />
+            <q-form @submit="login" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model="username"
+                label="Username"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                v-model="password"
+                label="Password"
+                type="password"
+              ></q-input>
+              <q-btn
+                unelevated
+                color="primary"
+                :disable="password == '' || username == ''"
+                type="submit"
+                label="Login"
+              ></q-btn>
+              <q-btn
+                unelevated
+                color="primary"
+                @click="signup = true"
+                label="Signup"
+              ></q-btn>
+            </q-form>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
- 
+
     <q-card v-show="signup">
       <q-card-section>
         <b>Create account</b><br /><br />
