@@ -229,11 +229,7 @@ new Vue({
     },
     getAudit() {
       LNbits.api
-        .request(
-          'GET',
-          '/admin/api/v1/audit/',
-          this.g.user.wallets[0].adminkey
-        )
+        .request('GET', '/admin/api/v1/audit/', this.g.user.wallets[0].adminkey)
         .then(response => {
           this.auditData = response.data
         })

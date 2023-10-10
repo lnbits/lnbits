@@ -438,10 +438,10 @@ window.windowMixin = {
   },
   created: function () {
     // crop usr from url and login that user in the background
-    if (window.location.href.search('usr=') !== -1) {
-      // get usr from params
-      let usr = window.location.href.split('usr=')[1].split('&')[0]
-      this.login(usr)
+    const urlParams = new URLSearchParams(window.location.search)
+    const usrParam = urlParams.get('usr')
+    if (usrParam) {
+      this.login(usrParams)
       // replace all query params in current url
       window.history.replaceState({}, document.title, window.location.pathname)
     }
