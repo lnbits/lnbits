@@ -135,9 +135,12 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 async def api_update_wallet_name(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    new_wallet = await create_wallet(user_id=wallet.wallet.user, wallet_name=new_name)
-    logger.debug(f"Created wallet {new_wallet.id} of user {wallet.wallet.user}")
-    return new_wallet
+    await update_wallet(wallet.wallet.id, new_name)
+    return {
+        "id": wallet.wallet.id,
+        "name": wallet.wallet.name,
+        "balance": wallet.wallet.balance_msat,
+    }
 
 
 @api_router.patch("/api/v1/wallet", response_model=Wallet)
