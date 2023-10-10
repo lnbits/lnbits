@@ -253,7 +253,7 @@ async def check_user_exists(req: Request, usr: Optional[str] = None) -> User:
     if not usr:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="Not logged in or provided ?usr argument.",
+            detail="Not logged in. or missing `?usr=` query parameter.",
         )
 
     g().user = await get_user(usr)
