@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from bolt11 import Bolt11
+from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from lnurl import LnurlErrorResponse
@@ -15,7 +17,6 @@ from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
-from lnbits import bolt11
 from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
@@ -139,7 +140,7 @@ async def create_invoice(
     if not ok or not payment_request or not checking_id:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
-    invoice = bolt11.decode(payment_request)
+    invoice = bolt11_decode(payment_request)
 
     amount_msat = 1000 * amount_sat
     await create_payment(
@@ -176,7 +177,7 @@ async def pay_invoice(
     If the payment is still in flight, we hope that some other process
     will regularly check for the payment.
     """
-    invoice = bolt11.decode(payment_request)
+    invoice = bolt11_decode(payment_request)
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise ValueError("Amountless invoices not supported.")
@@ -197,8 +198,6 @@ async def pay_invoice(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
-        invoice_expiry = get_bolt11_expiry(payment_request)
-
         # put all parameters that don't change here
         class PaymentKwargs(TypedDict):
             wallet_id: str
@@ -214,7 +213,7 @@ async def pay_invoice(
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
             amount=-invoice.amount_msat,
-            expiry=invoice_expiry,
+            expiry=get_bolt11_expiry(invoice),
             memo=description or invoice.description or "",
             extra=extra,
         )
@@ -657,8 +656,7 @@ async def get_balance_delta() -> Tuple[int, int, int]:
     return node_balance - total_balance, node_balance, total_balance
 
 
-def get_bolt11_expiry(payment_request: str) -> datetime.datetime:
-    invoice = bolt11.decode(payment_request)
+def get_bolt11_expiry(invoice: Bolt11) -> datetime.datetime:
     if invoice.expiry:
         return datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
     else:
