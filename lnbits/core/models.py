@@ -80,7 +80,7 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
-class createUser(BaseModel):
+class CreateUser(BaseModel):
     email: str = Query(
         default=...,
         min_length=3,
