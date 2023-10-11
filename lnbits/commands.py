@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import click
 from loguru import logger
@@ -14,7 +14,6 @@ from .core.crud import get_dbversions, get_inactive_extensions, get_installed_ex
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
-    ExtensionRelease,
     InstallableExtension,
     get_valid_extensions,
 )
@@ -172,13 +171,14 @@ def extensions_install(extension: str):
         installed_ext = await get_installed_extension(extension)
         if installed_ext:
             click.echo(
-                f"Current version for extension '{extension}': "
-                + f" {installed_ext.installed_version}."
+                message=f"Extension '{extension}' already installed. Version: "
+                + f" {installed_ext.installed_version}.",
+                err=True,
             )
+            click.echo(message="Please use the 'upgrade' command.", color=True)
+            return
 
-        all_releases: List[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(extension)
+        all_releases = await InstallableExtension.get_extension_releases(extension)
         if len(all_releases) == 0:
             click.echo(f"No repository found for extension '{extension}'.")
             return
