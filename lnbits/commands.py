@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import click
 from loguru import logger
@@ -11,7 +11,12 @@ from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
-from .core.crud import add_installed_extension, get_dbversions, get_inactive_extensions, get_installed_extension
+from .core.crud import (
+    add_installed_extension,
+    get_dbversions,
+    get_inactive_extensions,
+    get_installed_extension,
+)
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
@@ -164,11 +169,14 @@ def extensions_update(extension: str):
 
 @extensions.command("install")
 @click.argument("extension")
-def extensions_install(extension: str):
+@click.option("--repo-index")
+def extensions_install(extension: str, repo_index: Optional[str] = None):
     """Install a extension"""
-    click.echo(f"Installing {extension}...")
+    click.echo(f"Installing {extension}... {repo_index}")
+    # _run_async(check_admin_settings)
 
     async def wrap() -> None:
+        await check_admin_settings()
         installed_ext = await get_installed_extension(extension)
         if installed_ext:
             click.echo(
@@ -197,16 +205,51 @@ def extensions_install(extension: str):
                 latest_repo_releases[release.source_repo] = release
 
         print("### key-value", len(latest_repo_releases))
-        if len(latest_repo_releases) > 1:
+        if len(latest_repo_releases) == 1:
             release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
             print("### release", release)
             ext_info = InstallableExtension(
-                id=extension, name=extension, installed_release=release, icon=release.icon
+                id=extension,
+                name=extension,
+                installed_release=release,
+                icon=release.icon,
             )
-            print("### ext_info", ext_info)
+
             await add_installed_extension(ext_info)
-        for r in latest_repo_releases:
-            print("### r", r, latest_repo_releases[r].version)
+            return
+
+        repos = list(latest_repo_releases.keys())
+        repos.sort()
+        if not repo_index:
+            click.echo(
+                f"Extension '{extension}' is present in more than one repository."
+            )
+            click.echo("Please select your repo using the '--repo-index' flag")
+            click.echo("Repositories: ")
+
+            for index, repo in enumerate(repos):
+                release = latest_repo_releases[repo]
+                click.echo(f"  [{index}] {repo} --> {release.version}")
+            return
+
+        if (
+            not repo_index.isnumeric()
+            or int(repo_index) < 0
+            or int(repo_index) >= len(repos)
+        ):
+            click.echo(
+                f"--repo-index option must be an int between '0' and '{len(repos) - 1}'"
+            )
+            return
+        release = latest_repo_releases[repos[int(repo_index)]]
+        ext_info = InstallableExtension(
+            id=extension, name=extension, installed_release=release, icon=release.icon
+        )
+        await add_installed_extension(ext_info)
+        click.echo(
+            f"Extension '{extension}' added."
+            + " It will be automatically installed when LNbits starts."
+        )
 
     _run_async(wrap)
 
@@ -230,6 +273,3 @@ if __name__ == "__main__":
 def _run_async(fn) -> Any:
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(fn())
-
-
-_run_async(check_admin_settings)
