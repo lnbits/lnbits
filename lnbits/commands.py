@@ -198,8 +198,5 @@ def _run_async(fn) -> Any:
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(fn())
 
-def _load_settings():
-    settings.lnbits_admin_ui = True
-    return _run_async(check_admin_settings)
 
-_load_settings()
+_run_async(check_admin_settings)
