@@ -4,13 +4,14 @@ from typing import Any
 
 import click
 from loguru import logger
+from packaging import version
 
 from lnbits.core.services import check_admin_settings
 from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
-from .core.crud import get_dbversions, get_inactive_extensions, get_installed_extension
+from .core.crud import add_installed_extension, get_dbversions, get_inactive_extensions, get_installed_extension
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
@@ -182,6 +183,30 @@ def extensions_install(extension: str):
         if len(all_releases) == 0:
             click.echo(f"No repository found for extension '{extension}'.")
             return
+
+        latest_repo_releases = {}
+        for release in all_releases:
+            if not release.is_version_compatible:
+                continue
+            if release.source_repo not in latest_repo_releases:
+                latest_repo_releases[release.source_repo] = release
+                continue
+            if version.parse(release.version) > version.parse(
+                latest_repo_releases[release.source_repo].version
+            ):
+                latest_repo_releases[release.source_repo] = release
+
+        print("### key-value", len(latest_repo_releases))
+        if len(latest_repo_releases) > 1:
+            release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
+            print("### release", release)
+            ext_info = InstallableExtension(
+                id=extension, name=extension, installed_release=release, icon=release.icon
+            )
+            print("### ext_info", ext_info)
+            await add_installed_extension(ext_info)
+        for r in latest_repo_releases:
+            print("### r", r, latest_repo_releases[r].version)
 
     _run_async(wrap)
 
