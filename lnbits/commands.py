@@ -10,7 +10,7 @@ from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
-from .core.crud import get_dbversions, get_inactive_extensions
+from .core.crud import get_dbversions, get_inactive_extensions, get_installed_extension
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
@@ -168,12 +168,20 @@ def extensions_install(extension: str):
     """Install a extension"""
     click.echo(f"Installing {extension}...")
 
-    async def wrap() -> str:
+    async def wrap() -> None:
+        installed_ext = await get_installed_extension(extension)
+        if installed_ext:
+            click.echo(
+                f"Current version for extension '{extension}': "
+                + f" {installed_ext.installed_version}."
+            )
+
         all_releases: List[
             ExtensionRelease
         ] = await InstallableExtension.get_extension_releases(extension)
         if len(all_releases) == 0:
             click.echo(f"No repository found for extension '{extension}'.")
+            return
 
     _run_async(wrap)
 
