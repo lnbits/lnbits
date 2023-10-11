@@ -3,6 +3,7 @@
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    {% if lnurl or LNBITS_NEW_ACCOUNTS_ALLOWED %}
     <q-card>
       <q-card-section>
         {% if lnurl %}
@@ -14,7 +15,7 @@
           href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
           v-text="$t('press_to_claim')"
         ></q-btn>
-        {% else %}
+        {% elif LNBITS_NEW_ACCOUNTS_ALLOWED %}
         <q-form @submit="createWallet" class="q-gutter-md">
           <q-input
             filled
@@ -33,6 +34,7 @@
         {% endif %}
       </q-card-section>
     </q-card>
+    {% endif %}
 
     <q-card>
       <q-card-section>
