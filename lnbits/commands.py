@@ -1,9 +1,11 @@
 import asyncio
 from pathlib import Path
+from typing import Any, List
 
 import click
 from loguru import logger
 
+from lnbits.core.services import check_admin_settings
 from lnbits.settings import settings
 
 from .core import db as core_db
@@ -11,7 +13,11 @@ from .core import migrations as core_migrations
 from .core.crud import get_dbversions, get_inactive_extensions
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
-from .extension_manager import get_valid_extensions
+from .extension_manager import (
+    ExtensionRelease,
+    InstallableExtension,
+    get_valid_extensions,
+)
 
 
 @click.group()
@@ -162,6 +168,15 @@ def extensions_install(extension: str):
     """Install a extension"""
     click.echo(f"Installing {extension}...")
 
+    async def wrap() -> str:
+        all_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(extension)
+        if len(all_releases) == 0:
+            click.echo(f"No repository found for extension '{extension}'.")
+
+    _run_async(wrap)
+
 
 @extensions.command("uninstall")
 @click.argument("extension")
@@ -177,3 +192,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def _run_async(fn) -> Any:
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(fn())
+
+def _load_settings():
+    settings.lnbits_admin_ui = True
+    return _run_async(check_admin_settings)
+
+_load_settings()
