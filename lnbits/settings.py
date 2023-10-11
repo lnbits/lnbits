@@ -90,7 +90,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: List[str] = Field(default=[])
     lnbits_default_accounting_currency: Optional[str] = Field(default=None)
-    lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.svg")
+    lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
 
 
 class OpsSettings(LNbitsSettings):
