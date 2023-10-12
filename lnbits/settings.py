@@ -293,7 +293,7 @@ class EnvSettings(LNbitsSettings):
     version: str = Field(default="0.0.0")
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
-    log_retention: str = Field(default="30 days")
+    log_retention: str = Field(default="3 months")
 
     @property
     def has_default_extension_path(self) -> bool:
