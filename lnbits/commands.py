@@ -14,6 +14,7 @@ from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
     add_installed_extension,
+    delete_installed_extension,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -174,7 +175,6 @@ def extensions_update(extension: str):
 def extensions_install(extension: str, repo_index: Optional[str] = None):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
-    # _run_async(check_admin_settings)
 
     async def wrap() -> None:
         await check_admin_settings()
@@ -264,6 +264,41 @@ def extensions_install(extension: str, repo_index: Optional[str] = None):
 def extensions_uninstall(extension: str):
     """Uninstall a extension"""
     click.echo(f"Uninstalling {extension}...")
+
+    async def wrap() -> None:
+        await check_admin_settings()
+        if await _is_lnbits_started():
+            click.echo(
+                "Please stop LNbits before uninstalling extensions from the CLI."
+            )
+            click.echo(
+                f"Extensions can be uninstalled via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+            )
+            return
+
+        installed_ext = await get_installed_extension(extension)
+        if not installed_ext:
+            click.echo(f"Extension '{extension}' is not installed")
+            return
+
+        installable_extensions = await InstallableExtension.get_installable_extensions()
+        # check that other extensions do not depend on this one
+        for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
+            installed_ext = next(
+                (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+            )
+            if installed_ext and extension in installed_ext.dependencies:
+                click.echo("Cannot uninstall.")
+                click.echo(f"Extension '{installed_ext.name}' depends on this one.")
+
+        extensions = [e for e in installable_extensions if e.id == extension]
+        for ext_info in extensions:
+            ext_info.clean_extension_files()
+            await delete_installed_extension(ext_id=ext_info.id)
+
+        click.echo(f"Extension '{extension}' uninstalled.")
+
+    _run_async(wrap)
 
 
 def main():
