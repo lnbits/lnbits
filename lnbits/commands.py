@@ -172,7 +172,15 @@ def extensions_upgrade(extension: Optional[str] = None, all: Optional[bool] = Fa
     if extension:
         click.echo(f"Updating {extension} extension.")
 
+
         async def wrap():
+            await check_admin_settings()
+            if await _is_lnbits_started():
+                click.echo("Please stop LNbits before installing extensions from the CLI.")
+                click.echo(
+                    f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+                )
+                return
             await upgrade_extension(extension)
 
         _run_async(wrap)
@@ -200,6 +208,13 @@ def extensions_uninstall(extension: str):
     click.echo(f"Uninstalling {extension}...")
 
     async def wrap():
+        await check_admin_settings()
+        if await _is_lnbits_started():
+            click.echo("Please stop LNbits before uninstalling extensions from the CLI.")
+            click.echo(
+                f"Extensions can be uninstalled via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+            )
+            return False
         await uninstall_extension(extension)
 
     _run_async(wrap)
@@ -219,7 +234,9 @@ def _run_async(fn) -> Any:
     return loop.run_until_complete(fn())
 
 
-async def install_extension(extension: str, repo_index: Optional[str] = None) -> None:
+async def install_extension(
+    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+) -> None:
     await check_admin_settings()
     if await _is_lnbits_started():
         click.echo("Please stop LNbits before installing extensions from the CLI.")
@@ -256,28 +273,37 @@ async def install_extension(extension: str, repo_index: Optional[str] = None) ->
         await add_installed_extension(ext_info)
         return
 
-    repos = list(latest_repo_releases.keys())
-    repos.sort()
-    if not repo_index:
-        click.echo(f"Extension '{extension}' is present in more than one repository.")
-        click.echo("Please select your repo using the '--repo-index' flag")
-        click.echo("Repositories: ")
+    if source_repo:
+        if source_repo not in latest_repo_releases:
+            click.echo(f"Repository not found: '{source_repo}'")
+            return
+        release = latest_repo_releases[source_repo]
+    else:
+        repos = list(latest_repo_releases.keys())
+        repos.sort()
+        if not repo_index:
+            click.echo(
+                f"Extension '{extension}' is present in more than one repository."
+            )
+            click.echo("Please select your repo using the '--repo-index' flag")
+            click.echo("Repositories: ")
 
-        for index, repo in enumerate(repos):
-            release = latest_repo_releases[repo]
-            click.echo(f"  [{index}] {repo} --> {release.version}")
-        return
+            for index, repo in enumerate(repos):
+                release = latest_repo_releases[repo]
+                click.echo(f"  [{index}] {repo} --> {release.version}")
+            return
 
-    if (
-        not repo_index.isnumeric()
-        or int(repo_index) < 0
-        or int(repo_index) >= len(repos)
-    ):
-        click.echo(
-            f"--repo-index option must be an int between '0' and '{len(repos) - 1}'"
-        )
-        return
-    release = latest_repo_releases[repos[int(repo_index)]]
+        if (
+            not repo_index.isnumeric()
+            or int(repo_index) < 0
+            or int(repo_index) >= len(repos)
+        ):
+            click.echo(
+                f"--repo-index option must be an int between '0' and '{len(repos) - 1}'"
+            )
+            return
+        release = latest_repo_releases[repos[int(repo_index)]]
+
     ext_info = InstallableExtension(
         id=extension, name=extension, installed_release=release, icon=release.icon
     )
@@ -288,19 +314,11 @@ async def install_extension(extension: str, repo_index: Optional[str] = None) ->
     )
 
 
-async def uninstall_extension(extension) -> None:
-    await check_admin_settings()
-    if await _is_lnbits_started():
-        click.echo("Please stop LNbits before uninstalling extensions from the CLI.")
-        click.echo(
-            f"Extensions can be uninstalled via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-        )
-        return
-
+async def uninstall_extension(extension) -> bool:
     installed_ext = await get_installed_extension(extension)
     if not installed_ext:
         click.echo(f"Extension '{extension}' is not installed")
-        return
+        return False
 
     installable_extensions = await InstallableExtension.get_installable_extensions()
     # check that other extensions do not depend on this one
@@ -311,6 +329,7 @@ async def uninstall_extension(extension) -> None:
         if installed_ext and extension in installed_ext.dependencies:
             click.echo("Cannot uninstall.")
             click.echo(f"Extension '{installed_ext.name}' depends on this one.")
+        return False
 
     extensions = [e for e in installable_extensions if e.id == extension]
     for ext_info in extensions:
@@ -318,16 +337,10 @@ async def uninstall_extension(extension) -> None:
         await delete_installed_extension(ext_id=ext_info.id)
 
     click.echo(f"Extension '{extension}' uninstalled.")
+    return True
 
 
 async def upgrade_extension(extension):
-    await check_admin_settings()
-    if await _is_lnbits_started():
-        click.echo("Please stop LNbits before installing extensions from the CLI.")
-        click.echo(
-            f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-        )
-        return
     all_releases = await InstallableExtension.get_extension_releases(extension)
     if len(all_releases) == 0:
         click.echo(f"No repository found for extension '{extension}'.")
@@ -341,16 +354,19 @@ async def upgrade_extension(extension):
         f"Current '{extension}' extension version: {installed_ext.installed_version}"
     )
     latest_repo_releases = _get_latest_release_per_repo(all_releases)
-    if installed_ext.installed_release.source_repo in latest_repo_releases:
-        latest_release = latest_repo_releases[
-            installed_ext.installed_release.source_repo
-        ]
+    source_repo = installed_ext.installed_release.source_repo
+    if source_repo in latest_repo_releases:
+        latest_release = latest_repo_releases[source_repo]
         if latest_release.version == installed_ext.installed_version:
             click.echo(f"Extension '{extension}' already up to date.")
             return
         click.echo(
             f"Upgrading '{extension}' extension to version: {latest_release.version }"
         )
+        uninstalled = await uninstall_extension(extension)
+        if not uninstalled:
+            return
+        await install_extension(extension=extension, source_repo=source_repo)
         # print("### latest_release", latest_release)
 
     # print('### installed_ext', installed_ext)
