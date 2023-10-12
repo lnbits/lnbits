@@ -9,13 +9,12 @@ from packaging import version
 
 from lnbits.core.models import User
 from lnbits.core.services import check_admin_settings
-from lnbits.core.views.api import api_install_extension
+from lnbits.core.views.api import api_install_extension, api_uninstall_extension
 from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
-    delete_installed_extension,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -291,26 +290,8 @@ async def install_extension(
 
 
 async def uninstall_extension(extension) -> bool:
-    installed_ext = await get_installed_extension(extension)
-    if not installed_ext:
-        click.echo(f"Extension '{extension}' is not installed")
-        return False
-
-    installable_extensions = await InstallableExtension.get_installable_extensions()
-    # check that other extensions do not depend on this one
-    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
-        installed_ext = next(
-            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
-        )
-        if installed_ext and extension in installed_ext.dependencies:
-            click.echo("Cannot uninstall.")
-            click.echo(f"Extension '{installed_ext.name}' depends on this one.")
-        return False
-
-    extensions = [e for e in installable_extensions if e.id == extension]
-    for ext_info in extensions:
-        ext_info.clean_extension_files()
-        await delete_installed_extension(ext_id=ext_info.id)
+    user = User(id=get_super_user(), super_user=True)
+    await api_uninstall_extension(extension, user)
 
     click.echo(f"Extension '{extension}' uninstalled.")
     return True
