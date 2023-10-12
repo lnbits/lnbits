@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import click
+import httpx
 from loguru import logger
 from packaging import version
 
@@ -177,14 +178,20 @@ def extensions_install(extension: str, repo_index: Optional[str] = None):
 
     async def wrap() -> None:
         await check_admin_settings()
+        if await _is_lnbits_started():
+            click.echo("Please stop LNbits before installing extensions from the CLI.")
+            click.echo(
+                f"Extensions can be installed via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+            )
+            return
+
         installed_ext = await get_installed_extension(extension)
         if installed_ext:
             click.echo(
-                message=f"Extension '{extension}' already installed. Version: "
-                + f" {installed_ext.installed_version}.",
-                err=True,
+                f"Extension '{extension}' already installed. Version: "
+                + f" {installed_ext.installed_version}."
             )
-            click.echo(message="Please use the 'upgrade' command.", color=True)
+            click.echo("Please use the 'upgrade' command.")
             return
 
         all_releases = await InstallableExtension.get_extension_releases(extension)
@@ -204,10 +211,8 @@ def extensions_install(extension: str, repo_index: Optional[str] = None):
             ):
                 latest_repo_releases[release.source_repo] = release
 
-        print("### key-value", len(latest_repo_releases))
         if len(latest_repo_releases) == 1:
             release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
-            print("### release", release)
             ext_info = InstallableExtension(
                 id=extension,
                 name=extension,
@@ -273,3 +278,12 @@ if __name__ == "__main__":
 def _run_async(fn) -> Any:
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(fn())
+
+
+async def _is_lnbits_started():
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.get(f"http://{settings.host}:{settings.port}/api/v1/health")
+            return True
+    except:
+        return False
