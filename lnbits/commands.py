@@ -7,13 +7,14 @@ import httpx
 from loguru import logger
 from packaging import version
 
+from lnbits.core.models import User
 from lnbits.core.services import check_admin_settings
+from lnbits.core.views.api import api_install_extension
 from lnbits.settings import settings
 
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
-    add_installed_extension,
     delete_installed_extension,
     get_dbversions,
     get_inactive_extensions,
@@ -22,6 +23,7 @@ from .core.crud import (
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
+    CreateExtension,
     InstallableExtension,
     get_valid_extensions,
 )
@@ -172,11 +174,12 @@ def extensions_upgrade(extension: Optional[str] = None, all: Optional[bool] = Fa
     if extension:
         click.echo(f"Updating {extension} extension.")
 
-
         async def wrap():
             await check_admin_settings()
             if await _is_lnbits_started():
-                click.echo("Please stop LNbits before installing extensions from the CLI.")
+                click.echo(
+                    "Please stop LNbits before installing extensions from the CLI."
+                )
                 click.echo(
                     f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
                 )
@@ -196,7 +199,15 @@ def extensions_install(extension: str, repo_index: Optional[str] = None):
     click.echo(f"Installing {extension}... {repo_index}")
 
     async def wrap():
+        await check_admin_settings()
+        if await _is_lnbits_started():
+            click.echo("Please stop LNbits before installing extensions from the CLI.")
+            click.echo(
+                f"Extensions can be installed via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+            )
+            return
         await install_extension(extension, repo_index)
+        # await api_install_extension()
 
     _run_async(wrap)
 
@@ -210,7 +221,9 @@ def extensions_uninstall(extension: str):
     async def wrap():
         await check_admin_settings()
         if await _is_lnbits_started():
-            click.echo("Please stop LNbits before uninstalling extensions from the CLI.")
+            click.echo(
+                "Please stop LNbits before uninstalling extensions from the CLI."
+            )
             click.echo(
                 f"Extensions can be uninstalled via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
             )
@@ -237,23 +250,6 @@ def _run_async(fn) -> Any:
 async def install_extension(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ) -> None:
-    await check_admin_settings()
-    if await _is_lnbits_started():
-        click.echo("Please stop LNbits before installing extensions from the CLI.")
-        click.echo(
-            f"Extensions can be installed via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-        )
-        return
-
-    installed_ext = await get_installed_extension(extension)
-    if installed_ext:
-        click.echo(
-            f"Extension '{extension}' already installed. Version: "
-            + f" {installed_ext.installed_version}."
-        )
-        click.echo("Please use the 'upgrade' command.")
-        return
-
     all_releases = await InstallableExtension.get_extension_releases(extension)
     if len(all_releases) == 0:
         click.echo(f"No repository found for extension '{extension}'.")
@@ -261,30 +257,18 @@ async def install_extension(
 
     latest_repo_releases = _get_latest_release_per_repo(all_releases)
 
-    if len(latest_repo_releases) == 1:
-        release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
-        ext_info = InstallableExtension(
-            id=extension,
-            name=extension,
-            installed_release=release,
-            icon=release.icon,
-        )
-
-        await add_installed_extension(ext_info)
-        return
-
     if source_repo:
         if source_repo not in latest_repo_releases:
             click.echo(f"Repository not found: '{source_repo}'")
             return
         release = latest_repo_releases[source_repo]
+    elif len(latest_repo_releases) == 1:
+        release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
     else:
         repos = list(latest_repo_releases.keys())
         repos.sort()
         if not repo_index:
-            click.echo(
-                f"Extension '{extension}' is present in more than one repository."
-            )
+            click.echo(f"Multiple repos found for extension '{extension}'.")
             click.echo("Please select your repo using the '--repo-index' flag")
             click.echo("Repositories: ")
 
@@ -293,25 +277,17 @@ async def install_extension(
                 click.echo(f"  [{index}] {repo} --> {release.version}")
             return
 
-        if (
-            not repo_index.isnumeric()
-            or int(repo_index) < 0
-            or int(repo_index) >= len(repos)
-        ):
-            click.echo(
-                f"--repo-index option must be an int between '0' and '{len(repos) - 1}'"
-            )
+        if not repo_index.isnumeric() or not 0 <= int(repo_index) < len(repos):
+            click.echo(f"--repo-index must be between '0' and '{len(repos) - 1}'")
             return
         release = latest_repo_releases[repos[int(repo_index)]]
 
-    ext_info = InstallableExtension(
-        id=extension, name=extension, installed_release=release, icon=release.icon
+    data = CreateExtension(
+        ext_id=extension, archive=release.archive, source_repo=release.source_repo
     )
-    await add_installed_extension(ext_info)
-    click.echo(
-        f"Extension '{extension}' added."
-        + " It will be automatically installed when LNbits starts."
-    )
+    user = User(id=get_super_user(), super_user=True)
+    await api_install_extension(data, user)
+    click.echo(f"Extension '{extension}' installed.")
 
 
 async def uninstall_extension(extension) -> bool:
