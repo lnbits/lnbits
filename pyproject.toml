@@ -52,6 +52,9 @@ types-protobuf = "^4.24.0.2"
 pre-commit = "^3.2.2"
 openapi-spec-validator = "^0.6.0"
 ruff = "^0.0.291"
+# not our dependency but needed indirectly by openapi-spec-validator
+# we want to use 0.10.3 because newer versions are broken on nix
+rpds-py = "0.10.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
