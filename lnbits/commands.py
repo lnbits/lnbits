@@ -154,15 +154,14 @@ def extensions_list():
             assert ext.installed_release, f"Extension {ext.id} has no installed_release"
             click.echo(f"  - {ext.id} ({ext.installed_release.version})")
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(wrap())
+    _run_async(wrap)
 
 
 @extensions.command("upgrade")
 @click.argument("extension", required=False)
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
 @click.option("--repo-index", help="Select the index of the repository to be used.")
-@click.option("--source-repo", help="Provide the repository to be used for upgrading.")
+@click.option("--source-repo", help="Provide the repository URL to be used for upgrading.")
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
@@ -201,7 +200,7 @@ def extensions_upgrade(
 @extensions.command("install")
 @click.argument("extension")
 @click.option("--repo-index", help="Select the index of the repository to be used.")
-@click.option("--source-repo", help="Provide the repository to be used for installing.")
+@click.option("--source-repo", help="Provide the repository URL to be used for installing.")
 def extensions_install(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ):
