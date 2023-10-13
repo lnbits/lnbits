@@ -1,8 +1,9 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import click
+from fastapi.exceptions import HTTPException
 import httpx
 from loguru import logger
 from packaging import version
@@ -18,6 +19,7 @@ from .core.crud import (
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
+    get_installed_extensions,
 )
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -161,7 +163,9 @@ def extensions_list():
 @click.argument("extension", required=False)
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
 @click.option("--repo-index", help="Select the index of the repository to be used.")
-@click.option("--source-repo", help="Provide the repository URL to be used for upgrading.")
+@click.option(
+    "--source-repo", help="Provide the repository URL to be used for upgrading."
+)
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
@@ -177,30 +181,48 @@ def extensions_upgrade(
         click.echo("Only one of extension ID or the '--all' flag must be specified")
         return
 
-    if extension:
-        click.echo(f"Updating {extension} extension.")
+    async def wrap():
+        await check_admin_settings()
+        if await _is_lnbits_started():
+            click.echo("Please stop LNbits before installing extensions from the CLI.")
+            click.echo(
+                f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+            )
+            return
 
-        async def wrap():
-            await check_admin_settings()
-            if await _is_lnbits_started():
-                click.echo(
-                    "Please stop LNbits before installing extensions from the CLI."
-                )
-                click.echo(
-                    f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-                )
-                return
+        if extension:
             await upgrade_extension(extension, repo_index, source_repo)
+            return
 
-        _run_async(wrap)
-        return
-    click.echo("Updating all extensions...")
+        click.echo("Upgrading all extensions...")
+        installed_extensions = await get_installed_extensions()
+        upgraded_extensions = []
+        for e in installed_extensions:
+            try:
+                click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
+                success, msg = await upgrade_extension(e.id, repo_index, source_repo)
+                if version:
+                    upgraded_extensions.append({"id": e.id, "success": success, "message": msg})
+            except Exception as ex:
+                click.echo(f"Failed to install extension '{e.id}': {ex}")
+
+        if len(upgraded_extensions) == 0:
+            click.echo("No extension was upgraded.")
+        else:
+            for u in sorted(upgraded_extensions, key=lambda d: d["id"]):
+                status = "upgraded to  " if u["success"] else "not upgraded "
+                click.echo(f"""'{u["id"]}' {" "*(20-len(u["id"]))} - {status}: '{u["message"]}'""")
+
+    _run_async(wrap)
+    return
 
 
 @extensions.command("install")
 @click.argument("extension")
 @click.option("--repo-index", help="Select the index of the repository to be used.")
-@click.option("--source-repo", help="Provide the repository URL to be used for installing.")
+@click.option(
+    "--source-repo", help="Provide the repository URL to be used for installing."
+)
 def extensions_install(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ):
@@ -257,17 +279,21 @@ def _run_async(fn) -> Any:
 
 async def install_extension(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
-) -> None:
-    release = await _select_release(extension, repo_index, source_repo)
-    if not release:
-        return
+) -> Tuple[bool, str]:
+    try:
+        release = await _select_release(extension, repo_index, source_repo)
+        if not release:
+            return False, "No release selected"
 
-    data = CreateExtension(
-        ext_id=extension, archive=release.archive, source_repo=release.source_repo
-    )
-    user = User(id=get_super_user(), super_user=True)
-    await api_install_extension(data, user)
-    click.echo(f"Extension '{extension}' ({release.version}) installed.")
+        data = CreateExtension(
+            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+        )
+        user = User(id=get_super_user(), super_user=True)
+        await api_install_extension(data, user)
+        click.echo(f"Extension '{extension}' ({release.version}) installed.")
+        return True, release.version
+    except Exception as ex:
+        return False, str(ex)
 
 
 async def uninstall_extension(extension) -> bool:
@@ -280,38 +306,48 @@ async def uninstall_extension(extension) -> bool:
 
 async def upgrade_extension(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
-):
-    installed_ext = await get_installed_extension(extension)
-    if not installed_ext:
-        click.echo(f"Extension '{extension}' is not installed. Preparing to install...")
-        await install_extension(extension, repo_index, source_repo)
-        return
+) -> Tuple[bool, str]:
+    try:
+        click.echo(f"Upgrading '{extension}' extension.")
+        installed_ext = await get_installed_extension(extension)
+        if not installed_ext:
+            click.echo(
+                f"Extension '{extension}' is not installed. Preparing to install..."
+            )
+            return await install_extension(extension, repo_index, source_repo)
 
-    click.echo(f"Current '{extension}' version: {installed_ext.installed_version}")
+        click.echo(f"Current '{extension}' version: {installed_ext.installed_version}")
 
-    assert (
-        installed_ext.installed_release
-    ), "Cannot find previously installed release. Please uninstall first."
+        assert (
+            installed_ext.installed_release
+        ), "Cannot find previously installed release. Please uninstall first."
 
-    release = await _select_release(extension, repo_index, source_repo)
-    if not release:
-        return
-    if (
-        release.version == installed_ext.installed_version
-        and release.source_repo == installed_ext.installed_release.source_repo
-    ):
-        click.echo(f"Extension '{extension}' already up to date.")
-        return
+        release = await _select_release(extension, repo_index, source_repo)
+        if not release:
+            return False, "No release selected."
+        if (
+            release.version == installed_ext.installed_version
+            and release.source_repo == installed_ext.installed_release.source_repo
+        ):
+            click.echo(f"Extension '{extension}' already up to date.")
+            return False, "Already up to date"
 
-    click.echo(f"Upgrading '{extension}' extension to version: {release.version }")
+        click.echo(f"Upgrading '{extension}' extension to version: {release.version }")
 
-    data = CreateExtension(
-        ext_id=extension, archive=release.archive, source_repo=release.source_repo
-    )
-    user = User(id=get_super_user(), super_user=True)
-    await api_install_extension(data, user)
+        data = CreateExtension(
+            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+        )
+        user = User(id=get_super_user(), super_user=True)
+        await api_install_extension(data, user)
 
-    click.echo(f"Extension '{extension}' upgraded.")
+        click.echo(f"Extension '{extension}' upgraded.")
+        return True, release.version
+    except HTTPException as ex:
+        click.echo(f"Faield to upgrade '{extension}': ex.detail.")
+        return False, ex.detail
+    except Exception as ex:
+        click.echo(f"Faield to upgrade '{extension}': {str(ex)}.")
+        return False, str(ex)
 
 
 async def _select_release(
@@ -339,7 +375,10 @@ async def _select_release(
     repos.sort()
     if not repo_index:
         click.echo("Multiple repos found.")
-        click.echo("Please select repo using the '--repo-index' flag.")
+        click.echo(
+            "Please select repo using the '--repo-index' flag "
+            + "or the '--source-repo' flag"
+        )
         click.echo("Repositories: ")
 
         for index, repo in enumerate(repos):
@@ -374,5 +413,5 @@ async def _is_lnbits_started():
         async with httpx.AsyncClient() as client:
             await client.get(f"http://{settings.host}:{settings.port}/api/v1/health")
             return True
-    except:
+    except Exception as _:
         return False
