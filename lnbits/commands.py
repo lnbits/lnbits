@@ -291,10 +291,10 @@ def extensions_uninstall(extension: str, url: Optional[str] = None):
             await _call_uninstall_extension(extension, user, url)
             click.echo(f"Extension '{extension}' uninstalled.")
         except HTTPException as ex:
-            click.echo(f"Faield to uninstall '{extension}' Error: '{ex.detail}'.")
+            click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
             return False, ex.detail
         except Exception as ex:
-            click.echo(f"Faield to uninstall '{extension}': {str(ex)}.")
+            click.echo(f"Failed to uninstall '{extension}': {str(ex)}.")
             return False, str(ex)
 
     _run_async(wrap)
@@ -333,10 +333,10 @@ async def install_extension(
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
         return True, release.version
     except HTTPException as ex:
-        click.echo(f"Faield to install '{extension}' Error: '{ex.detail}'.")
+        click.echo(f"Failed to install '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Faield to install '{extension}': {str(ex)}.")
+        click.echo(f"Failed to install '{extension}': {str(ex)}.")
         return False, str(ex)
 
 
@@ -382,10 +382,10 @@ async def upgrade_extension(
         click.echo(f"Extension '{extension}' upgraded.")
         return True, release.version
     except HTTPException as ex:
-        click.echo(f"Faield to upgrade '{extension}' Error: '{ex.detail}'.")
+        click.echo(f"Failed to upgrade '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Faield to upgrade '{extension}': {str(ex)}.")
+        click.echo(f"Failed to upgrade '{extension}': {str(ex)}.")
         return False, str(ex)
 
 
@@ -504,7 +504,7 @@ async def _is_lnbits_started(url: Optional[str]):
         async with httpx.AsyncClient() as client:
             await client.get(url)
             return True
-    except Exception as _:
+    except Exception:
         return False
 
 
