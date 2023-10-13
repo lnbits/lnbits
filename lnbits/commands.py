@@ -53,22 +53,36 @@ def extensions():
     """
 
 
-def get_super_user() -> str:
+def get_super_user() -> Optional[str]:
     """Get the superuser"""
-    with open(Path(settings.lnbits_data_folder) / ".super_user", "r") as file:
+    superuser_file = Path(settings.lnbits_data_folder, ".super_user")
+    if not superuser_file.exists() or not superuser_file.is_file():
+        raise ValueError(
+            "Superuser id not found. Please check that the file "
+            + f"'{superuser_file.absolute()}' exists and has read permissions."
+        )
+    with open(superuser_file, "r") as file:
         return file.readline()
 
 
 @lnbits_cli.command("superuser")
 def superuser():
     """Prints the superuser"""
-    click.echo(get_super_user())
+    try:
+        click.echo(get_super_user())
+    except ValueError as e:
+        click.echo(str(e))
 
 
 @lnbits_cli.command("superuser-url")
 def superuser_url():
     """Prints the superuser"""
-    click.echo(f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}")
+    try:
+        click.echo(
+            f"http://{settings.host}:{settings.port}/wallet?usr={get_super_user()}"
+        )
+    except ValueError as e:
+        click.echo(str(e))
 
 
 @lnbits_cli.command("delete-settings")
@@ -174,12 +188,18 @@ def extensions_list():
     "--url",
     help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
+@click.option(
+    "-d",
+    "--admin-user",
+    help="Admin user ID (must have permissions to install extensions).",
+)
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
+    admin_user: Optional[str] = None,
 ):
     """Upgrade extensions"""
     if not extension and not all:
@@ -199,7 +219,7 @@ def extensions_upgrade(
             return
 
         if extension:
-            await upgrade_extension(extension, repo_index, source_repo, url)
+            await upgrade_extension(extension, repo_index, source_repo, url, admin_user)
             return
 
         click.echo("Upgrading all extensions...")
@@ -209,7 +229,7 @@ def extensions_upgrade(
             try:
                 click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
                 success, msg = await upgrade_extension(
-                    e.id, repo_index, source_repo, url
+                    e.id, repo_index, source_repo, url, admin_user
                 )
                 if version:
                     upgraded_extensions.append(
@@ -245,11 +265,17 @@ def extensions_upgrade(
     "--url",
     help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
+@click.option(
+    "-d",
+    "--admin-user",
+    help="Admin user ID (must have permissions to install extensions).",
+)
 def extensions_install(
     extension: str,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
+    admin_user: Optional[str] = None,
 ):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
@@ -260,7 +286,7 @@ def extensions_install(
     async def wrap():
         if not await _can_run_operation(url):
             return
-        await install_extension(extension, repo_index, source_repo, url)
+        await install_extension(extension, repo_index, source_repo, url, admin_user)
 
     _run_async(wrap)
 
@@ -272,7 +298,14 @@ def extensions_install(
     "--url",
     help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
-def extensions_uninstall(extension: str, url: Optional[str] = None):
+@click.option(
+    "-d",
+    "--admin-user",
+    help="Admin user ID (must have permissions to install extensions).",
+)
+def extensions_uninstall(
+    extension: str, url: Optional[str] = None, admin_user: Optional[str] = None
+):
     """Uninstall a extension"""
     click.echo(f"Uninstalling '{extension}'...")
 
@@ -284,8 +317,7 @@ def extensions_uninstall(extension: str, url: Optional[str] = None):
         if not await _can_run_operation(url):
             return
         try:
-            user = User(id=get_super_user(), super_user=True)
-            await _call_uninstall_extension(extension, user, url)
+            await _call_uninstall_extension(extension, url, admin_user)
             click.echo(f"Extension '{extension}' uninstalled.")
         except HTTPException as ex:
             click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
@@ -316,6 +348,7 @@ async def install_extension(
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
+    admin_user: Optional[str] = None,
 ) -> Tuple[bool, str]:
     try:
         release = await _select_release(extension, repo_index, source_repo)
@@ -325,8 +358,7 @@ async def install_extension(
         data = CreateExtension(
             ext_id=extension, archive=release.archive, source_repo=release.source_repo
         )
-        user = User(id=get_super_user(), super_user=True)
-        await _call_install_extension(data, user, url)
+        await _call_install_extension(data, url, admin_user)
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
         return True, release.version
     except HTTPException as ex:
@@ -342,6 +374,7 @@ async def upgrade_extension(
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
+    admin_user: Optional[str] = None,
 ) -> Tuple[bool, str]:
     try:
         click.echo(f"Upgrading '{extension}' extension.")
@@ -373,13 +406,12 @@ async def upgrade_extension(
         data = CreateExtension(
             ext_id=extension, archive=release.archive, source_repo=release.source_repo
         )
-        user = User(id=get_super_user(), super_user=True)
 
-        await _call_install_extension(data, user, url)
+        await _call_install_extension(data, url, admin_user)
         click.echo(f"Extension '{extension}' upgraded.")
         return True, release.version
     except HTTPException as ex:
-        click.echo(f"Failed to upgrade '{extension}' Error: '{ex.detail}'.")
+        click.echo(f"Failed to upgrade '{extension}' Error: '{ex.detail}.")
         return False, ex.detail
     except Exception as ex:
         click.echo(f"Failed to upgrade '{extension}': {str(ex)}.")
@@ -450,27 +482,31 @@ def _get_latest_release_per_repo(all_releases):
 
 
 async def _call_install_extension(
-    data: CreateExtension, user: User, url: Optional[str]
+    data: CreateExtension, url: Optional[str], user_id: Optional[str] = None
 ):
     if url:
+        user_id = user_id or get_super_user()
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{url}/api/v1/extension?usr={user.id}", json=data.dict(), timeout=40
+                f"{url}/api/v1/extension?usr={user_id}", json=data.dict(), timeout=40
             )
             resp.raise_for_status()
     else:
-        await api_install_extension(data, user)
+        await api_install_extension(data, User(id="mock_id"))
 
 
-async def _call_uninstall_extension(extension: str, user: User, url: Optional[str]):
+async def _call_uninstall_extension(
+    extension: str, url: Optional[str], user_id: Optional[str] = None
+):
     if url:
+        user_id = user_id or get_super_user()
         async with httpx.AsyncClient() as client:
             resp = await client.delete(
-                f"{url}/api/v1/extension/{extension}?usr={user.id}", timeout=40
+                f"{url}/api/v1/extension/{extension}?usr={user_id}", timeout=40
             )
             resp.raise_for_status()
     else:
-        await api_uninstall_extension(extension, user)
+        await api_uninstall_extension(extension, User(id="mock_id"))
 
 
 async def _can_run_operation(url) -> bool:
