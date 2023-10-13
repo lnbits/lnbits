@@ -172,7 +172,7 @@ def extensions_list():
 @click.option(
     "-u",
     "--url",
-    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+    help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
 def extensions_upgrade(
     extension: Optional[str] = None,
@@ -241,12 +241,12 @@ def extensions_upgrade(
 @click.option(
     "-u",
     "--url",
-    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+    help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
 @click.option(
     "-u",
     "--url",
-    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+    help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
 def extensions_install(
     extension: str,
@@ -273,7 +273,7 @@ def extensions_install(
 @click.option(
     "-u",
     "--url",
-    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+    help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
 def extensions_uninstall(extension: str, url: Optional[str] = None):
     """Uninstall a extension"""
