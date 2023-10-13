@@ -159,13 +159,15 @@ def extensions_list():
 
 
 @extensions.command("upgrade")
+@click.argument("extension", required=False)
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
 @click.option("--repo-index")
-@click.argument("extension", required=False)
+@click.option("--source-repo")
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
     repo_index: Optional[str] = None,
+    source_repo: Optional[str] = None,
 ):
     """Upgrade extensions"""
     if not extension and not all:
@@ -189,7 +191,7 @@ def extensions_upgrade(
                     f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
                 )
                 return
-            await upgrade_extension(extension, repo_index)
+            await upgrade_extension(extension, repo_index, source_repo)
 
         _run_async(wrap)
         return
@@ -199,7 +201,10 @@ def extensions_upgrade(
 @extensions.command("install")
 @click.argument("extension")
 @click.option("--repo-index")
-def extensions_install(extension: str, repo_index: Optional[str] = None):
+@click.option("--source-repo")
+def extensions_install(
+    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
 
@@ -211,7 +216,7 @@ def extensions_install(extension: str, repo_index: Optional[str] = None):
                 f"Extensions can be installed via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
             )
             return
-        await install_extension(extension, repo_index)
+        await install_extension(extension, repo_index, source_repo)
         # await api_install_extension()
 
     _run_async(wrap)
