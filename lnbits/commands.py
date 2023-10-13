@@ -243,6 +243,11 @@ def extensions_upgrade(
     "--url",
     help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
 )
+@click.option(
+    "-u",
+    "--url",
+    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+)
 def extensions_install(
     extension: str,
     repo_index: Optional[str] = None,
@@ -265,21 +270,32 @@ def extensions_install(
 
 @extensions.command("uninstall")
 @click.argument("extension")
-def extensions_uninstall(extension: str):
+@click.option(
+    "-u",
+    "--url",
+    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+)
+def extensions_uninstall(extension: str, url: Optional[str] = None):
     """Uninstall a extension"""
-    click.echo(f"Uninstalling {extension}...")
+    click.echo(f"Uninstalling '{extension}'...")
+
+    if url and not _is_url(url):
+        click.echo(f"Invalid '--url' option value: {url}")
+        return
 
     async def wrap():
-        await check_admin_settings()
-        if await _is_lnbits_started():
-            click.echo(
-                "Please stop LNbits before uninstalling extensions from the CLI."
-            )
-            click.echo(
-                f"Extensions can be uninstalled via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-            )
-            return False
-        await uninstall_extension(extension)
+        if not await _can_run_operation(url):
+            return
+        try:
+            user = User(id=get_super_user(), super_user=True)
+            await _call_uninstall_extension(extension, user, url)
+            click.echo(f"Extension '{extension}' uninstalled.")
+        except HTTPException as ex:
+            click.echo(f"Faield to uninstall '{extension}' Error: '{ex.detail}'.")
+            return False, ex.detail
+        except Exception as ex:
+            click.echo(f"Faield to uninstall '{extension}': {str(ex)}.")
+            return False, str(ex)
 
     _run_async(wrap)
 
@@ -316,16 +332,12 @@ async def install_extension(
         await _call_install_extension(data, user, url)
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
         return True, release.version
+    except HTTPException as ex:
+        click.echo(f"Faield to install '{extension}' Error: '{ex.detail}'.")
+        return False, ex.detail
     except Exception as ex:
+        click.echo(f"Faield to install '{extension}': {str(ex)}.")
         return False, str(ex)
-
-
-async def uninstall_extension(extension) -> bool:
-    user = User(id=get_super_user(), super_user=True)
-    await api_uninstall_extension(extension, user)
-
-    click.echo(f"Extension '{extension}' uninstalled.")
-    return True
 
 
 async def upgrade_extension(
@@ -423,15 +435,20 @@ async def _select_release(
 def _get_latest_release_per_repo(all_releases):
     latest_repo_releases = {}
     for release in all_releases:
-        if not release.is_version_compatible:
-            continue
-        if release.source_repo not in latest_repo_releases:
-            latest_repo_releases[release.source_repo] = release
-            continue
-        if version.parse(release.version) > version.parse(
-            latest_repo_releases[release.source_repo].version
-        ):
-            latest_repo_releases[release.source_repo] = release
+        try:
+            if not release.is_version_compatible:
+                continue
+            # do not remove, parsing also validates
+            release_version = version.parse(release.version)
+            if release.source_repo not in latest_repo_releases:
+                latest_repo_releases[release.source_repo] = release
+                continue
+            if release_version > version.parse(
+                latest_repo_releases[release.source_repo].version
+            ):
+                latest_repo_releases[release.source_repo] = release
+        except version.InvalidVersion as ex:
+            logger.warning(f"Invalid version {release.name}: {ex}")
     return latest_repo_releases
 
 
@@ -446,6 +463,17 @@ async def _call_install_extension(
             resp.raise_for_status()
     else:
         await api_install_extension(data, user)
+
+
+async def _call_uninstall_extension(extension: str, user: User, url: Optional[str]):
+    if url:
+        async with httpx.AsyncClient() as client:
+            resp = await client.delete(
+                f"{url}/api/v1/extension/{extension}?usr={user.id}", timeout=40
+            )
+            resp.raise_for_status()
+    else:
+        await api_uninstall_extension(extension, user)
 
 
 async def _can_run_operation(url) -> bool:
