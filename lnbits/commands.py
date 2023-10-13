@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import click
 import httpx
@@ -23,6 +23,7 @@ from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
 from .extension_manager import (
     CreateExtension,
+    ExtensionRelease,
     InstallableExtension,
     get_valid_extensions,
 )
@@ -159,8 +160,13 @@ def extensions_list():
 
 @extensions.command("upgrade")
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
+@click.option("--repo-index")
 @click.argument("extension", required=False)
-def extensions_upgrade(extension: Optional[str] = None, all: Optional[bool] = False):
+def extensions_upgrade(
+    extension: Optional[str] = None,
+    all: Optional[bool] = False,
+    repo_index: Optional[str] = None,
+):
     """Upgrade extensions"""
     if not extension and not all:
         click.echo("Extension ID is required.")
@@ -183,7 +189,7 @@ def extensions_upgrade(extension: Optional[str] = None, all: Optional[bool] = Fa
                     f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
                 )
                 return
-            await upgrade_extension(extension)
+            await upgrade_extension(extension, repo_index)
 
         _run_async(wrap)
         return
@@ -254,39 +260,16 @@ async def install_extension(
         click.echo(f"No repository found for extension '{extension}'.")
         return
 
-    latest_repo_releases = _get_latest_release_per_repo(all_releases)
-
-    if source_repo:
-        if source_repo not in latest_repo_releases:
-            click.echo(f"Repository not found: '{source_repo}'")
-            return
-        release = latest_repo_releases[source_repo]
-    elif len(latest_repo_releases) == 1:
-        release = latest_repo_releases[list(latest_repo_releases.keys())[0]]
-    else:
-        repos = list(latest_repo_releases.keys())
-        repos.sort()
-        if not repo_index:
-            click.echo(f"Multiple repos found for extension '{extension}'.")
-            click.echo("Please select your repo using the '--repo-index' flag")
-            click.echo("Repositories: ")
-
-            for index, repo in enumerate(repos):
-                release = latest_repo_releases[repo]
-                click.echo(f"  [{index}] {repo} --> {release.version}")
-            return
-
-        if not repo_index.isnumeric() or not 0 <= int(repo_index) < len(repos):
-            click.echo(f"--repo-index must be between '0' and '{len(repos) - 1}'")
-            return
-        release = latest_repo_releases[repos[int(repo_index)]]
+    release = _select_release(all_releases, repo_index, source_repo)
+    if not release:
+        return
 
     data = CreateExtension(
         ext_id=extension, archive=release.archive, source_repo=release.source_repo
     )
     user = User(id=get_super_user(), super_user=True)
     await api_install_extension(data, user)
-    click.echo(f"Extension '{extension}' installed.")
+    click.echo(f"Extension '{extension}' ({release.version}) installed.")
 
 
 async def uninstall_extension(extension) -> bool:
@@ -297,36 +280,74 @@ async def uninstall_extension(extension) -> bool:
     return True
 
 
-async def upgrade_extension(extension):
+async def upgrade_extension(
+    extension, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+):
     all_releases = await InstallableExtension.get_extension_releases(extension)
     if len(all_releases) == 0:
         click.echo(f"No repository found for extension '{extension}'.")
         return
+
     installed_ext = await get_installed_extension(extension)
     if not installed_ext:
-        click.echo(f"Extension '{extension}' is not installed")
-        click.echo(f"Please use the install command to install '{extension}.")
+        click.echo(f"Extension '{extension}' is not installed. Preparing to install...")
+        await install_extension(extension, repo_index, source_repo)
         return
-    click.echo(
-        f"Current '{extension}' extension version: {installed_ext.installed_version}"
-    )
-    latest_repo_releases = _get_latest_release_per_repo(all_releases)
-    source_repo = installed_ext.installed_release.source_repo
-    if source_repo in latest_repo_releases:
-        latest_release = latest_repo_releases[source_repo]
-        if latest_release.version == installed_ext.installed_version:
-            click.echo(f"Extension '{extension}' already up to date.")
-            return
-        click.echo(
-            f"Upgrading '{extension}' extension to version: {latest_release.version }"
-        )
-        uninstalled = await uninstall_extension(extension)
-        if not uninstalled:
-            return
-        await install_extension(extension=extension, source_repo=source_repo)
-        # print("### latest_release", latest_release)
 
-    # print('### installed_ext', installed_ext)
+    click.echo(f"Current '{extension}' version: {installed_ext.installed_version}")
+
+    assert (
+        installed_ext.installed_release
+    ), "Cannot find previously installed release. Please uninstall first."
+
+    release = _select_release(all_releases, repo_index, source_repo)
+    if not release:
+        return
+
+    click.echo(f"Upgrading '{extension}' extension to version: {release.version }")
+
+    data = CreateExtension(
+        ext_id=extension, archive=release.archive, source_repo=release.source_repo
+    )
+    user = User(id=get_super_user(), super_user=True)
+    await api_install_extension(data, user)
+
+    click.echo(f"Extension '{extension}' upgraded.")
+
+
+def _select_release(
+    all_releases: List[ExtensionRelease],
+    repo_index: Optional[str] = None,
+    source_repo: Optional[str] = None,
+) -> Optional[ExtensionRelease]:
+    latest_repo_releases = _get_latest_release_per_repo(all_releases)
+
+    if source_repo:
+        if source_repo not in latest_repo_releases:
+            click.echo(f"Repository not found: '{source_repo}'")
+            return None
+        return latest_repo_releases[source_repo]
+
+    if len(latest_repo_releases) == 1:
+        return latest_repo_releases[list(latest_repo_releases.keys())[0]]
+
+    repos = list(latest_repo_releases.keys())
+    repos.sort()
+    if not repo_index:
+        click.echo("Multiple repos found.")
+        click.echo("Please select repo using the '--repo-index' flag.")
+        click.echo("Repositories: ")
+
+        for index, repo in enumerate(repos):
+            release = latest_repo_releases[repo]
+            click.echo(f"  [{index}] {repo} --> {release.version}")
+        return None
+
+    if not repo_index.isnumeric() or not 0 <= int(repo_index) < len(repos):
+        click.echo(f"--repo-index must be between '0' and '{len(repos) - 1}'")
+        return None
+
+    return latest_repo_releases[repos[int(repo_index)]]
 
 
 def _get_latest_release_per_repo(all_releases):
