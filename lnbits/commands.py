@@ -234,9 +234,9 @@ def extensions_upgrade(
 
 @extensions.command("install")
 @click.argument("extension")
-@click.option("--repo-index", help="Select the index of the repository to be used.")
+@click.option("-i", "--repo-index", help="Select the index of the repository to be used.")
 @click.option(
-    "--source-repo", help="Provide the repository URL to be used for installing."
+    "-s", "--source-repo", help="Provide the repository URL to be used for installing."
 )
 @click.option(
     "-u",
