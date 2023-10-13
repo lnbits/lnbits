@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import click
 import httpx
@@ -161,8 +161,8 @@ def extensions_list():
 @extensions.command("upgrade")
 @click.argument("extension", required=False)
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
-@click.option("--repo-index")
-@click.option("--source-repo")
+@click.option("--repo-index", help="Select the index of the repository to be used.")
+@click.option("--source-repo", help="Provide the repository to be used for upgrading.")
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
@@ -200,8 +200,8 @@ def extensions_upgrade(
 
 @extensions.command("install")
 @click.argument("extension")
-@click.option("--repo-index")
-@click.option("--source-repo")
+@click.option("--repo-index", help="Select the index of the repository to be used.")
+@click.option("--source-repo", help="Provide the repository to be used for installing.")
 def extensions_install(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ):
@@ -217,7 +217,6 @@ def extensions_install(
             )
             return
         await install_extension(extension, repo_index, source_repo)
-        # await api_install_extension()
 
     _run_async(wrap)
 
@@ -260,12 +259,7 @@ def _run_async(fn) -> Any:
 async def install_extension(
     extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ) -> None:
-    all_releases = await InstallableExtension.get_extension_releases(extension)
-    if len(all_releases) == 0:
-        click.echo(f"No repository found for extension '{extension}'.")
-        return
-
-    release = _select_release(all_releases, repo_index, source_repo)
+    release = await _select_release(extension, repo_index, source_repo)
     if not release:
         return
 
@@ -286,13 +280,8 @@ async def uninstall_extension(extension) -> bool:
 
 
 async def upgrade_extension(
-    extension, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
 ):
-    all_releases = await InstallableExtension.get_extension_releases(extension)
-    if len(all_releases) == 0:
-        click.echo(f"No repository found for extension '{extension}'.")
-        return
-
     installed_ext = await get_installed_extension(extension)
     if not installed_ext:
         click.echo(f"Extension '{extension}' is not installed. Preparing to install...")
@@ -305,8 +294,14 @@ async def upgrade_extension(
         installed_ext.installed_release
     ), "Cannot find previously installed release. Please uninstall first."
 
-    release = _select_release(all_releases, repo_index, source_repo)
+    release = await _select_release(extension, repo_index, source_repo)
     if not release:
+        return
+    if (
+        release.version == installed_ext.installed_version
+        and release.source_repo == installed_ext.installed_release.source_repo
+    ):
+        click.echo(f"Extension '{extension}' already up to date.")
         return
 
     click.echo(f"Upgrading '{extension}' extension to version: {release.version }")
@@ -320,11 +315,16 @@ async def upgrade_extension(
     click.echo(f"Extension '{extension}' upgraded.")
 
 
-def _select_release(
-    all_releases: List[ExtensionRelease],
+async def _select_release(
+    extension: str,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
 ) -> Optional[ExtensionRelease]:
+    all_releases = await InstallableExtension.get_extension_releases(extension)
+    if len(all_releases) == 0:
+        click.echo(f"No repository found for extension '{extension}'.")
+        return None
+
     latest_repo_releases = _get_latest_release_per_repo(all_releases)
 
     if source_repo:
