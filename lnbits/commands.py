@@ -1,10 +1,11 @@
 import asyncio
 from pathlib import Path
 from typing import Any, Optional, Tuple
+from urllib.parse import urlparse
 
 import click
-from fastapi.exceptions import HTTPException
 import httpx
+from fastapi.exceptions import HTTPException
 from loguru import logger
 from packaging import version
 
@@ -162,15 +163,23 @@ def extensions_list():
 @extensions.command("upgrade")
 @click.argument("extension", required=False)
 @click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
-@click.option("--repo-index", help="Select the index of the repository to be used.")
 @click.option(
-    "--source-repo", help="Provide the repository URL to be used for upgrading."
+    "-i", "--repo-index", help="Select the index of the repository to be used."
+)
+@click.option(
+    "-s", "--source-repo", help="Provide the repository URL to be used for upgrading."
+)
+@click.option(
+    "-u",
+    "--url",
+    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
 )
 def extensions_upgrade(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
+    url: Optional[str] = None,
 ):
     """Upgrade extensions"""
     if not extension and not all:
@@ -180,13 +189,27 @@ def extensions_upgrade(
     if extension and all:
         click.echo("Only one of extension ID or the '--all' flag must be specified")
         return
+    if url and not _is_url(url):
+        click.echo(f"Invalid '--url' option value: {url}")
+        return
 
     async def wrap():
         await check_admin_settings()
-        if await _is_lnbits_started():
-            click.echo("Please stop LNbits before installing extensions from the CLI.")
+        if await _is_lnbits_started(url):
+            if not url:
+                click.echo("LNbits server is started. Please either:")
+                click.echo(
+                    f"  - use the '--url' option. Eg: --url=http://{settings.host}:{settings.port}"
+                )
+                click.echo(
+                    f"  - stop the server running at 'http://{settings.host}:{settings.port}'"
+                )
+
+                return
+        elif url:
             click.echo(
-                f"Extensions can be upgraded via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
+                "The option '--url' has been provided,"
+                + f" but no server found runnint at '{url}'"
             )
             return
 
@@ -202,7 +225,9 @@ def extensions_upgrade(
                 click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
                 success, msg = await upgrade_extension(e.id, repo_index, source_repo)
                 if version:
-                    upgraded_extensions.append({"id": e.id, "success": success, "message": msg})
+                    upgraded_extensions.append(
+                        {"id": e.id, "success": success, "message": msg}
+                    )
             except Exception as ex:
                 click.echo(f"Failed to install extension '{e.id}': {ex}")
 
@@ -211,7 +236,10 @@ def extensions_upgrade(
         else:
             for u in sorted(upgraded_extensions, key=lambda d: d["id"]):
                 status = "upgraded to  " if u["success"] else "not upgraded "
-                click.echo(f"""'{u["id"]}' {" "*(20-len(u["id"]))} - {status}: '{u["message"]}'""")
+                click.echo(
+                    f"""'{u["id"]}' {" "*(20-len(u["id"]))}"""
+                    + f""" - {status}: '{u["message"]}'"""
+                )
 
     _run_async(wrap)
     return
@@ -305,7 +333,10 @@ async def uninstall_extension(extension) -> bool:
 
 
 async def upgrade_extension(
-    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+    extension: str,
+    repo_index: Optional[str] = None,
+    source_repo: Optional[str] = None,
+    url: Optional[str] = None,
 ) -> Tuple[bool, str]:
     try:
         click.echo(f"Upgrading '{extension}' extension.")
@@ -316,7 +347,7 @@ async def upgrade_extension(
             )
             return await install_extension(extension, repo_index, source_repo)
 
-        click.echo(f"Current '{extension}' version: {installed_ext.installed_version}")
+        click.echo(f"Current '{extension}' version: {installed_ext.installed_version}.")
 
         assert (
             installed_ext.installed_release
@@ -338,8 +369,8 @@ async def upgrade_extension(
             ext_id=extension, archive=release.archive, source_repo=release.source_repo
         )
         user = User(id=get_super_user(), super_user=True)
-        await api_install_extension(data, user)
 
+        await _call_install_extension(data, user, url)
         click.echo(f"Extension '{extension}' upgraded.")
         return True, release.version
     except HTTPException as ex:
@@ -374,16 +405,16 @@ async def _select_release(
     repos = list(latest_repo_releases.keys())
     repos.sort()
     if not repo_index:
-        click.echo("Multiple repos found.")
-        click.echo(
-            "Please select repo using the '--repo-index' flag "
-            + "or the '--source-repo' flag"
-        )
+        click.echo("Multiple repos found. Please select one using:")
+        click.echo("   --repo-index   option for index of the repo, or")
+        click.echo("   --source-repo  option for the manifest URL")
+        click.echo("")
         click.echo("Repositories: ")
 
         for index, repo in enumerate(repos):
             release = latest_repo_releases[repo]
             click.echo(f"  [{index}] {repo} --> {release.version}")
+        click.echo("")
         return None
 
     if not repo_index.isnumeric() or not 0 <= int(repo_index) < len(repos):
@@ -408,10 +439,29 @@ def _get_latest_release_per_repo(all_releases):
     return latest_repo_releases
 
 
-async def _is_lnbits_started():
-    try:
+async def _call_install_extension(
+    data: CreateExtension, user: User, url: Optional[str]
+):
+    if url:
         async with httpx.AsyncClient() as client:
-            await client.get(f"http://{settings.host}:{settings.port}/api/v1/health")
+            await client.get(f"{url}/api/v1/extension?usr={user.id}")
+    else:
+        await api_install_extension(data, user)
+
+
+async def _is_lnbits_started(url: Optional[str]):
+    try:
+        url = url or f"http://{settings.host}:{settings.port}/api/v1/health"
+        async with httpx.AsyncClient() as client:
+            await client.get(url)
             return True
     except Exception as _:
+        return False
+
+
+def _is_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
         return False
