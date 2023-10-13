@@ -214,7 +214,7 @@ def extensions_upgrade(
             return
 
         if extension:
-            await upgrade_extension(extension, repo_index, source_repo)
+            await upgrade_extension(extension, repo_index, source_repo, url)
             return
 
         click.echo("Upgrading all extensions...")
@@ -223,7 +223,9 @@ def extensions_upgrade(
         for e in installed_extensions:
             try:
                 click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
-                success, msg = await upgrade_extension(e.id, repo_index, source_repo)
+                success, msg = await upgrade_extension(
+                    e.id, repo_index, source_repo, url
+                )
                 if version:
                     upgraded_extensions.append(
                         {"id": e.id, "success": success, "message": msg}
@@ -374,7 +376,7 @@ async def upgrade_extension(
         click.echo(f"Extension '{extension}' upgraded.")
         return True, release.version
     except HTTPException as ex:
-        click.echo(f"Faield to upgrade '{extension}': ex.detail.")
+        click.echo(f"Faield to upgrade '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
         click.echo(f"Faield to upgrade '{extension}': {str(ex)}.")
@@ -444,7 +446,10 @@ async def _call_install_extension(
 ):
     if url:
         async with httpx.AsyncClient() as client:
-            await client.get(f"{url}/api/v1/extension?usr={user.id}")
+            resp = await client.post(
+                f"{url}/api/v1/extension?usr={user.id}", json=data.dict(), timeout=40
+            )
+            resp.raise_for_status()
     else:
         await api_install_extension(data, user)
 
