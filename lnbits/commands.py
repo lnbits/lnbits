@@ -195,22 +195,7 @@ def extensions_upgrade(
 
     async def wrap():
         await check_admin_settings()
-        if await _is_lnbits_started(url):
-            if not url:
-                click.echo("LNbits server is started. Please either:")
-                click.echo(
-                    f"  - use the '--url' option. Eg: --url=http://{settings.host}:{settings.port}"
-                )
-                click.echo(
-                    f"  - stop the server running at 'http://{settings.host}:{settings.port}'"
-                )
-
-                return
-        elif url:
-            click.echo(
-                "The option '--url' has been provided,"
-                + f" but no server found runnint at '{url}'"
-            )
+        if not await _can_run_operation(url):
             return
 
         if extension:
@@ -253,21 +238,27 @@ def extensions_upgrade(
 @click.option(
     "--source-repo", help="Provide the repository URL to be used for installing."
 )
+@click.option(
+    "-u",
+    "--url",
+    help="Use this option to update a runing server. Eg: 'http://localhost:5000'.",
+)
 def extensions_install(
-    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+    extension: str,
+    repo_index: Optional[str] = None,
+    source_repo: Optional[str] = None,
+    url: Optional[str] = None,
 ):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
+    if url and not _is_url(url):
+        click.echo(f"Invalid '--url' option value: {url}")
+        return
 
     async def wrap():
-        await check_admin_settings()
-        if await _is_lnbits_started():
-            click.echo("Please stop LNbits before installing extensions from the CLI.")
-            click.echo(
-                f"Extensions can be installed via the UI here: 'http://{settings.host}:{settings.port}/extensions'"
-            )
+        if not await _can_run_operation(url):
             return
-        await install_extension(extension, repo_index, source_repo)
+        await install_extension(extension, repo_index, source_repo, url)
 
     _run_async(wrap)
 
@@ -308,7 +299,10 @@ def _run_async(fn) -> Any:
 
 
 async def install_extension(
-    extension: str, repo_index: Optional[str] = None, source_repo: Optional[str] = None
+    extension: str,
+    repo_index: Optional[str] = None,
+    source_repo: Optional[str] = None,
+    url: Optional[str] = None,
 ) -> Tuple[bool, str]:
     try:
         release = await _select_release(extension, repo_index, source_repo)
@@ -319,7 +313,7 @@ async def install_extension(
             ext_id=extension, archive=release.archive, source_repo=release.source_repo
         )
         user = User(id=get_super_user(), super_user=True)
-        await api_install_extension(data, user)
+        await _call_install_extension(data, user, url)
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
         return True, release.version
     except Exception as ex:
@@ -347,7 +341,7 @@ async def upgrade_extension(
             click.echo(
                 f"Extension '{extension}' is not installed. Preparing to install..."
             )
-            return await install_extension(extension, repo_index, source_repo)
+            return await install_extension(extension, repo_index, source_repo, url)
 
         click.echo(f"Current '{extension}' version: {installed_ext.installed_version}.")
 
@@ -452,6 +446,28 @@ async def _call_install_extension(
             resp.raise_for_status()
     else:
         await api_install_extension(data, user)
+
+
+async def _can_run_operation(url) -> bool:
+    if await _is_lnbits_started(url):
+        if not url:
+            click.echo("LNbits server is started. Please either:")
+            click.echo(
+                f"  - use the '--url' option. Eg: --url=http://{settings.host}:{settings.port}"
+            )
+            click.echo(
+                f"  - stop the server running at 'http://{settings.host}:{settings.port}'"
+            )
+
+            return False
+    elif url:
+        click.echo(
+            "The option '--url' has been provided,"
+            + f" but no server found runnint at '{url}'"
+        )
+        return False
+
+    return True
 
 
 async def _is_lnbits_started(url: Optional[str]):
