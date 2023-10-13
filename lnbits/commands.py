@@ -243,11 +243,6 @@ def extensions_upgrade(
     "--url",
     help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
 )
-@click.option(
-    "-u",
-    "--url",
-    help="Use this option to update a running server. Eg: 'http://localhost:5000'.",
-)
 def extensions_install(
     extension: str,
     repo_index: Optional[str] = None,
