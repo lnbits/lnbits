@@ -193,6 +193,10 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
+class CashuFundingSource(LNbitsSettings):
+    cashu_wallet_endpoint: Optional[str] = Field(default=None)
+
+
 # todo: must be extracted
 class BoltzExtensionSettings(LNbitsSettings):
     boltz_network: str = Field(default="main")
@@ -218,6 +222,7 @@ class FundingSourcesSettings(
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
+    CashuFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
