@@ -1,5 +1,6 @@
 { pkgs, makeTest, inputs }:
 makeTest {
+  name = "lnbits-nixos-module";
   nodes = {
     client = { config, pkgs, ... }: {
       environment.systemPackages = [ pkgs.curl ];

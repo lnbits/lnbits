@@ -4,9 +4,10 @@ import random
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11.decode import decode
 from loguru import logger
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -129,7 +130,14 @@ class CoreLightningRestWallet(Wallet):
         return InvoiceResponse(True, label, data["bolt11"], None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        invoice = lnbits_bolt11.decode(bolt11)
+        try:
+            invoice = decode(bolt11)
+        except Bolt11Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
+
+        if not invoice.amount_msat or invoice.amount_msat <= 0:
+            error_message = "0 amount invoices are not allowed"
+            return PaymentResponse(False, None, None, None, error_message)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
         r = await self.client.post(
             f"{self.url}/v1/pay",

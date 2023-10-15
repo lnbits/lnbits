@@ -7,6 +7,7 @@ import shortuuid
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
+from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
 from lnbits.settings import settings
 
@@ -30,6 +31,10 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
+        additional_folders += [
+            Path(settings.lnbits_extensions_path, "extensions", f)
+            for f in additional_folders
+        ]
         folders.extend(additional_folders)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
 
@@ -44,9 +49,12 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
-    t.env.globals["COMMIT_VERSION"] = settings.lnbits_commit
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_NODE_UI"] = (
+        settings.lnbits_node_ui and get_node_class() is not None
+    )
+    t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
     t.env.globals["EXTENSIONS"] = [
         e
         for e in get_valid_extensions()

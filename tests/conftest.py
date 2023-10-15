@@ -102,6 +102,20 @@ async def to_user():
     yield user
 
 
+@pytest.fixture()
+def from_super_user(from_user):
+    prev = settings.super_user
+    settings.super_user = from_user.id
+    yield from_user
+    settings.super_user = prev
+
+
+@pytest_asyncio.fixture(scope="session")
+async def superuser():
+    user = await get_user(settings.super_user)
+    yield user
+
+
 @pytest_asyncio.fixture(scope="session")
 async def superuser():
     user = await get_user(settings.super_user)

@@ -93,7 +93,10 @@ async def migrate_databases():
 
     for ext in get_valid_extensions():
         current_version = current_versions.get(ext.code, 0)
-        await migrate_extension_database(ext, current_version)
+        try:
+            await migrate_extension_database(ext, current_version)
+        except Exception as e:
+            logger.exception(f"Error migrating extension {ext.code}: {e}")
 
     logger.info("✔️ All migrations done.")
 

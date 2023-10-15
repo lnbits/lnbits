@@ -52,7 +52,7 @@ LNURL has a fallback scheme, so if scanned by a regular QR code reader it can de
 ![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
 
 Using **lnbits.com/?lightning="LNURL-withdraw"** will trigger a withdraw that builds an LNbits wallet.
-Example use would be an ATM, which utilises LNURL, if the user scans the QR with a regular QR code scanner app, they will still be able to access the funds.
+Example use would be an ATM, which utilizes LNURL, if the user scans the QR with a regular QR code scanner app, they will still be able to access the funds.
 
 ![lnurl ATM](https://i.imgur.com/Gi6bn3L.jpg)
 

@@ -15,7 +15,7 @@ An `Extension Manifest` is a link to a `JSON` file which contains information ab
 Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/main/docs/guide/extension-install.md#manifest-file) section.
 
 
-**LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one). 
+**LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one).
 > **Warning**
 > Extensions can have bugs or malicious code, be careful what you install!!
 
@@ -40,9 +40,9 @@ Click the `Manage` button in order to install a particular release of the extens
 Select the version to be installed (usually the last one) and click `Install`. One can also check the `Release Notes` first.
 
 > **Note**:
-> 
+>
 > For Github repository: the order of the releases is the one in the GitHub releases page
-> 
+>
 > For Explicit Release: the order of the releases is the one in the "extensions" object
 
 
@@ -109,12 +109,12 @@ It goes under the `extensions` object and it is of the form:
 | htmlUrl              | string        | optional  | Link to the extension home page.                                                                                                                                     |
 | infoNotification     | string        | optional  | Users that have this release installed will see a info message for their extension. For example if the extension support will be terminated soon.                    |
 | criticalNotification | string        | optional  | Reserved for urgent notifications. The admin user will receive a message each time it visits the `Install` page. One example is if the extension has a critical bug. |
-| dependencies         | list          | optional  | A list of extension IDs. It signals that those extensions must be installed BEFORE the this one can be installed.   
+| dependencies         | list          | optional  | A list of extension IDs. It signals that those extensions must be installed BEFORE the this one can be installed.
 
 </details>
 
 This mode has the advantage of strictly specifying what releases of an extension can be installed.
-    
+
 ### GitHub Repository
 It goes under the `repos` object and it is of the form:
 

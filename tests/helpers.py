@@ -53,6 +53,17 @@ docker_bitcoin_cli = [
 ]
 
 
+docker_lightning_unconnected_cli = [
+    "docker",
+    "exec",
+    "lnbits-legend-lnd-2-1",
+    "lncli",
+    "--network",
+    "regtest",
+    "--rpcserver=lnd-2",
+]
+
+
 def run_cmd(cmd: list) -> str:
     timeout = 20
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -122,6 +133,14 @@ def mine_blocks(blocks: int = 1) -> str:
     cmd = docker_bitcoin_cli.copy()
     cmd.extend(["-generate", str(blocks)])
     return run_cmd(cmd)
+
+
+def get_unconnected_node_uri() -> str:
+    cmd = docker_lightning_unconnected_cli.copy()
+    cmd.append("getinfo")
+    info = run_cmd_json(cmd)
+    pubkey = info["identity_pubkey"]
+    return f"{pubkey}@lnd-2:9735"
 
 
 def create_onchain_address(address_type: str = "bech32") -> str:

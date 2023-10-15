@@ -9,6 +9,7 @@ import sys
 import traceback
 from hashlib import sha256
 from http import HTTPStatus
+from pathlib import Path
 from typing import Callable, List
 
 from fastapi import FastAPI, HTTPException, Request
@@ -95,6 +96,8 @@ def create_app() -> FastAPI:
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
+
+    register_custom_extensions_path()
 
     # adds security middleware
     add_ip_block_middleware(app)
@@ -229,9 +232,7 @@ def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
-    zip_files = glob.glob(
-        os.path.join(settings.lnbits_data_folder, "extensions", "*.zip")
-    )
+    zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
         ext.download_archive()
@@ -264,10 +265,26 @@ def register_routes(app: FastAPI) -> None:
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(str(e))
-            raise ImportError(
-                f"Please make sure that the extension `{ext.code}` follows conventions."
-            )
+            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+
+
+def register_custom_extensions_path():
+    if settings.has_default_extension_path:
+        return
+    default_ext_path = os.path.join("lnbits", "extensions")
+    if os.path.isdir(default_ext_path) and len(os.listdir(default_ext_path)) != 0:
+        logger.warning(
+            "You are using a custom extensions path, "
+            + "but the default extensions directory is not empty. "
+            + f"Please clean-up the '{default_ext_path}' directory."
+        )
+        logger.warning(
+            f"You can move the existing '{default_ext_path}' directory to: "
+            + f" '{settings.lnbits_extensions_path}/extensions'"
+        )
+
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
+    sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
@@ -306,7 +323,10 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
-            app.mount(s["path"], s["app"], s["name"])
+            static_dir = Path(
+                settings.lnbits_extensions_path, "extensions", *s["path"].split("/")
+            )
+            app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
@@ -398,7 +418,6 @@ def log_server_info():
     logger.info(f"Site title: {settings.lnbits_site_title}")
     logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
-    logger.info(f"Git version: {settings.lnbits_commit}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
 

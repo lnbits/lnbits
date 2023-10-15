@@ -335,6 +335,7 @@ new Vue({
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
+      this.focusInput('textArea')
     },
     updateBalance: function (credit) {
       LNbits.api
@@ -701,7 +702,7 @@ new Vue({
 
       LNbits.api
         .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
-        .then(response => {
+        .then(_ => {
           dismissAuthMsg()
           this.$q.notify({
             message: `Authentication successful.`,
@@ -727,27 +728,35 @@ new Vue({
     updateWallet: function (data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
-        .then(res => {
+        .then(_ => {
           this.$q.notify({
             message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })
-          LNbits.href.updateWallet(
-            res.data.name,
-            this.user.id,
-            this.g.wallet.id
-          )
+          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
-    deleteWallet: function (walletId, user) {
+    deleteWallet: function () {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
         .onOk(() => {
-          LNbits.href.deleteWallet(walletId, user)
+          LNbits.api
+            .deleteWallet(this.g.wallet)
+            .then(_ => {
+              this.$q.notify({
+                timeout: 3000,
+                message: `Wallet deleted!`,
+                spinner: true
+              })
+            })
+            .catch(err => {
+              this.paymentsTable.loading = false
+              LNbits.utils.notifyApiError(err)
+            })
         })
     },
     fetchPayments: function (props) {
@@ -799,6 +808,7 @@ new Vue({
       })
     },
     pasteToTextArea: function () {
+      this.$refs.textArea.focus() // Set cursor to textarea
       navigator.clipboard.readText().then(text => {
         this.$refs.textArea.value = text
       })

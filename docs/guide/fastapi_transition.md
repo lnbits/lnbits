@@ -2,7 +2,7 @@
 ## Defining a route with path parameters
 **old:**
 ```python
-# with <> 
+# with <>
 @offlineshop_ext.route("/lnurl/<item_id>", methods=["GET"])
 ```
 
@@ -35,8 +35,8 @@ async def extensions(user: User = Depends(check_user_exists)):
 ```python
 return (
     {
-        "id": wallet.wallet.id, 
-        "name": wallet.wallet.name, 
+        "id": wallet.wallet.id,
+        "name": wallet.wallet.name,
         "balance": wallet.wallet.balance_msat
     },
     HTTPStatus.OK,
@@ -47,8 +47,8 @@ FastAPI returns `HTTPStatus.OK` by default id no Exception is raised
 **new:**
 ```python
 return {
-    "id": wallet.wallet.id, 
-    "name": wallet.wallet.name, 
+    "id": wallet.wallet.id,
+    "name": wallet.wallet.name,
     "balance": wallet.wallet.balance_msat
 }
 ```

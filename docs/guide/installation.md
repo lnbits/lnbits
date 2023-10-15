@@ -16,6 +16,7 @@ Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. 
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
+git checkout main
 cd lnbits
 
 # for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version

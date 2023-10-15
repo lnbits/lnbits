@@ -30,6 +30,9 @@ checkprettier:
 checkblack:
 	poetry run black --check .
 
+checkeditorconfig:
+	editorconfig-checker
+
 dev:
 	poetry run lnbits --reload
 
