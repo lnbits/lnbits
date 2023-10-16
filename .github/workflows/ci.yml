@@ -1,5 +1,11 @@
 name: LNbits CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
 
 jobs:
 
