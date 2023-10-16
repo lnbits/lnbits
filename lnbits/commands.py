@@ -214,7 +214,6 @@ def extensions_upgrade(
         return
 
     async def wrap():
-        await check_admin_settings()
         if not await _can_run_operation(url):
             return
 
@@ -510,6 +509,7 @@ async def _call_uninstall_extension(
 
 
 async def _can_run_operation(url) -> bool:
+    await check_admin_settings()
     if await _is_lnbits_started(url):
         if not url:
             click.echo("LNbits server is started. Please either:")
