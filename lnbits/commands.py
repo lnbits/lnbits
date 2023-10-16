@@ -181,7 +181,14 @@ def extensions_list():
     "-i", "--repo-index", help="Select the index of the repository to be used."
 )
 @click.option(
-    "-s", "--source-repo", help="Provide the repository URL to be used for upgrading."
+    "-s",
+    "--source-repo",
+    help="""
+        Provide the repository URL to be used for upgrading.
+        The URL must be one present in `LNBITS_EXTENSIONS_MANIFESTS`
+        or configured via the Admin UI. This option is required only
+        if an extension is present in more than one repository.
+    """,
 )
 @click.option(
     "-u",
@@ -201,7 +208,10 @@ def extensions_upgrade(
     url: Optional[str] = None,
     admin_user: Optional[str] = None,
 ):
-    """Upgrade extensions"""
+    """
+    Upgrade extension to the latest version.
+    If an extension is not present it will be instaled.
+    """
     if not extension and not all:
         click.echo("Extension ID is required.")
         click.echo("Or specify the '--all' flag to upgrade all extensions")
@@ -257,7 +267,14 @@ def extensions_upgrade(
     "-i", "--repo-index", help="Select the index of the repository to be used."
 )
 @click.option(
-    "-s", "--source-repo", help="Provide the repository URL to be used for installing."
+    "-s",
+    "--source-repo",
+    help="""
+        Provide the repository URL to be used for upgrading.
+        The URL must be one present in `LNBITS_EXTENSIONS_MANIFESTS`
+        or configured via the Admin UI. This option is required only
+        if an extension is present in more than one repository.
+    """,
 )
 @click.option(
     "-u",
