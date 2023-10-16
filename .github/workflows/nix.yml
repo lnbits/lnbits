@@ -3,8 +3,8 @@ name: LNbits CI / nix
 on:
   push:
     branches:
-        - main
-        - dev
+      - main
+      - dev
     paths:
       - 'flake.nix'
       - 'flake.lock'
@@ -21,8 +21,8 @@ jobs:
   nix:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: cachix/install-nix-action@v23
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-    - run: nix build
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v23
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - run: nix build
