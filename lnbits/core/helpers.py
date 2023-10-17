@@ -25,12 +25,13 @@ async def migrate_extension_database(ext: Extension, current_version):
         )
 
     async with ext_db.connect() as ext_conn:
-        await run_migration(ext_conn, ext_migrations, current_version)
+        await run_migration(ext_conn, ext_migrations, ext.code, current_version)
 
 
-async def run_migration(db: Connection, migrations_module: Any, current_version: int):
+async def run_migration(
+    db: Connection, migrations_module: Any, db_name: str, current_version: int
+):
     matcher = re.compile(r"^m(\d\d\d)_")
-    db_name = migrations_module.__name__.split(".")[-2]
     for key, migrate in migrations_module.__dict__.items():
         match = matcher.match(key)
         if match:

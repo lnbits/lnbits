@@ -89,7 +89,7 @@ async def migrate_databases():
 
         current_versions = await get_dbversions(conn)
         core_version = current_versions.get("core", 0)
-        await run_migration(conn, core_migrations, core_version)
+        await run_migration(conn, core_migrations, "core", core_version)
 
     for ext in get_valid_extensions():
         current_version = current_versions.get(ext.code, 0)
