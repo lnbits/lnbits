@@ -39,7 +39,12 @@ from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.api import add_installed_extension
 from .core.views.generic import update_installed_extension_state
-from .extension_manager import Extension, InstallableExtension, get_valid_extensions
+from .extension_manager import (
+    Extension,
+    InstallableExtension,
+    get_valid_extensions,
+    version_parse,
+)
 from .helpers import template_renderer
 from .middleware import (
     CustomGZipMiddleware,
@@ -217,7 +222,11 @@ async def build_all_installed_extensions_list() -> List[InstallableExtension]:
             continue
 
         ext_releases = await InstallableExtension.get_extension_releases(ext_id)
-        release = ext_releases[0] if len(ext_releases) else None
+        ext_releases = sorted(
+            ext_releases, key=lambda r: version_parse(r.version), reverse=True
+        )
+
+        release = next((e for e in ext_releases if e.is_version_compatible), None)
 
         if release:
             ext_info = InstallableExtension(
