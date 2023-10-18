@@ -186,6 +186,8 @@ async def pay_invoice(
         raise ValueError("Amount in invoice is too high.")
 
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
+    service_fee_msat = service_fee(invoice.amount_msat)
+
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
@@ -244,7 +246,7 @@ async def pay_invoice(
             # create a new payment from this wallet
             new_payment = await create_payment(
                 checking_id=internal_id,
-                fee=0,
+                fee=0 + abs(service_fee_msat),
                 pending=False,
                 conn=conn,
                 **payment_kwargs,
@@ -256,7 +258,7 @@ async def pay_invoice(
             try:
                 new_payment = await create_payment(
                     checking_id=temp_id,
-                    fee=-fee_reserve_msat,
+                    fee=-(fee_reserve_msat + service_fee_msat),
                     conn=conn,
                     **payment_kwargs,
                 )
@@ -315,7 +317,10 @@ async def pay_invoice(
                 await update_payment_details(
                     checking_id=temp_id,
                     pending=payment.ok is not True,
-                    fee=payment.fee_msat,
+                    fee=-(
+                        abs(payment.fee_msat if payment.fee_msat else 0)
+                        + abs(service_fee_msat)
+                    ),
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
                     conn=conn,
@@ -342,7 +347,18 @@ async def pay_invoice(
                 "didn't receive checking_id from backend, payment may be stuck in"
                 f" database: {temp_id}"
             )
-
+    # credit fee wallet
+    if settings.lnbits_service_fee_wallet and service_fee_msat:
+        new_payment = await create_payment(
+            wallet_id=settings.lnbits_service_fee_wallet,
+            fee=0,
+            amount=abs(service_fee_msat),
+            memo="service fee",
+            checking_id="service_fee" + temp_id,
+            payment_request=payment_request,
+            payment_hash=invoice.payment_hash,
+            pending=False,
+        )
     return invoice.payment_hash
 
 
@@ -500,6 +516,14 @@ def fee_reserve(amount_msat: int) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+def service_fee(amount_msat: int) -> int:
+    service_fee_percent = settings.lnbits_service_fee
+    if settings.lnbits_service_fee_wallet:
+        return int(amount_msat * service_fee_percent)
+    else:
+        return 0
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
