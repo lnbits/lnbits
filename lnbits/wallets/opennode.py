@@ -25,6 +25,7 @@ class OpenNodeWallet(Wallet):
             raise ValueError(
                 "cannot initialize OpenNodeWallet: missing opennode_api_endpoint"
             )
+        super().__init__()
         key = (
             settings.opennode_key
             or settings.opennode_admin_key
@@ -92,6 +93,7 @@ class OpenNodeWallet(Wallet):
         data = r.json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
+        self.pending_invoices.append(checking_id)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:

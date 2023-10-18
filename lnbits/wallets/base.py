@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
+
+from loguru import logger
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -93,6 +96,9 @@ class Wallet(ABC):
 
     __node_cls__: Optional[type[Node]] = None
 
+    def __init__(self) -> None:
+        self.pending_invoices: list[str] = []
+
     @abstractmethod
     async def cleanup(self):
         pass
@@ -130,9 +136,19 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
-    @abstractmethod
-    def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        pass
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        while True:
+            for invoice in self.pending_invoices:
+                try:
+                    status = await self.get_invoice_status(invoice)
+                    if status.paid:
+                        yield invoice
+                        self.pending_invoices.remove(invoice)
+                    elif status.failed:
+                        self.pending_invoices.remove(invoice)
+                except Exception as exc:
+                    logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
+            await asyncio.sleep(5)
 
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
