@@ -37,7 +37,7 @@ class ExplicitRelease(BaseModel):
     def is_version_compatible(self):
         if not self.min_lnbits_version:
             return True
-        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
+        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
 class GitHubRelease(BaseModel):
@@ -75,7 +75,7 @@ class ExtensionConfig(BaseModel):
     def is_version_compatible(self):
         if not self.min_lnbits_version:
             return True
-        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
+        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
 def download_url(url, save_path):
@@ -470,7 +470,7 @@ class InstallableExtension(BaseModel):
         if not self.latest_release:
             self.latest_release = release
             return
-        if version.parse(self.latest_release.version) < version.parse(release.version):
+        if version_parse(self.latest_release.version) < version_parse(release.version):
             self.latest_release = release
 
     @classmethod
@@ -613,3 +613,14 @@ def get_valid_extensions() -> List[Extension]:
     return [
         extension for extension in ExtensionManager().extensions if extension.is_valid
     ]
+
+
+def version_parse(v: str):
+    """
+    Wrapper for version.parse() that does not throw if the version is invalid.
+    Instead it return the lowest possible version ("0.0.0")
+    """
+    try:
+        return version.parse(v)
+    except Exception:
+        return version.parse("0.0.0")
