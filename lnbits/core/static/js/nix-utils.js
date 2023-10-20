@@ -21,9 +21,15 @@ function initNix() {
     }
     for (let i = 0; i < lines.length; i++) {
       const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
-      const servicesPrefix = nested('options.', depth)
+      const servicesPrefix = nested('options.services.', depth)
       if (lines[i].startsWith(servicesPrefix)) {
         result.service = lines[i].substring(servicesPrefix.length).split(' ')[0]
+        handleOptions(result.options, optionsLines, nextDepth)
+        return result
+      }
+      const optionsPrefix = nested('options.', depth)
+      if (lines[i].startsWith(optionsPrefix)) {
+        result.service = lines[i].substring(optionsPrefix.length).split(' ')[0]
         handleOptions(result.options, optionsLines, nextDepth)
         return result
       }

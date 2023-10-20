@@ -182,6 +182,17 @@ async def fetch_nix_packages_config():
     return json.loads(r.text)
 
 
+async def fetch_nix_default_config() -> str:
+    # todo: use env var for this
+    pachages_config_url = (
+        "https://raw.githubusercontent.com/lnbits/nix-lnbits/main/config.nix"
+    )
+    async with httpx.AsyncClient() as client:
+        r = await client.get(pachages_config_url, timeout=15)
+        r.raise_for_status()
+    return r.text
+
+
 def get_os_nix_packges():
     path = os.environ["PATH"]
     nix_packages = []

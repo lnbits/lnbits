@@ -56,7 +56,13 @@
 
 <q-dialog v-model="packageDialog.show" position="top">
   <q-card class="q-pa-lg" style="width: 800px; max-width: unset">
-    <h6>Nix Configurations</h6>
+    <h6>
+      <span
+        v-if="packageDialog.nixConfig"
+        v-text="packageDialog.nixConfig.service"
+      ></span>
+      <span v-else>Nix Configurations</span>
+    </h6>
 
     <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
       <div class="col">
