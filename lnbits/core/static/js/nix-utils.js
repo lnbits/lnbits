@@ -27,6 +27,11 @@ function initNix() {
         handleOptions(result.options, optionsLines, nextDepth)
         return result
       }
+      const nestedServicesPrefix = nested('options.services', depth)
+      if (lines[i].startsWith(nestedServicesPrefix)) {
+        handleOptions(result.options, optionsLines, nextDepth)
+        return result
+      }
       const optionsPrefix = nested('options.', depth)
       if (lines[i].startsWith(optionsPrefix)) {
         result.service = lines[i].substring(optionsPrefix.length).split(' ')[0]
