@@ -603,7 +603,8 @@ Vue.component('lnbits-dynamic-fields', {
           <p v-if=o.options?.length class="q-ml-xl">
             <span v-text="o.name"></span> <small v-if="o.description"> (<span v-text="o.description"></span>)</small>
           </p>
-          <lnbits-dynamic-fields v-if="o.options?.length" :options="o.options" v-model="formData[o.name]" class="q-ml-xl">
+          <lnbits-dynamic-fields v-if="o.options?.length" :options="o.options" v-model="formData[o.name]"
+            @input="handleValueChanged" class="q-ml-xl">
           </lnbits-dynamic-fields>
           <div v-else>
             <q-input v-if="o.type === 'number'" v-model="formData[o.name]" @input="handleValueChanged" type="number"
