@@ -1,6 +1,5 @@
 import json
 import os
-import subprocess
 from http import HTTPStatus
 from pathlib import Path
 from typing import List, Optional
@@ -148,15 +147,6 @@ async def get_nix_config_file():
 @install_router.put("/admin/api/v1/config/{packageId}")
 async def get_nix_update_config(packageId: str, data: SaveConfig):
     try:
-        (
-            subprocess.check_output(
-                ["echo", "$PATH"],
-                stderr=subprocess.DEVNULL,
-            )
-            .strip()
-            .decode("ascii")
-        )
-
         nix_config_dir = Path(settings.lnbits_data_folder, "nix", "config")
         nix_config_dir.mkdir(parents=True, exist_ok=True)
         package_data_file = Path(nix_config_dir, f"{packageId}.json")
