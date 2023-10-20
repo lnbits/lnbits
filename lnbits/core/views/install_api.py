@@ -156,7 +156,6 @@ async def get_nix_update_config(packageId: str, data: SaveConfig):
             .strip()
             .decode("ascii")
         )
-        print("### path", path)
 
         nix_config_dir = Path(settings.lnbits_data_folder, "nix", "config")
         nix_config_dir.mkdir(parents=True, exist_ok=True)
