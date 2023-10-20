@@ -78,6 +78,18 @@ function initNix() {
           options.push(option)
         }
         i += nestedObject.length
+      } else if (_lineStartsWith(lines[i], 'enable = mkEnableOption')) {
+        options.push({
+          name: 'enable',
+          type: 'bool',
+          default: false,
+          description: lines[i]
+            .trim()
+            .substring(
+              'enable = mkEnableOption'.length + 1,
+              lines[i].trim().length - 1
+            )
+        })
       }
     }
   }
