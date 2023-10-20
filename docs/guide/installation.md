@@ -16,6 +16,7 @@ Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. 
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
+cd lnbits
 git checkout main
 cd lnbits
 
