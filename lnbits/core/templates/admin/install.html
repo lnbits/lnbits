@@ -15,21 +15,9 @@
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
           <q-tabs v-model="tab" active-color="primary" align="left">
-            <q-tab
-              name="packages"
-              :label="$t('packages')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="support_packages"
-              :label="$t('support_packages')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="config"
-              :label="$t('config_file')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="packages" :label="$t('packages')" @update="val => tab = val.name"></q-tab>
+            <q-tab name="support_packages" :label="$t('support_packages')" @update="val => tab = val.name"></q-tab>
+            <q-tab name="config" :label="$t('config_file')" @update="val => tab = val.name"></q-tab>
           </q-tabs>
         </div>
       </div>
@@ -37,16 +25,8 @@
   </div>
 </div>
 <q-card class="no-border no-outline no-box-shadow">
-  <q-form
-    name="settings_form"
-    id="settings_form"
-    class="no-border no-outline no-box-shadow"
-  >
-    <q-tab-panels
-      v-model="tab"
-      animated
-      class="bg-dark no-border no-outline no-box-shadow"
-    >
+  <q-form name="settings_form" id="settings_form" class="no-border no-outline no-box-shadow">
+    <q-tab-panels v-model="tab" animated class="bg-dark no-border no-outline no-box-shadow">
       {% include "admin/_tab_install_packages.html" %}{% include
       "admin/_tab_install_support_packages.html" %} {% include
       "admin/_tab_install_config.html" %}
@@ -57,25 +37,18 @@
 <q-dialog v-model="packageDialog.show" position="top">
   <q-card class="q-pa-lg" style="width: 800px; max-width: unset">
     <h6>
-      <span
-        v-if="packageDialog.nixConfig"
-        v-text="packageDialog.nixConfig.service"
-      ></span>
+      <span v-if="packageDialog.nixConfig" v-text="packageDialog.nixConfig.service"></span>
       <span v-else>Nix Configurations</span>
     </h6>
 
     <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
       <div class="col">
-        <lnbits-dynamic-fields
-          :options="packageDialog.nixConfig.options"
-          v-model="packageDialog.nixData"
-        ></lnbits-dynamic-fields>
+        <lnbits-dynamic-fields :options="packageDialog.nixConfig.options"
+          v-model="packageDialog.nixData"></lnbits-dynamic-fields>
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn v-close-popup @click="updateConfig()" color="primary"
-        >Update</q-btn
-      >
+      <q-btn v-close-popup @click="updateConfig()" color="primary">Update</q-btn>
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
     </div>
   </q-card>
@@ -125,8 +98,6 @@
               this.packages[i].installed = true
             }
           }
-          // console.log(self.configAr)
-
           var supportPackages = JSON.stringify(response.data.support_packages)
           this.supportPackages = JSON.parse(supportPackages)
           for (var i = 0; i < this.supportPackages.length; i++) {
@@ -136,18 +107,17 @@
               this.supportPackages[i].installed = true
             }
           }
-          // console.log(self.configAr)
         })
       },
       async getNixConfig(packageId) {
         try {
-          const {data} = await LNbits.api.request(
+          const { data } = await LNbits.api.request(
             'GET',
             `/admin/api/v1/config/${packageId}`,
             this.g.user.wallets[0].adminkey
           )
           this.packageDialog.nixConfig = nixConfigToJson(data.config)
-          this.packageDialog.nixData = data.data || {}
+          this.packageDialog.nixData = data.data?.config || {}
         } catch (error) {
           console.warn(error)
           LNbits.utils.notifyApiError(error)
@@ -164,13 +134,14 @@
       },
       async updateConfig() {
         try {
-          const {data} = await LNbits.api.request(
+          const { data } = await LNbits.api.request(
             'PUT',
             `/admin/api/v1/config/${this.packageDialog.packageId}`,
             this.g.user.wallets[0].adminkey,
             {
-              config: JSON.stringify(this.packageDialog.nixData, null, 2)
+              config: JSON.stringify({ service: this.packageDialog.nixConfig.service, config: this.packageDialog.nixData }, null, 2)
             }
+
           )
           this.$q.notify({
             message: 'Nix configuration updated',
