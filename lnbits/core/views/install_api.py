@@ -78,8 +78,9 @@ async def get_installable_packages():
                 installed_package = next(
                     (p for p in os_nix_packages if p[0] == package["id"]), None
                 )
-                package["version"] = installed_package[1]
-                package["installed"] = True
+                if installed_package:
+                    package["version"] = installed_package[1]
+                    package["installed"] = True
             except Exception as e:
                 logger.debug(e)
 
