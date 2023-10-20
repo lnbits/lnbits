@@ -60,10 +60,10 @@
 
     <div v-if="packageDialog.nixConfig" class="row q-mt-lg">
       <div class="col">
-        <lnbits-dynamic-controls
+        <lnbits-dynamic-fields
           :options="packageDialog.nixConfig.options"
           v-model="packageDialog.nixData"
-        ></lnbits-dynamic-controls>
+        ></lnbits-dynamic-fields>
       </div>
     </div>
     <div class="row q-mt-lg">
