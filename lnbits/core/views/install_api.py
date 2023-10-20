@@ -148,7 +148,7 @@ async def get_nix_config_file():
 @install_router.put("/admin/api/v1/config/{packageId}")
 async def get_nix_update_config(packageId: str, data: SaveConfig):
     try:
-        path = (
+        (
             subprocess.check_output(
                 ["echo", "$PATH"],
                 stderr=subprocess.DEVNULL,
