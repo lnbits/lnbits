@@ -1,4 +1,10 @@
 <q-tab-panel name="config" class="q-pa-none">
+  <q-card-section class="q-pa-none q-mb-md">
+    <q-btn color="primary" @click="updateConfigFile()" class="q-mr-sm"
+      >Update</q-btn
+    >
+    <q-btn color="primary">Backup</q-btn>
+  </q-card-section>
   <q-card-section class="q-pa-none">
     <div>
       <div class="row">
@@ -7,11 +13,10 @@
           v-model="config"
           autogrow
           style="width: 100%; background-color: rgb(41, 41, 41)"
+          class="q-pa-md"
           type="textarea"
         ></q-input>
       </div>
     </div>
-    <q-btn color="primary" @click="updateConfig()">Update</q-btn>
-    <q-btn color="primary">Backup</q-btn>
   </q-card-section>
 </q-tab-panel>

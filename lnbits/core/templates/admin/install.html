@@ -73,7 +73,7 @@
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn v-close-popup @click="updateConfig()" color="primary"
+      <q-btn v-close-popup @click="updatePackageConfig()" color="primary"
         >Update</q-btn
       >
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
@@ -159,25 +159,18 @@
           })
         })
       },
-      async updateConfig() {
+      async updateConfigFile() {
         try {
           const {data} = await LNbits.api.request(
             'PUT',
-            `/admin/api/v1/config/${this.packageDialog.packageId}`,
+            `/admin/api/v1/config`,
             this.g.user.wallets[0].adminkey,
             {
-              config: JSON.stringify(
-                {
-                  service: this.packageDialog.nixConfig.service,
-                  config: this.packageDialog.nixData
-                },
-                null,
-                2
-              )
+              config: this.config
             }
           )
           this.$q.notify({
-            message: 'Nix configuration updated',
+            message: 'Nix configuration file updated',
             type: 'positive',
             timeout: 5
           })
@@ -185,6 +178,33 @@
           console.warn(error)
           LNbits.utils.notifyApiError(error)
         }
+      }
+    },
+    async updatePackageConfig() {
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/admin/api/v1/config/${this.packageDialog.packageId}`,
+          this.g.user.wallets[0].adminkey,
+          {
+            config: JSON.stringify(
+              {
+                service: this.packageDialog.nixConfig.service,
+                config: this.packageDialog.nixData
+              },
+              null,
+              2
+            )
+          }
+        )
+        this.$q.notify({
+          message: 'Nix package config updated',
+          type: 'positive',
+          timeout: 5
+        })
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
       }
     },
     created() {

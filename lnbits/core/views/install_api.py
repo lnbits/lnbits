@@ -138,14 +138,42 @@ async def get_nix_config(packageId: str):
 
 @install_router.get("/admin/api/v1/config")
 async def get_nix_config_file():
-    file_contents = ""
-    with open("lnbits/core/static/nix/config.nix", "r") as file:
-        file_contents = file.read()
-    return file_contents
+    try:
+        custom_config_path = Path(
+            settings.lnbits_data_folder, "nix", "config", "custom.config.nix"
+        )
+        if custom_config_path.exists():
+            with open(custom_config_path, "r") as file:
+                return file.read()
+
+        return await fetch_nix_default_config()
+
+    except Exception as e:
+        logger.warning(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=("Failed to get nix config"),
+        )
+
+
+@install_router.put("/admin/api/v1/config")
+async def update_nix_config(data: SaveConfig):
+    try:
+        custom_config_path = Path(
+            settings.lnbits_data_folder, "nix", "config", "custom.config.nix"
+        )
+        with open(custom_config_path, "w") as file:
+            file.write(data.config)
+    except Exception as e:
+        logger.warning(e)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=("Failed to get nix config"),
+        )
 
 
 @install_router.put("/admin/api/v1/config/{packageId}")
-async def get_nix_update_config(packageId: str, data: SaveConfig):
+async def update_nix_package_config(packageId: str, data: SaveConfig):
     try:
         nix_config_dir = Path(settings.lnbits_data_folder, "nix", "config")
         nix_config_dir.mkdir(parents=True, exist_ok=True)
