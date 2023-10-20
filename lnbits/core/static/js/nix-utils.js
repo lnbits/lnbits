@@ -47,7 +47,7 @@ function initNix() {
           .substring(serviceNamePrefix.length)
           .split(' ')[0]
       }
-      if (lines[i].endsWith(' mkOption {')) {
+      if (_lineEndsWith(lines[i], ' mkOption {')) {
         handleOptions(result.options, lines.slice(i), nextDepth)
         return result
       }
@@ -61,13 +61,13 @@ function initNix() {
   function handleOptions(options, lines, depth) {
     const nextDepth = depth + indentSpaceCount
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].endsWith(' mkOption {')) {
+      if (_lineEndsWith(lines[i], ' mkOption {')) {
         const optionLines = extractObject(lines.slice(i + 1), nextDepth)
         const option = extractOption(optionLines, nextDepth)
         option.name = lines[i].trim().split(' ')[0].split('.').slice(-1)[0]
         options.push(option)
         i += optionLines.length
-      } else if (lines[i].endsWith(' = {')) {
+      } else if (_lineEndsWith(lines[i], ' = {')) {
         const option = {
           name: lines[i].trim().split(' ')[0],
           options: []
@@ -87,14 +87,14 @@ function initNix() {
     const op = {}
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      if (line.startsWith(`description = mdDoc "`)) {
+      if (_lineStartsWith(line, `description = mdDoc "`)) {
         op.description = line.slice(
           `description = mdDoc "`.length,
           line.length - 2
         )
       } else if (
-        line.startsWith(`description = mdDoc ''`) ||
-        line.startsWith(`description = ''`)
+        _lineStartsWith(line, `description = mdDoc ''`) ||
+        _lineStartsWith(line, `description = ''`)
       ) {
         const longDescriptionLines = extractObject(
           lines.slice(i + 1),
@@ -102,7 +102,7 @@ function initNix() {
         )
         op.description = longDescriptionLines.map(l => l.trim()).join('\n')
         i += longDescriptionLines
-      } else if (line.startsWith('type =') && line.endsWith(';')) {
+      } else if (_lineStartsWith(line, 'type =') && line.endsWith(';')) {
         // todo: handle with types
         const types = line
           .substring('type ='.length + 1, line.length - 1)
@@ -132,7 +132,7 @@ function initNix() {
           const type = types.find(t => typesMap[t])
           op.type = type ? typesMap[type] : 'str'
         }
-      } else if (line.startsWith('default =') && line.endsWith(';')) {
+      } else if (_lineStartsWith(line, 'default =') && line.endsWith(';')) {
         const value = extractValue(
           line.slice('default ='.length, line.length - 1).trim()
         )
@@ -176,6 +176,19 @@ function initNix() {
   function nested(str, level) {
     const prefix = Array(level).fill(' ').join('')
     return prefix + str
+  }
+
+  function _lineStartsWith(line, start) {
+    return _normlize_line_spaces(line).startsWith(start)
+  }
+  function _lineEndsWith(line, end) {
+    return _normlize_line_spaces(line).endsWith(end)
+  }
+  function _normlize_line_spaces(line = '') {
+    return line
+      .split(' ')
+      .filter(w => w)
+      .join(' ')
   }
 
   return handleData
