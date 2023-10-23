@@ -94,6 +94,7 @@
         supportPackages: null,
         config: '',
         configAr: [],
+        showFullConfig: false,
         packageDialog: {
           show: false,
           packageId: null,
@@ -152,12 +153,19 @@
       },
       getConfig() {
         self = this
-        LNbits.api.request('GET', '/admin/api/v1/config').then(response => {
-          self.config = response.data
-          self.configAr = self.config.split(/\r\n|\r|\n/).map(function (item) {
-            return item.trim()
+        LNbits.api
+          .request(
+            'GET',
+            `/admin/api/v1/config?showFullConfig=${this.showFullConfig}`
+          )
+          .then(response => {
+            self.config = response.data
+            self.configAr = self.config
+              .split(/\r\n|\r|\n/)
+              .map(function (item) {
+                return item.trim()
+              })
           })
-        })
       },
       async updateConfigFile() {
         try {

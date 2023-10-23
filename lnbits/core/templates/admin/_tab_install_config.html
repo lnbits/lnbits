@@ -3,7 +3,11 @@
     <q-btn color="primary" @click="updateConfigFile()" class="q-mr-sm"
       >Update</q-btn
     >
-    <q-btn color="primary">Backup</q-btn>
+    <q-toggle
+      :label="showFullConfig ? 'Show Custom Config' : 'Show Full Config'"
+      v-model="showFullConfig"
+      @input="getConfig()"
+    ></q-toggle>
   </q-card-section>
   <q-card-section class="q-pa-none">
     <div>
@@ -11,6 +15,7 @@
         <q-input
           borderless
           v-model="config"
+          :readonly="showFullConfig"
           autogrow
           style="width: 100%; background-color: rgb(41, 41, 41)"
           class="q-pa-md"

@@ -137,10 +137,11 @@ async def get_nix_config(packageId: str):
 
 
 @install_router.get("/admin/api/v1/config")
-async def get_nix_config_file() -> str:
+async def get_nix_config_file(showFullConfig: Optional[bool] = False) -> str:
     try:
+        config_file = "config.nix" if showFullConfig else "custom.config.nix"
         custom_config_path = Path(
-            settings.lnbits_data_folder, "nix", "config", "custom.config.nix"
+            settings.lnbits_data_folder, "nix", "config", config_file
         )
         if custom_config_path.exists():
             with open(custom_config_path, "r") as file:
