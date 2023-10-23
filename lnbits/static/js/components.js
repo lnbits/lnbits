@@ -363,6 +363,7 @@ Vue.component('lnbits-lnurlpay-success-action', {
     )
   }
 })
+
 Vue.component('lnbits-qrcode', {
   mixins: [windowMixin],
   props: ['value'],
@@ -593,6 +594,7 @@ Vue.component('lnbits-notifications-btn', {
     }
   }
 })
+
 Vue.component('lnbits-dynamic-fields', {
   mixins: [windowMixin],
   props: ['options', 'value'],
