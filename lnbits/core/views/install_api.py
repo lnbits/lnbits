@@ -64,14 +64,14 @@ class Manifest(BaseModel):
 @install_router.get("/admin/api/v1/apps")
 async def get_installable_packages():
     try:
-        conf = await fetch_nix_packages_config()
+        conf = await _fetch_nix_packages_config()
         packages = []
         if "packages" in conf:
             packages += conf["packages"]
         if "support_packages" in conf:
             packages += conf["support_packages"]
 
-        os_nix_packages = get_os_nix_packges()
+        os_nix_packages = _get_os_nix_packges()
         for package in packages:
             try:
                 installed_package = next(
@@ -101,7 +101,7 @@ async def get_installed():
 @install_router.get("/admin/api/v1/config/{packageId}")
 async def get_nix_config(packageId: str):
     try:
-        conf = await fetch_nix_packages_config()
+        conf = await _fetch_nix_packages_config()
         packages = []
         if "packages" in conf:
             packages += conf["packages"]
@@ -137,7 +137,7 @@ async def get_nix_config(packageId: str):
 
 
 @install_router.get("/admin/api/v1/config")
-async def get_nix_config_file():
+async def get_nix_config_file() -> str:
     try:
         custom_config_path = Path(
             settings.lnbits_data_folder, "nix", "config", "custom.config.nix"
@@ -146,7 +146,7 @@ async def get_nix_config_file():
             with open(custom_config_path, "r") as file:
                 return file.read()
 
-        return await fetch_nix_default_config()
+        return await _fetch_nix_default_config()
 
     except Exception as e:
         logger.warning(e)
@@ -180,6 +180,26 @@ async def update_nix_package_config(packageId: str, data: SaveConfig):
         package_data_file = Path(nix_config_dir, f"{packageId}.json")
         with open(package_data_file, "w") as file:
             file.write(data.config)
+
+        properties = await _fetch_all_nix_properties()
+        if len(properties) > 0:
+            nix_config = await get_nix_config_file()
+            last_block__end = nix_config.rindex("}")
+
+            config_path = Path(
+                settings.lnbits_data_folder, "nix", "config", "config.nix"
+            )
+
+            with open(config_path, "w") as file:
+                custom_config = (
+                    nix_config[: last_block__end - 1]
+                    + "\n\n\n  ############### Custom Config ###############\n  "
+                    + "\n  ".join(properties)
+                    + "\n  ############### Custom Config End ###############\n"
+                    + nix_config[last_block__end:]
+                )
+                file.write(custom_config)
+
     except Exception as e:
         logger.warning(e)
         raise HTTPException(
@@ -188,7 +208,7 @@ async def update_nix_package_config(packageId: str, data: SaveConfig):
         )
 
 
-async def fetch_nix_packages_config():
+async def _fetch_nix_packages_config():
     # todo: use env var for this
     pachages_config_url = (
         "https://raw.githubusercontent.com/lnbits/nix-lnbits/main/nix-packages.json"
@@ -199,7 +219,7 @@ async def fetch_nix_packages_config():
     return json.loads(r.text)
 
 
-async def fetch_nix_default_config() -> str:
+async def _fetch_nix_default_config() -> str:
     # todo: use env var for this
     pachages_config_url = (
         "https://raw.githubusercontent.com/lnbits/nix-lnbits/main/config.nix"
@@ -210,7 +230,23 @@ async def fetch_nix_default_config() -> str:
     return r.text
 
 
-def get_os_nix_packges():
+async def _fetch_all_nix_properties() -> List[str]:
+    config_dir = Path(settings.lnbits_data_folder, "nix", "config")
+    config_files = [file for file in os.listdir(config_dir) if file.endswith(".json")]
+    props = []
+    for f in config_files:
+        try:
+            with open(Path(config_dir, f), "r") as file:
+                config = json.loads(file.read())
+                if "properties" in config:
+                    props += config["properties"]
+        except Exception as e:
+            logger.warning(e)
+
+    return props
+
+
+def _get_os_nix_packges():
     path = os.environ["PATH"]
     nix_packages = []
     for path in path.split(os.pathsep):

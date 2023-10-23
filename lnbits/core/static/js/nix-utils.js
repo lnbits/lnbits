@@ -217,3 +217,40 @@ function initNix() {
   return handleData
 }
 var nixConfigToJson = initNix()
+
+function jsonConfigToNix(options, data) {
+  if (!data) return []
+
+  const props = []
+  for (const o of options) {
+    if (o.options?.length > 0) {
+      for (const p of jsonConfigToNix(o.options, data[o.name])) {
+        props.push(`${o.name}.${p}`)
+      }
+    } else if (data[o.name] !== undefined && data[o.name] !== o.default) {
+      props.push(`${o.name} = ${_toNixValue(o, data[o.name])}`)
+    }
+  }
+  return props
+}
+
+function _toNixValue(option, value) {
+  if (option.isList) {
+    let listValues = (value || []).map(v =>
+      _toNixValue({...option, isList: false}, v)
+    )
+
+    return `[${listValues.join(' ')}]`
+  } else if (
+    option.type === 'str' ||
+    option.type === 'text' ||
+    option.type === 'select'
+  ) {
+    if (value.indexOf('\n') !== -1) {
+      return `''${value}''`
+    }
+    return `"${value}"`
+  }
+
+  return value
+}
