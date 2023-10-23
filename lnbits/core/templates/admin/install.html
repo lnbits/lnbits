@@ -153,19 +153,12 @@
       },
       getConfig() {
         self = this
-        LNbits.api
-          .request(
-            'GET',
-            `/admin/api/v1/config?showFullConfig=${this.showFullConfig}`
-          )
-          .then(response => {
-            self.config = response.data
-            self.configAr = self.config
-              .split(/\r\n|\r|\n/)
-              .map(function (item) {
-                return item.trim()
-              })
+        LNbits.api.request('GET', `/admin/api/v1/config?showFullConfig=${this.showFullConfig}`).then(response => {
+          self.config = response.data
+          self.configAr = self.config.split(/\r\n|\r|\n/).map(function (item) {
+            return item.trim()
           })
+        })
       },
       async updateConfigFile() {
         try {
@@ -191,11 +184,11 @@
       async updatePackageConfig() {
         try {
           const serviceName = this.packageDialog.nixConfig.service
-          const prefix = serviceName ? `services.${serviceName}` : 'services'
+          const prefix = serviceName ? `services.${serviceName}.` : ''
           const properties = jsonConfigToNix(
             this.packageDialog.nixConfig.options,
             this.packageDialog.nixData
-          ).map(p => `${prefix}.${p};`)
+          ).map(p => `${prefix}${p};`)
 
           const {data} = await LNbits.api.request(
             'PUT',
