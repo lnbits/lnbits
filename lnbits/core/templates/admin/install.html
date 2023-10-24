@@ -190,12 +190,10 @@
 
       async updatePackageConfig() {
         try {
-          const serviceName = this.packageDialog.nixConfig.service
-          const prefix = serviceName ? `services.${serviceName}.` : ''
           const properties = jsonConfigToNix(
             this.packageDialog.nixConfig.options,
             this.packageDialog.nixData
-          ).map(p => `${prefix}${p};`)
+          ).map(p => `${p};`)
 
           const {data} = await LNbits.api.request(
             'PUT',

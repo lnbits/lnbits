@@ -15,57 +15,17 @@ function initNix() {
   function handleData(data, depth = indentSpaceCount) {
     const lines = data.split('\n')
     const nextDepth = depth + indentSpaceCount
-    const result = {
-      service: '',
-      options: []
-    }
-    for (let i = 0; i < lines.length; i++) {
-      const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
-      const servicesPrefix = nested('options.services.', depth)
-      if (lines[i].startsWith(servicesPrefix)) {
-        result.service = lines[i].substring(servicesPrefix.length).split(' ')[0]
-        handleOptions(result.options, optionsLines, nextDepth)
-        return result
-      }
-      const nestedServicesPrefix = nested('options.services', depth)
-      if (lines[i].startsWith(nestedServicesPrefix)) {
-        handleOptions(result.options, optionsLines, nextDepth)
-        return result
-      }
-      const optionsPrefix = nested('options.', depth)
-      if (lines[i].startsWith(optionsPrefix)) {
-        handleOptions(result.options, optionsLines, nextDepth)
-        return result
-      }
-      if (lines[i].startsWith(nested('options', depth))) {
-        return handleService(optionsLines, nextDepth)
-      }
-    }
-    return result
-  }
 
-  function handleService(lines, depth) {
-    const nextDepth = depth + indentSpaceCount
-    const result = {
-      service: '',
-      options: []
-    }
-    const serviceNamePrefix = nested('services.', depth)
+    const options = []
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith(serviceNamePrefix)) {
-        result.service = lines[i]
-          .substring(serviceNamePrefix.length)
-          .split(' ')[0]
+      if (lines[i].startsWith(nested('options', depth))) {
+        const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
+        handleOptions(options, optionsLines, nextDepth)
+        const optionName = lines[i].trim().split(' ')[0]
+        return nestOption(optionName, {options})
       }
-      if (_lineEndsWith(lines[i], ' mkOption {')) {
-        handleOptions(result.options, lines.slice(i), depth)
-        return result
-      }
-      const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
-      handleOptions(result.options, optionsLines, nextDepth)
-      return result
     }
-    return result
+    return options
   }
 
   function handleOptions(options, lines, depth) {
@@ -81,14 +41,12 @@ function initNix() {
         options.push(option)
         i += optionLines.length
       } else if (_lineEndsWith(lines[i], ' = {')) {
-        const option = {
-          name: lines[i].trim().split(' ')[0],
-          options: []
-        }
+        const optionName = lines[i].trim().split(' ')[0]
+        const option = {options: []}
         const nestedObject = extractObject(lines.slice(i + 1), nextDepth)
         handleOptions(option.options, nestedObject, nextDepth)
         if (option.options.length) {
-          options.push(option)
+          options.push(nestOption(optionName, option))
         }
         i += nestedObject.length
       } else if (_lineStartsWith(lines[i], 'enable = mkEnableOption')) {
