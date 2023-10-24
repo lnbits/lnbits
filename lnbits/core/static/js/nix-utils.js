@@ -34,7 +34,6 @@ function initNix() {
       }
       const optionsPrefix = nested('options.', depth)
       if (lines[i].startsWith(optionsPrefix)) {
-        result.service = lines[i].substring(optionsPrefix.length).split(' ')[0]
         handleOptions(result.options, optionsLines, nextDepth)
         return result
       }
@@ -59,7 +58,7 @@ function initNix() {
           .split(' ')[0]
       }
       if (_lineEndsWith(lines[i], ' mkOption {')) {
-        handleOptions(result.options, lines.slice(i), nextDepth)
+        handleOptions(result.options, lines.slice(i), depth)
         return result
       }
       const optionsLines = extractObject(lines.slice(i + 1), nextDepth)
@@ -74,8 +73,11 @@ function initNix() {
     for (let i = 0; i < lines.length; i++) {
       if (_lineEndsWith(lines[i], ' mkOption {')) {
         const optionLines = extractObject(lines.slice(i + 1), nextDepth)
-        const option = extractOption(optionLines, nextDepth)
-        option.name = lines[i].trim().split(' ')[0].split('.').slice(-1)[0]
+        const optionName = lines[i].trim().split(' ')[0]
+        const option = nestOption(
+          optionName,
+          extractOption(optionLines, nextDepth)
+        )
         options.push(option)
         i += optionLines.length
       } else if (_lineEndsWith(lines[i], ' = {')) {
@@ -102,6 +104,19 @@ function initNix() {
             )
         })
       }
+    }
+  }
+
+  function nestOption(key, option) {
+    const keys = key.split('.')
+    if (keys.length === 1) {
+      option.name = keys[0]
+      return option
+    }
+
+    return {
+      name: keys[0],
+      options: [nestOption(keys.slice(1).join('.'), option)]
     }
   }
 
