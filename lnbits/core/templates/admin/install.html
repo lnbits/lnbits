@@ -28,7 +28,7 @@
             <q-tab
               name="config"
               :label="$t('config_file')"
-              @update="val => tab = val.name"
+              @click="getConfig()"
             ></q-tab>
           </q-tabs>
         </div>
