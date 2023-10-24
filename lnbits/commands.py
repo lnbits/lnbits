@@ -174,9 +174,9 @@ def extensions_list():
     _run_async(wrap)
 
 
-@extensions.command("upgrade")
+@extensions.command("update")
 @click.argument("extension", required=False)
-@click.option("-a", "--all", is_flag=True, help="Upgrade all extensions.")
+@click.option("-a", "--all", is_flag=True, help="Update all extensions.")
 @click.option(
     "-i", "--repo-index", help="Select the index of the repository to be used."
 )
@@ -184,7 +184,7 @@ def extensions_list():
     "-s",
     "--source-repo",
     help="""
-        Provide the repository URL to be used for upgrading.
+        Provide the repository URL to be used for updating.
         The URL must be one present in `LNBITS_EXTENSIONS_MANIFESTS`
         or configured via the Admin UI. This option is required only
         if an extension is present in more than one repository.
@@ -200,7 +200,7 @@ def extensions_list():
     "--admin-user",
     help="Admin user ID (must have permissions to install extensions).",
 )
-def extensions_upgrade(
+def extensions_update(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
     repo_index: Optional[str] = None,
@@ -209,12 +209,12 @@ def extensions_upgrade(
     admin_user: Optional[str] = None,
 ):
     """
-    Upgrade extension to the latest version.
+    Update extension to the latest version.
     If an extension is not present it will be instaled.
     """
     if not extension and not all:
         click.echo("Extension ID is required.")
-        click.echo("Or specify the '--all' flag to upgrade all extensions")
+        click.echo("Or specify the '--all' flag to update all extensions")
         return
     if extension and all:
         click.echo("Only one of extension ID or the '--all' flag must be specified")
@@ -228,30 +228,30 @@ def extensions_upgrade(
             return
 
         if extension:
-            await upgrade_extension(extension, repo_index, source_repo, url, admin_user)
+            await update_extension(extension, repo_index, source_repo, url, admin_user)
             return
 
-        click.echo("Upgrading all extensions...")
+        click.echo("Updating all extensions...")
         installed_extensions = await get_installed_extensions()
-        upgraded_extensions = []
+        updated_extensions = []
         for e in installed_extensions:
             try:
                 click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
-                success, msg = await upgrade_extension(
+                success, msg = await update_extension(
                     e.id, repo_index, source_repo, url, admin_user
                 )
                 if version:
-                    upgraded_extensions.append(
+                    updated_extensions.append(
                         {"id": e.id, "success": success, "message": msg}
                     )
             except Exception as ex:
                 click.echo(f"Failed to install extension '{e.id}': {ex}")
 
-        if len(upgraded_extensions) == 0:
-            click.echo("No extension was upgraded.")
+        if len(updated_extensions) == 0:
+            click.echo("No extension was updated.")
         else:
-            for u in sorted(upgraded_extensions, key=lambda d: d["id"]):
-                status = "upgraded to  " if u["success"] else "not upgraded "
+            for u in sorted(updated_extensions, key=lambda d: d["id"]):
+                status = "updated to  " if u["success"] else "not updated "
                 click.echo(
                     f"""'{u["id"]}' {" "*(20-len(u["id"]))}"""
                     + f""" - {status}: '{u["message"]}'"""
@@ -270,7 +270,7 @@ def extensions_upgrade(
     "-s",
     "--source-repo",
     help="""
-        Provide the repository URL to be used for upgrading.
+        Provide the repository URL to be used for updating.
         The URL must be one present in `LNBITS_EXTENSIONS_MANIFESTS`
         or configured via the Admin UI. This option is required only
         if an extension is present in more than one repository.
@@ -385,7 +385,7 @@ async def install_extension(
         return False, str(ex)
 
 
-async def upgrade_extension(
+async def update_extension(
     extension: str,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
@@ -393,7 +393,7 @@ async def upgrade_extension(
     admin_user: Optional[str] = None,
 ) -> Tuple[bool, str]:
     try:
-        click.echo(f"Upgrading '{extension}' extension.")
+        click.echo(f"Updating '{extension}' extension.")
         installed_ext = await get_installed_extension(extension)
         if not installed_ext:
             click.echo(
@@ -417,20 +417,20 @@ async def upgrade_extension(
             click.echo(f"Extension '{extension}' already up to date.")
             return False, "Already up to date"
 
-        click.echo(f"Upgrading '{extension}' extension to version: {release.version }")
+        click.echo(f"Updating '{extension}' extension to version: {release.version }")
 
         data = CreateExtension(
             ext_id=extension, archive=release.archive, source_repo=release.source_repo
         )
 
         await _call_install_extension(data, url, admin_user)
-        click.echo(f"Extension '{extension}' upgraded.")
+        click.echo(f"Extension '{extension}' updated.")
         return True, release.version
     except HTTPException as ex:
-        click.echo(f"Failed to upgrade '{extension}' Error: '{ex.detail}.")
+        click.echo(f"Failed to update '{extension}' Error: '{ex.detail}.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to upgrade '{extension}': {str(ex)}.")
+        click.echo(f"Failed to update '{extension}': {str(ex)}.")
         return False, str(ex)
 
 
