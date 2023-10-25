@@ -1,22 +1,17 @@
 Vue.component('lnbits-extension-settings-form', {
   name: 'lnbits-extension-settings-form',
   props: ['options', 'name', 'cancel'],
-  data: function () {
-    return {
-      settings: undefined,
-      usr: undefined,
-      admin: false
+  computed: {
+    endpoint: function () {
+      return `/${this.name}/api/v1/settings?usr=${this.usr}`
     }
   },
   methods: {
-    endpoint: function () {
-      return `/${this.name}/api/v1/settings?usr=${this.usr}`
-    },
     updateSettings: async function () {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          this.endpoint(),
+          this.endpoint,
           null,
           this.settings
         )
@@ -27,7 +22,7 @@ Vue.component('lnbits-extension-settings-form', {
     },
     getSettings: async function () {
       try {
-        const {data} = await LNbits.api.request('GET', this.endpoint())
+        const {data} = await LNbits.api.request('GET', this.endpoint)
         this.settings = data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -35,7 +30,7 @@ Vue.component('lnbits-extension-settings-form', {
     },
     resetSettings: async function () {
       try {
-        await LNbits.api.request('DELETE', this.endpoint())
+        await LNbits.api.request('DELETE', this.endpoint)
         await this.getSettings()
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -58,18 +53,19 @@ Vue.component('lnbits-extension-settings-form', {
         <q-btn v-if="cancel" v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </q-form>
-  `
+  `,
+  data: function () {
+    return {
+      settings: undefined,
+      usr: undefined,
+      admin: false
+    }
+  }
 })
 
 Vue.component('lnbits-extension-settings-btn-dialog', {
   name: 'lnbits-extension-settings-btn-dialog',
   props: ['options', 'name'],
-  data: function () {
-    return {
-      admin: false,
-      show: false
-    }
-  },
   created: async function () {
     if (window.user.admin) {
       this.admin = true
@@ -83,17 +79,18 @@ Vue.component('lnbits-extension-settings-btn-dialog', {
           </q-card>
         </q-dialog>
     </q-btn>
-  `
+  `,
+  data: function () {
+    return {
+      admin: false,
+      show: false
+    }
+  }
 })
 
 Vue.component('lnbits-extension-settings-tab-accordion', {
   name: 'lnbits-extension-settings-tab-accordion',
   props: ['options', 'name'],
-  data: function () {
-    return {
-      admin: false
-    }
-  },
   created: async function () {
     if (window.user.admin) {
       this.admin = true
@@ -109,5 +106,10 @@ Vue.component('lnbits-extension-settings-tab-accordion', {
         <lnbits-extension-settings-form :options="options" :name="name" />
       </q-card-section>
     </q-expansion-item>
-  `
+  `,
+  data: function () {
+    return {
+      admin: false
+    }
+  }
 })
