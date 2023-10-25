@@ -253,15 +253,14 @@ async def extensions_update(
 
     if len(updated_extensions) == 0:
         click.echo("No extension was updated.")
-    else:
-        for u in sorted(updated_extensions, key=lambda d: d["id"]):
-            status = "updated to  " if u["success"] else "not updated "
-            click.echo(
-                f"""'{u["id"]}' {" "*(20-len(u["id"]))}"""
-                + f""" - {status}: '{u["message"]}'"""
-            )
+        return
 
-    return
+    for u in sorted(updated_extensions, key=lambda d: str(d["id"])):
+        status = "updated to  " if u["success"] else "not updated "
+        click.echo(
+            f"""'{u["id"]}' {" "*(20-len(str(u["id"])))}"""
+            + f""" - {status}: '{u["message"]}'"""
+        )
 
 
 @extensions.command("install")
