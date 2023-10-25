@@ -1,6 +1,6 @@
 Vue.component('lnbits-extension-settings-form', {
   name: 'lnbits-extension-settings-form',
-  props: ['options', 'name', 'adminkey', 'endpoint'],
+  props: ['options', 'adminkey', 'endpoint'],
   methods: {
     updateSettings: async function () {
       try {
@@ -62,12 +62,12 @@ Vue.component('lnbits-extension-settings-form', {
 
 Vue.component('lnbits-extension-settings-btn-dialog', {
   name: 'lnbits-extension-settings-btn-dialog',
-  props: ['options', 'adminkey', 'endpoint', 'name'],
+  props: ['options', 'adminkey', 'endpoint'],
   template: `
     <q-btn v-if="options" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
         <q-dialog v-model="show" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <lnbits-extension-settings-form :options="options" :name="name" :adminkey="adminkey" :endpoint="endpoint">
+            <lnbits-extension-settings-form :options="options" :adminkey="adminkey" :endpoint="endpoint">
                 <template v-slot:actions>
                     <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
                 </template>
