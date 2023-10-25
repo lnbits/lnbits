@@ -28,12 +28,16 @@ Vue.component('lnbits-extension-settings-form', {
       }
     },
     resetSettings: async function () {
-      try {
-        await LNbits.api.request('DELETE', this.endpoint, this.adminkey)
-        await this.getSettings()
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      }
+      LNbits.utils
+        .confirmDialog('Are you sure you want to reset the settings?')
+        .onOk(async () => {
+          try {
+            await LNbits.api.request('DELETE', this.endpoint, this.adminkey)
+            await this.getSettings()
+          } catch (error) {
+            LNbits.utils.notifyApiError(error)
+          }
+        })
     }
   },
   created: async function () {
