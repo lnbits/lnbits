@@ -1,18 +1,13 @@
 Vue.component('lnbits-extension-settings-form', {
   name: 'lnbits-extension-settings-form',
-  props: ['options', 'name', 'cancel'],
-  computed: {
-    endpoint: function () {
-      return `/${this.name}/api/v1/settings?usr=${this.usr}`
-    }
-  },
+  props: ['options', 'name', 'adminkey', 'endpoint', 'cancel'],
   methods: {
     updateSettings: async function () {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
           this.endpoint,
-          null,
+          this.adminkey,
           this.settings
         )
         this.settings = data
@@ -22,7 +17,11 @@ Vue.component('lnbits-extension-settings-form', {
     },
     getSettings: async function () {
       try {
-        const {data} = await LNbits.api.request('GET', this.endpoint)
+        const {data} = await LNbits.api.request(
+          'GET',
+          this.endpoint,
+          this.adminkey
+        )
         this.settings = data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -30,7 +29,7 @@ Vue.component('lnbits-extension-settings-form', {
     },
     resetSettings: async function () {
       try {
-        await LNbits.api.request('DELETE', this.endpoint)
+        await LNbits.api.request('DELETE', this.endpoint, this.adminkey)
         await this.getSettings()
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -38,14 +37,10 @@ Vue.component('lnbits-extension-settings-form', {
     }
   },
   created: async function () {
-    if (window.user.admin) {
-      this.admin = true
-      this.usr = window.user.id
-      this.getSettings()
-    }
+    this.getSettings()
   },
   template: `
-    <q-form v-if="admin && settings" @submit="updateSettings" class="q-gutter-md">
+    <q-form v-if="settings" @submit="updateSettings" class="q-gutter-md">
       <lnbits-dynamic-fields :options="options" v-model="settings"></lnbits-dynamic-fields>
       <div class="row q-mt-lg">
         <q-btn v-close-popup unelevated color="primary" type="submit">Update</q-btn>
@@ -56,60 +51,26 @@ Vue.component('lnbits-extension-settings-form', {
   `,
   data: function () {
     return {
-      settings: undefined,
-      usr: undefined,
-      admin: false
+      settings: undefined
     }
   }
 })
 
 Vue.component('lnbits-extension-settings-btn-dialog', {
   name: 'lnbits-extension-settings-btn-dialog',
-  props: ['options', 'name'],
-  created: async function () {
-    if (window.user.admin) {
-      this.admin = true
-    }
-  },
+  props: ['options', 'adminkey', 'endpoint', 'name'],
   template: `
-    <q-btn v-if="admin && options" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
+    <q-btn v-if="options" unelevated @click="show = true" color="primary" icon="settings" class="float-right">
         <q-dialog v-model="show" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <lnbits-extension-settings-form :options="options" :name="name" :cancel="true" />
+            <lnbits-extension-settings-form :options="options" :name="name" :adminkey="adminkey" :endpoint="endpoint" :cancel="true" />
           </q-card>
         </q-dialog>
     </q-btn>
   `,
   data: function () {
     return {
-      admin: false,
       show: false
-    }
-  }
-})
-
-Vue.component('lnbits-extension-settings-tab-accordion', {
-  name: 'lnbits-extension-settings-tab-accordion',
-  props: ['options', 'name'],
-  created: async function () {
-    if (window.user.admin) {
-      this.admin = true
-    }
-  },
-  template: `
-    <q-expansion-item
-      v-if="admin && options"
-      icon="settings"
-      label="Extension Settings"
-    >
-      <q-card-section>
-        <lnbits-extension-settings-form :options="options" :name="name" />
-      </q-card-section>
-    </q-expansion-item>
-  `,
-  data: function () {
-    return {
-      admin: false
     }
   }
 })
