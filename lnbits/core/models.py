@@ -275,8 +275,12 @@ class BalanceCheck(BaseModel):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
 
 
+def _do_nothing(*_):
+    pass
+
+
 class CoreAppExtra:
-    register_new_ext_routes: Callable
+    register_new_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
 

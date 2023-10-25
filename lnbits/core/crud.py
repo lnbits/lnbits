@@ -181,13 +181,15 @@ async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -
     )
 
 
-async def get_installed_extension(ext_id: str, conn: Optional[Connection] = None):
+async def get_installed_extension(
+    ext_id: str, conn: Optional[Connection] = None
+) -> Optional[InstallableExtension]:
     row = await (conn or db).fetchone(
         "SELECT * FROM installed_extensions WHERE id = ?",
         (ext_id,),
     )
 
-    return dict(row) if row else None
+    return InstallableExtension.from_row(row) if row else None
 
 
 async def get_installed_extensions(
