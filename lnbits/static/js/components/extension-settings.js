@@ -3,6 +3,12 @@ Vue.component('lnbits-extension-settings-form', {
   props: ['options', 'adminkey', 'endpoint'],
   methods: {
     updateSettings: async function () {
+      if (!this.settings) {
+        return Quasar.plugins.Notify.create({
+          message: 'No settings to update',
+          type: 'negative'
+        })
+      }
       try {
         const {data} = await LNbits.api.request(
           'PUT',
