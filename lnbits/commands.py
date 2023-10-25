@@ -1,6 +1,7 @@
 import asyncio
+from functools import wraps
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import click
@@ -30,6 +31,14 @@ from .extension_manager import (
     InstallableExtension,
     get_valid_extensions,
 )
+
+
+def coro(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+
+    return wrapper
 
 
 @click.group()
@@ -86,15 +95,12 @@ def superuser_url():
 
 
 @lnbits_cli.command("delete-settings")
-def delete_settings():
+@coro
+async def delete_settings():
     """Deletes the settings"""
 
-    async def wrap():
-        async with core_db.connect() as conn:
-            await conn.execute("DELETE from settings")
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(wrap())
+    async with core_db.connect() as conn:
+        await conn.execute("DELETE from settings")
 
 
 @db.command("migrate")
@@ -160,18 +166,16 @@ async def load_disabled_extension_list() -> None:
 
 
 @extensions.command("list")
-def extensions_list():
+@coro
+async def extensions_list():
     """Show currently installed extensions"""
     click.echo("Installed extensions:")
 
-    async def wrap():
-        from lnbits.app import build_all_installed_extensions_list
+    from lnbits.app import build_all_installed_extensions_list
 
-        for ext in await build_all_installed_extensions_list():
-            assert ext.installed_release, f"Extension {ext.id} has no installed_release"
-            click.echo(f"  - {ext.id} ({ext.installed_release.version})")
-
-    _run_async(wrap)
+    for ext in await build_all_installed_extensions_list():
+        assert ext.installed_release, f"Extension {ext.id} has no installed_release"
+        click.echo(f"  - {ext.id} ({ext.installed_release.version})")
 
 
 @extensions.command("update")
@@ -200,7 +204,8 @@ def extensions_list():
     "--admin-user",
     help="Admin user ID (must have permissions to install extensions).",
 )
-def extensions_update(
+@coro
+async def extensions_update(
     extension: Optional[str] = None,
     all: Optional[bool] = False,
     repo_index: Optional[str] = None,
@@ -223,41 +228,39 @@ def extensions_update(
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
-    async def wrap():
-        if not await _can_run_operation(url):
-            return
+    if not await _can_run_operation(url):
+        return
 
-        if extension:
-            await update_extension(extension, repo_index, source_repo, url, admin_user)
-            return
+    if extension:
+        await update_extension(extension, repo_index, source_repo, url, admin_user)
+        return
 
-        click.echo("Updating all extensions...")
-        installed_extensions = await get_installed_extensions()
-        updated_extensions = []
-        for e in installed_extensions:
-            try:
-                click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
-                success, msg = await update_extension(
-                    e.id, repo_index, source_repo, url, admin_user
+    click.echo("Updating all extensions...")
+    installed_extensions = await get_installed_extensions()
+    updated_extensions = []
+    for e in installed_extensions:
+        try:
+            click.echo(f"""{"="*50} {e.id} {"="*(50-len(e.id))} """)
+            success, msg = await update_extension(
+                e.id, repo_index, source_repo, url, admin_user
+            )
+            if version:
+                updated_extensions.append(
+                    {"id": e.id, "success": success, "message": msg}
                 )
-                if version:
-                    updated_extensions.append(
-                        {"id": e.id, "success": success, "message": msg}
-                    )
-            except Exception as ex:
-                click.echo(f"Failed to install extension '{e.id}': {ex}")
+        except Exception as ex:
+            click.echo(f"Failed to install extension '{e.id}': {ex}")
 
-        if len(updated_extensions) == 0:
-            click.echo("No extension was updated.")
-        else:
-            for u in sorted(updated_extensions, key=lambda d: d["id"]):
-                status = "updated to  " if u["success"] else "not updated "
-                click.echo(
-                    f"""'{u["id"]}' {" "*(20-len(u["id"]))}"""
-                    + f""" - {status}: '{u["message"]}'"""
-                )
+    if len(updated_extensions) == 0:
+        click.echo("No extension was updated.")
+    else:
+        for u in sorted(updated_extensions, key=lambda d: d["id"]):
+            status = "updated to  " if u["success"] else "not updated "
+            click.echo(
+                f"""'{u["id"]}' {" "*(20-len(u["id"]))}"""
+                + f""" - {status}: '{u["message"]}'"""
+            )
 
-    _run_async(wrap)
     return
 
 
@@ -286,7 +289,8 @@ def extensions_update(
     "--admin-user",
     help="Admin user ID (must have permissions to install extensions).",
 )
-def extensions_install(
+@coro
+async def extensions_install(
     extension: str,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
@@ -299,12 +303,9 @@ def extensions_install(
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
-    async def wrap():
-        if not await _can_run_operation(url):
-            return
-        await install_extension(extension, repo_index, source_repo, url, admin_user)
-
-    _run_async(wrap)
+    if not await _can_run_operation(url):
+        return
+    await install_extension(extension, repo_index, source_repo, url, admin_user)
 
 
 @extensions.command("uninstall")
@@ -319,7 +320,8 @@ def extensions_install(
     "--admin-user",
     help="Admin user ID (must have permissions to install extensions).",
 )
-def extensions_uninstall(
+@coro
+async def extensions_uninstall(
     extension: str, url: Optional[str] = None, admin_user: Optional[str] = None
 ):
     """Uninstall a extension"""
@@ -329,20 +331,17 @@ def extensions_uninstall(
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
-    async def wrap():
-        if not await _can_run_operation(url):
-            return
-        try:
-            await _call_uninstall_extension(extension, url, admin_user)
-            click.echo(f"Extension '{extension}' uninstalled.")
-        except HTTPException as ex:
-            click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
-            return False, ex.detail
-        except Exception as ex:
-            click.echo(f"Failed to uninstall '{extension}': {str(ex)}.")
-            return False, str(ex)
-
-    _run_async(wrap)
+    if not await _can_run_operation(url):
+        return
+    try:
+        await _call_uninstall_extension(extension, url, admin_user)
+        click.echo(f"Extension '{extension}' uninstalled.")
+    except HTTPException as ex:
+        click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
+        return False, ex.detail
+    except Exception as ex:
+        click.echo(f"Failed to uninstall '{extension}': {str(ex)}.")
+        return False, str(ex)
 
 
 def main():
@@ -352,11 +351,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-def _run_async(fn) -> Any:
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(fn())
 
 
 async def install_extension(
