@@ -41,7 +41,7 @@ Vue.component('lnbits-extension-settings-form', {
     }
   },
   created: async function () {
-    this.getSettings()
+    await this.getSettings()
   },
   template: `
     <q-form v-if="settings" @submit="updateSettings" class="q-gutter-md">
