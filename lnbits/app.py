@@ -370,8 +370,7 @@ def register_startup(app: FastAPI):
                 set_wallet_class()
             except Exception as e:
                 logger.error(
-                    f"Error initializing {settings.lnbits_backend_wallet_class}: "
-                    f"{str(e)}"
+                    f"Error initializing {settings.lnbits_backend_wallet_class}: {e}"
                 )
                 set_void_wallet_class()
 
