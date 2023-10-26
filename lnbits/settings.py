@@ -203,6 +203,10 @@ class SparkFundingSource(LNbitsSettings):
     spark_token: Optional[str] = Field(default=None)
 
 
+class CashuFundingSource(LNbitsSettings):
+    cashu_wallet_endpoint: Optional[str] = Field(default=None)
+
+
 class LnTipsFundingSource(LNbitsSettings):
     lntips_api_endpoint: Optional[str] = Field(default=None)
     lntips_api_key: Optional[str] = Field(default=None)
@@ -228,6 +232,7 @@ class FundingSourcesSettings(
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
+    CashuFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
@@ -380,6 +385,7 @@ class SuperUserSettings(LNbitsSettings):
             "AlbyWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
+            "CashuWallet",
         ]
     )
 
