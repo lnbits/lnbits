@@ -114,7 +114,12 @@ class LndRestWallet(Wallet):
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
-        r = await self.client.post(url="/v1/invoices", json=data)
+        try:
+            r = await self.client.post(url="/v1/invoices", json=data)
+        except Exception as exc:
+            return InvoiceResponse(
+                False, None, None, f"LndRestWallet create_invoice error: {str(exc)}"
+            )
 
         if r.is_error:
             error_message = r.text
@@ -136,24 +141,34 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit = dict()
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
-        r = await self.client.post(
-            url="/v1/channels/transactions",
-            json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                url="/v1/channels/transactions",
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                timeout=None,
+            )
+        except Exception as exc:
+            return PaymentResponse(
+                False, None, None, None, f"LndRestWallet pay_invoice error: {str(exc)}"
+            )
 
         if r.is_error or r.json().get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
+
         checking_id = base64.b64decode(data["payment_hash"]).hex()
         fee_msat = int(data["payment_route"]["total_fees_msat"])
         preimage = base64.b64decode(data["payment_preimage"]).hex()
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url=f"/v1/invoice/{checking_id}")
+        try:
+            r = await self.client.get(url=f"/v1/invoice/{checking_id}")
+        except Exception as exc:
+            logger.error(f"LndRestWallet error get_invoice_status: {exc}")
+            return PaymentStatus(None)
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
@@ -168,10 +183,9 @@ class LndRestWallet(Wallet):
         """
         # convert checking_id from hex to base64 and some LND magic
         try:
-            checking_id = base64.urlsafe_b64encode(bytes.fromhex(checking_id)).decode(
-                "ascii"
-            )
-        except ValueError:
+            checking_id = base64.b64encode(bytes.fromhex(checking_id)).decode("ascii")
+        except Exception as exc:
+            logger.error(f"LndRestWallet error get_payment_status: {str(exc)}")
             return PaymentStatus(None)
 
         url = f"/v2/router/track/{checking_id}"
@@ -190,11 +204,12 @@ class LndRestWallet(Wallet):
                 try:
                     line = json.loads(json_line)
                     if line.get("error"):
-                        logger.error(
+                        error_msg = (
                             line["error"]["message"]
                             if "message" in line["error"]
                             else line["error"]
                         )
+                        logger.error(f"LND error: {error_msg}")
                         return PaymentStatus(None)
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
