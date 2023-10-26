@@ -9,6 +9,9 @@ from lnbits.wallets.base import Wallet
 
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
+
+# The following import is intentional to keep backwards compatibility
+# for old configs that called it CLightningWallet. Do not remove.
 from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
