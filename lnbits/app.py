@@ -82,7 +82,7 @@ def create_app() -> FastAPI:
     setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
     # register static files
-    static_path = Path("lnbits/static")
+    static_path = Path("lnbits", "static")
     static = StaticFiles(directory=static_path)
     app.mount("/static", static, name="static")
 

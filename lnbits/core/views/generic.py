@@ -1,5 +1,6 @@
 import asyncio
 from http import HTTPStatus
+from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 
@@ -41,7 +42,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return FileResponse("lnbits/static/favicon.ico")
+    return FileResponse(Path("lnbits", "static", "favicon.ico"))
 
 
 @generic_router.get("/", response_class=HTMLResponse)
@@ -329,7 +330,7 @@ async def lnurlwallet(request: Request):
 
 @generic_router.get("/service-worker.js", response_class=FileResponse)
 async def service_worker():
-    return FileResponse("lnbits/static/js/service-worker.js")
+    return FileResponse(Path("lnbits", "static", "js", "service-worker.js"))
 
 
 @generic_router.get("/manifest/{usr}.webmanifest")
