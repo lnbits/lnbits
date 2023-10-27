@@ -301,7 +301,7 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     # new cache version each time you restart the server
-    cache_version: int = Field(default=time())
+    server_startup_time: int = Field(default=time())
 
     @property
     def has_default_extension_path(self) -> bool:
