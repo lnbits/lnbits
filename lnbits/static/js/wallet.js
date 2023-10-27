@@ -791,7 +791,7 @@ new Vue({
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
-        this.balance = Math.round(response.data.balance / 1000)
+        this.balance = Math.floor(response.data.balance / 1000)
         EventHub.$emit('update-wallet-balance', [
           this.g.wallet.id,
           this.balance
