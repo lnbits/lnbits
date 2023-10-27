@@ -300,7 +300,6 @@ class EnvSettings(LNbitsSettings):
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
-    # new cache version each time you restart the server
     server_startup_time: int = Field(default=time())
 
     @property
