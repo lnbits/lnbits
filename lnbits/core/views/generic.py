@@ -41,7 +41,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return FileResponse("lnbits/static/favicon.ico")
+    return FileResponse(Path("lnbits", "static", "favicon.ico"))
 
 
 @generic_router.get("/", response_class=HTMLResponse)
