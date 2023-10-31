@@ -195,7 +195,11 @@ class LndRestWallet(Wallet):
                             if "message" in line["error"]
                             else line["error"]
                         )
-                        if line["error"].get("code") == 5 and line["error"].get("message") == "payment isn't initiated":
+                        if (
+                            line["error"].get("code") == 5
+                            and line["error"].get("message")
+                            == "payment isn't initiated"
+                        ):
                             return PaymentStatus(False)
                         return PaymentStatus(None)
                     payment = line.get("result")
