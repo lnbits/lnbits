@@ -162,7 +162,7 @@ async def check_funding_source() -> None:
 
     signal.signal(signal.SIGINT, original_sigint_handler)
 
-    logger.info(
+    logger.success(
         f"✔️ Backend {WALLET.__class__.__name__} connected "
         f"and with a balance of {balance} msat."
     )
