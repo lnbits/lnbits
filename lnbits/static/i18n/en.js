@@ -3,7 +3,6 @@ window.localisation.en = {
   server: 'Server',
   theme: 'Theme',
   funding: 'Funding',
-
   users: 'Users',
   apps: 'Apps',
   channels: 'Channels',
@@ -100,7 +99,6 @@ window.localisation.en = {
   extensions: 'Extensions',
   no_extensions: "You don't have any extensions installed :(",
   created: 'Created',
-
   search_extensions: 'Search extensions',
   warning: 'Warning',
   manage: 'Manage',
@@ -134,9 +132,7 @@ window.localisation.en = {
     'All data for the extension will be permanently deleted. There is no way to undo this operation!',
   extension_db_drop_warning:
     'You are about to remove all data for the extension. Please type the extension name to continue:',
-
   extension_min_lnbits_version: 'This release requires at least LNbits version',
-
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
