@@ -23,7 +23,6 @@ tests/data/*.sqlite3
 *.pyc
 *.env
 .env
-.pre-commit-config.yaml
 
 data
 *.sqlite3
@@ -35,6 +34,7 @@ coverage.xml
 node_modules
 lnbits/static/bundle.js
 lnbits/static/bundle.css
+lnbits/static/bundle-components.js
 docker
 
 # Nix

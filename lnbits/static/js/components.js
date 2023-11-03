@@ -1,6 +1,6 @@
 /* global _, Vue, moment, LNbits, EventHub, decryptLnurlPayAES */
 
-Vue.component('lnbits-fsat', {
+window.app.component('lnbits-fsat', {
   props: {
     amount: {
       type: Number,
@@ -15,7 +15,7 @@ Vue.component('lnbits-fsat', {
   }
 })
 
-Vue.component('lnbits-wallet-list', {
+window.app.component('lnbits-wallet-list', {
   data: function () {
     return {
       user: null,
@@ -88,8 +88,8 @@ Vue.component('lnbits-wallet-list', {
     createWallet: function () {
       LNbits.api.createWallet(this.user.wallets[0], this.walletName)
     },
-    updateWalletBalance: function (payload) {
-      this.activeBalance = payload
+    updateWalletBalance: function (e) {
+      this.activeBalance = e.detail
     }
   },
   created: function () {
@@ -99,11 +99,11 @@ Vue.component('lnbits-wallet-list', {
     if (window.wallet) {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
-    EventHub.$on('update-wallet-balance', this.updateWalletBalance)
+    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
 
-Vue.component('lnbits-extension-list', {
+window.app.component('lnbits-extension-list', {
   data: function () {
     return {
       extensions: [],
@@ -177,7 +177,7 @@ Vue.component('lnbits-extension-list', {
   }
 })
 
-Vue.component('lnbits-admin-ui', {
+window.app.component('lnbits-admin-ui', {
   props: ['showNode'],
   data: function () {
     return {
@@ -214,7 +214,7 @@ Vue.component('lnbits-admin-ui', {
   }
 })
 
-Vue.component('lnbits-payment-details', {
+window.app.component('lnbits-payment-details', {
   props: ['payment'],
   mixins: [windowMixin],
   data: function () {
@@ -327,7 +327,7 @@ Vue.component('lnbits-payment-details', {
   }
 })
 
-Vue.component('lnbits-lnurlpay-success-action', {
+window.app.component('lnbits-lnurlpay-success-action', {
   props: ['payment', 'success_action'],
   data() {
     return {
@@ -356,10 +356,10 @@ Vue.component('lnbits-lnurlpay-success-action', {
   }
 })
 
-Vue.component('lnbits-qrcode', {
+window.app.component('lnbits-qrcode', {
   mixins: [windowMixin],
   props: ['value'],
-  components: {[VueQrcode.name]: VueQrcode},
+  // components: {[VueQrcode.name]: VueQrcode},
   data() {
     return {
       logo: LNBITS_QR_LOGO
@@ -367,14 +367,19 @@ Vue.component('lnbits-qrcode', {
   },
   template: `
   <div class="qrcode__wrapper">
-    <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
     <img class="qrcode__image" :src="logo" alt="..." />
   </div>
   `
+  // template: `
+  // <div class="qrcode__wrapper">
+  //   <qrcode :value="value"
+  //   :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
+  //   <img class="qrcode__image" :src="logo" alt="..." />
+  // </div>
+  // `
 })
 
-Vue.component('lnbits-notifications-btn', {
+window.app.component('lnbits-notifications-btn', {
   mixins: [windowMixin],
   props: ['pubkey'],
   data() {
@@ -587,7 +592,7 @@ Vue.component('lnbits-notifications-btn', {
   }
 })
 
-Vue.component('lnbits-dynamic-fields', {
+window.app.component('lnbits-dynamic-fields', {
   mixins: [windowMixin],
   props: ['options', 'value'],
   data() {
@@ -659,3 +664,7 @@ Vue.component('lnbits-dynamic-fields', {
     this.formData = this.buildData(this.options, this.value)
   }
 })
+
+window.app.use(Quasar)
+window.app.use(window.i18n)
+window.app.mount('#vue')

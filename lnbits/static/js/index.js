@@ -1,5 +1,5 @@
-new Vue({
-  el: '#vue',
+/* global Vue, Quasar, LNbits, SITE_DESCRIPTION, windowMixin */
+const app = Vue.createApp({
   mixins: [windowMixin],
   data: function () {
     return {
@@ -34,3 +34,5 @@ new Vue({
     this.description = SITE_DESCRIPTION
   }
 })
+
+window.app = app

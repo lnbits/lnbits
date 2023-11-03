@@ -576,22 +576,22 @@
       <q-dialog v-model="parse.show" @hide="closeParseDialog">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
-            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
-              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+            <h6 v-if="'{{ LNBITS_DENOMINATION }}' != 'sats'" class="q-my-none">
+              {%raw%}{{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
+              "")) / 100 }}{%endraw%} {{ LNBITS_DENOMINATION }}
             </h6>
             <h6 v-else class="q-my-none">
-              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
-              raw %}
+              {%raw%}{{ parse.invoice.fsat }}{%endraw%} {{ LNBITS_DENOMINATION
+              }}
             </h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong v-text="$t('memo')">:</strong> {{
-              parse.invoice.description }}<br />
-              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-              <strong>Hash:</strong> {{ parse.invoice.hash }}
+              <strong :v-text="$t('memo')">:</strong> {%raw%}{{
+              parse.invoice.description }}{%endraw%}<br />
+              <strong>Expire date:</strong> {%raw%}{{ parse.invoice.expireDate
+              }}{%endraw%}<br />
+              <strong>Hash:</strong> {%raw%}{{ parse.invoice.hash }}{%endraw%}
             </p>
-            {% endraw %}
             <div v-if="canPay" class="row q-mt-lg">
               <q-btn
                 unelevated

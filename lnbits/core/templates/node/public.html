@@ -51,13 +51,8 @@ context %} {% block page %}
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ static_url_for('static', 'js/node.js') }}"></script>
 <script>
-  Vue.component(VueQrcode.name, VueQrcode)
-  Vue.use(VueQrcodeReader)
-
-  new Vue({
-    el: '#vue',
+  window.app = Vue.createApp({
     config: {
       globalProperties: {
         LNbits,
@@ -132,5 +127,5 @@ context %} {% block page %}
     }
   })
 </script>
-
+<script src="{{ static_url_for('static', 'js/node.js') }}"></script>
 {% endblock %}

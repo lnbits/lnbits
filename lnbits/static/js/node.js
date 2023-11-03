@@ -4,7 +4,7 @@ function shortenNodeId(nodeId) {
     : '...'
 }
 
-Vue.component('lnbits-node-ranks', {
+window.app.component('lnbits-node-ranks', {
   props: ['ranks'],
   data: function () {
     return {
@@ -35,7 +35,7 @@ Vue.component('lnbits-node-ranks', {
   `
 })
 
-Vue.component('lnbits-channel-stats', {
+window.app.component('lnbits-channel-stats', {
   props: ['stats'],
   data: function () {
     return {
@@ -71,7 +71,7 @@ Vue.component('lnbits-channel-stats', {
   }
 })
 
-Vue.component('lnbits-stat', {
+window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
     value: function () {
@@ -99,7 +99,7 @@ Vue.component('lnbits-stat', {
   `
 })
 
-Vue.component('lnbits-node-qrcode', {
+window.app.component('lnbits-node-qrcode', {
   props: ['info'],
   mixins: [windowMixin],
   template: `
@@ -132,7 +132,7 @@ Vue.component('lnbits-node-qrcode', {
   `
 })
 
-Vue.component('lnbits-node-info', {
+window.app.component('lnbits-node-info', {
   props: ['info'],
   data() {
     return {
@@ -177,7 +177,7 @@ Vue.component('lnbits-node-info', {
   `
 })
 
-Vue.component('lnbits-stat', {
+window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
     value: function () {
@@ -190,22 +190,22 @@ Vue.component('lnbits-stat', {
     }
   },
   template: `
-        <q-card>
-        <q-card-section>
-          <div class='text-overline text-primary'>
-            {{ title }}
-          </div>
-          <div>
-            <span class='text-h4 text-bold q-my-none'>{{ value }}</span>
-            <span class='text-h5' v-if='msat != undefined'>sats</span>
-            <span class='text-h5' v-if='btc != undefined'>BTC</span>
-          </div>
-        </q-card-section>
-        </q-card>
-      `
+    <q-card>
+    <q-card-section>
+      <div class='text-overline text-primary'>
+        {{ title }}
+      </div>
+      <div>
+        <span class='text-h4 text-bold q-my-none'>{{ value }}</span>
+        <span class='text-h5' v-if='msat != undefined'>sats</span>
+        <span class='text-h5' v-if='btc != undefined'>BTC</span>
+      </div>
+    </q-card-section>
+    </q-card>
+  `
 })
 
-Vue.component('lnbits-channel-balance', {
+window.app.component('lnbits-channel-balance', {
   props: ['balance', 'color'],
   methods: {
     formatMsat: function (msat) {
@@ -241,12 +241,12 @@ Vue.component('lnbits-channel-balance', {
               {{ balance.alias }}
             </q-badge>
           </div>
-       </q-linear-progress>
+        </q-linear-progress>
     </div>
   `
 })
 
-Vue.component('lnbits-date', {
+window.app.component('lnbits-date', {
   props: ['ts'],
   computed: {
     date: function () {

@@ -3,15 +3,12 @@
     "vendor/moment.js",
     "vendor/underscore.js",
     "vendor/axios.js",
-    "vendor/vue.js",
-    "vendor/vue-router.js",
-    "vendor/VueQrcodeReader.umd.js",
-    "vendor/vue-qrcode.js",
-    "vendor/vuex.js",
-    "vendor/quasar.ie.polyfills.umd.min.js",
-    "vendor/quasar.umd.js",
+    "vendor/vue.global.prod.js",
+    "vendor/quasar.umd.prod.js",
+    "vendor/vuex.global.js",
+    "vendor/vue-i18n.global.js",
+    "vendor/vue-router.global.js",
     "vendor/Chart.bundle.js",
-    "vendor/vue-i18n.js",
     "vendor/showdown.js",
     "i18n/i18n.js",
     "i18n/de.js",
@@ -30,10 +27,12 @@
     "i18n/pt.js",
     "i18n/br.js",
     "js/base.js",
+    "js/bolt11-decoder.js"
+  ],
+  "components": [
     "js/components.js",
     "js/components/lnbits-funding-sources.js",
-    "js/components/extension-settings.js",
-    "js/bolt11-decoder.js"
+    "js/components/extension-settings.js"
   ],
   "css": ["vendor/quasar.css", "vendor/Chart.css", "css/base.css"]
 }
