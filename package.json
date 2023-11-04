@@ -78,6 +78,8 @@
       "i18n/we.js",
       "i18n/pt.js",
       "i18n/br.js",
+      "i18n/cs.js",
+      "i18n/sk.js",
       "js/base.js",
       "js/components.js",
       "js/components/lnbits-funding-sources.js",
