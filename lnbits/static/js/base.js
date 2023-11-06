@@ -196,7 +196,7 @@ window.LNbits = {
         currency: data.currency
       }
       newWallet.msat = data.balance_msat
-      newWallet.sat = Math.round(data.balance_msat / 1000)
+      newWallet.sat = Math.floor(data.balance_msat / 1000)
       newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
         newWallet.sat
       )
