@@ -76,7 +76,6 @@ window.localisation.cn = {
   extensions: '扩展程序',
   no_extensions: '你没有安装任何扩展程序 :(',
   created: '已创建',
-
   search_extensions: '搜索扩展程序',
   warning: '警告',
   manage: '管理',
@@ -108,9 +107,7 @@ window.localisation.cn = {
   extension_db_drop_info: '该扩展程序的所有数据将被永久删除。此操作无法撤销！',
   extension_db_drop_warning:
     '您即将删除该扩展的所有数据。请继续输入扩展程序名称以确认操作：',
-
   extension_min_lnbits_version: '此版本要求最低的 LNbits 版本为',
-
   payment_hash: '付款哈希',
   fee: '费',
   amount: '金额',

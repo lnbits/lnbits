@@ -81,7 +81,6 @@ window.localisation.de = {
   extensions: 'Erweiterungen',
   no_extensions: 'Du hast noch keine Erweiterungen installiert :(',
   created: 'Erstellt',
-
   search_extensions: 'Sucherweiterungen',
   warning: 'Warnung',
   manage: 'Verwalten',
@@ -113,7 +112,6 @@ window.localisation.de = {
   uninstall_confirm: 'Ja, deinstallieren',
   extension_min_lnbits_version:
     'Diese Version erfordert mindestens die LNbits-Version',
-
   payment_hash: 'Zahlungs-Hash',
   fee: 'Gebühr',
   amount: 'Menge',
