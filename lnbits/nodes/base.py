@@ -68,13 +68,22 @@ class ChannelStats(BaseModel):
             if channel.state == ChannelState.ACTIVE
         ]
 
-        return cls(
-            counts=counts,
-            avg_size=int(sum(active_channel_sizes) / len(active_channel_sizes)),
-            biggest_size=max(active_channel_sizes),
-            smallest_size=min(active_channel_sizes),
-            total_capacity=sum(active_channel_sizes),
-        )
+        if len(active_channel_sizes) > 0:
+            return cls(
+                counts=counts,
+                avg_size=int(sum(active_channel_sizes) / len(active_channel_sizes)),
+                biggest_size=max(active_channel_sizes),
+                smallest_size=min(active_channel_sizes),
+                total_capacity=sum(active_channel_sizes),
+            )
+        else:
+            return cls(
+                counts=counts,
+                avg_size=0,
+                biggest_size=0,
+                smallest_size=0,
+                total_capacity=0,
+            )
 
 
 class NodeFees(BaseModel):
