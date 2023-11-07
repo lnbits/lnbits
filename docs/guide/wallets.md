@@ -8,7 +8,7 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay and OpenNode, with more being added regularly.
+LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay, GetAlby, and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
@@ -79,6 +79,13 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
 
+### GetAlby
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **GetAlbyWallet**
+- `GETALBY_API_ENDPOINT`: https://api.getalby.com/
+- `GETALBY_API_KEY`: opennodeAdminApiKey
 
 ### Cliche Wallet
 
