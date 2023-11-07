@@ -348,9 +348,6 @@ async def pay_invoice(
                 f" database: {temp_id}"
             )
     # credit fee wallet
-    logger.debug(invoice.amount_msat)
-    logger.debug(service_fee_msat)
-    logger.debug(abs(service_fee_msat))
     if settings.lnbits_service_fee_wallet and service_fee_msat:
         new_payment = await create_payment(
             wallet_id=settings.lnbits_service_fee_wallet,
