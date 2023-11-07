@@ -1,6 +1,5 @@
 import asyncio
-import hashlib
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
@@ -22,7 +21,7 @@ class GetAlbyWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.getalby_api_endpoint
-        wallet_key = settings.getalby_wallet_key or settings.getalby_admin_key
+        wallet_key = settings.getalby_admin_key
 
         if not endpoint or not wallet_key or not settings.getalby_api_key:
             raise Exception("cannot initialize getalby")
@@ -49,7 +48,6 @@ class GetAlbyWallet(Wallet):
             return StatusResponse(data["error"], 0)
 
         return StatusResponse(None, data["balance"])
-
 
     ## todo - convert to getAlby format
     async def create_invoice(
@@ -136,7 +134,6 @@ class GetAlbyWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
 
     async def webhook_listener(self):
         logger.error("getalby webhook listener disabled.")

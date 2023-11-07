@@ -85,7 +85,7 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **GetAlbyWallet**
 - `GETALBY_API_ENDPOINT`: https://api.getalby.com/
-- `GETALBY_API_KEY`: opennodeAdminApiKey
+- `GETALBY_API_KEY`: getAlbyApiKey
 
 ### Cliche Wallet
 
