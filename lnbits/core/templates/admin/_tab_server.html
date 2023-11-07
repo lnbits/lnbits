@@ -21,6 +21,8 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
+              <div class="row">
+      <div class="col q-pr-lg">
           <p>Service Fee</p>
           <q-input
             filled
@@ -31,6 +33,19 @@
             hint="Fee charged per tx (%)"
           ></q-input>
           <br />
+      </div>
+      <div class="col">
+          <p>Fee Wallet</p>
+          <q-input
+            filled
+            v-model="formData.lnbits_service_fee_wallet"
+            label="Fee wallet (wallet ID)"
+            hint="Wallet ID to send funds to"
+          ></q-input>
+          <br />
+      </div>
+    </div>
+
         </div>
         <div class="col-12 col-md-6">
           <p>Miscellaneous</p>

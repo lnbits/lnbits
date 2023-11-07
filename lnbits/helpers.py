@@ -59,6 +59,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_NEW_ACCOUNTS_ALLOWED"] = settings.new_accounts_allowed
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
+    t.env.globals["LNBITS_SERVICE_FEE_WALLET"] = settings.lnbits_service_fee_wallet
     t.env.globals["LNBITS_NODE_UI"] = (
         settings.lnbits_node_ui and get_node_class() is not None
     )
