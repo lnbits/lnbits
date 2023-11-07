@@ -20,6 +20,7 @@ from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
+from .getalby import GetAlbyWallet
 from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
 from .spark import SparkWallet
