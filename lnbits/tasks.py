@@ -83,6 +83,7 @@ def register_invoice_listener(
         logger.trace(f"registering invoice listener {name_unique}")
         invoice_listeners[name_unique] = send_chan
         return name_unique
+    return None
 
 
 def unregister_invoice_listener(name_unique: str):

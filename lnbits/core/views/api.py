@@ -467,6 +467,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
     uid = register_invoice_listener(payment_queue, this_wallet_id)
+    assert uid, "invoice listeners not supported"
     logger.debug(f"added sse listener for wallet {this_wallet_id}: {uid}")
 
     try:
