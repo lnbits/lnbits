@@ -332,9 +332,13 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     }
 
 
-async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
+async def api_payments_pay_invoice(
+    bolt11: str, wallet: Wallet, extra: Optional[dict] = None
+):
     try:
-        payment_hash = await pay_invoice(wallet_id=wallet.id, payment_request=bolt11)
+        payment_hash = await pay_invoice(
+            wallet_id=wallet.id, payment_request=bolt11, extra=extra
+        )
     except ValueError as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
     except PermissionError as e:
@@ -375,7 +379,7 @@ async def api_payments_create(
                 detail="BOLT11 string is invalid or not given",
             )
         return await api_payments_pay_invoice(
-            invoiceData.bolt11, wallet.wallet
+            invoiceData.bolt11, wallet.wallet, invoiceData.extra
         )  # admin key
     elif not invoiceData.out:
         # invoice key
