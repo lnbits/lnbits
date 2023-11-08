@@ -119,19 +119,9 @@ window.LNbits = {
       this.listenersCount[wallet.inkey]++
 
       this.listeners = this.listeners || {}
-      if (!(wallet.inkey in this.listeners)) {
-        this.listeners[wallet.inkey] = new EventSource(
-          '/api/v1/payments/sse?api-key=' + wallet.inkey
-        )
-      }
 
-      this.listeners[wallet.inkey].addEventListener(
-        'payment-received',
-        listener
-      )
-
-      return () => {
-        this.listeners[wallet.inkey].removeEventListener(
+      const remove = () => {
+        this.listeners[wallet.inkey]?.removeEventListener(
           'payment-received',
           listener
         )
@@ -142,6 +132,27 @@ window.LNbits = {
           delete this.listeners[wallet.inkey]
         }
       }
+
+      if (!(wallet.inkey in this.listeners)) {
+        this.listeners[wallet.inkey] = new EventSource(
+          '/api/v1/payments/sse?api-key=' + wallet.inkey
+        )
+        this.listeners[wallet.inkey].addEventListener('error', event => {
+          console.log('SSE connection error')
+          remove()
+          delete this.listeners[wallet.inkey]
+        })
+      }
+
+      this.listeners[wallet.inkey].addEventListener(
+        'payment-received',
+        listener
+      )
+
+      return remove
+    },
+    hasListener: function (wallet) {
+      return this.listeners[wallet.inkey] !== undefined
     }
   },
   map: {

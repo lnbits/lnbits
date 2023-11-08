@@ -364,6 +364,9 @@ new Vue({
           LNbits.utils.notifyApiError(error)
         })
     },
+    closeReceiveDialog: function () {
+      clearInterval(this.receive.paymentChecker)
+    },
     closeParseDialog: function () {
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
@@ -376,6 +379,7 @@ new Vue({
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
         this.receive.paymentHash = null
+        clearInterval(this.receive.paymentChecker)
       }
     },
     createInvoice: function () {
@@ -418,6 +422,22 @@ new Vue({
                 spinner: true
               })
             }
+          }
+
+          if (!LNbits.events.hasListener(this.g.wallet)) {
+            clearInterval(this.receive.paymentChecker)
+            setTimeout(() => {
+              clearInterval(this.receive.paymentChecker)
+            }, 40000)
+            this.receive.paymentChecker = setInterval(() => {
+              let hash = response.data.payment_hash
+
+              LNbits.api.getPayment(this.g.wallet, hash).then(response => {
+                if (response.data.paid) {
+                  this.onPaymentReceived(hash)
+                }
+              })
+            }, 5000)
           }
 
           this.fetchPayments()
