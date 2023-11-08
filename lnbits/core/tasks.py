@@ -1,5 +1,4 @@
 import asyncio
-from typing import Dict
 
 import httpx
 from loguru import logger
@@ -18,15 +17,10 @@ from lnbits.core.services import (
 )
 from lnbits.settings import get_wallet_class, settings
 from lnbits.tasks import (
-    SseListenersDict,
     create_permanent_task,
     create_task,
     register_invoice_listener,
     send_push_notification,
-)
-
-api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
-    "api_invoice_listeners"
 )
 
 
@@ -109,7 +103,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         payment = await invoice_paid_queue.get()
         logger.trace("received invoice paid event")
         # send information to sse channel
-        await dispatch_api_invoice_listeners(payment)
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
@@ -128,19 +121,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                     pass
 
         await send_payment_push_notification(payment)
-
-
-async def dispatch_api_invoice_listeners(payment: Payment):
-    """
-    Emits events to invoice listener subscribed from the API.
-    """
-    for chan_name, send_channel in api_invoice_listeners.items():
-        try:
-            logger.debug(f"sending invoice paid event to {chan_name}")
-            send_channel.put_nowait(payment)
-        except asyncio.QueueFull:
-            logger.error(f"removing sse listener {send_channel}:{chan_name}")
-            api_invoice_listeners.pop(chan_name)
 
 
 async def dispatch_webhook(payment: Payment):

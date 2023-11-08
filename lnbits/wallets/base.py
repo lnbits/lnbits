@@ -91,9 +91,8 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
-    @abstractmethod
     def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        pass
+        raise NotImplementedError
 
 
 class Unsupported(Exception):

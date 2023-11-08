@@ -2,7 +2,6 @@ import asyncio
 import base64
 import hashlib
 import json
-import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
@@ -73,6 +72,11 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
+from ...tasks import (
+    invoice_listeners_supported,
+    register_invoice_listener,
+    unregister_invoice_listener,
+)
 from ..crud import (
     DateTrunc,
     add_installed_extension,
@@ -109,7 +113,6 @@ from ..services import (
     websocketManager,
     websocketUpdater,
 )
-from ..tasks import api_invoice_listeners
 
 api_router = APIRouter()
 
@@ -463,9 +466,8 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    uid = f"{this_wallet_id}_{str(uuid.uuid4())[:8]}"
-    logger.debug(f"adding sse listener for wallet: {uid}")
-    api_invoice_listeners[uid] = payment_queue
+    uid = register_invoice_listener(payment_queue, this_wallet_id)
+    logger.debug(f"added sse listener for wallet {this_wallet_id}: {uid}")
 
     try:
         while True:
@@ -473,6 +475,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
                 await request.close()
                 break
             payment: Payment = await payment_queue.get()
+            logger.debug(f"sending invoice paid event to {uid}")
             if payment.wallet_id == this_wallet_id:
                 logger.debug("sse listener: payment received", payment)
                 yield dict(data=payment.json(), event="payment-received")
@@ -481,13 +484,18 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     except Exception as exc:
         logger.error(f"Error in sse: {exc}")
     finally:
-        api_invoice_listeners.pop(uid)
+        unregister_invoice_listener(uid)
 
 
 @api_router.get("/api/v1/payments/sse")
 async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    if not invoice_listeners_supported():
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail="Invoice listeners not supported.",
+        )
     return EventSourceResponse(
         subscribe_wallet_invoices(request, wallet.wallet),
         ping=20,

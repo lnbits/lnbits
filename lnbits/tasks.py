@@ -60,42 +60,38 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-class SseListenersDict(dict):
+invoice_listeners: Optional[Dict[str, asyncio.Queue]] = {}
+
+
+def invoice_listeners_supported() -> bool:
     """
-    A dict of sse listeners.
+    Returns True if invoice listeners are supported by this wallet.
     """
-
-    def __init__(self, name: Optional[str] = None):
-        self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
-
-    def __setitem__(self, key, value):
-        assert isinstance(key, str), f"{key} is not a string"
-        assert isinstance(value, asyncio.Queue), f"{value} is not an asyncio.Queue"
-        logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
-        return super().__setitem__(key, value)
-
-    def __delitem__(self, key):
-        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
-        return super().__delitem__(key)
-
-    _RaiseKeyError = object()  # singleton for no-default behavior
-
-    def pop(self, key, v=_RaiseKeyError) -> None:
-        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
-        return super().pop(key)
+    return invoice_listeners is not None
 
 
-invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
-
-
-def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
+def register_invoice_listener(
+    send_chan: asyncio.Queue, name: Optional[str] = None
+) -> Optional[str]:
     """
     A method intended for extensions (and core/tasks.py) to call when they want to be
     notified about new invoice payments incoming. Will emit all incoming payments.
+    This will be a noop if the wallet does not support invoice listeners.
     """
-    name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
-    logger.trace(f"sse: registering invoice listener {name_unique}")
-    invoice_listeners[name_unique] = send_chan
+    if invoice_listeners:
+        name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
+        logger.trace(f"registering invoice listener {name_unique}")
+        invoice_listeners[name_unique] = send_chan
+        return name_unique
+
+
+def unregister_invoice_listener(name_unique: str):
+    """
+    A method to unregister an invoice listener.
+    """
+    if invoice_listeners:
+        logger.trace(f"unregistering invoice listener {name_unique}")
+        return invoice_listeners.pop(name_unique)
 
 
 async def webhook_handler():
@@ -132,10 +128,15 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
+    global invoice_listeners
     WALLET = get_wallet_class()
-    async for checking_id in WALLET.paid_invoices_stream():
-        logger.info("> got a payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+    try:
+        async for checking_id in WALLET.paid_invoices_stream():
+            logger.info("> got a payment notification", checking_id)
+            asyncio.create_task(invoice_callback_dispatcher(checking_id))
+    except NotImplementedError:
+        logger.info("Paid invoices stream not supported by wallet")
+        invoice_listeners = None
 
 
 async def check_pending_payments():
@@ -201,11 +202,18 @@ async def invoice_callback_dispatcher(checking_id: str):
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
-        logger.trace(f"sse sending invoice callback for payment {checking_id}")
+        logger.trace(f"sending invoice callback for payment {checking_id}")
         await payment.set_pending(False)
-        for chan_name, send_chan in invoice_listeners.items():
-            logger.trace(f"sse sending to chan: {chan_name}")
-            await send_chan.put(payment)
+        if invoice_listeners:
+            remove = set()
+            for chan_name, send_chan in invoice_listeners.items():
+                try:
+                    send_chan.put_nowait(payment)
+                except asyncio.QueueFull:
+                    logger.error(f"removing invoice listener {send_chan}:{chan_name}")
+                    remove.add(chan_name)
+            for chan_name in remove:
+                unregister_invoice_listener(chan_name)
 
 
 async def send_push_notification(subscription, title, body, url=""):

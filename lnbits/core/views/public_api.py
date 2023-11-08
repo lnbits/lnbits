@@ -6,8 +6,8 @@ from loguru import logger
 
 from lnbits import bolt11
 
+from ...tasks import register_invoice_listener
 from ..crud import get_standalone_payment
-from ..tasks import api_invoice_listeners
 
 public_router = APIRouter()
 
@@ -35,7 +35,7 @@ async def api_public_payment_longpolling(payment_hash):
     payment_queue = asyncio.Queue(0)
 
     logger.debug(f"adding standalone invoice listener for hash: {payment_hash}")
-    api_invoice_listeners[payment_hash] = payment_queue
+    register_invoice_listener(payment_queue, payment_hash)
 
     response = None
 
