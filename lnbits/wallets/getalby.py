@@ -49,7 +49,6 @@ class GetAlbyWallet(Wallet):
 
         return StatusResponse(None, data["balance"])
 
-    ## todo - convert to getAlby format
     async def create_invoice(
         self,
         amount: int,
@@ -62,73 +61,68 @@ class GetAlbyWallet(Wallet):
             raise Unsupported("description_hash")
 
         r = await self.client.post(
-            "/v1/charges",
+            "/invoices",
             json={
                 "amount": amount,
                 "description": memo or "",
-                # "callback_url": url_for("/webhook_listener", _external=True),
             },
             timeout=40,
         )
+
+        # print(f'method create_invoice, json : {r.json()}')
 
         if r.is_error:
             error_message = r.json()["message"]
             return InvoiceResponse(False, None, None, error_message)
 
-        data = r.json()["data"]
-        checking_id = data["id"]
-        payment_request = data["lightning_invoice"]["payreq"]
+        # data = r.json()["data"]
+        data = r.json()
+        checking_id = data["payment_hash"]
+        payment_request = data["payment_request"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    ## todo - convert to getAlby format
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        # https://api.getalby.com/payments/bolt11
         r = await self.client.post(
-            "/v2/withdrawals",
-            json={"type": "ln", "address": bolt11},
+            "/payments/bolt11",
+            json={"invoice": bolt11},  # assume never need amount in body
             timeout=None,
         )
 
+        # print(f'Method pay_invoice, json : {r.json()}')
         if r.is_error:
             error_message = r.json()["message"]
             return PaymentResponse(False, None, None, None, error_message)
 
-        data = r.json()["data"]
-        checking_id = data["id"]
-        fee_msat = -data["fee"] * 1000
+        data = r.json()
+        checking_id = data["payment_hash"]
+        fee_msat = -data["fee"]
+        preimage = data["payment_preimage"]
 
-        if data["status"] != "paid":
-            return PaymentResponse(None, checking_id, fee_msat, None, "payment failed")
-
-        return PaymentResponse(True, checking_id, fee_msat, None, None)
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     ## todo - convert to getAlby format
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/v1/charge/{checking_id}")
-        if r.is_error:
-            return PaymentStatus(None)
-        data = r.json()["data"]
-        statuses = {"processing": None, "paid": True, "unpaid": None}
-        return PaymentStatus(statuses[data.get("status")])
+        return await self.get_payment_status(checking_id)
 
-    ## todo - convert to getAlby format
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/v1/withdrawal/{checking_id}")
+        # Note from API: currently only settled Alby invoices can be retrieved.
+        r = await self.client.get(f"/invoices/{checking_id}")
 
         if r.is_error:
             return PaymentStatus(None)
 
-        data = r.json()["data"]
+        data = r.json()
+        # print(f'method: get_payment_status: {data}')
+
         statuses = {
-            "initial": None,
-            "pending": None,
-            "confirmed": True,
+            "CREATED": None,
+            "SETTLED": True,
             "error": None,
             "failed": False,
         }
-        fee_msat = -data.get("fee") * 1000
-        return PaymentStatus(statuses[data.get("status")], fee_msat)
+        return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
 
-    ## todo - convert to getAlby format (may not be needed)
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
@@ -138,24 +132,3 @@ class GetAlbyWallet(Wallet):
     async def webhook_listener(self):
         logger.error("getalby webhook listener disabled.")
         return
-        # TODO: request.get_data is undefined, was it something with Flask or quart?
-        # probably issue introduced when refactoring?
-        # text: str = await request.get_data()
-        # try:
-        #     data = json.loads(text)
-        # except json.decoder.JSONDecodeError:
-        #     logger.error(f"error on getalby webhook endpoint: {text[:200]}")
-        #     data = None
-        # if (
-        #     type(data) is not dict
-        #     or "event" not in data
-        #     or data["event"].get("name") != "wallet_receive"
-        # ):
-        #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-        # lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        # r = await self.client.get(f"/lntx/{lntx_id}?fields=settled")
-        # data = r.json()
-        # if data["settled"]:
-        #     await self.queue.put(lntx_id)
-        # raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
