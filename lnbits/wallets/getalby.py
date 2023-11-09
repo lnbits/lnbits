@@ -16,19 +16,19 @@ from .base import (
 )
 
 
-class GetAlbyWallet(Wallet):
+class AlbyWallet(Wallet):
     """https://guides.getalby.com/alby-wallet-api/reference/api-reference"""
 
     def __init__(self):
-        endpoint = settings.getalby_api_endpoint
-        wallet_key = settings.getalby_admin_key
+        endpoint = settings.alby_api_endpoint
+        wallet_key = settings.alby_admin_key
 
-        if not endpoint or not wallet_key or not settings.getalby_api_key:
+        if not endpoint or not wallet_key or not settings.alby_api_key:
             raise Exception("cannot initialize getalby")
 
         self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"X-Api-Key": "Bearer " + settings.getalby_api_key}
+        self.auth = {"X-Api-Key": "Bearer " + settings.alby_api_key}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
     async def cleanup(self):
@@ -101,7 +101,6 @@ class GetAlbyWallet(Wallet):
 
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    ## todo - convert to getAlby format
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
 
