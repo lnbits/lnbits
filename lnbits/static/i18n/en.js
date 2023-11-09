@@ -187,5 +187,7 @@ window.localisation.en = {
   hour: 'hour',
   disable_server_log: 'Disable Server Log',
   enable_server_log: 'Enable Server Log',
-  coming_soon: 'Feature coming soon'
+  coming_soon: 'Feature coming soon',
+  extra: 'Extra',
+  animations: 'Animations'
 }

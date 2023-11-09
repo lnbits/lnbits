@@ -244,7 +244,8 @@ new Vue({
       credit: 0,
       update: {
         name: null,
-        currency: null
+        currency: null,
+        animation: null
       }
     }
   },
@@ -832,6 +833,7 @@ new Vue({
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
+    this.update.animation = this.g.wallet.animation
 
     LNbits.api
       .request('GET', '/api/v1/currencies')

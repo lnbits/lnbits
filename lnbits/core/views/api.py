@@ -696,6 +696,17 @@ async def api_list_currencies_available():
     return list(currencies.keys())
 
 
+@api_router.get("/api/v1/animations")
+async def api_list_animations_available():
+    if len(settings.lnbits_allowed_animations) > 0:
+        return [
+            item
+            for item in animations.keys()
+            if item.upper() in settings.lnbits_allowed_animations
+        ]
+    return list(animations.keys())
+
+
 @api_router.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
     output = {}

@@ -93,6 +93,18 @@
           ></q-select>
           <br />
         </div>
+        <div class="col-12 col-md-6">
+          <p>Allowed animations</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_allowed_animations"
+            multiple
+            hint="Animation packs users can use in their wallets. Select one to make default."
+            label="Allowed animations"
+            :options="{{ animations | safe }}"
+          ></q-select>
+          <br />
+        </div>
       </div>
 
       <div>

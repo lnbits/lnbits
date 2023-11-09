@@ -411,7 +411,31 @@
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
-
+                <q-expansion-item
+                  group="extras"
+                  icon="add_circle"
+                  :label="$t('extra')"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <div style="max-width: 360px">
+                        <q-checkbox
+                          v-model="animations.show"
+                          label="Animations"
+                        ></q-checkbox>
+                        <q-select
+                          filled
+                          dense
+                          clearable
+                          v-model="update.animation"
+                          type="text"
+                          :label="$t('animations')"
+                          :options="animations"
+                        ></q-select>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
                   group="extras"
