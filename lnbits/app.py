@@ -426,7 +426,8 @@ def log_server_info():
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
-    logger.info(f"Service fee: {settings.lnbits_service_fee_wallet}")
+    logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
+    logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
 
 
 def get_db_vendor_name():

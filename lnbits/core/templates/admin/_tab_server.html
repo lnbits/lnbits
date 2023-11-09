@@ -34,6 +34,17 @@
               ></q-input>
               <br />
             </div>
+            <div class="col q-pr-lg">
+              <p>Service fee max</p>
+              <q-input
+                filled
+                type="number"
+                v-model.number="formData.lnbits_service_fee_max"
+                label="Service fee max (sats)"
+                hint="Max service fee to charge in (sats)"
+              ></q-input>
+              <br />
+            </div>
             <div class="col">
               <p>Fee Wallet</p>
               <q-input

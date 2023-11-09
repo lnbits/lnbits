@@ -520,8 +520,13 @@ def fee_reserve(amount_msat: int) -> int:
 
 def service_fee(amount_msat: int) -> int:
     service_fee_percent = settings.lnbits_service_fee
+    fee_max = settings.lnbits_service_fee_max * 1000
     if settings.lnbits_service_fee_wallet:
-        return int(amount_msat / 100 * service_fee_percent)
+        fee_percentage = int(amount_msat / 100 * service_fee_percent)
+        if fee_max > 0 and fee_percentage > fee_max:
+            return fee_max
+        else:
+            return fee_percentage
     else:
         return 0
 
