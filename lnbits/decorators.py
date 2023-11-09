@@ -1,19 +1,19 @@
 from http import HTTPStatus
-from typing import Literal, Optional, Type
+from typing import Annotated, Literal, Optional, Type
 
-from fastapi import Query, Request, Security
+from fastapi import Depends, Query, Request, Security, status
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
-from fastapi.security import APIKeyHeader, APIKeyQuery
+from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
+from jose import JWTError, jwt
 
-from lnbits.core.crud import get_user, get_wallet_for_key
+from lnbits.core.crud import get_wallet_for_key
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
-from lnbits.requestvars import g
 from lnbits.settings import settings
 
-# from pydantic.types import UUID4
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
 
 
 def require_user(request: Request):
@@ -243,41 +243,52 @@ async def require_invoice_key(
         return wallet
 
 
-async def check_user_exists(req: Request, usr: Optional[str] = None) -> User:
-    if req.state.user:
-        user = await get_user(req.state.user.id)
-        assert user, "Logged in user has to exist."
-        g().user = user
-        return user
-
-    if not usr:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Not logged in. or missing `?usr=` query parameter.",
+async def check_user_exists(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
         )
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
 
-    g().user = await get_user(usr)
+    except JWTError:
+        raise credentials_exception
+    return User(id="bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa")
+    # if req.state.user:
+    #     user = await get_user(req.state.user.id)
+    #     assert user, "Logged in user has to exist."
+    #     g().user = user
+    #     return user
 
-    if not g().user:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
-        )
+    # if not usr:
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.NOT_FOUND,
+    #         detail="Not logged in. or missing `?usr=` query parameter.",
+    #     )
 
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and g().user.id not in settings.lnbits_allowed_users
-        and g().user.id not in settings.lnbits_admin_users
-        and g().user.id != settings.super_user
-    ):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
-        )
+    # g().user = await get_user(usr)
 
-    return g().user
+    # if not g().user:
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
+    #     )
+
+    # if not settings.is_user_allowed(g().user):
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+    #     )
+
+    # return g().user
 
 
-async def check_admin(req: Request, usr: Optional[str] = None) -> User:
-    user = await check_user_exists(req, usr)
+async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    user = await check_user_exists(token)
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
@@ -287,8 +298,8 @@ async def check_admin(req: Request, usr: Optional[str] = None) -> User:
     return user
 
 
-async def check_super_user(req: Request, usr: Optional[str] = None) -> User:
-    user = await check_admin(req, usr)
+async def check_super_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    user = await check_user_exists(token)
     if user.id != settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,

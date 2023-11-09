@@ -94,18 +94,23 @@
       <div class="col q-pl-md">
         <q-card>
           <q-card-section>
-            <b>Login</b><br /><br />
-            <q-form @submit="login" class="q-gutter-md">
+            <b>Login xxx</b><br /><br />
+            <q-form
+              @submit="login"
+              class="q-gutter-md"
+            >
               <q-input
                 filled
                 dense
                 v-model="username"
+                name="username"
                 label="Username"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password"
+                name="password"
                 label="Password"
                 type="password"
               ></q-input>

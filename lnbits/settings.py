@@ -302,11 +302,20 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
-    login_secret: str = Field(default=urandom(24).hex())
+    login_secret: str = Field(default=urandom(24).hex())  # todo remove
 
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
+
+
+class AuthSettings(LNbitsSettings):
+    secret_key: str = Field(default="x1")  # todo: init to super user hash
+    algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: str = Field(default=30)
+    allowed_auth_methods: List[str] = Field(
+        default=["user-and-password", "user-id-only"]
+    )
 
 
 class SaaSSettings(LNbitsSettings):
@@ -357,6 +366,7 @@ class ReadOnlySettings(
     SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
+    AuthSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 
@@ -384,6 +394,14 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         env_file_encoding = "utf-8"
         case_sensitive = False
         json_loads = list_parse_fallback
+
+    def is_user_allowed(self, user_id: str):
+        return (
+            len(self.lnbits_allowed_users) == 0
+            or user_id in self.lnbits_allowed_users
+            or user_id in self.lnbits_admin_users
+            or user_id == self.super_user
+        )
 
 
 class SuperSettings(EditableSettings):

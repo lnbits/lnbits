@@ -40,17 +40,25 @@ new Vue({
         })
         .catch(LNbits.utils.notifyApiError)
     },
+    onSubmit: function (evt) {
+      console.log('### onSubmit', evt)
+      // evt.target.submit()
+
+      return false
+    },
     login: function () {
       axios({
         method: 'POST',
         url: '/api/v1/login',
-        data: {username: this.username, password: this.password}
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        data: {username: this.username, password:this.password},
       })
         .then(response => {
+          console.log('#### login response', response.data)
           this.$q.cookies.set('access-token', response.data.access_token)
           this.$q.localStorage.set('lnbits.token', response.data.access_token)
           // this.$q.localStorage.set('lnbits.usr', response.data.usr)
-          window.location.href = '/wallet'
+          window.location.href = 'wallet'
         })
         .catch(LNbits.utils.notifyApiError)
     },
@@ -67,6 +75,9 @@ new Vue({
           window.location.href = '/wallet'
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    logout: function() {
+      console.log('### loghout')
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
