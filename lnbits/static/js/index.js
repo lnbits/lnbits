@@ -50,8 +50,8 @@ new Vue({
       axios({
         method: 'POST',
         url: '/api/v1/login',
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        data: {username: this.username, password:this.password},
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        data: {username: this.username, password: this.password}
       })
         .then(response => {
           console.log('#### login response', response.data)
@@ -76,7 +76,7 @@ new Vue({
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    logout: function() {
+    logout: function () {
       console.log('### loghout')
     },
     createWallet: function () {

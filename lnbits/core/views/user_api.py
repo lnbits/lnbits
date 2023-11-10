@@ -6,24 +6,24 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 
+from lnbits.settings import settings
+
 from ..crud import create_user
 from ..models import CreateUser, User
-from ..services import login_manager
-from lnbits.settings import settings
 
 user_router = APIRouter()
 
 
 @user_router.get("/api/v1/user")
-async def user(user=Depends(login_manager)) -> User:
+async def user(user=Depends()) -> User:
     return user
 
 
 @user_router.post(
     "/api/v1/login", description="Login to the API via the username and password"
 )
-async def login_endpoint(response: Response,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+async def login_endpoint(
+    response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
     print("### login_endpoint.form_data", form_data)
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
@@ -32,7 +32,7 @@ async def login_endpoint(response: Response,
     )
     resp = {"access_token": access_token, "token_type": "bearer"}
     print("### access_token", access_token)
-    response.set_cookie(key="access-token",value=access_token, httponly=True)
+    response.set_cookie(key="access-token", value=access_token, httponly=True)
     return resp
     # if usr:
     #     user = await get_user(usr)
@@ -68,8 +68,11 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
     return encoded_jwt
+
 
 @user_router.post("/api/v1/logout")
 async def logout(response: Response) -> JSONResponse:
@@ -93,10 +96,10 @@ async def register_endpoint(data: CreateUser, response: Response) -> JSONRespons
         )
     try:
         user = await create_user(data)
-        access_token = login_manager.create_access_token(data=dict(sub=user.id))
-        login_manager.set_cookie(response, access_token)
+        # access_token = login_manager.create_access_token(data=dict(sub=user.id))
+        # login_manager.set_cookie(response, access_token)
         return JSONResponse(
-            {"access_token": access_token, "token_type": "bearer", "usr": user.id},
+            {"access_token": "access_token", "token_type": "bearer", "usr": user.id},
             status_code=status.HTTP_200_OK,
         )
     except Exception as exc:
