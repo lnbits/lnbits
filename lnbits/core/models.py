@@ -100,10 +100,10 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
 
-    def login(self, password: str) -> bool:
+    def valid_password(self, password: str) -> bool:
         pwd_bytes: bytes = password.encode("utf-8")
         if not self.password or not checkpw(pwd_bytes, self.password.encode("utf-8")):
-            raise Exception("Incorrect login.")
+            return False
         return True
 
     @property

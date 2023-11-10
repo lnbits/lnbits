@@ -36,7 +36,7 @@ from .models import (
 
 
 async def create_user(data: CreateUser) -> User:
-    if await get_account_by_email(data.email):
+    if await get_account_by_email(data.email):  # todo
         raise Exception("user exists")
 
     pwd_bytes = data.password.encode("utf-8")
@@ -55,16 +55,6 @@ async def create_user(data: CreateUser) -> User:
     new_account = await get_account(user_id=user_id)
     assert new_account, "Newly created account couldn't be retrieved"
     return new_account
-
-
-async def get_account_by_email(
-    email: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE email = ?", (email,)
-    )
-
-    return User(**row) if row else None
 
 
 async def create_account(
@@ -92,6 +82,41 @@ async def get_account(
     )
 
     return User(**row) if row else None
+
+
+async def get_user_by_email(
+    email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id FROM accounts WHERE email = ?", (email,)
+    )
+
+    if not row:
+        return None
+
+    return await get_user(row[0], conn)
+
+
+async def get_user_by_username(
+    username: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id FROM accounts WHERE username = ?", (username,)
+    )
+
+    if not row:
+        return None
+
+    return await get_user(row[0], conn)
+
+
+async def get_user_by_username_or_email(
+    username_or_email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    user = await get_user_by_username(username_or_email, conn)
+    if not user:
+        user = await get_user_by_email(username_or_email, conn)
+    return user
 
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:

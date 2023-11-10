@@ -393,3 +393,13 @@ async def m015_create_push_notification_subscriptions_table(db):
         );
     """
     )
+
+
+async def m016_add_username_column_to_acounts(db):
+    """
+    Adds username column to acounts.
+    """
+    try:
+        await db.execute("ALTER TABLE accounts ADD COLUMN username TEXT")
+    except OperationalError:
+        pass

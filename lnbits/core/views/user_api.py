@@ -1,14 +1,18 @@
 from datetime import datetime, timedelta
 from typing import Annotated, Union
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 from lnbits.settings import settings
 
-from ..crud import create_user
+from ..crud import (
+    create_user,
+    get_user_by_username_or_email,
+)
 from ..models import CreateUser, User
 
 user_router = APIRouter()
@@ -25,40 +29,22 @@ async def user(user=Depends()) -> User:
 async def login_endpoint(
     response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
-    print("### login_endpoint.form_data", form_data)
+    username_or_email = form_data.username
+
+    user = await get_user_by_username_or_email(username_or_email)
+
+    if not user or not user.valid_password(form_data.password):
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
+        )
+
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": form_data.username}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
-    resp = {"access_token": access_token, "token_type": "bearer"}
-    print("### access_token", access_token)
+
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    return resp
-    # if usr:
-    #     user = await get_user(usr)
-    #     if not user:
-    #         return JSONResponse(
-    #             {"error": "not found"}, status_code=status.HTTP_404_NOT_FOUND
-    #         )
-    # else:
-    #     try:
-    #         user = await get_account_by_email(username)
-    #         if not user:
-    #             return JSONResponse(
-    #                 {"error": "not found"}, status_code=status.HTTP_404_NOT_FOUND
-    #             )
-    #         _ = await load_user(user.id)  # type: ignore
-    #         user.login(password)
-    #     except Exception as exc:
-    #         return JSONResponse(
-    #             {"error": str(exc)}, status_code=status.HTTP_401_NOT_FOUND
-    #         )
-    # access_token = login_manager.create_access_token(data=dict(sub=user.id))
-    # login_manager.set_cookie(response, access_token)
-    # return JSONResponse(
-    #     {"access_token": access_token, "token_type": "bearer"},
-    #     status_code=status.HTTP_200_OK,
-    # )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):

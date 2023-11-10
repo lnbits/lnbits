@@ -4,6 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+from enum import Enum
 from os import path, urandom
 from sqlite3 import Row
 from time import time
@@ -309,13 +310,21 @@ class EnvSettings(LNbitsSettings):
         return self.lnbits_extensions_path == "lnbits"
 
 
+class AuthMethods(Enum):
+    user_id = "user-id"
+    username_and_password = "username-password"
+
+
 class AuthSettings(LNbitsSettings):
     secret_key: str = Field(default="x1")  # todo: init to super user hash
     algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=30)
     allowed_auth_methods: List[str] = Field(
-        default=["user-and-password", "user-id-only"]
+        default=["user-id-only", "username-password"]
     )
+
+    def is_user_id_only_auth_allowed(self):
+        return "user-id-only" in self.allowed_auth_methods
 
 
 class SaaSSettings(LNbitsSettings):

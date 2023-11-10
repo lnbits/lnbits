@@ -7,9 +7,10 @@ from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
 from jose import JWTError, jwt
+from pydantic.types import UUID4
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from lnbits.core.crud import get_wallet_for_key
+from lnbits.core.crud import get_user, get_user_by_username, get_wallet_for_key
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import settings
@@ -247,20 +248,37 @@ async def require_invoice_key(
 async def check_user_exists(
     header_access_token: Annotated[Union[str, None], Depends(oauth2_scheme)],
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
-    usr: Optional[str] = None,
+    usr: Optional[UUID4] = None,
 ) -> User:
-    access_token = header_access_token or cookie_access_token
-    if not access_token:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED, detail="Missing access token."
-        )
+    if usr and settings.is_user_id_only_auth_allowed():
+        user = await get_user(usr.hex)
+    else:
+        # todo: check settings
+        access_token = header_access_token or cookie_access_token
+        if not access_token:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED, detail="Missing access token."
+            )
 
+        user = await _get_user_from_token(access_token)
+
+    if not user:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
+        )
+    if not settings.is_user_allowed(user.id):
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+        )
+    return user
+
+
+async def _get_user_from_token(access_token):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Invalid credentials.",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    print("### access_token", access_token)
     try:
         payload = jwt.decode(
             access_token, settings.secret_key, algorithms=[settings.algorithm]
@@ -269,34 +287,10 @@ async def check_user_exists(
         if username is None:
             raise credentials_exception
 
+        return await get_user_by_username(username)
+
     except JWTError:
         raise credentials_exception
-    # return User(id="bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa")
-    # if req.state.user:
-    #     user = await get_user(req.state.user.id)
-    #     assert user, "Logged in user has to exist."
-    #     g().user = user
-    #     return user
-
-    # if not usr:
-    #     raise HTTPException(
-    #         status_code=HTTPStatus.NOT_FOUND,
-    #         detail="Not logged in. or missing `?usr=` query parameter.",
-    #     )
-
-    # g().user = await get_user(usr)
-
-    # if not g().user:
-    #     raise HTTPException(
-    #         status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
-    #     )
-
-    # if not settings.is_user_allowed(g().user):
-    #     raise HTTPException(
-    #         status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
-    #     )
-
-    # return g().user
 
 
 async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
