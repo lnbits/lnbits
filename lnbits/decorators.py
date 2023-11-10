@@ -1,19 +1,20 @@
 from http import HTTPStatus
-from typing import Annotated, Literal, Optional, Type
+from typing import Annotated, Literal, Optional, Type, Union
 
-from fastapi import Depends, Query, Request, Security, status
+from fastapi import Cookie, Depends, Query, Request, Security
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
 from jose import JWTError, jwt
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 from lnbits.core.crud import get_wallet_for_key
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 
 
 def require_user(request: Request):
@@ -243,15 +244,25 @@ async def require_invoice_key(
         return wallet
 
 
-async def check_user_exists(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+async def check_user_exists(
+    header_access_token: Annotated[Union[str, None], Depends(oauth2_scheme)],
+    cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
+) -> User:
+    access_token = header_access_token or cookie_access_token
+    if not access_token:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED, detail="Missing access token."
+        )
+
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    print("### access_token", access_token)
     try:
         payload = jwt.decode(
-            token, settings.secret_key, algorithms=[settings.algorithm]
+            access_token, settings.secret_key, algorithms=[settings.algorithm]
         )
         username: str = payload.get("sub")
         if username is None:

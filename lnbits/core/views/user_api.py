@@ -32,7 +32,7 @@ async def login_endpoint(
     )
     resp = {"access_token": access_token, "token_type": "bearer"}
     print("### access_token", access_token)
-    response.set_cookie(key="access-token", value=access_token, httponly=True)
+    response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
     return resp
     # if usr:
     #     user = await get_user(usr)
