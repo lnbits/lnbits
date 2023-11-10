@@ -247,6 +247,7 @@ async def require_invoice_key(
 async def check_user_exists(
     header_access_token: Annotated[Union[str, None], Depends(oauth2_scheme)],
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
+    usr: Optional[str] = None,
 ) -> User:
     access_token = header_access_token or cookie_access_token
     if not access_token:
@@ -270,7 +271,7 @@ async def check_user_exists(
 
     except JWTError:
         raise credentials_exception
-    return User(id="bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa")
+    # return User(id="bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa")
     # if req.state.user:
     #     user = await get_user(req.state.user.id)
     #     assert user, "Logged in user has to exist."
