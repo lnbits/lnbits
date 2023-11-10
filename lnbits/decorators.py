@@ -10,7 +10,7 @@ from jose import JWTError, jwt
 from pydantic.types import UUID4
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from lnbits.core.crud import get_user, get_user_by_username, get_wallet_for_key
+from lnbits.core.crud import get_account_by_username, get_user, get_wallet_for_key
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import settings
@@ -260,16 +260,16 @@ async def check_user_exists(
                 status_code=HTTP_401_UNAUTHORIZED, detail="Missing access token."
             )
 
-        user = await _get_user_from_token(access_token)
+        user = await _get_account_from_token(access_token)
 
     if not user or not settings.is_user_allowed(user.id):
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Not authorized."
         )
-    return user
+    return await get_user(user.id)
 
 
-async def _get_user_from_token(access_token):
+async def _get_account_from_token(access_token):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials.",
@@ -283,7 +283,7 @@ async def _get_user_from_token(access_token):
         if username is None:
             raise credentials_exception
 
-        return await get_user_by_username(username)
+        return await get_account_by_username(username)
 
     except JWTError:
         raise credentials_exception

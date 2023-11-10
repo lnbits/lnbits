@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
@@ -166,3 +167,8 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
     return f"UPDATE {table_name} SET {query} {where}"
+
+
+def valid_email_address(email: str) -> bool:
+    email_regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+    return re.fullmatch(email_regex, email)

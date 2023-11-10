@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
-from bcrypt import gensalt, hashpw
+from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.core.models import WalletType
@@ -36,20 +36,19 @@ from .models import (
 
 
 async def create_user(data: CreateUser) -> User:
-    if await get_account_by_email(data.email):  # todo
-        raise Exception("user exists")
+    if await get_account_by_username(data.username):
+        raise ValueError("User exists.")
 
-    pwd_bytes = data.password.encode("utf-8")
-    salt = gensalt()
-    password = hashpw(pwd_bytes, salt)
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     user_id = uuid4().hex
     await db.execute(
-        "INSERT INTO accounts (id, email, pass) VALUES (?, ?, ?)",
+        "INSERT INTO accounts (id, email, username, pass) VALUES (?, ?, ?, ?)",
         (
             user_id,
             data.email,
-            password,
+            data.username,
+            pwd_context.hash(data.password),
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -84,38 +83,34 @@ async def get_account(
     return User(**row) if row else None
 
 
-async def get_user_by_email(
-    email: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        "SELECT id FROM accounts WHERE email = ?", (email,)
-    )
-
-    if not row:
-        return None
-
-    return await get_user(row[0], conn)
-
-
-async def get_user_by_username(
+async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id FROM accounts WHERE username = ?", (username,)
+        "SELECT id, username, email, pass as password FROM accounts WHERE username = ?",
+        (username,),
     )
 
-    if not row:
-        return None
-
-    return await get_user(row[0], conn)
+    return User(**row) if row else None
 
 
-async def get_user_by_username_or_email(
+async def get_account_by_email(
+    email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id, username, email, pass as password FROM accounts WHERE email = ?",
+        (email,),
+    )
+
+    return User(**row) if row else None
+
+
+async def get_account_by_username_or_email(
     username_or_email: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
-    user = await get_user_by_username(username_or_email, conn)
+    user = await get_account_by_username(username_or_email, conn)
     if not user:
-        user = await get_user_by_email(username_or_email, conn)
+        user = await get_account_by_email(username_or_email, conn)
     return user
 
 

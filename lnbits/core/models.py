@@ -8,10 +8,10 @@ from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
-from bcrypt import checkpw
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from loguru import logger
+from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
@@ -81,12 +81,8 @@ class WalletTypeInfo:
 
 
 class CreateUser(BaseModel):
-    email: str = Query(
-        default=...,
-        min_length=3,
-        max_length=50,
-        # regex=r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
-    )
+    email: Optional[str] = Query(default=None)
+    username: str = Query(default=..., min_length=2, max_length=50)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
@@ -94,6 +90,7 @@ class CreateUser(BaseModel):
 class User(BaseModel):
     id: str
     email: Optional[str] = None
+    username: Optional[str] = None
     extensions: List[str] = []
     wallets: List[Wallet] = []
     password: Optional[str] = None
@@ -101,10 +98,9 @@ class User(BaseModel):
     super_user: bool = False
 
     def valid_password(self, password: str) -> bool:
-        pwd_bytes: bytes = password.encode("utf-8")
-        if not self.password or not checkpw(pwd_bytes, self.password.encode("utf-8")):
-            return False
-        return True
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        x = pwd_context.verify(password, self.password)
+        return x
 
     @property
     def wallet_ids(self) -> List[str]:

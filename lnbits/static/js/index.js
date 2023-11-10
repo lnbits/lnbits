@@ -10,6 +10,7 @@ new Vue({
       },
       usr: '',
       username: '',
+      email: '',
       password: '',
       password_repeat: '',
       walletName: '',
@@ -27,15 +28,16 @@ new Vue({
         method: 'POST',
         url: '/api/v1/register',
         data: {
-          email: this.username,
+          username: this.username,
+          email: this.email,
           password: this.password,
           password_repeat: this.password_repeat
         }
       })
         .then(response => {
-          this.$q.cookies.set('access-token', response.data.access_token)
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          this.$q.localStorage.set('lnbits.usr', response.data.usr)
+          // this.$q.cookies.set('access-token', response.data.access_token)
+          // this.$q.localStorage.set('lnbits.token', response.data.access_token)
+          // this.$q.localStorage.set('lnbits.usr', response.data.usr)
           window.location.href = '/wallet'
         })
         .catch(LNbits.utils.notifyApiError)
@@ -53,11 +55,7 @@ new Vue({
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         data: {username: this.username, password: this.password}
       })
-        .then(response => {
-          console.log('#### login response', response.data)
-          this.$q.cookies.set('access-token', response.data.access_token)
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          // this.$q.localStorage.set('lnbits.usr', response.data.usr)
+        .then(() => {
           window.location.href = 'wallet'
         })
         .catch(LNbits.utils.notifyApiError)

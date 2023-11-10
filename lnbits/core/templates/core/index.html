@@ -134,7 +134,19 @@
       <q-card-section>
         <b>Create account</b><br /><br />
         <q-form @submit="register" class="q-gutter-md">
-          <q-input filled dense v-model="username" label="Username"></q-input>
+          <q-input
+            filled
+            dense
+            required
+            v-model="username"
+            label="Username"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model="email"
+            label="Email (optional)"
+          ></q-input>
           <q-input
             filled
             dense
