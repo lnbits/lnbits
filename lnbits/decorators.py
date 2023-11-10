@@ -262,13 +262,9 @@ async def check_user_exists(
 
         user = await _get_user_from_token(access_token)
 
-    if not user:
+    if not user or not settings.is_user_allowed(user.id):
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
-        )
-    if not settings.is_user_allowed(user.id):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+            status_code=HTTPStatus.UNAUTHORIZED, detail="Not authorized."
         )
     return user
 

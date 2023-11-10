@@ -38,9 +38,9 @@ async def login_endpoint(
             status_code=HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
         )
 
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=expires_delta
     )
 
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
