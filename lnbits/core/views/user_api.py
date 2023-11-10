@@ -75,7 +75,7 @@ async def register(data: CreateUser) -> JSONResponse:
 
     try:
         user = await create_user(data)
-        return _auth_success_response(user.username)
+        return _auth_success_response(username=user.username)
 
     except ValueError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
@@ -84,7 +84,7 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
 
-def _auth_success_response(username: str, user_id: Optional[str]) -> Response:
+def _auth_success_response(username: str, user_id: Optional[str] = None) -> Response:
     access_token = _create_access_token(data={"sub": username, "usr": user_id})
     response = JSONResponse(
         content={"access_token": access_token, "token_type": "bearer"}

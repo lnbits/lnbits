@@ -274,27 +274,6 @@ async def check_user_exists(
     return await get_user(user.id)
 
 
-async def _get_account_from_token(access_token):
-    credentials_exception = HTTPException(
-        status_code=HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(
-            access_token, settings.secret_key, algorithms=[settings.algorithm]
-        )
-        if "sub" in payload and payload.get("sub"):
-            return await get_account_by_username(payload.get("sub"))
-        if "usr" in payload and payload.get("usr"):
-            return await get_account(payload.get("usr"))
-
-        raise credentials_exception
-    except JWTError as e:
-        print("### e", e)
-        raise credentials_exception
-
-
 async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
     user = await check_user_exists(token)
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
@@ -349,3 +328,24 @@ def parse_filters(model: Type[TFilterModel]):
         )
 
     return dependency
+
+
+async def _get_account_from_token(access_token):
+    credentials_exception = HTTPException(
+        status_code=HTTP_401_UNAUTHORIZED,
+        detail="Invalid credentials.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            access_token, settings.secret_key, algorithms=[settings.algorithm]
+        )
+        if "sub" in payload and payload.get("sub"):
+            return await get_account_by_username(payload.get("sub"))
+        if "usr" in payload and payload.get("usr"):
+            return await get_account(payload.get("usr"))
+
+        raise credentials_exception
+    except JWTError as e:
+        print("### e", e)
+        raise credentials_exception

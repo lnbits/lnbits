@@ -37,7 +37,10 @@ from .models import (
 
 async def create_user(data: CreateUser) -> User:
     if await get_account_by_username(data.username):
-        raise ValueError("User exists.")
+        raise ValueError("Username already exists.")
+
+    if data.email and await get_account_by_email(data.email):
+        raise ValueError("Email already exists.")
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -77,7 +80,8 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username, pass as password FROM accounts WHERE id = ?",
+        (user_id,),
     )
 
     return User(**row) if row else None
