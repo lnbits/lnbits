@@ -60,16 +60,14 @@ new Vue({
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    login_usr: function () {
+    loginUsr: function () {
       axios({
         method: 'POST',
-        url: '/api/v1/login',
-        data: {usr: this.usr, username: 'unknown', password: 'unknown'}
+        url: `/api/v1/login?usr=${this.usr}`,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        data: {username: 'none', password: 'none'}
       })
-        .then(response => {
-          this.$q.cookies.set('access-token', response.data.access_token)
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          // this.$q.localStorage.set('lnbits.usr', response.data.usr)
+        .then(() => {
           window.location.href = '/wallet'
         })
         .catch(LNbits.utils.notifyApiError)

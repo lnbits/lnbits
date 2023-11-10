@@ -10,7 +10,12 @@ from jose import JWTError, jwt
 from pydantic.types import UUID4
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from lnbits.core.crud import get_account_by_username, get_user, get_wallet_for_key
+from lnbits.core.crud import (
+    get_account,
+    get_account_by_username,
+    get_user,
+    get_wallet_for_key,
+)
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import settings
@@ -250,7 +255,7 @@ async def check_user_exists(
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
     usr: Optional[UUID4] = None,
 ) -> User:
-    if usr and settings.is_user_id_only_auth_allowed():
+    if usr and settings.is_user_id_auth_allowed():
         user = await get_user(usr.hex)
     else:
         # todo: check settings
@@ -279,13 +284,14 @@ async def _get_account_from_token(access_token):
         payload = jwt.decode(
             access_token, settings.secret_key, algorithms=[settings.algorithm]
         )
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
+        if "sub" in payload and payload.get("sub"):
+            return await get_account_by_username(payload.get("sub"))
+        if "usr" in payload and payload.get("usr"):
+            return await get_account(payload.get("usr"))
 
-        return await get_account_by_username(username)
-
-    except JWTError:
+        raise credentials_exception
+    except JWTError as e:
+        print("### e", e)
         raise credentials_exception
 
 

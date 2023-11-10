@@ -323,7 +323,7 @@ class AuthSettings(LNbitsSettings):
         default=["user-id-only", "username-password"]
     )
 
-    def is_user_id_only_auth_allowed(self):
+    def is_user_id_auth_allowed(self):
         return "user-id-only" in self.allowed_auth_methods
 
 

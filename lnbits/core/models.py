@@ -98,9 +98,11 @@ class User(BaseModel):
     super_user: bool = False
 
     def valid_password(self, password: str) -> bool:
+        if not self.password and settings.is_user_id_auth_allowed():
+            return True
+
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        x = pwd_context.verify(password, self.password)
-        return x
+        return pwd_context.verify(password, self.password)
 
     @property
     def wallet_ids(self) -> List[str]:

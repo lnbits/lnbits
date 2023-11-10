@@ -441,7 +441,7 @@ window.windowMixin = {
     const urlParams = new URLSearchParams(window.location.search)
     const usrParam = urlParams.get('usr')
     if (usrParam) {
-      this.login(usrParams)
+      this.login(usrParam)
       // replace all query params in current url
       window.history.replaceState({}, document.title, window.location.pathname)
     }
