@@ -312,7 +312,7 @@ class EnvSettings(LNbitsSettings):
 class AuthSettings(LNbitsSettings):
     secret_key: str = Field(default="x1")  # todo: init to super user hash
     algorithm: str = Field(default="HS256")
-    access_token_expire_minutes: str = Field(default=30)
+    access_token_expire_minutes: int = Field(default=30)
     allowed_auth_methods: List[str] = Field(
         default=["user-and-password", "user-id-only"]
     )

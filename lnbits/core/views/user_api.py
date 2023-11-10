@@ -1,5 +1,4 @@
-from datetime import timedelta
-import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, Response, status
@@ -27,10 +26,14 @@ async def login_endpoint(response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
     print("### login_endpoint.form_data", form_data)
-    access_token = {"access_token": form_data.username, "token_type": "bearer"}
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    resp = {"access_token": access_token, "token_type": "bearer"}
     print("### access_token", access_token)
-    response.set_cookie(key="access_token",value=f"Bearer {access_token}", httponly=True)
-    return access_token
+    response.set_cookie(key="access-token",value=access_token, httponly=True)
+    return resp
     # if usr:
     #     user = await get_user(usr)
     #     if not user:
