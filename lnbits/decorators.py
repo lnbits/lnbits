@@ -255,22 +255,18 @@ async def check_user_exists(
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
     usr: Optional[UUID4] = None,
 ) -> User:
-    if usr and settings.is_user_id_auth_allowed():
-        user = await get_user(usr.hex)
-    else:
-        # todo: check settings
-        access_token = header_access_token or cookie_access_token
-        if not access_token:
-            raise HTTPException(
-                status_code=HTTP_401_UNAUTHORIZED, detail="Missing access token."
-            )
+    access_token = header_access_token or cookie_access_token
 
+    if access_token:
         user = await _get_account_from_token(access_token)
+    else:
+        if usr and settings.is_user_id_auth_allowed():
+            user = await get_account(usr.hex)
+        else:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing access token.")
 
     if not user or not settings.is_user_allowed(user.id):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Not authorized."
-        )
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
     return await get_user(user.id)
 
 
@@ -278,8 +274,7 @@ async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
     user = await check_user_exists(token)
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="User not authorized. No admin privileges.",
+            HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
         )
 
     return user

@@ -35,9 +35,7 @@ new Vue({
         }
       })
         .then(response => {
-          // this.$q.cookies.set('access-token', response.data.access_token)
-          // this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          // this.$q.localStorage.set('lnbits.usr', response.data.usr)
+          this.$q.localStorage.set('lnbits.token', response.data.access_token)
           window.location.href = '/wallet'
         })
         .catch(LNbits.utils.notifyApiError)
@@ -55,7 +53,8 @@ new Vue({
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         data: {username: this.username, password: this.password}
       })
-        .then(() => {
+        .then(response => {
+          this.$q.localStorage.set('lnbits.token', response.data.access_token)
           window.location.href = 'wallet'
         })
         .catch(LNbits.utils.notifyApiError)
@@ -67,13 +66,15 @@ new Vue({
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         data: {username: 'none', password: 'none'}
       })
-        .then(() => {
+        .then(response => {
+          this.$q.localStorage.set('lnbits.token', response.data.access_token)
           window.location.href = '/wallet'
         })
         .catch(LNbits.utils.notifyApiError)
     },
     logout: function () {
       console.log('### loghout')
+      this.$q.localStorage.remove('lnbits.token')
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
@@ -90,5 +91,8 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
+    if (this.$q.localStorage.getItem('lnbits.token')) {
+      window.location.href = '/wallet'
+    }
   }
 })

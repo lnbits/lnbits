@@ -120,7 +120,7 @@ async def get_account_by_username_or_email(
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
@@ -144,6 +144,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     return User(
         id=user["id"],
         email=user["email"],
+        username=user["username"],
         extensions=[
             e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],
