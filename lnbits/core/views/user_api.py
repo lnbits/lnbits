@@ -60,9 +60,10 @@ async def login_usr(data: LoginUser) -> JSONResponse:
 
 
 @user_router.post("/api/v1/logout")
-async def logout(response: Response) -> JSONResponse:
+async def logout() -> JSONResponse:
+    response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
-    return JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
+    return response
 
 
 @user_router.post("/api/v1/register")

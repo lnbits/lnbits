@@ -96,6 +96,12 @@ window.LNbits = {
         data: {usr}
       })
     },
+    logout: function () {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/logout'
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
@@ -413,17 +419,6 @@ window.windowMixin = {
   },
 
   methods: {
-    logout: function () {
-      let that = this
-      axios({
-        method: 'POST',
-        url: '/api/v1/logout'
-      }).then(function () {
-        that.$q.localStorage.set('lnbits.token', null)
-        that.$q.cookies.set('access-token', null)
-        window.location = '/'
-      })
-    },
     activeLanguage: function (lang) {
       return window.i18n.locale === lang
     },
@@ -454,9 +449,10 @@ window.windowMixin = {
       if (!usr) {
         return
       }
-      if (!this.$q.localStorage.getItem('lnbits.token')) {
-        const {data} = await LNbits.api.loginUsr(usr)
-        this.$q.localStorage.set('lnbits.token', data.access_token)
+
+      if (!this.$q.localStorage.getItem('lnbits.user.authorized')) {
+        await LNbits.api.loginUsr(usr)
+        this.$q.localStorage.set('lnbits.user.authorized', true)
       }
       params.delete('usr')
       const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
@@ -466,6 +462,14 @@ window.windowMixin = {
         document.title,
         window.location.pathname + cleanQueryPrams
       )
+    },
+    logout: async function () {
+      try {
+        await LNbits.api.logout()
+        this.$q.localStorage.remove('lnbits.user.authorized')
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
   created: async function () {

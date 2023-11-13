@@ -21,46 +21,43 @@ new Vue({
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.description)
     },
-    isUserLoggedIn() {
-      return !!this.$q.localStorage.getItem('lnbits.token')
+    isUserAuthorized() {
+      const x = this.$q.localStorage.getItem('lnbits.user.authorized')
+      console.log('### x', x)
+      return this.$q.localStorage.getItem('lnbits.user.authorized')
     }
   },
   methods: {
     register: async function () {
       try {
-        const {data} = await LNbits.api.register(
+        await LNbits.api.register(
           this.username,
           this.email,
           this.password,
           this.password_repeat
         )
-        this.$q.localStorage.set('lnbits.token', data.access_token)
-        window.location.href = 'wallet'
+        window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     },
     login: async function () {
       try {
-        const {data} = await LNbits.api.login(this.username, this.password)
-        this.$q.localStorage.set('lnbits.token', data.access_token)
-        window.location.href = 'wallet'
+        await LNbits.api.login(this.username, this.password)
+        this.$q.localStorage.set('lnbits.user.authorized', true)
+        window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     },
     loginUsr: async function () {
       try {
-        const {data} = await LNbits.api.loginUsr(this.usr)
-        this.$q.localStorage.set('lnbits.token', data.access_token)
-        window.location.href = 'wallet'
+        await LNbits.api.loginUsr(this.usr)
+        this.$q.localStorage.set('lnbits.user.authorized', true)
+        window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
-    },
-    logout: function () {
-      console.log('### loghout')
-      this.$q.localStorage.remove('lnbits.token')
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
@@ -77,7 +74,8 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
-    if (this.isUserLoggedIn) {
+    console.log('### cookies', JSON.stringify(this.$q.cookies.getAll()))
+    if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
   }

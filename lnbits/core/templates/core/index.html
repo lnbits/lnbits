@@ -3,7 +3,7 @@
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div
-    v-if="isUserLoggedIn"
+    v-if="isUserAuthorized"
     class="col-12 col-md-7 col-lg-6 q-gutter-y-md"
   ></div>
   <div v-else class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
