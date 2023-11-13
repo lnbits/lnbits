@@ -1,10 +1,12 @@
 import json
 import re
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
+from jose import jwt
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
@@ -172,3 +174,17 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
 def valid_email_address(email: str) -> bool:
     email_regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
     return re.fullmatch(email_regex, email)
+
+
+def create_access_token(data: dict):
+    expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
+    return encoded_jwt

@@ -259,11 +259,10 @@ async def check_user_exists(
 
     if access_token:
         user = await _get_account_from_token(access_token)
+    elif usr and settings.is_user_id_auth_allowed():
+        user = await get_account(usr.hex)
     else:
-        if usr and settings.is_user_id_auth_allowed():
-            user = await get_account(usr.hex)
-        else:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing access token.")
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing access token.")
 
     if not user or not settings.is_user_allowed(user.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")

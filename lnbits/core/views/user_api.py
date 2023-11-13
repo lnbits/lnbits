@@ -1,10 +1,8 @@
-from datetime import datetime, timedelta
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import jwt
 from loguru import logger
 from pydantic.types import UUID4
 from starlette.status import (
@@ -14,7 +12,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-from lnbits.helpers import valid_email_address
+from lnbits.helpers import create_access_token, valid_email_address
 from lnbits.settings import settings
 
 from ..crud import (
@@ -48,7 +46,6 @@ async def login_endpoint(
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
         )
-
     return _auth_success_response(user.username or "", usr.hex if usr else None)
 
 
@@ -85,23 +82,9 @@ async def register(data: CreateUser) -> JSONResponse:
 
 
 def _auth_success_response(username: str, user_id: Optional[str] = None) -> Response:
-    access_token = _create_access_token(data={"sub": username, "usr": user_id})
+    access_token = create_access_token(data={"sub": username, "usr": user_id})
     response = JSONResponse(
         content={"access_token": access_token, "token_type": "bearer"}
     )
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
     return response
-
-
-def _create_access_token(data: dict):
-    expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.secret_key, algorithm=settings.algorithm
-    )
-    return encoded_jwt

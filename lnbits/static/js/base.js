@@ -69,6 +69,15 @@ window.LNbits = {
         name: name
       })
     },
+    login: function (username, password, params) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/login',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        params,
+        data: {username, password}
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
@@ -76,7 +85,7 @@ window.LNbits = {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
         name: name
       }).then(res => {
-        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+        window.location = '/wallet?wal=' + res.data.id
       })
     },
     updateWallet: function (name, wallet) {
@@ -386,20 +395,6 @@ window.windowMixin = {
   },
 
   methods: {
-    login: function (usr) {
-      let that = this
-      axios({
-        method: 'POST',
-        url: '/api/v1/login',
-        data: {usr: usr, username: 'unknown', password: 'unknown'}
-      }).then(function (response) {
-        that.$q.localStorage.set('lnbits.token', response.data.access_token)
-        that.$q.cookies.set('access-token', response.data.access_token, {
-          path: '/',
-          sameSite: 'Lax'
-        })
-      })
-    },
     logout: function () {
       let that = this
       axios({
@@ -410,6 +405,10 @@ window.windowMixin = {
         that.$q.cookies.set('access-token', null)
         window.location = '/'
       })
+    },
+    loginUsr: async function (usr) {
+      const {data} = await LNbits.api.login('none', 'none', {usr})
+      this.$q.localStorage.set('lnbits.token', data.access_token)
     },
     activeLanguage: function (lang) {
       return window.i18n.locale === lang
@@ -434,18 +433,27 @@ window.windowMixin = {
           position: position || 'bottom'
         })
       })
+    },
+    checkUserInUrl: async function () {
+      const params = new URLSearchParams(window.location.search)
+      const usr = params.get('usr')
+      if (!usr) {
+        return
+      }
+      if (!this.$q.localStorage.getItem('lnbits.token')) {
+        await this.loginUsr(usr)
+      }
+      params.delete('usr')
+      const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
+
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + cleanQueryPrams
+      )
     }
   },
-  created: function () {
-    // crop usr from url and login that user in the background
-    const urlParams = new URLSearchParams(window.location.search)
-    const usrParam = urlParams.get('usr')
-    if (usrParam) {
-      this.login(usrParam)
-      // replace all query params in current url
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
-
+  created: async function () {
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false
@@ -528,6 +536,8 @@ window.windowMixin = {
       )
 
       this.g.extensions = extensions
+
+      await this.checkUserInUrl()
     }
   }
 }

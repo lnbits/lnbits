@@ -46,31 +46,23 @@ new Vue({
 
       return false
     },
-    login: function () {
-      axios({
-        method: 'POST',
-        url: '/api/v1/login',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        data: {username: this.username, password: this.password}
-      })
-        .then(response => {
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          window.location.href = 'wallet'
-        })
-        .catch(LNbits.utils.notifyApiError)
+    login: async function () {
+      try {
+        const {data} = await LNbits.api.login(this.username, this.pasword)
+        this.$q.localStorage.set('lnbits.token', data.access_token)
+        window.location.href = 'wallet'
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     },
-    loginUsr: function () {
-      axios({
-        method: 'POST',
-        url: `/api/v1/login?usr=${this.usr}`,
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        data: {username: 'none', password: 'none'}
-      })
-        .then(response => {
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          window.location.href = '/wallet'
-        })
-        .catch(LNbits.utils.notifyApiError)
+    loginUsr: async function () {
+      try {
+        const {data} = await LNbits.api.login('none', 'none', {usr: this.usr})
+        this.$q.localStorage.set('lnbits.token', data.access_token)
+        window.location.href = 'wallet'
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     },
     logout: function () {
       console.log('### loghout')
@@ -78,7 +70,7 @@ new Vue({
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
-        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+        window.location = '/wallet?wal=' + res.data.id
       })
     },
     processing: function () {
