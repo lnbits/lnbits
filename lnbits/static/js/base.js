@@ -69,6 +69,18 @@ window.LNbits = {
         name: name
       })
     },
+    register: function (username, email, password, password_repeat) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/register',
+        data: {
+          username,
+          email,
+          password,
+          password_repeat
+        }
+      })
+    },
     login: function (username, password) {
       return axios({
         method: 'POST',

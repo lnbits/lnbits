@@ -26,28 +26,19 @@ new Vue({
     }
   },
   methods: {
-    register: function () {
-      axios({
-        method: 'POST',
-        url: '/api/v1/register',
-        data: {
-          username: this.username,
-          email: this.email,
-          password: this.password,
-          password_repeat: this.password_repeat
-        }
-      })
-        .then(response => {
-          this.$q.localStorage.set('lnbits.token', response.data.access_token)
-          window.location.href = '/wallet'
-        })
-        .catch(LNbits.utils.notifyApiError)
-    },
-    onSubmit: function (evt) {
-      console.log('### onSubmit', evt)
-      // evt.target.submit()
-
-      return false
+    register: async function () {
+      try {
+        const {data} = await LNbits.api.register(
+          this.username,
+          this.email,
+          this.password,
+          this.password_repeat
+        )
+        this.$q.localStorage.set('lnbits.token', data.access_token)
+        window.location.href = 'wallet'
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     },
     login: async function () {
       try {
