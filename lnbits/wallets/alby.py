@@ -130,5 +130,5 @@ class AlbyWallet(Wallet):
             yield value
 
     async def webhook_listener(self):
-        logger.error("getalby webhook listener disabled.")
+        logger.error("Alby webhook listener disabled")
         return
