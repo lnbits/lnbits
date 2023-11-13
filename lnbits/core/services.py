@@ -534,6 +534,10 @@ def service_fee(amount_msat: int) -> int:
         return 0
 
 
+def fee_reserve_total(amount_msat: int) -> int:
+    return fee_reserve(amount_msat) + service_fee(amount_msat)
+
+
 async def send_payment_notification(wallet: Wallet, payment: Payment):
     await websocketUpdater(
         wallet.id,
