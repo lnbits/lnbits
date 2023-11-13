@@ -7,6 +7,7 @@ from lnbits.nodes import set_node_class
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
+from .alby import AlbyWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 
@@ -16,7 +17,6 @@ from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
-from .alby import AlbyWallet
 from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet

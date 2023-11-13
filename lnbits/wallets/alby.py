@@ -46,10 +46,9 @@ class AlbyWallet(Wallet):
         # print(f'Method Status:  {str(r.json())}')
         data = r.json()["balance"]
         if r.is_error:
-             return StatusResponse(data["error"], 0)
+            return StatusResponse(data["error"], 0)
 
         return StatusResponse(None, data)
-
 
     async def create_invoice(
         self,
