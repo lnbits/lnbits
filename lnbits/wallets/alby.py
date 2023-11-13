@@ -15,7 +15,6 @@ from .base import (
     Wallet,
 )
 
-
 class AlbyWallet(Wallet):
     """https://guides.getalby.com/alby-wallet-api/reference/api-reference"""
 
@@ -28,8 +27,6 @@ class AlbyWallet(Wallet):
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {"Authorization": "Bearer " + settings.alby_api_key}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
-        # print(f'Method __init__, endpoint : {endpoint}')
-        # print(f'auth: {self.auth}')
 
     async def cleanup(self):
         try:
@@ -43,7 +40,6 @@ class AlbyWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        # print(f'Method Status:  {str(r.json())}')
         data = r.json()["balance"]
         if r.is_error:
             return StatusResponse(data["error"], 0)
@@ -70,13 +66,10 @@ class AlbyWallet(Wallet):
             timeout=40,
         )
 
-        # print(f'method create_invoice, json : {r.json()}')
-
         if r.is_error:
             error_message = r.json()["message"]
             return InvoiceResponse(False, None, None, error_message)
 
-        # data = r.json()["data"]
         data = r.json()
         checking_id = data["payment_hash"]
         payment_request = data["payment_request"]
@@ -90,7 +83,6 @@ class AlbyWallet(Wallet):
             timeout=None,
         )
 
-        # print(f'Method pay_invoice, json : {r.json()}')
         if r.is_error:
             error_message = r.json()["message"]
             return PaymentResponse(False, None, None, None, error_message)
@@ -113,7 +105,6 @@ class AlbyWallet(Wallet):
             return PaymentStatus(None)
 
         data = r.json()
-        # print(f'method: get_payment_status: {data}')
 
         statuses = {
             "CREATED": None,
