@@ -15,6 +15,7 @@ from .base import (
     Wallet,
 )
 
+
 class AlbyWallet(Wallet):
     """https://guides.getalby.com/alby-wallet-api/reference/api-reference"""
 
