@@ -44,6 +44,7 @@ from .core.views.generic import update_installed_extension_state
 from .extension_manager import (
     Extension,
     InstallableExtension,
+    LoadExtension,
     get_valid_extensions,
     version_parse,
 )
@@ -342,7 +343,39 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     if hasattr(ext_module, f"{ext.code}_start"):
         ext_start_func = getattr(ext_module, f"{ext.code}_start")
-        ext_start_func()
+        load_ext = ext_start_func()
+
+        # if the extension returns a LoadExtension model, init the new way
+        if load_ext and isinstance(load_ext, LoadExtension):
+
+            # # set the extension's settings
+            # ext.set_load_ext(load_ext)
+
+            # register the extension's routes
+            if load_ext.routers:
+                for router in load_ext.routers:
+                    logger.trace(f"adding route for extension {ext_module}")
+                    prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
+                    app.include_router(router=router, prefix=prefix)
+
+            # register the extension's static files
+            if load_ext.static_files:
+                for static in load_ext.static_files:
+                    static_dir = Path(
+                        settings.lnbits_extensions_path, "extensions", *static["path"].split("/")
+                    )
+                    app.mount(static["path"], StaticFiles(directory=static_dir), static["name"])
+
+            if load_ext.redirects:
+                settings.lnbits_extensions_redirects = [
+                    r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext.code
+                ]
+                for r in load_ext.redirects:
+                    r["ext_id"] = ext.code
+                    settings.lnbits_extensions_redirects.append(r)
+
+            # exit early, the rest is needed for backwards compatibility
+            return None
 
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")

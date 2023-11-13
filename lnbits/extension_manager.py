@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -10,7 +11,7 @@ from typing import Any, List, NamedTuple, Optional, Tuple
 from urllib import request
 
 import httpx
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from loguru import logger
 from packaging import version
 from pydantic import BaseModel
@@ -76,6 +77,13 @@ class ExtensionConfig(BaseModel):
         if not self.min_lnbits_version:
             return True
         return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
+
+
+class LoadExtension(BaseModel):
+    routers: Optional[List] = None
+    static_files: Optional[List[dict]] = None
+    redirects: Optional[List[dict]] = None
+    scheduled_tasks: Optional[List] = None
 
 
 def download_url(url, save_path):
