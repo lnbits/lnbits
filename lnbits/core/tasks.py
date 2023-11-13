@@ -189,6 +189,6 @@ async def send_payment_push_notification(payment: Payment):
 
         for subscription in subscriptions:
             url = (
-                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}" #todo: review
             )
             await send_push_notification(subscription, title, body, url)
