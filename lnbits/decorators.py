@@ -262,7 +262,7 @@ async def check_user_exists(
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         user = await get_account(usr.hex)
     else:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
 
     if not user or not settings.is_user_allowed(user.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
