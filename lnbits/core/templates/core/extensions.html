@@ -195,7 +195,7 @@
               type="a"
               :href="['{{
                 url_for('install.extensions')
-              }}', '?usr=', g.user.id, '&disable=', extension.id].join('')"
+              }}', '?disable=', extension.id].join('')"
             >
               {%raw%}{{ $t('disable') }}{%endraw%}</q-btn
             >
@@ -209,7 +209,7 @@
               type="a"
               :href="['{{
                 url_for('install.extensions')
-              }}', '?usr=', g.user.id, '&enable=', extension.id].join('')"
+              }}', '?enable=', extension.id].join('')"
             >
               {%raw%}{{ $t('enable') }}{%endraw%}
               <q-tooltip>
@@ -576,7 +576,7 @@
         LNbits.api
           .request(
             'DELETE',
-            `/api/v1/extension/${extension.id}/db?usr=${this.g.user.id}`,
+            `/api/v1/extension/${extension.id}/db`,
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
