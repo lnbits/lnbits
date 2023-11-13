@@ -28,7 +28,7 @@ class AlbyWallet(Wallet):
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth = {
             "Authorization": "Bearer " + settings.alby_access_token,
-            "User-Agent": "LNbits/0.12",
+            "User-Agent": f"LNbits/{settings.version}",
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
