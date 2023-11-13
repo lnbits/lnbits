@@ -20,6 +20,9 @@ new Vue({
   computed: {
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.description)
+    },
+    isUserLoggedIn() {
+      return !!this.$q.localStorage.getItem('lnbits.token')
     }
   },
   methods: {
@@ -83,7 +86,7 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
-    if (this.$q.localStorage.getItem('lnbits.token')) {
+    if (this.isUserLoggedIn) {
       window.location.href = '/wallet'
     }
   }
