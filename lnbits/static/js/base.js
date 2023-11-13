@@ -69,12 +69,11 @@ window.LNbits = {
         name: name
       })
     },
-    login: function (username, password, params) {
+    login: function (username, password) {
       return axios({
         method: 'POST',
         url: '/api/v1/login',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        params,
         data: {username, password}
       })
     },
