@@ -28,8 +28,11 @@ class LNPayWallet(Wallet):
 
         self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"X-Api-Key": settings.lnpay_api_key}
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        headers = {
+            "X-Api-Key": settings.lnpay_api_key,
+            "User-Agent": f"LNbits/{settings.version}",
+        }
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
 
     async def cleanup(self):
         try:

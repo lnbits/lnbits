@@ -28,8 +28,8 @@ class LNbitsWallet(Wallet):
         )
         if not self.endpoint or not key:
             raise Exception("cannot initialize lnbits wallet")
-        self.key = {"X-Api-Key": key}
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.key)
+        self.headers = {"X-Api-Key": key, "User-Agent": f"LNbits/{settings.version}"}
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
     async def cleanup(self):
         try:
@@ -136,7 +136,9 @@ class LNbitsWallet(Wallet):
 
         while True:
             try:
-                async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
+                async with httpx.AsyncClient(
+                    timeout=None, headers=self.headers
+                ) as client:
                     del client.headers[
                         "accept-encoding"
                     ]  # we have to disable compression for SSEs

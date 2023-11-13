@@ -38,14 +38,15 @@ class CoreLightningRestWallet(Wallet):
         self.url = (
             f"https://{self.url}" if not self.url.startswith("http") else self.url
         )
-        self.auth = {
+        headers = {
             "macaroon": self.macaroon,
             "encodingtype": "hex",
             "accept": "application/json",
+            "User-Agent": f"LNbits/{settings.version}",
         }
 
         self.cert = settings.corelightning_rest_cert or False
-        self.client = httpx.AsyncClient(verify=self.cert, headers=self.auth)
+        self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
         self.statuses = {
             "paid": True,

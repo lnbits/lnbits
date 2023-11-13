@@ -144,16 +144,11 @@ async def fetch_github_release_config(
 
 
 async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
-    async with httpx.AsyncClient() as client:
-        headers = (
-            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
-            if settings.lnbits_ext_github_token
-            else None
-        )
-        resp = await client.get(
-            url,
-            headers=headers,
-        )
+    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    if settings.lnbits_ext_github_token:
+        headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
+    async with httpx.AsyncClient(headers=headers) as client:
+        resp = await client.get(url)
         if resp.status_code != 200:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
         resp.raise_for_status()

@@ -67,9 +67,12 @@ class LndRestWallet(Wallet):
         # even on startup
         self.cert = cert or True
 
-        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
+        headers = {
+            "Grpc-Metadata-macaroon": self.macaroon,
+            "User-Agent": f"LNbits/{settings.version}",
+        }
         self.client = httpx.AsyncClient(
-            base_url=self.endpoint, headers=self.auth, verify=self.cert
+            base_url=self.endpoint, headers=headers, verify=self.cert
         )
 
     async def cleanup(self):
