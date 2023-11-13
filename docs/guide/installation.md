@@ -62,17 +62,12 @@ poetry install --only main
 ## Option 2: Nix
 
 ```sh
-# Installl nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
+# Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
 sh <(curl -L https://nixos.org/nix/install) --daemon
-```
 
-
-```sh
+# Clone and build LNbits
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-# Modern debian distros usually include Nix, however you can install with:
-# 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
-
 nix build .#lnbits
 mkdir data
 
