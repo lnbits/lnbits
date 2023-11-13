@@ -11,7 +11,6 @@ from typing import Callable, Dict, List, Optional
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from loguru import logger
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
@@ -93,16 +92,8 @@ class User(BaseModel):
     username: Optional[str] = None
     extensions: List[str] = []
     wallets: List[Wallet] = []
-    password: Optional[str] = None
     admin: bool = False
     super_user: bool = False
-
-    def valid_password(self, password: str) -> bool:
-        if not self.password and settings.is_user_id_auth_allowed():
-            return True
-
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.verify(password, self.password)
 
     @property
     def wallet_ids(self) -> List[str]:

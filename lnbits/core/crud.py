@@ -80,18 +80,32 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, username, pass as password FROM accounts WHERE id = ?",
+        "SELECT id, email, username FROM accounts WHERE id = ?",
         (user_id,),
     )
 
     return User(**row) if row else None
 
 
+async def verify_user_password(
+    user_id: str, password: str, conn: Optional[Connection] = None
+) -> bool:
+    row = await (conn or db).fetchone(
+        "SELECT pass FROM accounts WHERE id = ?",
+        (user_id,),
+    )
+    if not row:
+        return False
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    return pwd_context.verify(password, row[0])
+
+
 async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email, pass as password FROM accounts WHERE username = ?",
+        "SELECT id, username, email FROM accounts WHERE username = ?",
         (username,),
     )
 
@@ -102,7 +116,7 @@ async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email, pass as password FROM accounts WHERE email = ?",
+        "SELECT id, username, email FROM accounts WHERE email = ?",
         (email,),
     )
 

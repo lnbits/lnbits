@@ -19,6 +19,7 @@ from ..crud import (
     create_user,
     get_account_by_username_or_email,
     get_user,
+    verify_user_password,
 )
 from ..models import CreateUser, User
 
@@ -37,15 +38,22 @@ async def login_endpoint(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     usr: Optional[UUID4] = None,
 ) -> JSONResponse:
+    invalid_credentials = HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
+
     if usr and settings.is_user_id_auth_allowed():
         user = await get_user(usr.hex)
-    else:
-        user = await get_account_by_username_or_email(form_data.username)
+        if not user:
+            raise invalid_credentials
+        return _auth_success_response(user.username or "", usr.hex if usr else None)
 
-    if not user or not user.valid_password(form_data.password):
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
-        )
+
+    # password flow
+    user = await get_account_by_username_or_email(form_data.username)
+    if not user:
+        raise invalid_credentials
+    if not await verify_user_password(user.id, form_data.password):
+        raise invalid_credentials
+
     return _auth_success_response(user.username or "", usr.hex if usr else None)
 
 
