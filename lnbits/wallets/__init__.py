@@ -16,7 +16,7 @@ from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
-from .getalby import AlbyWallet
+from .alby import AlbyWallet
 from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
