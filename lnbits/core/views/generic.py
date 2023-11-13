@@ -73,6 +73,7 @@ async def extensions_install(
     disable: str = Query(None),
 ):
     await toggle_extension(enable, disable, user.id)
+
     # Update user as his extensions have been updated
     if enable or disable:
         user = await get_user(user.id)  # type: ignore

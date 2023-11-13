@@ -20,14 +20,9 @@ from ..crud import (
     get_user,
     verify_user_password,
 )
-from ..models import CreateUser, LoginUser, User
+from ..models import CreateUser, LoginUser
 
 user_router = APIRouter()
-
-
-@user_router.get("/api/v1/user")
-async def user(user=Depends()) -> User:
-    return user
 
 
 @user_router.post(
@@ -52,7 +47,7 @@ async def login(
     return _auth_success_response(user.username, user.id)
 
 
-@user_router.post("/api/v1/login/usr", description="Login to the API via the user ID")
+@user_router.post("/api/v1/login/usr", description="Login to the API via the User ID")
 async def login_usr(data: LoginUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")

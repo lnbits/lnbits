@@ -23,28 +23,6 @@ from lnbits.settings import AuthMethods, settings
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 
 
-def require_user(request: Request):
-    user = request.state.user
-    if user is None:
-        raise HTTPException(401)
-    return user
-
-
-def require_admin(request: Request):
-    user = require_user(request)
-    if not user.is_admin and not user.super_user:
-        raise HTTPException(401)
-
-    return user
-
-
-def require_super_user(request: Request):
-    user = require_user(request)
-    if not user.super_user:
-        raise HTTPException(401)
-    return user
-
-
 # TODO: fix type ignores
 class KeyChecker(SecurityBase):
     def __init__(
