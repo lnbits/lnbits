@@ -17,12 +17,23 @@ from .crud import update_migration_version
 async def migrate_extension_database(ext: Extension, current_version):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
-        ext_db = importlib.import_module(ext.module_name).db
     except ImportError as e:
         logger.error(e)
         raise ImportError(
             f"Please make sure that the extension `{ext.code}` has a migrations file."
         )
+    try:
+        ext_db = importlib.import_module(f"{ext.module_name}.db").db
+    except ImportError:
+        try:
+            # fallback to old db location inside `__init__.py`
+            ext_db = importlib.import_module(ext.module_name).db
+        except ImportError as exc:
+            logger.error(exc)
+            raise ImportError(
+                f"Please make sure that the extension `{ext.code}` "
+                "has a `Database` model."
+            )
 
     async with ext_db.connect() as ext_conn:
         await run_migration(ext_conn, ext_migrations, ext.code, current_version)

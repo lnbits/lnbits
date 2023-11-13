@@ -339,17 +339,14 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     ext_module = importlib.import_module(ext.module_name)
 
-    ext_route = getattr(ext_module, f"{ext.code}_ext")
-
     if hasattr(ext_module, f"{ext.code}_start"):
         ext_start_func = getattr(ext_module, f"{ext.code}_start")
         load_ext = ext_start_func()
 
         # if the extension returns a LoadExtension model, init the new way
-        if load_ext and isinstance(load_ext, LoadExtension):
+        if isinstance(load_ext, LoadExtension):
             # # set the extension's settings
             # ext.set_load_ext(load_ext)
-
             # register the extension's routes
             if load_ext.routers:
                 for router in load_ext.routers:
@@ -388,6 +385,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             # exit early, the rest is needed for backwards compatibility
             return None
 
+    # backwards compatibility for old extensions
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
         for s in ext_statics:
@@ -408,6 +406,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     logger.trace(f"adding route for extension {ext_module}")
 
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
+    ext_route = getattr(ext_module, f"{ext.code}_ext")
     app.include_router(router=ext_route, prefix=prefix)
 
 
