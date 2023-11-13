@@ -22,12 +22,14 @@ class AlbyWallet(Wallet):
     def __init__(self):
         endpoint = settings.alby_api_endpoint
 
-        if not endpoint or not settings.alby_api_key:
+        if not endpoint or not settings.alby_access_token:
             raise Exception("cannot initialize getalby")
 
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"Authorization": "Bearer " + settings.alby_api_key,
-                     "User-Agent": "LNbits/0.12"}
+        self.auth = {
+            "Authorization": "Bearer " + settings.alby_access_token,
+            "User-Agent": "LNbits/0.12",
+        }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
     async def cleanup(self):

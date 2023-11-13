@@ -102,7 +102,7 @@ Vue.component('lnbits-funding-sources', {
           'Alby',
           {
             alby_api_endpoint: 'Endpoint',
-            alby_api_key: 'Key'
+            alby_access_token: 'Key'
           }
         ],
         [

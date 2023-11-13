@@ -183,7 +183,7 @@ class LnPayFundingSource(LNbitsSettings):
 
 class AlbyFundingSource(LNbitsSettings):
     alby_api_endpoint: Optional[str] = Field(default=None)
-    alby_api_key: Optional[str] = Field(default=None)
+    alby_access_token: Optional[str] = Field(default=None)
 
 
 class OpenNodeFundingSource(LNbitsSettings):
