@@ -21,15 +21,15 @@ class AlbyWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.alby_api_endpoint
-        wallet_key = settings.alby_admin_key
 
-        if not endpoint or not wallet_key or not settings.alby_api_key:
+        if not endpoint or not settings.alby_api_key:
             raise Exception("cannot initialize getalby")
 
-        self.wallet_key = wallet_key
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"X-Api-Key": "Bearer " + settings.alby_api_key}
+        self.auth = {"Authorization": "Bearer " + settings.alby_api_key}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        # print(f'Method __init__, endpoint : {endpoint}')
+        # print(f'auth: {self.auth}')
 
     async def cleanup(self):
         try:
@@ -39,15 +39,17 @@ class AlbyWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            r = await self.client.get("/balance", timeout=40)
+            r = await self.client.get("/balance", timeout=10)
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
+        # print(f'Method Status:  {str(r.json())}')
         data = r.json()["balance"]
         if r.is_error:
-            return StatusResponse(data["error"], 0)
+             return StatusResponse(data["error"], 0)
 
-        return StatusResponse(None, data["balance"])
+        return StatusResponse(None, data)
+
 
     async def create_invoice(
         self,
