@@ -45,8 +45,9 @@
           ></q-btn>
           {% endblock %}
           <q-toolbar-title>
-            <q-btn flat no-caps dense size="lg" type="a" href="/">
-              {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
+            {% block toolbar_title %}
+            <q-btn flat no-caps dense size="lg" type="a" href="/"
+              >{% if USE_CUSTOM_LOGO %}
               <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
               {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
               %}
