@@ -18,7 +18,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
-from lnbits.settings import settings
+from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 
@@ -259,7 +259,7 @@ async def check_user_exists(
 
     if access_token:
         user = await _get_account_from_token(access_token)
-    elif usr and settings.is_user_id_auth_allowed():
+    elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         user = await get_account(usr.hex)
     else:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing access token.")

@@ -311,7 +311,7 @@ class EnvSettings(LNbitsSettings):
 
 
 class AuthMethods(Enum):
-    user_id = "user-id"
+    user_id_only = "user-id-only"
     username_and_password = "username-password"
 
 
@@ -320,11 +320,11 @@ class AuthSettings(LNbitsSettings):
     algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=30)
     allowed_auth_methods: List[str] = Field(
-        default=["user-id-only", "username-password"]
+        default=[AuthMethods.user_id_only, AuthMethods.username_and_password]
     )
 
-    def is_user_id_auth_allowed(self):
-        return "user-id-only" in self.allowed_auth_methods
+    def is_auth_method_allowed(self, method: AuthMethods):
+        return method.value in self.allowed_auth_methods
 
 
 class SaaSSettings(LNbitsSettings):

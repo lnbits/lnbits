@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
-from pydantic.types import UUID4
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -13,7 +12,7 @@ from starlette.status import (
 )
 
 from lnbits.helpers import create_access_token, valid_email_address
-from lnbits.settings import settings
+from lnbits.settings import AuthMethods, settings
 
 from ..crud import (
     create_user,
@@ -21,7 +20,7 @@ from ..crud import (
     get_user,
     verify_user_password,
 )
-from ..models import CreateUser, User
+from ..models import CreateUser, LoginUser, User
 
 user_router = APIRouter()
 
@@ -34,27 +33,35 @@ async def user(user=Depends()) -> User:
 @user_router.post(
     "/api/v1/login", description="Login to the API via the username and password"
 )
-async def login_endpoint(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    usr: Optional[UUID4] = None,
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+        raise HTTPException(
+            HTTP_401_UNAUTHORIZED, "Login by 'Username and Password' not allowed."
+        )
+
     invalid_credentials = HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
-
-    if usr and settings.is_user_id_auth_allowed():
-        user = await get_user(usr.hex)
-        if not user:
-            raise invalid_credentials
-        return _auth_success_response(user.username or "", usr.hex if usr else None)
-
-
-    # password flow
     user = await get_account_by_username_or_email(form_data.username)
+
     if not user:
         raise invalid_credentials
     if not await verify_user_password(user.id, form_data.password):
         raise invalid_credentials
 
-    return _auth_success_response(user.username or "", usr.hex if usr else None)
+    return _auth_success_response(user.username, user.id)
+
+
+@user_router.post("/api/v1/login/usr", description="Login to the API via the user ID")
+async def login_usr(data: LoginUser) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")
+
+    user = await get_user(data.usr.hex)
+    if not user:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
+
+    return _auth_success_response(user.username or "", user.id)
 
 
 @user_router.post("/api/v1/logout")

@@ -78,6 +78,13 @@ window.LNbits = {
         data: {username, password}
       })
     },
+    loginUsr: function (usr) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/login/usr',
+        data: {usr}
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
@@ -406,10 +413,6 @@ window.windowMixin = {
         window.location = '/'
       })
     },
-    loginUsr: async function (usr) {
-      const {data} = await LNbits.api.login('none', 'none', {usr})
-      this.$q.localStorage.set('lnbits.token', data.access_token)
-    },
     activeLanguage: function (lang) {
       return window.i18n.locale === lang
     },
@@ -441,7 +444,8 @@ window.windowMixin = {
         return
       }
       if (!this.$q.localStorage.getItem('lnbits.token')) {
-        await this.loginUsr(usr)
+        const {data} = await LNbits.api.loginUsr(usr)
+        this.$q.localStorage.set('lnbits.token', data.access_token)
       }
       params.delete('usr')
       const cleanQueryPrams = params.size ? `?${params.toString()}` : ''

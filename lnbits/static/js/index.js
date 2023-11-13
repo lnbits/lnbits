@@ -60,7 +60,7 @@ new Vue({
     },
     loginUsr: async function () {
       try {
-        const {data} = await LNbits.api.login('none', 'none', {usr: this.usr})
+        const {data} = await LNbits.api.loginUsr(this.usr)
         this.$q.localStorage.set('lnbits.token', data.access_token)
         window.location.href = 'wallet'
       } catch (e) {
