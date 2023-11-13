@@ -26,7 +26,8 @@ class AlbyWallet(Wallet):
             raise Exception("cannot initialize getalby")
 
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"Authorization": "Bearer " + settings.alby_api_key}
+        self.auth = {"Authorization": "Bearer " + settings.alby_api_key,
+                     "User-Agent": "LNbits/0.12"}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
 
     async def cleanup(self):
@@ -99,7 +100,6 @@ class AlbyWallet(Wallet):
         return await self.get_payment_status(checking_id)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # Note from API: currently only settled Alby invoices can be retrieved.
         r = await self.client.get(f"/invoices/{checking_id}")
 
         if r.is_error:
@@ -110,8 +110,6 @@ class AlbyWallet(Wallet):
         statuses = {
             "CREATED": None,
             "SETTLED": True,
-            "error": None,
-            "failed": False,
         }
         return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
 
