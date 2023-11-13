@@ -242,6 +242,9 @@ async def pay_invoice(
             ):
                 raise PaymentFailure("Invalid invoice.")
 
+            if settings.lnbits_service_fee_ignore_internal:
+                service_fee_msat = 0
+
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             new_payment = await create_payment(
