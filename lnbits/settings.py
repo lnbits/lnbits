@@ -5,7 +5,7 @@ import importlib.metadata
 import inspect
 import json
 from enum import Enum
-from os import path, urandom
+from os import path
 from sqlite3 import Row
 from time import time
 from typing import Any, List, Optional
@@ -303,7 +303,6 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
-    login_secret: str = Field(default=urandom(24).hex())  # todo remove
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -317,7 +316,6 @@ class AuthMethods(Enum):
 
 class AuthSettings(LNbitsSettings):
     secret_key: str = Field(default="x1")  # todo: init to super user hash
-    algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=30)
     allowed_auth_methods: List[str] = Field(
         default=[AuthMethods.user_id_only, AuthMethods.username_and_password]

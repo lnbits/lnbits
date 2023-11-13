@@ -171,7 +171,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     return f"UPDATE {table_name} SET {query} {where}"
 
 
-def valid_email_address(email: str) -> bool:
+def is_valid_email_address(email: str) -> bool:
     email_regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
     return re.fullmatch(email_regex, email)
 
@@ -184,7 +184,5 @@ def create_access_token(data: dict):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.secret_key, algorithm=settings.algorithm
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
     return encoded_jwt

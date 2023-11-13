@@ -11,7 +11,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-from lnbits.helpers import create_access_token, valid_email_address
+from lnbits.helpers import create_access_token, is_valid_email_address
 from lnbits.settings import AuthMethods, settings
 
 from ..crud import (
@@ -77,7 +77,7 @@ async def register(data: CreateUser) -> JSONResponse:
             status_code=HTTP_400_BAD_REQUEST, detail="Missing username."
         )
 
-    if data.email and not valid_email_address(data.email):
+    if data.email and not is_valid_email_address(data.email):
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid email.")
 
     try:

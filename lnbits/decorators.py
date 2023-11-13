@@ -308,9 +308,7 @@ async def _get_account_from_token(access_token):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            access_token, settings.secret_key, algorithms=[settings.algorithm]
-        )
+        payload = jwt.decode(access_token, settings.secret_key, algorithms=["HS256"])
         if "sub" in payload and payload.get("sub"):
             return await get_account_by_username(payload.get("sub"))
         if "usr" in payload and payload.get("usr"):
