@@ -99,7 +99,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
-    lnbits_service_fee_ignore_internal: bool = Field(default=False)
+    lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
     lnbits_service_fee_wallet: str = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
