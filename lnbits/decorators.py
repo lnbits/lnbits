@@ -7,6 +7,7 @@ from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
 from jose import JWTError, jwt
+from loguru import logger
 from pydantic.types import UUID4
 from starlette.status import HTTP_401_UNAUTHORIZED
 
@@ -259,7 +260,7 @@ async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User
 async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.UNAUTHORIZED,
             detail="User not authorized. No super user privileges.",
         )
     return user
@@ -317,5 +318,5 @@ async def _get_account_from_token(access_token):
 
         raise credentials_exception
     except JWTError as e:
-        print("### e", e)
+        logger.debug(e)
         raise credentials_exception
