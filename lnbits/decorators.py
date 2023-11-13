@@ -269,8 +269,7 @@ async def check_user_exists(
     return await get_user(user.id)
 
 
-async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
-    user = await check_user_exists(token)
+async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
@@ -279,8 +278,7 @@ async def check_admin(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
     return user
 
 
-async def check_super_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
-    user = await check_user_exists(token)
+async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
