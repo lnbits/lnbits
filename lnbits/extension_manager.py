@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import json
 import os
@@ -11,7 +10,7 @@ from typing import Any, List, NamedTuple, Optional, Tuple
 from urllib import request
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import HTTPException
 from loguru import logger
 from packaging import version
 from pydantic import BaseModel

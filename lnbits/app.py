@@ -347,7 +347,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
         # if the extension returns a LoadExtension model, init the new way
         if load_ext and isinstance(load_ext, LoadExtension):
-
             # # set the extension's settings
             # ext.set_load_ext(load_ext)
 
@@ -355,20 +354,32 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             if load_ext.routers:
                 for router in load_ext.routers:
                     logger.trace(f"adding route for extension {ext_module}")
-                    prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
+                    prefix = (
+                        f"/upgrades/{ext.upgrade_hash}"
+                        if ext.upgrade_hash != ""
+                        else ""
+                    )
                     app.include_router(router=router, prefix=prefix)
 
             # register the extension's static files
             if load_ext.static_files:
                 for static in load_ext.static_files:
                     static_dir = Path(
-                        settings.lnbits_extensions_path, "extensions", *static["path"].split("/")
+                        settings.lnbits_extensions_path,
+                        "extensions",
+                        *static["path"].split("/"),
                     )
-                    app.mount(static["path"], StaticFiles(directory=static_dir), static["name"])
+                    app.mount(
+                        static["path"],
+                        StaticFiles(directory=static_dir),
+                        static["name"],
+                    )
 
             if load_ext.redirects:
                 settings.lnbits_extensions_redirects = [
-                    r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext.code
+                    r
+                    for r in settings.lnbits_extensions_redirects
+                    if r["ext_id"] != ext.code
                 ]
                 for r in load_ext.redirects:
                     r["ext_id"] = ext.code
