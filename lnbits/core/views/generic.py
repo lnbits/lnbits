@@ -166,44 +166,11 @@ async def extensions_install(
 async def wallet(
     request: Request,
     user: User = Depends(check_user_exists),
-    wal: Optional[UUID4] = None,
+    wal: Optional[UUID4] = Query(None),
 ):
-    user_id = user.id
-
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and user_id not in settings.lnbits_allowed_users
-        and user_id not in settings.lnbits_admin_users
-        and user_id != settings.super_user
-    ):
+    if not user:
         return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User not authorized."}
-        )
-
-    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
-        user.admin = True
-    if user_id == settings.super_user:
-        user.super_user = True
-
-    if wal:
-        wallet = user.get_wallet(wal.hex)
-        if not wallet:
-            return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": "Wallet not found"}
-            )
-    else:
-        if len(user.wallets) > 0:
-            wallet = user.wallets[0]
-        else:
-            wallet = await create_wallet(
-                user_id=user.id,
-                wallet_name=settings.lnbits_default_wallet_name,
-            )
-            logger.info(f"Created new wallet for user {user.id}")
-
-        return RedirectResponse(
-            f"/wallet?wal={wallet.id}",
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            "error.html", {"request": request, "err": "User does not exist."}
         )
 
     if not wal:
@@ -222,17 +189,17 @@ async def wallet(
 
     if (
         len(settings.lnbits_allowed_users) > 0
-        and user_id not in settings.lnbits_allowed_users
-        and user_id not in settings.lnbits_admin_users
-        and user_id != settings.super_user
+        and user.id not in settings.lnbits_allowed_users
+        and user.id not in settings.lnbits_admin_users
+        and user.id != settings.super_user
     ):
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "User not authorized."}
         )
 
-    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
+    if user.id == settings.super_user or user.id in settings.lnbits_admin_users:
         user.admin = True
-    if user_id == settings.super_user:
+    if user.id == settings.super_user:
         user.super_user = True
 
     logger.debug(f"Access user {user.id} wallet {userwallet.name}")
@@ -242,7 +209,7 @@ async def wallet(
         {
             "request": request,
             "user": user.dict(),
-            "wallet": wallet.dict(),
+            "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
