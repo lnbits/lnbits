@@ -42,7 +42,7 @@ class CoreLightningRestWallet(Wallet):
             "macaroon": self.macaroon,
             "encodingtype": "hex",
             "accept": "application/json",
-            "User-Agent": f"LNbits/{settings.version}",
+            "User-Agent": settings.user_agent,
         }
 
         self.cert = settings.corelightning_rest_cert or False

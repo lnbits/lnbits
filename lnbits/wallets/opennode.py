@@ -32,7 +32,7 @@ class OpenNodeWallet(Wallet):
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         headers = {
             "Authorization": self.key,
-            "User-Agent": f"LNbits/{settings.version}",
+            "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
 

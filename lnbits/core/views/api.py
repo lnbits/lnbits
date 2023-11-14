@@ -297,7 +297,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         if data.lnurl_balance_check is not None:
             await save_balance_check(wallet.id, data.lnurl_balance_check)
 
-        headers = {"User-Agent": f"LNbits/{settings.version}"}
+        headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers) as client:
             try:
                 r = await client.get(
@@ -413,7 +413,7 @@ async def api_payments_pay_lnurl(
 ):
     domain = urlparse(data.callback).netloc
 
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             r = await client.get(
@@ -596,7 +596,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         assert lnurlauth_key.verifying_key
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
-        headers = {"User-Agent": f"LNbits/{settings.version}"}
+        headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
             r = await client.get(url, timeout=5)
             r.raise_for_status()

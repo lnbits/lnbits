@@ -28,7 +28,7 @@ class LNbitsWallet(Wallet):
         )
         if not self.endpoint or not key:
             raise Exception("cannot initialize lnbits wallet")
-        self.headers = {"X-Api-Key": key, "User-Agent": f"LNbits/{settings.version}"}
+        self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
     async def cleanup(self):

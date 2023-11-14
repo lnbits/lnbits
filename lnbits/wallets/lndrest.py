@@ -69,7 +69,7 @@ class LndRestWallet(Wallet):
 
         headers = {
             "Grpc-Metadata-macaroon": self.macaroon,
-            "User-Agent": f"LNbits/{settings.version}",
+            "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(
             base_url=self.endpoint, headers=headers, verify=self.cert

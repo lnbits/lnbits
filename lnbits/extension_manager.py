@@ -144,7 +144,7 @@ async def fetch_github_release_config(
 
 
 async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     if settings.lnbits_ext_github_token:
         headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
     async with httpx.AsyncClient(headers=headers) as client:

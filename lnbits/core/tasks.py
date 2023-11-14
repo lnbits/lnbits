@@ -120,7 +120,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         # dispatch balance_notify
         url = await get_balance_notify(payment.wallet_id)
         if url:
-            headers = {"User-Agent": f"LNbits/{settings.version}"}
+            headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
                 try:
                     r = await client.post(url, timeout=4)
@@ -153,7 +153,7 @@ async def dispatch_webhook(payment: Payment):
     if not payment.webhook:
         return await mark_webhook_sent(payment, -1)
 
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         data = payment.dict()
         try:

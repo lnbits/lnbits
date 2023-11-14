@@ -32,7 +32,7 @@ class SparkWallet(Wallet):
         self.url = settings.spark_url.replace("/rpc", "")
         self.token = settings.spark_token
         assert self.token, "spark wallet token does not exist"
-        headers = {"X-Access": self.token, "User-Agent": f"LNbits/{settings.version}"}
+        headers = {"X-Access": self.token, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.url, headers=headers)
 
     async def cleanup(self):

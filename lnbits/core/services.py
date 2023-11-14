@@ -385,7 +385,7 @@ async def redeem_lnurl_withdraw(
 
     res = {}
 
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         lnurl = decode_lnurl(lnurl_request)
         r = await client.get(str(lnurl))
@@ -420,7 +420,7 @@ async def redeem_lnurl_withdraw(
     except Exception:
         pass
 
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             await client.get(res["callback"], params=params)
@@ -484,7 +484,7 @@ async def perform_lnurlauth(
 
     sig = key.sign_digest_deterministic(k1, sigencode=encode_strict_der)
 
-    headers = {"User-Agent": f"LNbits/{settings.version}"}
+    headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         assert key.verifying_key, "LNURLauth verifying_key does not exist"
         r = await client.get(

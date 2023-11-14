@@ -247,7 +247,7 @@ async def btc_price(currency: str) -> float:
     async def fetch_price(provider: Provider):
         url = provider.api_url.format(**replacements)
         try:
-            headers = {"User-Agent": f"LNbits/{settings.version}"}
+            headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
