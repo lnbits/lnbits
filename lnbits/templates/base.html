@@ -249,6 +249,7 @@
             <q-tooltip><span v-text="$t('toggle_darkmode')"></span></q-tooltip>
           </q-btn>
           <q-btn-dropdown
+            v-if="isUserAuthorized"
             dense
             flat
             round
@@ -275,7 +276,7 @@
                   <q-icon name="logout" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label> Sign Out </q-item-label>
+                  <q-item-label> Logout </q-item-label>
                 </q-item-section>
                 <q-item-section>
                   <q-item-label> </q-item-label>

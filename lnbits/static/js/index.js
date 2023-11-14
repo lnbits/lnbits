@@ -22,8 +22,6 @@ new Vue({
       return LNbits.utils.convertMarkdown(this.description)
     },
     isUserAuthorized() {
-      const x = this.$q.localStorage.getItem('lnbits.user.authorized')
-      console.log('### x', x)
       return this.$q.localStorage.getItem('lnbits.user.authorized')
     }
   },

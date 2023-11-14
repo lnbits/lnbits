@@ -418,6 +418,12 @@ window.windowMixin = {
     }
   },
 
+  computed: {
+    isUserAuthorized() {
+      return this.$q.localStorage.getItem('lnbits.user.authorized')
+    }
+  },
+
   methods: {
     activeLanguage: function (lang) {
       return window.i18n.locale === lang
@@ -450,7 +456,7 @@ window.windowMixin = {
         return
       }
 
-      if (!this.$q.localStorage.getItem('lnbits.user.authorized')) {
+      if (!this.isUserAuthorized) {
         await LNbits.api.loginUsr(usr)
         this.$q.localStorage.set('lnbits.user.authorized', true)
       }
