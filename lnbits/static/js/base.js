@@ -467,6 +467,7 @@ window.windowMixin = {
       try {
         await LNbits.api.logout()
         this.$q.localStorage.remove('lnbits.user.authorized')
+        window.location = '/'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
