@@ -72,7 +72,6 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
-    console.log('### cookies', JSON.stringify(this.$q.cookies.getAll()))
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
