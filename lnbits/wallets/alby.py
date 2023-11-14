@@ -1,5 +1,6 @@
 import asyncio
-from typing import AsyncGenerator, Optional
+import hashlib
+from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -11,7 +12,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
     Wallet,
 )
 
@@ -58,15 +58,18 @@ class AlbyWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
+        # https://api.getalby.com/invoices
+        data: Dict = {"amount": f"{amount}"}
+        if description_hash:
+            data["description_hash"] = description_hash.hex()
+        elif unhashed_description:
+            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
+        else:
+            data["memo"] = memo or ""
 
         r = await self.client.post(
             "/invoices",
-            json={
-                "amount": amount,
-                "description": memo or "",
-            },
+            json=data,
             timeout=40,
         )
 
