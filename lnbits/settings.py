@@ -181,6 +181,11 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_admin_key: Optional[str] = Field(default=None)
 
 
+class AlbyFundingSource(LNbitsSettings):
+    alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
+    alby_access_token: Optional[str] = Field(default=None)
+
+
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
@@ -214,6 +219,7 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
+    AlbyFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -321,6 +327,7 @@ class SuperUserSettings(LNbitsSettings):
             "LndWallet",
             "LnTipsWallet",
             "LNPayWallet",
+            "AlbyWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
         ]
