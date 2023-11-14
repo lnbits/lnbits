@@ -301,7 +301,7 @@ def parse_filters(model: Type[TFilterModel]):
 
 async def _get_account_from_token(access_token):
     try:
-        payload = jwt.decode(access_token, settings.secret_key, "HS256")
+        payload = jwt.decode(access_token, settings.auth_secret_key, "HS256")
         if "sub" in payload and payload.get("sub"):
             return await get_account_by_username(payload.get("sub"))
         if "usr" in payload and payload.get("usr"):

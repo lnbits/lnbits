@@ -315,14 +315,14 @@ class AuthMethods(Enum):
 
 
 class AuthSettings(LNbitsSettings):
-    secret_key: str = Field(default="x1")  # todo: init to super user hash
-    access_token_expire_minutes: int = Field(default=30)
-    allowed_auth_methods: List[str] = Field(
+    auth_secret_key: str = Field(default="x1")  # todo: init to super user hash
+    auth_token_expire_minutes: int = Field(default=30)
+    auth_allowed_methods: List[str] = Field(
         default=[AuthMethods.user_id_only, AuthMethods.username_and_password]
     )
 
     def is_auth_method_allowed(self, method: AuthMethods):
-        return method.value in self.allowed_auth_methods
+        return method.value in self.auth_allowed_methods
 
 
 class SaaSSettings(LNbitsSettings):

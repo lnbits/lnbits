@@ -177,7 +177,7 @@ def is_valid_email_address(email: str) -> bool:
 
 
 def create_access_token(data: dict):
-    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+    expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
     to_encode = data.copy()
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.secret_key, "HS256")
+    return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
