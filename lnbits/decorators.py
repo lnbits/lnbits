@@ -236,15 +236,18 @@ async def check_user_exists(
     access_token = header_access_token or cookie_access_token
 
     if access_token:
-        user = await _get_account_from_token(access_token)
+        account = await _get_account_from_token(access_token)
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
-        user = await get_account(usr.hex)
+        account = await get_account(usr.hex)
     else:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
 
-    if not user or not settings.is_user_allowed(user.id):
+    if not account or not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
-    return await get_user(user.id)
+
+    user = await get_user(account.id)
+    assert user, "User not found for account."
+    return user
 
 
 async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
