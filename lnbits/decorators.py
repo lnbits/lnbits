@@ -306,9 +306,9 @@ async def _get_account_from_token(access_token):
     try:
         payload = jwt.decode(access_token, settings.auth_secret_key, "HS256")
         if "sub" in payload and payload.get("sub"):
-            return await get_account_by_username(payload.get("sub"))
+            return await get_account_by_username(str(payload.get("sub")))
         if "usr" in payload and payload.get("usr"):
-            return await get_account(payload.get("usr"))
+            return await get_account(str(payload.get("usr")))
 
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
     except JWTError as e:

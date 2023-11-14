@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
@@ -56,7 +56,7 @@ async def login_usr(data: LoginUser) -> JSONResponse:
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
-    return _auth_success_response(user.username or "", user.id)
+    return _auth_success_response(user.username, user.id)
 
 
 @user_router.post("/api/v1/logout")
@@ -83,7 +83,7 @@ async def register(data: CreateUser) -> JSONResponse:
 
     try:
         user = await create_user(data)
-        return _auth_success_response(username=user.username)
+        return _auth_success_response(user.username)
 
     except ValueError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
@@ -92,7 +92,9 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
 
-def _auth_success_response(username: str, user_id: Optional[str] = None) -> JSONResponse:
+def _auth_success_response(
+    username: Optional[str] = "", user_id: Optional[str] = None
+) -> JSONResponse:
     access_token = create_access_token(data={"sub": username, "usr": user_id})
     response = JSONResponse(
         content={"access_token": access_token, "token_type": "bearer"}
