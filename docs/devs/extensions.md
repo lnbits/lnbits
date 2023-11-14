@@ -21,7 +21,7 @@ mv templates/example templates/mysuperplugin # Rename templates folder.
 - if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 
 1. Edit `manifest.json` and change the organisation name to your GitHub username.
-1. Push your changes to GitHub. 
+1. Push your changes to GitHub.
 1. In GitHub create a new release for your extension repo. Tag the release with `0.0.1`
 1. Copy the URL of the extension's raw `manifest.json` URL `https://raw.githubusercontent.com/[my-user-name]/mysuperplugin/master/manifest.json`
 1. If you are using the LMNbits Admin UI, go to the Admin UI > Server > Extension Sources, click "Add", paste the URL, then click "Save"
