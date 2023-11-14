@@ -260,8 +260,7 @@ async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User
 async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED,
-            detail="User not authorized. No super user privileges.",
+            HTTPStatus.UNAUTHORIZED, "User not authorized. No super user privileges."
         )
     return user
 
