@@ -168,11 +168,6 @@ async def wallet(
     user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
-    if not user:
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User does not exist."}
-        )
-
     if not wal:
         if len(user.wallets) == 0:
             wallet = await create_wallet(user_id=user.id)
