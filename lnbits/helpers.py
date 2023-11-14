@@ -173,7 +173,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
 
 def is_valid_email_address(email: str) -> bool:
     email_regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
-    return re.fullmatch(email_regex, email)
+    return re.fullmatch(email_regex, email) != None
 
 
 def create_access_token(data: dict):
