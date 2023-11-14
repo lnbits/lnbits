@@ -92,7 +92,7 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
 
-def _auth_success_response(username: str, user_id: Optional[str] = None) -> Response:
+def _auth_success_response(username: str, user_id: Optional[str] = None) -> JSONResponse:
     access_token = create_access_token(data={"sub": username, "usr": user_id})
     response = JSONResponse(
         content={"access_token": access_token, "token_type": "bearer"}
