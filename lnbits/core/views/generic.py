@@ -178,38 +178,19 @@ async def wallet(
             wallet = await create_wallet(user_id=user.id)
             return RedirectResponse(url=f"/wallet?wal={wallet.id}")
         return RedirectResponse(url=f"/wallet?wal={user.wallets[0].id}")
-    else:
-        wallet_id = wal.hex
 
-    userwallet = user.get_wallet(wallet_id)
-    if not userwallet or userwallet.deleted:
+    user_wallet = user.get_wallet(wal.hex)
+    if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
-
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and user.id not in settings.lnbits_allowed_users
-        and user.id not in settings.lnbits_admin_users
-        and user.id != settings.super_user
-    ):
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User not authorized."}
-        )
-
-    if user.id == settings.super_user or user.id in settings.lnbits_admin_users:
-        user.admin = True
-    if user.id == settings.super_user:
-        user.super_user = True
-
-    logger.debug(f"Access user {user.id} wallet {userwallet.name}")
 
     return template_renderer().TemplateResponse(
         "core/wallet.html",
         {
             "request": request,
             "user": user.dict(),
-            "wallet": userwallet.dict(),
+            "wallet": user_wallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
