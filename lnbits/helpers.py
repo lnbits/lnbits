@@ -180,4 +180,4 @@ def create_access_token(data: dict):
     expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode = data.copy()
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
+    return jwt.encode(to_encode, settings.secret_key, "HS256")

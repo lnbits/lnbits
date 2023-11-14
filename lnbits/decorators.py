@@ -9,7 +9,6 @@ from fastapi.security.base import SecurityBase
 from jose import JWTError, jwt
 from loguru import logger
 from pydantic.types import UUID4
-from starlette.status import HTTP_401_UNAUTHORIZED
 
 from lnbits.core.crud import (
     get_account,
@@ -301,19 +300,14 @@ def parse_filters(model: Type[TFilterModel]):
 
 
 async def _get_account_from_token(access_token):
-    credentials_exception = HTTPException(
-        status_code=HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        payload = jwt.decode(access_token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(access_token, settings.secret_key, "HS256")
         if "sub" in payload and payload.get("sub"):
             return await get_account_by_username(payload.get("sub"))
         if "usr" in payload and payload.get("usr"):
             return await get_account(payload.get("usr"))
 
-        raise credentials_exception
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
     except JWTError as e:
         logger.debug(e)
-        raise credentials_exception
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
