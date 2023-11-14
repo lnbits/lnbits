@@ -411,16 +411,17 @@
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
+                <q-separator></q-separator>
                 <q-expansion-item
                   group="extras"
                   icon="add_circle"
-                  :label="$t('extra')"
+                  :label="$t('extras')"
                 >
                   <q-card>
                     <q-card-section>
                       <div style="max-width: 360px">
                         <q-checkbox
-                          v-model="animations.show"
+                          v-model="animations.on"
                           label="Animations"
                         ></q-checkbox>
                         <q-select

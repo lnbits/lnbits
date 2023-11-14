@@ -188,6 +188,6 @@ window.localisation.en = {
   disable_server_log: 'Disable Server Log',
   enable_server_log: 'Enable Server Log',
   coming_soon: 'Feature coming soon',
-  extra: 'Extra',
+  extras: 'Extras',
   animations: 'Animations'
 }

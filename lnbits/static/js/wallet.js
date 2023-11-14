@@ -247,7 +247,10 @@ new Vue({
         currency: null,
         animation: null
       },
-      animations: []
+      animations: {
+        on: false,
+        set: []
+        }
     }
   },
   computed: {
@@ -844,6 +847,16 @@ new Vue({
       .catch(err => {
         LNbits.utils.notifyApiError(err)
       })
+
+    LNbits.api
+      .request('GET', '/api/v1/animations')
+      .then(response => {
+        this.animations.set = response.data
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
+
   },
   mounted: function () {
     // show disclaimer
