@@ -36,7 +36,7 @@ window.localisation.we = {
   use_with_caution: 'DEFNYDDIO GYDA GOFAL - mae waled %{name} yn dal yn BETA',
   toggle_darkmode: 'Toglo Modd Tywyll',
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
-  api_docs: 'Api docs',
+  api_docs: 'API docs',
   lnbits_version: 'Fersiwn LNbits',
   Runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',

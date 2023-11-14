@@ -56,7 +56,7 @@ window.localisation.en = {
   use_with_caution: 'USE WITH CAUTION - %{name} wallet is still in BETA',
   toggle_darkmode: 'Toggle Dark Mode',
   view_swagger_docs: 'View LNbits Swagger API docs',
-  api_docs: 'Api docs',
+  api_docs: 'API docs',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
