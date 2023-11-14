@@ -246,7 +246,8 @@ new Vue({
         name: null,
         currency: null,
         animation: null
-      }
+      },
+      animations: []
     }
   },
   computed: {
