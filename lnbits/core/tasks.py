@@ -188,7 +188,8 @@ async def send_payment_push_notification(payment: Payment):
             body += f"\r\n{payment.memo}"
 
         for subscription in subscriptions:
+            # todo: review
             url = (
-                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}" #todo: review
+                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )
             await send_push_notification(subscription, title, body, url)

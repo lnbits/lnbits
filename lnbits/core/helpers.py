@@ -57,13 +57,15 @@ async def stop_extension_background_work(ext_id: str, user: str):
     """
     async with httpx.AsyncClient() as client:
         try:
-            url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}" #todo: review with userid not allowed
+            # todo: review with userid not allowed
+            url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
             await client.delete(url)
         except Exception as ex:
             logger.warning(ex)
             try:
                 # try https
-                url = f"https://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"  #todo: review
+                # todo: review
+                url = f"https://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
             except Exception as ex:
                 logger.warning(ex)
 
