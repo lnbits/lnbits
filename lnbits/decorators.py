@@ -12,6 +12,7 @@ from pydantic.types import UUID4
 
 from lnbits.core.crud import (
     get_account,
+    get_account_by_email,
     get_account_by_username,
     get_user,
     get_wallet_for_key,
@@ -309,6 +310,8 @@ async def _get_account_from_token(access_token):
             return await get_account_by_username(str(payload.get("sub")))
         if "usr" in payload and payload.get("usr"):
             return await get_account(str(payload.get("usr")))
+        if "email" in payload and payload.get("email"):
+            return await get_account_by_email(str(payload.get("email")))
 
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
     except JWTError as e:

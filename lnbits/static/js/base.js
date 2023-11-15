@@ -420,7 +420,7 @@ window.windowMixin = {
 
   computed: {
     isUserAuthorized() {
-      return this.$q.localStorage.getItem('lnbits.user.authorized')
+      return this.$q.cookies.get("is_lnbits_user_authorized")
     }
   },
 
@@ -458,7 +458,6 @@ window.windowMixin = {
 
       if (!this.isUserAuthorized) {
         await LNbits.api.loginUsr(usr)
-        this.$q.localStorage.set('lnbits.user.authorized', true)
       }
       params.delete('usr')
       const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
@@ -472,7 +471,6 @@ window.windowMixin = {
     logout: async function () {
       try {
         await LNbits.api.logout()
-        this.$q.localStorage.remove('lnbits.user.authorized')
         window.location = '/'
       } catch (e) {
         LNbits.utils.notifyApiError(e)

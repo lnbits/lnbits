@@ -60,7 +60,9 @@ async def create_user(data: CreateUser) -> User:
 
 
 async def create_account(
-    conn: Optional[Connection] = None, user_id: Optional[str] = None
+    conn: Optional[Connection] = None,
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
 ) -> User:
     if user_id:
         user_uuid4 = UUID(hex=user_id, version=4)
@@ -68,7 +70,13 @@ async def create_account(
     else:
         user_id = uuid4().hex
 
-    await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
+    await (conn or db).execute(
+        "INSERT INTO accounts (id, email) VALUES (?, ?)",
+        (
+            user_id,
+            email,
+        ),
+    )
 
     new_account = await get_account(user_id=user_id, conn=conn)
     assert new_account, "Newly created account couldn't be retrieved"

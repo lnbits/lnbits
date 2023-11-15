@@ -128,7 +128,14 @@
 
           <q-separator></q-separator>
           <q-card-section>
-            <q-btn outline no-caps color="grey" class="full-width">
+            <q-btn
+              href="/api/v1/login/google"
+              type="a"
+              outline
+              no-caps
+              color="grey"
+              class="full-width"
+            >
               <q-avatar size="32px" class="q-mr-md">
                 <q-img
                   :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"

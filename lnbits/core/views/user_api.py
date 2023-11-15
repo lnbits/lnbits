@@ -1,9 +1,11 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from authlib.integrations.starlette_client import OAuth
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
+from starlette.config import Config
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -15,7 +17,9 @@ from lnbits.helpers import create_access_token, is_valid_email_address
 from lnbits.settings import AuthMethods, settings
 
 from ..crud import (
+    create_account,
     create_user,
+    get_account_by_email,
     get_account_by_username_or_email,
     get_user,
     verify_user_password,
@@ -24,10 +28,21 @@ from ..models import CreateUser, LoginUser
 
 user_router = APIRouter()
 
+# Set up OAuth
+google_oauth = None
+if settings.is_auth_method_allowed(AuthMethods.google_auth) and settings.is_google_auth_configured():
+    google_oauth = OAuth(Config(environ={
+        "GOOGLE_CLIENT_ID": settings.google_client_id,
+        "GOOGLE_CLIENT_SECRET": settings.google_client_secret,
+    }))
+    google_oauth.register(
+        name="google",
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
 
-@user_router.post(
-    "/api/v1/login", description="Login to the API via the username and password"
-)
+
+@user_router.post("/api/v1/login", description="Login via the username and password")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
@@ -47,7 +62,7 @@ async def login(
     return _auth_success_response(user.username, user.id)
 
 
-@user_router.post("/api/v1/login/usr", description="Login to the API via the User ID")
+@user_router.post("/api/v1/login/usr", description="Login via the User ID")
 async def login_usr(data: LoginUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")
@@ -59,10 +74,52 @@ async def login_usr(data: LoginUser) -> JSONResponse:
     return _auth_success_response(user.username or "", user.id)
 
 
+@user_router.get("/api/v1/login/google/token", description="Handle Google OAuth callback")
+async def tokeb_google(request: Request) -> JSONResponse:
+    if not google_oauth:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
+
+    try:
+        token = await google_oauth.google.authorize_access_token(request)
+        userinfo = token["userinfo"]
+        email = userinfo["email"]
+        if not email or not is_valid_email_address(email):
+            raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
+
+        account = await get_account_by_email(email)
+        if account:
+            user = await get_user(account.id)
+        else:
+            user = await create_account(email=email)
+
+        if not user:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
+
+        request.session.pop("user", None)
+        return _auth_redirect_response(user.email)
+
+    except HTTPException as e:
+        raise e
+    except ValueError as e:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot authenticate user with Google Auth."
+        )
+
+
+@user_router.get("/api/v1/login/google", description="Login via Google OAuth")
+async def login_google(request: Request):
+    redirect_uri = str(request.base_url) + "api/v1/login/google/token"
+    return await google_oauth.google.authorize_redirect(request, redirect_uri)
+
+
 @user_router.post("/api/v1/logout")
 async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
+    response.delete_cookie("is_lnbits_user_authorized")
     return response
 
 
@@ -93,11 +150,22 @@ async def register(data: CreateUser) -> JSONResponse:
 
 
 def _auth_success_response(
-    username: Optional[str] = "", user_id: Optional[str] = None
+    username: Optional[str] = None,
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
 ) -> JSONResponse:
-    access_token = create_access_token(data={"sub": username, "usr": user_id})
-    response = JSONResponse(
-        content={"access_token": access_token, "token_type": "bearer"}
+    access_token = create_access_token(
+        data={"sub": username or "", "usr": user_id, "email": email}
     )
+    response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
+    response.set_cookie(key="is_lnbits_user_authorized", value=True)
+    return response
+
+
+def _auth_redirect_response(email: str) -> RedirectResponse:
+    access_token = create_access_token(data={"sub": "" or "", "email": email})
+    response = RedirectResponse("/wallet")
+    response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
+    response.set_cookie(key="is_lnbits_user_authorized", value=True)
     return response

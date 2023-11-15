@@ -313,6 +313,7 @@ class EnvSettings(LNbitsSettings):
 class AuthMethods(Enum):
     user_id_only = "user-id-only"
     username_and_password = "username-password"
+    google_auth = "google-auth"
 
 
 class AuthSettings(LNbitsSettings):
@@ -324,6 +325,17 @@ class AuthSettings(LNbitsSettings):
 
     def is_auth_method_allowed(self, method: AuthMethods):
         return method.value in self.auth_allowed_methods
+
+
+class GoogleAuthSettings(LNbitsSettings):
+    google_client_id: str = Field(default="")
+    google_client_secret: str = Field(default="")
+
+    def is_google_auth_configured(self):
+        return (
+            self.google_client_id != ""
+            and self.google_client_secret != ""
+        )
 
 
 class SaaSSettings(LNbitsSettings):
@@ -375,6 +387,7 @@ class ReadOnlySettings(
     PersistenceSettings,
     SuperUserSettings,
     AuthSettings,
+    GoogleAuthSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 

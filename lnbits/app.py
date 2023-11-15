@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_installed_extensions
@@ -95,6 +96,11 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
     )
+
+    # Authlib uses `request.session` to store temporary codes and states.
+    app.add_middleware(
+        SessionMiddleware, secret_key=settings.auth_secret_key
+    )  # todo: why is secret required
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)

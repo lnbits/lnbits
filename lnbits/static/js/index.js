@@ -22,7 +22,7 @@ new Vue({
       return LNbits.utils.convertMarkdown(this.description)
     },
     isUserAuthorized() {
-      return this.$q.localStorage.getItem('lnbits.user.authorized')
+      return this.$q.cookies.get("is_lnbits_user_authorized")
     }
   },
   methods: {
@@ -42,7 +42,6 @@ new Vue({
     login: async function () {
       try {
         await LNbits.api.login(this.username, this.password)
-        this.$q.localStorage.set('lnbits.user.authorized', true)
         window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
@@ -51,7 +50,6 @@ new Vue({
     loginUsr: async function () {
       try {
         await LNbits.api.loginUsr(this.usr)
-        this.$q.localStorage.set('lnbits.user.authorized', true)
         window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
@@ -72,6 +70,7 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
+
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
