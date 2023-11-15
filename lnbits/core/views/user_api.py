@@ -56,7 +56,7 @@ async def login_usr(data: LoginUser) -> JSONResponse:
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
-    return _auth_success_response(user.username, user.id)
+    return _auth_success_response(user.username or "", user.id)
 
 
 @user_router.post("/api/v1/logout")
