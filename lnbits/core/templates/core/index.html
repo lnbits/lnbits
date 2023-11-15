@@ -7,7 +7,17 @@
     class="col-12 col-md-7 col-lg-6 q-gutter-y-md"
   ></div>
   <div v-else class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-    <q-card>
+    <div>
+      <h3 class="q-my-none">{{SITE_TITLE}}</h3>
+      <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
+      <!-- <div v-if="'{{SITE_TITLE}}' == 'LNbits'">
+        <p v-text="$t('lnbits_description')"></p>
+      </div>
+      <div v-else>
+        <div v-html="formatDescription"></div>
+      </div> -->
+    </div>
+    <!-- <q-card>
       <q-card-section>
         {% if lnurl %}
         <q-btn
@@ -36,43 +46,10 @@
         </q-form>
         {% endif %}
       </q-card-section>
-    </q-card>
+    </q-card> -->
 
-    <q-card>
-      <q-card-section>
-        <h3 class="q-my-none">{{SITE_TITLE}}</h3>
-        <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
-        <div v-if="'{{SITE_TITLE}}' == 'LNbits'">
-          <p v-text="$t('lnbits_description')"></p>
-          <div class="row q-mt-md q-gutter-sm">
-            <q-btn
-              outline
-              color="grey"
-              type="a"
-              href="https://github.com/lnbits/lnbits"
-              target="_blank"
-              rel="noopener noreferrer"
-              :label="$t('view_github')"
-            ></q-btn>
-            <q-btn
-              outline
-              color="grey"
-              type="a"
-              href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
-              target="_blank"
-              rel="noopener noreferrer"
-              :label="$t('donate')"
-            ></q-btn>
-          </div>
-        </div>
-        <div v-else>
-          <div v-html="formatDescription"></div>
-        </div>
-      </q-card-section>
-    </q-card>
-
-    <div class="row">
-      <div class="col">
+    <div class="row q-mt-xl">
+      <!-- <div class="col">
         <q-card>
           <q-card-section>
             <b>Login with usr</b><br /><br />
@@ -94,41 +71,79 @@
             </q-form>
           </q-card-section>
         </q-card>
-      </div>
-      <div class="col q-pl-md">
+      </div> -->
+      <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
         <q-card>
           <q-card-section>
-            <b>Login</b><br /><br />
+            <div class="text-h6">
+              No account?
+              <q-badge color="primary" class="cursor-pointer" rounded>
+                <strong>Register</strong></q-badge
+              >
+              <span>or</span>
+
+              <q-badge color="primary" class="cursor-pointer" rounded>
+                <strong>Create Instant Account</strong>
+              </q-badge>
+            </div>
+          </q-card-section>
+          <q-separator></q-separator>
+
+          <q-card-section>
+            <div class="q-mb-lg">
+              <strong> Log in to your account</strong>
+            </div>
             <q-form @submit="login" class="q-gutter-md">
               <q-input
                 filled
                 dense
                 v-model="username"
                 name="username"
-                label="Username"
+                label="Username or Email *"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password"
                 name="password"
-                label="Password"
+                label="Password *"
                 type="password"
               ></q-input>
-              <q-btn
-                unelevated
-                color="primary"
-                :disable="password == '' || username == ''"
-                type="submit"
-                label="Login"
-              ></q-btn>
-              <q-btn
+              <div>
+                <q-btn
+                  color="primary"
+                  type="submit"
+                  label="Login"
+                  class="full-width"
+                ></q-btn>
+              </div>
+              <!-- <q-btn
                 unelevated
                 color="primary"
                 @click="signup = true"
                 label="Signup"
-              ></q-btn>
+              ></q-btn> -->
             </q-form>
+          </q-card-section>
+
+          <q-separator></q-separator>
+          <q-card-section>
+            <q-btn outline no-caps color="grey" class="full-width">
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>Sign In with Google</div>
+            </q-btn>
+            <q-btn outline no-caps color="grey" class="full-width q-mt-md">
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>Sign In with GitHub</div>
+            </q-btn>
           </q-card-section>
         </q-card>
       </div>
@@ -182,6 +197,28 @@
     <div class="row q-col-gutter-lg justify-center">
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
         <q-btn
+          outline
+          color="grey"
+          type="a"
+          href="https://github.com/lnbits/lnbits"
+          target="_blank"
+          rel="noopener"
+          :label="$t('view_github')"
+          class="full-width"
+        ></q-btn>
+        <q-btn
+          outline
+          color="grey"
+          type="a"
+          href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
+          target="_blank"
+          rel="noopener"
+          :label="$t('donate')"
+          class="full-width q-mb-lg"
+        ></q-btn>
+      </div>
+      <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
+        <q-btn
           flat
           color="secondary"
           :label="$t('runs_on')"
@@ -189,11 +226,7 @@
         ></q-btn>
         <div class="row">
           <div class="col">
-            <a
-              href="https://github.com/ElementsProject/lightning"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://github.com/ElementsProject/lightning">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
@@ -201,11 +234,7 @@
             </a>
           </div>
           <div class="col q-pl-md">
-            <a
-              href="https://github.com/lightningnetwork/lnd"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://github.com/lightningnetwork/lnd">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
@@ -216,11 +245,7 @@
 
         <div class="row">
           <div class="col">
-            <a
-              href="https://opennode.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://opennode.com">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
@@ -228,11 +253,7 @@
             </a>
           </div>
           <div class="col q-pl-md">
-            <a
-              href="https://lnpay.co/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://lnpay.co/">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
@@ -243,11 +264,7 @@
 
         <div class="row">
           <div class="col">
-            <a
-              href="https://github.com/rootzoll/raspiblitz"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://github.com/rootzoll/raspiblitz">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
@@ -255,11 +272,7 @@
             </a>
           </div>
           <div class="col q-pl-md">
-            <a
-              href="https://start9.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://start9.com/">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
@@ -269,11 +282,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <a
-              href="https://getumbrel.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://getumbrel.com/">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
@@ -281,11 +290,7 @@
             </a>
           </div>
           <div class="col q-pl-md">
-            <a
-              href="https://mynodebtc.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://mynodebtc.com">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
@@ -295,11 +300,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <a
-              href="https://github.com/shesek/spark-wallet"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://github.com/shesek/spark-wallet">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
@@ -307,11 +308,7 @@
             </a>
           </div>
           <div class="col q-pl-md">
-            <a
-              href="https://voltage.cloud"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://voltage.cloud">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
@@ -321,11 +318,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <a
-              href="https://getalby.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://getalby.com">
               <q-img
                 contain
                 :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
