@@ -297,7 +297,7 @@ async def lnurlwallet(request: Request):
     )
 
     return RedirectResponse(
-        f"/wallet?wal={wallet.id}",
+        f"/wallet?usr={user.id}&wal={wallet.id}",
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 

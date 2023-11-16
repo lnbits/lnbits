@@ -11,21 +11,26 @@
       <h3 class="q-my-none">{{SITE_TITLE}}</h3>
       <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
     </div>
-    <!-- <q-card>
-      <q-card-section>
-        {% if lnurl %}
-        <q-btn
-          unelevated
-          color="primary"
-          @click="processing"
-          type="a"
-          href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
-          v-text="$t('press_to_claim')"
-        ></q-btn>
-
-        {% endif %}
-      </q-card-section>
-    </q-card> -->
+    {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
+    LNBITS_AUTH_METHODS)%}
+    <div class="row q-mt-xl">
+      <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+        <q-card>
+          <q-card-section>
+            <q-btn
+              unelevated
+              color="primary"
+              @click="processing"
+              type="a"
+              href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
+              v-text="$t('press_to_claim')"
+              class="full-width"
+            ></q-btn>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+    {%else%} {% endif %}
 
     <div class="row q-mt-xl">
       <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
