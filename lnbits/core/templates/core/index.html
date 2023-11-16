@@ -10,12 +10,6 @@
     <div>
       <h3 class="q-my-none">{{SITE_TITLE}}</h3>
       <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
-      <!-- <div v-if="'{{SITE_TITLE}}' == 'LNbits'">
-        <p v-text="$t('lnbits_description')"></p>
-      </div>
-      <div v-else>
-        <div v-html="formatDescription"></div>
-      </div> -->
     </div>
     <!-- <q-card>
       <q-card-section>
@@ -28,31 +22,42 @@
           href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
           v-text="$t('press_to_claim')"
         ></q-btn>
-        {% elif LNBITS_NEW_ACCOUNTS_ALLOWED %}
-        <q-form @submit="createWallet" class="q-gutter-md">
-          <q-input
-            filled
-            dense
-            v-model="walletName"
-            :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
-          ></q-input>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="walletName == ''"
-            type="submit"
-            :label="$t('add_wallet')"
-          ></q-btn>
-        </q-form>
+
         {% endif %}
       </q-card-section>
     </q-card> -->
 
     <div class="row q-mt-xl">
-      <!-- <div class="col">
-        <q-card>
+      <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+        <q-card class="shadow-12">
+          {% if "user-id-only" in LNBITS_AUTH_METHODS %}
           <q-card-section>
-            <b>Login with usr</b><br /><br />
+            <div class="text-h6">
+              Want quick access? <br />
+              <q-badge
+                @click="showLogin('usr')"
+                color="primary"
+                class="cursor-pointer"
+                rounded
+              >
+                <strong>Login with user ID</strong></q-badge
+              >
+              {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
+              <span>or</span>
+              <q-badge
+                @click="showRegister('usr')"
+                color="primary"
+                class="cursor-pointer"
+                rounded
+              >
+                <strong>Create Instant Wallet</strong>
+              </q-badge>
+              {%endif%}
+            </div>
+          </q-card-section>
+          <q-separator></q-separator>
+          <q-card-section v-if="authAction === 'login' && authMethod === 'usr'">
+            <b>Login with user ID</b><br /><br />
             <q-form @submit="loginUsr" class="q-gutter-md">
               <q-input
                 filled
@@ -61,39 +66,25 @@
                 label="usr"
                 type="password"
               ></q-input>
-              <q-btn
-                unelevated
-                color="primary"
-                :disable="usr == ''"
-                type="submit"
-                label="Login"
-              ></q-btn>
+              <div>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="usr == ''"
+                  type="submit"
+                  label="Login"
+                  class="full-width"
+                ></q-btn>
+              </div>
             </q-form>
-          </q-card-section>
-        </q-card>
-      </div> -->
-      <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
-        <q-card class="shadow-12">
-          {% if "user-id-only" in LNBITS_AUTH_METHODS %}
-          <q-card-section>
-            <div class="text-h6">
-              Want quick access? <br />
-              <q-badge color="primary" class="cursor-pointer" rounded>
-                <strong>Login with user ID</strong></q-badge
-              >
-              {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-              <span>or</span>
-              <q-badge color="primary" class="cursor-pointer" rounded>
-                <strong>Create Instant Account</strong>
-              </q-badge>
-              {%endif%}
-            </div>
           </q-card-section>
           <q-separator></q-separator>
           {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
-          <q-card-section>
+          <q-card-section
+            v-if="authAction === 'login' && authMethod === 'username-password'"
+          >
             <div class="q-mb-lg">
-              <strong> Log in to your account</strong>
+              <strong> Login to your account</strong>
             </div>
             <q-form @submit="login" class="q-gutter-md">
               <q-input
@@ -119,42 +110,90 @@
                   class="full-width"
                 ></q-btn>
               </div>
-              {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-              <div>
-                <q-btn
-                  color="grey"
-                  outline
-                  label="Register"
-                  class="full-width"
-                ></q-btn>
-              </div>
-              {% endif%}
             </q-form>
           </q-card-section>
-          {%endif%} {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-          <q-card-section>
-            <q-form @submit="createWallet" class="q-gutter-md">
+          <q-card-section
+            v-if="authAction === 'register' && authMethod === 'username-password'"
+          >
+            <b>Create account</b><br /><br />
+            <q-form @submit="register" class="q-gutter-md">
               <q-input
                 filled
                 dense
-                v-model="walletName"
-                :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
+                required
+                v-model="username"
+                label="Username"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                v-model="password"
+                label="Password"
+                type="password"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                v-model="password_repeat"
+                label="Password repeat"
+                type="password"
               ></q-input>
               <div>
                 <q-btn
+                  unelevated
                   color="primary"
-                  :disable="walletName == ''"
+                  :disable="password == '' || password_repeat == '' || username == '' || password != password_repeat"
                   type="submit"
-                  :label="$t('add_wallet')"
                   class="full-width"
+                  label="Create Account"
                 ></q-btn>
               </div>
             </q-form>
           </q-card-section>
+          {%endif%} {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
+          <q-card-section
+            v-if="authAction === 'register' && authMethod === 'usr'"
+          >
+            <div>
+              <q-form @submit="createWallet" class="q-gutter-md">
+                <q-input
+                  filled
+                  dense
+                  v-model="walletName"
+                  :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
+                ></q-input>
+                <div>
+                  <q-btn
+                    color="primary"
+                    :disable="walletName == ''"
+                    type="submit"
+                    :label="$t('add_wallet')"
+                    class="full-width"
+                  ></q-btn>
+                </div>
+              </q-form>
+            </div>
+          </q-card-section>
+          <q-card-section
+            v-if="authAction === 'login' && authMethod === 'username-password'"
+          >
+            <div>
+              <q-btn
+                color="grey"
+                outline
+                label="Register"
+                class="full-width"
+                @click="showRegister('username-password')"
+              ></q-btn>
+            </div>
+          </q-card-section>
+
           <q-separator></q-separator>
           {% endif %}
 
-          <q-card-section>
+          <q-card-section
+            v-if="authAction === 'login' && authMethod === 'username-password'"
+          >
             <div class="row">
               {% if "google-auth" in LNBITS_AUTH_METHODS %}
               <div class="col q-pa-sm">
@@ -197,51 +236,24 @@
               {%endif%}
             </div>
           </q-card-section>
+          <q-card-section v-else>
+            <div class="row">
+              <div class="col q-pa-sm">
+                <q-btn
+                  @click="showLogin('username-password')"
+                  label="Back"
+                  outline
+                  rounded
+                  color="grey"
+                  class="full-width"
+                >
+                </q-btn>
+              </div>
+            </div>
+          </q-card-section>
         </q-card>
       </div>
     </div>
-
-    <q-card v-show="signup">
-      <q-card-section>
-        <b>Create account</b><br /><br />
-        <q-form @submit="register" class="q-gutter-md">
-          <q-input
-            filled
-            dense
-            required
-            v-model="username"
-            label="Username"
-          ></q-input>
-          <q-input
-            filled
-            dense
-            v-model="email"
-            label="Email (optional)"
-          ></q-input>
-          <q-input
-            filled
-            dense
-            v-model="password"
-            label="Password"
-            type="password"
-          ></q-input>
-          <q-input
-            filled
-            dense
-            v-model="password_repeat"
-            label="Password repeat"
-            type="password"
-          ></q-input>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="password == '' || password_repeat == '' || username == '' || password != password_repeat"
-            type="submit"
-            label="Create Account"
-          ></q-btn>
-        </q-form>
-      </q-card-section>
-    </q-card>
   </div>
 
   <!-- Ads -->

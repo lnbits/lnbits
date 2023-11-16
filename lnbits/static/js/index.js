@@ -8,6 +8,8 @@ new Vue({
         data: {},
         description: ''
       },
+      authAction: 'login',
+      authMethod: 'username-password',
       usr: '',
       username: '',
       email: '',
@@ -26,6 +28,14 @@ new Vue({
     }
   },
   methods: {
+    showLogin: function (authMethod) {
+      this.authAction = 'login'
+      this.authMethod = authMethod
+    },
+    showRegister: function (authMethod) {
+      this.authAction = 'register'
+      this.authMethod = authMethod
+    },
     register: async function () {
       try {
         await LNbits.api.register(
