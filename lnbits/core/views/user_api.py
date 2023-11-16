@@ -29,10 +29,6 @@ from ..models import CreateUser, LoginUser
 
 user_router = APIRouter()
 
-# Set up OAuth
-# google_oauth = None
-
-
 def _init_google_sso() -> Optional[GoogleSSO]:
     if not settings.is_auth_method_allowed(AuthMethods.google_auth):
         return None
@@ -127,22 +123,8 @@ async def handle_google_token(request: Request) -> JSONResponse:
     try:
         with google_sso:
             userinfo: OpenID = await google_sso.verify_and_process(request)
-        email = userinfo.email
-        if not email or not is_valid_email_address(email):
-            raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
-
-        account = await get_account_by_email(email)
-        if account:
-            user = await get_user(account.id)
-        else:
-            user = await create_account(email=email)
-
-        if not user:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
-
         request.session.pop("user", None)
-        return _auth_redirect_response(user.email)
-
+        return await _handle_sso_login(userinfo)
     except HTTPException as e:
         raise e
     except ValueError as e:
@@ -164,21 +146,8 @@ async def handle_github_token(request: Request) -> JSONResponse:
     try:
         with github_sso:
             userinfo = await github_sso.verify_and_process(request)
-        email = userinfo.email
-        if not email or not is_valid_email_address(email):
-            raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
-
-        account = await get_account_by_email(email)
-        if account:
-            user = await get_user(account.id)
-        else:
-            user = await create_account(email=email)
-
-        if not user:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
-
         request.session.pop("user", None)
-        return _auth_redirect_response(user.email)
+        return await _handle_sso_login(userinfo)
 
     except HTTPException as e:
         raise e
@@ -224,6 +193,22 @@ async def register(data: CreateUser) -> JSONResponse:
         logger.debug(e)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
+
+async def _handle_sso_login(userinfo: OpenID):
+    email = userinfo.email
+    if not email or not is_valid_email_address(email):
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
+
+    account = await get_account_by_email(email)
+    if account:
+        user = await get_user(account.id)
+    else:
+        user = await create_account(email=email)
+
+    if not user:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
+
+    return _auth_redirect_response(user.email)
 
 def _auth_success_response(
     username: Optional[str] = None,
