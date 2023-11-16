@@ -29,10 +29,11 @@ from ..models import CreateUser, LoginUser
 
 user_router = APIRouter()
 
+
 def _init_google_sso() -> Optional[GoogleSSO]:
     if not settings.is_auth_method_allowed(AuthMethods.google_auth):
         return None
-    if not settings.is_google_auth_configured():
+    if not settings.is_google_auth_configured:
         logger.warning("Google Auth allowed but not configured.")
         return None
     return GoogleSSO(
@@ -46,7 +47,7 @@ def _init_google_sso() -> Optional[GoogleSSO]:
 def _init_github_sso() -> Optional[GithubSSO]:
     if not settings.is_auth_method_allowed(AuthMethods.github_auth):
         return None
-    if not settings.is_github_auth_configured():
+    if not settings.is_github_auth_configured:
         logger.warning("Github Auth allowed but not configured.")
         return None
     return GithubSSO(
@@ -209,6 +210,7 @@ async def _handle_sso_login(userinfo: OpenID):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
 
     return _auth_redirect_response(user.email)
+
 
 def _auth_success_response(
     username: Optional[str] = None,
