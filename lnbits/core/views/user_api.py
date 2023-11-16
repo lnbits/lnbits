@@ -71,15 +71,20 @@ async def login(
             HTTP_401_UNAUTHORIZED, "Login by 'Username and Password' not allowed."
         )
 
-    invalid_credentials = HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
-    user = await get_account_by_username_or_email(form_data.username)
+    try:
+        user = await get_account_by_username_or_email(form_data.username)
 
-    if not user:
-        raise invalid_credentials
-    if not await verify_user_password(user.id, form_data.password):
-        raise invalid_credentials
+        if not user:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
+        if not await verify_user_password(user.id, form_data.password):
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
-    return _auth_success_response(user.username, user.id)
+        return _auth_success_response(user.username, user.id)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
 @user_router.post("/api/v1/login/usr", description="Login via the User ID")
@@ -87,11 +92,17 @@ async def login_usr(data: LoginUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")
 
-    user = await get_user(data.usr.hex)
-    if not user:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
+    try:
+        user = await get_user(data.usr.hex)
+        if not user:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
-    return _auth_success_response(user.username or "", user.id)
+        return _auth_success_response(user.username or "", user.id)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
 @user_router.get("/api/v1/login/google", description="Login via Google OAuth")
@@ -222,7 +233,7 @@ def _auth_success_response(
     )
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value='true')
+    response.set_cookie(key="is_lnbits_user_authorized", value="true")
     return response
 
 
@@ -230,5 +241,5 @@ def _auth_redirect_response(email: str) -> RedirectResponse:
     access_token = create_access_token(data={"sub": "" or "", "email": email})
     response = RedirectResponse("/wallet")
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value='true')
+    response.set_cookie(key="is_lnbits_user_authorized", value="true")
     return response
