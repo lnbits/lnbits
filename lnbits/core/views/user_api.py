@@ -1,11 +1,12 @@
 from typing import Annotated, Optional
 
-from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_sso.sso.base import OpenID
+from fastapi_sso.sso.github import GithubSSO
+from fastapi_sso.sso.google import GoogleSSO
 from loguru import logger
-from starlette.config import Config
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -29,17 +30,39 @@ from ..models import CreateUser, LoginUser
 user_router = APIRouter()
 
 # Set up OAuth
-google_oauth = None
-if settings.is_auth_method_allowed(AuthMethods.google_auth) and settings.is_google_auth_configured():
-    google_oauth = OAuth(Config(environ={
-        "GOOGLE_CLIENT_ID": settings.google_client_id,
-        "GOOGLE_CLIENT_SECRET": settings.google_client_secret,
-    }))
-    google_oauth.register(
-        name="google",
-        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-        client_kwargs={"scope": "openid email profile"},
+# google_oauth = None
+
+
+def _init_google_sso() -> Optional[GoogleSSO]:
+    if not settings.is_auth_method_allowed(AuthMethods.google_auth):
+        return None
+    if not settings.is_google_auth_configured():
+        logger.warning("Google Auth allowed but not configured.")
+        return None
+    return GoogleSSO(
+        settings.google_client_id,
+        settings.google_client_secret,
+        None,
+        allow_insecure_http=True,
     )
+
+
+def _init_github_sso() -> Optional[GithubSSO]:
+    if not settings.is_auth_method_allowed(AuthMethods.github_auth):
+        return None
+    if not settings.is_github_auth_configured():
+        logger.warning("Github Auth allowed but not configured.")
+        return None
+    return GithubSSO(
+        settings.github_client_id,
+        settings.github_client_secret,
+        None,
+        allow_insecure_http=True,
+    )
+
+
+google_sso = _init_google_sso()
+github_sso = _init_github_sso()
 
 
 @user_router.post("/api/v1/login", description="Login via the username and password")
@@ -74,15 +97,37 @@ async def login_usr(data: LoginUser) -> JSONResponse:
     return _auth_success_response(user.username or "", user.id)
 
 
-@user_router.get("/api/v1/login/google/token", description="Handle Google OAuth callback")
-async def tokeb_google(request: Request) -> JSONResponse:
-    if not google_oauth:
+@user_router.get("/api/v1/login/google", description="Login via Google OAuth")
+async def login_google(request: Request):
+    if not google_sso:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
+
+    google_sso.redirect_uri = str(request.base_url) + "api/v1/auth/google/token"
+    with google_sso:
+        return await google_sso.get_login_redirect()
+
+
+@user_router.get("/api/v1/auth/github", tags=["Github SSO"])
+async def login_github(request: Request):
+    if not github_sso:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
+
+    github_sso.redirect_uri = str(request.base_url) + "api/v1/auth/github/token"
+    with github_sso:
+        return await github_sso.get_login_redirect()
+
+
+@user_router.get(
+    "/api/v1/auth/google/token", description="Handle Google OAuth callback"
+)
+async def handle_google_token(request: Request) -> JSONResponse:
+    if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
 
     try:
-        token = await google_oauth.google.authorize_access_token(request)
-        userinfo = token["userinfo"]
-        email = userinfo["email"]
+        with google_sso:
+            userinfo: OpenID = await google_sso.verify_and_process(request)
+        email = userinfo.email
         if not email or not is_valid_email_address(email):
             raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
@@ -109,10 +154,41 @@ async def tokeb_google(request: Request) -> JSONResponse:
         )
 
 
-@user_router.get("/api/v1/login/google", description="Login via Google OAuth")
-async def login_google(request: Request):
-    redirect_uri = str(request.base_url) + "api/v1/login/google/token"
-    return await google_oauth.google.authorize_redirect(request, redirect_uri)
+@user_router.get(
+    "/api/v1/auth/github/token", description="Handle Google OAuth callback"
+)
+async def handle_github_token(request: Request) -> JSONResponse:
+    if not github_sso:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
+
+    try:
+        with github_sso:
+            userinfo = await github_sso.verify_and_process(request)
+        email = userinfo.email
+        if not email or not is_valid_email_address(email):
+            raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
+
+        account = await get_account_by_email(email)
+        if account:
+            user = await get_user(account.id)
+        else:
+            user = await create_account(email=email)
+
+        if not user:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
+
+        request.session.pop("user", None)
+        return _auth_redirect_response(user.email)
+
+    except HTTPException as e:
+        raise e
+    except ValueError as e:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot authenticate user with GitHub Auth."
+        )
 
 
 @user_router.post("/api/v1/logout")

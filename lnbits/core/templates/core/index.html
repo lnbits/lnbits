@@ -143,7 +143,14 @@
               </q-avatar>
               <div>Sign In with Google</div>
             </q-btn>
-            <q-btn outline no-caps color="grey" class="full-width q-mt-md">
+            <q-btn
+              href="/api/v1/auth/github"
+              type="a"
+              outline
+              no-caps
+              color="grey"
+              class="full-width q-mt-md"
+            >
               <q-avatar size="32px" class="q-mr-md">
                 <q-img
                   :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"

@@ -314,6 +314,7 @@ class AuthMethods(Enum):
     user_id_only = "user-id-only"
     username_and_password = "username-password"
     google_auth = "google-auth"
+    github_auth = "github-auth"
 
 
 class AuthSettings(LNbitsSettings):
@@ -332,10 +333,15 @@ class GoogleAuthSettings(LNbitsSettings):
     google_client_secret: str = Field(default="")
 
     def is_google_auth_configured(self):
-        return (
-            self.google_client_id != ""
-            and self.google_client_secret != ""
-        )
+        return self.google_client_id != "" and self.google_client_secret != ""
+
+
+class GitHubAuthSettings(LNbitsSettings):
+    github_client_id: str = Field(default="")
+    github_client_secret: str = Field(default="")
+
+    def is_github_auth_configured(self):
+        return self.github_client_id != "" and self.github_client_secret != ""
 
 
 class SaaSSettings(LNbitsSettings):
@@ -388,6 +394,7 @@ class ReadOnlySettings(
     SuperUserSettings,
     AuthSettings,
     GoogleAuthSettings,
+    GitHubAuthSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 

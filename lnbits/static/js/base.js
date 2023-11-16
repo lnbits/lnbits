@@ -420,7 +420,7 @@ window.windowMixin = {
 
   computed: {
     isUserAuthorized() {
-      return this.$q.cookies.get("is_lnbits_user_authorized")
+      return this.$q.cookies.get('is_lnbits_user_authorized')
     }
   },
 
