@@ -84,7 +84,7 @@ window.LNbits = {
     login: function (username, password) {
       return axios({
         method: 'POST',
-        url: '/api/v1/login',
+        url: '/api/v1/auth',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         data: {username, password}
       })
@@ -92,7 +92,7 @@ window.LNbits = {
     loginUsr: function (usr) {
       return axios({
         method: 'POST',
-        url: '/api/v1/login/usr',
+        url: '/api/v1/auth/usr',
         data: {usr}
       })
     },

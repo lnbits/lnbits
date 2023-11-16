@@ -27,7 +27,7 @@ from ..crud import (
 )
 from ..models import CreateUser, LoginUser
 
-user_router = APIRouter()
+auth_router = APIRouter()
 
 
 def _init_google_sso() -> Optional[GoogleSSO]:
@@ -62,7 +62,7 @@ google_sso = _init_google_sso()
 github_sso = _init_github_sso()
 
 
-@user_router.post("/api/v1/login", description="Login via the username and password")
+@auth_router.post("/api/v1/auth", description="Login via the username and password")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> JSONResponse:
@@ -87,7 +87,7 @@ async def login(
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
-@user_router.post("/api/v1/login/usr", description="Login via the User ID")
+@auth_router.post("/api/v1/auth/usr", description="Login via the User ID")
 async def login_usr(data: LoginUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")
@@ -105,7 +105,7 @@ async def login_usr(data: LoginUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
-@user_router.get("/api/v1/login/google", description="Login via Google OAuth")
+@auth_router.get("/api/v1/auth/google", description="Google SSO")
 async def login_google(request: Request):
     if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
@@ -115,7 +115,7 @@ async def login_google(request: Request):
         return await google_sso.get_login_redirect()
 
 
-@user_router.get("/api/v1/auth/github", tags=["Github SSO"])
+@auth_router.get("/api/v1/auth/github", description="Github SSO")
 async def login_github(request: Request):
     if not github_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
@@ -125,7 +125,7 @@ async def login_github(request: Request):
         return await github_sso.get_login_redirect()
 
 
-@user_router.get(
+@auth_router.get(
     "/api/v1/auth/google/token", description="Handle Google OAuth callback"
 )
 async def handle_google_token(request: Request) -> JSONResponse:
@@ -148,8 +148,8 @@ async def handle_google_token(request: Request) -> JSONResponse:
         )
 
 
-@user_router.get(
-    "/api/v1/auth/github/token", description="Handle Google OAuth callback"
+@auth_router.get(
+    "/api/v1/auth/github/token", description="Handle Github OAuth callback"
 )
 async def handle_github_token(request: Request) -> JSONResponse:
     if not github_sso:
@@ -172,7 +172,7 @@ async def handle_github_token(request: Request) -> JSONResponse:
         )
 
 
-@user_router.post("/api/v1/logout")
+@auth_router.post("/api/v1/logout")
 async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
@@ -180,7 +180,7 @@ async def logout() -> JSONResponse:
     return response
 
 
-@user_router.post("/api/v1/register")
+@auth_router.post("/api/v1/register")
 async def register(data: CreateUser) -> JSONResponse:
     if data.password != data.password_repeat:
         raise HTTPException(
