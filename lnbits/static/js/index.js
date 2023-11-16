@@ -67,7 +67,7 @@ new Vue({
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
-        window.location = '/wallet?wal=' + res.data.id
+        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
       })
     },
     processing: function () {
