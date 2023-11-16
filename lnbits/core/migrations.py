@@ -401,5 +401,6 @@ async def m016_add_username_column_to_accounts(db):
     """
     try:
         await db.execute("ALTER TABLE accounts ADD COLUMN username TEXT")
+        await db.execute("ALTER TABLE accounts ADD COLUMN extra TEXT")
     except OperationalError:
         pass

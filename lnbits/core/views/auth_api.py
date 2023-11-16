@@ -25,7 +25,7 @@ from ..crud import (
     get_user,
     verify_user_password,
 )
-from ..models import CreateUser, LoginUser
+from ..models import CreateUser, LoginUser, UserConfig
 
 auth_router = APIRouter()
 
@@ -215,7 +215,9 @@ async def _handle_sso_login(userinfo: OpenID):
     if account:
         user = await get_user(account.id)
     else:
-        user = await create_account(email=email)
+        user_config = UserConfig(**dict(userinfo))
+        user_config.email_verified = True
+        user = await create_account(email=email, user_config=user_config)
 
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")

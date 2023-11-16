@@ -91,6 +91,15 @@ class LoginUser(BaseModel):
     usr: UUID4
 
 
+class UserConfig(BaseModel):
+    email_verified: bool = False
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    display_name: Optional[str] = None
+    picture: Optional[str] = None
+    provider: Optional[str] = None
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None
@@ -99,6 +108,7 @@ class User(BaseModel):
     wallets: List[Wallet] = []
     admin: bool = False
     super_user: bool = False
+    config: Optional[UserConfig] = None
 
     @property
     def wallet_ids(self) -> List[str]:

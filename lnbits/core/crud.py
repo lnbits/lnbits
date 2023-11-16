@@ -27,6 +27,7 @@ from .models import (
     PaymentHistoryPoint,
     TinyURL,
     User,
+    UserConfig,
     Wallet,
     WebPushSubscription,
 )
@@ -35,7 +36,9 @@ from .models import (
 # --------
 
 
-async def create_user(data: CreateUser) -> User:
+async def create_user(
+    data: CreateUser, user_config: Optional[UserConfig] = None
+) -> User:
     if await get_account_by_username(data.username):
         raise ValueError("Username already exists.")
 
@@ -46,12 +49,16 @@ async def create_user(data: CreateUser) -> User:
 
     user_id = uuid4().hex
     await db.execute(
-        "INSERT INTO accounts (id, email, username, pass) VALUES (?, ?, ?, ?)",
+        """
+            INSERT INTO accounts (id, email, username, pass, extra)
+            VALUES (?, ?, ?, ?, ?)
+        """,
         (
             user_id,
             data.email,
             data.username,
             pwd_context.hash(data.password),
+            json.dumps(dict(user_config)) if user_config else "{}",
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -63,6 +70,7 @@ async def create_account(
     conn: Optional[Connection] = None,
     user_id: Optional[str] = None,
     email: Optional[str] = None,
+    user_config: Optional[UserConfig] = None,
 ) -> User:
     if user_id:
         user_uuid4 = UUID(hex=user_id, version=4)
@@ -70,12 +78,10 @@ async def create_account(
     else:
         user_id = uuid4().hex
 
+    extra = json.dumps(dict(user_config)) if user_config else None
     await (conn or db).execute(
-        "INSERT INTO accounts (id, email) VALUES (?, ?)",
-        (
-            user_id,
-            email,
-        ),
+        "INSERT INTO accounts (id, email, extra) VALUES (?, ?, ?)",
+        (user_id, email, extra),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -142,7 +148,7 @@ async def get_account_by_username_or_email(
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email, username FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username, extra FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
@@ -174,6 +180,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
         super_user=user["id"] == settings.super_user,
+        config=UserConfig(**json.loads(user["extra"])) if user["extra"] else None,
     )
 
 
