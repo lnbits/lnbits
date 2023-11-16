@@ -125,9 +125,7 @@ class CoreLightningRestWallet(Wallet):
         data = r.json()
         assert "payment_hash" in data
         assert "bolt11" in data
-        # NOTE: use payment_hash when corelightning-rest updates and supports it
-        # return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
-        return InvoiceResponse(True, label, data["bolt11"], None)
+        return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
@@ -172,13 +170,9 @@ class CoreLightningRestWallet(Wallet):
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        # get invoice bolt11 from checking_id
-        # corelightning-rest wants the "label" here....
-        # NOTE: We can get rid of all labels and use payment_hash when
-        # corelightning-rest updates and supports it
         r = await self.client.get(
             f"{self.url}/v1/invoice/listInvoices",
-            params={"label": checking_id},
+            params={"payment_hash": checking_id},
         )
         try:
             r.raise_for_status()
@@ -192,14 +186,9 @@ class CoreLightningRestWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        from lnbits.core.services import get_standalone_payment
-
-        payment = await get_standalone_payment(checking_id)
-        if not payment:
-            raise ValueError(f"Payment with checking_id {checking_id} not found")
         r = await self.client.get(
             f"{self.url}/v1/pay/listPays",
-            params={"invoice": payment.bolt11},
+            params={"payment_hash": checking_id},
         )
         try:
             r.raise_for_status()
