@@ -209,7 +209,7 @@ async def _handle_sso_login(userinfo: OpenID):
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
 
-    return _auth_redirect_response(user.email)
+    return _auth_redirect_response(email)
 
 
 def _auth_success_response(
@@ -222,7 +222,7 @@ def _auth_success_response(
     )
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value=True)
+    response.set_cookie(key="is_lnbits_user_authorized", value='true')
     return response
 
 
@@ -230,5 +230,5 @@ def _auth_redirect_response(email: str) -> RedirectResponse:
     access_token = create_access_token(data={"sub": "" or "", "email": email})
     response = RedirectResponse("/wallet")
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value=True)
+    response.set_cookie(key="is_lnbits_user_authorized", value='true')
     return response
