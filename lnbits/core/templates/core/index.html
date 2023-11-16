@@ -74,21 +74,23 @@
       </div> -->
       <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
         <q-card class="shadow-12">
+          {% if "user-id-only" in LNBITS_AUTH_METHODS %}
           <q-card-section>
             <div class="text-h6">
               Want quick access? <br />
               <q-badge color="primary" class="cursor-pointer" rounded>
                 <strong>Login with user ID</strong></q-badge
               >
+              {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
               <span>or</span>
-
               <q-badge color="primary" class="cursor-pointer" rounded>
                 <strong>Create Instant Account</strong>
               </q-badge>
+              {%endif%}
             </div>
           </q-card-section>
           <q-separator></q-separator>
-
+          {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
           <q-card-section>
             <div class="q-mb-lg">
               <strong> Log in to your account</strong>
@@ -117,21 +119,45 @@
                   class="full-width"
                 ></q-btn>
               </div>
+              {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
               <div>
                 <q-btn
                   color="grey"
                   outline
-                  label="Sign In"
+                  label="Register"
+                  class="full-width"
+                ></q-btn>
+              </div>
+              {% endif%}
+            </q-form>
+          </q-card-section>
+          {%endif%} {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
+          <q-card-section>
+            <q-form @submit="createWallet" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model="walletName"
+                :label='$t("name_your_wallet", { name: "{{ SITE_TITLE }} *" })'
+              ></q-input>
+              <div>
+                <q-btn
+                  color="primary"
+                  :disable="walletName == ''"
+                  type="submit"
+                  :label="$t('add_wallet')"
                   class="full-width"
                 ></q-btn>
               </div>
             </q-form>
           </q-card-section>
-
           <q-separator></q-separator>
+          {% endif %}
+
           <q-card-section>
             <div class="row">
-              <div class="col-6 q-pr-md">
+              {% if "google-auth" in LNBITS_AUTH_METHODS %}
+              <div class="col q-pa-sm">
                 <q-btn
                   href="/api/v1/auth/google"
                   type="a"
@@ -149,7 +175,8 @@
                   <div>Sign In with Google</div>
                 </q-btn>
               </div>
-              <div class="col-6 q-pl-md">
+              {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
+              <div class="col q-pa-sm">
                 <q-btn
                   href="/api/v1/auth/github"
                   type="a"
@@ -167,6 +194,7 @@
                   <div>Sign In with GitHub</div>
                 </q-btn>
               </div>
+              {%endif%}
             </div>
           </q-card-section>
         </q-card>
