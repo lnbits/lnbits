@@ -230,9 +230,9 @@ class CoreLightningRestWallet(Wallet):
                         except Exception:
                             continue
                         logger.trace(f"paid invoice: {inv}")
-                        # yield inv["label"]
-                        # NOTE: use payment_hash when corelightning-rest updates
-                        # and supports it
+
+                        # NOTE: use payment_hash when corelightning-rest returns it
+                        # when using waitAnyInvoice
                         # payment_hash = inv["payment_hash"]
                         # yield payment_hash
                         # hack to return payment_hash if the above shouldn't work
@@ -242,6 +242,11 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoce = r.json()
                         logger.trace(f"paid invoice: {paid_invoce}")
+                        assert self.statuses[
+                            paid_invoce["invoices"][0]["status"]
+                        ], "streamed invoice not paid"
+                        assert "invoices" in paid_invoce, "no invoices in response"
+                        assert len(paid_invoce["invoices"]), "no invoices in response"
                         yield paid_invoce["invoices"][0]["payment_hash"]
 
             except Exception as exc:
