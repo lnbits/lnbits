@@ -76,9 +76,9 @@
         <q-card class="shadow-12">
           <q-card-section>
             <div class="text-h6">
-              No account?
+              Want quick access? <br />
               <q-badge color="primary" class="cursor-pointer" rounded>
-                <strong>Register</strong></q-badge
+                <strong>Login with user ID</strong></q-badge
               >
               <span>or</span>
 
@@ -117,47 +117,57 @@
                   class="full-width"
                 ></q-btn>
               </div>
-              <!-- <q-btn
-                unelevated
-                color="primary"
-                @click="signup = true"
-                label="Signup"
-              ></q-btn> -->
+              <div>
+                <q-btn
+                  color="grey"
+                  outline
+                  label="Sign In"
+                  class="full-width"
+                ></q-btn>
+              </div>
             </q-form>
           </q-card-section>
 
           <q-separator></q-separator>
           <q-card-section>
-            <q-btn
-              href="/api/v1/auth/google"
-              type="a"
-              outline
-              no-caps
-              color="grey"
-              class="full-width"
-            >
-              <q-avatar size="32px" class="q-mr-md">
-                <q-img
-                  :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
-                ></q-img>
-              </q-avatar>
-              <div>Sign In with Google</div>
-            </q-btn>
-            <q-btn
-              href="/api/v1/auth/github"
-              type="a"
-              outline
-              no-caps
-              color="grey"
-              class="full-width q-mt-md"
-            >
-              <q-avatar size="32px" class="q-mr-md">
-                <q-img
-                  :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
-                ></q-img>
-              </q-avatar>
-              <div>Sign In with GitHub</div>
-            </q-btn>
+            <div class="row">
+              <div class="col-6 q-pr-md">
+                <q-btn
+                  href="/api/v1/auth/google"
+                  type="a"
+                  outline
+                  no-caps
+                  rounded
+                  color="grey"
+                  class="full-width"
+                >
+                  <q-avatar size="32px" class="q-mr-md">
+                    <q-img
+                      :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                    ></q-img>
+                  </q-avatar>
+                  <div>Sign In with Google</div>
+                </q-btn>
+              </div>
+              <div class="col-6 q-pl-md">
+                <q-btn
+                  href="/api/v1/auth/github"
+                  type="a"
+                  outline
+                  no-caps
+                  color="grey"
+                  rounded
+                  class="full-width"
+                >
+                  <q-avatar size="32px" class="q-mr-md">
+                    <q-img
+                      :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                    ></q-img>
+                  </q-avatar>
+                  <div>Sign In with GitHub</div>
+                </q-btn>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
       </div>
