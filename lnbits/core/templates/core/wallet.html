@@ -420,19 +420,29 @@
                   <q-card>
                     <q-card-section>
                       <div style="max-width: 360px">
-                        <q-checkbox
-                          v-model="animations.on"
-                          label="Animations"
-                        ></q-checkbox>
+                            <div class="row">
+      <div class="col">
                         <q-select
                           filled
                           dense
                           clearable
                           v-model="update.animation"
                           type="text"
-                          :label="$t('animations')"
-                          :options="animations"
+                          :label="$t('animation')"
+                          :options="animations.set"
                         ></q-select>
+      </div>
+      <div class="col">
+                        
+                        <q-btn
+                        unelevated
+                        class="q-ml-sm"
+                        color="primary"
+                        :label="$t('update_animation')"
+                        @click="updateAnimation()"
+                      ></q-btn>
+      </div>
+    </div>
                       </div>
                     </q-card-section>
                   </q-card>

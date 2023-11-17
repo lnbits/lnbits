@@ -699,7 +699,7 @@ async def api_list_currencies_available():
 @api_router.get("/api/v1/animations")
 async def api_list_animations_available():
     if len(settings.lnbits_allowed_animations) > 0:
-        return ettings.lnbits_allowed_animations
+        return settings.lnbits_allowed_animations
     return None
 
 

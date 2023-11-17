@@ -189,5 +189,7 @@ window.localisation.en = {
   enable_server_log: 'Enable Server Log',
   coming_soon: 'Feature coming soon',
   extras: 'Extras',
-  animations: 'Animations'
+  animation: 'Animation',
+  payment_animations: 'Payment animations',
+  update_animation: 'Update Animation'
 }

@@ -249,7 +249,7 @@ new Vue({
       },
       animations: {
         on: false,
-        set: []
+        set: null
       }
     }
   },
@@ -821,6 +821,9 @@ new Vue({
       navigator.clipboard.readText().then(text => {
         this.$refs.textArea.value = text
       })
+    },
+    updateAnimation: function () {
+      this.g.paymentAnimation = this.update.animation
     }
   },
   watch: {
@@ -852,6 +855,9 @@ new Vue({
       .request('GET', '/api/v1/animations')
       .then(response => {
         this.animations.set = response.data
+        this.update.animation = this.g.paymentAnimation
+        console.log(this.animations.set)
+        console.log(this.update.animation)
       })
       .catch(err => {
         LNbits.utils.notifyApiError(err)
