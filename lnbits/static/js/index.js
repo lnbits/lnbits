@@ -60,6 +60,7 @@ new Vue({
     loginUsr: async function () {
       try {
         await LNbits.api.loginUsr(this.usr)
+        this.usr = ''
         window.location.href = '/wallet'
       } catch (e) {
         LNbits.utils.notifyApiError(e)

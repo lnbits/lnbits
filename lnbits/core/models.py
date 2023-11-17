@@ -87,8 +87,8 @@ class CreateUser(BaseModel):
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
 
-class LoginUser(BaseModel):
-    usr: UUID4
+class LoginUsr(BaseModel):
+    usr: str
 
 
 class UserConfig(BaseModel):
