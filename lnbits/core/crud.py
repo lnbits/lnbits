@@ -90,6 +90,40 @@ async def create_account(
     return new_account
 
 
+async def update_account(
+    user_id: str,
+    username: Optional[str] = None,
+    email: Optional[str] = None,
+    user_config: Optional[UserConfig] = None,
+) -> User:
+    user = await get_user(user_id)
+    assert user, "User not found"
+
+    if email:
+        assert not user.email or email == user.email, "Cannot change email."
+        account = await get_account_by_email(email)
+        assert not account or account.id == user_id, "Email already in use."
+
+    if username:
+        assert not user.username or username == user.username, "Cannot change username."
+        account = await get_account_by_username(username)
+        assert not account or account.id == user_id, "Username already in exists."
+
+    username = user.username or username
+    email = user.email or email
+    extra = user_config or user.config
+
+    await db.execute(
+        """
+            UPDATE accounts SET (username, email, extra) = (?, ?, ?)
+            WHERE id = ?
+        """,
+        (username, email, json.dumps(dict(extra)) if extra else "{}", user_id),
+    )
+
+    return await get_user(user_id)
+
+
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:

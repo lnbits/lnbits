@@ -79,24 +79,13 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
-class CreateUser(BaseModel):
-    email: Optional[str] = Query(default=None)
-    username: str = Query(default=..., min_length=2, max_length=20)
-    password: str = Query(default=..., min_length=8, max_length=50)
-    password_repeat: str = Query(default=..., min_length=8, max_length=50)
-
-
-class LoginUsr(BaseModel):
-    usr: str
-
-
 class UserConfig(BaseModel):
     email_verified: bool = False
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     display_name: Optional[str] = None
     picture: Optional[str] = None
-    provider: Optional[str] = None
+    provider: Optional[str] = "lnbits"
 
 
 class User(BaseModel):
@@ -126,6 +115,24 @@ class User(BaseModel):
         if user in settings.lnbits_admin_users:
             return True
         return False
+
+
+class CreateUser(BaseModel):
+    email: Optional[str] = Query(default=None)
+    username: str = Query(default=..., min_length=2, max_length=20)
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
+class UpdateUser(BaseModel):
+    user_id: str
+    email: Optional[str] = Query(default=None)
+    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+    config: Optional[UserConfig] = None
+
+
+class LoginUsr(BaseModel):
+    usr: str
 
 
 class Payment(FromRowModel):

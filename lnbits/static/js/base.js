@@ -72,7 +72,7 @@ window.LNbits = {
     register: function (username, email, password, password_repeat) {
       return axios({
         method: 'POST',
-        url: '/api/v1/register',
+        url: '/api/v1/auth/register',
         data: {
           username,
           email,
@@ -99,7 +99,7 @@ window.LNbits = {
     logout: function () {
       return axios({
         method: 'POST',
-        url: '/api/v1/logout'
+        url: '/api/v1/auth/logout'
       })
     },
     getAuthenticatedUser: function () {

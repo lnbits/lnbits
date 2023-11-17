@@ -28,9 +28,10 @@ from ..crud import (
     get_account_by_email,
     get_account_by_username_or_email,
     get_user,
+    update_account,
     verify_user_password,
 )
-from ..models import CreateUser, LoginUsr, User, UserConfig
+from ..models import CreateUser, LoginUsr, UpdateUser, User, UserConfig
 
 auth_router = APIRouter()
 
@@ -182,7 +183,7 @@ async def handle_github_token(request: Request) -> JSONResponse:
         )
 
 
-@auth_router.post("/api/v1/logout")
+@auth_router.post("/api/v1/auth/logout")
 async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
@@ -190,22 +191,18 @@ async def logout() -> JSONResponse:
     return response
 
 
-@auth_router.post("/api/v1/register")
+@auth_router.post("/api/v1/auth/register")
 async def register(data: CreateUser) -> JSONResponse:
     if data.password != data.password_repeat:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="Passwords do not match."
-        )
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
 
     if not data.username:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Missing username.")
     if not is_valid_username(data.username):
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="Invalid username."
-        )
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid username.")
 
     if data.email and not is_valid_email_address(data.email):
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid email.")
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
     try:
         user = await create_user(data)
@@ -218,17 +215,38 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
 
+@auth_router.put("/api/v1/auth/update")
+async def update(
+    data: UpdateUser, user: User = Depends(check_user_exists)
+) -> JSONResponse:
+    if data.user_id != user.id:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
+    if data.username and not is_valid_username(data.username):
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid username.")
+    if data.email and not is_valid_email_address(data.email):
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
+
+    try:
+        return await update_account(user.id, data.username, data.email, data.config)
+    except AssertionError as e:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
+
+
 async def _handle_sso_login(userinfo: OpenID):
     email = userinfo.email
     if not email or not is_valid_email_address(email):
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
+    user_config = UserConfig(**dict(userinfo))
+    user_config.email_verified = True
+
     account = await get_account_by_email(email)
     if account:
-        user = await get_user(account.id)
+        user = await update_account(account.id, user_config=user_config)
     else:
-        user_config = UserConfig(**dict(userinfo))
-        user_config.email_verified = True
         user = await create_account(email=email, user_config=user_config)
 
     if not user:

@@ -40,7 +40,7 @@
           label="Username"
           filled
           dense
-          readonly
+          :readonly="hasUsername"
           class="q-mb-md"
         >
         </q-input>
@@ -49,7 +49,7 @@
           label="Email"
           filled
           dense
-          readonly
+          :readonly="hasEmail"
           class="q-mb-md"
         >
         </q-input>
@@ -61,7 +61,6 @@
           label="Display Name"
           filled
           dense
-          readonly
           class="q-mb-md"
         >
         </q-input>
@@ -70,7 +69,6 @@
           label="First Name"
           filled
           dense
-          readonly
           class="q-mb-md"
         >
         </q-input>
@@ -79,7 +77,6 @@
           label="Last Name"
           filled
           dense
-          readonly
           class="q-mb-md"
         >
         </q-input>
@@ -97,10 +94,14 @@
           label="Picture"
           filled
           dense
-          readonly
           class="q-mb-md"
         >
         </q-input>
+      </q-card-section>
+      <q-card-section>
+        <q-btn @click="updateAccount" unelevated color="primary"
+          >Update Account</q-btn
+        >
       </q-card-section>
     </q-card>
     <q-card v-else>
