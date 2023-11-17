@@ -38,7 +38,7 @@
           {% if "user-id-only" in LNBITS_AUTH_METHODS %}
           <q-card-section>
             <div class="text-h6">
-              Want quick access? <br />
+              Want instant access? <br />
               <q-badge
                 @click="showLogin('usr')"
                 color="primary"
@@ -55,7 +55,7 @@
                 class="cursor-pointer"
                 rounded
               >
-                <strong>Create Instant Wallet</strong>
+                <strong>Create New Wallet</strong>
               </q-badge>
               {%endif%}
             </div>
@@ -83,7 +83,6 @@
               </div>
             </q-form>
           </q-card-section>
-          <q-separator></q-separator>
           {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
           <q-card-section
             v-if="authAction === 'login' && authMethod === 'username-password'"
@@ -127,20 +126,20 @@
                 dense
                 required
                 v-model="username"
-                label="Username"
+                label="Username *"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password"
-                label="Password"
+                label="Password *"
                 type="password"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password_repeat"
-                label="Password repeat"
+                label="Password repeat *"
                 type="password"
               ></q-input>
               <div>
@@ -179,6 +178,7 @@
               </q-form>
             </div>
           </q-card-section>
+          {% if "username-password" in LNBITS_AUTH_METHODS %}
           <q-card-section
             v-if="authAction === 'login' && authMethod === 'username-password'"
           >
@@ -192,7 +192,7 @@
               ></q-btn>
             </div>
           </q-card-section>
-
+          {%endif%}
           <q-separator></q-separator>
           {% endif %}
 
