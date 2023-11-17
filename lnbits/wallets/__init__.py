@@ -7,6 +7,7 @@ from lnbits.nodes import set_node_class
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
+from .alby import AlbyWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 

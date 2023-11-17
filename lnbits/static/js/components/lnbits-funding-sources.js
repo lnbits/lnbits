@@ -98,6 +98,14 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'AlbyWallet',
+          'Alby',
+          {
+            alby_api_endpoint: 'Endpoint',
+            alby_access_token: 'Key'
+          }
+        ],
+        [
           'OpenNodeWallet',
           'OpenNode',
           {
