@@ -250,7 +250,7 @@ new Vue({
       animations: {
         on: false,
         set: []
-        }
+      }
     }
   },
   computed: {
@@ -856,7 +856,6 @@ new Vue({
       .catch(err => {
         LNbits.utils.notifyApiError(err)
       })
-
   },
   mounted: function () {
     // show disclaimer
