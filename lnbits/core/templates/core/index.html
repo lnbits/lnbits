@@ -40,7 +40,7 @@
             <div class="text-h6">
               Want instant access? <br />
               <q-badge
-                @click="showLogin('usr')"
+                @click="showLogin('user-id-only')"
                 color="primary"
                 class="cursor-pointer"
                 rounded
@@ -50,7 +50,7 @@
               {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
               <span>or</span>
               <q-badge
-                @click="showRegister('usr')"
+                @click="showRegister('user-id-only')"
                 color="primary"
                 class="cursor-pointer"
                 rounded
@@ -61,7 +61,7 @@
             </div>
           </q-card-section>
           <q-separator></q-separator>
-          <q-card-section v-if="authAction === 'login' && authMethod === 'usr'">
+          <q-card-section v-if="authAction === 'login' && authMethod === 'user-id-only'">
             <b>Login with user ID</b><br /><br />
             <q-form @submit="loginUsr" class="q-gutter-md">
               <q-input
@@ -156,7 +156,7 @@
           </q-card-section>
           {%endif%} {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
           <q-card-section
-            v-if="authAction === 'register' && authMethod === 'usr'"
+            v-if="authAction === 'register' && authMethod === 'user-id-only'"
           >
             <div>
               <q-form @submit="createWallet" class="q-gutter-md">
