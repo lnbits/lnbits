@@ -257,6 +257,7 @@ async def update_wallet(
     wallet_id: str,
     name: Optional[str] = None,
     currency: Optional[str] = None,
+    extra: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     set_clause = []
@@ -267,6 +268,11 @@ async def update_wallet(
     if currency is not None:
         set_clause.append("currency = ?")
         values.append(currency)
+    if extra is not None:
+        # Some appending of the extra json
+        wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
+        set_clause.append("extra = ?")
+        values.append(extra)
     values.append(wallet_id)
     await (conn or db).execute(
         f"""

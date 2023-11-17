@@ -147,9 +147,10 @@ async def api_update_wallet_name(
 async def api_update_wallet(
     name: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
+    extra: Optional[str] = Body(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    return await update_wallet(wallet.wallet.id, name, currency)
+    return await update_wallet(wallet.wallet.id, name, currency, extra)
 
 
 @api_router.delete("/api/v1/wallet")
@@ -701,7 +702,6 @@ async def api_list_animations_available():
     if len(settings.lnbits_allowed_animations) > 0:
         return settings.lnbits_allowed_animations
     return None
-
 
 @api_router.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
