@@ -102,6 +102,9 @@ window.LNbits = {
         url: '/api/v1/logout'
       })
     },
+    getAuthenticatedUser: function () {
+      return this.request('get', '/api/v1/auth')
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },

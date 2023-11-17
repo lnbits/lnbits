@@ -14,6 +14,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from lnbits.decorators import check_user_exists
 from lnbits.helpers import (
     create_access_token,
     is_valid_email_address,
@@ -29,7 +30,7 @@ from ..crud import (
     get_user,
     verify_user_password,
 )
-from ..models import CreateUser, LoginUsr, UserConfig
+from ..models import CreateUser, LoginUsr, User, UserConfig
 
 auth_router = APIRouter()
 
@@ -64,6 +65,11 @@ def _init_github_sso() -> Optional[GithubSSO]:
 
 google_sso = _init_google_sso()
 github_sso = _init_github_sso()
+
+
+@auth_router.get("/api/v1/auth", description="Get the authenticated user")
+async def get_auth_user(user: User = Depends(check_user_exists)) -> JSONResponse:
+    return user.dict()
 
 
 @auth_router.post("/api/v1/auth", description="Login via the username and password")

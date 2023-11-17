@@ -193,6 +193,24 @@ async def wallet(
     )
 
 
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        "core/account.html",
+        {
+            "request": request,
+            "user": user.dict(),
+        },
+    )
+
+
 @generic_router.get("/withdraw", response_class=JSONResponse)
 async def lnurl_full_withdraw(request: Request):
     usr_param = request.query_params.get("usr")
