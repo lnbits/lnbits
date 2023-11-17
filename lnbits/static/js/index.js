@@ -33,6 +33,11 @@ new Vue({
       this.authMethod = authMethod
     },
     showRegister: function (authMethod) {
+      this.user = ''
+      this.username = null
+      this.password = null
+      this.password_repeat = null
+
       this.authAction = 'register'
       this.authMethod = authMethod
     },

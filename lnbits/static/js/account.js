@@ -8,17 +8,6 @@ new Vue({
       hasEmai: false
     }
   },
-  created: async function () {
-    try {
-      const {data} = await LNbits.api.getAuthenticatedUser()
-      this.user = data
-      this.hasUsername = !!data.username
-      this.hasEmail = !!data.email
-    } catch (e) {
-      LNbits.utils.notifyApiError(e)
-    }
-  },
-
   methods: {
     updateAccount: async function () {
       try {
@@ -41,6 +30,17 @@ new Vue({
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
+    }
+  },
+  created: async function () {
+    try {
+      const {data} = await LNbits.api.getAuthenticatedUser()
+      this.user = data
+      this.hasUsername = !!data.username
+      this.hasEmail = !!data.email
+      console.log('### user', this.user)
+    } catch (e) {
+      LNbits.utils.notifyApiError(e)
     }
   }
 })

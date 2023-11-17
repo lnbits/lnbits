@@ -96,6 +96,7 @@ class User(BaseModel):
     wallets: List[Wallet] = []
     admin: bool = False
     super_user: bool = False
+    has_password: bool = False
     config: Optional[UserConfig] = None
 
     @property

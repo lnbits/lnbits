@@ -182,7 +182,7 @@ async def get_account_by_username_or_email(
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email, username, extra FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username, pass, extra FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
@@ -214,6 +214,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
         super_user=user["id"] == settings.super_user,
+        has_password=True if user["pass"] else False,
         config=UserConfig(**json.loads(user["extra"])) if user["extra"] else None,
     )
 

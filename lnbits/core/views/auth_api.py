@@ -223,11 +223,11 @@ async def update(
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
     if data.username and not is_valid_username(data.username):
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid username.")
-    if data.email and not is_valid_email_address(data.email):
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
+    if data.email != user.email:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Email mismatch.")
 
     try:
-        return await update_account(user.id, data.username, data.email, data.config)
+        return await update_account(user.id, data.username, None, data.config)
     except AssertionError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
     except Exception as e:
