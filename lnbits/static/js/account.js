@@ -37,7 +37,6 @@ new Vue({
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
       this.hasUsername = !!data.username
-      this.hasEmail = !!data.email
       console.log('### user', this.user)
     } catch (e) {
       LNbits.utils.notifyApiError(e)
