@@ -178,6 +178,11 @@ def is_valid_email_address(email: str) -> bool:
     return re.fullmatch(email_regex, email) is not None
 
 
+def is_valid_username(username: str) -> bool:
+    username_regex = r"\b(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]\b"
+    return re.fullmatch(username_regex, username) is not None
+
+
 def create_access_token(data: dict):
     expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
     to_encode = data.copy()

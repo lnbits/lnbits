@@ -61,7 +61,9 @@
             </div>
           </q-card-section>
           <q-separator></q-separator>
-          <q-card-section v-if="authAction === 'login' && authMethod === 'user-id-only'">
+          <q-card-section
+            v-if="authAction === 'login' && authMethod === 'user-id-only'"
+          >
             <b>Login with user ID</b><br /><br />
             <q-form @submit="loginUsr" class="q-gutter-md">
               <q-input
@@ -127,6 +129,7 @@
                 required
                 v-model="username"
                 label="Username *"
+                :rules="[(val) => validateUsername(val) || 'Invalid Username']"
               ></q-input>
               <q-input
                 filled
@@ -134,6 +137,7 @@
                 v-model="password"
                 label="Password *"
                 type="password"
+                :rules="[(val) => val.length >= 8 || 'Password must have at least 8 characters']"
               ></q-input>
               <q-input
                 filled
@@ -141,6 +145,7 @@
                 v-model="password_repeat"
                 label="Password repeat *"
                 type="password"
+                :rules="[(val) => val.length >= 8 || 'Password must have at least 8 characters']"
               ></q-input>
               <div>
                 <q-btn

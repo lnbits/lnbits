@@ -77,6 +77,12 @@ new Vue({
         message: 'Processing...',
         icon: null
       })
+    },
+    validateUsername: function (val) {
+      const usernameRegex = new RegExp(
+        '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
+      )
+      return usernameRegex.test(val)
     }
   },
   created() {
