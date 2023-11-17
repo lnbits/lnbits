@@ -240,14 +240,14 @@ class CoreLightningRestWallet(Wallet):
                             f"{self.url}/v1/invoice/listInvoices",
                             params={"label": inv["label"]},
                         )
-                        paid_invoce = r.json()
-                        logger.trace(f"paid invoice: {paid_invoce}")
+                        paid_invoice = r.json()
+                        logger.trace(f"paid invoice: {paid_invoice}")
                         assert self.statuses[
-                            paid_invoce["invoices"][0]["status"]
+                            paid_invoice["invoices"][0]["status"]
                         ], "streamed invoice not paid"
-                        assert "invoices" in paid_invoce, "no invoices in response"
-                        assert len(paid_invoce["invoices"]), "no invoices in response"
-                        yield paid_invoce["invoices"][0]["payment_hash"]
+                        assert "invoices" in paid_invoice, "no invoices in response"
+                        assert len(paid_invoice["invoices"]), "no invoices in response"
+                        yield paid_invoice["invoices"][0]["payment_hash"]
 
             except Exception as exc:
                 logger.debug(
