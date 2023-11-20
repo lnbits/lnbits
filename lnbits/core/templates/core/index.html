@@ -142,7 +142,7 @@
               <q-input
                 filled
                 dense
-                v-model="password_repeat"
+                v-model="passwordRepeat"
                 label="Password repeat *"
                 type="password"
                 :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
@@ -151,7 +151,7 @@
                 <q-btn
                   unelevated
                   color="primary"
-                  :disable="password == '' || password_repeat == '' || username == '' || password != password_repeat"
+                  :disable="!password || !passwordRepeat|| !username || (password !== passwordRepeat)"
                   type="submit"
                   class="full-width"
                   label="Create Account"

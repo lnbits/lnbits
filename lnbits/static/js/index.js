@@ -14,7 +14,7 @@ new Vue({
       username: '',
       email: '',
       password: '',
-      password_repeat: '',
+      passwordRepeat: '',
       walletName: '',
       signup: false
     }
@@ -36,7 +36,7 @@ new Vue({
       this.user = ''
       this.username = null
       this.password = null
-      this.password_repeat = null
+      this.passwordRepeat = null
 
       this.authAction = 'register'
       this.authMethod = authMethod
@@ -47,7 +47,7 @@ new Vue({
           this.username,
           this.email,
           this.password,
-          this.password_repeat
+          this.passwordRepeat
         )
         window.location.href = '/wallet'
       } catch (e) {

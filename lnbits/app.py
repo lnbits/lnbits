@@ -97,10 +97,8 @@ def create_app() -> FastAPI:
         CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
     )
 
-    # Authlib uses `request.session` to store temporary codes and states.
-    app.add_middleware(
-        SessionMiddleware, secret_key=settings.auth_secret_key
-    )  # todo: why is secret required
+    # required for login
+    app.add_middleware(SessionMiddleware, secret_key=settings.auth_secret_key)
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)

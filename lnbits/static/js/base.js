@@ -452,7 +452,7 @@ window.windowMixin = {
         })
       })
     },
-    checkUserInUrl: async function () {
+    checkUsrInUrl: async function () {
       const params = new URLSearchParams(window.location.search)
       const usr = params.get('usr')
       if (!usr) {
@@ -564,7 +564,7 @@ window.windowMixin = {
 
       this.g.extensions = extensions
 
-      await this.checkUserInUrl()
+      await this.checkUsrInUrl()
     }
   }
 }
