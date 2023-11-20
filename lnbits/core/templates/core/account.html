@@ -53,6 +53,49 @@
           class="q-mb-md"
         >
         </q-input>
+        <div v-if="!user.email" class="row"></div>
+        <div v-if="!user.email" class="row">
+          <div class="col q-pa-sm text-h6">Check email using:</div>
+          {% if "google-auth" in LNBITS_AUTH_METHODS %}
+          <div class="col q-pa-sm">
+            <q-btn
+              :href="`/api/v1/auth/google?user_id=${user.id}`"
+              type="a"
+              outline
+              no-caps
+              rounded
+              color="grey"
+              class="full-width"
+            >
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>Google</div>
+            </q-btn>
+          </div>
+          {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
+          <div class="col q-pa-sm">
+            <q-btn
+              :href="`/api/v1/auth/github?user_id=${user.id}`"
+              type="a"
+              outline
+              no-caps
+              color="grey"
+              rounded
+              class="full-width"
+            >
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>GitHub</div>
+            </q-btn>
+          </div>
+          {%endif%}
+        </div>
       </q-card-section>
 
       <q-card-section v-if="user.config">

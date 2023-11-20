@@ -21,10 +21,13 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
+# todo: move this class to a `crypto.py` file
+from lnbits.wallets.macaroon.macaroon import AESCipher
 
 from ..crud import (
     create_account,
     create_user,
+    get_account,
     get_account_by_email,
     get_account_by_username_or_email,
     get_user,
@@ -69,8 +72,8 @@ github_sso = _init_github_sso()
 
 
 @auth_router.get("/api/v1/auth", description="Get the authenticated user")
-async def get_auth_user(user: User = Depends(check_user_exists)) -> JSONResponse:
-    return user.dict()
+async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
+    return user
 
 
 @auth_router.post("/api/v1/auth", description="Login via the username and password")
@@ -117,23 +120,25 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 
 
 @auth_router.get("/api/v1/auth/google", description="Google SSO")
-async def login_google(request: Request):
+async def login_with_google(request: Request, user_id: Optional[str] = None):
     if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
 
     google_sso.redirect_uri = str(request.base_url) + "api/v1/auth/google/token"
     with google_sso:
-        return await google_sso.get_login_redirect()
+        state = _encrypt_message(user_id)
+        return await google_sso.get_login_redirect(state=state)
 
 
 @auth_router.get("/api/v1/auth/github", description="Github SSO")
-async def login_github(request: Request):
+async def login_with_github(request: Request, user_id: Optional[str] = None):
     if not github_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
 
     github_sso.redirect_uri = str(request.base_url) + "api/v1/auth/github/token"
     with github_sso:
-        return await github_sso.get_login_redirect()
+        state = _encrypt_message(user_id)
+        return await github_sso.get_login_redirect(state=state)
 
 
 @auth_router.get(
@@ -146,8 +151,9 @@ async def handle_google_token(request: Request) -> JSONResponse:
     try:
         with google_sso:
             userinfo: OpenID = await google_sso.verify_and_process(request)
+            user_id = _decrypt_message(google_sso.state)
         request.session.pop("user", None)
-        return await _handle_sso_login(userinfo)
+        return await _handle_sso_login(userinfo, user_id)
     except HTTPException as e:
         raise e
     except ValueError as e:
@@ -169,8 +175,9 @@ async def handle_github_token(request: Request) -> JSONResponse:
     try:
         with github_sso:
             userinfo = await github_sso.verify_and_process(request)
+            user_id = _decrypt_message(google_sso.state)
         request.session.pop("user", None)
-        return await _handle_sso_login(userinfo)
+        return await _handle_sso_login(userinfo, user_id)
 
     except HTTPException as e:
         raise e
@@ -218,7 +225,7 @@ async def register(data: CreateUser) -> JSONResponse:
 @auth_router.put("/api/v1/auth/update")
 async def update(
     data: UpdateUser, user: User = Depends(check_user_exists)
-) -> JSONResponse:
+) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
     if data.username and not is_valid_username(data.username):
@@ -235,24 +242,34 @@ async def update(
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
 
 
-async def _handle_sso_login(userinfo: OpenID):
+async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):
     email = userinfo.email
     if not email or not is_valid_email_address(email):
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
+    redirect_path = "/wallet"
     user_config = UserConfig(**dict(userinfo))
     user_config.email_verified = True
 
     account = await get_account_by_email(email)
+
+    if verified_user_id:
+        if account:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Email alredy used.")
+        account = await get_account(verified_user_id)
+        if not account:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Cannot verify user email.")
+        redirect_path = "/account"
+
     if account:
-        user = await update_account(account.id, user_config=user_config)
+        user = await update_account(account.id, email=email, user_config=user_config)
     else:
         user = await create_account(email=email, user_config=user_config)
 
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
 
-    return _auth_redirect_response(email)
+    return _auth_redirect_response(redirect_path, email)
 
 
 def _auth_success_response(
@@ -269,9 +286,21 @@ def _auth_success_response(
     return response
 
 
-def _auth_redirect_response(email: str) -> RedirectResponse:
+def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     access_token = create_access_token(data={"sub": "" or "", "email": email})
-    response = RedirectResponse("/wallet")
+    response = RedirectResponse(path)
     response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
     response.set_cookie(key="is_lnbits_user_authorized", value="true")
     return response
+
+
+def _encrypt_message(m: Optional[str] = None) -> str:
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
+
+
+def _decrypt_message(m: Optional[str] = None) -> str:
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).decrypt(m)

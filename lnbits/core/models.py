@@ -80,7 +80,7 @@ class WalletTypeInfo:
 
 
 class UserConfig(BaseModel):
-    email_verified: bool = False
+    email_verified: Optional[bool] = False
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     display_name: Optional[str] = None

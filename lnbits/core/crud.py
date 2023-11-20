@@ -95,7 +95,7 @@ async def update_account(
     username: Optional[str] = None,
     email: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
-) -> User:
+) -> Optional[User]:
     user = await get_user(user_id)
     assert user, "User not found"
 
