@@ -26,6 +26,7 @@ from .models import (
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
+    UpdateUserPassword,
     User,
     UserConfig,
     Wallet,
@@ -121,7 +122,9 @@ async def update_account(
         (username, email, json.dumps(dict(extra)) if extra else "{}", user_id),
     )
 
-    return await get_user(user_id)
+    user = await get_user(user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
 
 
 async def get_account(
@@ -135,18 +138,48 @@ async def get_account(
     return User(**row) if row else None
 
 
-async def verify_user_password(
-    user_id: str, password: str, conn: Optional[Connection] = None
-) -> bool:
-    row = await (conn or db).fetchone(
+async def get_user_password(user_id: str) -> Optional[str]:
+    row = await db.fetchone(
         "SELECT pass FROM accounts WHERE id = ?",
         (user_id,),
     )
     if not row:
+        return None
+
+    return row[0]
+
+
+async def verify_user_password(user_id: str, password: str) -> bool:
+    existing_password = await get_user_password(user_id)
+    if not existing_password:
         return False
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.verify(password, row[0])
+    return pwd_context.verify(password, existing_password)
+
+
+# , conn: Optional[Connection] = None ??
+async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
+    assert data.password == data.password_repeat, "Passwords do not match."
+
+    if await get_user_password(data.user_id):
+        # old accounts do not have a pasword
+        old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
+        assert old_pwd_ok, "Invalid credentials."
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    await db.execute(
+        "UPDATE accounts SET pass = ? WHERE id = ?",
+        (
+            pwd_context.hash(data.password),
+            data.user_id,
+        ),
+    )
+
+    user = await get_user(data.user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
 
 
 async def get_account_by_username(

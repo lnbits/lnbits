@@ -137,7 +137,7 @@
                 v-model="password"
                 label="Password *"
                 type="password"
-                :rules="[(val) => val.length >= 8 || 'Password must have at least 8 characters']"
+                :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
               ></q-input>
               <q-input
                 filled
@@ -145,7 +145,7 @@
                 v-model="password_repeat"
                 label="Password repeat *"
                 type="password"
-                :rules="[(val) => val.length >= 8 || 'Password must have at least 8 characters']"
+                :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
               ></q-input>
               <div>
                 <q-btn

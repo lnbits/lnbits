@@ -132,6 +132,13 @@ class UpdateUser(BaseModel):
     config: Optional[UserConfig] = None
 
 
+class UpdateUserPassword(BaseModel):
+    user_id: str
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+    password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
+
+
 class LoginUsr(BaseModel):
     usr: str
 

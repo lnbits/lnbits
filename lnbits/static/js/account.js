@@ -5,7 +5,12 @@ new Vue({
     return {
       user: null,
       hasUsername: false,
-      hasEmai: false
+      passwordData: {
+        show: false,
+        oldPassword: null,
+        newPassword: null,
+        newPasswordRepeat: null
+      }
     }
   },
   methods: {
@@ -22,13 +27,44 @@ new Vue({
             config: this.user.config
           }
         )
+        this.user = data
         this.$q.notify({
           type: 'positive',
           message: 'Account updated.'
         })
-        console.log('### data', data)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      }
+    },
+    updatePassword: async function () {
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/api/v1/auth/password',
+          null,
+          {
+            user_id: this.user.id,
+            password_old: this.passwordData.oldPassword,
+            password: this.passwordData.newPassword,
+            password_repeat: this.passwordData.newPasswordRepeat
+          }
+        )
+        this.user = data
+        this.passwordData.show = false
+        this.$q.notify({
+          type: 'positive',
+          message: 'Password updated.'
+        })
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+    showChangePassword: function () {
+      this.passwordData = {
+        show: true,
+        oldPassword: null,
+        newPassword: null,
+        newPasswordRepeat: null
       }
     }
   },
@@ -37,7 +73,6 @@ new Vue({
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
       this.hasUsername = !!data.username
-      console.log('### user', this.user)
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }

@@ -33,9 +33,17 @@ from ..crud import (
     get_account_by_username_or_email,
     get_user,
     update_account,
+    update_user_password,
     verify_user_password,
 )
-from ..models import CreateUser, LoginUsr, UpdateUser, User, UserConfig
+from ..models import (
+    CreateUser,
+    LoginUsr,
+    UpdateUser,
+    UpdateUserPassword,
+    User,
+    UserConfig,
+)
 
 auth_router = APIRouter()
 
@@ -226,6 +234,28 @@ async def register(data: CreateUser) -> JSONResponse:
     except Exception as e:
         logger.debug(e)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
+
+
+@auth_router.put("/api/v1/auth/password")
+async def update_password(
+    data: UpdateUserPassword, user: User = Depends(check_user_exists)
+) -> Optional[User]:
+    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+        raise HTTPException(
+            HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
+        )
+    if data.user_id != user.id:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
+
+    try:
+        return await update_user_password(data)
+    except AssertionError as e:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+        )
 
 
 @auth_router.put("/api/v1/auth/update")
