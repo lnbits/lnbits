@@ -21,6 +21,7 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
+
 # todo: move this class to a `crypto.py` file
 from lnbits.wallets.macaroon.macaroon import AESCipher
 
@@ -200,6 +201,11 @@ async def logout() -> JSONResponse:
 
 @auth_router.post("/api/v1/auth/register")
 async def register(data: CreateUser) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+        raise HTTPException(
+            HTTP_401_UNAUTHORIZED, "Register by 'Username and Password' not allowed."
+        )
+
     if data.password != data.password_repeat:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
 
