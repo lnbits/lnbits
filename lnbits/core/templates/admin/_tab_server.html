@@ -21,41 +21,6 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <p>Service Fee</p>
-          <q-input
-            filled
-            type="number"
-            v-model.number="formData.lnbits_service_fee"
-            label="Service fee (%)"
-            step="0.1"
-            hint="Fee charged per tx (%)"
-          ></q-input>
-          <br />
-        </div>
-        <div class="col-12 col-md-6">
-          <p>Miscellaneous</p>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Hide API</q-item-label>
-              <q-item-label caption
-                >Hides wallet api, extensions can choose to honor</q-item-label
-              >
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_hide_api"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
-        </div>
-      </div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
           <p>Allowed currencies</p>
           <q-select
             filled
@@ -91,6 +56,27 @@
             label="Admin extensions"
             :options="g.extensions.map(e => e.code)"
           ></q-select>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Miscellaneous</p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>Hide API</q-item-label>
+              <q-item-label caption
+                >Hides wallet api, extensions can choose to honor</q-item-label
+              >
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_hide_api"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
           <br />
         </div>
       </div>

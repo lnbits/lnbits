@@ -104,6 +104,7 @@ from ..services import (
     PaymentFailure,
     check_transaction_status,
     create_invoice,
+    fee_reserve_total,
     pay_invoice,
     perform_lnurlauth,
     websocketManager,
@@ -383,6 +384,21 @@ async def api_payments_create(
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="Invoice (or Admin) key required.",
+        )
+
+
+@api_router.get("/api/v1/payments/fee-reserve")
+async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONResponse:
+    invoice_obj = bolt11.decode(invoice)
+    if invoice_obj.amount_msat:
+        response = {
+            "fee_reserve": fee_reserve_total(invoice_obj.amount_msat),
+        }
+        return JSONResponse(response)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invoice has no amount.",
         )
 
 
