@@ -299,6 +299,8 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
     if account:
         user = await update_account(account.id, email=email, user_config=user_config)
     else:
+        if not settings.new_accounts_allowed:
+            raise HTTPException(HTTP_400_BAD_REQUEST, "Account creation is disabled.")
         user = await create_account(email=email, user_config=user_config)
 
     if not user:

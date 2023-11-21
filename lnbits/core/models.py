@@ -85,8 +85,7 @@ class UserConfig(BaseModel):
     last_name: Optional[str] = None
     display_name: Optional[str] = None
     picture: Optional[str] = None
-    # auth provider
-    provider: Optional[str] = "lnbits"
+    provider: Optional[str] = "lnbits"  # auth provider
 
 
 class User(BaseModel):

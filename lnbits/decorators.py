@@ -21,7 +21,7 @@ from lnbits.core.models import User, WalletType, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import AuthMethods, settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
 
 
 # TODO: fix type ignores

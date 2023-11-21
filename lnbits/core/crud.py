@@ -40,6 +40,8 @@ from .models import (
 async def create_user(
     data: CreateUser, user_config: Optional[UserConfig] = None
 ) -> User:
+    if not settings.new_accounts_allowed:
+        raise ValueError("Account creation is disabled.")
     if await get_account_by_username(data.username):
         raise ValueError("Username already exists.")
 
@@ -158,12 +160,12 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-# , conn: Optional[Connection] = None ??
+# todo: , conn: Optional[Connection] = None ??
 async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
     assert data.password == data.password_repeat, "Passwords do not match."
 
+    # old accounts do not have a pasword
     if await get_user_password(data.user_id):
-        # old accounts do not have a pasword
         assert data.password_old, "Missing old password"
         old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
         assert old_pwd_ok, "Invalid credentials."
