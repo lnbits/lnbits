@@ -15,6 +15,7 @@ from typing import Callable, List
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -513,6 +514,13 @@ def register_exception_handlers(app: FastAPI):
         logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
+
+        if "token-expired" in exc.headers:
+            response = RedirectResponse("/")
+            response.delete_cookie("cookie_access_token")
+            response.delete_cookie("is_lnbits_user_authorized")
+            response.set_cookie("is_access_token_expired", "true")
+            return response
 
         if (
             request.headers

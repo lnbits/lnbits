@@ -204,6 +204,7 @@ async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
     response.delete_cookie("is_lnbits_user_authorized")
+    response.delete_cookie("is_access_token_expired")
     return response
 
 
@@ -317,16 +318,19 @@ def _auth_success_response(
         data={"sub": username or "", "usr": user_id, "email": email}
     )
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
-    response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value="true")
+    response.set_cookie("cookie_access_token", access_token, httponly=True)
+    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.delete_cookie("is_access_token_expired")
+
     return response
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     access_token = create_access_token(data={"sub": "" or "", "email": email})
     response = RedirectResponse(path)
-    response.set_cookie(key="cookie_access_token", value=access_token, httponly=True)
-    response.set_cookie(key="is_lnbits_user_authorized", value="true")
+    response.set_cookie("cookie_access_token", access_token, httponly=True)
+    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.delete_cookie("is_access_token_expired")
     return response
 
 

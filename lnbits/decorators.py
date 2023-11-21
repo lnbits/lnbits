@@ -6,7 +6,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from loguru import logger
 from pydantic.types import UUID4
 
@@ -314,6 +314,10 @@ async def _get_account_from_token(access_token):
             return await get_account_by_email(str(payload.get("email")))
 
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
+    except ExpiredSignatureError:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
+        )
     except JWTError as e:
         logger.debug(e)
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")

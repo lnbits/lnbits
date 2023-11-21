@@ -34,6 +34,11 @@
 
     <div class="row q-mt-xl">
       <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+        <q-badge v-if="isAccessTokenExpired" color="primary" rounded>
+          <div class="text-h5">
+            Your session has expired. Please login again.
+          </div>
+        </q-badge>
         <q-card class="shadow-12">
           {% if "user-id-only" in LNBITS_AUTH_METHODS %}
           <q-card-section>
