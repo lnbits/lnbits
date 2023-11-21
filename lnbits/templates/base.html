@@ -74,7 +74,29 @@
               v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
             ></span>
           </q-badge>
-          {% endblock %}
+          {% if LNBITS_SERVICE_FEE > 0 %}
+          <q-badge
+            v-show="$q.screen.gt.sm"
+            v-if="g.user"
+            color="green"
+            text-color="black"
+            class="q-mr-md"
+          >
+            {% if LNBITS_SERVICE_FEE_MAX > 0 %}
+            <span
+              v-text='$t("service_fee_max", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}"})'
+            ></span>
+            {%else%}
+            <span
+              v-text='$t("service_fee", { amount: "{{ LNBITS_SERVICE_FEE }}" })'
+            ></span>
+            {%endif%}
+            <q-tooltip
+              ><span v-text='$t("service_fee_tooltip")'></span
+            ></q-tooltip>
+          </q-badge>
+
+          {%endif%} {% endblock %}
           <q-badge
             v-if="g.offline"
             color="red"

@@ -6,6 +6,7 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
 from lnbits.core.models import CreateInvoice, Payment
+from lnbits.core.services import fee_reserve_total
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.api import api_payment
 from lnbits.settings import settings
@@ -14,6 +15,7 @@ from lnbits.wallets import get_wallet_class
 from ...helpers import (
     cancel_invoice,
     get_random_invoice_data,
+    get_real_invoice,
     is_fake,
     is_regtest,
     pay_real_invoice,
@@ -845,3 +847,32 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert payment_by_checking_id.pending is False
     assert payment_by_checking_id.bolt11 == payment_not_pending.bolt11
     assert payment_by_checking_id.payment_hash == payment_not_pending.payment_hash
+
+
+@pytest.mark.asyncio
+async def test_check_fee_reserve(client, adminkey_headers_from):
+    # if regtest, create a real invoice, otherwise create an internal invoice
+    # call /api/v1/payments/fee-reserve?invoice=... with it and check if the fee reserve
+    # is correct
+    payment_request = ""
+    if is_regtest:
+        real_invoice = get_real_invoice(1000)
+        payment_request = real_invoice["payment_request"]
+
+    else:
+        create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+        response = await client.post(
+            "/api/v1/payments",
+            json=create_invoice.dict(),
+            headers=adminkey_headers_from,
+        )
+        assert response.status_code < 300
+        invoice = response.json()
+        payment_request = invoice["payment_request"]
+
+    response = await client.get(
+        f"/api/v1/payments/fee-reserve?invoice={payment_request}",
+    )
+    assert response.status_code < 300
+    fee_reserve = response.json()
+    assert fee_reserve["fee_reserve"] == fee_reserve_total(1000_000)

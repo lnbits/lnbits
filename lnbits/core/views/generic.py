@@ -214,6 +214,7 @@ async def wallet(
             "user": user.dict(),
             "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
+            "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
