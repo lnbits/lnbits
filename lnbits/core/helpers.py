@@ -59,7 +59,6 @@ async def stop_extension_background_work(
     """
     async with httpx.AsyncClient() as client:
         try:
-            # todo: review with userid not allowed
             url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
             headers = (
                 {"Authorization": "Bearer " + access_token} if access_token else None
