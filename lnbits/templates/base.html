@@ -254,9 +254,17 @@
             flat
             round
             size="sm"
-            icon="account_circle"
-            class="q-pl-md"
+            class="q-pl-sm"
           >
+            <template v-slot:label>
+              <div>
+                {%if user and user.config and user.config.picture%}
+                <img src="{{user.config.picture}}" style="max-width: 32px" />
+                {%else%}
+                <q-icon name="account_circle" />
+                {%endif%}
+              </div>
+            </template>
             <q-list>
               <q-item clickable v-close-popup
                 ><q-item-section>
