@@ -79,7 +79,7 @@ async def create_account(
     else:
         user_id = uuid4().hex
 
-    extra = json.dumps(dict(user_config)) if user_config else None
+    extra = json.dumps(dict(user_config)) if user_config else "{}"
     await (conn or db).execute(
         "INSERT INTO accounts (id, email, extra) VALUES (?, ?, ?)",
         (user_id, email, extra),
@@ -97,7 +97,7 @@ async def update_account(
     email: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
 ) -> Optional[User]:
-    user = await get_user(user_id)
+    user = await get_account(user_id)
     assert user, "User not found"
 
     if email:
