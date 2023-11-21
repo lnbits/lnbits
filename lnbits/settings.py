@@ -321,7 +321,10 @@ class AuthSettings(LNbitsSettings):
     auth_secret_key: str = Field(default="")
     auth_token_expire_minutes: int = Field(default=30)
     auth_allowed_methods: List[str] = Field(
-        default=[AuthMethods.user_id_only, AuthMethods.username_and_password]
+        default=[
+            AuthMethods.user_id_only.value,
+            AuthMethods.username_and_password.value,
+        ]
     )
 
     def is_auth_method_allowed(self, method: AuthMethods):
