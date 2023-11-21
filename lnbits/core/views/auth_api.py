@@ -182,7 +182,7 @@ async def handle_github_token(request: Request) -> JSONResponse:
     try:
         with github_sso:
             userinfo = await github_sso.verify_and_process(request)
-            user_id = _decrypt_message(google_sso.state)
+            user_id = _decrypt_message(github_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
 
@@ -332,13 +332,13 @@ def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     return response
 
 
-def _encrypt_message(m: Optional[str] = None) -> str:
+def _encrypt_message(m: Optional[str] = None) -> Optional[str]:
     if not m:
         return None
     return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
 
 
-def _decrypt_message(m: Optional[str] = None) -> str:
+def _decrypt_message(m: Optional[str] = None) -> Optional[str]:
     if not m:
         return None
     return AESCipher(key=settings.auth_secret_key).decrypt(m)

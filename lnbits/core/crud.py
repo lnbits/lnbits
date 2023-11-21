@@ -164,6 +164,7 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
 
     if await get_user_password(data.user_id):
         # old accounts do not have a pasword
+        assert data.password_old, "Missing old password"
         old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
         assert old_pwd_ok, "Invalid credentials."
 
