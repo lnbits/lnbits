@@ -151,7 +151,7 @@ async def login_with_github(request: Request, user_id: Optional[str] = None):
 @auth_router.get(
     "/api/v1/auth/google/token", description="Handle Google OAuth callback"
 )
-async def handle_google_token(request: Request) -> JSONResponse:
+async def handle_google_token(request: Request) -> RedirectResponse:
     if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
 
@@ -175,7 +175,7 @@ async def handle_google_token(request: Request) -> JSONResponse:
 @auth_router.get(
     "/api/v1/auth/github/token", description="Handle Github OAuth callback"
 )
-async def handle_github_token(request: Request) -> JSONResponse:
+async def handle_github_token(request: Request) -> RedirectResponse:
     if not github_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
 
