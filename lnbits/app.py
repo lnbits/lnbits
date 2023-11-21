@@ -515,18 +515,18 @@ def register_exception_handlers(app: FastAPI):
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
-        if "token-expired" in exc.headers:
-            response = RedirectResponse("/")
-            response.delete_cookie("cookie_access_token")
-            response.delete_cookie("is_lnbits_user_authorized")
-            response.set_cookie("is_access_token_expired", "true")
-            return response
-
         if (
             request.headers
             and "accept" in request.headers
             and "text/html" in request.headers["accept"]
         ):
+            if "token-expired" in exc.headers:
+                response = RedirectResponse("/")
+                response.delete_cookie("cookie_access_token")
+                response.delete_cookie("is_lnbits_user_authorized")
+                response.set_cookie("is_access_token_expired", "true")
+                return response
+
             return template_renderer().TemplateResponse(
                 "error.html",
                 {
