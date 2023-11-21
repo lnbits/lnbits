@@ -185,9 +185,6 @@ async def pay_invoice(
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise ValueError("Amount in invoice is too high.")
 
-    fee_reserve_msat = fee_reserve(invoice.amount_msat)
-    service_fee_msat = service_fee(invoice.amount_msat)
-
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
@@ -230,6 +227,9 @@ async def pay_invoice(
         # (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
+            fee_reserve_total_msat = fee_reserve_total(
+                invoice.amount_msat, internal=True
+            )
             # perform additional checks on the internal payment
             # the payment hash is not enough to make sure that this is the same invoice
             internal_invoice = await get_standalone_payment(
@@ -242,26 +242,26 @@ async def pay_invoice(
             ):
                 raise PaymentFailure("Invalid invoice.")
 
-            if settings.lnbits_service_fee_ignore_internal:
-                service_fee_msat = 0
-
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             new_payment = await create_payment(
                 checking_id=internal_id,
-                fee=0 + abs(service_fee_msat),
+                fee=0 + abs(fee_reserve_total_msat),
                 pending=False,
                 conn=conn,
                 **payment_kwargs,
             )
         else:
+            fee_reserve_total_msat = fee_reserve_total(
+                invoice.amount_msat, internal=False
+            )
             logger.debug(f"creating temporary payment with id {temp_id}")
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
             try:
                 new_payment = await create_payment(
                     checking_id=temp_id,
-                    fee=-(fee_reserve_msat + service_fee_msat),
+                    fee=-abs(fee_reserve_total_msat),
                     conn=conn,
                     **payment_kwargs,
                 )
@@ -275,14 +275,18 @@ async def pay_invoice(
         assert wallet, "Wallet for balancecheck could not be fetched"
         if wallet.balance_msat < 0:
             logger.debug("balance is too low, deleting temporary payment")
-            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+            if (
+                not internal_checking_id
+                and wallet.balance_msat > -fee_reserve_total_msat
+            ):
                 raise PaymentFailure(
-                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to"
-                    " cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
+                    "  sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
     if internal_checking_id:
+        service_fee_msat = service_fee(invoice.amount_msat, internal=True)
         logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
@@ -299,6 +303,8 @@ async def pay_invoice(
         logger.debug(f"enqueuing internal invoice {internal_checking_id}")
         await internal_invoice_queue.put(internal_checking_id)
     else:
+        fee_reserve_msat = fee_reserve(invoice.amount_msat, internal=False)
+        service_fee_msat = service_fee(invoice.amount_msat, internal=False)
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
         WALLET = get_wallet_class()
@@ -350,7 +356,8 @@ async def pay_invoice(
                 "didn't receive checking_id from backend, payment may be stuck in"
                 f" database: {temp_id}"
             )
-    # credit fee wallet
+
+    # credit service fee wallet
     if settings.lnbits_service_fee_wallet and service_fee_msat:
         new_payment = await create_payment(
             wallet_id=settings.lnbits_service_fee_wallet,
@@ -515,16 +522,18 @@ async def check_transaction_status(
 
 # WARN: this same value must be used for balance check and passed to
 # WALLET.pay_invoice(), it may cause a vulnerability if the values differ
-def fee_reserve(amount_msat: int) -> int:
+def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
 
 
-def service_fee(amount_msat: int) -> int:
+def service_fee(amount_msat: int, internal: bool = False) -> int:
     service_fee_percent = settings.lnbits_service_fee
     fee_max = settings.lnbits_service_fee_max * 1000
     if settings.lnbits_service_fee_wallet:
+        if internal and settings.lnbits_service_fee_ignore_internal:
+            return 0
         fee_percentage = int(amount_msat / 100 * service_fee_percent)
         if fee_max > 0 and fee_percentage > fee_max:
             return fee_max
@@ -534,8 +543,8 @@ def service_fee(amount_msat: int) -> int:
         return 0
 
 
-def fee_reserve_total(amount_msat: int) -> int:
-    return fee_reserve(amount_msat) + service_fee(amount_msat)
+def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
+    return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
