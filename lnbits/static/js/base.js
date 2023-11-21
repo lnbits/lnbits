@@ -85,7 +85,6 @@ window.LNbits = {
       return axios({
         method: 'POST',
         url: '/api/v1/auth',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         data: {username, password}
       })
     },

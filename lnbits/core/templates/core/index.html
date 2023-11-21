@@ -115,6 +115,7 @@
               ></q-input>
               <div>
                 <q-btn
+                  :disable="!username || !password"
                   color="primary"
                   type="submit"
                   label="Login"

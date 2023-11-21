@@ -144,6 +144,11 @@ class LoginUsr(BaseModel):
     usr: str
 
 
+class LoginUsernamePassword(BaseModel):
+    username: str
+    password: str
+
+
 class Payment(FromRowModel):
     checking_id: str
     pending: bool

@@ -1,8 +1,7 @@
-from typing import Annotated, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_sso.sso.base import OpenID
 from fastapi_sso.sso.github import GithubSSO
 from fastapi_sso.sso.google import GoogleSSO
@@ -38,6 +37,7 @@ from ..crud import (
 )
 from ..models import (
     CreateUser,
+    LoginUsernamePassword,
     LoginUsr,
     UpdateUser,
     UpdateUserPassword,
@@ -86,20 +86,18 @@ async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
 
 
 @auth_router.post("/api/v1/auth", description="Login via the username and password")
-async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-) -> JSONResponse:
+async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
             HTTP_401_UNAUTHORIZED, "Login by 'Username and Password' not allowed."
         )
 
     try:
-        user = await get_account_by_username_or_email(form_data.username)
+        user = await get_account_by_username_or_email(data.username)
 
         if not user:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
-        if not await verify_user_password(user.id, form_data.password):
+        if not await verify_user_password(user.id, data.password):
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
         return _auth_success_response(user.username, user.id)
