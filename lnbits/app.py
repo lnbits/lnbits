@@ -520,7 +520,7 @@ def register_exception_handlers(app: FastAPI):
             and "accept" in request.headers
             and "text/html" in request.headers["accept"]
         ):
-            if "token-expired" in exc.headers:
+            if exc.headers and "token-expired" in exc.headers:
                 response = RedirectResponse("/")
                 response.delete_cookie("cookie_access_token")
                 response.delete_cookie("is_lnbits_user_authorized")
