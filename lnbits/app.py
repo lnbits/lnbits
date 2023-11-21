@@ -98,7 +98,7 @@ def create_app() -> FastAPI:
         CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
     )
 
-    # required for login
+    # required for SSO login
     app.add_middleware(SessionMiddleware, secret_key=settings.auth_secret_key)
 
     # order of these two middlewares is important
