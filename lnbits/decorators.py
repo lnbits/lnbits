@@ -229,13 +229,17 @@ async def require_invoice_key(
         return wallet
 
 
-async def check_user_exists(
+async def check_access_token(
     header_access_token: Annotated[Union[str, None], Depends(oauth2_scheme)],
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
+) -> Optional[str]:
+    return header_access_token or cookie_access_token
+
+
+async def check_user_exists(
+    access_token: Annotated[Optional[str], Depends(check_access_token)],
     usr: Optional[UUID4] = None,
 ) -> User:
-    access_token = header_access_token or cookie_access_token
-
     if access_token:
         account = await _get_account_from_token(access_token)
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
