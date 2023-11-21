@@ -169,9 +169,9 @@ class CoreLightningWallet(Wallet):
             r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
             return PaymentStatus(None)
-        if "pays" not in r or not r["pays"]:
+        if "pays" not in r:
             return PaymentStatus(None)
-        if len(r["pays"]) == 0:
+        if not r["pays"]:
             # no payment with this payment_hash is found
             return PaymentStatus(False)
 
