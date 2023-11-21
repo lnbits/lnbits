@@ -290,7 +290,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
 
     if verified_user_id:
         if account:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "Email alredy used.")
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Email already used.")
         account = await get_account(verified_user_id)
         if not account:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Cannot verify user email.")
