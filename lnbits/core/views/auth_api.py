@@ -304,7 +304,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
         user = await create_account(email=email, user_config=user_config)
 
     if not user:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "User not found.")
 
     return _auth_redirect_response(redirect_path, email)
 

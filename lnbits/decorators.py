@@ -245,10 +245,10 @@ async def check_user_exists(
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
     else:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing user ID or access token.")
 
     if not account or not settings.is_user_allowed(account.id):
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
     user = await get_user(account.id)
     assert user, "User not found for account."
@@ -317,11 +317,11 @@ async def _get_account_from_token(access_token):
         if "email" in payload and payload.get("email"):
             return await get_account_by_email(str(payload.get("email")))
 
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Data missing for access token.")
     except ExpiredSignatureError:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
         )
     except JWTError as e:
         logger.debug(e)
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Not authorized.")
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.")
