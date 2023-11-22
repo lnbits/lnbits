@@ -168,18 +168,15 @@ async def wallet(
     user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
-    if not wal:
-        if len(user.wallets) == 0:
-            wallet = await create_wallet(user_id=user.id)
-        else:
-            wallet = user.wallets[0]
-        url = f"/wallet?wal={wallet.id}"
-        usr = request.query_params.get("usr")
-        if usr:
-            url += f"&usr={usr}"
-        return RedirectResponse(url=url)
+    if wal:
+        wallet_id = wal.hex
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        wallet_id = wallet.id
+    else:
+        wallet_id = user.wallets[0].id
 
-    user_wallet = user.get_wallet(wal.hex)
+    user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
