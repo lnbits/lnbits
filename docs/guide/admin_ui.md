@@ -60,7 +60,7 @@ $ poetry run lnbits
 ```
 You can now `cat` the Super User ID:
 ```
-$ cat .super_user
+$ cat data/.super_user
 123de4bfdddddbbeb48c8bc8382fe123
 ```
 You can access your super user account at `/wallet?usr=super_user_id`. You just have to append it to your normal LNbits web domain.
