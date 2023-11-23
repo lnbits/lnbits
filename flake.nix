@@ -38,6 +38,7 @@
           meta.rev = self.dirtyRev or self.rev;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
             ruff = prev.ruff.override { preferWheel = true; };
+            wallycore = prev.wallycore.override { preferWheel = true; };
             fastapi = prev.fastapi.overridePythonAttrs (old: {
               postPatch = ''
                 substituteInPlace pyproject.toml \
