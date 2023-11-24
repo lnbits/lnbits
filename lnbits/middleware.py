@@ -29,18 +29,18 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        path_name, *rest = [p for p in scope["path"].split("/") if p]
+        top_path, *rest = [p for p in scope["path"].split("/") if p]
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
-        if path_name in settings.lnbits_deactivated_extensions:
+        if top_path in settings.lnbits_deactivated_extensions:
             response = self._response_by_accepted_type(
-                headers, f"Extension '{path_name}' disabled", HTTPStatus.NOT_FOUND
+                headers, f"Extension '{top_path}' disabled", HTTPStatus.NOT_FOUND
             )
             await response(scope, receive, send)
             return
 
-        if not self._user_allowed_to_extension(path_name, scope):
+        if not self._user_allowed_to_extension(top_path, scope):
             response = self._response_by_accepted_type(
                 headers, "User not authorized.", HTTPStatus.FORBIDDEN
             )
@@ -51,7 +51,7 @@ class InstalledExtensionMiddleware:
             (
                 e
                 for e in settings.lnbits_upgraded_extensions
-                if e.endswith(f"/{path_name}")
+                if e.endswith(f"/{top_path}")
             ),
             None,
         )
