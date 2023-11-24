@@ -1,4 +1,4 @@
-window.localisation.en = {
+window.localisation.kr = {
   confirm: '확인',
   server: '서버',
   theme: '테마',
