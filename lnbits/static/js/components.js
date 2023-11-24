@@ -111,7 +111,7 @@ Vue.component('lnbits-extension-list', {
     }
   },
   template: `
-    <q-list v-if="user" dense class="lnbits-drawer__q-list">
+    <q-list v-if="user && userExtensions.length > 0" dense class="lnbits-drawer__q-list">
       <q-item-label header v-text="$t('extensions')"></q-item-label>
       <q-item v-for="extension in userExtensions" :key="extension.code"
         clickable
