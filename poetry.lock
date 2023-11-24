@@ -2282,7 +2282,7 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 name = "wallycore"
 version = "1.0.0"
 description = "libwally Bitcoin library"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "wallycore-1.0.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ce04189be2f971302aca571ae6d128a0786151fa1bf256a15959701e7ba2d2e2"},
@@ -2524,7 +2524,10 @@ files = [
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
+[extras]
+liquid = ["wallycore"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "37b741971076e0f6f17c69e5950f00fea7491fb485e2c5c3587bb74c835c4467"
+content-hash = "95ad6885f070793369450a82763ea8e4f92926d9bee02f81758636b28db55e76"
