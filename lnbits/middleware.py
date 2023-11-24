@@ -48,6 +48,11 @@ class InstalledExtensionMiddleware:
             await response(scope, receive, send)
             return
 
+        # static resources do not require redirect
+        if rest[0:1] == ["static"]:
+            await self.app(scope, receive, send)
+            return
+
         upgrade_path = next(
             (
                 e
