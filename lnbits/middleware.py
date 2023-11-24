@@ -56,7 +56,7 @@ class InstalledExtensionMiddleware:
             ),
             None,
         )
-        # re-route API trafic if the extension has been upgraded
+        # re-route all trafic if the extension has been upgraded
         if upgrade_path:
             tail = "/".join(rest)
             scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
