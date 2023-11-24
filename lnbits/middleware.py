@@ -25,12 +25,12 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        path = scope.get("path", "/")
-        if path == "/":
+        full_path = scope.get("path", "/")
+        if full_path == "/":
             await self.app(scope, receive, send)
             return
 
-        top_path, *rest = [p for p in scope["path"].split("/") if p]
+        top_path, *rest = [p for p in full_path.split("/") if p]
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
