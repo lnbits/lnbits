@@ -676,13 +676,13 @@ all = ["email-validator (>=2.0.0)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)"
 
 [[package]]
 name = "fastapi-sso"
-version = "0.7.2"
+version = "0.9.0"
 description = "FastAPI plugin to enable SSO to most common providers (such as Facebook login, Google login and login via Microsoft Office 365 Account)"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "fastapi_sso-0.7.2-py3-none-any.whl", hash = "sha256:025c79319ce848cbfadd51955cb649ad0cad6504709709b495241e23f05a211c"},
-    {file = "fastapi_sso-0.7.2.tar.gz", hash = "sha256:55df0e43a92e8017bb32f8a0ea1fc6263c070d8fa8910e15823d110e3ef2c323"},
+    {file = "fastapi_sso-0.9.0-py3-none-any.whl", hash = "sha256:b75e4474d84fa41dbe38ba61186a64386d44d9917ae96e08422efebd046d3c96"},
+    {file = "fastapi_sso-0.9.0.tar.gz", hash = "sha256:886a29e195e541fb4cc8f92dae901b52745b988092be6485cd38242827f0d9c3"},
 ]
 
 [package.dependencies]
@@ -690,7 +690,6 @@ fastapi = ">=0.80"
 httpx = ">=0.23.0"
 oauthlib = ">=3.1.0"
 pydantic = ">=1.8.0"
-starlette = ">=0.13.6"
 
 [[package]]
 name = "filelock"
@@ -2667,4 +2666,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "8961b820b240ece46081ac216d3eeab298fb07db85e3b5def56dc4620a91ad92"
+content-hash = "4279fc190b276121f6462750f2b773588e5470b52995c2388759445afdb4bd77"

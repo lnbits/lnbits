@@ -157,7 +157,8 @@ async def handle_google_token(request: Request) -> RedirectResponse:
 
     try:
         with google_sso:
-            userinfo: OpenID = await google_sso.verify_and_process(request)
+            userinfo = await google_sso.verify_and_process(request)
+            assert userinfo is not None
             user_id = _decrypt_message(google_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
@@ -182,6 +183,7 @@ async def handle_github_token(request: Request) -> RedirectResponse:
     try:
         with github_sso:
             userinfo = await github_sso.verify_and_process(request)
+            assert userinfo is not None
             user_id = _decrypt_message(github_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
