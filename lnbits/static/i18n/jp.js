@@ -71,7 +71,7 @@ window.localisation.jp = {
   disclaimer_dialog:
     'ウォレットを削除すると、ウォレットの秘密鍵が削除され、ウォレットを復元することはできません。ウォレットを削除する前に、ウォレットをエクスポートしてください。',
   no_transactions: 'トランザクションはありません',
-  manage: 'サーバーを管理する',
+  manage: '管理',
   extensions: '拡張機能',
   no_extensions: '拡張機能はありません',
   created: '作成済み',

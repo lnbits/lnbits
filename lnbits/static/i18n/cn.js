@@ -72,7 +72,7 @@ window.localisation.cn = {
   disclaimer_dialog:
     '登录功能将在以后的更新中发布，请将此页面加为书签，以便将来访问您的钱包！此服务处于测试阶段，我们不对资金的丢失承担任何责任。',
   no_transactions: '尚未进行任何交易',
-  manage: '管理服务器',
+  manage: '管理',
   extensions: '扩展程序',
   no_extensions: '你没有安装任何扩展程序 :(',
   created: '已创建',
