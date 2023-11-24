@@ -29,14 +29,7 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        path_elements = scope["path"].split("/")
-        if len(path_elements) > 2:
-            _, path_name, path_type, *rest = path_elements
-        else:
-            _, path_name = path_elements
-            path_type = None
-            rest = []
-
+        path_name, *rest = [p for p in scope["path"].split("/") if p]
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
@@ -54,18 +47,18 @@ class InstalledExtensionMiddleware:
             await response(scope, receive, send)
             return
 
+        upgrade_path = next(
+            (
+                e
+                for e in settings.lnbits_upgraded_extensions
+                if e.endswith(f"/{path_name}")
+            ),
+            None,
+        )
         # re-route API trafic if the extension has been upgraded
-        if path_type == "api":
-            upgraded_extensions = list(
-                filter(
-                    lambda ext: ext.endswith(f"/{path_name}"),
-                    settings.lnbits_upgraded_extensions,
-                )
-            )
-            if len(upgraded_extensions) != 0:
-                upgrade_path = upgraded_extensions[0]
-                tail = "/".join(rest)
-                scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
+        if upgrade_path:
+            tail = "/".join(rest)
+            scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
 
         await self.app(scope, receive, send)
 
