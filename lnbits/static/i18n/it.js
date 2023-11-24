@@ -74,8 +74,7 @@ window.localisation.it = {
   disclaimer_dialog:
     "La funzionalità di login sarà rilasciata in un futuro aggiornamento; per ora, assicuratevi di salvare tra i preferiti questa pagina per accedere nuovamente in futuro a questo portafoglio! Questo servizio è in fase BETA e non ci assumiamo alcuna responsabilità per la perdita all'accesso dei fondi",
   no_transactions: 'Nessuna transazione effettuata',
-  manage_extensions: 'Gestisci le estensioni',
-  manage_server: 'Gestisci server',
+  manage: 'Gestisci',
   estensioni: 'Estensioni',
   no_extensions: 'Non ci sono estensioni installate :(',
   created: 'Creato',

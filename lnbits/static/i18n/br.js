@@ -73,8 +73,7 @@ window.localisation.br = {
   disclaimer_dialog:
     'Funcionalidade de login a ser lançada em uma atualização futura, por enquanto, certifique-se de marcar esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
-  manage_extensions: 'Gerenciar extensões',
-  manage_server: 'Gerenciar servidor',
+  manage: 'Gerenciar',
   extensions: 'Extensões',
   no_extensions: 'Você não possui nenhuma extensão instalada :(',
   created: 'Criado',

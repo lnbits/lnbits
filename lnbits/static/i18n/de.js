@@ -76,8 +76,7 @@ window.localisation.de = {
   disclaimer_dialog:
     'Login-Funktionalität wird in einem zukünftigen Update veröffentlicht. Bis dahin ist die Speicherung der Wallet-URL als Lesezeichen absolut notwendig, um Zugriff auf die Wallet zu erhalten! Dieser Service ist in BETA und wir übernehmen keine Verantwortung für Verluste durch verlorene Zugriffe.',
   no_transactions: 'Keine Transaktionen',
-  manage_extensions: 'Erweiterungen verwalten',
-  manage_server: 'Server verwalten',
+  manage: 'Verwalten',
   extensions: 'Erweiterungen',
   no_extensions: 'Du hast noch keine Erweiterungen installiert :(',
   created: 'Erstellt',

@@ -95,7 +95,7 @@ window.localisation.sk = {
   disclaimer_dialog:
     'Funkcionalita prihlásenia bude vydaná v budúcej aktualizácii, zatiaľ si uistite, že ste si túto stránku pridali medzi záložky pre budúci prístup k vašej peňaženke! Táto služba je v BETA verzii a nenesieme zodpovednosť za stratu prístupu k prostriedkom.',
   no_transactions: 'Zatiaľ žiadne transakcie',
-  manage_server: 'Spravovať Server',
+  manage: 'Spravovať',
   extensions: 'Rozšírenia',
   no_extensions: 'Nemáte nainštalované žiadne rozšírenia :(',
   created: 'Vytvorené',

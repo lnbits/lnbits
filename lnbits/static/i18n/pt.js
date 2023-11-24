@@ -73,8 +73,7 @@ window.localisation.pt = {
   disclaimer_dialog:
     'Funcionalidade de login a ser lançada numa atualização futura, por enquanto, certifique-se que marca esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
-  manage_extensions: 'Gerir extensões',
-  manage_server: 'Gerir servidor',
+  manage: 'Gerir',
   extensions: 'Extensões',
   no_extensions: 'Não há nenhuma extensão instalada :(',
   created: 'Criado',

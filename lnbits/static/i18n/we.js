@@ -73,8 +73,7 @@ window.localisation.we = {
   disclaimer_dialog:
     'Swyddogaeth mewngofnodi i`w ryddhau mewn diweddariad yn y dyfodol, am y tro, gwnewch yn siŵr eich bod yn rhoi nod tudalen ar y dudalen hon ar gyfer mynediad i`ch waled yn y dyfodol! Mae`r gwasanaeth hwn yn BETA, ac nid ydym yn gyfrifol am bobl sy`n colli mynediad at arian.',
   no_transactions: 'Dim trafodion wedi`u gwneud eto',
-  manage_extensions: 'Rheoli Estyniadau',
-  manage_server: 'Rheoli Gweinydd',
+  manage: 'Rheoli',
   Extensions: 'Estyniadau',
   no_extensions: "Nid oes gennych unrhyw estyniadau wedi'u gosod :(",
   create: 'Crëwyd',

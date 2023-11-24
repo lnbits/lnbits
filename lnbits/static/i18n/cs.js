@@ -96,7 +96,7 @@ window.localisation.cs = {
   disclaimer_dialog:
     'Funkcionalita přihlášení bude vydána v budoucí aktualizaci, zatím si ujistěte, že jste si tuto stránku uložili do záložek pro budoucí přístup k vaší peněžence! Tato služba je v BETA verzi a nepřebíráme žádnou zodpovědnost za ztrátu přístupu k prostředkům.',
   no_transactions: 'Zatím žádné transakce',
-  manage_server: 'Spravovat server',
+  manage: 'Spravovat',
   extensions: 'Rozšíření',
   no_extensions: 'Nemáte nainstalováno žádné rozšíření :(',
   created: 'Vytvořeno',

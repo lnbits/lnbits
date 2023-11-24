@@ -72,8 +72,7 @@ window.localisation.pl = {
   disclaimer_dialog:
     'Funkcja logowania zostanie uruchomiona w przyszłości. Póki co upewnij się, że zapisałeś adres URL tej strony aby mieć dostęp do tego portfela. Nie udostępniaj adresu tej strony nikomu, kto nie ma mieć do tego portfela dostępu! Ta usługa działa w wersji BETA, nie odpowiadamy za utratę dostępu do środków przez osoby używające LNbits.',
   no_transactions: 'Brak transakcji',
-  manage_extensions: 'Zarządzaj rozszerzeniami',
-  manage_server: 'Zarządzaj serwerem',
+  manage: 'Zarządzaj',
   extensions: 'Rozszerzenia',
   no_extensions: 'Nie masz zainstalowanych żadnych rozszerzeń :(',
   created: 'Utworzono',
