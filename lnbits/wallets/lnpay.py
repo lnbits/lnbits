@@ -20,6 +20,7 @@ class LNPayWallet(Wallet):
     """https://docs.lnpay.co/"""
 
     def __init__(self):
+        super().__init__()
         endpoint = settings.lnpay_api_endpoint
         wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
 
@@ -88,6 +89,8 @@ class LNPayWallet(Wallet):
         if ok:
             data = r.json()
             checking_id, payment_request = data["id"], data["payment_request"]
+
+            self.pending_invoices.append(checking_id)
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 

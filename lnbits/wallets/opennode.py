@@ -1,5 +1,4 @@
-import asyncio
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -20,6 +19,7 @@ class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
     def __init__(self):
+        super().__init__()
         endpoint = settings.opennode_api_endpoint
         key = (
             settings.opennode_key
@@ -79,6 +79,7 @@ class OpenNodeWallet(Wallet):
         data = r.json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
+        self.pending_invoices.append(checking_id)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -125,12 +126,6 @@ class OpenNodeWallet(Wallet):
         }
         fee_msat = -data.get("fee") * 1000
         return PaymentStatus(statuses[data.get("status")], fee_msat)
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value
 
     async def webhook_listener(self):
         logger.error("webhook listener for opennode is disabled.")
