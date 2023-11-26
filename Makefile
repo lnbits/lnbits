@@ -97,8 +97,8 @@ bundle:
 	npm run vendor_bundle_js
 	npm run vendor_minify_js
 	# increment serviceworker version
-	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/static/js/service-worker.js)/" \
-		lnbits/static/js/service-worker.js
+	awk '/CACHE_VERSION =/ {sub(/[0-9]+$$/, $$NF+1)} 1' lnbits/static/js/service-worker.js > lnbits/static/js/service-worker.js.new
+	mv lnbits/static/js/service-worker.js.new lnbits/static/js/service-worker.js
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"
