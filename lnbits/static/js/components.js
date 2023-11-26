@@ -169,8 +169,8 @@ Vue.component('lnbits-extension-list', {
   }
 })
 
-Vue.component('lnbits-admin-ui', {
-  props: ['showNode'],
+Vue.component('lnbits-manage', {
+  props: ['showAdmin', 'showNode'],
   data: function () {
     return {
       extensions: [],
@@ -181,7 +181,7 @@ Vue.component('lnbits-admin-ui', {
     <q-list v-if="user" dense class="lnbits-drawer__q-list">
       <q-item-label header v-text="$t('manage')"></q-item-label>
       <div v-if="user.admin">
-        <q-item clickable tag="a" :href="['/admin?usr=', user.id].join('')">
+        <q-item v-if='showAdmin' clickable tag="a" :href="['/admin?usr=', user.id].join('')">
           <q-item-section side>
             <q-icon name="admin_panel_settings" color="grey-5" size="md"></q-icon>
           </q-item-section>

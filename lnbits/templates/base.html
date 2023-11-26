@@ -261,10 +261,10 @@
       >
         <lnbits-wallet-list></lnbits-wallet-list>
 
-        <lnbits-admin-ui
-          v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
+        <lnbits-manage
+          :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
-        ></lnbits-admin-ui>
+        ></lnbits-manage>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
