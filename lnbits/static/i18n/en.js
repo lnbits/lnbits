@@ -105,7 +105,6 @@ window.localisation.en = {
   created: 'Created',
   search_extensions: 'Search extensions',
   warning: 'Warning',
-  manage: 'Manage',
   repository: 'Repository',
   confirm_continue: 'Are you sure you want to continue?',
   manage_extension_details: 'Install/uninstall extension',

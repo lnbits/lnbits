@@ -82,7 +82,6 @@ window.localisation.de = {
   created: 'Erstellt',
   search_extensions: 'Sucherweiterungen',
   warning: 'Warnung',
-  manage: 'Verwalten',
   repository: 'Repository',
   confirm_continue: 'Bist du sicher, dass du fortfahren möchtest?',
   manage_extension_details: 'Erweiterung installieren/deinstallieren',

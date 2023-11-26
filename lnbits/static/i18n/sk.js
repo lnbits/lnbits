@@ -101,7 +101,6 @@ window.localisation.sk = {
   created: 'Vytvorené',
   search_extensions: 'Hľadať rozšírenia',
   warning: 'Upozornenie',
-  manage: 'Spravovať',
   repository: 'Repozitár',
   confirm_continue: 'Ste si istí, že chcete pokračovať?',
   manage_extension_details: 'Inštalovať/odinštalovať rozšírenie',

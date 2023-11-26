@@ -78,7 +78,6 @@ window.localisation.cn = {
   created: '已创建',
   search_extensions: '搜索扩展程序',
   warning: '警告',
-  manage: '管理',
   repository: '代码库',
   confirm_continue: '你确定要继续吗?',
   manage_extension_details: '安装/卸载扩展程序',

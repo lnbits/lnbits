@@ -79,7 +79,6 @@ window.localisation.es = {
   created: 'Creado',
   search_extensions: 'Extensiones de búsqueda',
   warning: 'Advertencia',
-  manage: 'Administrar',
   repository: 'Repositorio',
   confirm_continue: '¿Está seguro de que desea continuar?',
   manage_extension_details: 'Instalar/desinstalar extensión',

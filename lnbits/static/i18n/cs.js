@@ -102,7 +102,6 @@ window.localisation.cs = {
   created: 'Vytvořeno',
   search_extensions: 'Hledat rozšíření',
   warning: 'Varování',
-  manage: 'Spravovat',
   repository: 'Repositář',
   confirm_continue: 'Jste si jistí, že chcete pokračovat?',
   manage_extension_details: 'Instalovat/odinstalovat rozšíření',

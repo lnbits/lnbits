@@ -77,7 +77,6 @@ window.localisation.jp = {
   created: '作成済み',
   search_extensions: '検索拡張機能',
   warning: '警告',
-  manage: '管理',
   repository: 'リポジトリ',
   confirm_continue: '続行してもよろしいですか?',
   manage_extension_details: '拡張機能のインストール/アンインストール',
