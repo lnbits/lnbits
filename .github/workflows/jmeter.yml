@@ -25,7 +25,6 @@ jobs:
           ls reports
           cat jmeter.log
           cat jmeter_log.log
-          cp jmeter_log.log reports/
           ls reports
           cat reports/index.html
           cat reports/statistics.json
