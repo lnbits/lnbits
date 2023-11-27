@@ -1,5 +1,5 @@
 window.localisation.en = {
-  confirm: 'Yes',
+  confirm: 'YAYAYAYAY',
   server: 'Server',
   theme: 'Theme',
   funding: 'Funding',
