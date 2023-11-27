@@ -14,12 +14,17 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="host" elementType="Argument">
             <stringProp name="Argument.name">host</stringProp>
-            <stringProp name="Argument.value">8383-2001-8a0-fa0a-8900-cf57-7bba-646f-48d.ngrok-free.app</stringProp>
+            <stringProp name="Argument.value">${__property(host,,127.0.0.1)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="scheme" elementType="Argument">
             <stringProp name="Argument.name">scheme</stringProp>
-            <stringProp name="Argument.value">${__property(scheme,,https)}</stringProp>
+            <stringProp name="Argument.value">${__property(scheme,,http)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="port" elementType="Argument">
+            <stringProp name="Argument.name">port</stringProp>
+            <stringProp name="Argument.value">${__property(port,,5000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
@@ -35,10 +40,6 @@
           <elementProp name="thinkTime" elementType="Argument">
             <stringProp name="Argument.name">thinkTime</stringProp>
             <stringProp name="Argument.value">3000</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="port" elementType="Argument">
-            <stringProp name="Argument.name">port</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -218,8 +219,8 @@
               <stringProp name="parameters"></stringProp>
               <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
 
-vars.put(&quot;userId&quot;, resp.user || &quot;no-user-id&quot;);	
-vars.put(&quot;walletId&quot;, resp.id || &quot;no-wallet-id&quot;);	
+vars.put(&quot;userId&quot;, resp.user || &quot;no-user-id&quot;);
+vars.put(&quot;walletId&quot;, resp.id || &quot;no-wallet-id&quot;);
 vars.put(&quot;inkey&quot;, resp.inkey || &apos;no-inkey&apos;);
 vars.put(&quot;adminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
 </stringProp>
@@ -309,7 +310,7 @@ vars.put(&quot;adminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
               <stringProp name="parameters"></stringProp>
               <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
 
-vars.put(&quot;tipWalletId&quot;, resp.id || &quot;no-wallet-id&quot;);	
+vars.put(&quot;tipWalletId&quot;, resp.id || &quot;no-wallet-id&quot;);
 vars.put(&quot;tipinkey&quot;, resp.inkey || &apos;no-inkey&apos;);
 vars.put(&quot;tipadminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
 </stringProp>
