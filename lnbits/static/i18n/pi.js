@@ -75,8 +75,7 @@ window.localisation.pi = {
   disclaimer_dialog:
     'Login functionality to be released in a future update, for now, make sure ye bookmark this page for future access to your booty! This service be in BETA, and we hold no responsibility for people losing access to doubloons.',
   no_transactions: 'No transactions made yet, me hearties. Belay that!',
-  manage_extensions: 'Manage Yer Extensions, ye landlubber',
-  manage_server: 'Manage Yer Server, me hearty',
+  manage: 'Manage, me hearty',
   extensions: 'Yer Extensions, ye scurvy dog',
   no_extensions:
     "Ye don't have any extensions installed, ye scallywag :(. Where be yer loot?",

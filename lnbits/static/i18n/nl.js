@@ -75,8 +75,7 @@ window.localisation.nl = {
   disclaimer_dialog:
     'Inlogfunctionaliteit wordt uitgebracht in een toekomstige update. Zorg er nu voor dat je deze pagina als favoriet markeert om in de toekomst toegang te krijgen tot je portemonnee! Deze service is in BETA en we zijn niet verantwoordelijk voor mensen die de toegang tot hun fondsen verliezen.',
   no_transactions: 'Er zijn nog geen transacties gedaan',
-  manage_extensions: 'Beheer extensies',
-  manage_server: 'Beheer server',
+  manage: 'Beheer',
   extensions: 'Extensies',
   no_extensions: 'Je hebt geen extensies geïnstalleerd :(',
   created: 'Aangemaakt',

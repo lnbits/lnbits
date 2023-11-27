@@ -261,10 +261,10 @@
       >
         <lnbits-wallet-list></lnbits-wallet-list>
 
-        <lnbits-admin-ui
-          v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
+        <lnbits-manage
+          :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
-        ></lnbits-admin-ui>
+        ></lnbits-manage>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
@@ -352,7 +352,8 @@
         { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
         { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
         { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
-        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' }
+        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
+        { value: 'kr', label: '한국어', display: '🇰🇷 KR' }
       ]
     </script>
     {% block scripts %}{% endblock %}

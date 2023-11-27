@@ -77,8 +77,7 @@ window.localisation.fr = {
   disclaimer_dialog:
     "La fonctionnalité de connexion sera publiée dans une future mise à jour, pour l'instant, assurez-vous de mettre cette page en favori pour accéder à votre portefeuille ultérieurement ! Ce service est en BETA, et nous ne sommes pas responsables des personnes qui perdent l'accès à leurs fonds.",
   no_transactions: 'Aucune transaction effectuée pour le moment',
-  manage_extensions: 'Gérer les extensions',
-  manage_server: 'Gérer le serveur',
+  manage: 'Gérer',
   extensions: 'Extensions',
   no_extensions: "Vous n'avez installé aucune extension :(",
   created: 'Créé',
