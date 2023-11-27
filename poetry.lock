@@ -2279,6 +2279,44 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2)", "sphinx-
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8)", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10)"]
 
 [[package]]
+name = "wallycore"
+version = "1.0.0"
+description = "libwally Bitcoin library"
+optional = true
+python-versions = "*"
+files = [
+    {file = "wallycore-1.0.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ce04189be2f971302aca571ae6d128a0786151fa1bf256a15959701e7ba2d2e2"},
+    {file = "wallycore-1.0.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:c680ddcb4cce2a3cf81afcec3fc4c7bc55ba8268f66903ebf97c70cafb413739"},
+    {file = "wallycore-1.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:37669b829ea7004f0ed87207ffdc2f041257eea70cda924349dfe0c7ffc7f6c0"},
+    {file = "wallycore-1.0.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0a77628d395551fd020cca7016d2e642fac2b3b3eedf80693bdd741eccf05618"},
+    {file = "wallycore-1.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b632ed51f1a43cf6fe814dae33ffabfdfb72b55f2cf8b130607a6fa542310be5"},
+    {file = "wallycore-1.0.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:7728f6e15d02b25734ba18fea582db4e2421d2d5837338fa9d849eda75c9dcb8"},
+    {file = "wallycore-1.0.0-cp310-cp310-win_amd64.whl", hash = "sha256:ff5cf4445761be0a35bd9570bd91cf25c6f9abd591f228530de2ec19dc6afdc9"},
+    {file = "wallycore-1.0.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:6d1281e395b3857f7c974d923947bbe20afd913b247b9765fc62331dcbe6c59d"},
+    {file = "wallycore-1.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:05225c7a84cc50abeabde50949dff07dbbbbb3d3b8fe11acc71a30660833eac3"},
+    {file = "wallycore-1.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:587db2ea63f980588597a75e655f6dafa3063ed11b423327aafa33767f6b35c4"},
+    {file = "wallycore-1.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d22b7793f42a1001f117843cd313d3e65cb8d3fcda7f32e931dd5b145b1b8252"},
+    {file = "wallycore-1.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d7c3bc30982b0baa5df4d8f24fb9f7db3d340c6c86cb26b4a7e84ffddbb40c5d"},
+    {file = "wallycore-1.0.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:d44c542efc5e892aeb5dad313281a979d8250d266ce91409fb2e5d824ea035a2"},
+    {file = "wallycore-1.0.0-cp311-cp311-win_amd64.whl", hash = "sha256:e09e8d3a46b7b740a90ba6220c2a619ecc30830ad084c213d0705bccac45829a"},
+    {file = "wallycore-1.0.0-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:726eb298178c8194c4efe71252e845c82f8d79036d1cf7ce7e87af5335a4affd"},
+    {file = "wallycore-1.0.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:d84c2c327fb7459bca63758abf9e1a9f654981fe3a972222c92ce8f4872b3d7a"},
+    {file = "wallycore-1.0.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:0ed6852115b638a954e252e70e0dacdd4466d01e984a2ef88445124bc17dbc05"},
+    {file = "wallycore-1.0.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6d1e22c7294544a8f725e962631428c486a13cdff3a4e7f8738e9bb9077a692b"},
+    {file = "wallycore-1.0.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:76852c92dfe32378923f1032ab9f62552ba663578efd86660a4d14606fddc4ab"},
+    {file = "wallycore-1.0.0-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:ccc0d59600cccab4caec609d0228c6f422015daa949d97621cc78f45f3d6c1d7"},
+    {file = "wallycore-1.0.0-cp38-cp38-win_amd64.whl", hash = "sha256:5358913e7d93cce8b0b03d55c9c93c5c7237014346400ee3c7bc48ea049e7f51"},
+    {file = "wallycore-1.0.0-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:65536ba06c5ea85668f93ca809765de8d5444ea92d92bab5975606d96ebf59a5"},
+    {file = "wallycore-1.0.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:6bd3df53ddd9c7194a3c29a40ccaa4634148f11c9bbfec3bb327eeca54a2e15e"},
+    {file = "wallycore-1.0.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:f2bccdeef22d5352f30d8f4b0c57e1a29962aba12122d50aa0ea1354e78f3a45"},
+    {file = "wallycore-1.0.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:78473a1ae340e4ca8e7692ac9c7e9e887aff82a420d7a1ac17de05afe18d71c7"},
+    {file = "wallycore-1.0.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:541676fea2e15415004c26eee207662843daa28d7bef1e42836ddd180aa8e23b"},
+    {file = "wallycore-1.0.0-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:293881ad25763f514fc5106dd88a7eaee38f7b46aa1a5d4e5076b18c77c0b87b"},
+    {file = "wallycore-1.0.0-cp39-cp39-win_amd64.whl", hash = "sha256:74e40f229a08ae8d83cefce7249d819a373584d83bc5e4a91cb9f315c5d8e9fa"},
+    {file = "wallycore-1.0.0.tar.gz", hash = "sha256:6ba37e579324ab4662aa68a5183a264cee0efd4e831aaef5787d22247bdc199d"},
+]
+
+[[package]]
 name = "websocket-client"
 version = "1.6.3"
 description = "WebSocket client for Python with low level API options"
@@ -2486,7 +2524,10 @@ files = [
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
+[extras]
+liquid = ["wallycore"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "1d542521b6826a76d1b48ab5af2030e0f032d03afe758083e408bcfdf143d829"
+content-hash = "95ad6885f070793369450a82763ea8e4f92926d9bee02f81758636b28db55e76"

@@ -42,6 +42,11 @@ secp256k1 = "0.14.0"
 environs = "9.5.0"
 # needed for scheduler extension
 python-crontab = "3.0.0"
+# needed for liquid support boltz
+wallycore = {version = "^1.0.0", optional = true}
+
+[tool.poetry.extras]
+liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
