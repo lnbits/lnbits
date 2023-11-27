@@ -19,7 +19,7 @@ jobs:
       - name: Run JMeter Action on other tests
         uses: rbhadti94/apache-jmeter-action@v0.5.0
         with:
-          testFilePath: ./tests/integration/
+          testFilePath: integration/
           outputReportsFolder: reports/
           args: "--loglevel INFO"
 

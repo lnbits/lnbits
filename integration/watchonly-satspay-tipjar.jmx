@@ -239,8 +239,8 @@
               <stringProp name="parameters"></stringProp>
               <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
 
-vars.put(&quot;userId&quot;, resp.user || &quot;no-user-id&quot;);	
-vars.put(&quot;walletId&quot;, resp.id || &quot;no-wallet-id&quot;);	
+vars.put(&quot;userId&quot;, resp.user || &quot;no-user-id&quot;);
+vars.put(&quot;walletId&quot;, resp.id || &quot;no-wallet-id&quot;);
 vars.put(&quot;inkey&quot;, resp.inkey || &apos;no-inkey&apos;);
 vars.put(&quot;adminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
 </stringProp>
@@ -2887,7 +2887,7 @@ if (!resp.redirect_url || !resp.redirect_url.startsWith(&quot;/satspay/&quot;)) 
 vars.put(&quot;tipChargeUrl&quot;, resp.redirect_url || &apos;no-tip-charge-url&apos;);
 
 if (resp.redirect_url) {
-	var tipChargeId = resp.redirect_url.split(&quot;/&quot;)[2]	
+	var tipChargeId = resp.redirect_url.split(&quot;/&quot;)[2]
 	vars.put(&quot;tipChargeId&quot;, tipChargeId || &apos;no-tip-charge-id&apos;);
 }</stringProp>
             </JSR223PostProcessor>

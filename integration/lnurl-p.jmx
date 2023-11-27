@@ -231,17 +231,17 @@
               <stringProp name="cacheKey">true</stringProp>
               <stringProp name="filename"></stringProp>
               <stringProp name="parameters"></stringProp>
-              <stringProp name="script">vars.put(&quot;userId&quot;, &quot;no-user-id&quot;);	
-vars.put(&quot;walletId&quot;, &quot;no-wallet-id&quot;);	
+              <stringProp name="script">vars.put(&quot;userId&quot;, &quot;no-user-id&quot;);
+vars.put(&quot;walletId&quot;, &quot;no-wallet-id&quot;);
 
 var query = prev.getURL().getQuery().split(&apos;&amp;&apos;)
 for (var i =0; i&lt;query.length; i++) {
 	var param = query[i].split(&quot;=&quot;)
 	if (param[0] === &quot;usr&quot;) {
-	   vars.put(&quot;userId&quot;, param[1]);	
+	   vars.put(&quot;userId&quot;, param[1]);
 	}
 	if (param[0] === &quot;wal&quot;) {
-	   vars.put(&quot;walletId&quot;, param[1]);	
+	   vars.put(&quot;walletId&quot;, param[1]);
 	}
 }
 
