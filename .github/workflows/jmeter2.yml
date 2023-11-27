@@ -1,0 +1,22 @@
+name: Test2 JMeter Action
+
+on:
+  workflow_call:
+
+jobs:
+  action_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: create reports dir
+        run: mkdir reports
+
+      - name: install jmeter
+        run: |
+          java -version
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.zip
+          unzip apache-jmeter-5.5.zip
+          cd apache-jmeter-5.5/bin
+          ./jmeter -v
+          pwd
