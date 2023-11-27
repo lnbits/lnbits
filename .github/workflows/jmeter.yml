@@ -19,6 +19,13 @@ jobs:
           outputReportsFolder: reports/
           args: "--loglevel INFO"
 
+      - name: build HTML reports
+        run: |
+          ls reports
+          ls reports/content
+          cat reports/index.html
+          cat reports/statistics.json
+
       - name: list reports
         run: |
           ls reports
