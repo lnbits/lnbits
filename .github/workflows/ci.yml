@@ -22,6 +22,13 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
 
+  jmeter:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    uses: ./.github/workflows/jmeter.yml
+
   migrations:
     needs: [ lint ]
     strategy:

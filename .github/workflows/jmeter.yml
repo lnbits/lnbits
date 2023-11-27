@@ -1,11 +1,7 @@
 name: Test JMeter Action
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches: [dev]
+  workflow_call:
 
 jobs:
   action_build:
@@ -19,7 +15,7 @@ jobs:
       - name: Run JMeter Action on other tests
         uses: rbhadti94/apache-jmeter-action@v0.7.0
         with:
-          testFilePath: tests/integration/
+          testFilePath: integration/
           outputReportsFolder: reports/
           args: "--loglevel INFO"
 
