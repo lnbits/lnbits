@@ -13,10 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: create reports dir
+        run: mkdir reports
+
       - name: Run JMeter Action on other tests
         uses: rbhadti94/apache-jmeter-action@v0.5.0
         with:
-          testFilePath: tests/integration/
+          testFilePath: ./tests/integration/
           outputReportsFolder: reports/
           args: "--loglevel INFO"
 
