@@ -23,6 +23,7 @@ jobs:
         run: |
           ls
           ls reports
+          cat jmeter.log
           cat jmeter_log.log
           cp jmeter_log.log reports/
           ls reports
