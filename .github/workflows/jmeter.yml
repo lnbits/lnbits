@@ -1,4 +1,4 @@
-name: Test JMeter Action
+name: Test2 JMeter Action
 
 on:
   workflow_call:
@@ -12,24 +12,19 @@ jobs:
       - name: create reports dir
         run: mkdir reports
 
-      - name: Run JMeter Action on other tests
-        uses: rbhadti94/apache-jmeter-action@v0.7.0
-        with:
-          testFilePath: integration/
-          outputReportsFolder: reports/
-          args: "--loglevel INFO"
-
-      - name: list reports
+      - name: install jmeter
         run: |
-          ls
-          ls reports
-          cat jmeter.log
-          cat jmeter_log.log
-          ls reports
-          cat reports/index.html
-          cat reports/statistics.json
+          java -version
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.zip
+          unzip apache-jmeter-5.5.zip
+          cd apache-jmeter-5.5/bin
+          ./jmeter -v
+          pwd
 
-      - uses: actions/upload-artifact@v1
-        with:
-          name: jmeter-test-results
-          path: reports/
+      - name: run jmx scripts
+        run: |
+         cd $GITHUB_WORKSPACE/apache-jmeter-5.5/bin
+         for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
+            echo "Running test with $file"
+            ./jmeter -n -t $file;
+         done
