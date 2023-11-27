@@ -100,6 +100,13 @@ bundle:
 	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/static/js/service-worker.js)/" \
 		lnbits/static/js/service-worker.js
 
+checkbundle:
+	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
+	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
+	make bundle
+	diff lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
+	diff lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
+
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"
 	@echo "Uninstall the hook with poetry run pre-commit uninstall"
