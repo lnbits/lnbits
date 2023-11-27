@@ -19,6 +19,10 @@ jobs:
           outputReportsFolder: reports/
           args: "--loglevel INFO"
 
+      - name: list reports
+        run: |
+          ls reports
+
       - uses: actions/upload-artifact@v1
         with:
           name: jmeter-test-results
