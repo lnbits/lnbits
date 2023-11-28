@@ -34,5 +34,5 @@ jobs:
             then
                 echo "Test filename failed. Error count $error_count."
                 exit 1
-            if
+            fi
           done
