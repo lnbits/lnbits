@@ -80,6 +80,8 @@ jobs:
           echo "111env: $env"
           echo "111Adminkey: $env.adminkey"
           echo "super_user: $env.super_user"
+          echo ${{ env.adminkey }} 111
+          echo ${{ env.super_user }} 222
           for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
             filename=$(basename "$file" ".jmx")
