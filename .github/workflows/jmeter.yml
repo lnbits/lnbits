@@ -42,6 +42,7 @@ jobs:
       - name: run LNbits
         env:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
+          LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           poetry run lnbits > logs/lnbits.log &
           sleep 10
