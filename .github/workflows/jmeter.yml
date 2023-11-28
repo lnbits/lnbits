@@ -41,7 +41,7 @@ jobs:
         env:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
         run: |
-          poetry run lnbits &
+          poetry run lnbits > reports/lnbits.log &
           sleep 10
 
       - name: install jmeter
