@@ -38,9 +38,11 @@ jobs:
         run: poetry install
 
       - name: run LNbits
+        env:
+          LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly"
         run: |
           poetry run lnbits &
-          sleep 5
+          sleep 10
 
       - name: install jmeter
         run: |
