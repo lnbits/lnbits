@@ -45,6 +45,7 @@ jobs:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
+          echo "super_user=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
           sleep 10
 
@@ -70,6 +71,8 @@ jobs:
 
           curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
+          echo "adminkey=$adminkey" >> $$GITHUB_ENV
+
       - name: run jmx scripts
         run: |
           echo "111Wallet ID: $wallet_id"
@@ -90,6 +93,10 @@ jobs:
               echo "Test $filename OK."
             fi
           done
+        with:
+          adminkey: ${{ env.adminkey }}
+          super_user: ${{ env.super_user }}
+
 
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
