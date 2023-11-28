@@ -26,15 +26,13 @@ jobs:
           for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
             filename=$(basename "$file" ".jmx")
-            echo "filename: $filename"
             $GITHUB_WORKSPACE/apache-jmeter-5.5/bin/jmeter -n -t $file -l logs/$filename.log -e -o reports-$filename;
-            echo "1000"
-            ls
-            echo "2000"
-            cat jmeter.log
-            echo "2100"
-            cat logs/$filename.log
-            echo "3000"
-            error=$(cat jmeter.log | grep "summary =" | awk '{print $19}')
-            echo "Test result $error"
+
+            error_count=$(cat jmeter.log | grep "summary =" | awk '{print $19}')
+            echo "Test result $error_count"
+            if ["$error_count" != "0"]:
+            then
+                echo "Test filename failed. Error count $error_count."
+                exit 1
+            if
           done
