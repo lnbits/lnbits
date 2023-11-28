@@ -77,6 +77,7 @@ jobs:
         run: |
           echo "111Wallet ID: $wallet_id"
           echo "111User ID: $user_id"
+          echo "111env: $env"
           echo "111Adminkey: $env.adminkey"
           echo "super_user: $env.super_user"
           for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
