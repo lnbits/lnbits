@@ -31,8 +31,10 @@ jobs:
         with:
           poetry-version: ${{ inputs.poetry-version }}
 
-      - name: create reports dir
-        run: mkdir reports
+      - name: create logs and reports dir
+        run: |
+          mkdir logs
+          mkdir reports
 
       - name: install packages
         run: poetry install
@@ -41,7 +43,7 @@ jobs:
         env:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
         run: |
-          poetry run lnbits > reports/lnbits.log &
+          poetry run lnbits > logs/lnbits.log &
           sleep 10
 
       - name: install jmeter
@@ -75,4 +77,6 @@ jobs:
         if: ${{ always() }}
         with:
           name: jmeter-test-results
-          path: reports/
+          path: |
+            reports/
+            logs/
