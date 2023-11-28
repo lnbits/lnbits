@@ -25,7 +25,7 @@ jobs:
         run: |
          for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
-            ./$GITHUB_WORKSPACE/jmeter -n -t $file -l logs/$file.log -e -o reports-$file;
+            .$GITHUB_WORKSPACE/jmeter -n -t $file -l logs/$file.log -e -o reports-$file;
             cat logs/$file.log | grep "summary =" | awk '{print $15}'
          done
 
