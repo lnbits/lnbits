@@ -9,7 +9,6 @@ on:
 
 jobs:
   jmeter:
-    needs: [ lint ]
     strategy:
       matrix:
         python-version: ["3.9"]
