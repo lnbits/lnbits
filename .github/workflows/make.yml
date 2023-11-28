@@ -7,11 +7,11 @@ on:
         description: "make command that is run"
         required: true
         type: string
-      python:
-        description: "python versions array"
+      python-version:
+        description: "python version"
         required: true
-        type: array
-        default: ["3.9", "3.10"]
+        type: string
+        default: "3.10"
       npm:
         description: "use npm install"
         default: false
@@ -23,14 +23,13 @@ jobs:
     strategy:
       matrix:
         os-version: ["ubuntu-latest"]
-        python-version: ${{ inputs.python }}
         node-version: ["18.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/prepare
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ inputs.python-version }}
           node-version: ${{ matrix.node-version }}
           npm: ${{ inputs.npm }}
       - run: make ${{ inputs.make }}
