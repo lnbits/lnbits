@@ -35,6 +35,6 @@ jobs:
             echo "2100"
             cat logs/$filename.log
             echo "3000"
-            error=$(cat jmeter.log | grep "summary =" | awk '{print $15}')
+            error=$(cat jmeter.log | grep "summary =" | awk '{print $19}')
             echo "Test result $error"
           done
