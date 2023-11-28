@@ -33,6 +33,7 @@ jobs:
             if [ "$error_count" != "0" ]
             then
               echo "Test $filename failed. Error count: $error_count."
+              cat logs/$filename.log
               exit 1
             else
               echo "Test $filename OK."
