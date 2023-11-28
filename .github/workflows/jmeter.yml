@@ -10,6 +10,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: create reports dir
+        run: poetry run lnbits
+
+      - name: create reports dir
         run: mkdir reports
 
       - name: install jmeter
