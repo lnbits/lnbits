@@ -59,8 +59,6 @@ jobs:
 
       - name: topup wallet
         run: |
-          superuser=$(poetry run lnbits-cli superuser)
-          echo "Superuser: '$superuser'"
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           echo "New user wallet: '$wallet'"
           wallet_id=$(echo $wallet | jq -r .id)
@@ -70,7 +68,7 @@ jobs:
           echo "User ID: $user_id"
           echo "Adminkey: $adminkey"
 
-          curl --location --request PUT http://localhost:5000/admin/api/v1/topup/?usr=$superuser --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
+          curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
       - name: run jmx scripts
         run: |
