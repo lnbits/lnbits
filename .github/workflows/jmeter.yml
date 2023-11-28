@@ -77,7 +77,8 @@ jobs:
         run: |
           echo "111Wallet ID: $wallet_id"
           echo "111User ID: $user_id"
-          echo "111Adminkey: $adminkey"
+          echo "111Adminkey: $env.adminkey"
+          echo "super_user: $env.super_user"
           for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
             filename=$(basename "$file" ".jmx")
@@ -93,9 +94,6 @@ jobs:
               echo "Test $filename OK."
             fi
           done
-        with:
-          adminkey: ${{ env.adminkey }}
-          super_user: ${{ env.super_user }}
 
 
       - uses: actions/upload-artifact@v3
