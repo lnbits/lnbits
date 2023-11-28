@@ -7,7 +7,7 @@ on:
         description: "make command that is run"
         required: true
         type: string
-      python-version:
+      python:
         description: "python versions array"
         required: true
         type: array
@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os-version: ["ubuntu-latest"]
-        python-version: ${{ inputs.python-version }}
+        python-version: ${{ inputs.python }}
         node-version: ["18.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
