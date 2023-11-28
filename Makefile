@@ -106,6 +106,9 @@ checkbundle:
 	make bundle
 	diff -q lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
 	diff -q lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
+	@echo "Bundle is OK"
+	rm lnbits/static/bundle.min.js.old
+	rm lnbits/static/bundle.min.css.old
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"
