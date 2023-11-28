@@ -49,15 +49,6 @@ jobs:
           poetry run lnbits > logs/lnbits.log &
           sleep 10
 
-      - name: install jmeter
-        run: |
-          java -version
-          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.zip
-          unzip apache-jmeter-5.5.zip
-          cd apache-jmeter-5.5/bin
-          ./jmeter -v
-          pwd
-
       - name: topup wallet
         run: |
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
@@ -72,6 +63,29 @@ jobs:
           curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
           echo "adminkey=$adminkey" >> $GITHUB_ENV
+
+      - name: install jmeter
+        run: |
+          java -version
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.zip
+          unzip apache-jmeter-5.5.zip
+          cd apache-jmeter-5.5/bin
+          ./jmeter -v
+          pwd
+
+      - name: start mirror server
+        run: |
+          libs_dir=$GITHUB_WORKSPACE/apache-jmeter-5.5/lib/
+          echo "Fix bad Jmeter lib names. Lib dir: $libs_dir"
+
+          cp $libs_dir/slf4j-api-1.7.36.jar $libs_dir/slf4j-api-1.7.25.jar
+          cp $libs_dir/log4j-slf4j-impl-2.20.0.jar $libs_dir/log4j-slf4j-impl-2.11.0.jar
+          cp $libs_dir/log4j-api-2.20.0.jar $libs_dir/log4j-api-2.11.1.jar
+          cp $libs_dir/log4j-core-2.20.0.jar $libs_dir/log4j-core-2.11.1.jar
+          cp $libs_dir/log4j-1.2-api-2.20.0.jar $libs_dir/og4j-1.2-api-2.11.1.jar
+
+          echo "Starting the mirror server."
+          $GITHUB_WORKSPACE/apache-jmeter-5.5/bin/mirror-server &
 
       - name: run jmx scripts
         run: |
