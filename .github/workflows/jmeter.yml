@@ -42,7 +42,7 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v1
+        if: ${{ always() }}
         with:
           name: jmeter-test-results
-          if: ${{ always() }}
           path: reports/
