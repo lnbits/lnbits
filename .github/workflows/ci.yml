@@ -36,7 +36,6 @@ jobs:
     needs: [ lint ]
     uses: ./.github/workflows/make.yml
     with:
-      python-version: "3.10"
       make: openapi
 
   # docker:
