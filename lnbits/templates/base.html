@@ -124,12 +124,9 @@
                 :active="activeLanguage(lang.value)"
                 @click="changeLanguage(lang.value)"
                 ><q-item-section>
-                  {% raw %}
                   <q-item-label
-                    >{{lang.display ?? lang.value.toUpperCase()}}</q-item-label
-                  >
-                  <q-tooltip>{{lang.label}}</q-tooltip>
-                  {% endraw %}
+                    v-text="lang.display ?? lang.value.toUpperCase()"
+                  ></q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
