@@ -39,7 +39,7 @@ jobs:
 
       - name: run LNbits
         env:
-          LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly"
+          LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
         run: |
           poetry run lnbits &
           sleep 10
