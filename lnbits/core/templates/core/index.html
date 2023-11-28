@@ -172,6 +172,17 @@
             </a>
           </div>
         </div>
+        <div class="row">
+          <div class="col">
+            <a href="https://getalby.com">
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
+              ></q-img>
+            </a>
+          </div>
+          <div class="col q-pl-md"></div>
+        </div>
       </div>
 
       {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
