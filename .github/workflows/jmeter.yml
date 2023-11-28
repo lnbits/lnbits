@@ -26,5 +26,7 @@ jobs:
          cd $GITHUB_WORKSPACE/apache-jmeter-5.5/bin
          for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
-            ./jmeter -n -t $file;
+            ./jmeter -n -t $file -l logs/$file.log -e -o reports-$file;
+            cat logs/$file.log | grep "summary =" | awk '{print $15}'
          done
+
