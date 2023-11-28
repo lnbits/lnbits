@@ -7,15 +7,14 @@ on:
         description: "make command that is run"
         required: true
         type: string
-      python-version:
-        description: "python version"
-        required: true
-        type: string
-        default: "3.10"
       npm:
         description: "use npm install"
         default: false
         type: boolean
+      python-version:
+        description: "python version"
+        type: string
+        default: "3.10"
 
 jobs:
   make:
