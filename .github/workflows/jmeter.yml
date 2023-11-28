@@ -71,7 +71,7 @@ jobs:
 
           curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
-          echo "adminkey=$adminkey" >> $$GITHUB_ENV
+          echo "adminkey=$adminkey" >> $GITHUB_ENV
 
       - name: run jmx scripts
         run: |
