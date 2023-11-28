@@ -31,14 +31,16 @@ jobs:
         with:
           poetry-version: ${{ inputs.poetry-version }}
 
+      - name: create reports dir
+        run: mkdir reports
+
       - name: install packages
         run: poetry install
 
       - name: run LNbits
-        run: poetry run lnbits
-
-      - name: create reports dir
-        run: mkdir reports
+        run: |
+          poetry run lnbits &
+          sleep 5
 
       - name: install jmeter
         run: |
