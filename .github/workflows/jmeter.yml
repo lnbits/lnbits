@@ -73,7 +73,7 @@ jobs:
             fi
           done
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
           name: jmeter-test-results
