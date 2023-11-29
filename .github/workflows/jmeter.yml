@@ -54,7 +54,8 @@ jobs:
         run: |
           npm install -g local-ssl-proxy
           echo "##########################"
-
+          sudo apt-get update && sudo apt-get install caddy -y
+          caddy version
           local-ssl-proxy --key localhost-key.pem --cert localhost.pem --source 5001 --target 5000 &
 
           ls
