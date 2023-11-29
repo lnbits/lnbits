@@ -46,6 +46,8 @@ jobs:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
+          echo "env super user 1: ${{env.super_user}}"
+          echo "env super user 2: $super_user"
           echo "super_user=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
           sleep 10
