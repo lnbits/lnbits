@@ -47,25 +47,26 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           echo "super_user=$SUPER_USER" >> $GITHUB_ENV
-          poetry run lnbits > logs/lnbits.log &
+          openssl req -x509 -newkey rsa:4096 -keyout localhost-key.pem -out localhost.pem -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost"
+          poetry run lnbits --ssl-keyfile=./localhost-key.pem --ssl-certfile=./localhost.pem > logs/lnbits.log &
 
       - name: setup localhost ssl proxy
         run: |
           npm install -g local-ssl-proxy
           echo "##########################"
-          openssl req -x509 -newkey rsa:4096 -keyout localhost-key.pem -out localhost.pem -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost"
+
           local-ssl-proxy --key localhost-key.pem --cert localhost.pem --source 5001 --target 5000 &
 
           ls
 
       - name: topup wallet
         run: |
-          wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
+          wallet=$(curl --location 'https://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           wallet_id=$(echo $wallet | jq -r .id)
           user_id=$(echo $wallet | jq -r .user)
           adminkey=$(echo $wallet | jq -r .adminkey)
 
-          curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=${{env.super_user}}' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
+          curl --location --request PUT 'https://localhost:5000/admin/api/v1/topup/?usr=${{env.super_user}}' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
           echo "adminkey=$adminkey" >> $GITHUB_ENV
 
