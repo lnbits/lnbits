@@ -50,10 +50,12 @@ jobs:
           echo "env super user 2: $SUPER_USER"
           echo "super_user=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
-          sleep 10
 
       - name: topup wallet
         run: |
+          echo "env super user 11: ${{env.super_user}}"
+          echo "env super user 22: $SUPER_USER"
+
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           echo "New user wallet: '$wallet'"
           wallet_id=$(echo $wallet | jq -r .id)
