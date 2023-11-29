@@ -2908,6 +2908,7 @@ if (!resp.payment_hash) {
             <stringProp name="HTTPSampler.concurrentPool">6</stringProp>
             <boolProp name="HTTPSampler.md5">false</boolProp>
             <intProp name="HTTPSampler.ipSourceType">0</intProp>
+            <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
           </HTTPSamplerProxy>
           <hashTree>
             <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
