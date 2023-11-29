@@ -1800,7 +1800,7 @@ if (!resp.payment_hash) {
             </elementProp>
             <stringProp name="HTTPSampler.port">5000</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-            <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices?amount=${amount}&amp;memo=${memo}&amp;tipAmount=${__javaScript(parseInt(Math.ceil(0.05*${amount})),tipAmount)}</stringProp>
+            <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices?amount=${amount}&amp;memo=${memo}&amp;tipAmount=${__javaScript(parseInt(Math.ceil(0.05*${amount})).toFixed(0))}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
