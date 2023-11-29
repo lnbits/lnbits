@@ -29,13 +29,15 @@
           </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
             <stringProp name="Argument.name">adminUserId</stringProp>
-            <stringProp name="Argument.value">08752d249648434f9bd125e728851cfd</stringProp>
+            <stringProp name="Argument.value">${__property(adminUserId,,bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">admin user with some funds</stringProp>
           </elementProp>
           <elementProp name="adminWalletKey" elementType="Argument">
             <stringProp name="Argument.name">adminWalletKey</stringProp>
-            <stringProp name="Argument.value">9d41bbe60acc4bab9be46f13a14f8703</stringProp>
+            <stringProp name="Argument.value">${__property(adminWalletKey,,8b1f7387f61f458096ad03166407215f)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">this wallet is going to make some payments</stringProp>
           </elementProp>
           <elementProp name="thinkTime" elementType="Argument">
             <stringProp name="Argument.name">thinkTime</stringProp>
