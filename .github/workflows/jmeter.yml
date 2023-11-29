@@ -49,6 +49,12 @@ jobs:
           echo "super_user=$SUPER_USER" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
 
+      - name: setup localhost ssl proxy
+        run: |
+          npm install -g local-ssl-proxy
+          echo "##########################"
+          local-ssl-proxy --source 5000 --target 5001
+
       - name: topup wallet
         run: |
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
