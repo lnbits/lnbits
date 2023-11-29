@@ -49,11 +49,6 @@ jobs:
           echo "super_user=$SUPER_USER" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
 
-      - name: setup localhost ssl proxy
-        run: |
-          npm install -g local-ssl-proxy
-          echo "##########################"
-          local-ssl-proxy --source 5001 --target 5000 &
 
       - name: topup wallet
         run: |
@@ -89,6 +84,9 @@ jobs:
 
       - name: run jmx scripts
         run: |
+          npm install -g local-ssl-proxy
+          echo "##########################"
+          local-ssl-proxy --source 5001 --target 5000 &
           for file in $( ls $GITHUB_WORKSPACE/integration/*.jmx); do
             echo "Running test with $file"
             filename=$(basename "$file" ".jmx")
