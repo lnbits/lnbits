@@ -53,7 +53,7 @@ jobs:
         run: |
           npm install -g local-ssl-proxy
           echo "##########################"
-          local-ssl-proxy --source 5001 --target 5000
+          local-ssl-proxy --source 5001 --target 5000 &
 
       - name: topup wallet
         run: |
