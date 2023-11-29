@@ -2892,9 +2892,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.domain">0.0.0.0</stringProp>
-            <stringProp name="HTTPSampler.port">${sslPort}</stringProp>
-            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/atm/withdraw/${token}/${amount}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
