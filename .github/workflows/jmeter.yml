@@ -47,7 +47,7 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           echo "env super user 1: ${{env.super_user}}"
-          echo "env super user 2: $super_user"
+          echo "env super user 2: $SUPER_USER"
           echo "super_user=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
           sleep 10
