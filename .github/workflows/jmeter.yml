@@ -48,7 +48,7 @@ jobs:
         run: |
           echo "env super user 1: ${{env.super_user}}"
           echo "env super user 2: $SUPER_USER"
-          echo "super_user=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa" >> $GITHUB_ENV
+          echo "super_user=$SUPER_USER" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
 
       - name: topup wallet
@@ -65,7 +65,7 @@ jobs:
           echo "User ID: $user_id"
           echo "Adminkey: $adminkey"
 
-          curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
+          curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=${{env.super_user}}' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
           echo "adminkey=$adminkey" >> $GITHUB_ENV
 
@@ -111,7 +111,6 @@ jobs:
             if [ "$error_count" != "0" ]
             then
               echo "Test $filename failed. Error count: $error_count."
-              cat logs/$filename.log
               exit 1
             else
               echo "Test $filename OK."
