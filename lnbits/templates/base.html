@@ -60,8 +60,12 @@
             {%endif%}{% endblock %}
           </q-toolbar-title>
           {% block beta %} {% if VOIDWALLET %}
-          <q-badge color="red" text-color="black" class="q-mr-md">
-            {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
+          <q-badge
+            v-text="$t('voidwallet_active')"
+            color="red"
+            text-color="black"
+            class="q-mr-md"
+          >
           </q-badge>
           {%endif%}
           <q-badge
@@ -242,9 +246,7 @@
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
             size="sm"
           >
-            <q-tooltip
-              >{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip
-            >
+            <q-tooltip><span v-text="$t('toggle_darkmode')"></span></q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-header>
@@ -283,9 +285,8 @@
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
             <small
-              >{% raw %}{{ $t('lnbits_version') }}{% endraw %}:
-              {{LNBITS_VERSION}}
-            </small>
+              v-text="$t('lnbits_version') + ': {{LNBITS_VERSION}}'"
+            ></small>
           </q-toolbar-title>
           <q-space></q-space>
           <q-btn
@@ -296,11 +297,11 @@
             href="/docs"
             target="_blank"
             rel="noopener"
+            v-text="$t('api_docs')"
           >
-            {% raw %}{{ $t('api_docs') }}{% endraw %}
             <q-tooltip
-              >{% raw %}{{ $t('view_swagger_docs') }}{% endraw %}</q-tooltip
-            >
+              ><span v-text="$t('view_swagger_docs')"></span
+            ></q-tooltip>
           </q-btn>
           <q-btn
             flat
@@ -312,7 +313,7 @@
             target="_blank"
             rel="noopener"
           >
-            <q-tooltip>{% raw %}{{ $t('view_github') }}{% endraw %}</q-tooltip>
+            <q-tooltip><span v-text="$t('view_github')"></span></q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-footer>
