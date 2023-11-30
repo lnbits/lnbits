@@ -8,7 +8,7 @@ window.localisation.cs = {
   channels: 'Kanály',
   transactions: 'Transakce',
   dashboard: 'Přehled',
-  manage_node: 'Spravovat uzel',
+  node: 'Uzel',
   total_capacity: 'Celková kapacita',
   avg_channel_size: 'Průmerná velikost kanálu',
   biggest_channel_size: 'Největší velikost kanálu',
@@ -55,6 +55,11 @@ window.localisation.cs = {
   voidwallet_active: 'VoidWallet je aktivní! Platby zakázány',
   use_with_caution:
     'POUŽÍVEJTE S OBEZŘETNOSTÍ - %{name} peněženka je stále v BETĚ',
+  service_fee: 'Servisný poplatek: %{amount} % za transakci',
+  service_fee_max:
+    'Servisný poplatek: %{amount} % za transakci (max %{max} satoshi)',
+  service_fee_tooltip:
+    'Servisní poplatek účtovaný správcem LNbits serveru za odchozí transakci',
   toggle_darkmode: 'Přepnout tmavý režim',
   view_swagger_docs: 'Zobrazit LNbits Swagger API dokumentaci',
   api_docs: 'API dokumentace',
@@ -72,6 +77,7 @@ window.localisation.cs = {
   chart_tooltip: 'Zobrazit graf',
   pending: 'Čeká na vyřízení',
   copy_invoice: 'Kopírovat fakturu',
+  withdraw_from: 'Vybrat z',
   close: 'Zavřít',
   cancel: 'Zrušit',
   scan: 'Skenovat',
@@ -137,6 +143,7 @@ window.localisation.cs = {
   payment_hash: 'Hash platby',
   fee: 'Poplatek',
   amount: 'Částka',
+  tag: 'Tag',
   unit: 'Jednotka',
   description: 'Popis',
   expiry: 'Expirace',
