@@ -84,8 +84,8 @@
                 :label="$t('scan')"
               >
                 <q-tooltip
-                  >{% raw %}{{$t('camera_tooltip')}}{% endraw %}</q-tooltip
-                >
+                  ><span v-text="$t('camera_tooltip')"></span
+                ></q-tooltip>
               </q-btn>
             </div>
           </div>
@@ -118,9 +118,9 @@
                   color="grey"
                   @click="showChart"
                 >
-                  <q-tooltip
-                    >{% raw %}{{$t('chart_tooltip')}}{% endraw %}</q-tooltip
-                  >
+                  <q-tooltip>
+                    <span v-text="$t('chart_tooltip')"></span
+                  ></q-tooltip>
                 </q-btn>
               </div>
             </div>
@@ -760,11 +760,11 @@
                   class="q-mt-xs q-ml-sm q-mr-auto"
                   v-if="parse.copy.show"
                   @click="pasteToTextArea"
-                  ><q-tooltip
-                    >{% raw %}{{$t('paste_from_clipboard')}}{% endraw
-                    %}</q-tooltip
-                  ></q-icon
                 >
+                  <q-tooltip>
+                    <span v-text="$t('paste_from_clipboard')"></span>
+                  </q-tooltip>
+                </q-icon>
                 <q-btn
                   v-close-popup
                   flat
