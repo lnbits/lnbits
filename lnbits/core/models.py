@@ -368,6 +368,7 @@ class CreateLnurl(BaseModel):
     amount: int
     comment: Optional[str] = None
     description: Optional[str] = None
+    unit: Optional[str] = None
 
 
 class CreateInvoice(BaseModel):
