@@ -179,16 +179,19 @@ class Connection(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
+        group_by: Optional[str] = None,
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
         clause = filters.where(where)
         parsed_values = filters.values(values)
+        group_by = f"GROUP BY {group_by}" if group_by else ""
 
         rows = await self.fetchall(
             f"""
             {query}
             {clause}
+            {group_by}
             {filters.order_by()}
             {filters.pagination()}
             """,
@@ -202,6 +205,7 @@ class Connection(Compat):
                     SELECT COUNT(*) FROM (
                         {query}
                         {clause}
+                        {group_by}
                     ) as count
                     """,
                     parsed_values,
@@ -288,9 +292,10 @@ class Database(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
+        group_by: Optional[str] = None,
     ) -> Page[TRowModel]:
         async with self.connect() as conn:
-            return await conn.fetch_page(query, where, values, filters, model)
+            return await conn.fetch_page(query, where, values, filters, model, group_by)
 
     async def execute(self, query: str, values: tuple = ()):
         async with self.connect() as conn:
