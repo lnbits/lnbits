@@ -40,8 +40,11 @@ class EclairWallet(Wallet):
 
         encodedAuth = base64.b64encode(f":{passw}".encode())
         auth = str(encodedAuth, "utf-8")
-        self.auth = {"Authorization": f"Basic {auth}"}
-        self.client = httpx.AsyncClient(base_url=self.url, headers=self.auth)
+        self.headers = {
+            "Authorization": f"Basic {auth}",
+            "User-Agent": settings.user_agent,
+        }
+        self.client = httpx.AsyncClient(base_url=self.url, headers=self.headers)
 
     async def cleanup(self):
         try:
@@ -214,7 +217,7 @@ class EclairWallet(Wallet):
             try:
                 async with connect(
                     self.ws_url,
-                    extra_headers=[("Authorization", self.auth["Authorization"])],
+                    extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
                     while True:
                         message = await ws.recv()

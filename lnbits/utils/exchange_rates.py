@@ -4,6 +4,7 @@ from typing import Callable, NamedTuple
 import httpx
 from loguru import logger
 
+from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 currencies = {
@@ -246,7 +247,8 @@ async def btc_price(currency: str) -> float:
     async def fetch_price(provider: Provider):
         url = provider.api_url.format(**replacements)
         try:
-            async with httpx.AsyncClient() as client:
+            headers = {"User-Agent": settings.user_agent}
+            async with httpx.AsyncClient(headers=headers) as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
                 data = r.json()

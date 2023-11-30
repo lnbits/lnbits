@@ -297,6 +297,7 @@ class EnvSettings(LNbitsSettings):
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+    user_agent: str = Field(default="")
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
@@ -431,6 +432,9 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
+
+if not settings.user_agent:
+    settings.user_agent = f"LNbits/{settings.version}"
 
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:
