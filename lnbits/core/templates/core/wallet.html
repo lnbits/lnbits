@@ -35,7 +35,7 @@
         >
           <q-card-section>
             <h3 class="q-my-none text-no-wrap">
-              <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
+              <strong v-text="formattedBalance"></strong>
               <small>{{LNBITS_DENOMINATION}}</small>
               <q-btn
                 v-if="'{{user.super_user}}' == 'True'"
@@ -150,9 +150,6 @@
                   @click="exportCSV"
                   :label="$t('export_csv')"
                 ></q-btn>
-                <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
-                <q-tooltip>Check pending</q-tooltip>
-              </q-btn>-->
                 <q-btn
                   dense
                   flat
@@ -194,13 +191,15 @@
               :hide-bottom="mobileSimple"
               @request="fetchPayments"
             >
-              {% raw %}
               <template v-slot:header="props">
                 <q-tr :props="props">
                   <q-th auto-width></q-th>
-                  <q-th v-for="col in props.cols" :key="col.name" :props="props"
-                    >{{ col.label }}</q-th
-                  >
+                  <q-th
+                    v-for="col in props.cols"
+                    :key="col.name"
+                    :props="props"
+                    v-text="col.label"
+                  ></q-th>
                 </q-tr>
               </template>
               <template v-slot:body="props">
@@ -219,7 +218,9 @@
                       color="grey"
                       @click="props.expand = !props.expand"
                     >
-                      <q-tooltip>{{$t('pending')}}</q-tooltip>
+                      <q-tooltip
+                        ><span v-text="$t('pending')"></span
+                      ></q-tooltip>
                     </q-icon>
                   </q-td>
                   <q-td
@@ -232,40 +233,43 @@
                       color="yellow"
                       text-color="black"
                     >
-                      <a class="inherit" :href="['/', props.row.tag].join('')">
-                        #{{ props.row.tag }}
-                      </a>
+                      <a
+                        v-text="'#'+props.row.tag"
+                        class="inherit"
+                        :href="['/', props.row.tag].join('')"
+                      ></a>
                     </q-badge>
-                    {{ props.row.memo }}
+                    <span v-text="props.row.memo"></span>
                     <br />
 
                     <i>
-                      {{ props.row.dateFrom }}<q-tooltip
-                        >{{ props.row.date }}</q-tooltip
-                      ></i
-                    >
+                      <span v-text="props.row.dateFrom"></span>
+                      <q-tooltip
+                        ><span v-text="props.row.date"></span
+                      ></q-tooltip>
+                    </i>
                   </q-td>
-
-                  {% endraw %}
                   <q-td
                     auto-width
                     key="amount"
                     v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
                     :props="props"
-                    >{% raw %} {{
-                    parseFloat(String(props.row.fsat).replaceAll(",", "")) / 100
-                    }}
+                    v-text="parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100"
+                  >
                   </q-td>
                   <q-td auto-width key="amount" v-else :props="props">
-                    {{ props.row.fsat }}<br />
+                    <span v-text="props.row.fsat"></span>
+                    <br />
                     <i v-if="props.row.extra.wallet_fiat_currency">
-                      {{ formatFiat(props.row.extra.wallet_fiat_currency,
-                      props.row.extra.wallet_fiat_amount) }}
+                      <span
+                        v-text="formatFiat(props.row.extra.wallet_fiat_currency, props.row.extra.wallet_fiat_amount)"
+                      ></span>
                       <br />
                     </i>
                     <i v-if="props.row.extra.fiat_currency">
-                      {{ formatFiat(props.row.extra.fiat_currency,
-                      props.row.extra.fiat_amount) }}
+                      <span
+                        v-text="formatFiat(props.row.extra.fiat_currency, props.row.extra.fiat_amount)"
+                      ></span>
                     </i>
                   </q-td>
                 </q-tr>
@@ -340,7 +344,6 @@
                   </q-card>
                 </q-dialog>
               </template>
-              {% endraw %}
             </q-table>
           </q-card-section>
         </q-card>
@@ -356,7 +359,7 @@
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
                 {{ SITE_TITLE }} Wallet:
-                <strong><em>{{ wallet.name }}</em></strong>
+                <strong><em>{{wallet.name}}</em></strong>
               </h6>
             </q-card-section>
             <q-card-section class="q-pa-none">
@@ -511,16 +514,15 @@
       </div>
 
       <q-dialog v-model="receive.show" position="top">
-        {% raw %}
         <q-card
           v-if="!receive.paymentReq"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
           <q-form @submit="createInvoice" class="q-gutter-md">
             <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
-              <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
+              <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
             </p>
-            {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
+            {% if LNBITS_DENOMINATION != 'sats' %}
             <q-input
               filled
               dense
@@ -564,7 +566,6 @@
               v-model.trim="receive.data.memo"
               :label="$t('memo')"
             ></q-input>
-            {% raw %}
             <div v-if="receive.status == 'pending'" class="row q-mt-lg">
               <q-btn
                 unelevated
@@ -572,9 +573,10 @@
                 :disable="receive.data.amount == null || receive.data.amount <= 0"
                 type="submit"
               >
-                <span v-if="receive.lnurl">
-                  {{$t('withdraw_from')}} {{receive.lnurl.domain}}
-                </span>
+                <span
+                  v-if="receive.lnurl"
+                  v-text="$t('withdraw_from') + receive.lnurl.domain"
+                ></span>
                 <span v-else v-text="$t('create_invoice')"></span>
               </q-btn>
               <q-btn
@@ -618,28 +620,32 @@
             ></q-btn>
           </div>
         </q-card>
-        {% endraw %}
       </q-dialog>
 
       <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
-            <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-              {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
-              "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-            </h6>
-            <h6 v-else class="q-my-none">
-              {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {%
-              raw %}
-            </h6>
+            <h6
+              v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+              class="q-my-none"
+              v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100 + '{{LNBITS_DENOMINATION}}'"
+            ></h6>
+            <h6
+              v-else
+              class="q-my-none"
+              v-text="parse.invoice.fsat + '{{LNBITS_DENOMINATION}}'"
+            ></h6>
             <q-separator class="q-my-sm"></q-separator>
             <p class="text-wrap">
-              <strong v-text="$t('memo')">:</strong> {{
-              parse.invoice.description }}<br />
-              <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-              <strong>Hash:</strong> {{ parse.invoice.hash }}
+              <strong v-text="$t('memo') + ': '"></strong>
+              <span v-text="parse.invoice.description"></span>
+              <br />
+              <strong>Expire date: </strong>
+              <span v-text="parse.invoice.expireDate"></span>
+              <br />
+              <strong>Hash: </strong>
+              <span v-text="parse.invoice.hash"></span>
             </p>
-            {% endraw %}
             <div v-if="canPay" class="row q-mt-lg">
               <q-btn
                 unelevated
@@ -673,24 +679,31 @@
             </div>
           </div>
           <div v-else-if="parse.lnurlauth">
-            {% raw %}
             <q-form @submit="authLnurl" class="q-gutter-md">
               <p class="q-my-none text-h6">
-                Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
+                Authenticate with <b v-text="parse.lnurlauth.domain"></b>?
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <p>
                 For every website and for every LNbits wallet, a new keypair
                 will be deterministically generated so your identity can't be
                 tied to your LNbits wallet or linked across websites. No other
-                data will be shared with {{ parse.lnurlauth.domain }}.
+                data will be shared with
+                <span v-text="parse.lnurlauth.domain"></span>.
               </p>
-              <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
+              <p>
+                Your public key for <b v-text="parse.lnurlauth.domain"></b> is:
+              </p>
               <p class="q-mx-xl">
-                <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
+                <code class="text-wrap" v-text="parse.lnurlauth.pubkey"></code>
               </p>
               <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit">Login</q-btn>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  type="submit"
+                  :label="$t('login')"
+                ></q-btn>
                 <q-btn
                   :label="$t('cancel')"
                   v-close-popup
@@ -700,55 +713,74 @@
                 ></q-btn>
               </div>
             </q-form>
-            {% endraw %}
           </div>
           <div v-else-if="parse.lnurlpay">
-            {% raw %}
             <q-form @submit="payLnurl" class="q-gutter-md">
               <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-                <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
-                parse.lnurlpay.maxSendable | msatoshiFormat }}
-                {{LNBITS_DENOMINATION}}
+                <b v-text="parse.lnurlpay.domain"></b> is requesting
+                <span
+                  v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"
+                ></span>
+                <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
                 <span v-if="parse.lnurlpay.commentAllowed > 0">
                   <br />
-                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                  and a
+                  <span v-text="parse.lnurlpay.commentAllowed"></span>-char
+                  comment
                 </span>
               </p>
               <p v-else class="q-my-none text-h6 text-center">
-                <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b>
+                <b
+                  v-text="parse.lnurlpay.targetUser || parse.lnurlpay.domain"
+                ></b>
                 is requesting <br />
                 between
-                <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
-                <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
-                {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+                <b v-text="msatoshiFormat(parse.lnurlpay.minSendable)"></b> and
+                <b v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"></b>
+                <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
                 <span v-if="parse.lnurlpay.commentAllowed > 0">
                   <br />
-                  and a {{parse.lnurlpay.commentAllowed}}-char comment
+                  and a
+                  <span v-text="parse.lnurlpay.commentAllowed"></span>-char
+                  comment
                 </span>
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <div class="row">
-                <p class="col text-justify text-italic">
-                  {{ parse.lnurlpay.description }}
-                </p>
+                <p
+                  class="col text-justify text-italic"
+                  v-text="parse.lnurlpay.description"
+                ></p>
                 <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
                   <q-img :src="parse.lnurlpay.image" />
                 </p>
               </div>
               <div class="row">
                 <div class="col">
-                  {% endraw %}
+                  <q-select
+                    filled
+                    dense
+                    v-if="!parse.lnurlpay.fixed"
+                    v-model="parse.data.unit"
+                    type="text"
+                    :label="$t('unit')"
+                    :options="receive.units"
+                  ></q-select>
+                  <br />
                   <q-input
+                    ref="setAmount"
                     filled
                     dense
                     v-model.number="parse.data.amount"
-                    type="number"
-                    label="Amount ({{LNBITS_DENOMINATION}}) *"
+                    :label="$t('amount') + ' (' + parse.data.unit + ') *'"
+                    :mask="parse.data.unit != 'sat' ? '#.##' : '#'"
+                    :step="parse.data.unit != 'sat' ? '0.01' : '1'"
+                    fill-mask="0"
+                    reverse-fill-mask
                     :min="parse.lnurlpay.minSendable / 1000"
                     :max="parse.lnurlpay.maxSendable / 1000"
-                    :readonly="parse.lnurlpay.fixed"
+                    :readonly="parse.lnurlpay && parse.lnurlpay.fixed"
                   ></q-input>
-                  {% raw %}
                 </div>
                 <div
                   class="col-8 q-pl-md"
@@ -765,9 +797,7 @@
                 </div>
               </div>
               <div class="row q-mt-lg">
-                <q-btn unelevated color="primary" type="submit"
-                  >Send {{LNBITS_DENOMINATION}}</q-btn
-                >
+                <q-btn unelevated color="primary" type="submit">Send</q-btn>
                 <q-btn
                   :label="$t('cancel')"
                   v-close-popup
@@ -777,7 +807,6 @@
                 ></q-btn>
               </div>
             </q-form>
-            {% endraw %}
           </div>
           <div v-else>
             <q-form

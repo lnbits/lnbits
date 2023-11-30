@@ -4,6 +4,7 @@ import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
+from math import ceil
 from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
@@ -408,9 +409,15 @@ async def api_payments_pay_lnurl(
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
+            if data.unit and data.unit != "sat":
+                amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
+                # no msat precision
+                amount_msat = ceil(amount_msat // 1000) * 1000
+            else:
+                amount_msat = data.amount
             r = await client.get(
                 data.callback,
-                params={"amount": data.amount, "comment": data.comment},
+                params={"amount": amount_msat, "comment": data.comment},
                 timeout=40,
             )
             if r.is_error:
@@ -436,13 +443,13 @@ async def api_payments_pay_lnurl(
         )
 
     invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != data.amount:
+    if invoice.amount_msat != amount_msat:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=(
                 (
                     f"{domain} returned an invalid invoice. Expected"
-                    f" {data.amount} msat, got {invoice.amount_msat}."
+                    f" {amount_msat} msat, got {invoice.amount_msat}."
                 ),
             ),
         )
@@ -453,6 +460,9 @@ async def api_payments_pay_lnurl(
         extra["success_action"] = params["successAction"]
     if data.comment:
         extra["comment"] = data.comment
+    if data.unit and data.unit != "sat":
+        extra["fiat_currency"] = data.unit
+        extra["fiat_amount"] = data.amount / 1000
     assert data.description is not None, "description is required"
     payment_hash = await pay_invoice(
         wallet_id=wallet.wallet.id,

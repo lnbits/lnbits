@@ -113,7 +113,8 @@ new Vue({
         data: {
           request: '',
           amount: 0,
-          comment: ''
+          comment: '',
+          unit: 'sat'
         },
         paymentChecker: null,
         copy: {
@@ -286,12 +287,10 @@ new Vue({
       return this.payments.findIndex(payment => payment.pending) !== -1
     }
   },
-  filters: {
+  methods: {
     msatoshiFormat: function (value) {
       return LNbits.utils.formatSat(value / 1000)
-    }
-  },
-  methods: {
+    },
     paymentTableRowKey: function (row) {
       return row.payment_hash + row.amount
     },
@@ -639,7 +638,8 @@ new Vue({
           this.parse.lnurlpay.description_hash,
           this.parse.data.amount * 1000,
           this.parse.lnurlpay.description.slice(0, 120),
-          this.parse.data.comment
+          this.parse.data.comment,
+          this.parse.data.unit
         )
         .then(response => {
           this.parse.show = false
