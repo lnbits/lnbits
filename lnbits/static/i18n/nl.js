@@ -66,7 +66,7 @@ window.localisation.nl = {
   payment_sent: 'Betaling verzonden',
   receive: 'ontvangen',
   send: 'versturen',
-  voutgoing_payment_pending: 'Uitgaande betaling in behandeling',
+  outgoing_payment_pending: 'Uitgaande betaling in behandeling',
   drain_funds: 'Geld opnemen',
   drain_funds_desc:
     'Dit is een LNURL-withdraw QR-code om alles uit deze portemonnee te halen. Deel deze code niet met anderen. Het is compatibel met balanceCheck en balanceNotify zodat jouw portemonnee continu geld kan blijven opnemen vanaf hier na de eerste opname.',
