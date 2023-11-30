@@ -56,7 +56,7 @@ window.localisation.it = {
   read: 'Leggi',
   pay: 'Paga',
   memo: 'Memo',
-  data: 'Dati',
+  date: 'Dati',
   processing_payment: 'Elaborazione pagamento...',
   not_enough_funds: 'Non ci sono abbastanza fondi!',
   search_by_tag_memo_amount: 'Cerca per tag, memo, importo...',
@@ -75,7 +75,7 @@ window.localisation.it = {
     "La funzionalità di login sarà rilasciata in un futuro aggiornamento; per ora, assicuratevi di salvare tra i preferiti questa pagina per accedere nuovamente in futuro a questo portafoglio! Questo servizio è in fase BETA e non ci assumiamo alcuna responsabilità per la perdita all'accesso dei fondi",
   no_transactions: 'Nessuna transazione effettuata',
   manage: 'Gestisci',
-  estensioni: 'Estensioni',
+  extensions: 'Estensioni',
   no_extensions: 'Non ci sono estensioni installate :(',
   created: 'Creato',
   payment_hash: 'Hash del pagamento',
@@ -85,5 +85,5 @@ window.localisation.it = {
   description: 'Descrizione',
   expiry: 'Scadenza',
   webhook: 'Webhook',
-  prova_di_pagamento: 'Prova di pagamento'
+  payment_proof: 'Prova di pagamento'
 }

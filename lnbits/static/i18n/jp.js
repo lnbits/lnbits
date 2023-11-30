@@ -33,7 +33,7 @@ window.localisation.jp = {
   donate: '寄付',
   voidwallet_active: 'Voidwalletアクティブ',
   use_with_caution: '注意して使用してください',
-  toggle_dark_mode: 'ダークモードを切り替える',
+  toggle_darkmode: 'ダークモードを切り替える',
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
   runs_on: 'で実行',
