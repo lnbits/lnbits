@@ -221,7 +221,8 @@ class Payment(FromRowModel):
                 f"expired {expiration_date}"
             )
             await self.delete(conn)
-        elif self.is_out and status.failed:
+        # wait at least 15 minutes before deleting failed outgoing payments
+        elif self.is_out and status.failed and self.time + 900 < int(time.time()):
             logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )
