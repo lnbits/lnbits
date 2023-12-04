@@ -60,7 +60,7 @@ jobs:
           sudo apt install caddy
           caddy version
 
-          echo "localhost:443 {         reverse_proxy 127.0.0.1:8080        tls internal }" > Caddyfile
+          echo "localhost:443 { \n        reverse_proxy 127.0.0.1:8080 \n       tls internal \n}" > Caddyfile
           cat Caddyfile
           caddy start
 
