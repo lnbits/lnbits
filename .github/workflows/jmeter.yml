@@ -60,7 +60,8 @@ jobs:
           sudo apt install caddy
           caddy version
 
-          caddy reverse-proxy --to :5000 &
+          caddy reverse-proxy --from https://localhost:5005 --to :5000
+          curl -v https://localhost:5005
 
       - name: topup wallet
         run: |
