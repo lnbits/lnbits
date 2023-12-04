@@ -57,10 +57,10 @@ jobs:
           curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
           curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
           sudo apt update
-          sudo apt install caddy
+          sudo apt install libnss3-tools caddy
           caddy version
 
-          caddy reverse-proxy --from https://localhost:5005 --to http://localhost:5000
+          sudo caddy reverse-proxy --from https://localhost:5005 --to http://localhost:5000
           curl -v https://localhost:5005
 
       - name: topup wallet
