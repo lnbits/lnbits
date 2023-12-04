@@ -29,7 +29,7 @@
           </elementProp>
           <elementProp name="sslPort" elementType="Argument">
             <stringProp name="Argument.name">sslPort</stringProp>
-            <stringProp name="Argument.value">${__property(port,,5001)}</stringProp>
+            <stringProp name="Argument.value">${__property(port,,5005)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
@@ -2893,8 +2893,8 @@ if (!resp.payment_hash) {
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
-            <stringProp name="HTTPSampler.port">${port}</stringProp>
-            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
+            <stringProp name="HTTPSampler.port">${sslPort}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/atm/withdraw/${token}/${amount}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
