@@ -1,0 +1,9 @@
+{
+    http_port 8880
+    https_port 4443
+}
+
+localhost:5005 {
+        reverse_proxy localhost:5000
+        tls internal
+}

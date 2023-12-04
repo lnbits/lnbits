@@ -60,7 +60,8 @@ jobs:
           sudo apt install libnss3-tools caddy
           caddy version
 
-          sudo caddy reverse-proxy --from https://localhost:5005 --to http://localhost:5000
+          caddy start --config $GITHUB_WORKSPACE/integration/Caddyfile
+
           curl -v https://localhost:5005
 
       - name: topup wallet
