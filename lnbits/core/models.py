@@ -10,12 +10,12 @@ from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
+from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 from lnbits.wallets.base import PaymentStatus

@@ -11,8 +11,6 @@ from bolt11 import Bolt11
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
-from lnurl import LnurlErrorResponse
-from lnurl import decode as decode_lnurl
 from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
@@ -21,6 +19,8 @@ from lnbits.core.db import db
 from lnbits.db import Connection
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for
+from lnbits.lnurl import LnurlErrorResponse
+from lnbits.lnurl import decode as decode_lnurl
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
