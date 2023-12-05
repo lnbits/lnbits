@@ -47,9 +47,7 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           echo "super_user=$SUPER_USER" >> $GITHUB_ENV
-          openssl req -x509 -newkey rsa:4096 -keyout localhost-key.pem -out localhost.pem -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost"
           poetry run lnbits > logs/lnbits.log &
-          ### --ssl-keyfile=./localhost-key.pem --ssl-certfile=./localhost.pem
 
       - name: setup ngrock
         run: |
@@ -60,9 +58,10 @@ jobs:
           sleep 5
           cat ngrok.log
           ls
-          echo "##########"
+          echo "########## 1"
           # something like url=https://f16d-84-117-103-2.ngrok-free.app
-          cat ngrok.log | grep "url=" | awk '{print $8}'
+          cat ngrok.log
+          echo "########## 2"
           cat ngrok.log | grep "url=" | awk '{print $8}' >> $GITHUB_ENV
 
       - name: topup wallet
