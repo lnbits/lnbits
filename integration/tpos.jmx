@@ -58,7 +58,7 @@
         </elementProp>
         <stringProp name="HTTPSampler.domain">localhost</stringProp>
         <stringProp name="HTTPSampler.port">${port}</stringProp>
-        <stringProp name="HTTPSampler.protocol">http</stringProp>
+        <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
         <stringProp name="HTTPSampler.implementation">Java</stringProp>
         <stringProp name="HTTPSampler.connect_timeout">20000</stringProp>
         <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
@@ -69,6 +69,15 @@
         <boolProp name="CookieManager.clearEachIteration">false</boolProp>
         <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
       </CookieManager>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">ngrok-skip-browser-warning</stringProp>
+            <stringProp name="Header.value">xyz</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">stopthread</stringProp>
@@ -724,7 +733,9 @@ if (resp.balance !== 0) {
                 </elementProp>
               </collectionProp>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -795,7 +806,9 @@ if (resp.balance !== 0) {
                 </elementProp>
               </collectionProp>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -900,7 +913,9 @@ if (resp.balance !== 0) {
                 </elementProp>
               </collectionProp>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -1011,7 +1026,9 @@ vars.put(&quot;tposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}</stringProp>
             <stringProp name="HTTPSampler.method">PUT</stringProp>
@@ -1120,7 +1137,9 @@ if (!resp.id) {
                 </elementProp>
               </collectionProp>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -1231,7 +1250,9 @@ vars.put(&quot;ATMtposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/${tposId}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -1315,7 +1336,9 @@ vars.put(&quot;ATMtposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/rate/EUR</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -1404,7 +1427,9 @@ vars.put(&quot;ATMtposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices?amount=${amount}&amp;memo=${memo}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -1518,7 +1543,9 @@ vars.put(&quot;ATMtposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
               </elementProp>
-              <stringProp name="HTTPSampler.port">5000</stringProp>
+              <stringProp name="HTTPSampler.domain">${host}</stringProp>
+              <stringProp name="HTTPSampler.port">${port}</stringProp>
+              <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
               <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
               <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices/${paymentHash}</stringProp>
               <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -1705,12 +1732,14 @@ if (!resp.payment_hash) {
             <stringProp name="ConstantTimer.delay">1100</stringProp>
           </ConstantTimer>
           <hashTree/>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos] Check payment" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos] Check payment 1" enabled="true">
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices/${paymentHash}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -1803,7 +1832,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices?amount=${amount}&amp;memo=${memo}&amp;tipAmount=${__javaScript(parseInt(Math.ceil(0.05*${amount})).toFixed(0))}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -1917,7 +1948,9 @@ if (!resp.payment_hash) {
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
               </elementProp>
-              <stringProp name="HTTPSampler.port">5000</stringProp>
+              <stringProp name="HTTPSampler.domain">${host}</stringProp>
+              <stringProp name="HTTPSampler.port">${port}</stringProp>
+              <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
               <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
               <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices/${paymentHash}</stringProp>
               <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2109,7 +2142,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${tposId}/invoices/${paymentHash}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2193,7 +2228,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/${ATMtposId}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2277,7 +2314,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/rate/EUR</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2357,7 +2396,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${ATMtposId}/invoices?amount=11000&amp;memo=${memo}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -2579,7 +2620,9 @@ if (!resp.payment_hash) {
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.port">5000</stringProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs/${ATMtposId}/invoices/${paymentHash}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2893,8 +2936,8 @@ if (!resp.payment_hash) {
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
-            <stringProp name="HTTPSampler.port">${sslPort}</stringProp>
-            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/tpos/api/v1/atm/withdraw/${token}/${amount}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -2983,6 +3026,13 @@ if (!resp.payment_hash) {
               <stringProp name="JSONPostProcessor.defaultValues">no-lnurl</stringProp>
             </JSONPostProcessor>
             <hashTree/>
+            <KeystoreConfig guiclass="TestBeanGUI" testclass="KeystoreConfig" testname="Keystore Configuration" enabled="true">
+              <stringProp name="clientCertAliasVarName">certAlias</stringProp>
+              <stringProp name="endIndex">-1</stringProp>
+              <stringProp name="preload">True</stringProp>
+              <stringProp name="startIndex">0</stringProp>
+            </KeystoreConfig>
+            <hashTree/>
           </hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos atm] Decode LNURLw" enabled="true">
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
@@ -2990,8 +3040,8 @@ if (!resp.payment_hash) {
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
-            <stringProp name="HTTPSampler.port">${sslPort}</stringProp>
-            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/api/v1/lnurlscan/${lnurl}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -3105,8 +3155,8 @@ if (!resp.payment_hash) {
               </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
-            <stringProp name="HTTPSampler.port">${sslPort}</stringProp>
-            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.port">${host}</stringProp>
+            <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
             <stringProp name="HTTPSampler.path">/api/v1/payments</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
