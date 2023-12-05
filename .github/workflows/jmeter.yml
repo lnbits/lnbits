@@ -51,9 +51,6 @@ jobs:
 
       - name: topup wallet
         run: |
-          echo "### url: ${{env.url}}"
-          echo "######## 333"
-          cat tunnelURL.txt
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           wallet_id=$(echo $wallet | jq -r .id)
           user_id=$(echo $wallet | jq -r .user)
