@@ -27,11 +27,6 @@
             <stringProp name="Argument.value">${__property(port,,5000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="sslPort" elementType="Argument">
-            <stringProp name="Argument.name">sslPort</stringProp>
-            <stringProp name="Argument.value">${__property(port,,5005)}</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
             <stringProp name="Argument.name">adminUserId</stringProp>
             <stringProp name="Argument.value">${__property(adminUserId,,bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa)}</stringProp>
