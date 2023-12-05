@@ -24,7 +24,7 @@ from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 from starlette.responses import StreamingResponse
 
-from lnbits import bolt11, lnurl
+from lnbits import bolt11
 from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import (
     migrate_extension_database,
@@ -63,6 +63,7 @@ from lnbits.extension_manager import (
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
+from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -556,7 +557,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
 @api_router.get("/api/v1/lnurlscan/{code}")
 async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
-        url = lnurl.decode(code)
+        url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
     except Exception:
         # parse internet identifier (user@domain.com)
@@ -674,7 +675,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
-            url = lnurl.decode(payment_str)
+            url = str(lnurl_decode(payment_str))
             return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)

@@ -1109,18 +1109,19 @@ rediscluster = ["redis (>=4.2.0,!=4.5.2,!=4.5.3)"]
 
 [[package]]
 name = "lnurl"
-version = "0.3.6"
+version = "0.4.2"
 description = "LNURL implementation for Python."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9,<4.0"
 files = [
-    {file = "lnurl-0.3.6-py3-none-any.whl", hash = "sha256:579982fd8c4d25bc84c61c74ec45cb7999fa1fa2426f5d5aeb0160ba333b9c92"},
-    {file = "lnurl-0.3.6.tar.gz", hash = "sha256:8af07460115a48f3122a5a9c9a6062bee3897d5f6ab4c9a60f6561a83a8234f6"},
+    {file = "lnurl-0.4.2-py3-none-any.whl", hash = "sha256:93f79ae7e0b0c66fed5b29ac1520e85e3e2c8648561a4b42974f0b7bffd34d84"},
+    {file = "lnurl-0.4.2.tar.gz", hash = "sha256:c5e708b255d5333a0c08ceffe90ae4be6d2d09eb51dc8c35d19d8aa4cb21842a"},
 ]
 
 [package.dependencies]
-bech32 = "*"
-pydantic = "*"
+bech32 = ">=1.2.0,<2.0.0"
+pydantic = ">=1,<2"
+requests = ">=2.31.0,<3.0.0"
 
 [[package]]
 name = "loguru"
@@ -2654,4 +2655,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "95ad6885f070793369450a82763ea8e4f92926d9bee02f81758636b28db55e76"
+content-hash = "6b44b6f3fc338be751d3c647964ae2138e928dbe479670dd04a2f274a5b03cc0"
