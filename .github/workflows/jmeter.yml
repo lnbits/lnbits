@@ -51,21 +51,18 @@ jobs:
           poetry run lnbits > logs/lnbits.log &
           ### --ssl-keyfile=./localhost-key.pem --ssl-certfile=./localhost.pem
 
-      - name: setup localhost ssl proxy
+      - name: setup ngrock
         run: |
-          sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-          sudo apt update
-          sudo apt install libnss3-tools caddy
-          caddy version
+          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+          sudo tar xvzf ./ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
 
-          caddy start --config $GITHUB_WORKSPACE/integration/Caddyfile
-
-          curl -v https://localhost:5005
+          ngrok http 5000 --log=stdout > ngrok.log &
+          # something like url=https://f16d-84-117-103-2.ngrok-free.app
+          grep "url=" | awk '{print $8}' >> $GITHUB_ENV
 
       - name: topup wallet
         run: |
+          echo "### url: ${{env.url}}"
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           wallet_id=$(echo $wallet | jq -r .id)
           user_id=$(echo $wallet | jq -r .user)
@@ -95,15 +92,6 @@ jobs:
 
           echo "Starting the mirror server on dfault port 8081."
           $GITHUB_WORKSPACE/apache-jmeter-5.6.2/bin/mirror-server &
-
-      - name: generate jmeter certificate
-        run: |
-          ls /home/runner/.local/share/caddy
-          echo "##### 1 #####"
-          mkdir $GITHUB_WORKSPACE/certs
-          openssl pkcs12 -export -in "/home/runner/.local/share/caddy/certificates/local/localhost/localhost.crt" -inkey "/home/runner/.local/share/caddy/certificates/local/localhost/localhost.key" -password pass:secret  -out $GITHUB_WORKSPACE/certs/localhost.p12
-          echo "##### 2 #####"
-          ls $GITHUB_WORKSPACE/certs/localhost.p12
 
       - name: run jmx scripts
         run: |
