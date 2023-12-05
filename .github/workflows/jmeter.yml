@@ -62,7 +62,7 @@ jobs:
           # something like url=https://f16d-84-117-103-2.ngrok-free.app
           cat ngrok.log
           echo "########## 2"
-          cat ngrok.log | grep "url=" | awk '{print $8}' >> $GITHUB_ENV
+          cat ngrok.log | grep "url="  | awk -F'url=http[s]?://' '{print "url="$2}' >> $GITHUB_ENV
 
       - name: topup wallet
         run: |
