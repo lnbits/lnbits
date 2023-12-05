@@ -92,6 +92,7 @@ jobs:
             echo "Error count: $error_count"
             if [[ $error_count -eq 0 ]]; then
               echo "Test $filename OK."
+              rm -r reports/*
             else
               echo "Test $filename failed. Error count: $error_count."
               exit 1
