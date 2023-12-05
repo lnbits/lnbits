@@ -1,12 +1,11 @@
 import asyncio
-import base64
 import hashlib
 import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
-from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
@@ -37,7 +36,6 @@ from lnbits.core.models import (
     CreateLnurl,
     CreateLnurlAuth,
     CreateWallet,
-    CreateWebPushSubscription,
     DecodePayment,
     Payment,
     PaymentFilters,
@@ -46,7 +44,6 @@ from lnbits.core.models import (
     User,
     Wallet,
     WalletType,
-    WebPushSubscription,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -78,11 +75,9 @@ from ..crud import (
     add_installed_extension,
     create_account,
     create_wallet,
-    create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
     delete_wallet,
-    delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
@@ -90,7 +85,6 @@ from ..crud import (
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
-    get_webpush_subscription,
     save_balance_check,
     update_pending_payments,
     update_wallet,
@@ -946,36 +940,3 @@ async def delete_extension_db(ext_id: str):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Cannot delete data for extension '{ext_id}'",
         )
-
-
-@api_router.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
-async def api_create_webpush_subscription(
-    request: Request,
-    data: CreateWebPushSubscription,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> WebPushSubscription:
-    subscription = json.loads(data.subscription)
-    endpoint = subscription["endpoint"]
-    host = urlparse(str(request.url)).netloc
-
-    subscription = await get_webpush_subscription(endpoint, wallet.wallet.user)
-    if subscription:
-        return subscription
-    else:
-        return await create_webpush_subscription(
-            endpoint,
-            wallet.wallet.user,
-            data.subscription,
-            host,
-        )
-
-
-@api_router.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
-async def api_delete_webpush_subscription(
-    request: Request,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
-    endpoint = unquote(
-        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
-    )
-    await delete_webpush_subscription(endpoint, wallet.wallet.user)
