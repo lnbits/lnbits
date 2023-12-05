@@ -393,3 +393,7 @@ async def m015_create_push_notification_subscriptions_table(db):
         );
     """
     )
+
+
+async def m016_add_extra_wallets(db):
+    await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
