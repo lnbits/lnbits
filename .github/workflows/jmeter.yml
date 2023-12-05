@@ -49,24 +49,31 @@ jobs:
           echo "super_user=$SUPER_USER" >> $GITHUB_ENV
           poetry run lnbits > logs/lnbits.log &
 
-      - name: setup ngrock
-        run: |
-          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
-          sudo tar xvzf ./ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
+      # - name: setup ngrock
+      #   run: |
+      #     wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+      #     sudo tar xvzf ./ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
 
-          ngrok http 5000 --log=stdout > ngrok.log &
-          sleep 5
-          cat ngrok.log
-          ls
-          echo "########## 1"
-          # something like url=https://f16d-84-117-103-2.ngrok-free.app
-          cat ngrok.log
-          echo "########## 2"
-          cat ngrok.log | grep "url="  | awk -F'url=http[s]?://' '{print "url="$2}' >> $GITHUB_ENV
-
+      #     ngrok http 5000 --log=stdout > ngrok.log &
+      #     sleep 5
+      #     cat ngrok.log
+      #     ls
+      #     echo "########## 1"
+      #     # something like url=https://f16d-84-117-103-2.ngrok-free.app
+      #     cat ngrok.log
+      #     echo "########## 2"
+      #     cat ngrok.log | grep "url="  | awk -F'url=http[s]?://' '{print "url="$2}' >> $GITHUB_ENV
+      - uses: luisboto/ngrok-tunnel-action@v0.1.4
+        with:
+          timeout: 1h
+          port: 5000
+          tunnel_type: http
+          save_url_to_filename: tunnelURL.txt
       - name: topup wallet
         run: |
           echo "### url: ${{env.url}}"
+          echo "######## 333"
+          cat tunnelURL.txt
           wallet=$(curl --location 'http://localhost:5000/api/v1/account' --header 'Content-Type: application/json' --data '{ "name": "jmeter money user"}')
           wallet_id=$(echo $wallet | jq -r .id)
           user_id=$(echo $wallet | jq -r .user)
