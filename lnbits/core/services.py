@@ -363,7 +363,7 @@ async def pay_invoice(
             wallet_id=settings.lnbits_service_fee_wallet,
             fee=0,
             amount=abs(service_fee_msat),
-            memo="service fee",
+            memo="Service fee",
             checking_id="service_fee" + temp_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
@@ -526,6 +526,8 @@ async def check_transaction_status(
 # WARN: this same value must be used for balance check and passed to
 # WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
+    if internal:
+        return 0
     reserve_min = settings.lnbits_reserve_fee_min
     reserve_percent = settings.lnbits_reserve_fee_percent
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
