@@ -615,10 +615,9 @@ Vue.component('lnbits-dynamic-fields', {
             <q-input v-else-if="o.type === 'text'" v-model="formData[o.name]" @input="handleValueChanged" type="textarea"
               rows="5" :label="o.name" :hint="o.description" filled dense>
             </q-input>
-            <q-input v-else-if="o.type === 'password'" type="password"
-                v-model="formData[o.name]" @input="handleValueChanged"
-                :label="o.name" :hint="o.description" filled dense
-            ></q-input>
+            <q-input v-else-if="o.type === 'password'" v-model="formData[o.name]" @input="handleValueChanged" type="password"
+                :label="o.name" :hint="o.description" filled dense>
+            </q-input>
             <div v-else-if="o.type === 'bool'">
               <q-item tag="label" v-ripple>
                 <q-item-section avatar top>
