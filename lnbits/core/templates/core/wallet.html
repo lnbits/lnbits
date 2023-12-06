@@ -55,6 +55,13 @@
                 </q-popup-edit>
               </q-btn>
             </h3>
+            <div v-if="g.wallet.currency">
+              <span
+                class="text-h5 text-italic"
+                v-text="formattedFiatBalance"
+                style="opacity: 0.75"
+              ></span>
+            </div>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
             <div class="col">
@@ -214,13 +221,13 @@
                   <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}<br />
                     <i v-if="props.row.extra.wallet_fiat_currency">
-                      {{ props.row.extra.wallet_fiat_currency }} {{
-                      props.row.extra.wallet_fiat_amount }}
+                      {{ formatFiat(props.row.extra.wallet_fiat_currency,
+                      props.row.extra.wallet_fiat_amount) }}
                       <br />
                     </i>
                     <i v-if="props.row.extra.fiat_currency">
-                      {{ props.row.extra.fiat_currency }} {{
-                      props.row.extra.fiat_amount }}
+                      {{ formatFiat(props.row.extra.fiat_currency,
+                      props.row.extra.fiat_amount) }}
                     </i>
                   </q-td>
                 </q-tr>
