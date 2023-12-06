@@ -66,12 +66,7 @@
       </CookieManager>
       <hashTree/>
       <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
-        <collectionProp name="HeaderManager.headers">
-          <elementProp name="" elementType="Header">
-            <stringProp name="Header.name">ngrok-skip-browser-warning</stringProp>
-            <stringProp name="Header.value">xyz</stringProp>
-          </elementProp>
-        </collectionProp>
+        <collectionProp name="HeaderManager.headers"/>
       </HeaderManager>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
