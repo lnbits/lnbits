@@ -23,7 +23,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import RedirectResponse, StreamingResponse
+from starlette.responses import StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.db import core_app_extra, db
@@ -77,12 +77,10 @@ from ..crud import (
     DateTrunc,
     add_installed_extension,
     create_account,
-    create_tinyurl,
     create_wallet,
     create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
-    delete_tinyurl,
     delete_wallet,
     delete_webpush_subscription,
     drop_extension_db,
@@ -91,8 +89,6 @@ from ..crud import (
     get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
-    get_tinyurl,
-    get_tinyurl_by_url,
     get_wallet_for_key,
     get_webpush_subscription,
     save_balance_check,
@@ -949,88 +945,6 @@ async def delete_extension_db(ext_id: str):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Cannot delete data for extension '{ext_id}'",
-        )
-
-
-@api_router.post(
-    "/api/v1/tinyurl",
-    name="Tinyurl",
-    description="creates a tinyurl",
-)
-async def api_create_tinyurl(
-    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    tinyurls = await get_tinyurl_by_url(url)
-    try:
-        for tinyurl in tinyurls:
-            if tinyurl:
-                if tinyurl.wallet == wallet.wallet.inkey:
-                    return tinyurl
-        return await create_tinyurl(url, endless, wallet.wallet.inkey)
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
-        )
-
-
-@api_router.get(
-    "/api/v1/tinyurl/{tinyurl_id}",
-    name="Tinyurl",
-    description="get a tinyurl by id",
-)
-async def api_get_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    try:
-        tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl:
-            if tinyurl.wallet == wallet.wallet.inkey:
-                return tinyurl
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
-        )
-
-
-@api_router.delete(
-    "/api/v1/tinyurl/{tinyurl_id}",
-    name="Tinyurl",
-    description="delete a tinyurl by id",
-)
-async def api_delete_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    try:
-        tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl:
-            if tinyurl.wallet == wallet.wallet.inkey:
-                await delete_tinyurl(tinyurl_id)
-                return {"deleted": True}
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
-        )
-
-
-@api_router.get(
-    "/t/{tinyurl_id}",
-    name="Tinyurl",
-    description="redirects a tinyurl by id",
-)
-async def api_tinyurl(tinyurl_id: str):
-    tinyurl = await get_tinyurl(tinyurl_id)
-    if tinyurl:
-        response = RedirectResponse(url=tinyurl.url)
-        return response
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
         )
 
 
