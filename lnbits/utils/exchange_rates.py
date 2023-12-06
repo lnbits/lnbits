@@ -264,7 +264,7 @@ async def btc_price(currency: str) -> float:
         *[fetch_price(provider) for provider in exchange_rate_providers.values()],
         return_exceptions=True,
     )
-    rates = [r for r in results if not isinstance(r, Exception)]
+    rates = [r for r in results if not isinstance(r, BaseException)]
 
     if not rates:
         return 9999999999
