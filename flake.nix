@@ -40,11 +40,6 @@
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
-            bolt11 = prev.bolt11.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                prev.poetry-core
-              ];
-            });
           });
         };
       });
