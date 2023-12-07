@@ -2480,6 +2480,17 @@ files = [
 ]
 
 [[package]]
+name = "types-passlib"
+version = "1.7.7.13"
+description = "Typing stubs for passlib"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-passlib-1.7.7.13.tar.gz", hash = "sha256:f152639f1f2103d7f59a56e2aec5f9398a75a80830991d0d68aac5c2b9c32a77"},
+    {file = "types_passlib-1.7.7.13-py3-none-any.whl", hash = "sha256:414b5ee9c88313357c9261cfcf816509b1e8e4673f0796bd61e9ef249f6fe076"},
+]
+
+[[package]]
 name = "types-protobuf"
 version = "4.24.0.4"
 description = "Typing stubs for protobuf"
@@ -2489,6 +2500,31 @@ files = [
     {file = "types-protobuf-4.24.0.4.tar.gz", hash = "sha256:57ab42cb171dfdba2c74bb5b50c250478538cc3c5ed95b8b368929ad0c9f90a5"},
     {file = "types_protobuf-4.24.0.4-py3-none-any.whl", hash = "sha256:131ab7d0cbc9e444bc89c994141327dcce7bcaeded72b1acb72a94827eb9c7af"},
 ]
+
+[[package]]
+name = "types-pyasn1"
+version = "0.5.0.1"
+description = "Typing stubs for pyasn1"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "types-pyasn1-0.5.0.1.tar.gz", hash = "sha256:023e903f5920ec9585555235f95bb2d2756b7b58023d3f94890ee8d1d4d9d1ff"},
+    {file = "types_pyasn1-0.5.0.1-py3-none-any.whl", hash = "sha256:1bbbe3fcf16a65064e4a5bd7f1be43c375ba241054f8f361b5e6c61c8deb3935"},
+]
+
+[[package]]
+name = "types-python-jose"
+version = "3.3.4.8"
+description = "Typing stubs for python-jose"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-python-jose-3.3.4.8.tar.gz", hash = "sha256:3c316675c3cee059ccb9aff87358254344915239fa7f19cee2787155a7db14ac"},
+    {file = "types_python_jose-3.3.4.8-py3-none-any.whl", hash = "sha256:95592273443b45dc5cc88f7c56aa5a97725428753fb738b794e63ccb4904954e"},
+]
+
+[package.dependencies]
+types-pyasn1 = "*"
 
 [[package]]
 name = "typing-extensions"
@@ -2847,4 +2883,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "0272e41045918ddbde896a67412f517fd956eb98d2a150296459cd3b3ef4914b"
+content-hash = "4a78121f7d578c2896ba3fd63d9a14878692c72c1d421914b859bfc32d896bc7"

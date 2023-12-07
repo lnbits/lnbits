@@ -66,6 +66,8 @@ ruff = "^0.0.291"
 # not our dependency but needed indirectly by openapi-spec-validator
 # we want to use 0.10.3 because newer versions are broken on nix
 rpds-py = "0.10.3"
+types-passlib = "^1.7.7.13"
+types-python-jose = "^3.3.4.8"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
