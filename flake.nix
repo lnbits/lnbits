@@ -46,11 +46,6 @@
                   --replace '"Framework :: Pydantic :: 1",' ""
               '';
             });
-            bolt11 = prev.bolt11.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                prev.poetry
-              ];
-            });
             fastapi-sso = prev.fastapi-sso.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
                 prev.poetry
