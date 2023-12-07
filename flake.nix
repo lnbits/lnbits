@@ -39,13 +39,6 @@
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
-            fastapi = prev.fastapi.overridePythonAttrs (old: {
-              postPatch = ''
-                substituteInPlace pyproject.toml \
-                  --replace '"Framework :: Pydantic",' "" \
-                  --replace '"Framework :: Pydantic :: 1",' ""
-              '';
-            });
             fastapi-sso = prev.fastapi-sso.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
                 prev.poetry
