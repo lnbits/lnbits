@@ -237,6 +237,7 @@ async def check_access_token(
 
 
 async def check_user_exists(
+    r: Request,
     access_token: Annotated[Optional[str], Depends(check_access_token)],
     usr: Optional[UUID4] = None,
 ) -> User:
@@ -252,6 +253,10 @@ async def check_user_exists(
 
     user = await get_user(account.id)
     assert user, "User not found for account."
+
+    if not user.admin and r["path"].split("/")[1] in settings.lnbits_admin_extensions:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User not authorized for extension.")
+
     return user
 
 
