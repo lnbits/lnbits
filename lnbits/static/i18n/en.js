@@ -198,5 +198,14 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   signin_with_google: 'Sign In with Google',
-  signin_with_github: 'Sign In with GitHub'
+  signin_with_github: 'Sign In with GitHub',
+  username_or_email: 'Username or Email *',
+  password: 'Password *',
+  password_repeat: 'Password repeat *',
+  invalid_password: 'Password must have at least 8 characters',
+  login: 'Login',
+  register: 'Register',
+  username: 'Username *',
+  invalid_username: 'Invalid Username',
+  back: 'Back'
 }
