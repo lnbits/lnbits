@@ -36,31 +36,35 @@
       <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
         <q-badge v-if="isAccessTokenExpired" color="primary" rounded>
           <div class="text-h5">
-            Your session has expired. Please login again.
+            <span v-text="$t('session_has_expired')"></span>
           </div>
         </q-badge>
         <q-card class="shadow-12">
           {% if "user-id-only" in LNBITS_AUTH_METHODS %}
           <q-card-section>
             <div class="text-h6">
-              Want instant access? <br />
+              <span v-text="$t('instant_access_question')"></span>
+              <br />
               <q-badge
                 @click="showLogin('user-id-only')"
                 color="primary"
                 class="cursor-pointer"
                 rounded
               >
-                <strong>Login with user ID</strong></q-badge
-              >
+                <strong>
+                  <span v-text="$t('login_with_user_id')"></span> </strong
+              ></q-badge>
               {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-              <span>or</span>
+              <span><span v-text="$t('or')"></span></span>
               <q-badge
                 @click="showRegister('user-id-only')"
                 color="primary"
                 class="cursor-pointer"
                 rounded
               >
-                <strong>Create New Wallet</strong>
+                <strong>
+                  <span v-text="$t('create_new_wallet')"></span>
+                </strong>
               </q-badge>
               {%endif%}
             </div>
@@ -69,7 +73,7 @@
           <q-card-section
             v-if="authAction === 'login' && authMethod === 'user-id-only'"
           >
-            <b>Login with user ID</b><br /><br />
+            <b> <span v-text="$t('login_with_user_id')"></span> </b><br /><br />
             <q-form @submit="loginUsr" class="q-gutter-md">
               <q-input
                 filled
@@ -95,7 +99,9 @@
             v-if="authAction === 'login' && authMethod === 'username-password'"
           >
             <div class="q-mb-lg">
-              <strong> Login to your account</strong>
+              <strong>
+                <span v-text="$t('login_to_account')"></span>
+              </strong>
             </div>
             <q-form @submit="login" class="q-gutter-md">
               <q-input
@@ -127,7 +133,7 @@
           <q-card-section
             v-if="authAction === 'register' && authMethod === 'username-password'"
           >
-            <b>Create account</b><br /><br />
+            <b> <span v-text="$t('create_account')"></span> </b><br /><br />
             <q-form @submit="register" class="q-gutter-md">
               <q-input
                 filled
@@ -227,7 +233,9 @@
                       :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
                     ></q-img>
                   </q-avatar>
-                  <div>Sign In with Google</div>
+                  <div>
+                    <span v-text="$t('signin_with_google')"></span>
+                  </div>
                 </q-btn>
               </div>
               {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
@@ -246,7 +254,7 @@
                       :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
                     ></q-img>
                   </q-avatar>
-                  <div>Sign In with GitHub</div>
+                  <div><span v-text="$t('signin_with_github')"></span></div>
                 </q-btn>
               </div>
               {%endif%}

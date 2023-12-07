@@ -189,5 +189,14 @@ window.localisation.en = {
   hour: 'hour',
   disable_server_log: 'Disable Server Log',
   enable_server_log: 'Enable Server Log',
-  coming_soon: 'Feature coming soon'
+  coming_soon: 'Feature coming soon',
+  session_has_expired: 'Your session has expired. Please login again.',
+  instant_access_question: 'Want instant access?',
+  login_with_user_id: 'Login with user ID',
+  or: 'or',
+  create_new_wallet: 'Create New Wallet',
+  login_to_account: 'Login to your account',
+  create_account: 'Create account',
+  signin_with_google: 'Sign In with Google',
+  signin_with_github: 'Sign In with GitHub'
 }
