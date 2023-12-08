@@ -2,6 +2,7 @@
 # 2. Always run "npx prettier -w lnbits/static/i18n/XX.js" to reformat the result
 
 import os
+import re
 import sys
 
 import json5
@@ -39,6 +40,13 @@ def save_language(lang, data):
         f.write("}\n")
 
 
+def string_variables_match(str1, str2):
+    pat = re.compile(r"%\{[a-z0-9_]*\}")
+    m1 = re.findall(pat, str1)
+    m2 = re.findall(pat, str2)
+    return sorted(m1) == sorted(m2)
+
+
 def translate_string(lang_from, lang_to, text):
     target = {
         "de": "German",
@@ -73,7 +81,12 @@ def translate_string(lang_from, lang_to, text):
             ],
             model="gpt-4-1106-preview",  # aka GPT-4 Turbo
         )
-        return chat_completion.choices[0].message.content.strip()
+        translated = chat_completion.choices[0].message.content.strip()
+        # return translated string only if variables were not broken
+        if string_variables_match(text, translated):
+            return translated
+        else:
+            return None
     except Exception:
         return None
 
@@ -101,3 +114,10 @@ if len(missing) > 0:
                 print("ERROR")
             print()
     save_language(lang, new)
+else:
+    # check whether variables match for each string
+    for k in data_en:
+        if not string_variables_match(data_en[k], data[k]):
+            print(f"Variables mismatch ({k}):")
+            print(data_en[k])
+            print(data[k])
