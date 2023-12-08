@@ -66,7 +66,7 @@ window.localisation.we = {
   lnbits_version: 'Fersiwn LNbits',
   runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',
-  credit_label: '%{enomination} i gredyd',
+  credit_label: '%{denomination} i gredyd',
   paste: 'Gludo',
   paste_from_clipboard: "Gludo o'r clipfwrdd",
   paste_request: 'Gludo Cais',

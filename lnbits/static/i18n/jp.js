@@ -53,7 +53,8 @@ window.localisation.jp = {
   donate: '寄付',
   view_github: 'GitHubで表示',
   voidwallet_active: 'Voidwalletアクティブ',
-  use_with_caution: '注意して使用してください',
+  use_with_caution:
+    '注意して使用してください - %{name} ウォレットはまだベータ版です',
   service_fee: '取引ごとのサービス手数料: %{amount} %',
   service_fee_max: '取引手数料：%{amount}%（最大%{max}サトシ）',
   service_fee_tooltip: 'LNbitsサーバー管理者が発生する送金ごとの手数料',
@@ -64,7 +65,7 @@ window.localisation.jp = {
   runs_on: 'で実行',
   credit_hint:
     'クレジットカードを使用して資金を追加するには、LNbitsを使用してください。',
-  credit_label: 'クレジットカード',
+  credit_label: '%{denomination} をクレジットに',
   paste: '貼り付け',
   paste_from_clipboard: 'クリップボードから貼り付け',
   paste_request: 'リクエストを貼り付ける',

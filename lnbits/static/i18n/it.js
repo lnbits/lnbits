@@ -55,7 +55,7 @@ window.localisation.it = {
   donate: 'Donazioni',
   view_github: 'Visualizza su GitHub',
   voidwallet_active: 'VoidWallet è attivo! Pagamenti disabilitati',
-  use_with_caution: 'USARE CON CAUTELA - %{nome} portafoglio è ancora in BETA',
+  use_with_caution: 'USARE CON CAUTELA - %{name} portafoglio è ancora in BETA',
   service_fee: 'Commissione di servizio: %{amount} % per transazione',
   service_fee_max:
     'Commissione di servizio: %{amount} % per transazione (max %{max} sats)',
