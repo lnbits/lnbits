@@ -109,14 +109,14 @@
                 dense
                 v-model="username"
                 name="username"
-                :label="$t('username_or_email')"
+                :label="$t('username_or_email') + ' *'"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password"
                 name="password"
-                :label="$t('password')"
+                :label="$t('password') + ' *'"
                 type="password"
               ></q-input>
               <div>
@@ -140,14 +140,14 @@
                 dense
                 required
                 v-model="username"
-                :label="$t('username')"
+                :label="$t('username') + ' *'"
                 :rules="[(val) => validateUsername(val) || $t('invalid_username')]"
               ></q-input>
               <q-input
                 filled
                 dense
                 v-model="password"
-                :label="$t('password')"
+                :label="$t('password') + ' *'"
                 type="password"
                 :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
               ></q-input>
@@ -155,7 +155,7 @@
                 filled
                 dense
                 v-model="passwordRepeat"
-                :label="$t('password_repeat')"
+                :label="$t('password_repeat') + ' *'"
                 type="password"
                 :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
               ></q-input>
