@@ -172,7 +172,7 @@ async def wallet(
         wallet_id = wal.hex
     elif len(user.wallets) == 0:
         wallet = await create_wallet(user_id=user.id)
-        user = await get_user(user_id=user.id)
+        user = await get_user(user_id=user.id) or user
         wallet_id = wallet.id
     else:
         wallet_id = user.wallets[0].id
