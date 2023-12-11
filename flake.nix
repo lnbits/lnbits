@@ -39,12 +39,13 @@
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
+            wallycore = prev.wallycore.override { preferWheel = true; };
             fastapi-sso = prev.fastapi-sso.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                prev.poetry
+                prev.poetry-core
               ];
             });
-            types-python-jose = prev.types-python-jose.overrideAttrs (old: {
+            types-passlib = prev.types-passlib.overrideAttrs (old: {
               buildInputs = (old.buildInputs or [ ]) ++ [
                 prev.setuptools
               ];
@@ -54,12 +55,11 @@
                 prev.setuptools
               ];
             });
-            types-passlib = prev.types-passlib.overrideAttrs (old: {
+            types-python-jose = prev.types-python-jose.overrideAttrs (old: {
               buildInputs = (old.buildInputs or [ ]) ++ [
                 prev.setuptools
               ];
             });
-            wallycore = prev.wallycore.override { preferWheel = true; };
           });
         };
       });
