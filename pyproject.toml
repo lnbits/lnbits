@@ -34,6 +34,12 @@ websocket-client = "1.6.3"
 pycryptodomex = "3.19.0"
 packaging = "23.1"
 bolt11 = "2.0.5"
+# needed for new login methods: username-password, google-auth, github-auth
+bcrypt = "^4.1.1"
+python-jose = "^3.3.0"
+passlib = "^1.7.4"
+itsdangerous = "^2.1.2"
+fastapi-sso = "^0.9.1"
 # needed for boltz, lnurldevice, watchonly extensions
 embit = "0.7.0"
 # needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
@@ -44,11 +50,6 @@ environs = "9.5.0"
 python-crontab = "3.0.0"
 # needed for liquid support boltz
 wallycore = {version = "^1.0.0", optional = true}
-bcrypt = "^4.1.1"
-python-jose = "^3.3.0"
-passlib = "^1.7.4"
-itsdangerous = "^2.1.2"
-fastapi-sso = "^0.9.1"
 
 [tool.poetry.extras]
 liquid = ["wallycore"]
