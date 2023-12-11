@@ -831,7 +831,7 @@ new Vue({
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
         urlParams.get('lightning') || urlParams.get('lnurl')
-      this.decodeRequest
+      this.decodeRequest()
       this.parse.show = true
     }
     this.fetchBalance()
