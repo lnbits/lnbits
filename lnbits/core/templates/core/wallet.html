@@ -232,7 +232,7 @@
                   </q-td>
                 </q-tr>
 
-                <q-dialog v-model="props.expand" :props="props">
+                <q-dialog v-model="props.expand" :props="props" position="top">
                   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                     <div class="text-center q-mb-lg">
                       <div v-if="props.row.isIn && props.row.pending">
@@ -469,7 +469,7 @@
         </div>
       </div>
 
-      <q-dialog v-model="receive.show">
+      <q-dialog v-model="receive.show" position="top">
         {% raw %}
         <q-card
           v-if="!receive.paymentReq"
@@ -580,7 +580,7 @@
         {% endraw %}
       </q-dialog>
 
-      <q-dialog v-model="parse.show" @hide="closeParseDialog">
+      <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
             <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
@@ -804,7 +804,7 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="parse.camera.show">
+      <q-dialog v-model="parse.camera.show" position="top">
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
@@ -825,7 +825,7 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="paymentsChart.show">
+      <q-dialog v-model="paymentsChart.show" position="top">
         <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
           <q-card-section>
             <div class="row q-gutter-sm justify-between">
@@ -872,7 +872,7 @@
         </q-btn>
       </q-tabs>
 
-      <q-dialog v-model="disclaimerDialog.show">
+      <q-dialog v-model="disclaimerDialog.show" position="top">
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
           <p v-text="$t('disclaimer_dialog')"></p>
