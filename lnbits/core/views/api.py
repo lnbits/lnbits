@@ -405,7 +405,7 @@ async def api_payments_pay_lnurl(
     domain = urlparse(data.callback).netloc
 
     headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
             r = await client.get(
                 data.callback,
@@ -414,6 +414,7 @@ async def api_payments_pay_lnurl(
             )
             if r.is_error:
                 raise httpx.ConnectError("LNURL callback connection error")
+            r.raise_for_status()
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
