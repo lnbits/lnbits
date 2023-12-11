@@ -40,26 +40,6 @@
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
-            fastapi-sso = prev.fastapi-sso.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                prev.poetry-core
-              ];
-            });
-            types-passlib = prev.types-passlib.overrideAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [
-                prev.setuptools
-              ];
-            });
-            types-pyasn1 = prev.types-pyasn1.overrideAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [
-                prev.setuptools
-              ];
-            });
-            types-python-jose = prev.types-python-jose.overrideAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [
-                prev.setuptools
-              ];
-            });
           });
         };
       });
