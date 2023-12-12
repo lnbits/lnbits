@@ -89,7 +89,7 @@
     </div>
   </q-card-section>
   <q-card-section
-    v-if="formData.auth_allowed_methods.includes('google-auth')"
+    v-if="formData.auth_allowed_methods?.includes('google-auth')"
     class="q-pl-xl"
   >
     <strong class="q-my-none q-mb-sm">Google Auth</strong>
@@ -116,7 +116,7 @@
     </div>
   </q-card-section>
   <q-card-section
-    v-if="formData.auth_allowed_methods.includes('github-auth')"
+    v-if="formData.auth_allowed_methods?.includes('github-auth')"
     class="q-pl-xl"
   >
     <strong class="q-my-none q-mb-sm">GitHub Auth</strong>
