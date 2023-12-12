@@ -471,12 +471,19 @@ window.windowMixin = {
       )
     },
     logout: async function () {
-      try {
-        await LNbits.api.logout()
-        window.location = '/'
-      } catch (e) {
-        LNbits.utils.notifyApiError(e)
-      }
+      LNbits.utils
+        .confirmDialog(
+          'Do you really want to logout?' +
+            ' Please make sure you have saved your credentials!'
+        )
+        .onOk(async () => {
+          try {
+            await LNbits.api.logout()
+            window.location = '/'
+          } catch (e) {
+            LNbits.utils.notifyApiError(e)
+          }
+        })
     }
   },
   created: async function () {
