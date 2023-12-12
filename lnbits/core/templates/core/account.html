@@ -122,8 +122,10 @@
         </q-input>
         <div v-if="!user.email" class="row"></div>
         <div v-if="!user.email" class="row">
-          <div class="col q-pa-sm text-h6">Check email using:</div>
-          {% if "google-auth" in LNBITS_AUTH_METHODS %}
+          {% if "google-auth" in LNBITS_AUTH_METHODS or "github-auth" in
+          LNBITS_AUTH_METHODS %}
+          <div class="col q-pa-sm text-h6">Verify email with:</div>
+          {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
           <div class="col q-pa-sm">
             <q-btn
               :href="`/api/v1/auth/google?user_id=${user.id}`"
