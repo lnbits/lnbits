@@ -826,13 +826,16 @@ new Vue({
       return LNbits.utils.formatCurrency(amount, currency)
     },
     intentCheck: function () {
-      let urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+      let url = new URL(window.location.href)
+      let lightning = url.searchParams.get('lightning')
+      let lnurl = url.searchParams.get('lnurl')
+      if (lightning || lnurl) {
         this.parse.data.request =
-          urlParams.get('lightning') || urlParams.get('lnurl')
+          lightning || lnurl
         this.decodeRequest()
-        urlParams.delete("lightning")
-        urlParams.delete("lnurl")
+        url.searchParams.delete("lightning")
+        url.searchParams.delete("lnurl")
+        history.replaceState(history.state, '', url.href)
         this.parse.show = true
       }
     },
