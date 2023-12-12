@@ -248,6 +248,56 @@
           >
             <q-tooltip><span v-text="$t('toggle_darkmode')"></span></q-tooltip>
           </q-btn>
+          <q-btn-dropdown
+            v-if="isUserAuthorized"
+            dense
+            flat
+            round
+            size="sm"
+            class="q-pl-sm"
+          >
+            <template v-slot:label>
+              <div>
+                {%if user and user.config and user.config.picture%}
+                <img src="{{user.config.picture}}" style="max-width: 32px" />
+                {%else%}
+                <q-icon name="account_circle" />
+                {%endif%}
+              </div>
+            </template>
+            <q-list>
+              <q-item clickable v-close-popup
+                ><q-item-section>
+                  <q-icon name="person" />
+                </q-item-section>
+                <q-item-section>
+                  <!-- todo: no word break -->
+                  <q-item-label>
+                    <a
+                      style="text-decoration: none; color: inherit"
+                      href="/account"
+                      ><span> My Account</span></a
+                    >
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator></q-separator>
+              <q-item clickable v-close-popup @click="logout"
+                ><q-item-section>
+                  <q-icon name="logout" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Logout </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </q-toolbar>
       </q-header>
 

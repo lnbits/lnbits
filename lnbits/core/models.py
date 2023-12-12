@@ -79,14 +79,25 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
+class UserConfig(BaseModel):
+    email_verified: Optional[bool] = False
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    display_name: Optional[str] = None
+    picture: Optional[str] = None
+    provider: Optional[str] = "lnbits"  # auth provider
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None
+    username: Optional[str] = None
     extensions: List[str] = []
     wallets: List[Wallet] = []
-    password: Optional[str] = None
     admin: bool = False
     super_user: bool = False
+    has_password: bool = False
+    config: Optional[UserConfig] = None
 
     @property
     def wallet_ids(self) -> List[str]:
@@ -105,6 +116,36 @@ class User(BaseModel):
         if user in settings.lnbits_admin_users:
             return True
         return False
+
+
+class CreateUser(BaseModel):
+    email: Optional[str] = Query(default=None)
+    username: str = Query(default=..., min_length=2, max_length=20)
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
+class UpdateUser(BaseModel):
+    user_id: str
+    email: Optional[str] = Query(default=None)
+    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+    config: Optional[UserConfig] = None
+
+
+class UpdateUserPassword(BaseModel):
+    user_id: str
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+    password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
+
+
+class LoginUsr(BaseModel):
+    usr: str
+
+
+class LoginUsernamePassword(BaseModel):
+    username: str
+    password: str
 
 
 class Payment(FromRowModel):

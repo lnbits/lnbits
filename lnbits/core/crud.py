@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
+from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.core.models import WalletType
@@ -20,11 +21,14 @@ from lnbits.settings import (
 
 from .models import (
     BalanceCheck,
+    CreateUser,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
+    UpdateUserPassword,
     User,
+    UserConfig,
     Wallet,
     WebPushSubscription,
 )
@@ -33,8 +37,43 @@ from .models import (
 # --------
 
 
+async def create_user(
+    data: CreateUser, user_config: Optional[UserConfig] = None
+) -> User:
+    if not settings.new_accounts_allowed:
+        raise ValueError("Account creation is disabled.")
+    if await get_account_by_username(data.username):
+        raise ValueError("Username already exists.")
+
+    if data.email and await get_account_by_email(data.email):
+        raise ValueError("Email already exists.")
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    user_id = uuid4().hex
+    await db.execute(
+        """
+            INSERT INTO accounts (id, email, username, pass, extra)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            data.email,
+            data.username,
+            pwd_context.hash(data.password),
+            json.dumps(dict(user_config)) if user_config else "{}",
+        ),
+    )
+    new_account = await get_account(user_id=user_id)
+    assert new_account, "Newly created account couldn't be retrieved"
+    return new_account
+
+
 async def create_account(
-    conn: Optional[Connection] = None, user_id: Optional[str] = None
+    conn: Optional[Connection] = None,
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    user_config: Optional[UserConfig] = None,
 ) -> User:
     if user_id:
         user_uuid4 = UUID(hex=user_id, version=4)
@@ -42,7 +81,11 @@ async def create_account(
     else:
         user_id = uuid4().hex
 
-    await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
+    extra = json.dumps(dict(user_config)) if user_config else "{}"
+    await (conn or db).execute(
+        "INSERT INTO accounts (id, email, extra) VALUES (?, ?, ?)",
+        (user_id, email, extra),
+    )
 
     new_account = await get_account(user_id=user_id, conn=conn)
     assert new_account, "Newly created account couldn't be retrieved"
@@ -50,19 +93,132 @@ async def create_account(
     return new_account
 
 
+async def update_account(
+    user_id: str,
+    username: Optional[str] = None,
+    email: Optional[str] = None,
+    user_config: Optional[UserConfig] = None,
+) -> Optional[User]:
+    user = await get_account(user_id)
+    assert user, "User not found"
+
+    if email:
+        assert not user.email or email == user.email, "Cannot change email."
+        account = await get_account_by_email(email)
+        assert not account or account.id == user_id, "Email already in use."
+
+    if username:
+        assert not user.username or username == user.username, "Cannot change username."
+        account = await get_account_by_username(username)
+        assert not account or account.id == user_id, "Username already in exists."
+
+    username = user.username or username
+    email = user.email or email
+    extra = user_config or user.config
+
+    await db.execute(
+        """
+            UPDATE accounts SET (username, email, extra) = (?, ?, ?)
+            WHERE id = ?
+        """,
+        (username, email, json.dumps(dict(extra)) if extra else "{}", user_id),
+    )
+
+    user = await get_user(user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
+
+
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username FROM accounts WHERE id = ?",
+        (user_id,),
     )
 
     return User(**row) if row else None
 
 
+async def get_user_password(user_id: str) -> Optional[str]:
+    row = await db.fetchone(
+        "SELECT pass FROM accounts WHERE id = ?",
+        (user_id,),
+    )
+    if not row:
+        return None
+
+    return row[0]
+
+
+async def verify_user_password(user_id: str, password: str) -> bool:
+    existing_password = await get_user_password(user_id)
+    if not existing_password:
+        return False
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    return pwd_context.verify(password, existing_password)
+
+
+# todo: , conn: Optional[Connection] = None ??
+async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
+    assert data.password == data.password_repeat, "Passwords do not match."
+
+    # old accounts do not have a pasword
+    if await get_user_password(data.user_id):
+        assert data.password_old, "Missing old password"
+        old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
+        assert old_pwd_ok, "Invalid credentials."
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    await db.execute(
+        "UPDATE accounts SET pass = ? WHERE id = ?",
+        (
+            pwd_context.hash(data.password),
+            data.user_id,
+        ),
+    )
+
+    user = await get_user(data.user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
+
+
+async def get_account_by_username(
+    username: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id, username, email FROM accounts WHERE username = ?",
+        (username,),
+    )
+
+    return User(**row) if row else None
+
+
+async def get_account_by_email(
+    email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        "SELECT id, username, email FROM accounts WHERE email = ?",
+        (email,),
+    )
+
+    return User(**row) if row else None
+
+
+async def get_account_by_username_or_email(
+    username_or_email: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    user = await get_account_by_username(username_or_email, conn)
+    if not user:
+        user = await get_account_by_email(username_or_email, conn)
+    return user
+
+
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, username, pass, extra FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
@@ -86,6 +242,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     return User(
         id=user["id"],
         email=user["email"],
+        username=user["username"],
         extensions=[
             e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],
@@ -93,6 +250,8 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
         super_user=user["id"] == settings.super_user,
+        has_password=True if user["pass"] else False,
+        config=UserConfig(**json.loads(user["extra"])) if user["extra"] else None,
     )
 
 

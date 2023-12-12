@@ -39,6 +39,7 @@ def load_macaroon(macaroon: str) -> str:
     return macaroon
 
 
+# todo: move to its own (crypto.py) file
 class AESCipher:
     """This class is compatible with crypto-js/aes.js
 

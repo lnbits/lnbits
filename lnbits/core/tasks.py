@@ -188,6 +188,8 @@ async def send_payment_push_notification(payment: Payment):
             body += f"\r\n{payment.memo}"
 
         for subscription in subscriptions:
+            # todo: review permissions when user-id-only not allowed
+            # todo: replace all this logic with websockets?
             url = (
                 f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )

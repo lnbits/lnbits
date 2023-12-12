@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }}
+<script src="{{ static_url_for('static', 'js/account.js') }}"></script>
+{% endblock %} {% block page %}
+<div class="row q-col-gutter-md">
+  <div v-if="user" class="col-12 col-md-6 q-gutter-y-md">
+    <q-card v-if="passwordData.show">
+      <q-card-section>
+        <div class="row">
+          <div class="col">
+            <h4 class="q-my-none">Password Settings</h4>
+          </div>
+          <div class="col">
+            <q-img
+              v-if="user.config.picture"
+              style="max-width: 100px"
+              :src="user.config.picture"
+              class="float-right"
+            ></q-img>
+          </div>
+        </div>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <q-input
+          v-if="user.has_password"
+          v-model="passwordData.oldPassword"
+          type="password"
+          autocomplete="off"
+          label="Old Password"
+          filled
+          dense
+          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+        ></q-input>
+        <q-input
+          v-model="passwordData.newPassword"
+          type="password"
+          autocomplete="off"
+          label="New Password"
+          filled
+          dense
+          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+        ></q-input>
+        <q-input
+          v-model="passwordData.newPasswordRepeat"
+          type="password"
+          autocomplete="off"
+          label="New Password Repeat"
+          filled
+          dense
+          class="q-mb-md"
+          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+        ></q-input>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section class="q-pb-lg">
+        <q-btn
+          @click="updatePassword"
+          :disable="(!passwordData.newPassword || !passwordData.newPasswordRepeat) || passwordData.newPassword !== passwordData.newPasswordRepeat"
+          unelevated
+          color="primary"
+          >Update Password</q-btn
+        >
+        <q-btn
+          @click="passwordData.show = false"
+          label="Back"
+          outline
+          unelevated
+          color="grey"
+          class="float-right"
+        ></q-btn>
+      </q-card-section>
+    </q-card>
+    <q-card v-else>
+      <q-card-section>
+        <div class="row">
+          <div class="col">
+            <h4 class="q-my-none">Account Settings</h4>
+          </div>
+          <div class="col">
+            <q-img
+              v-if="user.config.picture"
+              style="max-width: 100px"
+              :src="user.config.picture"
+              class="float-right"
+            ></q-img>
+          </div>
+        </div>
+      </q-card-section>
+      <q-separator></q-separator>
+
+      <q-card-section>
+        <q-input
+          v-model="user.id"
+          label="User ID"
+          filled
+          dense
+          readonly
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.username"
+          label="Username"
+          filled
+          dense
+          :readonly="hasUsername"
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.email"
+          label="Email"
+          filled
+          dense
+          readonly
+          class="q-mb-md"
+        >
+        </q-input>
+        <div v-if="!user.email" class="row"></div>
+        <div v-if="!user.email" class="row">
+          <div class="col q-pa-sm text-h6">Check email using:</div>
+          {% if "google-auth" in LNBITS_AUTH_METHODS %}
+          <div class="col q-pa-sm">
+            <q-btn
+              :href="`/api/v1/auth/google?user_id=${user.id}`"
+              type="a"
+              outline
+              no-caps
+              rounded
+              color="grey"
+              class="full-width"
+            >
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>Google</div>
+            </q-btn>
+          </div>
+          {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
+          <div class="col q-pa-sm">
+            <q-btn
+              :href="`/api/v1/auth/github?user_id=${user.id}`"
+              type="a"
+              outline
+              no-caps
+              color="grey"
+              rounded
+              class="full-width"
+            >
+              <q-avatar size="32px" class="q-mr-md">
+                <q-img
+                  :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                ></q-img>
+              </q-avatar>
+              <div>GitHub</div>
+            </q-btn>
+          </div>
+          {%endif%}
+        </div>
+      </q-card-section>
+
+      <q-card-section v-if="user.config">
+        <q-input
+          v-model="user.config.display_name"
+          label="Display Name"
+          filled
+          dense
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.config.first_name"
+          label="First Name"
+          filled
+          dense
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.config.last_name"
+          label="Last Name"
+          filled
+          dense
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.config.provider"
+          label="Auth Provider"
+          filled
+          dense
+          readonly
+          class="q-mb-md"
+        >
+        </q-input>
+        <q-input
+          v-model="user.config.picture"
+          label="Picture"
+          filled
+          dense
+          class="q-mb-md"
+        >
+        </q-input>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <q-btn @click="updateAccount" unelevated color="primary"
+          >Update Account</q-btn
+        >
+        <q-btn
+          @click="showChangePassword()"
+          :label="user.has_password ? 'Change Password': 'Set Password'"
+          outline
+          unelevated
+          color="grey"
+          class="float-right"
+        ></q-btn>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div v-else class="col-12 col-md-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h4 class="q-my-none">Account</h4>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %}

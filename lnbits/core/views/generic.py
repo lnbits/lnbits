@@ -165,57 +165,51 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
-    usr: UUID4 = Query(...),
+    user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
-    user_id = usr.hex
-    user = await get_user(user_id)
-
-    if not user:
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User does not exist."}
-        )
-
-    if not wal:
-        if len(user.wallets) == 0:
-            wallet = await create_wallet(user_id=user.id)
-            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
-        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
-    else:
+    if wal:
         wallet_id = wal.hex
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        user = await get_user(user_id=user.id) or user
+        wallet_id = wallet.id
+    else:
+        wallet_id = user.wallets[0].id
 
-    userwallet = user.get_wallet(wallet_id)
-    if not userwallet or userwallet.deleted:
+    user_wallet = user.get_wallet(wallet_id)
+    if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
-
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and user_id not in settings.lnbits_allowed_users
-        and user_id not in settings.lnbits_admin_users
-        and user_id != settings.super_user
-    ):
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User not authorized."}
-        )
-
-    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
-        user.admin = True
-    if user_id == settings.super_user:
-        user.super_user = True
-
-    logger.debug(f"Access user {user.id} wallet {userwallet.name}")
 
     return template_renderer().TemplateResponse(
         "core/wallet.html",
         {
             "request": request,
             "user": user.dict(),
-            "wallet": userwallet.dict(),
+            "wallet": user_wallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
+        },
+    )
+
+
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        "core/account.html",
+        {
+            "request": request,
+            "user": user.dict(),
         },
     )
 
