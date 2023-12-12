@@ -830,11 +830,10 @@ new Vue({
       let lightning = url.searchParams.get('lightning')
       let lnurl = url.searchParams.get('lnurl')
       if (lightning || lnurl) {
-        this.parse.data.request =
-          lightning || lnurl
+        this.parse.data.request = lightning || lnurl
         this.decodeRequest()
-        url.searchParams.delete("lightning")
-        url.searchParams.delete("lnurl")
+        url.searchParams.delete('lightning')
+        url.searchParams.delete('lnurl')
         history.replaceState(history.state, '', url.href)
         this.parse.show = true
       }
