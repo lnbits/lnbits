@@ -1,62 +1,145 @@
 <q-tab-panel name="users">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">User Management</h6>
-    <br />
-    <div>
-      <p>Admin Users</p>
-      <q-input
-        filled
-        v-model="formAddAdmin"
-        @keydown.enter="addAdminUser"
-        type="text"
-        label="User ID"
-        hint="Users with admin privileges"
-      >
-        <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
-      </q-input>
-      <div>
-        {%raw%}
-        <q-chip
-          v-for="user in formData.lnbits_admin_users"
-          :key="user"
-          removable
-          @remove="removeAdminUser(user)"
-          color="primary"
-          text-color="white"
+    <h6 class="q-my-none q-mb-sm">User Management</h6>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Admin Users</p>
+        <q-input
+          filled
+          v-model="formAddAdmin"
+          @keydown.enter="addAdminUser"
+          type="text"
+          label="User ID"
+          hint="Users with admin privileges"
         >
-          {{ user }}
-        </q-chip>
-        {%endraw%}
+          <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          {%raw%}
+          <q-chip
+            v-for="user in formData.lnbits_admin_users"
+            :key="user"
+            removable
+            @remove="removeAdminUser(user)"
+            color="primary"
+            text-color="white"
+          >
+            {{ user }}
+          </q-chip>
+          {%endraw%}
+        </div>
+        <br />
       </div>
-      <br />
+      <div class="col-md-6 col-sm-12">
+        <p>Allowed Users</p>
+        <q-input
+          filled
+          v-model="formAddUser"
+          @keydown.enter="addAllowedUser"
+          type="text"
+          label="User ID"
+          hint="Only these users can use LNbits"
+        >
+          <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          {% raw %}
+          <q-chip
+            v-for="user in formData.lnbits_allowed_users"
+            :key="user"
+            removable
+            @remove="removeAllowedUser(user)"
+            color="primary"
+            text-color="white"
+          >
+            {{ user }}
+          </q-chip>
+          {% endraw %}
+        </div>
+        <br />
+      </div>
     </div>
-    <div>
-      <p>Allowed Users</p>
-      <q-input
-        filled
-        v-model="formAddUser"
-        @keydown.enter="addAllowedUser"
-        type="text"
-        label="User ID"
-        hint="Only these users can use LNbits"
-      >
-        <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
-      </q-input>
-      <div>
-        {% raw %}
-        <q-chip
-          v-for="user in formData.lnbits_allowed_users"
-          :key="user"
-          removable
-          @remove="removeAllowedUser(user)"
-          color="primary"
-          text-color="white"
+  </q-card-section>
+  <q-separator></q-separator>
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Authentication</h6>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.auth_token_expire_minutes"
+          type="number"
+          label="Token expire minutes"
+          hint="Time in minutes until the token expires"
         >
-          {{ user }}
-        </q-chip>
-        {% endraw %}
+        </q-input>
       </div>
-      <br />
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-select
+          filled
+          v-model="formData.auth_allowed_methods"
+          multiple
+          hint="Allowed authorization methods"
+          label="Select authorization methods"
+          :options="formData.auth_all_methods"
+        ></q-select>
+      </div>
+    </div>
+  </q-card-section>
+  <q-card-section
+    v-if="formData.auth_allowed_methods.includes('google-auth')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">Google Auth</strong>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.google_client_id"
+          label="Google Client ID"
+          hint="Make sure thant the authorized redirect URIs contain https://{domain}/api/v1/auth/google/token"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.google_client_secret"
+          type="password"
+          label="Google Client Secret"
+        >
+        </q-input>
+      </div>
+    </div>
+  </q-card-section>
+  <q-card-section
+    v-if="formData.auth_allowed_methods.includes('github-auth')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">GitHub Auth</strong>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.github_client_id"
+          label="GitHub Client ID"
+          hint="Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/github/token"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.github_client_secret"
+          type="password"
+          label="GitHub Client Secret"
+        >
+        </q-input>
+      </div>
     </div>
   </q-card-section>
 </q-tab-panel>
