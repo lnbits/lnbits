@@ -17,7 +17,9 @@
       {% else %}
       <div class="col-12 col-md-7 q-gutter-y-md">
         {% endif %}
-        <q-card>
+        <q-card
+          :style="{ background: $q.screen.lt.md ? 'none !important': '', boxShadow: $q.screen.lt.md ? 'none !important': ''}"
+        >
           <q-card-section>
             <h3 class="q-my-none">
               <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
@@ -98,7 +100,9 @@
           </div>
         </q-card>
 
-        <q-card>
+        <q-card
+          :style="{ background: $q.screen.lt.md ? 'none !important': '', boxShadow: $q.screen.lt.md ? 'none !important': ''}"
+        >
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
               <div class="col">
@@ -107,7 +111,7 @@
                   :v-text="$t('transactions')"
                 ></h5>
               </div>
-              <div class="col-auto">
+              <div class="gt-sm col-auto">
                 <q-btn
                   flat
                   color="grey"
@@ -308,7 +312,7 @@
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
-        <div class="col-12 col-md-5 q-gutter-y-md">
+        <div class="gt-sm col-12 col-md-5 q-gutter-y-md">
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
