@@ -266,18 +266,13 @@
               </div>
             </template>
             <q-list>
-              <q-item clickable v-close-popup
+              <q-item tag="a" href="/account" clickable v-close-popup
                 ><q-item-section>
                   <q-icon name="person" />
                 </q-item-section>
                 <q-item-section>
-                  <!-- todo: no word break -->
                   <q-item-label>
-                    <a
-                      style="text-decoration: none; color: inherit"
-                      href="/account"
-                      ><span> My Account</span></a
-                    >
+                    <span> My Account</span>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section>
