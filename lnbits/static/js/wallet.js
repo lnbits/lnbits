@@ -825,6 +825,17 @@ new Vue({
     formatFiat(currency, amount) {
       return LNbits.utils.formatCurrency(amount, currency)
     },
+    intentCheck: function () {
+      let urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+        this.parse.data.request =
+          urlParams.get('lightning') || urlParams.get('lnurl')
+        this.decodeRequest()
+        urlParams.delete("lightning")
+        urlParams.delete("lnurl")
+        this.parse.show = true
+      }
+    },
     exportCSV: function () {
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
@@ -854,15 +865,7 @@ new Vue({
     }
   },
   created: function () {
-    let urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
-      this.parse.data.request =
-        urlParams.get('lightning') || urlParams.get('lnurl')
-      this.decodeRequest()
-      urlParams.delete("lightning")
-      urlParams.delete("lnurl")
-      this.parse.show = true
-    }
+    this.intentCheck()
     this.fetchBalance()
     this.fetchPayments()
 
