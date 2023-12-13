@@ -414,12 +414,7 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         await db.execute(
             f"""
             ALTER TABLE accounts
-            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
-        await db.execute(
-            f"""
-            ALTER TABLE accounts
+            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         """
         )
@@ -427,12 +422,7 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         await db.execute(
             f"""
             ALTER TABLE wallets
-            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
-        await db.execute(
-            f"""
-            ALTER TABLE wallets
+            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         """
         )

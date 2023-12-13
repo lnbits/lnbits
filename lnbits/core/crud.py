@@ -118,15 +118,15 @@ async def update_account(
 
     await db.execute(
         """
-            UPDATE accounts SET (updated_at, username, email, extra) = (?, ?, ?, ?)
+            UPDATE accounts SET (username, email, extra, updated_at) = (?, ?, ?, ?)
             WHERE id = ?
         """,
         (
-            db.timestamp_now,
             username,
             email,
             json.dumps(dict(extra)) if extra else "{}",
             user_id,
+            db.timestamp_now,
         ),
     )
 
@@ -139,7 +139,7 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, username FROM accounts WHERE id = ?",
+        "SELECT id, email, username, created_at, updated_at FROM accounts WHERE id = ?",
         (user_id,),
     )
 
@@ -195,7 +195,10 @@ async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email FROM accounts WHERE username = ?",
+        """
+        SELECT id, username, email, created_at, updated_at
+        FROM accounts WHERE username = ?
+        """,
         (username,),
     )
 
@@ -206,7 +209,10 @@ async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email FROM accounts WHERE email = ?",
+        """
+        SELECT id, username, email, created_at, updated_at
+        FROM accounts WHERE email = ?
+        """,
         (email,),
     )
 
@@ -224,7 +230,11 @@ async def get_account_by_username_or_email(
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email, username, pass, extra FROM accounts WHERE id = ?", (user_id,)
+        """
+        SELECT id, email, username, pass, extra, created_at, updated_at
+        FROM accounts WHERE id = ?
+        """,
+        (user_id,),
     )
 
     if user:
