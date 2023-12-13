@@ -447,25 +447,30 @@ window.windowMixin = {
       })
     },
     checkUsrInUrl: async function () {
-      const params = new URLSearchParams(window.location.search)
-      const usr = params.get('usr')
-      if (!usr) {
-        return
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const usr = params.get('usr')
+        if (!usr) {
+          return
+        }
+
+        if (!this.isUserAuthorized) {
+          await LNbits.api.loginUsr(usr)
+        }
+
+        params.delete('usr')
+        const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
+
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + cleanQueryPrams
+        )
+      } finally {
+        this.isUserAuthorized = !!this.$q.cookies.get(
+          'is_lnbits_user_authorized'
+        )
       }
-
-      if (!this.isUserAuthorized) {
-        await LNbits.api.loginUsr(usr)
-      }
-      this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
-
-      params.delete('usr')
-      const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
-
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname + cleanQueryPrams
-      )
     },
     logout: async function () {
       LNbits.utils
