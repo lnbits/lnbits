@@ -165,11 +165,16 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
-    usr: UUID4 = Query(...),
+    usr: UUID4 = Query(None),
     wal: Optional[UUID4] = Query(None),
 ):
-    user_id = usr.hex
-    user = await get_user(user_id)
+    if not usr:
+        new_user = await create_account()
+        user = await get_user(new_user.id)
+        user_id = new_user.id
+    else:
+        user_id = usr.hex
+        user = await get_user(user_id)
 
     if not user:
         return template_renderer().TemplateResponse(
