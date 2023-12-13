@@ -158,6 +158,17 @@ async def get_account(
     return User(**row) if row else None
 
 
+async def delete_accounts_no_wallets(conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        """
+        DELETE FROM accounts
+        WHERE NOT EXISTS (
+            SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
+        )
+        """
+    )
+
+
 async def get_user_password(user_id: str) -> Optional[str]:
     row = await db.fetchone(
         "SELECT pass FROM accounts WHERE id = ?",
@@ -489,6 +500,10 @@ async def delete_wallet(
         """,
         (now, wallet_id, user_id),
     )
+
+
+async def delete_deleted_wallets(conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute("DELETE FROM wallets WHERE deleted = true")
 
 
 async def delete_unused_wallets(conn: Optional[Connection] = None) -> None:
