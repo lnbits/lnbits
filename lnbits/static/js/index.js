@@ -8,6 +8,7 @@ new Vue({
         data: {},
         description: ''
       },
+      isUserAuthorized: false,
       authAction: 'login',
       authMethod: 'username-password',
       usr: '',
@@ -93,6 +94,7 @@ new Vue({
   created() {
     this.description = SITE_DESCRIPTION
 
+    this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
