@@ -118,10 +118,16 @@ async def update_account(
 
     await db.execute(
         """
-            UPDATE accounts SET (username, email, extra) = (?, ?, ?)
+            UPDATE accounts SET (updated_at, username, email, extra) = (?, ?, ?, ?)
             WHERE id = ?
         """,
-        (username, email, json.dumps(dict(extra)) if extra else "{}", user_id),
+        (
+            db.timestamp_now,
+            username,
+            email,
+            json.dumps(dict(extra)) if extra else "{}",
+            user_id,
+        ),
     )
 
     user = await get_user(user_id)
@@ -420,6 +426,8 @@ async def update_wallet(
 ) -> Optional[Wallet]:
     set_clause = []
     values = []
+    set_clause.append("updated_at = ?")
+    values.append(db.timestamp_now)
     if name:
         set_clause.append("name = ?")
         values.append(name)

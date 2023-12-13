@@ -404,3 +404,38 @@ async def m016_add_username_column_to_accounts(db):
         await db.execute("ALTER TABLE accounts ADD COLUMN extra TEXT")
     except OperationalError:
         pass
+
+
+async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
+    """
+    Adds created_at and updated_at column to accounts and wallets.
+    """
+    try:
+        await db.execute(
+            f"""
+            ALTER TABLE accounts
+            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        """
+        )
+        await db.execute(
+            f"""
+            ALTER TABLE accounts
+            ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        """
+        )
+
+        await db.execute(
+            f"""
+            ALTER TABLE wallets
+            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        """
+        )
+        await db.execute(
+            f"""
+            ALTER TABLE wallets
+            ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        """
+        )
+
+    except OperationalError:
+        pass
