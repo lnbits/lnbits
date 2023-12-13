@@ -11,7 +11,9 @@
       <q-card-section>
         <div class="row">
           <div class="col">
-            <h4 class="q-my-none">Password Settings</h4>
+            <h4 class="q-my-none">
+              <span v-text="$t('password_config')"></span>
+            </h4>
           </div>
           <div class="col">
             <q-img
@@ -33,26 +35,26 @@
           label="Old Password"
           filled
           dense
-          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+          :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
         <q-input
           v-model="passwordData.newPassword"
           type="password"
           autocomplete="off"
-          label="New Password"
+          :label="$t('password')"
           filled
           dense
-          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+          :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
         <q-input
           v-model="passwordData.newPasswordRepeat"
           type="password"
           autocomplete="off"
-          label="New Password Repeat"
+          :label="$t('password_repeat')"
           filled
           dense
           class="q-mb-md"
-          :rules="[(val) => !val || val.length >= 8 || 'Password must have at least 8 characters']"
+          :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
       </q-card-section>
       <q-separator></q-separator>
@@ -62,11 +64,12 @@
           :disable="(!passwordData.newPassword || !passwordData.newPasswordRepeat) || passwordData.newPassword !== passwordData.newPasswordRepeat"
           unelevated
           color="primary"
-          >Update Password</q-btn
+          :label="$t('change_password')"
         >
+        </q-btn>
         <q-btn
           @click="passwordData.show = false"
-          label="Back"
+          :label="$t('back')"
           outline
           unelevated
           color="grey"
@@ -78,7 +81,9 @@
       <q-card-section>
         <div class="row">
           <div class="col">
-            <h4 class="q-my-none">Account Settings</h4>
+            <h4 class="q-my-none">
+              <span v-text="$t('account_settings')"></span>
+            </h4>
           </div>
           <div class="col">
             <q-img
@@ -95,7 +100,7 @@
       <q-card-section>
         <q-input
           v-model="user.id"
-          label="User ID"
+          :label="$t('user_id')"
           filled
           dense
           readonly
@@ -104,7 +109,7 @@
         </q-input>
         <q-input
           v-model="user.username"
-          label="Username"
+          :label="$t('username')"
           filled
           dense
           :readonly="hasUsername"
@@ -113,7 +118,7 @@
         </q-input>
         <q-input
           v-model="user.email"
-          label="Email"
+          :label="$t('email')"
           filled
           dense
           readonly
@@ -124,7 +129,9 @@
         <div v-if="!user.email" class="row">
           {% if "google-auth" in LNBITS_AUTH_METHODS or "github-auth" in
           LNBITS_AUTH_METHODS %}
-          <div class="col q-pa-sm text-h6">Verify email with:</div>
+          <div class="col q-pa-sm text-h6">
+            <span v-text="$t('verify_email')"></span>:
+          </div>
           {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
           <div class="col q-pa-sm">
             <q-btn
@@ -141,7 +148,7 @@
                   :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
                 ></q-img>
               </q-avatar>
-              <div>Google</div>
+              <div><span v-text="$t('google')"></span></div>
             </q-btn>
           </div>
           {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
@@ -160,7 +167,7 @@
                   :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
                 ></q-img>
               </q-avatar>
-              <div>GitHub</div>
+              <div><span v-text="$t('github')"></span></div>
             </q-btn>
           </div>
           {%endif%}
@@ -170,7 +177,7 @@
       <q-card-section v-if="user.config">
         <q-input
           v-model="user.config.first_name"
-          label="First Name"
+          :label="$t('first_name')"
           filled
           dense
           class="q-mb-md"
@@ -178,7 +185,7 @@
         </q-input>
         <q-input
           v-model="user.config.last_name"
-          label="Last Name"
+          :label="$t('last_name')"
           filled
           dense
           class="q-mb-md"
@@ -186,7 +193,7 @@
         </q-input>
         <q-input
           v-model="user.config.provider"
-          label="Auth Provider"
+          :label="$t('auth_provider')"
           filled
           dense
           readonly
@@ -195,7 +202,7 @@
         </q-input>
         <q-input
           v-model="user.config.picture"
-          label="Picture"
+          :label="$t('picture')"
           filled
           dense
           class="q-mb-md"
@@ -204,12 +211,12 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-section>
-        <q-btn @click="updateAccount" unelevated color="primary"
-          >Update Account</q-btn
-        >
+        <q-btn @click="updateAccount" unelevated color="primary">
+          <span v-text="$t('update_account')"></span>
+        </q-btn>
         <q-btn
           @click="showChangePassword()"
-          :label="user.has_password ? 'Change Password': 'Set Password'"
+          :label="user.has_password ? $t('change_password'): $t('set_password')"
           outline
           unelevated
           color="grey"
@@ -221,7 +228,7 @@
   <div v-else class="col-12 col-md-6 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h4 class="q-my-none">Account</h4>
+        <h4 class="q-my-none"><span v-text="$t('account')"></span></h4>
       </q-card-section>
     </q-card>
   </div>
