@@ -104,8 +104,15 @@
           filled
           dense
           readonly
+          :type="showUserId ? 'text': 'password'"
           class="q-mb-md"
-        >
+          ><q-btn
+            @click="showUserId = !showUserId"
+            dense
+            flat
+            :icon="showUserId ? 'visibility_off' : 'visibility'"
+            color="grey"
+          ></q-btn>
         </q-input>
         <q-input
           v-model="user.username"
