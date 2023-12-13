@@ -23,9 +23,6 @@ new Vue({
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.description)
     },
-    isUserAuthorized() {
-      return this.$q.cookies.get('is_lnbits_user_authorized')
-    },
     isAccessTokenExpired() {
       return this.$q.cookies.get('is_access_token_expired')
     }

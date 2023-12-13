@@ -407,6 +407,7 @@ window.windowMixin = {
   data: function () {
     return {
       toggleSubs: true,
+      isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,
@@ -417,12 +418,6 @@ window.windowMixin = {
         allowedThemes: null,
         langs: []
       }
-    }
-  },
-
-  computed: {
-    isUserAuthorized() {
-      return this.$q.cookies.get('is_lnbits_user_authorized')
     }
   },
 
@@ -461,6 +456,8 @@ window.windowMixin = {
       if (!this.isUserAuthorized) {
         await LNbits.api.loginUsr(usr)
       }
+      this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
+
       params.delete('usr')
       const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
 
