@@ -450,7 +450,7 @@ async def update_wallet(
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     set_clause = []
-    values = []
+    values: list = []
     set_clause.append(f"updated_at = {db.timestamp_placeholder}")
     values.append(time())
     if name:
