@@ -491,6 +491,17 @@ async def delete_wallet(
     )
 
 
+async def delete_unused_wallets(conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        """
+        DELETE FROM wallets
+        WHERE (
+            SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+        ) = 0
+        """
+    )
+
+
 async def get_wallet(
     wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:

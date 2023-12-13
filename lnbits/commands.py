@@ -18,6 +18,7 @@ from lnbits.settings import settings
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
+    delete_unused_wallets,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -161,6 +162,18 @@ async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
         return await get_dbversions(conn)
+
+
+@db.command("cleanup-wallets")
+def database_cleanup_wallets():
+    """Delete all wallets that never had any transaction"""
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(cleanup_wallets())
+
+
+async def cleanup_wallets():
+    async with core_db.connect() as conn:
+        return await delete_unused_wallets(conn)
 
 
 async def load_disabled_extension_list() -> None:
