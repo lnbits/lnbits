@@ -179,9 +179,10 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     await db.execute(
-        "UPDATE accounts SET pass = ? WHERE id = ?",
+        "UPDATE accounts SET pass = ?, updated_at = ? WHERE id = ?",
         (
             pwd_context.hash(data.password),
+            db.timestamp_now,
             data.user_id,
         ),
     )
@@ -462,10 +463,10 @@ async def delete_wallet(
     await (conn or db).execute(
         """
         UPDATE wallets
-        SET deleted = true
+        SET deleted = true, updated_at = ?
         WHERE id = ? AND "user" = ?
         """,
-        (wallet_id, user_id),
+        (db.timestamp_now, wallet_id, user_id),
     )
 
 
