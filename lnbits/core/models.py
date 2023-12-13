@@ -30,8 +30,8 @@ class Wallet(BaseModel):
     currency: Optional[str]
     balance_msat: int
     deleted: bool
-    created_at: int
-    updated_at: int
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
 
     @property
     def balance(self) -> int:
