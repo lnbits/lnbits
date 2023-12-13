@@ -96,7 +96,7 @@ window.localisation.en = {
   i_understand: 'I understand',
   copy_wallet_url: 'Copy wallet URL',
   disclaimer_dialog:
-    'To ensure continuous access to your wallets, please remember to securely store your login credentials OR the URL you use for access! Please visit the "My Account" page. This service is in BETA, and we hold no responsibility for people losing access to funds.',
+    'To ensure continuous access to your wallets, please remember to securely store your login credentials! Please visit the "My Account" page. This service is in BETA, and we hold no responsibility for people losing access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   extensions: 'Extensions',
@@ -222,5 +222,7 @@ window.localisation.en = {
   update_account: 'Update Account',
   invalid_username: 'Invalid Username',
   auth_provider: 'Auth Provider',
-  back: 'Back'
+  my_account: 'My Account',
+  back: 'Back',
+  logout: 'Logout'
 }
