@@ -411,30 +411,32 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
     Adds created_at and updated_at column to accounts and wallets.
     """
     try:
-        await db.execute(
-            f"""
-            ALTER TABLE accounts
-            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
-        await db.execute(
-            f"""
-            ALTER TABLE accounts
-            ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
-        await db.execute(
-            f"""
-            ALTER TABLE wallets
-            ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
-        await db.execute(
-            f"""
-            ALTER TABLE wallets
-            ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
-        """
-        )
+        if db.is_postgres:
+            await db.execute(
+                f"""
+                ALTER TABLE accounts
+                ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+                ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+            """
+            )
 
-    except OperationalError:
+            await db.execute(
+                f"""
+                ALTER TABLE wallets
+                ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+                ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+            """
+            )
+        if db.is_sqlite:
+            await db.execute(
+                "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP NULL"
+            )
+            await db.execute(
+                "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP NULL"
+            )
+            await db.execute("ALTER TABLE wallets ADD COLUMN created_at TIMESTAMP NULL")
+            await db.execute("ALTER TABLE wallets ADD COLUMN updated_at TIMESTAMP NULL")
+
+    except OperationalError as exc:
+        logger.error(f"Migration 17 failed: {exc}")
         pass

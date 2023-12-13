@@ -84,6 +84,14 @@ class Compat:
         return "<nothing>"
 
     @property
+    def is_postgres(self) -> bool:
+        return self.type in {POSTGRES, COCKROACH}
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.type is SQLITE
+
+    @property
     def timestamp_now(self) -> str:
         if self.type in {POSTGRES, COCKROACH}:
             return "now()"

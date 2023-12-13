@@ -53,8 +53,9 @@ async def create_user(
     user_id = uuid4().hex
     await db.execute(
         """
-            INSERT INTO accounts (id, email, username, pass, extra)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO accounts
+            (id, email, username, pass, extra, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user_id,
@@ -62,6 +63,8 @@ async def create_user(
             data.username,
             pwd_context.hash(data.password),
             json.dumps(dict(user_config)) if user_config else "{}",
+            db.timestamp_now,
+            db.timestamp_now,
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -83,8 +86,11 @@ async def create_account(
 
     extra = json.dumps(dict(user_config)) if user_config else "{}"
     await (conn or db).execute(
-        "INSERT INTO accounts (id, email, extra) VALUES (?, ?, ?)",
-        (user_id, email, extra),
+        """
+        INSERT INTO accounts (id, email, extra, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user_id, email, extra, db.timestamp_now, db.timestamp_now),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -411,7 +417,7 @@ async def create_wallet(
     wallet_id = uuid4().hex
     await (conn or db).execute(
         """
-        INSERT INTO wallets (id, name, "user", adminkey, inkey)
+        INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -420,6 +426,8 @@ async def create_wallet(
             user_id,
             uuid4().hex,
             uuid4().hex,
+            db.timestamp_now,
+            db.timestamp_now,
         ),
     )
 
