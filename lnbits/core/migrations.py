@@ -429,13 +429,17 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
             )
         if db.is_sqlite:
             await db.execute(
-                "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP NULL"
+                "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT NULL"
             )
             await db.execute(
-                "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP NULL"
+                "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT NULL"
             )
-            await db.execute("ALTER TABLE wallets ADD COLUMN created_at TIMESTAMP NULL")
-            await db.execute("ALTER TABLE wallets ADD COLUMN updated_at TIMESTAMP NULL")
+            await db.execute(
+                "ALTER TABLE wallets ADD COLUMN created_at TIMESTAMP DEFAULT NULL"
+            )
+            await db.execute(
+                "ALTER TABLE wallets ADD COLUMN updated_at TIMESTAMP DEFAULT NULL"
+            )
 
     except OperationalError as exc:
         logger.error(f"Migration 17 failed: {exc}")

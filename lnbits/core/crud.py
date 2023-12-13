@@ -1,5 +1,6 @@
 import datetime
 import json
+from time import time
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
@@ -51,11 +52,12 @@ async def create_user(
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     user_id = uuid4().hex
+    tsph = db.timestamp_placeholder
     await db.execute(
-        """
+        f"""
             INSERT INTO accounts
             (id, email, username, pass, extra, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, {tsph}, {tsph})
         """,
         (
             user_id,
@@ -63,8 +65,8 @@ async def create_user(
             data.username,
             pwd_context.hash(data.password),
             json.dumps(dict(user_config)) if user_config else "{}",
-            db.timestamp_now,
-            db.timestamp_now,
+            time(),
+            time(),
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -86,11 +88,11 @@ async def create_account(
 
     extra = json.dumps(dict(user_config)) if user_config else "{}"
     await (conn or db).execute(
-        """
+        f"""
         INSERT INTO accounts (id, email, extra, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
-        (user_id, email, extra, db.timestamp_now, db.timestamp_now),
+        (user_id, email, extra, time(), time()),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -123,16 +125,17 @@ async def update_account(
     extra = user_config or user.config
 
     await db.execute(
-        """
-            UPDATE accounts SET (username, email, extra, updated_at) = (?, ?, ?, ?)
+        f"""
+            UPDATE accounts SET (username, email, extra, updated_at) =
+            (?, ?, ?, {db.timestamp_placeholder})
             WHERE id = ?
         """,
         (
             username,
             email,
             json.dumps(dict(extra)) if extra else "{}",
+            time(),
             user_id,
-            db.timestamp_now,
         ),
     )
 
@@ -185,10 +188,13 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     await db.execute(
-        "UPDATE accounts SET pass = ?, updated_at = ? WHERE id = ?",
+        f"""
+        UPDATE accounts SET pass = ?, updated_at = {db.timestamp_placeholder}
+        WHERE id = ?
+        """,
         (
             pwd_context.hash(data.password),
-            db.timestamp_now,
+            time(),
             data.user_id,
         ),
     )
@@ -416,9 +422,9 @@ async def create_wallet(
 ) -> Wallet:
     wallet_id = uuid4().hex
     await (conn or db).execute(
-        """
+        f"""
         INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
         (
             wallet_id,
@@ -426,8 +432,8 @@ async def create_wallet(
             user_id,
             uuid4().hex,
             uuid4().hex,
-            db.timestamp_now,
-            db.timestamp_now,
+            time(),
+            time(),
         ),
     )
 
@@ -445,8 +451,8 @@ async def update_wallet(
 ) -> Optional[Wallet]:
     set_clause = []
     values = []
-    set_clause.append("updated_at = ?")
-    values.append(db.timestamp_now)
+    set_clause.append(f"updated_at = {db.timestamp_placeholder}")
+    values.append(time())
     if name:
         set_clause.append("name = ?")
         values.append(name)
@@ -469,12 +475,12 @@ async def delete_wallet(
     *, user_id: str, wallet_id: str, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
-        """
+        f"""
         UPDATE wallets
-        SET deleted = true, updated_at = ?
+        SET deleted = true, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (db.timestamp_now, wallet_id, user_id),
+        (time(), wallet_id, user_id),
     )
 
 

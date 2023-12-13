@@ -93,31 +93,31 @@ class Compat:
 
     @property
     def timestamp_now(self) -> str:
-        if self.type in {POSTGRES, COCKROACH}:
+        if self.is_postgres:
             return "now()"
-        elif self.type == SQLITE:
+        elif self.is_sqlite:
             return "(strftime('%s', 'now'))"
         return "<nothing>"
 
     @property
     def serial_primary_key(self) -> str:
-        if self.type in {POSTGRES, COCKROACH}:
+        if self.is_postgres:
             return "SERIAL PRIMARY KEY"
-        elif self.type == SQLITE:
+        elif self.is_sqlite:
             return "INTEGER PRIMARY KEY AUTOINCREMENT"
         return "<nothing>"
 
     @property
     def references_schema(self) -> str:
-        if self.type in {POSTGRES, COCKROACH}:
+        if self.is_postgres:
             return f"{self.schema}."
-        elif self.type == SQLITE:
+        elif self.is_sqlite:
             return ""
         return "<nothing>"
 
     @property
     def big_int(self) -> str:
-        if self.type in {POSTGRES}:
+        if self.is_postgres:
             return "BIGINT"
         return "INT"
 
