@@ -476,7 +476,7 @@ window.windowMixin = {
       LNbits.utils
         .confirmDialog(
           'Do you really want to logout?' +
-            ' Please make sure you have saved your credentials!'
+            ' Please visit "My Account" page to check your credentials!'
         )
         .onOk(async () => {
           try {
