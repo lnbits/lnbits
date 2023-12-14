@@ -48,38 +48,6 @@ from ..models import (
 auth_router = APIRouter()
 
 
-def _init_google_sso() -> Optional[GoogleSSO]:
-    if not settings.is_auth_method_allowed(AuthMethods.google_auth):
-        return None
-    if not settings.is_google_auth_configured:
-        logger.warning("Google Auth allowed but not configured.")
-        return None
-    return GoogleSSO(
-        settings.google_client_id,
-        settings.google_client_secret,
-        None,
-        allow_insecure_http=True,
-    )
-
-
-def _init_github_sso() -> Optional[GithubSSO]:
-    if not settings.is_auth_method_allowed(AuthMethods.github_auth):
-        return None
-    if not settings.is_github_auth_configured:
-        logger.warning("Github Auth allowed but not configured.")
-        return None
-    return GithubSSO(
-        settings.github_client_id,
-        settings.github_client_secret,
-        None,
-        allow_insecure_http=True,
-    )
-
-
-google_sso = _init_google_sso()
-github_sso = _init_github_sso()
-
-
 @auth_router.get("/api/v1/auth", description="Get the authenticated user")
 async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
     return user
@@ -128,6 +96,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 
 @auth_router.get("/api/v1/auth/google", description="Google SSO")
 async def login_with_google(request: Request, user_id: Optional[str] = None):
+    google_sso = _new_google_sso()
     if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
 
@@ -139,6 +108,7 @@ async def login_with_google(request: Request, user_id: Optional[str] = None):
 
 @auth_router.get("/api/v1/auth/github", description="Github SSO")
 async def login_with_github(request: Request, user_id: Optional[str] = None):
+    github_sso = _new_github_sso()
     if not github_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
 
@@ -152,6 +122,7 @@ async def login_with_github(request: Request, user_id: Optional[str] = None):
     "/api/v1/auth/google/token", description="Handle Google OAuth callback"
 )
 async def handle_google_token(request: Request) -> RedirectResponse:
+    google_sso = _new_google_sso()
     if not google_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'Google' not allowed.")
 
@@ -177,6 +148,7 @@ async def handle_google_token(request: Request) -> RedirectResponse:
     "/api/v1/auth/github/token", description="Handle Github OAuth callback"
 )
 async def handle_github_token(request: Request) -> RedirectResponse:
+    github_sso = _new_github_sso()
     if not github_sso:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'GitHub' not allowed.")
 
@@ -334,6 +306,34 @@ def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     response.set_cookie("is_lnbits_user_authorized", "true")
     response.delete_cookie("is_access_token_expired")
     return response
+
+
+def _new_google_sso() -> Optional[GoogleSSO]:
+    if not settings.is_auth_method_allowed(AuthMethods.google_auth):
+        return None
+    if not settings.is_google_auth_configured:
+        logger.warning("Google Auth allowed but not configured.")
+        return None
+    return GoogleSSO(
+        settings.google_client_id,
+        settings.google_client_secret,
+        None,
+        allow_insecure_http=True,
+    )
+
+
+def _new_github_sso() -> Optional[GithubSSO]:
+    if not settings.is_auth_method_allowed(AuthMethods.github_auth):
+        return None
+    if not settings.is_github_auth_configured:
+        logger.warning("Github Auth allowed but not configured.")
+        return None
+    return GithubSSO(
+        settings.github_client_id,
+        settings.github_client_secret,
+        None,
+        allow_insecure_http=True,
+    )
 
 
 def _encrypt_message(m: Optional[str] = None) -> Optional[str]:

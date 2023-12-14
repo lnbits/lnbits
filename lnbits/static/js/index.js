@@ -8,6 +8,7 @@ new Vue({
         data: {},
         description: ''
       },
+      isUserAuthorized: false,
       authAction: 'login',
       authMethod: 'username-password',
       usr: '',
@@ -22,9 +23,6 @@ new Vue({
   computed: {
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.description)
-    },
-    isUserAuthorized() {
-      return this.$q.cookies.get('is_lnbits_user_authorized')
     },
     isAccessTokenExpired() {
       return this.$q.cookies.get('is_access_token_expired')
@@ -96,6 +94,7 @@ new Vue({
   created() {
     this.description = SITE_DESCRIPTION
 
+    this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
