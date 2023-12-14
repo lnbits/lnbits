@@ -52,10 +52,11 @@
                 rounded
               >
                 <strong>
+                  <q-icon name="account_circle" size="xs"></q-icon>
                   <span v-text="$t('login_with_user_id')"></span> </strong
               ></q-badge>
               {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-              <span><span v-text="$t('or')"></span></span>
+              <span v-text="$t('or')"></span>
               <q-badge
                 @click="showRegister('user-id-only')"
                 color="primary"
@@ -63,6 +64,7 @@
                 rounded
               >
                 <strong>
+                  <q-icon name="add" size="xs"></q-icon>
                   <span v-text="$t('create_new_wallet')"></span>
                 </strong>
               </q-badge>
