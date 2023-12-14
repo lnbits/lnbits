@@ -185,7 +185,14 @@ class Connection(Compat):
             filters = Filters()
         clause = filters.where(where)
         parsed_values = filters.values(values)
-        group_by = f"GROUP BY {group_by}" if group_by else ""
+
+        if group_by:
+            assert re.fullmatch(
+                "[a-zA-Z_][a-zA-Z0-9_.]*", group_by
+            ), "GROUP BY regex failed"
+            group_by = f"GROUP BY {group_by}"
+        else:
+            group_by = ""
 
         rows = await self.fetchall(
             f"""
