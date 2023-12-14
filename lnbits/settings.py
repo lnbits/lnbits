@@ -247,6 +247,45 @@ class NodeUISettings(LNbitsSettings):
     lnbits_node_ui_transactions: bool = Field(default=False)
 
 
+class AuthMethods(Enum):
+    user_id_only = "user-id-only"
+    username_and_password = "username-password"
+    google_auth = "google-auth"
+    github_auth = "github-auth"
+
+
+class AuthSettings(LNbitsSettings):
+    auth_token_expire_minutes: int = Field(default=525600)
+    auth_all_methods = [a.value for a in AuthMethods]
+    auth_allowed_methods: List[str] = Field(
+        default=[
+            AuthMethods.user_id_only.value,
+            AuthMethods.username_and_password.value,
+        ]
+    )
+
+    def is_auth_method_allowed(self, method: AuthMethods):
+        return method.value in self.auth_allowed_methods
+
+
+class GoogleAuthSettings(LNbitsSettings):
+    google_client_id: str = Field(default="")
+    google_client_secret: str = Field(default="")
+
+    @property
+    def is_google_auth_configured(self):
+        return self.google_client_id != "" and self.google_client_secret != ""
+
+
+class GitHubAuthSettings(LNbitsSettings):
+    github_client_id: str = Field(default="")
+    github_client_secret: str = Field(default="")
+
+    @property
+    def is_github_auth_configured(self):
+        return self.github_client_id != "" and self.github_client_secret != ""
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -257,6 +296,9 @@ class EditableSettings(
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
+    AuthSettings,
+    GoogleAuthSettings,
+    GitHubAuthSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -298,6 +340,7 @@ class EnvSettings(LNbitsSettings):
     lnbits_path: str = Field(default=".")
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
+    auth_secret_key: str = Field(default="")
     version: str = Field(default="0.0.0")
     user_agent: str = Field(default="")
     enable_log_to_file: bool = Field(default=True)
@@ -308,45 +351,6 @@ class EnvSettings(LNbitsSettings):
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
-
-
-class AuthMethods(Enum):
-    user_id_only = "user-id-only"
-    username_and_password = "username-password"
-    google_auth = "google-auth"
-    github_auth = "github-auth"
-
-
-class AuthSettings(LNbitsSettings):
-    auth_secret_key: str = Field(default="")
-    auth_token_expire_minutes: int = Field(default=30)
-    auth_allowed_methods: List[str] = Field(
-        default=[
-            AuthMethods.user_id_only.value,
-            AuthMethods.username_and_password.value,
-        ]
-    )
-
-    def is_auth_method_allowed(self, method: AuthMethods):
-        return method.value in self.auth_allowed_methods
-
-
-class GoogleAuthSettings(LNbitsSettings):
-    google_client_id: str = Field(default="")
-    google_client_secret: str = Field(default="")
-
-    @property
-    def is_google_auth_configured(self):
-        return self.google_client_id != "" and self.google_client_secret != ""
-
-
-class GitHubAuthSettings(LNbitsSettings):
-    github_client_id: str = Field(default="")
-    github_client_secret: str = Field(default="")
-
-    @property
-    def is_github_auth_configured(self):
-        return self.github_client_id != "" and self.github_client_secret != ""
 
 
 class SaaSSettings(LNbitsSettings):
@@ -397,9 +401,6 @@ class ReadOnlySettings(
     SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
-    AuthSettings,
-    GoogleAuthSettings,
-    GitHubAuthSettings,
 ):
     lnbits_admin_ui: bool = Field(default=False)
 

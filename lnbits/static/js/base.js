@@ -407,6 +407,7 @@ window.windowMixin = {
   data: function () {
     return {
       toggleSubs: true,
+      isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,
@@ -417,12 +418,6 @@ window.windowMixin = {
         allowedThemes: null,
         langs: []
       }
-    }
-  },
-
-  computed: {
-    isUserAuthorized() {
-      return this.$q.cookies.get('is_lnbits_user_authorized')
     }
   },
 
@@ -452,31 +447,45 @@ window.windowMixin = {
       })
     },
     checkUsrInUrl: async function () {
-      const params = new URLSearchParams(window.location.search)
-      const usr = params.get('usr')
-      if (!usr) {
-        return
-      }
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const usr = params.get('usr')
+        if (!usr) {
+          return
+        }
 
-      if (!this.isUserAuthorized) {
-        await LNbits.api.loginUsr(usr)
-      }
-      params.delete('usr')
-      const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
+        if (!this.isUserAuthorized) {
+          await LNbits.api.loginUsr(usr)
+        }
 
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname + cleanQueryPrams
-      )
+        params.delete('usr')
+        const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
+
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + cleanQueryPrams
+        )
+      } finally {
+        this.isUserAuthorized = !!this.$q.cookies.get(
+          'is_lnbits_user_authorized'
+        )
+      }
     },
     logout: async function () {
-      try {
-        await LNbits.api.logout()
-        window.location = '/'
-      } catch (e) {
-        LNbits.utils.notifyApiError(e)
-      }
+      LNbits.utils
+        .confirmDialog(
+          'Do you really want to logout?' +
+            ' Please visit "My Account" page to check your credentials!'
+        )
+        .onOk(async () => {
+          try {
+            await LNbits.api.logout()
+            window.location = '/'
+          } catch (e) {
+            LNbits.utils.notifyApiError(e)
+          }
+        })
     }
   },
   created: async function () {

@@ -5,6 +5,7 @@ new Vue({
     return {
       user: null,
       hasUsername: false,
+      showUserId: false,
       passwordData: {
         show: false,
         oldPassword: null,

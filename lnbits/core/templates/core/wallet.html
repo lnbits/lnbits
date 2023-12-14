@@ -882,8 +882,9 @@
             <q-btn
               outline
               color="grey"
-              @click="copyText(disclaimerDialog.location.href)"
-              :label="$t('copy_wallet_url')"
+              type="a"
+              href="/account"
+              :label="$t('my_account')"
             ></q-btn>
             <q-btn
               v-close-popup

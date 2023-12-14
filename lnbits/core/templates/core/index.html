@@ -7,7 +7,7 @@
     class="col-12 col-md-7 col-lg-6 q-gutter-y-md"
   ></div>
   <div v-else class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-    <div>
+    <div class="gt-sm">
       <h3 class="q-my-none">{{SITE_TITLE}}</h3>
       <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
     </div>
@@ -32,7 +32,7 @@
     </div>
     {%else%} {% endif %}
 
-    <div class="row q-mt-xl">
+    <div class="row q-mt-md">
       <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
         <q-badge v-if="isAccessTokenExpired" color="primary" rounded>
           <div class="text-h5">
@@ -52,10 +52,11 @@
                 rounded
               >
                 <strong>
+                  <q-icon name="account_circle" size="xs"></q-icon>
                   <span v-text="$t('login_with_user_id')"></span> </strong
               ></q-badge>
               {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
-              <span><span v-text="$t('or')"></span></span>
+              <span v-text="$t('or')"></span>
               <q-badge
                 @click="showRegister('user-id-only')"
                 color="primary"
@@ -63,6 +64,7 @@
                 rounded
               >
                 <strong>
+                  <q-icon name="add" size="xs"></q-icon>
                   <span v-text="$t('create_new_wallet')"></span>
                 </strong>
               </q-badge>
@@ -218,7 +220,7 @@
           >
             <div class="row">
               {% if "google-auth" in LNBITS_AUTH_METHODS %}
-              <div class="col q-pa-sm">
+              <div class="col-12 full-width q-pa-sm">
                 <q-btn
                   href="/api/v1/auth/google"
                   type="a"
@@ -239,7 +241,7 @@
                 </q-btn>
               </div>
               {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
-              <div class="col q-pa-sm">
+              <div class="col-12 full-width q-pa-sm">
                 <q-btn
                   href="/api/v1/auth/github"
                   type="a"
@@ -281,7 +283,10 @@
   </div>
 
   <!-- Ads -->
-  <div class="col-12 col-md-3 col-lg-3" v-if="'{{SITE_TITLE}}' == 'LNbits'">
+  <div
+    class="col-12 col-md-3 col-lg-3 gt-sm"
+    v-if="'{{SITE_TITLE}}' == 'LNbits'"
+  >
     <div class="row q-col-gutter-lg justify-center">
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
         <q-btn
@@ -479,5 +484,12 @@
       {% endfor %} {% endif %}
     </div>
   </div>
+</div>
+<div class="row gt-sm q-mt-xl">
+  <div class="col-1"></div>
+  <div class="col-10 q-pl-xl">
+    <span v-text="$t('lnbits_description')"></span>
+  </div>
+  <div class="col-1"></div>
 </div>
 {% endblock %}
