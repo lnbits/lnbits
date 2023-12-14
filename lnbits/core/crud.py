@@ -502,7 +502,7 @@ async def delete_wallet(
     )
 
 
-async def delete_deleted_wallets(conn: Optional[Connection] = None) -> None:
+async def remove_deleted_wallets(conn: Optional[Connection] = None) -> None:
     await (conn or db).execute("DELETE FROM wallets WHERE deleted = true")
 
 
