@@ -19,12 +19,12 @@ from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
     delete_accounts_no_wallets,
-    delete_deleted_wallets,
     delete_unused_wallets,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
+    remove_deleted_wallets,
 )
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -187,7 +187,7 @@ def database_cleanup_deleted_wallets():
 
 async def cleanup_deleted_wallets():
     async with core_db.connect() as conn:
-        return await delete_deleted_wallets(conn)
+        return await remove_deleted_wallets(conn)
 
 
 @db.command("cleanup-accounts")
