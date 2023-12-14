@@ -199,8 +199,6 @@ window.localisation.en = {
   create_account: 'Create account',
   account_settings: 'Account Settings',
   signin_with_google: 'Sign in with Google',
-  google: 'Google',
-  github: 'GitHub',
   signin_with_github: 'Sign in with GitHub',
   username_or_email: 'Username or Email',
   password: 'Password',

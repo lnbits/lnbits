@@ -155,7 +155,7 @@
                   :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
                 ></q-img>
               </q-avatar>
-              <div><span v-text="$t('google')"></span></div>
+              <div>Google</div>
             </q-btn>
           </div>
           {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
@@ -174,7 +174,7 @@
                   :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
                 ></q-img>
               </q-avatar>
-              <div><span v-text="$t('github')"></span></div>
+              <div>GitHub</div>
             </q-btn>
           </div>
           {%endif%}
