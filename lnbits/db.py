@@ -188,7 +188,7 @@ class Connection(Compat):
 
         if group_by:
             assert re.fullmatch(
-                r"[a-zA-Z_][a-zA-Z0-9_\.]*", group_by
+                r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", group_by
             ), "GROUP BY regex failed"
             group_by = f"GROUP BY {group_by}"
         else:
