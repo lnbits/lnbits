@@ -36,6 +36,7 @@
         ${projectName} = pkgs.poetry2nix.mkPoetryApplication {
           projectDir = ./.;
           meta.rev = self.dirtyRev or self.rev;
+          meta.mainProgram = projectName;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
