@@ -34,7 +34,7 @@
     </q-layout>
 
     {% for url in INCLUDED_JS %}
-    <script src="{{ url }}"></script>
+    <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!---->
     {% block scripts %}{% endblock %}
