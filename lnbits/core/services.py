@@ -656,6 +656,7 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
+        settings.first_install = True
         account = await create_account(user_id=super_user)
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
