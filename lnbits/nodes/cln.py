@@ -312,8 +312,12 @@ class CoreLightningNode(Node):
                 NodeInvoice(
                     bolt11=invoice.get("bolt11") or invoice.get("bolt12"),
                     amount=(
+                        # normal invoice
                         invoice.get("amount_msat")
+                        # keysend or paid amountless invoice
                         or invoice.get("amount_received_msat")
+                        # unpaid amountless invoice
+                        or 0
                     ),
                     preimage=invoice.get("payment_preimage"),
                     memo=invoice.get("description"),
