@@ -16,8 +16,8 @@ Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. 
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
-git checkout main
 cd lnbits
+git checkout main
 
 # for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
@@ -61,14 +61,13 @@ poetry install --only main
 
 ## Option 2: Nix
 
-> note: currently not supported while we make some architectural changes on the path to leave beta
-
 ```sh
+# Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
+sh <(curl -L https://nixos.org/nix/install) --daemon
+
+# Clone and build LNbits
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-# Modern debian distros usually include Nix, however you can install with:
-# 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
-
 nix build .#lnbits
 mkdir data
 
@@ -77,8 +76,11 @@ mkdir data
 #### Running the server
 
 ```sh
-# .env variables are currently passed when running
-LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
+# .env variables are currently passed when running, but LNbits can be managed with the admin UI.
+LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
+
+# Once you have created a user, you can set as the super_user
+SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
 
 

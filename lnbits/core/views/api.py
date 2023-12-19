@@ -1,12 +1,11 @@
 import asyncio
-import base64
 import hashlib
 import json
 import uuid
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Union
-from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urlparse, urlunparse
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
@@ -23,9 +22,9 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
-from starlette.responses import RedirectResponse, StreamingResponse
+from starlette.responses import StreamingResponse
 
-from lnbits import bolt11, lnurl
+from lnbits import bolt11
 from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import (
     migrate_extension_database,
@@ -37,7 +36,6 @@ from lnbits.core.models import (
     CreateLnurl,
     CreateLnurlAuth,
     CreateWallet,
-    CreateWebPushSubscription,
     DecodePayment,
     Payment,
     PaymentFilters,
@@ -46,11 +44,11 @@ from lnbits.core.models import (
     User,
     Wallet,
     WalletType,
-    WebPushSubscription,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_access_token,
     check_admin,
     get_key_type,
     parse_filters,
@@ -66,6 +64,7 @@ from lnbits.extension_manager import (
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
+from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -77,24 +76,17 @@ from ..crud import (
     DateTrunc,
     add_installed_extension,
     create_account,
-    create_tinyurl,
     create_wallet,
-    create_webpush_subscription,
     delete_dbversion,
     delete_installed_extension,
-    delete_tinyurl,
     delete_wallet,
-    delete_webpush_subscription,
     drop_extension_db,
     get_dbversions,
     get_payments,
     get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
-    get_tinyurl,
-    get_tinyurl_by_url,
     get_wallet_for_key,
-    get_webpush_subscription,
     save_balance_check,
     update_pending_payments,
     update_wallet,
@@ -104,6 +96,7 @@ from ..services import (
     PaymentFailure,
     check_transaction_status,
     create_invoice,
+    fee_reserve_total,
     pay_invoice,
     perform_lnurlauth,
     websocketManager,
@@ -296,7 +289,8 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         if data.lnurl_balance_check is not None:
             await save_balance_check(wallet.id, data.lnurl_balance_check)
 
-        async with httpx.AsyncClient() as client:
+        headers = {"User-Agent": settings.user_agent}
+        async with httpx.AsyncClient(headers=headers) as client:
             try:
                 r = await client.get(
                     data.lnurl_callback,
@@ -331,9 +325,13 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     }
 
 
-async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
+async def api_payments_pay_invoice(
+    bolt11: str, wallet: Wallet, extra: Optional[dict] = None
+):
     try:
-        payment_hash = await pay_invoice(wallet_id=wallet.id, payment_request=bolt11)
+        payment_hash = await pay_invoice(
+            wallet_id=wallet.id, payment_request=bolt11, extra=extra
+        )
     except ValueError as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
     except PermissionError as e:
@@ -374,7 +372,7 @@ async def api_payments_create(
                 detail="BOLT11 string is invalid or not given",
             )
         return await api_payments_pay_invoice(
-            invoiceData.bolt11, wallet.wallet
+            invoiceData.bolt11, wallet.wallet, invoiceData.extra
         )  # admin key
     elif not invoiceData.out:
         # invoice key
@@ -386,13 +384,29 @@ async def api_payments_create(
         )
 
 
+@api_router.get("/api/v1/payments/fee-reserve")
+async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONResponse:
+    invoice_obj = bolt11.decode(invoice)
+    if invoice_obj.amount_msat:
+        response = {
+            "fee_reserve": fee_reserve_total(invoice_obj.amount_msat),
+        }
+        return JSONResponse(response)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invoice has no amount.",
+        )
+
+
 @api_router.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
     data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     domain = urlparse(data.callback).netloc
 
-    async with httpx.AsyncClient() as client:
+    headers = {"User-Agent": settings.user_agent}
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
             r = await client.get(
                 data.callback,
@@ -401,6 +415,7 @@ async def api_payments_pay_lnurl(
             )
             if r.is_error:
                 raise httpx.ConnectError("LNURL callback connection error")
+            r.raise_for_status()
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -544,7 +559,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
 @api_router.get("/api/v1/lnurlscan/{code}")
 async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
-        url = lnurl.decode(code)
+        url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
     except Exception:
         # parse internet identifier (user@domain.com)
@@ -574,7 +589,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         assert lnurlauth_key.verifying_key
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        headers = {"User-Agent": settings.user_agent}
+        async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
             r = await client.get(url, timeout=5)
             r.raise_for_status()
             if r.is_error:
@@ -661,7 +677,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
-            url = lnurl.decode(payment_str)
+            url = str(lnurl_decode(payment_str))
             return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
@@ -765,7 +781,9 @@ async def websocket_update_get(item_id: str, data: str):
 
 @api_router.post("/api/v1/extension")
 async def api_install_extension(
-    data: CreateExtension, user: User = Depends(check_admin)
+    data: CreateExtension,
+    user: User = Depends(check_admin),
+    access_token: Optional[str] = Depends(check_access_token),
 ):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
@@ -797,7 +815,7 @@ async def api_install_extension(
         await add_installed_extension(ext_info)
 
         # call stop while the old routes are still active
-        await stop_extension_background_work(data.ext_id, user.id)
+        await stop_extension_background_work(data.ext_id, user.id, access_token)
 
         if data.ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [data.ext_id]
@@ -823,7 +841,11 @@ async def api_install_extension(
 
 
 @api_router.delete("/api/v1/extension/{ext_id}")
-async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
+async def api_uninstall_extension(
+    ext_id: str,
+    user: User = Depends(check_admin),
+    access_token: Optional[str] = Depends(check_access_token),
+):
     installable_extensions = await InstallableExtension.get_installable_extensions()
 
     extensions = [e for e in installable_extensions if e.id == ext_id]
@@ -849,7 +871,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
 
     try:
         # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id, user.id)
+        await stop_extension_background_work(ext_id, user.id, access_token)
 
         if ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [ext_id]
@@ -927,118 +949,3 @@ async def delete_extension_db(ext_id: str):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Cannot delete data for extension '{ext_id}'",
         )
-
-
-@api_router.post(
-    "/api/v1/tinyurl",
-    name="Tinyurl",
-    description="creates a tinyurl",
-)
-async def api_create_tinyurl(
-    url: str, endless: bool = False, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    tinyurls = await get_tinyurl_by_url(url)
-    try:
-        for tinyurl in tinyurls:
-            if tinyurl:
-                if tinyurl.wallet == wallet.wallet.inkey:
-                    return tinyurl
-        return await create_tinyurl(url, endless, wallet.wallet.inkey)
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
-        )
-
-
-@api_router.get(
-    "/api/v1/tinyurl/{tinyurl_id}",
-    name="Tinyurl",
-    description="get a tinyurl by id",
-)
-async def api_get_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    try:
-        tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl:
-            if tinyurl.wallet == wallet.wallet.inkey:
-                return tinyurl
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
-        )
-
-
-@api_router.delete(
-    "/api/v1/tinyurl/{tinyurl_id}",
-    name="Tinyurl",
-    description="delete a tinyurl by id",
-)
-async def api_delete_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    try:
-        tinyurl = await get_tinyurl(tinyurl_id)
-        if tinyurl:
-            if tinyurl.wallet == wallet.wallet.inkey:
-                await delete_tinyurl(tinyurl_id)
-                return {"deleted": True}
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
-        )
-
-
-@api_router.get(
-    "/t/{tinyurl_id}",
-    name="Tinyurl",
-    description="redirects a tinyurl by id",
-)
-async def api_tinyurl(tinyurl_id: str):
-    tinyurl = await get_tinyurl(tinyurl_id)
-    if tinyurl:
-        response = RedirectResponse(url=tinyurl.url)
-        return response
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="unable to find tinyurl"
-        )
-
-
-@api_router.post("/api/v1/webpush", status_code=HTTPStatus.CREATED)
-async def api_create_webpush_subscription(
-    request: Request,
-    data: CreateWebPushSubscription,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> WebPushSubscription:
-    subscription = json.loads(data.subscription)
-    endpoint = subscription["endpoint"]
-    host = urlparse(str(request.url)).netloc
-
-    subscription = await get_webpush_subscription(endpoint, wallet.wallet.user)
-    if subscription:
-        return subscription
-    else:
-        return await create_webpush_subscription(
-            endpoint,
-            wallet.wallet.user,
-            data.subscription,
-            host,
-        )
-
-
-@api_router.delete("/api/v1/webpush", status_code=HTTPStatus.OK)
-async def api_delete_webpush_subscription(
-    request: Request,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
-    endpoint = unquote(
-        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
-    )
-    await delete_webpush_subscription(endpoint, wallet.wallet.user)

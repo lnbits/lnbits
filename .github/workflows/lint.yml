@@ -3,25 +3,53 @@ on:
   workflow_call:
 
 jobs:
+
   black:
     uses: ./.github/workflows/make.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
     with:
       make: checkblack
+      python-version: ${{ matrix.python-version }}
+
   ruff:
     uses: ./.github/workflows/make.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
     with:
       make: checkruff
+      python-version: ${{ matrix.python-version }}
+
   mypy:
     uses: ./.github/workflows/make.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
     with:
       make: mypy
+      python-version: ${{ matrix.python-version }}
+
   pyright:
     uses: ./.github/workflows/make.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
     with:
       make: pyright
+      python-version: ${{ matrix.python-version }}
       npm: true
+
+
   prettier:
     uses: ./.github/workflows/make.yml
     with:
       make: checkprettier
+      npm: true
+
+  bundle:
+    uses: ./.github/workflows/make.yml
+    with:
+      make: checkbundle
       npm: true

@@ -67,9 +67,12 @@ class LndRestWallet(Wallet):
         # even on startup
         self.cert = cert or True
 
-        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
+        headers = {
+            "Grpc-Metadata-macaroon": self.macaroon,
+            "User-Agent": settings.user_agent,
+        }
         self.client = httpx.AsyncClient(
-            base_url=self.endpoint, headers=self.auth, verify=self.cert
+            base_url=self.endpoint, headers=headers, verify=self.cert
         )
 
     async def cleanup(self):
@@ -136,14 +139,22 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit = dict()
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
-        r = await self.client.post(
-            url="/v1/channels/transactions",
-            json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                url="/v1/channels/transactions",
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                timeout=None,
+            )
+            r.raise_for_status()
+        except Exception as exc:
+            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
+            return PaymentResponse(None, None, None, None, str(exc))
 
-        if r.is_error or r.json().get("payment_error"):
+        data = r.json()
+
+        if data.get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
+            logger.warning(f"LndRestWallet pay_invoice payment_error: {error_message}.")
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
@@ -195,6 +206,12 @@ class LndRestWallet(Wallet):
                             if "message" in line["error"]
                             else line["error"]
                         )
+                        if (
+                            line["error"].get("code") == 5
+                            and line["error"].get("message")
+                            == "payment isn't initiated"
+                        ):
+                            return PaymentStatus(False)
                         return PaymentStatus(None)
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):

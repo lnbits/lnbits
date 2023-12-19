@@ -1,9 +1,10 @@
 import asyncio
 from http import HTTPStatus
-from typing import List, Optional
+from pathlib import Path
+from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
@@ -41,7 +42,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return FileResponse("lnbits/core/static/favicon.ico")
+    return FileResponse(Path("lnbits", "static", "favicon.ico"))
 
 
 @generic_router.get("/", response_class=HTMLResponse)
@@ -171,56 +172,58 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
-    usr: UUID4 = Query(...),
+    lnbits_last_active_wallet: Annotated[Union[str, None], Cookie()] = None,
+    user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
-    user_id = usr.hex
-    user = await get_user(user_id)
-
-    if not user:
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User does not exist."}
-        )
-
-    if not wal:
-        if len(user.wallets) == 0:
-            wallet = await create_wallet(user_id=user.id)
-            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
-        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
-    else:
+    if wal:
         wallet_id = wal.hex
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        user = await get_user(user_id=user.id) or user
+        wallet_id = wallet.id
+    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
+        wallet_id = lnbits_last_active_wallet
+    else:
+        wallet_id = user.wallets[0].id
 
-    userwallet = user.get_wallet(wallet_id)
-    if not userwallet or userwallet.deleted:
+    user_wallet = user.get_wallet(wallet_id)
+    if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
 
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and user_id not in settings.lnbits_allowed_users
-        and user_id not in settings.lnbits_admin_users
-        and user_id != settings.super_user
-    ):
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User not authorized."}
-        )
-
-    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
-        user.admin = True
-    if user_id == settings.super_user:
-        user.super_user = True
-
-    logger.debug(f"Access user {user.id} wallet {userwallet.name}")
-
-    return template_renderer().TemplateResponse(
+    resp = template_renderer().TemplateResponse(
         "core/wallet.html",
         {
             "request": request,
             "user": user.dict(),
-            "wallet": userwallet.dict(),
+            "wallet": user_wallet.dict(),
             "service_fee": settings.lnbits_service_fee,
+            "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
+        },
+    )
+    resp.set_cookie(
+        "lnbits_last_active_wallet", wallet_id, samesite="none", secure=True
+    )
+    return resp
+
+
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        "core/account.html",
+        {
+            "request": request,
+            "user": user.dict(),
         },
     )
 
@@ -336,7 +339,7 @@ async def lnurlwallet(request: Request):
 
 @generic_router.get("/service-worker.js", response_class=FileResponse)
 async def service_worker():
-    return FileResponse("lnbits/core/static/js/service-worker.js")
+    return FileResponse(Path("lnbits", "static", "js", "service-worker.js"))
 
 
 @generic_router.get("/manifest/{usr}.webmanifest")

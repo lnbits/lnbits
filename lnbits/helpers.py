@@ -1,9 +1,12 @@
 import json
+import re
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
+from jose import jwt
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
@@ -29,6 +32,10 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     return url
 
 
+def static_url_for(static: str, path: str) -> str:
+    return f"/{static}/{path}?v={settings.server_startup_time}"
+
+
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
@@ -38,6 +45,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         ]
         folders.extend(additional_folders)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
+    t.env.globals["static_url_for"] = static_url_for
 
     if settings.lnbits_ad_space_enabled:
         t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
@@ -53,7 +61,11 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_QR_LOGO"] = settings.lnbits_qr_logo
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_NEW_ACCOUNTS_ALLOWED"] = settings.new_accounts_allowed
+    t.env.globals["LNBITS_AUTH_METHODS"] = settings.auth_allowed_methods
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
+    t.env.globals["LNBITS_SERVICE_FEE_MAX"] = settings.lnbits_service_fee_max
+    t.env.globals["LNBITS_SERVICE_FEE_WALLET"] = settings.lnbits_service_fee_wallet
     t.env.globals["LNBITS_NODE_UI"] = (
         settings.lnbits_node_ui and get_node_class() is not None
     )
@@ -67,8 +79,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
     if settings.bundle_assets:
-        t.env.globals["INCLUDED_JS"] = ["/static/bundle.min.js"]
-        t.env.globals["INCLUDED_CSS"] = ["/static/bundle.min.css"]
+        t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
+        t.env.globals["INCLUDED_CSS"] = ["bundle.min.css"]
     else:
         vendor_filepath = Path(settings.lnbits_path, "static", "vendor.json")
         with open(vendor_filepath) as vendor_file:
@@ -158,3 +170,20 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
     return f"UPDATE {table_name} SET {query} {where}"
+
+
+def is_valid_email_address(email: str) -> bool:
+    email_regex = r"[A-Za-z0-9\._%+-]+@[A-Za-z0-9\.-]+\.[A-Za-z]{2,63}"
+    return re.fullmatch(email_regex, email) is not None
+
+
+def is_valid_username(username: str) -> bool:
+    username_regex = r"(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]"
+    return re.fullmatch(username_regex, username) is not None
+
+
+def create_access_token(data: dict):
+    expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
+    to_encode = data.copy()
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.auth_secret_key, "HS256")

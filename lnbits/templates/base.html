@@ -3,8 +3,21 @@
 <html lang="en">
   <head>
     {% for url in INCLUDED_CSS %}
-    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ static_url_for('static', url ) }}"
+    />
     {% endfor %} {% block styles %}{% endblock %}
+    <style>
+      @font-face {
+        font-family: 'Material Icons';
+        font-style: normal;
+        font-weight: 400;
+        src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
+          format('woff2');
+      }
+    </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
     <meta
@@ -32,8 +45,9 @@
           ></q-btn>
           {% endblock %}
           <q-toolbar-title>
-            <q-btn flat no-caps dense size="lg" type="a" href="/">
-              {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
+            {% block toolbar_title %}
+            <q-btn flat no-caps dense size="lg" type="a" href="/"
+              >{% if USE_CUSTOM_LOGO %}
               <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
               {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
               %}
@@ -46,8 +60,12 @@
             {%endif%}{% endblock %}
           </q-toolbar-title>
           {% block beta %} {% if VOIDWALLET %}
-          <q-badge color="red" text-color="black" class="q-mr-md">
-            {% raw %}{{ $t('voidwallet_active') }}{% endraw %}
+          <q-badge
+            v-text="$t('voidwallet_active')"
+            color="red"
+            text-color="black"
+            class="q-mr-md"
+          >
           </q-badge>
           {%endif%}
           <q-badge
@@ -60,7 +78,29 @@
               v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
             ></span>
           </q-badge>
-          {% endblock %}
+          {% if LNBITS_SERVICE_FEE > 0 %}
+          <q-badge
+            v-show="$q.screen.gt.sm"
+            v-if="g.user"
+            color="green"
+            text-color="black"
+            class="q-mr-md"
+          >
+            {% if LNBITS_SERVICE_FEE_MAX > 0 %}
+            <span
+              v-text='$t("service_fee_max", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}"})'
+            ></span>
+            {%else%}
+            <span
+              v-text='$t("service_fee", { amount: "{{ LNBITS_SERVICE_FEE }}" })'
+            ></span>
+            {%endif%}
+            <q-tooltip
+              ><span v-text='$t("service_fee_tooltip")'></span
+            ></q-tooltip>
+          </q-badge>
+
+          {%endif%} {% endblock %}
           <q-badge
             v-if="g.offline"
             color="red"
@@ -88,12 +128,10 @@
                 :active="activeLanguage(lang.value)"
                 @click="changeLanguage(lang.value)"
                 ><q-item-section>
-                  {% raw %}
                   <q-item-label
-                    >{{lang.display ?? lang.value.toUpperCase()}}</q-item-label
-                  >
-                  <q-tooltip>{{lang.label}}</q-tooltip>
-                  {% endraw %}
+                    v-text="lang.display ?? lang.value.toUpperCase()"
+                  ></q-item-label>
+                  <q-tooltip><span v-text="lang.label"></span></q-tooltip>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -104,7 +142,7 @@
             flat
             round
             size="sm"
-            icon="dashboard_customize"
+            icon="format_color_fill"
             class="q-pl-md"
           >
             <div class="row no-wrap q-pa-md">
@@ -113,7 +151,7 @@
                 dense
                 flat
                 @click="changeColor('classic')"
-                icon="format_color_fill"
+                icon="circle"
                 color="deep-purple"
                 size="md"
                 ><q-tooltip>classic</q-tooltip>
@@ -123,7 +161,7 @@
                 dense
                 flat
                 @click="changeColor('bitcoin')"
-                icon="format_color_fill"
+                icon="circle"
                 color="orange"
                 size="md"
                 ><q-tooltip>bitcoin</q-tooltip>
@@ -133,7 +171,7 @@
                 dense
                 flat
                 @click="changeColor('mint')"
-                icon="format_color_fill"
+                icon="circle"
                 color="green"
                 size="md"
                 ><q-tooltip>mint</q-tooltip> </q-btn
@@ -142,7 +180,7 @@
                 dense
                 flat
                 @click="changeColor('autumn')"
-                icon="format_color_fill"
+                icon="circle"
                 color="brown"
                 size="md"
                 ><q-tooltip>autumn</q-tooltip>
@@ -152,7 +190,7 @@
                 dense
                 flat
                 @click="changeColor('monochrome')"
-                icon="format_color_fill"
+                icon="circle"
                 color="grey"
                 size="md"
                 ><q-tooltip>monochrome</q-tooltip>
@@ -162,7 +200,7 @@
                 dense
                 flat
                 @click="changeColor('salvador')"
-                icon="format_color_fill"
+                icon="circle"
                 color="blue-10"
                 size="md"
                 ><q-tooltip>elSalvador</q-tooltip>
@@ -172,7 +210,7 @@
                 dense
                 flat
                 @click="changeColor('freedom')"
-                icon="format_color_fill"
+                icon="circle"
                 color="pink-13"
                 size="md"
                 ><q-tooltip>freedom</q-tooltip>
@@ -182,7 +220,7 @@
                 dense
                 flat
                 @click="changeColor('cyber')"
-                icon="format_color_fill"
+                icon="circle"
                 color="light-green-9"
                 size="md"
                 ><q-tooltip>cyber</q-tooltip>
@@ -192,7 +230,7 @@
                 dense
                 flat
                 @click="changeColor('flamingo')"
-                icon="format_color_fill"
+                icon="circle"
                 color="pink-3"
                 size="md"
                 ><q-tooltip>flamingo</q-tooltip>
@@ -208,10 +246,55 @@
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
             size="sm"
           >
-            <q-tooltip
-              >{% raw %}{{ $t('toggle_darkmode') }}{% endraw %}</q-tooltip
-            >
+            <q-tooltip><span v-text="$t('toggle_darkmode')"></span></q-tooltip>
           </q-btn>
+          <q-btn-dropdown
+            v-if="isUserAuthorized"
+            dense
+            flat
+            round
+            size="sm"
+            class="q-pl-sm"
+          >
+            <template v-slot:label>
+              <div>
+                {%if user and user.config and user.config.picture%}
+                <img src="{{user.config.picture}}" style="max-width: 32px" />
+                {%else%}
+                <q-icon name="account_circle" />
+                {%endif%}
+              </div>
+            </template>
+            <q-list>
+              <q-item tag="a" href="/account" clickable v-close-popup
+                ><q-item-section>
+                  <q-icon name="person" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <span v-text="$t('my_account')"></span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator></q-separator>
+              <q-item clickable v-close-popup @click="logout"
+                ><q-item-section>
+                  <q-icon name="logout" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <span v-text="$t('logout')"></span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </q-toolbar>
       </q-header>
 
@@ -225,10 +308,10 @@
       >
         <lnbits-wallet-list></lnbits-wallet-list>
 
-        <lnbits-admin-ui
-          v-if="'{{LNBITS_ADMIN_UI}}' == 'True'"
+        <lnbits-manage
+          :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
-        ></lnbits-admin-ui>
+        ></lnbits-manage>
         <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
@@ -249,9 +332,8 @@
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
             <small
-              >{% raw %}{{ $t('lnbits_version') }}{% endraw %}:
-              {{LNBITS_VERSION}}
-            </small>
+              v-text="$t('lnbits_version') + ': {{LNBITS_VERSION}}'"
+            ></small>
           </q-toolbar-title>
           <q-space></q-space>
           <q-btn
@@ -261,12 +343,12 @@
             type="a"
             href="/docs"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
           >
-            {% raw %}{{ $t('api_docs') }}{% endraw %}
+            <span v-text="$t('api_docs')"></span>
             <q-tooltip
-              >{% raw %}{{ $t('view_swagger_docs') }}{% endraw %}</q-tooltip
-            >
+              ><span v-text="$t('view_swagger_docs')"></span
+            ></q-tooltip>
           </q-btn>
           <q-btn
             flat
@@ -276,9 +358,9 @@
             type="a"
             href="https://github.com/lnbits/lnbits"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
           >
-            <q-tooltip>{% raw %}{{ $t('view_github') }}{% endraw %}</q-tooltip>
+            <q-tooltip><span v-text="$t('view_github')"></span></q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-footer>
@@ -289,7 +371,7 @@
     {% block vue_templates %}{% endblock %}
     <!---->
     {% for url in INCLUDED_JS %}
-    <script src="{{ url }}"></script>
+    <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!---->
     <script type="text/javascript">
@@ -302,19 +384,22 @@
         window.allowedThemes = themes.map(str => str.trim())
       }
       window.langs = [
-        { value: 'en', label: 'English', display: 'EN' },
-        { value: 'de', label: 'Deutsch', display: 'DE' },
-        { value: 'es', label: 'Español', display: 'ES' },
-        { value: 'jp', label: '日本語', display: 'JP' },
-        { value: 'cn', label: '中文', display: 'CN' },
-        { value: 'fr', label: 'Français', display: 'FR' },
-        { value: 'it', label: 'Italiano', display: 'IT' },
-        { value: 'pi', label: 'Pirate', display: 'PI' },
-        { value: 'nl', label: 'Nederlands', display: 'NL' },
-        { value: 'we', label: 'Cymraeg', display: 'CY' },
-        { value: 'pl', label: 'Polski', display: 'PL' },
-        { value: 'pt', label: 'Português', display: 'PT' },
-        { value: 'br', label: 'Português', display: 'BR' }
+        { value: 'en', label: 'English', display: '🇬🇧 EN' },
+        { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
+        { value: 'es', label: 'Español', display: '🇪🇸 ES' },
+        { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
+        { value: 'cn', label: '中文', display: '🇨🇳 CN' },
+        { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
+        { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
+        { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
+        { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
+        { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
+        { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
+        { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
+        { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
+        { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
+        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
+        { value: 'kr', label: '한국어', display: '🇰🇷 KR' }
       ]
     </script>
     {% block scripts %}{% endblock %}

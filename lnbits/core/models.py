@@ -10,12 +10,12 @@ from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
+from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
@@ -30,6 +30,8 @@ class Wallet(BaseModel):
     currency: Optional[str]
     balance_msat: int
     deleted: bool
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
 
     @property
     def balance(self) -> int:
@@ -79,14 +81,27 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
+class UserConfig(BaseModel):
+    email_verified: Optional[bool] = False
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    display_name: Optional[str] = None
+    picture: Optional[str] = None
+    provider: Optional[str] = "lnbits"  # auth provider
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None
+    username: Optional[str] = None
     extensions: List[str] = []
     wallets: List[Wallet] = []
-    password: Optional[str] = None
     admin: bool = False
     super_user: bool = False
+    has_password: bool = False
+    config: Optional[UserConfig] = None
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
 
     @property
     def wallet_ids(self) -> List[str]:
@@ -105,6 +120,36 @@ class User(BaseModel):
         if user in settings.lnbits_admin_users:
             return True
         return False
+
+
+class CreateUser(BaseModel):
+    email: Optional[str] = Query(default=None)
+    username: str = Query(default=..., min_length=2, max_length=20)
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
+class UpdateUser(BaseModel):
+    user_id: str
+    email: Optional[str] = Query(default=None)
+    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+    config: Optional[UserConfig] = None
+
+
+class UpdateUserPassword(BaseModel):
+    user_id: str
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
+    password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
+
+
+class LoginUsr(BaseModel):
+    usr: str
+
+
+class LoginUsernamePassword(BaseModel):
+    username: str
+    password: str
 
 
 class Payment(FromRowModel):
@@ -221,11 +266,18 @@ class Payment(FromRowModel):
                 f"expired {expiration_date}"
             )
             await self.delete(conn)
+        # wait at least 15 minutes before deleting failed outgoing payments
         elif self.is_out and status.failed:
-            logger.warning(
-                f"Deleting outgoing failed payment {self.checking_id}: {status}"
-            )
-            await self.delete(conn)
+            if self.time + 900 < int(time.time()):
+                logger.warning(
+                    f"Deleting outgoing failed payment {self.checking_id}: {status}"
+                )
+                await self.delete(conn)
+            else:
+                logger.warning(
+                    f"Tried to delete outgoing payment {self.checking_id}: "
+                    "skipping because it's not old enough"
+                )
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' "
@@ -275,8 +327,12 @@ class BalanceCheck(BaseModel):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
 
 
+def _do_nothing(*_):
+    pass
+
+
 class CoreAppExtra:
-    register_new_ext_routes: Callable
+    register_new_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
 

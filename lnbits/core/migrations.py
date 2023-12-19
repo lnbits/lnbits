@@ -1,4 +1,5 @@
 import datetime
+from time import time
 
 from loguru import logger
 from sqlalchemy.exc import OperationalError
@@ -393,3 +394,80 @@ async def m015_create_push_notification_subscriptions_table(db):
         );
     """
     )
+
+
+async def m016_add_username_column_to_accounts(db):
+    """
+    Adds username column to accounts.
+    """
+    try:
+        await db.execute("ALTER TABLE accounts ADD COLUMN username TEXT")
+        await db.execute("ALTER TABLE accounts ADD COLUMN extra TEXT")
+    except OperationalError:
+        pass
+
+
+async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
+    """
+    Adds created_at and updated_at column to accounts and wallets.
+    """
+    try:
+        await db.execute(
+            "ALTER TABLE accounts "
+            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE accounts "
+            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE wallets "
+            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE wallets "
+            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+
+        # set their wallets created_at with the first payment
+        await db.execute(
+            """
+            UPDATE wallets SET created_at = (
+                SELECT time FROM apipayments
+                WHERE apipayments.wallet = wallets.id
+                ORDER BY time ASC LIMIT 1
+            )
+         """
+        )
+
+        # then set their accounts created_at with the wallet
+        await db.execute(
+            """
+            UPDATE accounts SET created_at = (
+                SELECT created_at FROM wallets
+                WHERE wallets.user = accounts.id
+                ORDER BY created_at ASC LIMIT 1
+            )
+         """
+        )
+
+        # set all to now where they are null
+        now = int(time())
+        await db.execute(
+            f"""
+            UPDATE wallets SET created_at = {db.timestamp_placeholder}
+            WHERE created_at IS NULL
+            """,
+            (now,),
+        )
+        await db.execute(
+            f"""
+            UPDATE accounts SET created_at = {db.timestamp_placeholder}
+            WHERE created_at IS NULL
+            """,
+            (now,),
+        )
+
+    except OperationalError as exc:
+        logger.error(f"Migration 17 failed: {exc}")
+        pass

@@ -41,8 +41,9 @@ async def public_node_client(node_client):
 
 
 @pytest.mark.asyncio
-async def test_node_info_not_found(client):
-    response = await client.get("/node/api/v1/info")
+async def test_node_info_not_found(client, from_super_user):
+    settings.lnbits_node_ui = False
+    response = await client.get("/node/api/v1/info", params={"usr": from_super_user.id})
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 

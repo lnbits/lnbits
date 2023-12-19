@@ -15,10 +15,12 @@ from typing import Callable, List
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_installed_extensions
@@ -82,12 +84,10 @@ def create_app() -> FastAPI:
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
     setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
-    app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
-    app.mount(
-        "/core/static",
-        StaticFiles(packages=[("lnbits.core", "static")]),
-        name="core_static",
-    )
+    # register static files
+    static_path = Path("lnbits", "static")
+    static = StaticFiles(directory=static_path)
+    app.mount("/static", static, name="static")
 
     g().base_url = f"http://{settings.host}:{settings.port}"
 
@@ -98,6 +98,9 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
     )
+
+    # required for SSO login
+    app.add_middleware(SessionMiddleware, secret_key=settings.auth_secret_key)
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
@@ -167,7 +170,7 @@ async def check_funding_source() -> None:
 
     signal.signal(signal.SIGINT, original_sigint_handler)
 
-    logger.info(
+    logger.success(
         f"✔️ Backend {WALLET.__class__.__name__} connected "
         f"and with a balance of {balance} msat."
     )
@@ -373,8 +376,7 @@ def register_startup(app: FastAPI):
                 set_wallet_class()
             except Exception as e:
                 logger.error(
-                    f"Error initializing {settings.lnbits_backend_wallet_class}: "
-                    f"{str(e)}"
+                    f"Error initializing {settings.lnbits_backend_wallet_class}: {e}"
                 )
                 set_void_wallet_class()
 
@@ -432,6 +434,8 @@ def log_server_info():
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
+    logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
+    logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
 
 
 def get_db_vendor_name():
@@ -519,6 +523,15 @@ def register_exception_handlers(app: FastAPI):
             and "accept" in request.headers
             and "text/html" in request.headers["accept"]
         ):
+            if exc.headers and "token-expired" in exc.headers:
+                response = RedirectResponse("/")
+                response.delete_cookie("cookie_access_token")
+                response.delete_cookie("is_lnbits_user_authorized")
+                response.set_cookie(
+                    "is_access_token_expired", "true", samesite="none", secure=True
+                )
+                return response
+
             return template_renderer().TemplateResponse(
                 "error.html",
                 {

@@ -1,6 +1,6 @@
 import importlib
 import re
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
 import httpx
@@ -48,7 +48,9 @@ async def run_migration(
                         await update_migration_version(conn, db_name, version)
 
 
-async def stop_extension_background_work(ext_id: str, user: str):
+async def stop_extension_background_work(
+    ext_id: str, user: str, access_token: Optional[str] = None
+):
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extensions SHOULD expose a DELETE enpoint at the root level of their API.
@@ -58,14 +60,13 @@ async def stop_extension_background_work(ext_id: str, user: str):
     async with httpx.AsyncClient() as client:
         try:
             url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
-            await client.delete(url)
+            headers = (
+                {"Authorization": "Bearer " + access_token} if access_token else None
+            )
+            resp = await client.delete(url=url, headers=headers)
+            resp.raise_for_status()
         except Exception as ex:
             logger.warning(ex)
-            try:
-                # try https
-                url = f"https://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
-            except Exception as ex:
-                logger.warning(ex)
 
 
 def to_valid_user_id(user_id: str) -> UUID:

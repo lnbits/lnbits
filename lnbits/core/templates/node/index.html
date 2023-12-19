@@ -42,7 +42,7 @@
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="/core/static/js/node.js"></script>
+<script src="{{ static_url_for('static', 'js/node.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)
@@ -249,7 +249,6 @@
       },
       api: function (method, url, options) {
         const params = new URLSearchParams(options?.query)
-        params.set('usr', this.g.user.id)
         return LNbits.api
           .request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
           .catch(error => {
