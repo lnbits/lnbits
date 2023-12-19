@@ -3,7 +3,11 @@
 <html lang="en">
   <head>
     {% for url in INCLUDED_CSS %}
-    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ static_url_for('static', url) }}"
+    />
     {% endfor %}
     <style>
       @page {
@@ -34,7 +38,7 @@
     </q-layout>
 
     {% for url in INCLUDED_JS %}
-    <script src="{{ url }}"></script>
+    <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!---->
     {% block scripts %}{% endblock %}
