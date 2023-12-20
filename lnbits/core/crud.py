@@ -53,6 +53,7 @@ async def create_user(
 
     user_id = uuid4().hex
     tsph = db.timestamp_placeholder
+    now = int(time())
     await db.execute(
         f"""
             INSERT INTO accounts
@@ -65,8 +66,8 @@ async def create_user(
             data.username,
             pwd_context.hash(data.password),
             json.dumps(dict(user_config)) if user_config else "{}",
-            int(time()),
-            int(time()),
+            now,
+            now,
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -87,12 +88,13 @@ async def create_account(
         user_id = uuid4().hex
 
     extra = json.dumps(dict(user_config)) if user_config else "{}"
+    now = int(time())
     await (conn or db).execute(
         f"""
         INSERT INTO accounts (id, email, extra, created_at, updated_at)
         VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
-        (user_id, email, extra, int(time()), int(time())),
+        (user_id, email, extra, now, now),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -124,6 +126,7 @@ async def update_account(
     email = user.email or email
     extra = user_config or user.config
 
+    now = int(time())
     await db.execute(
         f"""
             UPDATE accounts SET (username, email, extra, updated_at) =
@@ -134,7 +137,7 @@ async def update_account(
             username,
             email,
             json.dumps(dict(extra)) if extra else "{}",
-            int(time()),
+            now,
             user_id,
         ),
     )
@@ -187,6 +190,7 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+    now = int(time())
     await db.execute(
         f"""
         UPDATE accounts SET pass = ?, updated_at = {db.timestamp_placeholder}
@@ -194,7 +198,7 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
         """,
         (
             pwd_context.hash(data.password),
-            int(time()),
+            now,
             data.user_id,
         ),
     )
@@ -421,6 +425,7 @@ async def create_wallet(
     conn: Optional[Connection] = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
+    now = int(time())
     await (conn or db).execute(
         f"""
         INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
@@ -432,8 +437,8 @@ async def create_wallet(
             user_id,
             uuid4().hex,
             uuid4().hex,
-            int(time()),
-            int(time()),
+            now,
+            now,
         ),
     )
 
@@ -452,7 +457,8 @@ async def update_wallet(
     set_clause = []
     values: list = []
     set_clause.append(f"updated_at = {db.timestamp_placeholder}")
-    values.append(int(time()))
+    now = int(time())
+    values.append(now)
     if name:
         set_clause.append("name = ?")
         values.append(name)
@@ -474,13 +480,14 @@ async def update_wallet(
 async def delete_wallet(
     *, user_id: str, wallet_id: str, conn: Optional[Connection] = None
 ) -> None:
+    now = int(time())
     await (conn or db).execute(
         f"""
         UPDATE wallets
         SET deleted = true, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (int(time()), wallet_id, user_id),
+        (now, wallet_id, user_id),
     )
 
 

@@ -452,19 +452,20 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         )
 
         # set all to now where they are null
+        now = int(time())
         await db.execute(
             f"""
             UPDATE wallets SET created_at = {db.timestamp_placeholder}
             WHERE created_at IS NULL
             """,
-            (int(time()),),
+            (now,),
         )
         await db.execute(
             f"""
             UPDATE accounts SET created_at = {db.timestamp_placeholder}
             WHERE created_at IS NULL
             """,
-            (int(time()),),
+            (now,),
         )
 
     except OperationalError as exc:
