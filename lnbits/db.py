@@ -92,6 +92,12 @@ class Compat:
         return "<nothing>"
 
     @property
+    def timestamp_column_default(self) -> str:
+        if self.type in {POSTGRES, COCKROACH}:
+            return self.timestamp_now
+        return "NULL"
+
+    @property
     def serial_primary_key(self) -> str:
         if self.type in {POSTGRES, COCKROACH}:
             return "SERIAL PRIMARY KEY"
