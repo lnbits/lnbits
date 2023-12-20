@@ -1,214 +1,153 @@
 {% extends "public.html" %} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+<div class="row q-col-gutter-md justify-center main">
+  <div class="col-10 col-md-8 col-lg-6 q-gutter-y-md">
     <q-card>
-      <q-card-section>
-        <h3 class="q-my-none">
-          <center><strong>Welcome to LNbits</strong></center>
-        </h3>
-        <h6 class="q-my-md">
-          Fill in the information below to setup your LNbits instance. Details
-          can be changed later.
-        </h6>
-        <p></p>
-        <div class="q-pa-md">
-          <q-form
-            @submit="LaunchLNbits"
-            @reset="cancelAdmin"
-            class="q-gutter-md"
-          >
-            <h6 class="q-my-md">Branding</h6>
-            <div class="row">
-              <div class="col">
-                <q-input
-                  filled
-                  v-model="data.admin.site_title"
-                  label="Site title"
-                  class="q-pr-md"
-                ></q-input>
-              </div>
-              <div class="col">
-                <q-input
-                  filled
-                  v-model="data.admin.tagline"
-                  label="Tagline"
-                ></q-input>
-              </div>
-            </div>
-
-            <h6 class="q-my-md">Service settings</h6>
-            <div class="row">
-              <div class="col">
-                <q-input
-                  filled
-                  v-model="data.admin.default_wallet_name"
-                  label="Default wallet name"
-                  hint="Default name for wallets generated without being named"
-                ></q-input>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col">
-                <q-select
-                  filled
-                  v-model="data.admin.disabled_ext"
-                  multiple
-                  hint="Disable extensions *amilk disabled by default as resource heavy"
-                  :options="options"
-                  label="Disable extensions"
-                ></q-select>
-              </div>
-            </div>
-            <h6 class="q-my-md">
-              Funding source information (at least one required)<small
-                ><br />*if installed through RaspiBlitz, MyNode, etc, details
-                should be filled in for you</small
-              >
-            </h6>
-
-            <q-select
-              outlined
-              v-model="data.admin.funding_source_primary"
-              label="Select main funding source"
-              :options="data.funding_source"
-              label="Outlined"
-            ></q-select>
-            <div>
-              <q-btn
-                label="Launch LNbits!"
-                type="submit"
-                color="primary"
-              ></q-btn>
-              <q-btn
-                v-if="cancel.on"
-                label="Cancel"
-                type="reset"
-                color="primary"
-                flat
-                class="q-ml-sm"
-              ></q-btn>
-            </div>
+      <q-card-section class="grid">
+        <div>
+          <h6 class="q-my-none text-center">
+            <strong>Welcome to LNbits</strong>
+            <p>Set up the Superuser account below.</p>
+          </h6>
+          <br />
+          <q-form class="q-gutter-md">
+            <q-input
+              filled
+              v-model="loginData.username"
+              :label="$t('username')"
+              :hint="superuser"
+            ></q-input>
+            <q-input
+              filled
+              v-model.trim="loginData.password"
+              :type="loginData.isPwd ? 'password' : 'text'"
+              autocomplete="off"
+              :label="$t('password')"
+              :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+              ><template v-slot:append>
+                <q-icon
+                  :name="loginData.isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="loginData.isPwd = !loginData.isPwd"
+                /> </template
+            ></q-input>
+            <q-input
+              filled
+              v-model.trim="loginData.passwordRepeat"
+              :type="loginData.isPwdRepeat ? 'password' : 'text'"
+              autocomplete="off"
+              :label="$t('password_repeat')"
+              :rules="[(val) => !val || val.length >= 8 || $t('invalid_password'), (val) => val === loginData.password || 'Passwords_dont_match']"
+              ><template v-slot:append>
+                <q-icon
+                  :name="loginData.isPwdRepeat ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="loginData.isPwdRepeat = !loginData.isPwdRepeat"
+                /> </template
+            ></q-input>
+            <q-btn
+              @click=""
+              unelevated
+              color="primary"
+              :label="$t('login')"
+              :disable="checkPasswordsMatch || !loginData.username || !loginData.password || !loginData.passwordRepeat"
+            ></q-btn>
           </q-form>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero q-mx-auto"></div>
         </div>
       </q-card-section>
     </q-card>
   </div>
 </div>
 {% endblock %} {% block scripts %}
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .grid {
+    display: block;
+  }
+  .hero-wrapper {
+    display: none;
+  }
+  .hero {
+    display: block;
+    height: 100%;
+    max-width: 250px;
+    background-image: url("{{ static_url_for('static', 'images/logos/lnbits.svg') }}");
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+
+  @media (min-width: 992px) {
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 1rem;
+    }
+    .hero-wrapper {
+      display: block;
+      position: relative;
+      height: 100%;
+      padding: 1rem;
+    }
+  }
+</style>
 <script>
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
       return {
-        cancel: {},
-        data: {
-          funding_source: [
-            'CLightningWallet',
-            'LndRestWallet',
-            'LndWallet',
-            'LntxbotWallet',
-            'LNPayWallet',
-            'LnbitsWallet',
-            'OpenNodeWallet'
-          ],
-
-          admin: {
-            site_title: 'LNbits',
-            tagline: 'Free and open source wallet system',
-            primary_color: '#FF00FF',
-            secondary_color: '#FF00FF',
-            funding_source_primary: '',
-            funding_source_edited: '',
-            service_fee: 0,
-            disabled_ext: '',
-            edited: [],
-            CLightningWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              '',
-              '',
-              0,
-              'CLightningWallet'
-            ],
-            LndRestWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              'LndRestWallet',
-              '',
-              0,
-              'LndRestWallet'
-            ],
-            LndWallet: ['', '', '', '', '', 'LndWallet', '', 0, 'LndWallet'],
-            LntxbotWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              'LntxbotWallet',
-              '',
-              0,
-              'LntxbotWallet'
-            ],
-            LNPayWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              'LNPayWallet',
-              '',
-              0,
-              'LNPayWallet'
-            ],
-            LnbitsWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              'LnbitsWallet',
-              '',
-              0,
-              'LnbitsWallet'
-            ],
-            OpenNodeWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              'OpenNodeWallet',
-              '',
-              0,
-              'OpenNodeWallet'
-            ],
-            senddata: {}
-          }
-        },
-
-        options: [
-          'lnurlw',
-          'lnurlp',
-          'usermanager',
-          'events',
-          'lndhub',
-          'lntickets',
-          'paywall',
-          'tpos',
-          'amilk'
-        ]
+        superuser: null,
+        loginData: {
+          isPwd: true,
+          isPwdRepeat: true,
+          username: '',
+          password: '',
+          passwordRepeat: ''
+        }
       }
     },
-    created: function () {},
-    methods: {}
+    created() {
+      this.superuser = '{{ superuser }}'
+      this.hasAdminUI = '{{ LNBITS_ADMIN_UI | tojson}}'
+    },
+    computed: {
+      checkPasswordsMatch() {
+        return this.loginData.password !== this.loginData.passwordRepeat
+      }
+    },
+    methods: {
+      async setPassword() {
+        try {
+          const {data} = await LNbits.api.request(
+            'PUT',
+            '/api/v1/auth/password',
+            null,
+            {
+              user_id: this.superuser,
+              password: this.loginData.password,
+              password_repeat: this.loginData.passwordRepeat
+            }
+          )
+          this.user = data
+          this.$q.notify({
+            type: 'positive',
+            message: 'Password set.'
+          })
+          this.setTimeout(() => {
+            window.location.href = this.hasAdminUI ? '/admin' : '/wallet'
+          }, 2000)
+        } catch (e) {
+          LNbits.utils.notifyApiError(e)
+        }
+      }
+    }
   })
 </script>
 {% endblock %}
