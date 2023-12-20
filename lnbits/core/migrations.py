@@ -412,22 +412,22 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
     Adds created_at and updated_at column to accounts and wallets.
     """
     try:
-        # await db.execute(
-        #     "ALTER TABLE accounts "
-        #     f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
-        # )
-        # await db.execute(
-        #     "ALTER TABLE accounts "
-        #     f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
-        # )
-        # await db.execute(
-        #     "ALTER TABLE wallets "
-        #     f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
-        # )
-        # await db.execute(
-        #     "ALTER TABLE wallets "
-        #     f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
-        # )
+        await db.execute(
+            "ALTER TABLE accounts "
+            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE accounts "
+            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE wallets "
+            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
+        await db.execute(
+            "ALTER TABLE wallets "
+            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+        )
 
         # set their wallets created_at with the first payment
         await db.execute(
