@@ -571,9 +571,8 @@ window.windowMixin = {
       )
 
       this.g.extensions = extensions
-
-      await this.checkUsrInUrl()
     }
+    await this.checkUsrInUrl()
   }
 }
 
