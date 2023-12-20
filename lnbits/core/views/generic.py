@@ -54,8 +54,13 @@ async def home(request: Request, lightning: str = ""):
 
 @generic_router.get("/first_install", response_class=HTMLResponse)
 async def first_install(request: Request):
+    if not settings.first_install:
+        return template_renderer().TemplateResponse(
+            "error.html", {"request": request, "err": "Page not available!"}
+        )
     return template_renderer().TemplateResponse(
-        "core/first_install.html", {"request": request}
+        "core/first_install.html",
+        {"request": request, "superuser": settings.super_user},
     )
 
 
