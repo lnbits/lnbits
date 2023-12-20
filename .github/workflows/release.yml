@@ -3,9 +3,8 @@ name: release
 on:
   push:
     tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+"
-      - "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
-      - "[0-9]+.[0-9]+.[0-9]+-*"
 
 permissions:
   contents: write
@@ -14,23 +13,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: main
-
-      - name: update version in pyproject.toml
-        env:
-          tag: ${{ github.ref_name }}
-        run: |
-          sed -i "s/^version.*/version = \"$tag\"/g" pyproject.toml
-          git config --global user.name 'Alan Bits'
-          git config --global user.email 'alan@lnbits.com'
-          git commit -am "[CHORE] update version to $tag"
-          git push
-          git push --delete origin $tag
-          git tag -fa $tag -m "update via workflow"
-          git push --tags
-
       - name: Create github release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
