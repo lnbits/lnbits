@@ -10,10 +10,16 @@ from typing import Tuple
 from loguru import logger
 from psycopg2 import connect
 from psycopg2.errors import InvalidCatalogName
+from pydantic import BaseModel
 
 from lnbits import core
 from lnbits.db import DB_TYPE, POSTGRES
 from lnbits.wallets import get_wallet_class, set_wallet_class
+
+
+class TestModel(BaseModel):
+    id: int
+    name: str
 
 
 def get_random_string(N: int = 10):
