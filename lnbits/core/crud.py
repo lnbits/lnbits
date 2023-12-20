@@ -65,8 +65,8 @@ async def create_user(
             data.username,
             pwd_context.hash(data.password),
             json.dumps(dict(user_config)) if user_config else "{}",
-            time(),
-            time(),
+            int(time()),
+            int(time()),
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -92,7 +92,7 @@ async def create_account(
         INSERT INTO accounts (id, email, extra, created_at, updated_at)
         VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
-        (user_id, email, extra, time(), time()),
+        (user_id, email, extra, int(time()), int(time())),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -134,7 +134,7 @@ async def update_account(
             username,
             email,
             json.dumps(dict(extra)) if extra else "{}",
-            time(),
+            int(time()),
             user_id,
         ),
     )
@@ -194,7 +194,7 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
         """,
         (
             pwd_context.hash(data.password),
-            time(),
+            int(time()),
             data.user_id,
         ),
     )
@@ -432,8 +432,8 @@ async def create_wallet(
             user_id,
             uuid4().hex,
             uuid4().hex,
-            time(),
-            time(),
+            int(time()),
+            int(time()),
         ),
     )
 
@@ -452,7 +452,7 @@ async def update_wallet(
     set_clause = []
     values: list = []
     set_clause.append(f"updated_at = {db.timestamp_placeholder}")
-    values.append(time())
+    values.append(int(time()))
     if name:
         set_clause.append("name = ?")
         values.append(name)
@@ -480,7 +480,7 @@ async def delete_wallet(
         SET deleted = true, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (time(), wallet_id, user_id),
+        (int(time()), wallet_id, user_id),
     )
 
 
