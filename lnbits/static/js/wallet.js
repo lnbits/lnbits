@@ -242,6 +242,7 @@ new Vue({
       },
       balance: 0,
       fiatBalance: 0,
+      mobileSimple: false,
       credit: 0,
       update: {
         name: null,
@@ -860,6 +861,9 @@ new Vue({
         urlParams.get('lightning') || urlParams.get('lnurl')
       this.decodeRequest()
       this.parse.show = true
+    }
+    if (this.$q.screen.lt.md) {
+      this.mobileSimple = true
     }
     this.fetchBalance()
     this.fetchPayments()

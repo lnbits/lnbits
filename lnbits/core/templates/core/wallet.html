@@ -18,12 +18,19 @@
       <div class="col-12 col-md-7 q-gutter-y-md">
         {% endif %}
         <q-card
-          :style="{ background: $q.screen.lt.md ? 'none !important': '', boxShadow: $q.screen.lt.md ? 'none !important': ''}"
+          :style="$q.screen.lt.md ? { 
+            background: $q.screen.lt.md ? 'none !important': ''
+          , boxShadow: $q.screen.lt.md ? 'none !important': ''
+          , position: mobileSimple ? 'fixed !important': ''
+          , top: mobileSimple ? '50% !important': ''
+          , left: mobileSimple ? '50% !important': ''
+          , transform: mobileSimple ? 'translate(-50%, -50%) !important': ''
+        } : ''"
         >
           <q-card-section>
-            <h3 class="q-my-none">
+            <h3 class="q-my-none text-no-wrap">
               <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
-              {{LNBITS_DENOMINATION}}
+              <small>{{LNBITS_DENOMINATION}}</small>
               <q-btn
                 v-if="'{{user.super_user}}' == 'True'"
                 flat
@@ -64,6 +71,15 @@
                 style="opacity: 0.75"
               ></span>
             </div>
+            <q-btn
+              @Click="mobileSimple = !mobileSimple"
+              class="float-right lt-md"
+              size="sm"
+              flat
+              style="color: primary"
+              :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
+              :label="mobileSimple ? $t('more') : $t('less')"
+            ></q-btn>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
             <div class="col">
@@ -101,7 +117,11 @@
         </q-card>
 
         <q-card
-          :style="{ background: $q.screen.lt.md ? 'none !important': '', boxShadow: $q.screen.lt.md ? 'none !important': ''}"
+          :style="$q.screen.lt.md ? { 
+            background: $q.screen.lt.md ? 'none !important': ''
+            , boxShadow: $q.screen.lt.md ? 'none !important': ''
+            , display: mobileSimple ? 'none !important': ''
+          } : ''"
         >
           <q-card-section>
             <div class="row items-center no-wrap q-mb-sm">
@@ -308,11 +328,13 @@
           </q-card-section>
         </q-card>
       </div>
-
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
-        <div class="gt-sm col-12 col-md-5 q-gutter-y-md">
+        <div
+          v-if="!mobileSimple || $q.screen.gt.sm"
+          class="col-12 col-md-5 q-gutter-y-md"
+        >
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
