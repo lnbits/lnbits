@@ -15,16 +15,22 @@
     {% elif HIDE_API %}
     <div class="col-12 q-gutter-y-md">
       {% else %}
-      <div class="col-12 col-md-7 q-gutter-y-md">
+      <div
+        class="col-12 col-md-7 q-gutter-y-md"
+        :style="$q.screen.lt.md ? { 
+        position: mobileSimple ? 'fixed !important': ''
+      , top: mobileSimple ? '50% !important': ''
+      , left: mobileSimple ? '50% !important': ''
+      , transform: mobileSimple ? 'translate(-50%, -50%) !important': ''
+    } : ''"
+      >
         {% endif %}
         <q-card
           :style="$q.screen.lt.md ? { 
             background: $q.screen.lt.md ? 'none !important': ''
           , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , position: mobileSimple ? 'fixed !important': ''
-          , top: mobileSimple ? '50% !important': ''
-          , left: mobileSimple ? '50% !important': ''
-          , transform: mobileSimple ? 'translate(-50%, -50%) !important': ''
+          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
+          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
         } : ''"
         >
           <q-card-section>
@@ -64,22 +70,28 @@
                 </q-popup-edit>
               </q-btn>
             </h3>
-            <div v-if="g.wallet.currency">
-              <span
-                class="text-h5 text-italic"
-                v-text="formattedFiatBalance"
-                style="opacity: 0.75"
-              ></span>
+            <div class="row">
+              <div class="col">
+                <div v-if="g.wallet.currency">
+                  <span
+                    class="text-h5 text-italic"
+                    v-text="formattedFiatBalance"
+                    style="opacity: 0.75"
+                  ></span>
+                </div>
+              </div>
+              <div class="col">
+                <q-btn
+                  @Click="mobileSimple = !mobileSimple"
+                  class="float-right lt-md"
+                  size="sm"
+                  flat
+                  style="color: primary"
+                  :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
+                  :label="mobileSimple ? $t('more') : $t('less')"
+                ></q-btn>
+              </div>
             </div>
-            <q-btn
-              @Click="mobileSimple = !mobileSimple"
-              class="float-right lt-md"
-              size="sm"
-              flat
-              style="color: primary"
-              :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
-              :label="mobileSimple ? $t('more') : $t('less')"
-            ></q-btn>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
             <div class="col">
@@ -120,7 +132,7 @@
           :style="$q.screen.lt.md ? { 
             background: $q.screen.lt.md ? 'none !important': ''
             , boxShadow: $q.screen.lt.md ? 'none !important': ''
-            , display: mobileSimple ? 'none !important': ''
+            , marginTop: $q.screen.lt.md ? '0px !important': ''
           } : ''"
         >
           <q-card-section>
@@ -156,6 +168,9 @@
               </div>
             </div>
             <q-input
+              :style="$q.screen.lt.md ? { 
+              display: mobileSimple ? 'none !important': ''
+            } : ''"
               filled
               dense
               clearable
@@ -168,13 +183,15 @@
             <q-table
               dense
               flat
-              :data="payments"
+              :data="paymentsOmitter"
               :row-key="paymentTableRowKey"
               :columns="paymentsTable.columns"
               :pagination.sync="paymentsTable.pagination"
               :no-data-label="$t('no_transactions')"
               :filter="paymentsTable.filter"
               :loading="paymentsTable.loading"
+              :hide-header="mobileSimple"
+              :hide-bottom="mobileSimple"
               @request="fetchPayments"
             >
               {% raw %}

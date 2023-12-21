@@ -272,6 +272,12 @@ new Vue({
 
       return LNbits.utils.search(this.payments, q)
     },
+    paymentsOmitter() {
+      if (this.$q.screen.lt.md && this.mobileSimple) {
+        return this.payments.length > 0 ? [this.payments[0]] : []
+      }
+      return this.payments
+    },
     canPay: function () {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
