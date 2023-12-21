@@ -252,14 +252,15 @@ async def update(
 
 
 @auth_router.put("/api/v1/auth/first_install")
-async def first_install(data: UpdateUserPassword) -> Optional[User]:
+async def first_install(data: UpdateUserPassword) -> RedirectResponse:
     if not settings.first_install:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
     try:
+        assert data.username, "Missing username."
         await update_account(data.user_id, username=data.username)
-        user = await update_user_password(data)
+        await update_user_password(data)
         settings.first_install = False
-        return user
+        return _auth_redirect_response("/admin", data.username)
     except AssertionError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
     except Exception as e:
