@@ -58,9 +58,10 @@ async def first_install(request: Request):
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Page not available!"}
         )
+    user = await get_user(settings.super_user)
     return template_renderer().TemplateResponse(
         "core/first_install.html",
-        {"request": request, "superuser": settings.super_user},
+        {"request": request, "user": user},
     )
 
 
