@@ -131,11 +131,6 @@
             password: this.loginData.password,
             password_repeat: this.loginData.passwordRepeat
           })
-          await LNbits.api.request('PUT', '/api/v1/auth/password', null, {
-            user_id: this.user,
-            password: this.loginData.password,
-            password_repeat: this.loginData.passwordRepeat
-          })          
           this.$q.notify({
             type: 'positive',
             message: 'Username and password set.'
