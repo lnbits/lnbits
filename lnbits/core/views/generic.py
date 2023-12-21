@@ -1,10 +1,10 @@
 import asyncio
 from http import HTTPStatus
 from pathlib import Path
-from typing import List, Optional
+from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
@@ -165,6 +165,7 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
+    lnbits_last_active_wallet: Annotated[Union[str, None], Cookie()] = None,
     user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
@@ -174,6 +175,8 @@ async def wallet(
         wallet = await create_wallet(user_id=user.id)
         user = await get_user(user_id=user.id) or user
         wallet_id = wallet.id
+    elif user.get_wallet(lnbits_last_active_wallet):
+        wallet_id = lnbits_last_active_wallet
     else:
         wallet_id = user.wallets[0].id
 
@@ -183,7 +186,7 @@ async def wallet(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
 
-    return template_renderer().TemplateResponse(
+    resp = template_renderer().TemplateResponse(
         "core/wallet.html",
         {
             "request": request,
@@ -194,6 +197,10 @@ async def wallet(
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
+    resp.set_cookie(
+        "lnbits_last_active_wallet", wallet_id, samesite="none", secure=True
+    )
+    return resp
 
 
 @generic_router.get(
