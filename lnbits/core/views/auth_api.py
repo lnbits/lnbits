@@ -253,12 +253,10 @@ async def update(
 
 @auth_router.put("/api/v1/auth/first_install")
 async def first_install(data: UpdateUserPassword) -> Optional[User]:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
-        raise HTTPException(
-            HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
-        )
+    if not settings.first_install:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
     try:
-        user = await update_account(data.user_id, username=data.username)
+        await update_account(data.user_id, username=data.username)
         user = await update_user_password(data)
         settings.first_install = False
         return user
