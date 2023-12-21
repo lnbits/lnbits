@@ -260,7 +260,7 @@ async def first_install(data: UpdateUserPassword) -> RedirectResponse:
         await update_account(data.user_id, username=data.username)
         await update_user_password(data)
         settings.first_install = False
-        return _auth_redirect_response("/admin", data.username)
+        return _auth_success_response(username=data.username, user_id=data.user_id)
     except AssertionError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
     except Exception as e:
