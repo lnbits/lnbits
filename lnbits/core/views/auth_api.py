@@ -252,7 +252,7 @@ async def update(
 
 
 @auth_router.put("/api/v1/auth/first_install")
-async def first_install(data: UpdateUserPassword) -> RedirectResponse:
+async def first_install(data: UpdateUserPassword) -> JSONResponse:
     if not settings.first_install:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
     try:

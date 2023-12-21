@@ -130,10 +130,9 @@
             username: this.loginData.username,
             password: this.loginData.password,
             password_repeat: this.loginData.passwordRepeat
-          })          
-          
+          })
+
           window.location.href = '/admin'
-       
         } catch (e) {
           LNbits.utils.notifyApiError(e)
         }
