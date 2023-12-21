@@ -125,9 +125,11 @@
     methods: {
       async setPassword() {
         try {
-          await LNbits.api.request('PUT', '/api/v1/auth/update', null, {
-            user_id: this.user,
+          await LNbits.api.request('PUT', '/api/v1/auth/first_install', null, {
+            user_id: this.user.id,
             username: this.loginData.username
+            password: this.loginData.password,
+            password_repeat: this.loginData.passwordRepeat
           })
           await LNbits.api.request('PUT', '/api/v1/auth/password', null, {
             user_id: this.user,

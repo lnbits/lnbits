@@ -141,6 +141,7 @@ class UpdateUserPassword(BaseModel):
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
     password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
 
 
 class LoginUsr(BaseModel):
