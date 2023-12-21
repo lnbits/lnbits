@@ -17,7 +17,7 @@
       {% else %}
       <div
         class="col-12 col-md-7 q-gutter-y-md"
-        :style="$q.screen.lt.md ? { 
+        :style="$q.screen.lt.md ? {
         position: mobileSimple ? 'fixed !important': ''
       , top: mobileSimple ? '50% !important': ''
       , left: mobileSimple ? '50% !important': ''
@@ -26,7 +26,7 @@
       >
         {% endif %}
         <q-card
-          :style="$q.screen.lt.md ? { 
+          :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
           , boxShadow: $q.screen.lt.md ? 'none !important': ''
           , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
@@ -82,7 +82,7 @@
               </div>
               <div class="col">
                 <q-btn
-                  @Click="mobileSimple = !mobileSimple"
+                  @click="mobileSimple = !mobileSimple"
                   class="float-right lt-md"
                   size="sm"
                   flat
@@ -129,7 +129,7 @@
         </q-card>
 
         <q-card
-          :style="$q.screen.lt.md ? { 
+          :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
             , boxShadow: $q.screen.lt.md ? 'none !important': ''
             , marginTop: $q.screen.lt.md ? '0px !important': ''
@@ -168,7 +168,7 @@
               </div>
             </div>
             <q-input
-              :style="$q.screen.lt.md ? { 
+              :style="$q.screen.lt.md ? {
               display: mobileSimple ? 'none !important': ''
             } : ''"
               filled
