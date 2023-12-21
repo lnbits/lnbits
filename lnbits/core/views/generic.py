@@ -15,7 +15,7 @@ from lnbits.core.db import db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import create_access_token, template_renderer, url_for
+from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
@@ -58,18 +58,10 @@ async def first_install(request: Request):
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Page not available!"}
         )
-    response = template_renderer().TemplateResponse(
+    return template_renderer().TemplateResponse(
         "core/first_install.html",
         {"request": request, "super_user": settings.super_user},
     )
-    # on first install we login the super user immediatly,
-    # so he can update his username and password
-    access_token = create_access_token(data={"sub": "", "usr": settings.super_user})
-    response.set_cookie("cookie_access_token", access_token, httponly=True)
-    response.set_cookie(
-        "is_lnbits_user_authorized", "true", samesite="none", secure=True
-    )
-    return response
 
 
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
