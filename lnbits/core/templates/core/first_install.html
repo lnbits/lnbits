@@ -14,7 +14,7 @@
               filled
               v-model="loginData.username"
               :label="$t('username')"
-              :hint="user.id"
+              :hint="user"
             ></q-input>
             <q-input
               filled
@@ -114,7 +114,7 @@
       }
     },
     created() {
-      this.user = '{{ superuser }}'
+      this.user = '{{ super_user }}'
       this.hasAdminUI = '{{ LNBITS_ADMIN_UI | tojson}}'
     },
     computed: {
@@ -125,15 +125,15 @@
     methods: {
       async setPassword() {
         try {
-          await LNbits.api.request('PUT', '/api/v1/auth/password', null, {
-            user_id: this.user.id,
-            password: this.loginData.password,
-            password_repeat: this.loginData.passwordRepeat
-          })
           await LNbits.api.request('PUT', '/api/v1/auth/update', null, {
-            user_id: this.user.id,
+            user_id: this.user,
             username: this.loginData.username
           })
+          await LNbits.api.request('PUT', '/api/v1/auth/password', null, {
+            user_id: this.user,
+            password: this.loginData.password,
+            password_repeat: this.loginData.passwordRepeat
+          })          
           this.$q.notify({
             type: 'positive',
             message: 'Username and password set.'
