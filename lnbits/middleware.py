@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from typing import Any, List, Tuple, Union
-from urllib.parse import parse_qs
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -41,13 +40,6 @@ class InstalledExtensionMiddleware:
             await response(scope, receive, send)
             return
 
-        if not self._user_allowed_to_extension(top_path, scope):
-            response = self._response_by_accepted_type(
-                headers, "User not authorized.", HTTPStatus.FORBIDDEN
-            )
-            await response(scope, receive, send)
-            return
-
         # static resources do not require redirect
         if rest[0:1] == ["static"]:
             await self.app(scope, receive, send)
@@ -67,23 +59,6 @@ class InstalledExtensionMiddleware:
             scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
 
         await self.app(scope, receive, send)
-
-    def _user_allowed_to_extension(self, ext_name: str, scope) -> bool:
-        if ext_name not in settings.lnbits_admin_extensions:
-            return True
-        if "query_string" not in scope:
-            return True
-
-        # parse the URL query string into a `dict`
-        q = parse_qs(scope["query_string"].decode("UTF-8"))
-        user = q.get("usr", [""])[0]
-        if not user:
-            return True
-
-        if user == settings.super_user or user in settings.lnbits_admin_users:
-            return True
-
-        return False
 
     def _response_by_accepted_type(
         self, headers: List[Any], msg: str, status_code: HTTPStatus

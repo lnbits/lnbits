@@ -48,6 +48,7 @@ from lnbits.core.models import (
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_access_token,
     check_admin,
     get_key_type,
     parse_filters,
@@ -405,7 +406,7 @@ async def api_payments_pay_lnurl(
     domain = urlparse(data.callback).netloc
 
     headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
             r = await client.get(
                 data.callback,
@@ -414,6 +415,7 @@ async def api_payments_pay_lnurl(
             )
             if r.is_error:
                 raise httpx.ConnectError("LNURL callback connection error")
+            r.raise_for_status()
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -779,7 +781,9 @@ async def websocket_update_get(item_id: str, data: str):
 
 @api_router.post("/api/v1/extension")
 async def api_install_extension(
-    data: CreateExtension, user: User = Depends(check_admin)
+    data: CreateExtension,
+    user: User = Depends(check_admin),
+    access_token: Optional[str] = Depends(check_access_token),
 ):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
@@ -811,7 +815,7 @@ async def api_install_extension(
         await add_installed_extension(ext_info)
 
         # call stop while the old routes are still active
-        await stop_extension_background_work(data.ext_id, user.id)
+        await stop_extension_background_work(data.ext_id, user.id, access_token)
 
         if data.ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [data.ext_id]
@@ -837,7 +841,11 @@ async def api_install_extension(
 
 
 @api_router.delete("/api/v1/extension/{ext_id}")
-async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)):
+async def api_uninstall_extension(
+    ext_id: str,
+    user: User = Depends(check_admin),
+    access_token: Optional[str] = Depends(check_access_token),
+):
     installable_extensions = await InstallableExtension.get_installable_extensions()
 
     extensions = [e for e in installable_extensions if e.id == ext_id]
@@ -863,7 +871,7 @@ async def api_uninstall_extension(ext_id: str, user: User = Depends(check_admin)
 
     try:
         # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id, user.id)
+        await stop_extension_background_work(ext_id, user.id, access_token)
 
         if ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [ext_id]

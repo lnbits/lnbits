@@ -350,7 +350,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/admin/api/v1/topup/?usr=' + this.g.user.id,
+          '/admin/api/v1/topup/',
           this.g.user.wallets[0].adminkey,
           {
             amount: credit,
@@ -854,6 +854,13 @@ new Vue({
     }
   },
   created: function () {
+    let urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+      this.parse.data.request =
+        urlParams.get('lightning') || urlParams.get('lnurl')
+      this.decodeRequest()
+      this.parse.show = true
+    }
     this.fetchBalance()
     this.fetchPayments()
 
