@@ -175,7 +175,7 @@ async def wallet(
         wallet = await create_wallet(user_id=user.id)
         user = await get_user(user_id=user.id) or user
         wallet_id = wallet.id
-    elif user.get_wallet(lnbits_last_active_wallet):
+    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
         wallet_id = lnbits_last_active_wallet
     else:
         wallet_id = user.wallets[0].id
