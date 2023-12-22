@@ -16,6 +16,7 @@ if not BREEZ_SDK_INSTALLED:
 
 else:
     import asyncio
+    from pathlib import Path
     from typing import AsyncGenerator, Optional
 
     from loguru import logger
@@ -63,6 +64,11 @@ else:
                     )
                 ),
             )
+
+            breez_sdk_working_dir = Path(settings.lnbits_data_folder, "breez-sdk")
+            breez_sdk_working_dir.mkdir(parents=True, exist_ok=True)
+            self.config.working_dir = breez_sdk_working_dir.absolute().as_posix()
+
             self.sdk_services = breez_sdk.connect(
                 self.config, self.breez_greenlight_seed, SDKListener()
             )
