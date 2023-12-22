@@ -1,5 +1,6 @@
 import datetime
 import json
+from time import time
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
@@ -51,10 +52,13 @@ async def create_user(
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     user_id = uuid4().hex
+    tsph = db.timestamp_placeholder
+    now = int(time())
     await db.execute(
-        """
-            INSERT INTO accounts (id, email, username, pass, extra)
-            VALUES (?, ?, ?, ?, ?)
+        f"""
+            INSERT INTO accounts
+            (id, email, username, pass, extra, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, {tsph}, {tsph})
         """,
         (
             user_id,
@@ -62,6 +66,8 @@ async def create_user(
             data.username,
             pwd_context.hash(data.password),
             json.dumps(dict(user_config)) if user_config else "{}",
+            now,
+            now,
         ),
     )
     new_account = await get_account(user_id=user_id)
@@ -82,9 +88,13 @@ async def create_account(
         user_id = uuid4().hex
 
     extra = json.dumps(dict(user_config)) if user_config else "{}"
+    now = int(time())
     await (conn or db).execute(
-        "INSERT INTO accounts (id, email, extra) VALUES (?, ?, ?)",
-        (user_id, email, extra),
+        f"""
+        INSERT INTO accounts (id, email, extra, created_at, updated_at)
+        VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
+        """,
+        (user_id, email, extra, now, now),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -116,12 +126,20 @@ async def update_account(
     email = user.email or email
     extra = user_config or user.config
 
+    now = int(time())
     await db.execute(
-        """
-            UPDATE accounts SET (username, email, extra) = (?, ?, ?)
+        f"""
+            UPDATE accounts SET (username, email, extra, updated_at) =
+            (?, ?, ?, {db.timestamp_placeholder})
             WHERE id = ?
         """,
-        (username, email, json.dumps(dict(extra)) if extra else "{}", user_id),
+        (
+            username,
+            email,
+            json.dumps(dict(extra)) if extra else "{}",
+            now,
+            user_id,
+        ),
     )
 
     user = await get_user(user_id)
@@ -133,7 +151,7 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, username FROM accounts WHERE id = ?",
+        "SELECT id, email, username, created_at, updated_at FROM accounts WHERE id = ?",
         (user_id,),
     )
 
@@ -172,10 +190,15 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+    now = int(time())
     await db.execute(
-        "UPDATE accounts SET pass = ? WHERE id = ?",
+        f"""
+        UPDATE accounts SET pass = ?, updated_at = {db.timestamp_placeholder}
+        WHERE id = ?
+        """,
         (
             pwd_context.hash(data.password),
+            now,
             data.user_id,
         ),
     )
@@ -189,7 +212,10 @@ async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email FROM accounts WHERE username = ?",
+        """
+        SELECT id, username, email, created_at, updated_at
+        FROM accounts WHERE username = ?
+        """,
         (username,),
     )
 
@@ -200,7 +226,10 @@ async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, username, email FROM accounts WHERE email = ?",
+        """
+        SELECT id, username, email, created_at, updated_at
+        FROM accounts WHERE email = ?
+        """,
         (email,),
     )
 
@@ -218,7 +247,11 @@ async def get_account_by_username_or_email(
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email, username, pass, extra FROM accounts WHERE id = ?", (user_id,)
+        """
+        SELECT id, email, username, pass, extra, created_at, updated_at
+        FROM accounts WHERE id = ?
+        """,
+        (user_id,),
     )
 
     if user:
@@ -392,10 +425,11 @@ async def create_wallet(
     conn: Optional[Connection] = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
+    now = int(time())
     await (conn or db).execute(
-        """
-        INSERT INTO wallets (id, name, "user", adminkey, inkey)
-        VALUES (?, ?, ?, ?, ?)
+        f"""
+        INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
         (
             wallet_id,
@@ -403,6 +437,8 @@ async def create_wallet(
             user_id,
             uuid4().hex,
             uuid4().hex,
+            now,
+            now,
         ),
     )
 
@@ -419,7 +455,10 @@ async def update_wallet(
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     set_clause = []
-    values = []
+    values: list = []
+    set_clause.append(f"updated_at = {db.timestamp_placeholder}")
+    now = int(time())
+    values.append(now)
     if name:
         set_clause.append("name = ?")
         values.append(name)
@@ -441,13 +480,14 @@ async def update_wallet(
 async def delete_wallet(
     *, user_id: str, wallet_id: str, conn: Optional[Connection] = None
 ) -> None:
+    now = int(time())
     await (conn or db).execute(
-        """
+        f"""
         UPDATE wallets
-        SET deleted = true
+        SET deleted = true, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (wallet_id, user_id),
+        (now, wallet_id, user_id),
     )
 
 
