@@ -363,9 +363,6 @@
               <q-separator></q-separator>
 
               <q-list>
-                {% include "core/_api_docs.html" %}
-                <q-separator></q-separator>
-
                 {% if wallet.lnurlwithdraw_full %}
                 <q-expansion-item
                   group="extras"
@@ -478,6 +475,9 @@
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
+
+                <q-separator></q-separator>
+                {% include "core/_api_docs.html" %}
               </q-list>
             </q-card-section>
           </q-card>
