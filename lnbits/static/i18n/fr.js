@@ -65,8 +65,9 @@ window.localisation.fr = {
   service_fee_tooltip:
     "Frais de service facturés par l'administrateur du serveur LNbits pour chaque transaction sortante",
   toggle_darkmode: 'Basculer le mode sombre',
-  view_swagger_docs: "Voir les documents de l'API Swagger de LNbits",
-  api_docs: "Documents de l'API",
+  view_swagger_docs: "Voir les documentation de l'API Swagger de LNbits",
+  api_docs: "Documentation de l'API",
+  api_keys_api_docs: "Clés API et documentation de l'API",
   lnbits_version: 'Version de LNbits',
   runs_on: 'Fonctionne sur',
   credit_hint: 'Appuyez sur Entrée pour créditer le compte',

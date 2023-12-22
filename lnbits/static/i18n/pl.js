@@ -62,6 +62,7 @@ window.localisation.pl = {
   toggle_darkmode: 'Tryb nocny',
   view_swagger_docs: 'Dokumentacja Swagger API',
   api_docs: 'Dokumentacja API',
+  api_keys_api_docs: 'Klucze API i dokumentacja API',
   lnbits_version: 'Wersja LNbits',
   runs_on: 'Działa na',
   credit_hint: 'Naciśnij Enter aby doładować konto',

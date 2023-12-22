@@ -62,6 +62,7 @@ window.localisation.kr = {
   toggle_darkmode: '다크 모드 전환',
   view_swagger_docs: 'LNbits Swagger API 문서를 봅니다',
   api_docs: 'API 문서',
+  api_keys_api_docs: 'API 키와 API 문서',
   lnbits_version: 'LNbits 버전',
   runs_on: 'Runs on',
   credit_hint: '계정에 자금을 넣으려면 Enter를 눌러주세요',

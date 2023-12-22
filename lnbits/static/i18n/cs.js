@@ -63,6 +63,7 @@ window.localisation.cs = {
   toggle_darkmode: 'Přepnout tmavý režim',
   view_swagger_docs: 'Zobrazit LNbits Swagger API dokumentaci',
   api_docs: 'API dokumentace',
+  api_keys_api_docs: 'API klíče a API dokumentace',
   lnbits_version: 'Verze LNbits',
   runs_on: 'Běží na',
   credit_hint: 'Stiskněte Enter pro připsání na účet',
