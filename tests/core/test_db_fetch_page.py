@@ -59,7 +59,7 @@ async def test_db_fetch_page_group_by(fetch_page, db):
 
 @pytest.mark.asyncio
 async def test_db_fetch_page_group_by_evil(fetch_page, db):
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="Value for GROUP BY is invalid"):
         await db.fetch_page(
             query="select * from test_db_fetch_page",
             model=TestModel,

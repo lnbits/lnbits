@@ -187,9 +187,10 @@ class Connection(Compat):
         parsed_values = filters.values(values)
 
         if group_by:
-            assert re.fullmatch(
+            if not re.fullmatch(
                 r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", group_by
-            ), "GROUP BY regex failed"
+            ):
+                raise ValueError("Value for GROUP BY is invalid")
             group_by = f"GROUP BY {group_by}"
         else:
             group_by = ""
