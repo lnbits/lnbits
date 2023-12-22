@@ -176,6 +176,7 @@ window.localisation.pt = {
   notification_source_label:
     'URL de Origem (use apenas a fonte oficial de status do LNbits e fontes em que confia)',
   more: 'mais',
+  less: 'menos',
   releases: 'Lançamentos',
   killswitch: 'Interruptor de desativação',
   watchdog: 'Cão de guarda',

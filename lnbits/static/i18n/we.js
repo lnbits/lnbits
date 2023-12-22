@@ -174,6 +174,7 @@ window.localisation.we = {
   notification_source_label:
     'URL Ffynhonnell (defnyddiwch yn unig ffynhonnell statws swyddogol LNbits, a ffynonellau y gallwch ymddiried ynddynt)',
   more: 'mwy',
+  less: 'llai',
   releases: 'Rhyddhau',
   killswitch: 'Killswitch',
   watchdog: 'Gwyliwr',

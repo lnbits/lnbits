@@ -166,6 +166,7 @@ window.localisation.cn = {
   notification_source: '通知来源',
   notification_source_label: '来源 URL（仅使用官方LNbits状态源和您信任的源）',
   more: '更多',
+  less: '少',
   releases: '版本',
   killswitch: '杀手锏',
   watchdog: '监控程序',

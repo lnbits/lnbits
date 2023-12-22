@@ -174,6 +174,7 @@ window.localisation.jp = {
   notification_source_label:
     'ソースURL（公式のLNbitsステータスソースのみを使用し、信頼できるソースのみを利用してください）',
   more: 'より多くの',
+  less: '少ない',
   releases: 'リリース',
   killswitch: 'キルスイッチ',
   watchdog: 'ウォッチドッグ',

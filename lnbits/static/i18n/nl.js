@@ -177,6 +177,7 @@ window.localisation.nl = {
   notification_source_label:
     'Bron-URL (gebruik alleen de officiële LNbits-statusbron en bronnen die u vertrouwt)',
   more: 'meer',
+  less: 'minder',
   releases: 'Uitgaven',
   killswitch: 'Killswitch',
   watchdog: 'Waakhond',
