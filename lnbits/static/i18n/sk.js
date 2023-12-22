@@ -62,6 +62,7 @@ window.localisation.sk = {
   toggle_darkmode: 'Prepnúť Tmavý režim',
   view_swagger_docs: 'Zobraziť LNbits Swagger API dokumentáciu',
   api_docs: 'API dokumentácia',
+  api_keys_api_docs: 'API kľúče a API dokumentácia',
   lnbits_version: 'Verzia LNbits',
   runs_on: 'Beží na',
   credit_hint: 'Stlačte Enter pre pripísanie na účet',

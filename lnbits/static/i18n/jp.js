@@ -61,6 +61,7 @@ window.localisation.jp = {
   toggle_darkmode: 'ダークモードを切り替える',
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
+  api_keys_api_docs: 'APIキーとAPIドキュメント',
   lnbits_version: 'LNbits バージョン',
   runs_on: 'で実行',
   credit_hint:

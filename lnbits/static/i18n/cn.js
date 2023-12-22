@@ -59,6 +59,7 @@ window.localisation.cn = {
   toggle_darkmode: '切换暗黑模式',
   view_swagger_docs: '查看 LNbits Swagger API 文档',
   api_docs: 'API文档',
+  api_keys_api_docs: 'API密钥和API文档',
   lnbits_version: 'LNbits版本',
   runs_on: '可运行在',
   credit_hint: '按 Enter 键充值账户',

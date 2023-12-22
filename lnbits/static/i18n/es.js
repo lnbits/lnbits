@@ -61,8 +61,9 @@ window.localisation.es = {
   service_fee_tooltip:
     'Comisión de servicio cobrada por el administrador del servidor LNbits por cada transacción saliente',
   toggle_darkmode: 'Cambiar modo oscuro',
-  view_swagger_docs: 'Ver documentos de API de LNbits Swagger',
-  api_docs: 'Documentos de API',
+  view_swagger_docs: 'Ver documentación de API de LNbits Swagger',
+  api_docs: 'Documentación de API',
+  api_keys_api_docs: 'Claves de API y documentación de API',
   lnbits_version: 'Versión de LNbits',
   runs_on: 'Corre en',
   credit_hint: 'Presione Enter para cargar la cuenta',
