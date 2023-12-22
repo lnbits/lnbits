@@ -116,11 +116,19 @@ else:
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
         ) -> PaymentResponse:
+            invoice = lnbits_bolt11.decode(bolt11)
+
             try:
                 req = breez_sdk.SendPaymentRequest(bolt11=bolt11)
                 payment: breez_sdk.Payment = self.sdk_services.send_payment(req)
             except Exception as exc:
                 logger.info(exc)
+                # report issue to Breez to improve LSP routing
+                self.sdk_services.report_issue(
+                    breez_sdk.ReportIssueRequest.PAYMENT_FAILURE(
+                        breez_sdk.ReportPaymentFailureDetails(invoice.payment_hash)
+                    )
+                )
                 # assume that payment failed?
                 return PaymentResponse(
                     False, None, None, None, f"payment failed: {exc}"
@@ -128,7 +136,6 @@ else:
 
             assert not payment.pending, "payment is pending"
             # let's use the payment_hash as the checking_id
-            invoice = lnbits_bolt11.decode(bolt11)
             checking_id = invoice.payment_hash
 
             return PaymentResponse(
