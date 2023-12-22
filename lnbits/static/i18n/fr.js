@@ -181,6 +181,7 @@ window.localisation.fr = {
   notification_source_label:
     'URL source (utilisez uniquement la source officielle de statut LNbits et des sources de confiance)',
   more: 'plus',
+  less: 'moins',
   releases: 'Versions',
   killswitch: "Interrupteur d'arrêt",
   watchdog: 'Chien de garde',

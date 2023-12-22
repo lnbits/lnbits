@@ -174,6 +174,7 @@ window.localisation.sk = {
   notification_source_label:
     'URL zdroja (používajte len oficiálny LNbits zdroj stavu a zdroje, ktorým môžete dôverovať)',
   more: 'viac',
+  less: 'menej',
   releases: 'Vydania',
   killswitch: 'Killswitch',
   watchdog: 'Watchdog',

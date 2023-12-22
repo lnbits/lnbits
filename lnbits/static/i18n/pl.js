@@ -174,6 +174,7 @@ window.localisation.pl = {
   notification_source_label:
     'Adres URL źródła (używaj tylko oficjalnego źródła statusu LNbits oraz źródeł, którym możesz zaufać)',
   more: 'więcej',
+  less: 'mniej',
   releases: 'Wydania',
   killswitch: 'Killswitch',
   watchdog: 'Pies gończy',

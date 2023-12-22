@@ -174,6 +174,7 @@ window.localisation.cs = {
   notification_source_label:
     'URL zdroje (používejte pouze oficiální zdroj stavu LNbits a zdroje, kterým můžete věřit)',
   more: 'více',
+  less: 'méně',
   releases: 'Vydání',
   killswitch: 'Killswitch',
   watchdog: 'Watchdog',

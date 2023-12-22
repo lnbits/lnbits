@@ -174,6 +174,7 @@ window.localisation.kr = {
   notification_source_label:
     '알림 메세지를 가져올 URL (공식 LNbits 상황판 출처나, 당신이 신뢰할 수 있는 출처만을 사용하세요)',
   more: '더 알아보기',
+  less: '적게',
   releases: '배포 버전들',
   killswitch: '비상 정지',
   watchdog: '와치독',

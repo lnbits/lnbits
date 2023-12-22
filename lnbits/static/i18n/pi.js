@@ -176,6 +176,7 @@ window.localisation.pi = {
   notification_source_label:
     "Source URL (only use th' official LNbits status source, and sources ye can trust)",
   more: "Arr, 'tis more.",
+  less: "Arr, 'tis more fewer.",
   releases: 'Releases',
   killswitch: 'Killswitch',
   watchdog: 'Seadog',
