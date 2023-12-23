@@ -123,12 +123,15 @@ else:
                 payment: breez_sdk.Payment = self.sdk_services.send_payment(req)
             except Exception as exc:
                 logger.info(exc)
-                # report issue to Breez to improve LSP routing
-                self.sdk_services.report_issue(
-                    breez_sdk.ReportIssueRequest.PAYMENT_FAILURE(
-                        breez_sdk.ReportPaymentFailureDetails(invoice.payment_hash)
+                try:
+                    # try to report issue to Breez to improve LSP routing
+                    self.sdk_services.report_issue(
+                        breez_sdk.ReportIssueRequest.PAYMENT_FAILURE(
+                            breez_sdk.ReportPaymentFailureDetails(invoice.payment_hash)
+                        )
                     )
-                )
+                except Exception as ex:
+                    logger.info(ex)
                 # assume that payment failed?
                 return PaymentResponse(
                     False, None, None, None, f"payment failed: {exc}"
