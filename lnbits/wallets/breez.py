@@ -43,24 +43,27 @@ else:
 
     class BreezSdkWallet(Wallet):  # type: ignore[no-redef]
         def __init__(self):
-            assert settings.breez_greenlight_seed, "missing Greenlight seed"
-            self.breez_greenlight_seed = breez_sdk.mnemonic_to_seed(
-                settings.breez_greenlight_seed
-            )
-            assert settings.breez_api_key, "missing Breez api key"
-            self.breez_api_key = settings.breez_api_key
-            assert (
-                settings.breez_greenlight_invite_code
-            ), "missing Greenlight invite code"
-            self.breez_greenlight_invite_code = settings.breez_greenlight_invite_code
+            if not settings.breez_greenlight_seed:
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: missing breez_greenlight_seed"
+                )
+            if not settings.breez_api_key:
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: missing breez_api_key"
+                )
+            if not settings.breez_greenlight_invite_code:
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: "
+                    "missing breez_greenlight_invite_code"
+                )
 
             self.config = breez_sdk.default_config(
                 breez_sdk.EnvironmentType.PRODUCTION,
-                self.breez_api_key,
+                settings.breez_api_key,
                 breez_sdk.NodeConfig.GREENLIGHT(
                     config=breez_sdk.GreenlightNodeConfig(
                         partner_credentials=None,
-                        invite_code=self.breez_greenlight_invite_code,
+                        invite_code=settings.breez_greenlight_invite_code,
                     )
                 ),
             )
@@ -69,9 +72,8 @@ else:
             breez_sdk_working_dir.mkdir(parents=True, exist_ok=True)
             self.config.working_dir = breez_sdk_working_dir.absolute().as_posix()
 
-            self.sdk_services = breez_sdk.connect(
-                self.config, self.breez_greenlight_seed, SDKListener()
-            )
+            seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
+            self.sdk_services = breez_sdk.connect(self.config, seed, SDKListener())
 
         async def cleanup(self):
             self.sdk_services.disconnect()
