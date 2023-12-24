@@ -29,9 +29,13 @@ class CoreLightningWallet(Wallet):
     __node_cls__ = CoreLightningNode
 
     def __init__(self):
-        self.rpc = settings.corelightning_rpc or settings.clightning_rpc
-        self.ln = LightningRpc(self.rpc)
+        rpc = settings.corelightning_rpc or settings.clightning_rpc
+        if not rpc:
+            raise ValueError(
+                "cannot initialize CoreLightningWallet: missing corelightning_rpc"
+            )
 
+        self.ln = LightningRpc(rpc)
         # check if description_hash is supported (from corelightning>=v0.11.0)
         command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
         self.supports_description_hash = "deschashonly" in command

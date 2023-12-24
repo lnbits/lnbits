@@ -21,9 +21,10 @@ class ClicheWallet(Wallet):
     """https://github.com/fiatjaf/cliche"""
 
     def __init__(self):
+        if not settings.cliche_endpoint:
+            raise ValueError("cannot initialize ClicheWallet: missing cliche_endpoint")
+
         self.endpoint = settings.cliche_endpoint
-        if not self.endpoint:
-            raise Exception("cannot initialize cliche")
 
     async def status(self) -> StatusResponse:
         try:

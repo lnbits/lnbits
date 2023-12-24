@@ -20,15 +20,23 @@ class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
     def __init__(self):
-        endpoint = settings.opennode_api_endpoint
-        self.key = (
+        if not settings.opennode_api_endpoint:
+            raise ValueError(
+                "cannot initialize OpenNodeWallet: missing opennode_api_endpoint"
+            )
+        key = (
             settings.opennode_key
             or settings.opennode_admin_key
             or settings.opennode_invoice_key
         )
-        if not endpoint or not self.key:
-            raise Exception("cannot initialize opennode")
+        if not key:
+            raise ValueError(
+                "cannot initialize OpenNodeWallet: "
+                "missing opennode_key or opennode_admin_key or opennode_invoice_key"
+            )
+        self.key = key
 
+        endpoint = settings.opennode_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         headers = {
             "Authorization": self.key,

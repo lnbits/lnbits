@@ -20,13 +20,22 @@ class LNPayWallet(Wallet):
     """https://docs.lnpay.co/"""
 
     def __init__(self):
-        endpoint = settings.lnpay_api_endpoint
+        if not settings.lnpay_api_endpoint:
+            raise ValueError(
+                "cannot initialize LNPayWallet: missing lnpay_api_endpoint"
+            )
+        if not settings.lnpay_api_key:
+            raise ValueError("cannot initialize LNPayWallet: missing lnpay_api_key")
+
         wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
-
-        if not endpoint or not wallet_key or not settings.lnpay_api_key:
-            raise Exception("cannot initialize lnpay")
-
+        if not wallet_key:
+            raise ValueError(
+                "cannot initialize LNPayWallet: "
+                "missing lnpay_wallet_key or lnpay_admin_key"
+            )
         self.wallet_key = wallet_key
+
+        endpoint = settings.lnpay_api_endpoint
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         headers = {
             "X-Api-Key": settings.lnpay_api_key,
