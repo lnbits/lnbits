@@ -25,8 +25,7 @@ class AlbyWallet(Wallet):
         if not settings.alby_access_token:
             raise ValueError("cannot initialize AlbyWallet: missing alby_access_token")
 
-        endpoint = settings.alby_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.alby_api_endpoint)
         self.auth = {
             "Authorization": "Bearer " + settings.alby_access_token,
             "User-Agent": settings.user_agent,

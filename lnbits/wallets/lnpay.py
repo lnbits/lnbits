@@ -35,8 +35,8 @@ class LNPayWallet(Wallet):
             )
         self.wallet_key = wallet_key
 
-        endpoint = settings.lnpay_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.lnpay_api_endpoint)
+
         headers = {
             "X-Api-Key": settings.lnpay_api_key,
             "User-Agent": settings.user_agent,

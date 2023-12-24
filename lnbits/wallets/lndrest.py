@@ -58,12 +58,7 @@ class LndRestWallet(Wallet):
                 "This only works if you have a publicly issued certificate."
             )
 
-        endpoint = settings.lnd_rest_endpoint
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = (
-            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
-        )
-        self.endpoint = endpoint
+        self.endpoint = self.normalize_endpoint(settings.lnd_rest_endpoint)
 
         # if no cert provided it should be public so we set verify to True
         # and it will still check for validity of certificate and fail if its not valid
