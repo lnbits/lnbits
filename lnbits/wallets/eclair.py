@@ -35,8 +35,7 @@ class EclairWallet(Wallet):
         if not settings.eclair_pass:
             raise ValueError("cannot initialize EclairWallet: missing eclair_pass")
 
-        url = settings.eclair_url
-        self.url = url[:-1] if url.endswith("/") else url
+        self.url = self.normalize_endpoint(settings.eclair_url)
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
         password = settings.eclair_pass

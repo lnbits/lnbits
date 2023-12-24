@@ -95,6 +95,14 @@ class Wallet(ABC):
     def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         pass
 
+    def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        if add_proto:
+            endpoint = (
+                f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
+            )
+        return endpoint
+
 
 class Unsupported(Exception):
     pass

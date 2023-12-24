@@ -36,8 +36,8 @@ class OpenNodeWallet(Wallet):
             )
         self.key = key
 
-        endpoint = settings.opennode_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.opennode_api_endpoint)
+
         headers = {
             "Authorization": self.key,
             "User-Agent": settings.user_agent,

@@ -89,8 +89,9 @@ class LndWallet(Wallet):
                 "lnd_invoice_macaroon or lnd_grpc_macaroon_encrypted"
             )
 
-        endpoint = settings.lnd_grpc_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(
+            settings.lnd_grpc_endpoint, add_proto=False
+        )
         self.port = int(settings.lnd_grpc_port)
         self.macaroon = load_macaroon(macaroon)
         cert = open(cert_path, "rb").read()

@@ -35,8 +35,8 @@ class LnTipsWallet(Wallet):
                 "missing lntips_api_key or lntips_admin_key or lntips_invoice_key"
             )
 
-        endpoint = settings.lntips_api_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.lntips_api_endpoint)
+
         headers = {
             "Authorization": f"Basic {key}",
             "User-Agent": settings.user_agent,

@@ -40,11 +40,7 @@ class CoreLightningRestWallet(Wallet):
                 "invalid corelightning_rest_macaroon provided"
             )
 
-        url = settings.corelightning_rest_url
-        self.url = url[:-1] if url.endswith("/") else url
-        self.url = (
-            f"https://{self.url}" if not self.url.startswith("http") else self.url
-        )
+        self.url = self.normalize_endpoint(settings.corelightning_rest_url)
         headers = {
             "macaroon": macaroon,
             "encodingtype": "hex",

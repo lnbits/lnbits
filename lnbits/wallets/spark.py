@@ -33,7 +33,8 @@ class SparkWallet(Wallet):
         if not settings.spark_token:
             raise ValueError("cannot initialize SparkWallet: missing spark_token")
 
-        url = settings.spark_url.replace("/rpc", "")
+        url = self.normalize_endpoint(settings.spark_url)
+        url = url.replace("/rpc", "")
         self.token = settings.spark_token
 
         headers = {"X-Access": self.token, "User-Agent": settings.user_agent}
