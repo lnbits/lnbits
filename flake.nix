@@ -18,14 +18,6 @@
       projectName = "lnbits";
     in
     {
-      devShells = forAllSystems (system: pkgs: {
-        default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodePackages.prettier
-            poetry-core
-          ];
-        };
-      });
       overlays = {
         default = final: prev: {
           ${projectName} = self.packages.${prev.stdenv.hostPlatform.system}.${projectName};
