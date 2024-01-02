@@ -1,0 +1,40 @@
+name: lnbits
+version: '0.1.0'
+summary: LNbits
+description: LNbits
+confinement: strict
+base: core20
+grade: stable
+
+parts:
+  lnbits:
+    plugin: python
+    source: https://github.com/lnbits/lnbits.git
+    source-type: git
+    build-packages:
+      - gcc
+      - make
+      - python3-dev
+      - libssl-dev
+      - curl
+      - software-properties-common
+    stage-packages:
+      - libssl1.1
+    override-build: |
+      sudo add-apt-repository ppa:deadsnakes/ppa -y
+      sudo apt-get update
+      sudo apt-get install python3.9 -y
+      curl -sSL https://install.python-poetry.org | python3.9 -
+      export PATH="$HOME/.local/bin:$PATH"
+      poetry env use python3.9
+      poetry install --only main
+      mkdir data
+      cd lnbits
+      ls
+    build-environment:
+      - LNBITS_ADMIN_UI: "true"
+
+apps:
+  lnbits:
+    command: poetry run python -m lnbits
+    plugs: [network, network-bind, camera, desktop]
