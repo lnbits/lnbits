@@ -61,6 +61,7 @@ window.localisation.en = {
   toggle_darkmode: 'Toggle Dark Mode',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
+  api_keys_api_docs: 'API keys and API docs',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
@@ -171,6 +172,7 @@ window.localisation.en = {
   notification_source_label:
     'Source URL (only use the official LNbits status source, and sources you can trust)',
   more: 'more',
+  less: 'less',
   releases: 'Releases',
   killswitch: 'Killswitch',
   watchdog: 'Watchdog',

@@ -65,6 +65,7 @@ window.localisation.nl = {
   toggle_darkmode: 'Donkere modus aan/uit',
   view_swagger_docs: 'Bekijk LNbits Swagger API-documentatie',
   api_docs: 'API-documentatie',
+  api_keys_api_docs: 'API-sleutels en API-documentatie',
   lnbits_version: 'LNbits-versie',
   runs_on: 'Draait op',
   credit_hint: 'Druk op Enter om de rekening te crediteren',
@@ -177,6 +178,7 @@ window.localisation.nl = {
   notification_source_label:
     'Bron-URL (gebruik alleen de officiële LNbits-statusbron en bronnen die u vertrouwt)',
   more: 'meer',
+  less: 'minder',
   releases: 'Uitgaven',
   killswitch: 'Killswitch',
   watchdog: 'Waakhond',

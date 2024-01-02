@@ -62,6 +62,7 @@ window.localisation.pl = {
   toggle_darkmode: 'Tryb nocny',
   view_swagger_docs: 'Dokumentacja Swagger API',
   api_docs: 'Dokumentacja API',
+  api_keys_api_docs: 'Klucze API i dokumentacja API',
   lnbits_version: 'Wersja LNbits',
   runs_on: 'Działa na',
   credit_hint: 'Naciśnij Enter aby doładować konto',
@@ -174,6 +175,7 @@ window.localisation.pl = {
   notification_source_label:
     'Adres URL źródła (używaj tylko oficjalnego źródła statusu LNbits oraz źródeł, którym możesz zaufać)',
   more: 'więcej',
+  less: 'mniej',
   releases: 'Wydania',
   killswitch: 'Killswitch',
   watchdog: 'Pies gończy',

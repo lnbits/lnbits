@@ -62,8 +62,9 @@ window.localisation.it = {
   service_fee_tooltip:
     "Commissione di servizio addebitata dall'amministratore del server LNbits per ogni transazione in uscita",
   toggle_darkmode: 'Attiva la modalità notturna',
-  view_swagger_docs: "Visualizza i documenti dell'API Swagger di LNbits",
-  api_docs: 'Documenti API',
+  view_swagger_docs: "Visualizza i documentazione dell'API Swagger di LNbits",
+  api_docs: "Documentazione dell'API",
+  api_keys_api_docs: "Chiavi API e documentazione dell'API",
   lnbits_version: 'Versione di LNbits',
   runs_on: 'Esegue su',
   credit_hint: 'Premere Invio per accreditare i fondi',
@@ -177,6 +178,7 @@ window.localisation.it = {
   notification_source_label:
     'URL sorgente (utilizzare solo la fonte ufficiale di stato LNbits e fonti di cui ti puoi fidare)',
   more: 'più',
+  less: 'meno',
   releases: 'Pubblicazioni',
   killswitch: 'Interruttore di spegnimento',
   watchdog: 'Cane da guardia',

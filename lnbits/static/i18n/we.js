@@ -62,7 +62,8 @@ window.localisation.we = {
     "Ffi gwasanaeth a godir gan weinyddwr gweinydd LNbits ym mhob trafodiad sy'n mynd allan",
   toggle_darkmode: 'Toglo Modd Tywyll',
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
-  api_docs: 'API docs',
+  api_docs: 'Dogfennau API',
+  api_keys_api_docs: 'Allweddi API a dogfennau API',
   lnbits_version: 'Fersiwn LNbits',
   runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',
@@ -174,6 +175,7 @@ window.localisation.we = {
   notification_source_label:
     'URL Ffynhonnell (defnyddiwch yn unig ffynhonnell statws swyddogol LNbits, a ffynonellau y gallwch ymddiried ynddynt)',
   more: 'mwy',
+  less: 'llai',
   releases: 'Rhyddhau',
   killswitch: 'Killswitch',
   watchdog: 'Gwyliwr',
