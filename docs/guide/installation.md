@@ -65,10 +65,14 @@ poetry install --only main
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
 sh <(curl -L https://nixos.org/nix/install) --daemon
 
+# Add cachnix for cached binaries
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+cachix use lnbits
+
 # Clone and build LNbits
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-nix build .#lnbits
+nix build .#lnbits --extra-experimental-features nix-command --extra-experimental-features flakes
 mkdir data
 
 ```
