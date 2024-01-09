@@ -353,9 +353,49 @@ async def manifest(request: Request, usr: str):
                     else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@main/docs/logos/lnbits.png"
                 ),
                 "type": "image/png",
-                "sizes": "900x900",
-            }
-        ],
+                "sizes": "512x512",
+                "type": "image/png"
+            },
+            {
+      "src": "/static/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/static/maskable_icon_x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/maskable_icon_x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/maskable_icon.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "maskable"
+    }
+    ],
+    "screenshots": [
+    {
+      "src": "/static/screenshot_desktop.webp",
+      "sizes": "2396x1322",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "LNbits - Desktop screenshot"
+    },
+    {
+      "src": "/static/screenshot_phone.webp",
+      "sizes": "760x1182",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "LNbits - Phone screenshot"
+    }
+    ],
         "start_url": f"/wallet?usr={usr}&wal={user.wallets[0].id}",
         "background_color": "#1F2234",
         "description": "Bitcoin Lightning Wallet",
@@ -368,7 +408,14 @@ async def manifest(request: Request, usr: str):
                 "short_name": wallet.name,
                 "description": wallet.name,
                 "url": f"/wallet?usr={usr}&wal={wallet.id}",
+                "icons": [
+            {
+                "src": "/static/maskable_icon_x96.png",
+                "sizes": "96x96",
+                "type": "image/png"
             }
+            ],
+        }
             for wallet in user.wallets
         ],
         "url_handlers": [{"origin": f"https://{host}"}],
