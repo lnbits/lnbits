@@ -429,27 +429,27 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
             f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
         )
 
-        # set their wallets created_at with the first payment
-        await db.execute(
-            """
-            UPDATE wallets SET created_at = (
-                SELECT time FROM apipayments
-                WHERE apipayments.wallet = wallets.id
-                ORDER BY time ASC LIMIT 1
-            )
-         """
-        )
+        # # set their wallets created_at with the first payment
+        # await db.execute(
+        #     """
+        #     UPDATE wallets SET created_at = (
+        #         SELECT time FROM apipayments
+        #         WHERE apipayments.wallet = wallets.id
+        #         ORDER BY time ASC LIMIT 1
+        #     )
+        #  """
+        # )
 
-        # then set their accounts created_at with the wallet
-        await db.execute(
-            """
-            UPDATE accounts SET created_at = (
-                SELECT created_at FROM wallets
-                WHERE wallets.user = accounts.id
-                ORDER BY created_at ASC LIMIT 1
-            )
-         """
-        )
+        # # then set their accounts created_at with the wallet
+        # await db.execute(
+        #     """
+        #     UPDATE accounts SET created_at = (
+        #         SELECT created_at FROM wallets
+        #         WHERE wallets.user = accounts.id
+        #         ORDER BY created_at ASC LIMIT 1
+        #     )
+        #  """
+        # )
 
         # set all to now where they are null
         now = int(time())
