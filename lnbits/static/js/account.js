@@ -6,6 +6,7 @@ new Vue({
       user: null,
       hasUsername: false,
       showUserId: false,
+      tab: 'user',
       passwordData: {
         show: false,
         oldPassword: null,
