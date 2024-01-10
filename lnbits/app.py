@@ -10,7 +10,7 @@ import traceback
 from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -190,7 +190,7 @@ async def check_installed_extensions(app: FastAPI):
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
     await load_disabled_extension_list()
-    installed_extensions = await build_all_installed_extensions_list()
+    installed_extensions = await build_all_installed_extensions_list(False)
 
     for ext in installed_extensions:
         try:
@@ -212,7 +212,9 @@ async def check_installed_extensions(app: FastAPI):
         logger.info(f"{ext.id} ({ext.installed_version})")
 
 
-async def build_all_installed_extensions_list() -> List[InstallableExtension]:
+async def build_all_installed_extensions_list(
+    include_deactivated: Optional[bool] = True,
+) -> List[InstallableExtension]:
     """
     Returns a list of all the installed extensions plus the extensions that
     MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
@@ -237,7 +239,13 @@ async def build_all_installed_extensions_list() -> List[InstallableExtension]:
             )
             installed_extensions.append(ext_info)
 
-    return installed_extensions
+    if include_deactivated:
+        return installed_extensions
+
+    if settings.lnbits_extensions_deactivate_all:
+        return []
+
+    return [e for e in installed_extensions if e.id not in settings.lnbits_deactivated_extensions]
 
 
 def check_installed_extension_files(ext: InstallableExtension) -> bool:
@@ -273,7 +281,7 @@ def register_routes(app: FastAPI) -> None:
     """Register FastAPI routes / LNbits extensions."""
     init_core_routers(app)
 
-    for ext in get_valid_extensions():
+    for ext in get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
         except Exception as e:
