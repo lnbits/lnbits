@@ -244,7 +244,11 @@ async def build_all_installed_extensions_list(
     if settings.lnbits_extensions_deactivate_all:
         return []
 
-    return [e for e in installed_extensions if e.id not in settings.lnbits_deactivated_extensions]
+    return [
+        e
+        for e in installed_extensions
+        if e.id not in settings.lnbits_deactivated_extensions
+    ]
 
 
 def check_installed_extension_files(ext: InstallableExtension) -> bool:
