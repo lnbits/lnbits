@@ -381,16 +381,16 @@ async def manifest(request: Request, usr: str):
     ],
     "screenshots": [
     {
-      "src": "/static/images/screenshot_desktop.webp",
-      "sizes": "2396x1322",
-      "type": "image/webp",
+      "src": "/static/images/screenshot_desktop.png",
+      "sizes": "2394x1314",
+      "type": "image/png",
       "form_factor": "wide",
       "label": "LNbits - Desktop screenshot"
     },
     {
-      "src": "/static/images/screenshot_phone.webp",
-      "sizes": "760x1182",
-      "type": "image/webp",
+      "src": "/static/images/screenshot_phone.png",
+      "sizes": "1080x1739", 
+      "type": "image/png",
       "form_factor": "narrow",
       "label": "LNbits - Phone screenshot"
     }
