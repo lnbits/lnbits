@@ -112,7 +112,6 @@ def create_app() -> FastAPI:
     add_ratelimit_middleware(app)
 
     register_startup(app)
-    register_routes(app)
     register_async_tasks(app)
     register_exception_handlers(app)
     register_shutdown(app)
@@ -390,6 +389,9 @@ def register_startup(app: FastAPI):
 
             # check extensions after restart
             await check_installed_extensions(app)
+
+            # register core and extension routes
+            register_routes(app)
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
