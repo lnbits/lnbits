@@ -422,20 +422,9 @@ window.windowMixin = {
   },
 
   methods: {
-    activeLanguage: function (lang) {
-      return window.i18n.locale === lang
-    },
-    changeLanguage: function (newValue) {
-      window.i18n.locale = newValue
-      this.$q.localStorage.set('lnbits.lang', newValue)
-    },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
-    },
-    toggleDarkMode: function () {
-      this.$q.dark.toggle()
-      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
