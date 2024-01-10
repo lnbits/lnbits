@@ -352,7 +352,6 @@ async def manifest(request: Request, usr: str):
                     if settings.lnbits_custom_logo
                     else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@main/docs/logos/lnbits.png"
                 ),
-                "type": "image/png",
                 "sizes": "512x512",
                 "type": "image/png"
             },
@@ -362,19 +361,19 @@ async def manifest(request: Request, usr: str):
       "type": "image/x-icon"
     },
     {
-      "src": "/static/maskable_icon_x192.png",
+      "src": "/static/images/maskable_icon_x192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/static/maskable_icon_x512.png",
+      "src": "/static/images/maskable_icon_x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     },
     {
-      "src": "/static/maskable_icon.png",
+      "src": "/static/images/maskable_icon.png",
       "type": "image/png",
       "sizes": "1024x1024",
       "purpose": "maskable"
@@ -382,14 +381,14 @@ async def manifest(request: Request, usr: str):
     ],
     "screenshots": [
     {
-      "src": "/static/screenshot_desktop.webp",
+      "src": "/static/images/screenshot_desktop.webp",
       "sizes": "2396x1322",
       "type": "image/webp",
       "form_factor": "wide",
       "label": "LNbits - Desktop screenshot"
     },
     {
-      "src": "/static/screenshot_phone.webp",
+      "src": "/static/images/screenshot_phone.webp",
       "sizes": "760x1182",
       "type": "image/webp",
       "form_factor": "narrow",
@@ -410,7 +409,7 @@ async def manifest(request: Request, usr: str):
                 "url": f"/wallet?usr={usr}&wal={wallet.id}",
                 "icons": [
             {
-                "src": "/static/maskable_icon_x96.png",
+                "src": "/static/images/maskable_icon_x96.png",
                 "sizes": "96x96",
                 "type": "image/png"
             }
