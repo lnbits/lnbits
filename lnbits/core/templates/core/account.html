@@ -248,7 +248,7 @@
               </q-tab-panel>
               <q-tab-panel name="theme">
                 <div class="row q-mb-md">
-                  <div class="col-4">Language</div>
+                  <div class="col-4"><span v-text="$t('language')"></span></div>
                   <div class="col-8">
                     <q-btn-dropdown
                       dense
@@ -278,7 +278,9 @@
                   </div>
                 </div>
                 <div class="row q-mb-md">
-                  <div class="col-4">Color Scheme</div>
+                  <div class="col-4">
+                    <span v-text="$t('color_scheme')"></span>
+                  </div>
                   <div class="col-8">
                     <q-btn
                       v-if="g.allowedThemes.includes('classic')"
