@@ -35,7 +35,7 @@ from lnbits.tasks import cancel_all_tasks, create_permanent_task
 from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
-from .commands import db_versions, load_disabled_extension_list, migrate_databases
+from .commands import db_versions, migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
@@ -369,8 +369,6 @@ def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
         try:
-            await load_disabled_extension_list()
-
             # wait till migration is done
             await migrate_databases()
 
