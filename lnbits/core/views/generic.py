@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
@@ -11,7 +12,7 @@ from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import db
+from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -74,9 +75,6 @@ async def extensions_install(
 ):
     await toggle_extension(enable, disable, user.id)
 
-    # Update user as his extensions have been updated
-    if enable or disable:
-        user = await get_user(user.id)  # type: ignore
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -103,20 +101,28 @@ async def extensions_install(
 
     try:
         ext_id = activate or deactivate
+        all_extensions = get_valid_extensions()
+        ext = next((e for e in all_extensions if e.code == ext_id), None)
         if ext_id and user.admin:
             if deactivate and deactivate not in settings.lnbits_deactivated_extensions:
                 settings.lnbits_deactivated_extensions += [deactivate]
             elif activate:
+                # if extension never loaded (was deactivated on server startup)
+                if ext_id not in sys.modules.keys():
+                    # run extension start-up routine
+                    core_app_extra.register_new_ext_routes(ext)
+
                 settings.lnbits_deactivated_extensions = list(
                     filter(
                         lambda e: e != activate, settings.lnbits_deactivated_extensions
                     )
                 )
+
             await update_installed_extension_state(
                 ext_id=ext_id, active=activate is not None
             )
 
-        all_extensions = list(map(lambda e: e.code, get_valid_extensions()))
+        all_ext_ids = list(map(lambda e: e.code, all_extensions))
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
         extensions = list(
@@ -131,7 +137,7 @@ async def extensions_install(
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_exts_ids,
                     "hasDatabaseTables": ext.id in db_version,
-                    "isAvailable": ext.id in all_extensions,
+                    "isAvailable": ext.id in all_ext_ids,
                     "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
                     "latestRelease": (
