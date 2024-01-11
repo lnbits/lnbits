@@ -136,7 +136,7 @@ async def migrate_databases():
         core_version = current_versions.get("core", 0)
         await run_migration(conn, core_migrations, "core", core_version)
 
-    for ext in get_valid_extensions():
+    for ext in get_valid_extensions(False):
         current_version = current_versions.get(ext.code, 0)
         try:
             await migrate_extension_database(ext, current_version)
