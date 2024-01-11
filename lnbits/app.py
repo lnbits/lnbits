@@ -188,7 +188,6 @@ async def check_installed_extensions(app: FastAPI):
     persist state. Zips that are missing will be re-downloaded.
     """
     shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
-    await load_disabled_extension_list()
     installed_extensions = await build_all_installed_extensions_list(False)
 
     for ext in installed_extensions:
@@ -370,6 +369,8 @@ def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
         try:
+            await load_disabled_extension_list()
+
             # wait till migration is done
             await migrate_databases()
 
