@@ -6,6 +6,7 @@ new Vue({
       user: null,
       hasUsername: false,
       showUserId: false,
+      tab: 'user',
       passwordData: {
         show: false,
         oldPassword: null,
@@ -15,6 +16,21 @@ new Vue({
     }
   },
   methods: {
+    activeLanguage: function (lang) {
+      return window.i18n.locale === lang
+    },
+    changeLanguage: function (newValue) {
+      window.i18n.locale = newValue
+      this.$q.localStorage.set('lnbits.lang', newValue)
+    },
+    toggleDarkMode: function () {
+      this.$q.dark.toggle()
+      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+    },
+    changeColor: function (newValue) {
+      document.body.setAttribute('data-theme', newValue)
+      this.$q.localStorage.set('lnbits.theme', newValue)
+    },
     updateAccount: async function () {
       try {
         const {data} = await LNbits.api.request(

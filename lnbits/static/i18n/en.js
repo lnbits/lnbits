@@ -224,5 +224,8 @@ window.localisation.en = {
   auth_provider: 'Auth Provider',
   my_account: 'My Account',
   back: 'Back',
-  logout: 'Logout'
+  logout: 'Logout',
+  look_and_feel: 'Look and Feel',
+  language: 'Language',
+  color_scheme: 'Color Scheme'
 }
