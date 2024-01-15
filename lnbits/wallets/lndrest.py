@@ -9,6 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
@@ -17,7 +18,7 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon
 
 
 class LndRestWallet(Wallet):

@@ -20,9 +20,7 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
-
-# todo: move this class to a `crypto.py` file
-from lnbits.wallets.macaroon.macaroon import AESCipher
+from lnbits.utils.crypto import AESCipher
 
 from ..crud import (
     create_account,

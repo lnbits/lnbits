@@ -12,6 +12,7 @@ import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
@@ -20,7 +21,7 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon
 
 
 def b64_to_bytes(checking_id: str) -> bytes:
