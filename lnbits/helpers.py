@@ -14,6 +14,7 @@ from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .db import FilterModel
 from .extension_manager import get_valid_extensions
@@ -187,3 +188,17 @@ def create_access_token(data: dict):
     to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
+
+
+def encrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
+    """Encrypt message with the internal secret key"""
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
+
+
+def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
+    """Decrypt message with the internal secret key"""
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).decrypt(m)
