@@ -16,11 +16,12 @@ from starlette.status import (
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import (
     create_access_token,
+    decrypt_internal_message,
+    encrypt_internal_message,
     is_valid_email_address,
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
-from lnbits.utils.crypto import AESCipher
 
 from ..crud import (
     create_account,
@@ -100,7 +101,7 @@ async def login_with_google(request: Request, user_id: Optional[str] = None):
 
     google_sso.redirect_uri = str(request.base_url) + "api/v1/auth/google/token"
     with google_sso:
-        state = _encrypt_message(user_id)
+        state = encrypt_internal_message(user_id)
         return await google_sso.get_login_redirect(state=state)
 
 
@@ -112,7 +113,7 @@ async def login_with_github(request: Request, user_id: Optional[str] = None):
 
     github_sso.redirect_uri = str(request.base_url) + "api/v1/auth/github/token"
     with github_sso:
-        state = _encrypt_message(user_id)
+        state = decrypt_internal_message(user_id)
         return await github_sso.get_login_redirect(state=state)
 
 
@@ -128,7 +129,7 @@ async def handle_google_token(request: Request) -> RedirectResponse:
         with google_sso:
             userinfo = await google_sso.verify_and_process(request)
             assert userinfo is not None
-            user_id = _decrypt_message(google_sso.state)
+            user_id = decrypt_internal_message(google_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
     except HTTPException as e:
@@ -154,7 +155,7 @@ async def handle_github_token(request: Request) -> RedirectResponse:
         with github_sso:
             userinfo = await github_sso.verify_and_process(request)
             assert userinfo is not None
-            user_id = _decrypt_message(github_sso.state)
+            user_id = decrypt_internal_message(github_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
 
@@ -336,15 +337,3 @@ def _new_github_sso() -> Optional[GithubSSO]:
         None,
         allow_insecure_http=True,
     )
-
-
-def _encrypt_message(m: Optional[str] = None) -> Optional[str]:
-    if not m:
-        return None
-    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
-
-
-def _decrypt_message(m: Optional[str] = None) -> Optional[str]:
-    if not m:
-        return None
-    return AESCipher(key=settings.auth_secret_key).decrypt(m)
