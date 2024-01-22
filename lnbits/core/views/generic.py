@@ -353,47 +353,43 @@ async def manifest(request: Request, usr: str):
                     else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@main/docs/logos/lnbits.png"
                 ),
                 "sizes": "512x512",
-                "type": "image/png"
+                "type": "image/png",
+            },
+            {"src": "/static/favicon.ico", "sizes": "32x32", "type": "image/x-icon"},
+            {
+                "src": "/static/images/maskable_icon_x192.png",
+                "type": "image/png",
+                "sizes": "192x192",
+                "purpose": "maskable",
             },
             {
-              "src": "/static/favicon.ico",
-              "sizes": "32x32",
-              "type": "image/x-icon"
+                "src": "/static/images/maskable_icon_x512.png",
+                "type": "image/png",
+                "sizes": "512x512",
+                "purpose": "maskable",
             },
             {
-              "src": "/static/images/maskable_icon_x192.png",
-              "type": "image/png",
-              "sizes": "192x192",
-              "purpose": "maskable"
+                "src": "/static/images/maskable_icon.png",
+                "type": "image/png",
+                "sizes": "1024x1024",
+                "purpose": "maskable",
             },
-            {
-              "src": "/static/images/maskable_icon_x512.png",
-              "type": "image/png",
-              "sizes": "512x512",
-              "purpose": "maskable"
-            },
-            {
-              "src": "/static/images/maskable_icon.png",
-              "type": "image/png",
-              "sizes": "1024x1024",
-              "purpose": "maskable"
-            }
         ],
         "screenshots": [
             {
-              "src": "/static/images/screenshot_desktop.png",
-              "sizes": "2394x1314",
-              "type": "image/png",
-              "form_factor": "wide",
-              "label": "LNbits - Desktop screenshot"
+                "src": "/static/images/screenshot_desktop.png",
+                "sizes": "2394x1314",
+                "type": "image/png",
+                "form_factor": "wide",
+                "label": "LNbits - Desktop screenshot",
             },
             {
-              "src": "/static/images/screenshot_phone.png",
-              "sizes": "1080x1739", 
-              "type": "image/png",
-              "form_factor": "narrow",
-              "label": "LNbits - Phone screenshot"
-            }
+                "src": "/static/images/screenshot_phone.png",
+                "sizes": "1080x1739",
+                "type": "image/png",
+                "form_factor": "narrow",
+                "label": "LNbits - Phone screenshot",
+            },
         ],
         "start_url": f"/wallet?usr={usr}&wal={user.wallets[0].id}",
         "background_color": "#1F2234",
@@ -408,13 +404,13 @@ async def manifest(request: Request, usr: str):
                 "description": wallet.name,
                 "url": f"/wallet?usr={usr}&wal={wallet.id}",
                 "icons": [
-            {
-                "src": "/static/images/maskable_icon_x96.png",
-                "sizes": "96x96",
-                "type": "image/png"
+                    {
+                        "src": "/static/images/maskable_icon_x96.png",
+                        "sizes": "96x96",
+                        "type": "image/png",
+                    }
+                ],
             }
-            ],
-        }
             for wallet in user.wallets
         ],
         "url_handlers": [{"origin": f"https://{host}"}],
