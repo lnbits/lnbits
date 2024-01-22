@@ -179,7 +179,7 @@ class Connection(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[str] = None,
+        group_by: Optional[str] = "",
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
@@ -192,8 +192,6 @@ class Connection(Compat):
             ):
                 raise ValueError("Value for GROUP BY is invalid")
             group_by = f"GROUP BY {group_by}"
-        else:
-            group_by = ""
 
         rows = await self.fetchall(
             f"""
