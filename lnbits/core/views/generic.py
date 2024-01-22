@@ -1,17 +1,18 @@
 import asyncio
+import sys
 from http import HTTPStatus
 from pathlib import Path
-from typing import List, Optional
+from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import db
+from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -74,9 +75,6 @@ async def extensions_install(
 ):
     await toggle_extension(enable, disable, user.id)
 
-    # Update user as his extensions have been updated
-    if enable or disable:
-        user = await get_user(user.id)  # type: ignore
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -103,20 +101,28 @@ async def extensions_install(
 
     try:
         ext_id = activate or deactivate
+        all_extensions = get_valid_extensions()
+        ext = next((e for e in all_extensions if e.code == ext_id), None)
         if ext_id and user.admin:
             if deactivate and deactivate not in settings.lnbits_deactivated_extensions:
                 settings.lnbits_deactivated_extensions += [deactivate]
             elif activate:
+                # if extension never loaded (was deactivated on server startup)
+                if ext_id not in sys.modules.keys():
+                    # run extension start-up routine
+                    core_app_extra.register_new_ext_routes(ext)
+
                 settings.lnbits_deactivated_extensions = list(
                     filter(
                         lambda e: e != activate, settings.lnbits_deactivated_extensions
                     )
                 )
+
             await update_installed_extension_state(
                 ext_id=ext_id, active=activate is not None
             )
 
-        all_extensions = list(map(lambda e: e.code, get_valid_extensions()))
+        all_ext_ids = list(map(lambda e: e.code, all_extensions))
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
         extensions = list(
@@ -131,7 +137,7 @@ async def extensions_install(
                     "dependencies": ext.dependencies,
                     "isInstalled": ext.id in installed_exts_ids,
                     "hasDatabaseTables": ext.id in db_version,
-                    "isAvailable": ext.id in all_extensions,
+                    "isAvailable": ext.id in all_ext_ids,
                     "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
                     "isActive": ext.id not in inactive_extensions,
                     "latestRelease": (
@@ -165,57 +171,58 @@ async def extensions_install(
 )
 async def wallet(
     request: Request,
-    usr: UUID4 = Query(...),
+    lnbits_last_active_wallet: Annotated[Union[str, None], Cookie()] = None,
+    user: User = Depends(check_user_exists),
     wal: Optional[UUID4] = Query(None),
 ):
-    user_id = usr.hex
-    user = await get_user(user_id)
-
-    if not user:
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User does not exist."}
-        )
-
-    if not wal:
-        if len(user.wallets) == 0:
-            wallet = await create_wallet(user_id=user.id)
-            return RedirectResponse(url=f"/wallet?usr={user_id}&wal={wallet.id}")
-        return RedirectResponse(url=f"/wallet?usr={user_id}&wal={user.wallets[0].id}")
-    else:
+    if wal:
         wallet_id = wal.hex
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        user = await get_user(user_id=user.id) or user
+        wallet_id = wallet.id
+    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
+        wallet_id = lnbits_last_active_wallet
+    else:
+        wallet_id = user.wallets[0].id
 
-    userwallet = user.get_wallet(wallet_id)
-    if not userwallet or userwallet.deleted:
+    user_wallet = user.get_wallet(wallet_id)
+    if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
 
-    if (
-        len(settings.lnbits_allowed_users) > 0
-        and user_id not in settings.lnbits_allowed_users
-        and user_id not in settings.lnbits_admin_users
-        and user_id != settings.super_user
-    ):
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "User not authorized."}
-        )
-
-    if user_id == settings.super_user or user_id in settings.lnbits_admin_users:
-        user.admin = True
-    if user_id == settings.super_user:
-        user.super_user = True
-
-    logger.debug(f"Access user {user.id} wallet {userwallet.name}")
-
-    return template_renderer().TemplateResponse(
+    resp = template_renderer().TemplateResponse(
         "core/wallet.html",
         {
             "request": request,
             "user": user.dict(),
-            "wallet": userwallet.dict(),
+            "wallet": user_wallet.dict(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
+        },
+    )
+    resp.set_cookie(
+        "lnbits_last_active_wallet", wallet_id, samesite="none", secure=True
+    )
+    return resp
+
+
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        "core/account.html",
+        {
+            "request": request,
+            "user": user.dict(),
         },
     )
 

@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }}
+<script src="{{ static_url_for('static', 'js/account.js') }}"></script>
+{% endblock %} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div v-if="user" class="col-12 col-md-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row">
+          <div class="col">
+            <q-tabs v-model="tab" align="justify">
+              <q-tab
+                name="user"
+                :label="$t('account_settings')"
+                @update="val => tab = val.name"
+              ></q-tab>
+              <q-tab
+                name="theme"
+                :label="$t('look_and_feel')"
+                @update="val => tab = val.name"
+              ></q-tab>
+            </q-tabs>
+            <q-tab-panels v-model="tab">
+              <q-tab-panel name="user">
+                <div v-if="passwordData.show">
+                  <q-card-section>
+                    <div class="row">
+                      <div class="col">
+                        <h4 class="q-my-none">
+                          <span v-text="$t('password_config')"></span>
+                        </h4>
+                      </div>
+                      <div class="col">
+                        <q-img
+                          v-if="user.config.picture"
+                          style="max-width: 100px"
+                          :src="user.config.picture"
+                          class="float-right"
+                        ></q-img>
+                      </div>
+                    </div>
+                  </q-card-section>
+                  <q-separator></q-separator>
+                  <q-card-section>
+                    <q-input
+                      v-if="user.has_password"
+                      v-model="passwordData.oldPassword"
+                      type="password"
+                      autocomplete="off"
+                      label="Old Password"
+                      filled
+                      dense
+                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                    ></q-input>
+                    <q-input
+                      v-model="passwordData.newPassword"
+                      type="password"
+                      autocomplete="off"
+                      :label="$t('password')"
+                      filled
+                      dense
+                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                    ></q-input>
+                    <q-input
+                      v-model="passwordData.newPasswordRepeat"
+                      type="password"
+                      autocomplete="off"
+                      :label="$t('password_repeat')"
+                      filled
+                      dense
+                      class="q-mb-md"
+                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                    ></q-input>
+                  </q-card-section>
+                  <q-separator></q-separator>
+                  <q-card-section class="q-pb-lg">
+                    <q-btn
+                      @click="updatePassword"
+                      :disable="(!passwordData.newPassword || !passwordData.newPasswordRepeat) || passwordData.newPassword !== passwordData.newPasswordRepeat"
+                      unelevated
+                      color="primary"
+                      :label="$t('change_password')"
+                    >
+                    </q-btn>
+                    <q-btn
+                      @click="passwordData.show = false"
+                      :label="$t('back')"
+                      outline
+                      unelevated
+                      color="grey"
+                      class="float-right"
+                    ></q-btn>
+                  </q-card-section>
+                </div>
+                <div v-else>
+                  <q-card-section>
+                    <div class="row">
+                      <div class="col">
+                        <q-img
+                          v-if="user.config.picture"
+                          style="max-width: 100px"
+                          :src="user.config.picture"
+                          class="float-right"
+                        ></q-img>
+                      </div>
+                    </div>
+                  </q-card-section>
+                  <q-separator></q-separator>
+
+                  <q-card-section>
+                    <q-input
+                      v-model="user.id"
+                      :label="$t('user_id')"
+                      filled
+                      dense
+                      readonly
+                      :type="showUserId ? 'text': 'password'"
+                      class="q-mb-md"
+                      ><q-btn
+                        @click="showUserId = !showUserId"
+                        dense
+                        flat
+                        :icon="showUserId ? 'visibility_off' : 'visibility'"
+                        color="grey"
+                      ></q-btn>
+                    </q-input>
+                    <q-input
+                      v-model="user.username"
+                      :label="$t('username')"
+                      filled
+                      dense
+                      :readonly="hasUsername"
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
+                      v-model="user.email"
+                      :label="$t('email')"
+                      filled
+                      dense
+                      readonly
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <div v-if="!user.email" class="row"></div>
+                    <div v-if="!user.email" class="row">
+                      {% if "google-auth" in LNBITS_AUTH_METHODS or
+                      "github-auth" in LNBITS_AUTH_METHODS %}
+                      <div class="col q-pa-sm text-h6">
+                        <span v-text="$t('verify_email')"></span>:
+                      </div>
+                      {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
+                      <div class="col q-pa-sm">
+                        <q-btn
+                          :href="`/api/v1/auth/google?user_id=${user.id}`"
+                          type="a"
+                          outline
+                          no-caps
+                          rounded
+                          color="grey"
+                          class="full-width"
+                        >
+                          <q-avatar size="32px" class="q-mr-md">
+                            <q-img
+                              :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                            ></q-img>
+                          </q-avatar>
+                          <div>Google</div>
+                        </q-btn>
+                      </div>
+                      {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
+                      <div class="col q-pa-sm">
+                        <q-btn
+                          :href="`/api/v1/auth/github?user_id=${user.id}`"
+                          type="a"
+                          outline
+                          no-caps
+                          color="grey"
+                          rounded
+                          class="full-width"
+                        >
+                          <q-avatar size="32px" class="q-mr-md">
+                            <q-img
+                              :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                            ></q-img>
+                          </q-avatar>
+                          <div>GitHub</div>
+                        </q-btn>
+                      </div>
+                      {%endif%}
+                    </div>
+                  </q-card-section>
+
+                  <q-card-section v-if="user.config">
+                    <q-input
+                      v-model="user.config.first_name"
+                      :label="$t('first_name')"
+                      filled
+                      dense
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
+                      v-model="user.config.last_name"
+                      :label="$t('last_name')"
+                      filled
+                      dense
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
+                      v-model="user.config.provider"
+                      :label="$t('auth_provider')"
+                      filled
+                      dense
+                      readonly
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
+                      v-model="user.config.picture"
+                      :label="$t('picture')"
+                      filled
+                      dense
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                  </q-card-section>
+                  <q-separator></q-separator>
+                  <q-card-section>
+                    <q-btn @click="updateAccount" unelevated color="primary">
+                      <span v-text="$t('update_account')"></span>
+                    </q-btn>
+                    <q-btn
+                      @click="showChangePassword()"
+                      :label="user.has_password ? $t('change_password'): $t('set_password')"
+                      outline
+                      unelevated
+                      color="grey"
+                      class="float-right"
+                    ></q-btn>
+                  </q-card-section>
+                </div>
+              </q-tab-panel>
+              <q-tab-panel name="theme">
+                <div class="row q-mb-md">
+                  <div class="col-4"><span v-text="$t('language')"></span></div>
+                  <div class="col-8">
+                    <q-btn-dropdown
+                      dense
+                      flat
+                      round
+                      size="sm"
+                      icon="language"
+                      class="q-pl-md"
+                    >
+                      <q-list v-for="(lang, index) in g.langs" :key="index">
+                        <q-item
+                          clickable
+                          v-close-popup
+                          :active="activeLanguage(lang.value)"
+                          @click="changeLanguage(lang.value)"
+                          ><q-item-section>
+                            <q-item-label
+                              v-text="lang.display ?? lang.value.toUpperCase()"
+                            ></q-item-label>
+                            <q-tooltip
+                              ><span v-text="lang.label"></span
+                            ></q-tooltip>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-btn-dropdown>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('color_scheme')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-btn
+                      v-if="g.allowedThemes.includes('classic')"
+                      dense
+                      flat
+                      @click="changeColor('classic')"
+                      icon="circle"
+                      color="deep-purple"
+                      size="md"
+                      ><q-tooltip>classic</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('bitcoin')"
+                      dense
+                      flat
+                      @click="changeColor('bitcoin')"
+                      icon="circle"
+                      color="orange"
+                      size="md"
+                      ><q-tooltip>bitcoin</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('mint')"
+                      dense
+                      flat
+                      @click="changeColor('mint')"
+                      icon="circle"
+                      color="green"
+                      size="md"
+                      ><q-tooltip>mint</q-tooltip> </q-btn
+                    ><q-btn
+                      v-if="g.allowedThemes.includes('autumn')"
+                      dense
+                      flat
+                      @click="changeColor('autumn')"
+                      icon="circle"
+                      color="brown"
+                      size="md"
+                      ><q-tooltip>autumn</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('monochrome')"
+                      dense
+                      flat
+                      @click="changeColor('monochrome')"
+                      icon="circle"
+                      color="grey"
+                      size="md"
+                      ><q-tooltip>monochrome</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('salvador')"
+                      dense
+                      flat
+                      @click="changeColor('salvador')"
+                      icon="circle"
+                      color="blue-10"
+                      size="md"
+                      ><q-tooltip>elSalvador</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('freedom')"
+                      dense
+                      flat
+                      @click="changeColor('freedom')"
+                      icon="circle"
+                      color="pink-13"
+                      size="md"
+                      ><q-tooltip>freedom</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('cyber')"
+                      dense
+                      flat
+                      @click="changeColor('cyber')"
+                      icon="circle"
+                      color="light-green-9"
+                      size="md"
+                      ><q-tooltip>cyber</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      v-if="g.allowedThemes.includes('flamingo')"
+                      dense
+                      flat
+                      @click="changeColor('flamingo')"
+                      icon="circle"
+                      color="pink-3"
+                      size="md"
+                      ><q-tooltip>flamingo</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('toggle_darkmode')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      @click="toggleDarkMode"
+                      :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
+                      size="sm"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('toggle_darkmode')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">Notifications</div>
+                  <div class="col-8">
+                    <lnbits-notifications-btn
+                      v-if="g.user"
+                      pubkey="{{ WEBPUSH_PUBKEY }}"
+                    ></lnbits-notifications-btn>
+                  </div>
+                </div>
+              </q-tab-panel>
+            </q-tab-panels>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div v-else class="col-12 col-md-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h4 class="q-my-none"><span v-text="$t('account')"></span></h4>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %}

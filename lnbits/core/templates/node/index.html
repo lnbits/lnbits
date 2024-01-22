@@ -249,7 +249,6 @@
       },
       api: function (method, url, options) {
         const params = new URLSearchParams(options?.query)
-        params.set('usr', this.g.user.id)
         return LNbits.api
           .request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
           .catch(error => {

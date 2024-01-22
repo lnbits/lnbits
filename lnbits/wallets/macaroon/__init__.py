@@ -1,1 +1,1 @@
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon

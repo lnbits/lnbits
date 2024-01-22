@@ -49,7 +49,7 @@ async def test_get_extensions_wrong_user(client):
 async def test_get_extensions_no_user(client):
     response = await client.get("extensions")
     # bad request
-    assert response.status_code == 400, f"{response.url} {response.status_code}"
+    assert response.status_code == 401, f"{response.url} {response.status_code}"
 
 
 # check GET /extensions: enable extension

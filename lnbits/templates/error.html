@@ -18,6 +18,13 @@
             https://t.me/lnbits
           </h4>
           <br />
+          <q-btn
+            @click="goBack"
+            color="grey"
+            outline
+            label="Back"
+            class="full-width"
+          ></q-btn>
         </center>
       </q-card-section>
     </q-card>
@@ -31,6 +38,11 @@
       mixins: [windowMixin],
       data: function () {
         return {}
+      },
+      methods: {
+        goBack: function () {
+          window.history.back()
+        }
       }
     })
   </script>

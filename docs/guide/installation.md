@@ -65,24 +65,37 @@ poetry install --only main
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
 sh <(curl -L https://nixos.org/nix/install) --daemon
 
+# Enable nix-command and flakes experimental features for nix:
+echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+
+# Add cachix for cached binaries
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+cachix use lnbits
+
 # Clone and build LNbits
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-nix build .#lnbits
-mkdir data
+nix build
 
+mkdir data
 ```
 
 #### Running the server
 
 ```sh
+nix run
+```
+
+Ideally you would set the environment via the `.env` file,
+but you can also set the env variables or pass command line arguments:
+
+``` sh
 # .env variables are currently passed when running, but LNbits can be managed with the admin UI.
 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 
 # Once you have created a user, you can set as the super_user
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
-
 
 ## Option 3: Docker
 
