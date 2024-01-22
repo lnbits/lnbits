@@ -162,7 +162,7 @@ async def delete_accounts_no_wallets(
     time_delta: int,
     conn: Optional[Connection] = None,
 ) -> None:
-    await (conn or db).fetchone(
+    await (conn or db).execute(
         f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
