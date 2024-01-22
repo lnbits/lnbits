@@ -71,11 +71,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = [
-        e
-        for e in get_valid_extensions()
-        if e.code not in settings.lnbits_deactivated_extensions
-    ]
+    t.env.globals["EXTENSIONS"] = get_valid_extensions(False)
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
