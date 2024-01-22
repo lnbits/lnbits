@@ -780,7 +780,7 @@ new Vue({
       if (props) {
         this.paymentsTable.pagination = props.pagination
       }
-      let pagination = this.paymentsTable.pagination
+      const pagination = this.paymentsTable.pagination
       this.paymentsTable.loading = true
       const query = {
         limit: pagination.rowsPerPage,
@@ -836,7 +836,12 @@ new Vue({
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
-      LNbits.api.getPayments(this.g.wallet, {}).then(response => {
+      const pagination = this.paymentsTable.pagination
+      const query = {
+        sortby: pagination.sortBy ?? 'time',
+        direction: pagination.descending ? 'desc' : 'asc'
+      }
+      LNbits.api.getPayments(this.g.wallet, query).then(response => {
         const payments = response.data.data.map(LNbits.map.payment)
         LNbits.utils.exportCSV(
           this.paymentsCSV.columns,
