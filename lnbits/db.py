@@ -179,7 +179,7 @@ class Connection(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[str] = "",
+        group_by: Optional[str] = None,
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
@@ -197,7 +197,7 @@ class Connection(Compat):
             f"""
             {query}
             {clause}
-            {group_by}
+            {group_by or ""}
             {filters.order_by()}
             {filters.pagination()}
             """,
@@ -211,7 +211,7 @@ class Connection(Compat):
                     SELECT COUNT(*) FROM (
                         {query}
                         {clause}
-                        {group_by}
+                        {group_by or ""}
                     ) as count
                     """,
                     parsed_values,
