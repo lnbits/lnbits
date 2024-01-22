@@ -348,6 +348,7 @@ class EnvSettings(LNbitsSettings):
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
     lnbits_extensions_deactivate_all: bool = Field(default=False)
+    cleanup_wallets_delta: int = Field(default=7776000)
 
     @property
     def has_default_extension_path(self) -> bool:

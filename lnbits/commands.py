@@ -175,7 +175,7 @@ def database_cleanup_wallets():
 
 async def cleanup_wallets():
     async with core_db.connect() as conn:
-        return await delete_unused_wallets(conn)
+        return await delete_unused_wallets(settings.cleanup_wallets_delta, conn)
 
 
 @db.command("cleanup-deleted-wallets")
@@ -199,7 +199,7 @@ def database_cleanup_accounts():
 
 async def cleanup_accounts():
     async with core_db.connect() as conn:
-        return await delete_accounts_no_wallets(conn)
+        return await delete_accounts_no_wallets(settings.cleanup_wallets_delta, conn)
 
 
 async def load_disabled_extension_list() -> None:
