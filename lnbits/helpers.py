@@ -1,9 +1,12 @@
 import json
+import re
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
 import shortuuid
+from jose import jwt
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
@@ -11,6 +14,7 @@ from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .db import FilterModel
 from .extension_manager import get_valid_extensions
@@ -58,6 +62,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_QR_LOGO"] = settings.lnbits_qr_logo
     t.env.globals["LNBITS_VERSION"] = settings.version
     t.env.globals["LNBITS_NEW_ACCOUNTS_ALLOWED"] = settings.new_accounts_allowed
+    t.env.globals["LNBITS_AUTH_METHODS"] = settings.auth_allowed_methods
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
     t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
     t.env.globals["LNBITS_SERVICE_FEE_MAX"] = settings.lnbits_service_fee_max
@@ -66,11 +71,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = [
-        e
-        for e in get_valid_extensions()
-        if e.code not in settings.lnbits_deactivated_extensions
-    ]
+    t.env.globals["EXTENSIONS"] = get_valid_extensions(False)
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
@@ -166,3 +167,34 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
     return f"UPDATE {table_name} SET {query} {where}"
+
+
+def is_valid_email_address(email: str) -> bool:
+    email_regex = r"[A-Za-z0-9\._%+-]+@[A-Za-z0-9\.-]+\.[A-Za-z]{2,63}"
+    return re.fullmatch(email_regex, email) is not None
+
+
+def is_valid_username(username: str) -> bool:
+    username_regex = r"(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]"
+    return re.fullmatch(username_regex, username) is not None
+
+
+def create_access_token(data: dict):
+    expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
+    to_encode = data.copy()
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
+
+
+def encrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
+    """Encrypt message with the internal secret key"""
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
+
+
+def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
+    """Decrypt message with the internal secret key"""
+    if not m:
+        return None
+    return AESCipher(key=settings.auth_secret_key).decrypt(m)

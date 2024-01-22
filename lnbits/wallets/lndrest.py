@@ -9,6 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
@@ -17,7 +18,7 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon
 
 
 class LndRestWallet(Wallet):
@@ -139,14 +140,22 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit = dict()
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
-        r = await self.client.post(
-            url="/v1/channels/transactions",
-            json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                url="/v1/channels/transactions",
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                timeout=None,
+            )
+            r.raise_for_status()
+        except Exception as exc:
+            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
+            return PaymentResponse(None, None, None, None, str(exc))
 
-        if r.is_error or r.json().get("payment_error"):
+        data = r.json()
+
+        if data.get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
+            logger.warning(f"LndRestWallet pay_invoice payment_error: {error_message}.")
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()

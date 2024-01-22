@@ -242,6 +242,7 @@ new Vue({
       },
       balance: 0,
       fiatBalance: 0,
+      mobileSimple: false,
       credit: 0,
       update: {
         name: null,
@@ -270,6 +271,12 @@ new Vue({
       if (!q || q === '') return this.payments
 
       return LNbits.utils.search(this.payments, q)
+    },
+    paymentsOmitter() {
+      if (this.$q.screen.lt.md && this.mobileSimple) {
+        return this.payments.length > 0 ? [this.payments[0]] : []
+      }
+      return this.payments
     },
     canPay: function () {
       if (!this.parse.invoice) return false
@@ -350,7 +357,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/admin/api/v1/topup/?usr=' + this.g.user.id,
+          '/admin/api/v1/topup/',
           this.g.user.wallets[0].adminkey,
           {
             amount: credit,
@@ -860,6 +867,9 @@ new Vue({
         urlParams.get('lightning') || urlParams.get('lnurl')
       this.decodeRequest()
       this.parse.show = true
+    }
+    if (this.$q.screen.lt.md) {
+      this.mobileSimple = true
     }
     this.fetchBalance()
     this.fetchPayments()

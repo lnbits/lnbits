@@ -604,9 +604,21 @@ class CreateExtension(BaseModel):
     source_repo: str
 
 
-def get_valid_extensions() -> List[Extension]:
-    return [
+def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
+    valid_extensions = [
         extension for extension in ExtensionManager().extensions if extension.is_valid
+    ]
+
+    if include_deactivated:
+        return valid_extensions
+
+    if settings.lnbits_extensions_deactivate_all:
+        return []
+
+    return [
+        e
+        for e in valid_extensions
+        if e.code not in settings.lnbits_deactivated_extensions
     ]
 
 
