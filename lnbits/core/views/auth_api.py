@@ -258,11 +258,19 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
     try:
         assert data.username, "Missing username."
-        data.user_id = settings.super_user
-        await update_account(data.user_id, username=data.username)
-        await update_user_password(data)
+        user_id = settings.super_user
+        await update_account(user_id=user_id, username=data.username)
+        super_user = UpdateUserPassword(
+            user_id=user_id,
+            password=data.password,
+            password_repeat=data.password_repeat,
+            username=data.username,
+        )
+        await update_user_password(super_user)
         settings.first_install = False
-        return _auth_success_response(username=data.username, user_id=data.user_id)
+        return _auth_success_response(
+            username=super_user.username, user_id=super_user.user_id
+        )
     except AssertionError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
     except Exception as e:
