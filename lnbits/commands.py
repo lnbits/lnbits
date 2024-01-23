@@ -154,50 +154,33 @@ async def migrate_databases():
 
 
 @db.command("versions")
-def database_versions():
-    """Show current database versions"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(db_versions())
-
-
-async def db_versions():
+@coro
+async def database_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
         return await get_dbversions(conn)
 
 
 @db.command("cleanup-wallets")
-def database_cleanup_wallets():
+@coro
+async def database_cleanup_wallets():
     """Delete all wallets that never had any transaction"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(cleanup_wallets())
-
-
-async def cleanup_wallets():
     async with core_db.connect() as conn:
         return await delete_unused_wallets(settings.cleanup_wallets_delta, conn)
 
 
 @db.command("cleanup-deleted-wallets")
-def database_cleanup_deleted_wallets():
+@coro
+async def database_cleanup_deleted_wallets():
     """Delete all wallets that has been marked deleted"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(cleanup_deleted_wallets())
-
-
-async def cleanup_deleted_wallets():
     async with core_db.connect() as conn:
         return await remove_deleted_wallets(conn)
 
 
 @db.command("cleanup-accounts")
-def database_cleanup_accounts():
+@coro
+async def database_cleanup_accounts():
     """Delete all accounts that have no wallets"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(cleanup_accounts())
-
-
-async def cleanup_accounts():
     async with core_db.connect() as conn:
         return await delete_accounts_no_wallets(settings.cleanup_wallets_delta, conn)
 
