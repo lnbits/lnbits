@@ -49,7 +49,7 @@ async def test_db_fetch_page_simple(fetch_page, db):
 @pytest.mark.asyncio
 async def test_db_fetch_page_group_by(fetch_page, db):
     row = await db.fetch_page(
-        query="select * from test_db_fetch_page",
+        query="select max(id) as id, name from test_db_fetch_page",
         model=TestModel,
         group_by="name",
     )
