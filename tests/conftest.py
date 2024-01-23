@@ -35,7 +35,7 @@ settings.lnbits_admin_extensions = []
 settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
 settings.lnbits_extensions_default_install = []
-settings.first_install = False
+settings.super_user = "76291f62b7b7496b8ac39704b37824e0"
 
 
 @pytest_asyncio.fixture(scope="session")
