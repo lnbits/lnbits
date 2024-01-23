@@ -155,7 +155,7 @@ async def migrate_databases():
 
 @db.command("versions")
 @coro
-async def database_versions():
+async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
         await get_dbversions(conn)
