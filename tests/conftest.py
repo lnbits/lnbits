@@ -35,7 +35,6 @@ settings.lnbits_admin_extensions = []
 settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
 settings.lnbits_extensions_default_install = []
-settings.super_user = "76291f62b7b7496b8ac39704b37824e0"
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -51,6 +50,7 @@ async def app():
     clean_database(settings)
     app = create_app()
     await app.router.startup()
+    settings.first_install = False
     yield app
     await app.router.shutdown()
 
