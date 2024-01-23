@@ -43,6 +43,7 @@ from ..models import (
     UpdateUserPassword,
     User,
     UserConfig,
+    UpdateSuperuserPassword,
 )
 
 auth_router = APIRouter()

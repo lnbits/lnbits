@@ -60,7 +60,7 @@ async def first_install(request: Request):
         )
     return template_renderer().TemplateResponse(
         "core/first_install.html",
-        {"request": request, "super_user": settings.super_user},
+        {"request": request},
     )
 
 
