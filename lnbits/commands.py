@@ -162,7 +162,7 @@ async def db_versions():
 
 
 @db.command("cleanup-wallets")
-@click.argument("delta", required=False)
+@click.argument("delta", type=int, required=False)
 @coro
 async def database_cleanup_wallets(delta: Optional[int] = None):
     """Delete all wallets that never had any transaction"""
@@ -179,7 +179,7 @@ async def database_cleanup_deleted_wallets():
 
 
 @db.command("cleanup-accounts")
-@click.argument("delta", required=False)
+@click.argument("delta", type=int, required=False)
 @coro
 async def database_cleanup_accounts(delta: Optional[int] = None):
     """Delete all accounts that have no wallets"""
