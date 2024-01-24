@@ -330,6 +330,40 @@ ecdsa = "*"
 secp256k1 = "*"
 
 [[package]]
+name = "breez-sdk"
+version = "0.3.9"
+description = "Python language bindings for the Breez SDK"
+optional = true
+python-versions = "*"
+files = [
+    {file = "breez_sdk-0.3.9-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:6758310826791a074e11c40898fd88c29e0dfc28bdb2f59bed88f7dd6940c7a0"},
+    {file = "breez_sdk-0.3.9-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:b859d3cf012ebb92c298b0e1e190d535dc7190a2b5c69deeb4e77d4c2476bf2c"},
+    {file = "breez_sdk-0.3.9-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:55d07f2c30ec8aa80424aceb419a0d113c66413ef4d5ac5bbebcba54f23eacbc"},
+    {file = "breez_sdk-0.3.9-cp310-cp310-win32.whl", hash = "sha256:4528cdd5e30e59ff30ad672dd913c671343452866a1865089b15cb8d97cf8158"},
+    {file = "breez_sdk-0.3.9-cp310-cp310-win_amd64.whl", hash = "sha256:cdb235c909858ef414bf2af8a8d960b4ffbc4c78569e4ac2bc573cce8c82ac6f"},
+    {file = "breez_sdk-0.3.9-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:6e0986f37e1922eeadffb61430f776e6c4ee493b5d456e78e910436ba7029982"},
+    {file = "breez_sdk-0.3.9-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:c0885d868ccbc040859a4c2450dd78bb4c38e05c319ab7d91938a9e1b7700651"},
+    {file = "breez_sdk-0.3.9-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:1f3da6cd909dada188ecacbd6450cccf87641b58a510a4564f4edcce8d1975ee"},
+    {file = "breez_sdk-0.3.9-cp311-cp311-win32.whl", hash = "sha256:cd2aca615a37b8404c04663750fa9dcc620e08073d95e12c59d5bd1c6ea15812"},
+    {file = "breez_sdk-0.3.9-cp311-cp311-win_amd64.whl", hash = "sha256:fef1f59aa15d55925e2d897eec1df85d0d53e8091c497dc016c0efa7deba3f53"},
+    {file = "breez_sdk-0.3.9-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:5bca13f951bfd06654ce8bc6c504c8fb1cdb6eb7f493e857ff7daf200843ac85"},
+    {file = "breez_sdk-0.3.9-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:c807246f86a3a8cc3b8a2225864942a842154e18cf8797f174fab8c65e680871"},
+    {file = "breez_sdk-0.3.9-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:40f7739ed8365163f0ad2ba19df3adbec36e6e59ffe393fe092b66a0fc0bca0d"},
+    {file = "breez_sdk-0.3.9-cp312-cp312-win32.whl", hash = "sha256:cb0d678d458ade7b5262f421a0b2f2d8ad1156834b1d39071b65f2ba5ae83737"},
+    {file = "breez_sdk-0.3.9-cp312-cp312-win_amd64.whl", hash = "sha256:799c795178f341b0bef1af323c443ad8e7b77f1bc694102a7a40516ff57dcb41"},
+    {file = "breez_sdk-0.3.9-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:5b6fbefbddd3d78cb36c563edaa77de7334d68ceb916781a446bb02431e35621"},
+    {file = "breez_sdk-0.3.9-cp38-cp38-manylinux_2_31_aarch64.whl", hash = "sha256:6b1a424c4cc071366a9d5fc4b3a7d137e32467c74078b1a45269c74ba2a1fbda"},
+    {file = "breez_sdk-0.3.9-cp38-cp38-manylinux_2_31_x86_64.whl", hash = "sha256:0238348a7db4492f06ea7ca8075dd5acf7a11209fad847f2d358f806cfc61134"},
+    {file = "breez_sdk-0.3.9-cp38-cp38-win32.whl", hash = "sha256:4c864bc9c3d3b7c85dca7bb39b071584dfd0c1d020b2b950e7ef3682d2e3ee7c"},
+    {file = "breez_sdk-0.3.9-cp38-cp38-win_amd64.whl", hash = "sha256:434b8a835824b779ab6106e5d498749dd94a9289f7a43c2d4cae157d060c7d36"},
+    {file = "breez_sdk-0.3.9-cp39-cp39-macosx_11_0_universal2.whl", hash = "sha256:58df4d46bb8eb0e921f306ae15c461bc3705c8479ddc61fa147aa194c0635915"},
+    {file = "breez_sdk-0.3.9-cp39-cp39-manylinux_2_31_aarch64.whl", hash = "sha256:f47aad4ed02d429dda0fe6a271902f812e2ba09a47ff98a9110a5b1e53c18122"},
+    {file = "breez_sdk-0.3.9-cp39-cp39-manylinux_2_31_x86_64.whl", hash = "sha256:fc8cd869a1afc0e411325809653139717254f368448dcd4ac7ec70128512bd17"},
+    {file = "breez_sdk-0.3.9-cp39-cp39-win32.whl", hash = "sha256:0e75745f735dc7a7c1e8298579d2728b6bdeea8e912811654a7ff69df811cbe6"},
+    {file = "breez_sdk-0.3.9-cp39-cp39-win_amd64.whl", hash = "sha256:bc740c32e6db213069ca24787ce4b9e72e434e7e72920f011b04bd742f2beff3"},
+]
+
+[[package]]
 name = "certifi"
 version = "2023.11.17"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -2147,6 +2181,7 @@ files = [
     {file = "PyYAML-6.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:bf07ee2fef7014951eeb99f56f39c9bb4af143d8aa3c21b1677805985307da34"},
     {file = "PyYAML-6.0.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:855fb52b0dc35af121542a76b9a84f8d1cd886ea97c84703eaa6d88e37a2ad28"},
     {file = "PyYAML-6.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:40df9b996c2b73138957fe23a16a4f0ba614f4c0efce1e9406a184b6d07fa3a9"},
+    {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef"},
     {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6c22bec3fbe2524cde73d7ada88f6566758a8f7227bfbf93a408a9d86bcc12a0"},
     {file = "PyYAML-6.0.1-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8d4e9c88387b0f5c7d5f281e55304de64cf7f9c0021a3525bd3b1c542da3b0e4"},
     {file = "PyYAML-6.0.1-cp312-cp312-win32.whl", hash = "sha256:d483d2cdf104e7c9fa60c544d92981f12ad66a457afae824d146093b8c294c54"},
@@ -3061,9 +3096,10 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
+breez = ["breez-sdk"]
 liquid = ["wallycore"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "4147363e9d238b0d511d5e4fe9996debea068ee58e85477ac7e4515644c60e71"
+content-hash = "6fe6699f026dab6d9ea2976239950fcc07ecaece2f3026de33485b9ae4a6fd9a"
