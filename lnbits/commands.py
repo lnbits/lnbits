@@ -158,15 +158,16 @@ async def migrate_databases():
 async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
-        await get_dbversions(conn)
+        click.echo(await get_dbversions(conn))
 
 
 @db.command("cleanup-wallets")
+@click.argument("delta", required=False)
 @coro
-async def database_cleanup_wallets():
+async def database_cleanup_wallets(delta: Optional[int] = None):
     """Delete all wallets that never had any transaction"""
     async with core_db.connect() as conn:
-        await delete_unused_wallets(settings.cleanup_wallets_delta, conn)
+        await delete_unused_wallets(delta or settings.cleanup_wallets_delta, conn)
 
 
 @db.command("cleanup-deleted-wallets")
@@ -178,11 +179,12 @@ async def database_cleanup_deleted_wallets():
 
 
 @db.command("cleanup-accounts")
+@click.argument("delta", required=False)
 @coro
-async def database_cleanup_accounts():
+async def database_cleanup_accounts(delta: Optional[int] = None):
     """Delete all accounts that have no wallets"""
     async with core_db.connect() as conn:
-        await delete_accounts_no_wallets(settings.cleanup_wallets_delta, conn)
+        await delete_accounts_no_wallets(delta or settings.cleanup_wallets_delta, conn)
 
 
 async def load_disabled_extension_list() -> None:
