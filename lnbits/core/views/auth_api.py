@@ -39,11 +39,11 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
     User,
     UserConfig,
-    UpdateSuperuserPassword,
 )
 
 auth_router = APIRouter()

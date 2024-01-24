@@ -360,7 +360,6 @@ class SaaSSettings(LNbitsSettings):
 
 
 class PersistenceSettings(LNbitsSettings):
-    first_install: bool = Field(default=False)
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
 
@@ -390,6 +389,7 @@ class TransientSettings(InstalledExtensionsSettings):
     #  - are not read from a file or from the `settings` table
     #  - are not persisted in the `settings` table when the settings are updated
     #  - are cleared on server restart
+    first_install: bool = Field(default=False)
 
     @classmethod
     def readonly_fields(cls):
