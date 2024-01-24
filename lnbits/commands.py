@@ -162,12 +162,14 @@ async def db_versions():
 
 
 @db.command("cleanup-wallets")
-@click.argument("delta", type=int, required=False)
+@click.argument("cleanup_wallets_days", type=int, required=False)
 @coro
-async def database_cleanup_wallets(delta: Optional[int] = None):
+async def database_cleanup_wallets(cleanup_wallets_days: Optional[int] = None):
     """Delete all wallets that never had any transaction"""
     async with core_db.connect() as conn:
-        await delete_unused_wallets(delta or settings.cleanup_wallets_delta, conn)
+        delta = cleanup_wallets_days or settings.cleanup_wallets_days
+        delta = delta * 24 * 60 * 60
+        await delete_unused_wallets(delta, conn)
 
 
 @db.command("cleanup-deleted-wallets")
@@ -179,12 +181,14 @@ async def database_cleanup_deleted_wallets():
 
 
 @db.command("cleanup-accounts")
-@click.argument("delta", type=int, required=False)
+@click.argument("cleanup_wallets_days", type=int, required=False)
 @coro
-async def database_cleanup_accounts(delta: Optional[int] = None):
+async def database_cleanup_accounts(cleanup_wallets_days: Optional[int] = None):
     """Delete all accounts that have no wallets"""
     async with core_db.connect() as conn:
-        await delete_accounts_no_wallets(delta or settings.cleanup_wallets_delta, conn)
+        delta = cleanup_wallets_days or settings.cleanup_wallets_days
+        delta = delta * 24 * 60 * 60
+        await delete_unused_wallets(delta, conn)
 
 
 async def load_disabled_extension_list() -> None:
