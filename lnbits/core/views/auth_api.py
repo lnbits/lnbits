@@ -272,9 +272,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         )
         await update_user_password(super_user)
         settings.first_install = False
-        return _auth_success_response(
-            username=super_user.username, user_id=super_user.user_id
-        )
+        return _auth_success_response(username=super_user.username)
     except AssertionError as e:
         raise HTTPException(HTTP_403_FORBIDDEN, str(e))
     except Exception as e:
