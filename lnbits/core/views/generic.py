@@ -56,7 +56,11 @@ async def home(request: Request, lightning: str = ""):
 async def first_install(request: Request):
     if not settings.first_install:
         return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "Page not available!"}
+            "error.html",
+            {
+                "request": request,
+                "err": "Super user account has already been configured.",
+            },
         )
     return template_renderer().TemplateResponse(
         "core/first_install.html",
