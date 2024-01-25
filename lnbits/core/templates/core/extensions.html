@@ -240,11 +240,10 @@
             class="float-right"
           >
             <q-badge>
-              {% raw %}{{ extension.installedRelease.version }}{% endraw
-              %}<q-tooltip
-                >{%raw%}{{ $t('extension_installed_version')
-                }}{%endraw%}</q-tooltip
-              >
+              {% raw %}{{ extension.installedRelease.version }}{% endraw %}
+              <q-tooltip>
+                <span v-text="$t('extension_installed_version')"></span>
+              </q-tooltip>
             </q-badge>
           </div>
         </div>
@@ -395,6 +394,7 @@
                         class="text-secondary float-right"
                         :href="release.html_url"
                         target="_blank"
+                        rel="noopener noreferrer"
                         style="color: inherit"
                         >{%raw%}{{ $t('release_notes') }}{%endraw%}</a
                       >

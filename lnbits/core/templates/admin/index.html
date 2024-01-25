@@ -164,5 +164,5 @@
   </q-card>
 </q-dialog>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="/static/js/admin.js"></script>
+<script src="{{ static_url_for('static', 'js/admin.js') }}"></script>
 {% endblock %}

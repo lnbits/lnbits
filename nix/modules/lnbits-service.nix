@@ -62,6 +62,17 @@ in
         default = "lnbits";
         description = "group to run lnbits as";
       };
+      env = mkOption {
+        type = types.attrsOf types.str;
+        default = {};
+        description = ''
+          Additional environment variables that are passed to lnbits.
+          Reference Variables: https://github.com/lnbits/lnbits/blob/dev/.env.example
+        '';
+        example = {
+          LNBITS_ADMIN_UI = "true";
+        };
+      };
     };
   };
 
@@ -86,11 +97,14 @@ in
       description = "lnbits";
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
-      environment = {
-        LNBITS_DATA_FOLDER = "${cfg.stateDir}";
-        LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}/extensions";
-        LNBITS_PATH = "${cfg.package.src}";
-      };
+      environment = lib.mkMerge [
+        {
+          LNBITS_DATA_FOLDER = "${cfg.stateDir}";
+          LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}/extensions";
+          LNBITS_PATH = "${cfg.package.src}";
+        }
+        cfg.env
+      ];
       serviceConfig = {
         User = cfg.user;
         Group = cfg.group;

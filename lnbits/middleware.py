@@ -25,47 +25,46 @@ class InstalledExtensionMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if "path" not in scope:
+        full_path = scope.get("path", "/")
+        if full_path == "/":
             await self.app(scope, receive, send)
             return
 
-        path_elements = scope["path"].split("/")
-        if len(path_elements) > 2:
-            _, path_name, path_type, *rest = path_elements
-        else:
-            _, path_name = path_elements
-            path_type = None
-            rest = []
-
+        top_path, *rest = [p for p in full_path.split("/") if p]
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
-        if path_name in settings.lnbits_deactivated_extensions:
+        if top_path in settings.lnbits_deactivated_extensions:
             response = self._response_by_accepted_type(
-                headers, f"Extension '{path_name}' disabled", HTTPStatus.NOT_FOUND
+                headers, f"Extension '{top_path}' disabled", HTTPStatus.NOT_FOUND
             )
             await response(scope, receive, send)
             return
 
-        if not self._user_allowed_to_extension(path_name, scope):
+        if not self._user_allowed_to_extension(top_path, scope):
             response = self._response_by_accepted_type(
                 headers, "User not authorized.", HTTPStatus.FORBIDDEN
             )
             await response(scope, receive, send)
             return
 
-        # re-route API trafic if the extension has been upgraded
-        if path_type == "api":
-            upgraded_extensions = list(
-                filter(
-                    lambda ext: ext.endswith(f"/{path_name}"),
-                    settings.lnbits_upgraded_extensions,
-                )
-            )
-            if len(upgraded_extensions) != 0:
-                upgrade_path = upgraded_extensions[0]
-                tail = "/".join(rest)
-                scope["path"] = f"/upgrades/{upgrade_path}/{path_type}/{tail}"
+        # static resources do not require redirect
+        if rest[0:1] == ["static"]:
+            await self.app(scope, receive, send)
+            return
+
+        upgrade_path = next(
+            (
+                e
+                for e in settings.lnbits_upgraded_extensions
+                if e.endswith(f"/{top_path}")
+            ),
+            None,
+        )
+        # re-route all trafic if the extension has been upgraded
+        if upgrade_path:
+            tail = "/".join(rest)
+            scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
 
         await self.app(scope, receive, send)
 

@@ -10,12 +10,12 @@ from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from lnurl import encode as lnurl_encode
 from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
+from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
@@ -221,11 +221,18 @@ class Payment(FromRowModel):
                 f"expired {expiration_date}"
             )
             await self.delete(conn)
+        # wait at least 15 minutes before deleting failed outgoing payments
         elif self.is_out and status.failed:
-            logger.warning(
-                f"Deleting outgoing failed payment {self.checking_id}: {status}"
-            )
-            await self.delete(conn)
+            if self.time + 900 < int(time.time()):
+                logger.warning(
+                    f"Deleting outgoing failed payment {self.checking_id}: {status}"
+                )
+                await self.delete(conn)
+            else:
+                logger.warning(
+                    f"Tried to delete outgoing payment {self.checking_id}: "
+                    "skipping because it's not old enough"
+                )
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' "
@@ -275,8 +282,12 @@ class BalanceCheck(BaseModel):
         return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
 
 
+def _do_nothing(*_):
+    pass
+
+
 class CoreAppExtra:
-    register_new_ext_routes: Callable
+    register_new_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
 

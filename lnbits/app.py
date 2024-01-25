@@ -39,7 +39,12 @@ from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.api import add_installed_extension
 from .core.views.generic import update_installed_extension_state
-from .extension_manager import Extension, InstallableExtension, get_valid_extensions
+from .extension_manager import (
+    Extension,
+    InstallableExtension,
+    get_valid_extensions,
+    version_parse,
+)
 from .helpers import template_renderer
 from .middleware import (
     CustomGZipMiddleware,
@@ -76,12 +81,10 @@ def create_app() -> FastAPI:
     setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
     setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
 
-    app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
-    app.mount(
-        "/core/static",
-        StaticFiles(packages=[("lnbits.core", "static")]),
-        name="core_static",
-    )
+    # register static files
+    static_path = Path("lnbits", "static")
+    static = StaticFiles(directory=static_path)
+    app.mount("/static", static, name="static")
 
     g().base_url = f"http://{settings.host}:{settings.port}"
 
@@ -159,7 +162,7 @@ async def check_funding_source() -> None:
 
     signal.signal(signal.SIGINT, original_sigint_handler)
 
-    logger.info(
+    logger.success(
         f"✔️ Backend {WALLET.__class__.__name__} connected "
         f"and with a balance of {balance} msat."
     )
@@ -217,7 +220,11 @@ async def build_all_installed_extensions_list() -> List[InstallableExtension]:
             continue
 
         ext_releases = await InstallableExtension.get_extension_releases(ext_id)
-        release = ext_releases[0] if len(ext_releases) else None
+        ext_releases = sorted(
+            ext_releases, key=lambda r: version_parse(r.version), reverse=True
+        )
+
+        release = next((e for e in ext_releases if e.is_version_compatible), None)
 
         if release:
             ext_info = InstallableExtension(
@@ -361,8 +368,7 @@ def register_startup(app: FastAPI):
                 set_wallet_class()
             except Exception as e:
                 logger.error(
-                    f"Error initializing {settings.lnbits_backend_wallet_class}: "
-                    f"{str(e)}"
+                    f"Error initializing {settings.lnbits_backend_wallet_class}: {e}"
                 )
                 set_void_wallet_class()
 
@@ -420,6 +426,8 @@ def log_server_info():
     logger.info(f"Data folder: {settings.lnbits_data_folder}")
     logger.info(f"Database: {get_db_vendor_name()}")
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
+    logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
+    logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
 
 
 def get_db_vendor_name():

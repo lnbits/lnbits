@@ -1,5 +1,6 @@
 import asyncio
 from http import HTTPStatus
+from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 
@@ -41,7 +42,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return FileResponse("lnbits/core/static/favicon.ico")
+    return FileResponse(Path("lnbits", "static", "favicon.ico"))
 
 
 @generic_router.get("/", response_class=HTMLResponse)
@@ -213,6 +214,7 @@ async def wallet(
             "user": user.dict(),
             "wallet": userwallet.dict(),
             "service_fee": settings.lnbits_service_fee,
+            "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
@@ -329,7 +331,7 @@ async def lnurlwallet(request: Request):
 
 @generic_router.get("/service-worker.js", response_class=FileResponse)
 async def service_worker():
-    return FileResponse("lnbits/core/static/js/service-worker.js")
+    return FileResponse(Path("lnbits", "static", "js", "service-worker.js"))
 
 
 @generic_router.get("/manifest/{usr}.webmanifest")

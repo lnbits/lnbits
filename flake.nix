@@ -2,7 +2,7 @@
   description = "LNbits, free and open-source Lightning wallet and accounts system";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     poetry2nix = {
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,7 +13,7 @@
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forSystems = systems: f:
         nixpkgs.lib.genAttrs systems
-        (system: f system (import nixpkgs { inherit system; overlays = [ poetry2nix.overlay self.overlays.default ]; }));
+        (system: f system (import nixpkgs { inherit system; overlays = [ poetry2nix.overlays.default self.overlays.default ]; }));
       forAllSystems = forSystems supportedSystems;
       projectName = "lnbits";
     in
@@ -22,7 +22,7 @@
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nodePackages.prettier
-            poetry
+            poetry-core
           ];
         };
       });
@@ -37,19 +37,9 @@
           projectDir = ./.;
           meta.rev = self.dirtyRev or self.rev;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
+            protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
-            fastapi = prev.fastapi.overridePythonAttrs (old: {
-              postPatch = ''
-                substituteInPlace pyproject.toml \
-                  --replace '"Framework :: Pydantic",' "" \
-                  --replace '"Framework :: Pydantic :: 1",' ""
-              '';
-            });
-            bolt11 = prev.bolt11.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-                prev.poetry
-              ];
-            });
+            wallycore = prev.wallycore.override { preferWheel = true; };
           });
         };
       });

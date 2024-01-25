@@ -34,7 +34,7 @@ allow-self-payment=1
 
 <details><summary>Which funding sources can I use for LNbits?</summary>
   <p>There are several ways to run a LNbits instance funded from different sources. It is important to choose a source that has a good liquidity and good peers connected. If you use LNbits for public services your users´ payments can then flow happily in both directions. If you would like to fund your LNbits wallet via btc please see section Troubleshooting.</p>
-  <p>The <a href="http://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources can be used and how to configure each: CLN, LND, LNPay, Cliche, OpenNode as well as bots.</p>
+  <p>The <a href="https://docs.lnbits.org/guide/wallets.html">LNbits manual</a> shows you which sources can be used and how to configure each.</p>
 </details>
 
 <!--Later to be added
@@ -47,7 +47,7 @@ allow-self-payment=1
   <p>When you run your LNbits in clearnet basically everyone can generate a wallet on it. Since the funds of your node are bound to these wallets you might want to prevent that. There are two ways to do so:</p>
   <ul>
    <li>Configure allowed users & extensions <a href="https://github.com/lnbits/lnbits/blob/main/.env.example">in the .env file</a></li>
-   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/usermanager">via the Usermanager-Extension</a>. You can find <a href="http://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
+   <li>Configure allowed users & extensions <a href="https://github.com/lnbits/usermanager">via the Usermanager-Extension</a>. You can find <a href="https://docs.lnbits.org/guide/admin_ui.html">more info about the superuser and the admin extension here</a></li>
   </ul>
   <p>Please note that all entries in the .env file will not be the taken into account once you activated the admin extension.</p>
 </details>
@@ -263,6 +263,6 @@ allow-self-payment=1
 
 ## Developing for LNbits
  <ul>
-    <li><a href="http://docs.lnbits.org/devs/development.html">Making Estension / how to use Websockets / API reference</a></li>
+    <li><a href="https://docs.lnbits.org/devs/development.html">Making extensions / How to use Websockets / API reference</a></li>
     <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>
 </ul>

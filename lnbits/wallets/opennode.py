@@ -21,17 +21,20 @@ class OpenNodeWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.opennode_api_endpoint
-        key = (
+        self.key = (
             settings.opennode_key
             or settings.opennode_admin_key
             or settings.opennode_invoice_key
         )
-        if not endpoint or not key:
+        if not endpoint or not self.key:
             raise Exception("cannot initialize opennode")
 
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"Authorization": key}
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        headers = {
+            "Authorization": self.key,
+            "User-Agent": settings.user_agent,
+        }
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
 
     async def cleanup(self):
         try:
@@ -142,7 +145,7 @@ class OpenNodeWallet(Wallet):
         #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         # charge_id = data["id"]
-        # x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
+        # x = hmac.new(self.key.encode("ascii"), digestmod="sha256")
         # x.update(charge_id.encode("ascii"))
         # if x.hexdigest() != data["hashed_order"]:
         #     logger.error("invalid webhook, not from opennode")

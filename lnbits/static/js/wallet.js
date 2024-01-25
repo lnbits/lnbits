@@ -241,6 +241,7 @@ new Vue({
         location: window.location
       },
       balance: 0,
+      fiatBalance: 0,
       credit: 0,
       update: {
         name: null,
@@ -254,6 +255,14 @@ new Vue({
         return this.balance / 100
       } else {
         return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+      }
+    },
+    formattedFiatBalance() {
+      if (this.fiatBalance) {
+        return LNbits.utils.formatCurrency(
+          this.fiatBalance.toFixed(2),
+          this.g.wallet.currency
+        )
       }
     },
     filteredPayments: function () {
@@ -791,12 +800,30 @@ new Vue({
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
-        this.balance = Math.round(response.data.balance / 1000)
+        this.balance = Math.floor(response.data.balance / 1000)
         EventHub.$emit('update-wallet-balance', [
           this.g.wallet.id,
           this.balance
         ])
       })
+      if (this.g.wallet.currency) {
+        this.updateFiatBalance()
+      }
+    },
+    updateFiatBalance() {
+      if (!this.g.wallet.currency) return 0
+      LNbits.api
+        .request('POST', `/api/v1/conversion`, null, {
+          amount: this.balance || this.g.wallet.sat,
+          to: this.g.wallet.currency
+        })
+        .then(response => {
+          this.fiatBalance = response.data[this.g.wallet.currency]
+        })
+        .catch(e => console.error(e))
+    },
+    formatFiat(currency, amount) {
+      return LNbits.utils.formatCurrency(amount, currency)
     },
     exportCSV: function () {
       // status is important for export but it is not in paymentsTable
@@ -827,6 +854,13 @@ new Vue({
     }
   },
   created: function () {
+    let urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+      this.parse.data.request =
+        urlParams.get('lightning') || urlParams.get('lnurl')
+      this.decodeRequest()
+      this.parse.show = true
+    }
     this.fetchBalance()
     this.fetchPayments()
 

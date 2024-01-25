@@ -4,7 +4,7 @@ all: format check
 
 format: prettier black ruff
 
-check: mypy pyright checkblack checkruff checkprettier
+check: mypy pyright checkblack checkruff checkprettier checkbundle
 
 prettier:
 	poetry run ./node_modules/.bin/prettier --write lnbits
@@ -97,8 +97,18 @@ bundle:
 	npm run vendor_bundle_js
 	npm run vendor_minify_js
 	# increment serviceworker version
-	sed -i -e "s/CACHE_VERSION =.*/CACHE_VERSION = $$(awk '/CACHE_VERSION =/ { print 1+$$4 }' lnbits/core/static/js/service-worker.js)/" \
-		lnbits/core/static/js/service-worker.js
+	awk '/CACHE_VERSION =/ {sub(/[0-9]+$$/, $$NF+1)} 1' lnbits/static/js/service-worker.js > lnbits/static/js/service-worker.js.new
+	mv lnbits/static/js/service-worker.js.new lnbits/static/js/service-worker.js
+
+checkbundle:
+	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
+	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
+	make bundle
+	diff -q lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
+	diff -q lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
+	@echo "Bundle is OK"
+	rm lnbits/static/bundle.min.js.old
+	rm lnbits/static/bundle.min.css.old
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"

@@ -37,7 +37,7 @@ class ExplicitRelease(BaseModel):
     def is_version_compatible(self):
         if not self.min_lnbits_version:
             return True
-        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
+        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
 class GitHubRelease(BaseModel):
@@ -75,7 +75,7 @@ class ExtensionConfig(BaseModel):
     def is_version_compatible(self):
         if not self.min_lnbits_version:
             return True
-        return version.parse(self.min_lnbits_version) <= version.parse(settings.version)
+        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
 def download_url(url, save_path):
@@ -144,16 +144,11 @@ async def fetch_github_release_config(
 
 
 async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
-    async with httpx.AsyncClient() as client:
-        headers = (
-            {"Authorization": "Bearer " + settings.lnbits_ext_github_token}
-            if settings.lnbits_ext_github_token
-            else None
-        )
-        resp = await client.get(
-            url,
-            headers=headers,
-        )
+    headers = {"User-Agent": settings.user_agent}
+    if settings.lnbits_ext_github_token:
+        headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
+    async with httpx.AsyncClient(headers=headers) as client:
+        resp = await client.get(url)
         if resp.status_code != 200:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
         resp.raise_for_status()
@@ -470,7 +465,7 @@ class InstallableExtension(BaseModel):
         if not self.latest_release:
             self.latest_release = release
             return
-        if version.parse(self.latest_release.version) < version.parse(release.version):
+        if version_parse(self.latest_release.version) < version_parse(release.version):
             self.latest_release = release
 
     @classmethod
@@ -613,3 +608,14 @@ def get_valid_extensions() -> List[Extension]:
     return [
         extension for extension in ExtensionManager().extensions if extension.is_valid
     ]
+
+
+def version_parse(v: str):
+    """
+    Wrapper for version.parse() that does not throw if the version is invalid.
+    Instead it return the lowest possible version ("0.0.0")
+    """
+    try:
+        return version.parse(v)
+    except Exception:
+        return version.parse("0.0.0")

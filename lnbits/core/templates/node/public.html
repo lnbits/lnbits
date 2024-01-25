@@ -9,7 +9,7 @@ context %} {% block page %}
       <div class="row q-col-gutter-md q-pb-lg">
         <div class="col-12 col-md-6 q-gutter-y-md">
           <lnbits-stat
-            title="Total Capacity"
+            :title="$t('total_capacity')"
             :msat="this.channel_stats.total_capacity"
           />
         </div>
@@ -51,7 +51,7 @@ context %} {% block page %}
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="/core/static/js/node.js"></script>
+<script src="{{ static_url_for('static', 'js/node.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)

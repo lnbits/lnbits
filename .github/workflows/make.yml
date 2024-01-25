@@ -11,21 +11,24 @@ on:
         description: "use npm install"
         default: false
         type: boolean
+      python-version:
+        description: "python version"
+        type: string
+        default: "3.10"
 
 jobs:
   make:
-    name: ${{ inputs.make }} (${{ matrix.python-version }})
+    name: ${{ inputs.make }} (${{ inputs.python-version }})
     strategy:
       matrix:
         os-version: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10"]
         node-version: ["18.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/prepare
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ inputs.python-version }}
           node-version: ${{ matrix.node-version }}
           npm: ${{ inputs.npm }}
       - run: make ${{ inputs.make }}

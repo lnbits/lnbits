@@ -29,8 +29,11 @@ class LnTipsWallet(Wallet):
         if not endpoint or not key:
             raise Exception("cannot initialize lntxbod")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth = {"Authorization": f"Basic {key}"}
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        headers = {
+            "Authorization": f"Basic {key}",
+            "User-Agent": settings.user_agent,
+        }
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
 
     async def cleanup(self):
         try:

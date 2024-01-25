@@ -7,8 +7,12 @@ from lnbits.nodes import set_node_class
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
 
+from .alby import AlbyWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
+
+# The following import is intentional to keep backwards compatibility
+# for old configs that called it CLightningWallet. Do not remove.
 from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet

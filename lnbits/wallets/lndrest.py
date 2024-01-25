@@ -67,9 +67,12 @@ class LndRestWallet(Wallet):
         # even on startup
         self.cert = cert or True
 
-        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
+        headers = {
+            "Grpc-Metadata-macaroon": self.macaroon,
+            "User-Agent": settings.user_agent,
+        }
         self.client = httpx.AsyncClient(
-            base_url=self.endpoint, headers=self.auth, verify=self.cert
+            base_url=self.endpoint, headers=headers, verify=self.cert
         )
 
     async def cleanup(self):
@@ -195,6 +198,12 @@ class LndRestWallet(Wallet):
                             if "message" in line["error"]
                             else line["error"]
                         )
+                        if (
+                            line["error"].get("code") == 5
+                            and line["error"].get("message")
+                            == "payment isn't initiated"
+                        ):
+                            return PaymentStatus(False)
                         return PaymentStatus(None)
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):

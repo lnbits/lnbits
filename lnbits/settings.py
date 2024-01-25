@@ -6,6 +6,7 @@ import inspect
 import json
 from os import path
 from sqlite3 import Row
+from time import time
 from typing import Any, List, Optional
 
 import httpx
@@ -98,6 +99,9 @@ class OpsSettings(LNbitsSettings):
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)
+    lnbits_service_fee_ignore_internal: bool = Field(default=True)
+    lnbits_service_fee_max: int = Field(default=0)
+    lnbits_service_fee_wallet: str = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
 
@@ -180,6 +184,11 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_admin_key: Optional[str] = Field(default=None)
 
 
+class AlbyFundingSource(LNbitsSettings):
+    alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
+    alby_access_token: Optional[str] = Field(default=None)
+
+
 class OpenNodeFundingSource(LNbitsSettings):
     opennode_api_endpoint: Optional[str] = Field(default=None)
     opennode_key: Optional[str] = Field(default=None)
@@ -199,14 +208,6 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
-# todo: must be extracted
-class BoltzExtensionSettings(LNbitsSettings):
-    boltz_network: str = Field(default="main")
-    boltz_url: str = Field(default="https://boltz.exchange/api")
-    boltz_mempool_space_url: str = Field(default="https://mempool.space")
-    boltz_mempool_space_url_ws: str = Field(default="wss://mempool.space")
-
-
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600)
 
@@ -221,6 +222,7 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
+    AlbyFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -250,7 +252,6 @@ class EditableSettings(
     OpsSettings,
     SecuritySettings,
     FundingSourcesSettings,
-    BoltzExtensionSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
@@ -296,9 +297,11 @@ class EnvSettings(LNbitsSettings):
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     version: str = Field(default="0.0.0")
+    user_agent: str = Field(default="")
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
+    server_startup_time: int = Field(default=time())
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -328,6 +331,7 @@ class SuperUserSettings(LNbitsSettings):
             "LndWallet",
             "LnTipsWallet",
             "LNPayWallet",
+            "AlbyWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
         ]
@@ -428,6 +432,9 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
+
+if not settings.user_agent:
+    settings.user_agent = f"LNbits/{settings.version}"
 
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:

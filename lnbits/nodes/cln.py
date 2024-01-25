@@ -310,10 +310,13 @@ class CoreLightningNode(Node):
         return Page(
             data=[
                 NodeInvoice(
-                    bolt11=invoice["bolt11"],
-                    amount=invoice["amount_msat"],
+                    bolt11=invoice.get("bolt11") or invoice.get("bolt12"),
+                    amount=(
+                        invoice.get("amount_msat")
+                        or invoice.get("amount_received_msat")
+                    ),
                     preimage=invoice.get("payment_preimage"),
-                    memo=invoice["description"],
+                    memo=invoice.get("description"),
                     paid_at=invoice.get("paid_at"),
                     expiry=invoice["expires_at"],
                     payment_hash=invoice["payment_hash"],

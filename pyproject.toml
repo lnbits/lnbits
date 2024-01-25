@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.11.1"
+version = "0.11.3"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 
@@ -12,7 +12,7 @@ ecdsa = "0.18.0"
 fastapi = "0.103.1"
 httpx = "0.25.0"
 jinja2 = "3.0.1"
-lnurl = "0.3.6"
+lnurl = "0.4.2"
 psycopg2-binary = "2.9.7"
 pydantic = "1.10.9"
 pyqrcode = "1.2.1"
@@ -30,7 +30,6 @@ protobuf = "4.24.3"
 pyln-client = "23.8"
 pywebpush = "1.14.0"
 slowapi = "0.1.8"
-python-dotenv = "1.0.0"
 websocket-client = "1.6.3"
 pycryptodomex = "3.19.0"
 packaging = "23.1"
@@ -43,6 +42,11 @@ secp256k1 = "0.14.0"
 environs = "9.5.0"
 # needed for scheduler extension
 python-crontab = "3.0.0"
+# needed for liquid support boltz
+wallycore = {version = "^1.0.0", optional = true}
+
+[tool.poetry.extras]
+liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

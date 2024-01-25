@@ -3,7 +3,7 @@
 {% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
-<script src="/core/static/js/wallet.js"></script>
+<script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
@@ -55,6 +55,13 @@
                 </q-popup-edit>
               </q-btn>
             </h3>
+            <div v-if="g.wallet.currency">
+              <span
+                class="text-h5 text-italic"
+                v-text="formattedFiatBalance"
+                style="opacity: 0.75"
+              ></span>
+            </div>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
             <div class="col">
@@ -84,8 +91,8 @@
                 :label="$t('scan')"
               >
                 <q-tooltip
-                  >{% raw %}{{$t('camera_tooltip')}}{% endraw %}</q-tooltip
-                >
+                  ><span v-text="$t('camera_tooltip')"></span
+                ></q-tooltip>
               </q-btn>
             </div>
           </div>
@@ -118,9 +125,9 @@
                   color="grey"
                   @click="showChart"
                 >
-                  <q-tooltip
-                    >{% raw %}{{$t('chart_tooltip')}}{% endraw %}</q-tooltip
-                  >
+                  <q-tooltip>
+                    <span v-text="$t('chart_tooltip')"></span
+                  ></q-tooltip>
                 </q-btn>
               </div>
             </div>
@@ -214,18 +221,18 @@
                   <q-td auto-width key="amount" v-else :props="props">
                     {{ props.row.fsat }}<br />
                     <i v-if="props.row.extra.wallet_fiat_currency">
-                      {{ props.row.extra.wallet_fiat_currency }} {{
-                      props.row.extra.wallet_fiat_amount }}
+                      {{ formatFiat(props.row.extra.wallet_fiat_currency,
+                      props.row.extra.wallet_fiat_amount) }}
                       <br />
                     </i>
                     <i v-if="props.row.extra.fiat_currency">
-                      {{ props.row.extra.fiat_currency }} {{
-                      props.row.extra.fiat_amount }}
+                      {{ formatFiat(props.row.extra.fiat_currency,
+                      props.row.extra.fiat_amount) }}
                     </i>
                   </q-td>
                 </q-tr>
 
-                <q-dialog v-model="props.expand" :props="props">
+                <q-dialog v-model="props.expand" :props="props" position="top">
                   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                     <div class="text-center q-mb-lg">
                       <div v-if="props.row.isIn && props.row.pending">
@@ -462,7 +469,7 @@
         </div>
       </div>
 
-      <q-dialog v-model="receive.show">
+      <q-dialog v-model="receive.show" position="top">
         {% raw %}
         <q-card
           v-if="!receive.paymentReq"
@@ -573,7 +580,7 @@
         {% endraw %}
       </q-dialog>
 
-      <q-dialog v-model="parse.show" @hide="closeParseDialog">
+      <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
             <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
@@ -760,11 +767,11 @@
                   class="q-mt-xs q-ml-sm q-mr-auto"
                   v-if="parse.copy.show"
                   @click="pasteToTextArea"
-                  ><q-tooltip
-                    >{% raw %}{{$t('paste_from_clipboard')}}{% endraw
-                    %}</q-tooltip
-                  ></q-icon
                 >
+                  <q-tooltip>
+                    <span v-text="$t('paste_from_clipboard')"></span>
+                  </q-tooltip>
+                </q-icon>
                 <q-btn
                   v-close-popup
                   flat
@@ -797,7 +804,7 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="parse.camera.show">
+      <q-dialog v-model="parse.camera.show" position="top">
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
@@ -818,7 +825,7 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="paymentsChart.show">
+      <q-dialog v-model="paymentsChart.show" position="top">
         <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
           <q-card-section>
             <div class="row q-gutter-sm justify-between">
@@ -865,7 +872,7 @@
         </q-btn>
       </q-tabs>
 
-      <q-dialog v-model="disclaimerDialog.show">
+      <q-dialog v-model="disclaimerDialog.show" position="top">
         <q-card class="q-pa-lg">
           <h6 class="q-my-md text-primary">Warning</h6>
           <p v-text="$t('disclaimer_dialog')"></p>
