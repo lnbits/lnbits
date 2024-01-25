@@ -87,6 +87,10 @@ class UserConfig(BaseModel):
     last_name: Optional[str] = None
     display_name: Optional[str] = None
     picture: Optional[str] = None
+    # Auth provider, possible values:
+    # - "env": the user was created automatically by the system
+    # - "lnbits": the user was created via register form (username/pass or user_id only)
+    # - "google | github | ...": the user was created using an SSO provider
     provider: Optional[str] = "lnbits"  # auth provider
 
 
@@ -141,6 +145,13 @@ class UpdateUserPassword(BaseModel):
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
     password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+
+
+class UpdateSuperuserPassword(BaseModel):
+    username: str = Query(default=..., min_length=2, max_length=20)
+    password: str = Query(default=..., min_length=8, max_length=50)
+    password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
 
 class LoginUsr(BaseModel):

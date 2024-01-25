@@ -151,11 +151,17 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, username, created_at, updated_at FROM accounts WHERE id = ?",
+        """
+           SELECT id, email, username, created_at, updated_at, extra
+           FROM accounts WHERE id = ?
+        """,
         (user_id,),
     )
 
-    return User(**row) if row else None
+    user = User(**row) if row else None
+    if user and row["extra"]:
+        user.config = UserConfig(**json.loads(row["extra"]))
+    return user
 
 
 async def get_user_password(user_id: str) -> Optional[str]:

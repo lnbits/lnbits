@@ -53,6 +53,22 @@ async def home(request: Request, lightning: str = ""):
     )
 
 
+@generic_router.get("/first_install", response_class=HTMLResponse)
+async def first_install(request: Request):
+    if not settings.first_install:
+        return template_renderer().TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "err": "Super user account has already been configured.",
+            },
+        )
+    return template_renderer().TemplateResponse(
+        "core/first_install.html",
+        {"request": request},
+    )
+
+
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
 async def robots():
     data = """

@@ -52,6 +52,7 @@ from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
+    add_first_install_middleware,
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
@@ -106,6 +107,8 @@ def create_app() -> FastAPI:
     app.add_middleware(ExtensionsRedirectMiddleware)
 
     register_custom_extensions_path()
+
+    add_first_install_middleware(app)
 
     # adds security middleware
     add_ip_block_middleware(app)

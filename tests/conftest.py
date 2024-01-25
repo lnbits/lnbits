@@ -50,6 +50,7 @@ async def app():
     clean_database(settings)
     app = create_app()
     await app.router.startup()
+    settings.first_install = False
     yield app
     await app.router.shutdown()
 
