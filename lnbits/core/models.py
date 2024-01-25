@@ -87,6 +87,10 @@ class UserConfig(BaseModel):
     last_name: Optional[str] = None
     display_name: Optional[str] = None
     picture: Optional[str] = None
+    # Auth provider, possible values:
+    # - "env": the user was created automatically by the system
+    # - "lnbits": the user was created via register form (username/pass or user_id only)
+    # - "google | github | ...": the user was created using an SSO provider
     provider: Optional[str] = "lnbits"  # auth provider
 
 

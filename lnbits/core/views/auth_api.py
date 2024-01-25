@@ -259,7 +259,11 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     try:
         assert data.username, "Missing username."
         user_id = settings.super_user
-        await update_account(user_id=user_id, username=data.username)
+        await update_account(
+            user_id=user_id,
+            username=data.username,
+            user_config=UserConfig(provider="lnbits"),
+        )
         super_user = UpdateUserPassword(
             user_id=user_id,
             password=data.password,

@@ -52,7 +52,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import Payment, Wallet
+from .models import Payment, UserConfig, Wallet
 
 
 class PaymentFailure(Exception):
@@ -611,6 +611,10 @@ async def check_admin_settings():
         ):
             send_admin_user_to_saas()
 
+        account = await get_account(settings.super_user)
+        if account.config and account.config.provider == "env":
+            settings.first_install = True
+
         logger.success(
             "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
             "to get the superuser."
@@ -656,8 +660,9 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     if super_user:
         account = await get_account(super_user)
     if not account:
-        settings.first_install = True
-        account = await create_account(user_id=super_user)
+        account = await create_account(
+            user_id=super_user, user_config=UserConfig(provider="env")
+        )
     if not account.wallets or len(account.wallets) == 0:
         await create_wallet(user_id=account.id)
 
