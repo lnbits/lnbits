@@ -187,7 +187,7 @@ class Connection(Compat):
         parsed_values = filters.values(values)
 
         group_by_string = None
-        if group_by and len(group_by) > 0:
+        if group_by:
             for field in group_by:
                 if not re.fullmatch(
                     r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", field
