@@ -159,7 +159,7 @@ async def get_account(
     )
 
     user = User(**row) if row else None
-    if row and row["extra"]:
+    if user and row["extra"]:
         user.config = UserConfig(**json.loads(row["extra"]))
     return user
 

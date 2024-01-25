@@ -612,7 +612,7 @@ async def check_admin_settings():
             send_admin_user_to_saas()
 
         account = await get_account(settings.super_user)
-        if account.config and account.config.provider == "env":
+        if account and account.config and account.config.provider == "env":
             settings.first_install = True
 
         logger.success(
