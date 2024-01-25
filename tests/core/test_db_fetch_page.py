@@ -16,18 +16,19 @@ async def fetch_page(db):
         """
         CREATE TABLE test_db_fetch_page (
             id TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
             name TEXT NOT NULL
         )
         """
     )
     await db.execute(
         """
-        INSERT INTO test_db_fetch_page (id, name) VALUES
-            ('1', 'Alice'),
-            ('2', 'Bob'),
-            ('3', 'Carol'),
-            ('4', 'Dave'),
-            ('5', 'Dave')
+        INSERT INTO test_db_fetch_page (id, name, value) VALUES
+            ('1', 'Alice', 'foo'),
+            ('2', 'Bob', 'bar'),
+            ('3', 'Carol', 'bar'),
+            ('4', 'Dave', 'bar'),
+            ('5', 'Dave', 'foo')
         """
     )
     yield
@@ -51,10 +52,21 @@ async def test_db_fetch_page_group_by(fetch_page, db):
     row = await db.fetch_page(
         query="select max(id) as id, name from test_db_fetch_page",
         model=TestModel,
-        group_by="name",
+        group_by=["name"],
     )
     assert row
     assert row.total == 4
+
+
+@pytest.mark.asyncio
+async def test_db_fetch_page_group_by_multiple(fetch_page, db):
+    row = await db.fetch_page(
+        query="select max(id) as id, name, value from test_db_fetch_page",
+        model=TestModel,
+        group_by=["value", "name"],
+    )
+    assert row
+    assert row.total == 5
 
 
 @pytest.mark.asyncio
@@ -63,5 +75,5 @@ async def test_db_fetch_page_group_by_evil(fetch_page, db):
         await db.fetch_page(
             query="select * from test_db_fetch_page",
             model=TestModel,
-            group_by="name;",
+            group_by=["name;"],
         )

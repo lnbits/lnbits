@@ -179,25 +179,27 @@ class Connection(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[str] = None,
+        group_by: Optional[List[str]] = None,
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
         clause = filters.where(where)
         parsed_values = filters.values(values)
 
-        if group_by:
-            if not re.fullmatch(
-                r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", group_by
-            ):
-                raise ValueError("Value for GROUP BY is invalid")
-            group_by = f"GROUP BY {group_by}"
+        group_by_string = None
+        if group_by and len(group_by) > 0:
+            for field in group_by:
+                if not re.fullmatch(
+                    r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", field
+                ):
+                    raise ValueError("Value for GROUP BY is invalid")
+            group_by_string = f"GROUP BY {', '.join(group_by)}"
 
         rows = await self.fetchall(
             f"""
             {query}
             {clause}
-            {group_by or ""}
+            {group_by_string or ""}
             {filters.order_by()}
             {filters.pagination()}
             """,
@@ -211,7 +213,7 @@ class Connection(Compat):
                     SELECT COUNT(*) FROM (
                         {query}
                         {clause}
-                        {group_by or ""}
+                        {group_by_string or ""}
                     ) as count
                     """,
                     parsed_values,
@@ -298,7 +300,7 @@ class Database(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[str] = None,
+        group_by: Optional[List[str]] = None,
     ) -> Page[TRowModel]:
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
