@@ -165,4 +165,10 @@
 </q-dialog>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ static_url_for('static', 'js/admin.js') }}"></script>
+<style>
+  .introjs-tooltip-custom .introjs-tooltiptext,
+  .introjs-tooltip-header {
+    color: #111;
+  }
+</style>
 {% endblock %}

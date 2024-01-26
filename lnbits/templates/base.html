@@ -168,13 +168,17 @@
         show-if-above
         :elevated="$q.screen.lt.md"
       >
-        <lnbits-wallet-list></lnbits-wallet-list>
+        <lnbits-wallet-list id="wallet-list"></lnbits-wallet-list>
 
         <lnbits-manage
+          id="admin-manage"
           :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
         ></lnbits-manage>
-        <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
+        <lnbits-extension-list
+          id="extension-list"
+          class="q-pb-xl"
+        ></lnbits-extension-list>
       </q-drawer>
       {% endblock %} {% block page_container %}
       <q-page-container>

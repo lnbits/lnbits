@@ -48,13 +48,43 @@ new Vue({
         show: false
       },
       tab: 'funding',
-      needsRestart: false
+      needsRestart: false,
+      introJs: null
     }
   },
   created() {
     this.getSettings()
     this.getAudit()
     this.balance = +'{{ balance|safe }}'
+    // this.runOnboarding()
+  },
+  mounted() {
+    const url = window.location.href
+    const queryString = url.split('?')[1]
+    const queryObject = {}
+
+    if (queryString) {
+      for (const param of queryString.split('&')) {
+        const [key, value] = param.split('=')
+        queryObject[key] = value
+      }
+    }
+
+    if (queryObject.hasOwnProperty('first_use')) {
+      const scriptTag = document.createElement('script')
+      scriptTag.src = 'https://unpkg.com/intro.js/intro.js'
+      const linkTag = document.createElement('link')
+      linkTag.rel = 'stylesheet'
+      linkTag.href = 'https://unpkg.com/intro.js/introjs.css'
+
+      document.body.appendChild(scriptTag)
+      document.head.appendChild(linkTag)
+      console.log('onboarding')
+      scriptTag.onload = () => {
+        this.runOnboarding()
+      }
+    }
+    //this.runOnboarding()
   },
   computed: {
     lnbitsVersion() {
@@ -68,6 +98,54 @@ new Vue({
     }
   },
   methods: {
+    runOnboarding() {
+      console.log(this.$refs)
+      introJs()
+        .setOptions({
+          disableInteraction: true,
+          tooltipClass: 'introjs-tooltip-custom',
+          dontShowAgain: true,
+          steps: [
+            {
+              title: 'Welcome to LNbits',
+              intro: 'Start your tour!'
+            },
+            {
+              title: 'Add a funding source',
+              element: this.$refs['funding-sources'],
+              intro:
+                'Select a Lightning Network funding source to add funds to your LNbits.'
+            },
+            {
+              title: 'Access your wallet',
+              element: document.getElementById('wallet-list'),
+              position: 'right',
+              intro:
+                'Wallets are the core of LNbits. They are the place where you can store your funds.'
+            },
+
+            {
+              title: 'Manage LNbits',
+              element: document.getElementById('admin-manage'),
+              position: 'right',
+              intro:
+                'This is the place where you can manage your LNbits. You can configure settings, install extensions, themes, view logs, manage a node, and more.'
+            },
+            {
+              title: 'Access extensions',
+              element: document.getElementById('extension-list'),
+              position: 'right',
+              intro:
+                'Extensions are the way to add functionality to your LNbits. You view and access them here.'
+            },
+            {
+              title: 'Farewell!',
+              intro: '<img src="static/images/logos/lnbits.svg" width=100%/>'
+            }
+          ]
+        })
+        .start()
+    },
     addAdminUser() {
       let addUser = this.formAddAdmin
       let admin_users = this.formData.lnbits_admin_users
