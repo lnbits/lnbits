@@ -146,7 +146,7 @@
               filled
               dense
               clearable
-              v-model="paymentsTable.filter"
+              v-model="paymentsTable.search"
               debounce="300"
               :placeholder="$t('search_by_tag_memo_amount')"
               class="q-mb-md"
@@ -160,7 +160,7 @@
               :columns="paymentsTable.columns"
               :pagination.sync="paymentsTable.pagination"
               :no-data-label="$t('no_transactions')"
-              :filter="paymentsTable.filter"
+              :filter="paymentsTable.search"
               :loading="paymentsTable.loading"
               :hide-header="mobileSimple"
               :hide-bottom="mobileSimple"
