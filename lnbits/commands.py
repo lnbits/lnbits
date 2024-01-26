@@ -188,7 +188,7 @@ async def database_cleanup_accounts(days: Optional[int] = None):
     async with core_db.connect() as conn:
         delta = days or settings.cleanup_wallets_days
         delta = delta * 24 * 60 * 60
-        await delete_unused_wallets(delta, conn)
+        await delete_accounts_no_wallets(delta, conn)
 
 
 async def load_disabled_extension_list() -> None:
