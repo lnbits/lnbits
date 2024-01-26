@@ -1,12 +1,7 @@
 import pytest
 import pytest_asyncio
 
-from lnbits.db import FromRowModel
-
-
-class TestModel(FromRowModel):
-    id: int
-    name: str
+from tests.helpers import TestModel
 
 
 @pytest_asyncio.fixture(scope="session")
