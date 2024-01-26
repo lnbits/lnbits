@@ -352,33 +352,6 @@ new Vue({
       this.parse.camera.show = false
       this.focusInput('textArea')
     },
-    updateBalance: function (credit) {
-      LNbits.api
-        .request(
-          'PUT',
-          '/admin/api/v1/topup/',
-          this.g.user.wallets[0].adminkey,
-          {
-            amount: credit,
-            id: this.g.wallet.id
-          }
-        )
-        .then(response => {
-          this.$q.notify({
-            type: 'positive',
-            message:
-              'Success! Added ' +
-              credit +
-              ' sats to ' +
-              this.g.user.wallets[0].id,
-            icon: null
-          })
-          this.balance += parseInt(credit)
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
-    },
     closeParseDialog: function () {
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
@@ -831,6 +804,9 @@ new Vue({
     },
     formatFiat(currency, amount) {
       return LNbits.utils.formatCurrency(amount, currency)
+    },
+    updateBalanceCallback: function (res) {
+      this.balance += res.value
     },
     exportCSV: function () {
       // status is important for export but it is not in paymentsTable
