@@ -390,6 +390,7 @@ class TransientSettings(InstalledExtensionsSettings):
     #  - are not read from a file or from the `settings` table
     #  - are not persisted in the `settings` table when the settings are updated
     #  - are cleared on server restart
+    first_install: bool = Field(default=False)
 
     @classmethod
     def readonly_fields(cls):

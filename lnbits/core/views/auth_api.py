@@ -38,6 +38,7 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
     User,
@@ -248,6 +249,34 @@ async def update(
     except Exception as e:
         logger.debug(e)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
+
+
+@auth_router.put("/api/v1/auth/first_install")
+async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
+    if not settings.first_install:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
+    try:
+        await update_account(
+            user_id=settings.super_user,
+            username=data.username,
+            user_config=UserConfig(provider="lnbits"),
+        )
+        super_user = UpdateUserPassword(
+            user_id=settings.super_user,
+            password=data.password,
+            password_repeat=data.password_repeat,
+            username=data.username,
+        )
+        await update_user_password(super_user)
+        settings.first_install = False
+        return _auth_success_response(username=super_user.username)
+    except AssertionError as e:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
+    except Exception as e:
+        logger.debug(e)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+        )
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):
