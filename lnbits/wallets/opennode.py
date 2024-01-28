@@ -56,10 +56,12 @@ class OpenNodeWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["data"]
         if r.is_error:
-            return StatusResponse(data["message"], 0)
+            error_message = r.json()["message"]
+            return StatusResponse(error_message, 0)
 
+        data = r.json()["data"]
+        # multiply balance by 1000 to get msats balance
         return StatusResponse(None, data["balance"]["BTC"] * 1000)
 
     async def create_invoice(
