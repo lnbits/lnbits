@@ -44,10 +44,11 @@ class AlbyWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["balance"]*1000
+        data = r.json()["balance"]
         if r.is_error:
             return StatusResponse(data["error"], 0)
-
+        # if no error, multiply balance by 1000 for msats representation in lnbits
+        data = data*1000
         return StatusResponse(None, data)
 
     async def create_invoice(
