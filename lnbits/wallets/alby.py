@@ -49,7 +49,7 @@ class AlbyWallet(Wallet):
             return StatusResponse(error_message, 0)
         data = r.json()["balance"]
         # if no error, multiply balance by 1000 for msats representation in lnbits
-        return StatusResponse(None, data*1000)
+        return StatusResponse(None, data * 1000)
 
     async def create_invoice(
         self,
