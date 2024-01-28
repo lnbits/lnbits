@@ -44,7 +44,7 @@ class AlbyWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["balance"]
+        data = r.json()["balance"]*1000
         if r.is_error:
             return StatusResponse(data["error"], 0)
 
