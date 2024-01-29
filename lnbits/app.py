@@ -195,7 +195,7 @@ async def check_installed_extensions(app: FastAPI):
 
     for ext in installed_extensions:
         try:
-            installed = check_installed_extension_files(ext)
+            installed = await check_installed_extension_files(ext)
             if not installed:
                 await restore_installed_extension(app, ext)
                 logger.info(
@@ -253,14 +253,14 @@ async def build_all_installed_extensions_list(
     ]
 
 
-def check_installed_extension_files(ext: InstallableExtension) -> bool:
+async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
-        ext.download_archive()
+        await ext.download_archive()
     ext.extract_archive()
 
     return False

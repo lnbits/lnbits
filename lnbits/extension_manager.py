@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -79,7 +80,7 @@ class ExtensionConfig(BaseModel):
 
 
 def download_url(url, save_path):
-    with request.urlopen(url) as dl_file:
+    with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
             out_file.write(dl_file.read())
 
@@ -368,14 +369,18 @@ class InstallableExtension(BaseModel):
             return self.installed_release.version
         return ""
 
-    def download_archive(self):
+    async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
             assert self.installed_release, "installed_release is none."
-            download_url(self.installed_release.archive, ext_zip_file)
+
+            await asyncio.to_thread(
+                download_url, self.installed_release.archive, ext_zip_file
+            )
+
         except Exception as ex:
             logger.warning(ex)
             raise HTTPException(
