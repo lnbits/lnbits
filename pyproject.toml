@@ -50,6 +50,7 @@ environs = "9.5.0"
 python-crontab = "3.0.0"
 # needed for liquid support boltz
 wallycore = {version = "^1.0.0", optional = true}
+bip32 = "^3.4"
 
 [tool.poetry.extras]
 liquid = ["wallycore"]
