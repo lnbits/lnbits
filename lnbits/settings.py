@@ -104,6 +104,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee_wallet: str = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+    lnbits_max_wallet_balance_sat: int = Field(default=0)
 
 
 class SecuritySettings(LNbitsSettings):

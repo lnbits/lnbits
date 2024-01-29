@@ -130,6 +130,18 @@ async def create_invoice(
         amount, wallet_id, currency=currency, extra=extra, conn=conn
     )
 
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    assert user_wallet, "Wallet for maximum balance check could not be fetched"
+    if (
+        settings.lnbits_max_wallet_balance_sat
+        and user_wallet.balance_msat / 1000 + amount_sat
+        > settings.lnbits_max_wallet_balance_sat
+    ):
+        raise InvoiceFailure(
+            "Wallet balance cannot exceed "
+            f"{settings.lnbits_max_wallet_balance_sat} sat."
+        )
+
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
