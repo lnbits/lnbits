@@ -61,6 +61,7 @@ from lnbits.extension_manager import (
     Extension,
     ExtensionRelease,
     InstallableExtension,
+    _fetch_extension_payment_info,
     fetch_github_release_config,
     get_valid_extensions,
 )
@@ -83,6 +84,7 @@ from ..crud import (
     delete_wallet,
     drop_extension_db,
     get_dbversions,
+    get_installed_extension,
     get_payments,
     get_payments_history,
     get_payments_paginated,
@@ -794,7 +796,7 @@ async def api_install_extension(
     data: CreateExtension,
     user: User = Depends(check_admin),
     access_token: Optional[str] = Depends(check_access_token),
-):
+) -> Extension:
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive
     )
@@ -807,6 +809,29 @@ async def api_install_extension(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
+
+    if release.cost_sats:
+        installed_ext = await get_installed_extension(data.ext_id)
+        if installed_ext:
+            pass
+            # see if payment hash can be re-used
+            # installed_release = installed_ext.installed_release
+            # if installed_release and installed_release.is_paid_for:
+            #     release.payment_hash = installed_ext.installed_release.payment_hash
+        elif data.wallet_id:
+            # pay invoice
+            payment_info = await _fetch_extension_payment_info(
+                release.pay_link, data.cost_sats
+            )
+            payment_hash = await pay_invoice(
+                wallet_id=data.wallet_id,
+                payment_request=payment_info.payment_request,
+                description=f"Paid for extensions '{data.ext_id}'",
+            )
+            release.payment_hash = payment_hash
+        else:
+            pass
+            # get invoice and raise
 
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
@@ -901,6 +926,23 @@ async def api_uninstall_extension(
     "/api/v1/extension/{ext_id}/releases", dependencies=[Depends(check_admin)]
 )
 async def get_extension_releases(ext_id: str):
+    try:
+        extension_releases: List[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
+
+        return extension_releases
+
+    except Exception as ex:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        )
+
+
+@api_router.get(
+    "/api/v1/extension/{ext_id}/invoice", dependencies=[Depends(check_admin)]
+)
+async def get_extension_invoice(ext_id: str):
     try:
         extension_releases: List[
             ExtensionRelease

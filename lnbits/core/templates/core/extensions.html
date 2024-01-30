@@ -307,7 +307,47 @@
   </q-dialog>
 
   <q-dialog v-model="showUpgradeDialog">
-    <q-card class="q-pa-lg lnbits__dialog-card">
+    <q-card v-if="showPayForExtension" class="q-pa-lg lnbits__dialog-card">
+      <q-card-section>
+        <div class="text-h6" v-text="selectedExtension?.name"></div>
+      </q-card-section>
+      <q-card-section>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="selectedRelease.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+          hint="Which wallet to use to pay for the extension."
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="selectedRelease.paidAmount"
+          type="number"
+          :min="selectedRelease.cost_sats"
+          suffix="sat"
+          class="q-mt-sm"
+        >
+        </q-input>
+      </q-card-section>
+      <div class="row q-mt-lg">
+        <q-btn
+          @click="showPayForExtension = false"
+          label="Back"
+          flat
+          color="grey"
+
+        >
+        </q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">
+          {%raw%}{{ $t('close') }}{%endraw%}</q-btn
+        >
+      </div>
+    </q-card>
+    <q-card v-else class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div class="text-h6" v-text="selectedExtension?.name"></div>
       </q-card-section>
@@ -380,12 +420,27 @@
                   </div>
                   <q-card v-else>
                     <q-card-section v-if="release.is_version_compatible">
+                      <div v-if="release.requiresPayment">
+                        <span
+                          v-text="$t('extension_cost', {cost: release.cost_sats})"
+                        ></span>
+
+                        <div class="col-6">
+                          <q-btn
+                            unelevated
+                            color="primary"
+                            @click="showPayment(release)"
+                            class="q-mt-sm"
+                            >Make Payment</q-btn
+                          >
+                        </div>
+                      </div>
                       <q-btn
-                        v-if="!release.isInstalled"
+                        v-else-if="!release.isInstalled"
                         @click="installExtension(release)"
                         color="primary unelevated mt-lg pt-lg"
-                        >{%raw%}{{ $t('install') }}{%endraw%}</q-btn
-                      >
+                        :label="$t('install')"
+                      ></q-btn>
                       <q-btn v-else @click="showUninstall()" flat color="red">
                         {%raw%}{{ $t('uninstall') }}{%endraw%}</q-btn
                       >
@@ -461,9 +516,11 @@
         showUninstallDialog: false,
         showUpgradeDialog: false,
         showDropDbDialog: false,
+        showPayForExtension: false,
         dropDbExtensionId: '',
         selectedExtension: null,
         selectedExtensionRepos: null,
+        selectedRelease: null,
         uninstallAndDropDb: false,
         maxStars: 5,
         user: null
@@ -516,7 +573,9 @@
             {
               ext_id: extension.id,
               archive: release.archive,
-              source_repo: release.source_repo
+              source_repo: release.source_repo,
+              wallet_id: release.wallet.value,
+              cost_sats: release.paidAmount
             }
           )
           .then(response => {
@@ -530,8 +589,9 @@
             this.tab = 'installed'
           })
           .catch(err => {
-            LNbits.utils.notifyApiError(err)
+            console.warn(err)
             extension.inProgress = false
+            LNbits.utils.notifyApiError(err)
           })
       },
       uninstallExtension: async function () {
@@ -631,6 +691,7 @@
             `/api/v1/extension/${extension.id}/releases`,
             this.g.user.wallets[0].adminkey
           )
+          console.log('### releases', data)
 
           this.selectedExtensionRepos = data.reduce((repos, release) => {
             repos[release.source_repo] = repos[release.source_repo] || {
@@ -648,6 +709,12 @@
             if (release.isInstalled) {
               repos[release.source_repo].isInstalled = true
             }
+            if (release.pay_link) {
+              release.requiresPayment = true
+              release.paidAmount = release.cost_sats
+              release.wallet = this.g.user.walletOptions[0]
+            }
+
             repos[release.source_repo].releases.push(release)
             return repos
           }, {})
@@ -655,6 +722,11 @@
           LNbits.utils.notifyApiError(error)
           extension.inProgress = false
         }
+      },
+
+      showPayment(release) {
+        this.selectedRelease = release
+        this.showPayForExtension = true
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {

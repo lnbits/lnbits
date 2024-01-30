@@ -227,5 +227,6 @@ window.localisation.en = {
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
   language: 'Language',
-  color_scheme: 'Color Scheme'
+  color_scheme: 'Color Scheme',
+  extension_cost: 'This release requires a payment of minimum %{cost} sats.'
 }

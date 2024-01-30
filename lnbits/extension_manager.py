@@ -80,6 +80,12 @@ class ExtensionConfig(BaseModel):
         return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
+class ExtensionPaymentInfo(BaseModel):
+    amount: Optional[int] = None
+    payment_hash: Optional[str] = None
+    payment_request: Optional[str] = None
+
+
 def download_url(url, save_path):
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
@@ -155,6 +161,21 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
         resp.raise_for_status()
         return resp.json()
+
+
+async def _fetch_extension_payment_info(
+    url: str, amount: Optional[int] = None
+) -> Optional[ExtensionPaymentInfo]:
+    if amount:
+        url = f"{url}?amount={amount}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            return ExtensionPaymentInfo(**resp.json())
+    except Exception as e:
+        logger.warning(e)
+        return None
 
 
 def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
@@ -257,11 +278,28 @@ class ExtensionRelease(BaseModel):
     min_lnbits_version: Optional[str] = None
     is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
-    pay_link: Optional[str] = None
     description: Optional[str] = None
     warning: Optional[str] = None
     repo: Optional[str] = None
     icon: Optional[str] = None
+
+    pay_link: Optional[str] = None
+    cost_sats: Optional[int] = None
+    payment_hash: Optional[str] = None
+
+    @property
+    def archive_url(self) -> str:
+        if not self.pay_link:
+            return self.archive
+        return (
+            f"{self.archive}?version=v{self.version}&payment_hash={self.payment_hash}"
+        )
+
+    @property
+    def is_paid_for(self) -> bool:
+        if not self.pay_link:
+            return True
+        return self.payment_hash is not None
 
     @classmethod
     def from_github_release(
@@ -323,7 +361,6 @@ class InstallableExtension(BaseModel):
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
     archive: Optional[str] = None
-    pay_link: Optional[str] = None
 
     @property
     def hash(self) -> str:
@@ -382,7 +419,7 @@ class InstallableExtension(BaseModel):
             assert self.installed_release, "installed_release is none."
 
             await asyncio.to_thread(
-                download_url, self.installed_release.archive, ext_zip_file
+                download_url, self.installed_release.archive_url, ext_zip_file
             )
 
         except Exception as ex:
@@ -583,9 +620,17 @@ class InstallableExtension(BaseModel):
 
                 for e in manifest.extensions:
                     if e.id == ext_id:
-                        extension_releases += [
-                            ExtensionRelease.from_explicit_release(url, e)
-                        ]
+                        explicit_release = ExtensionRelease.from_explicit_release(
+                            url, e
+                        )
+                        if explicit_release.pay_link:
+                            payment_info = await _fetch_extension_payment_info(
+                                explicit_release.pay_link
+                            )
+                            explicit_release.cost_sats = (
+                                payment_info.amount if payment_info else None
+                            )
+                        extension_releases.append(explicit_release)
 
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")
@@ -612,6 +657,8 @@ class CreateExtension(BaseModel):
     ext_id: str
     archive: str
     source_repo: str
+    wallet_id: Optional[str]
+    cost_sats: Optional[int] = 0
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
