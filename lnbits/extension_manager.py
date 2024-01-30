@@ -34,6 +34,7 @@ class ExplicitRelease(BaseModel):
     warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+    pay_link: Optional[str]
 
     def is_version_compatible(self):
         if not self.min_lnbits_version:
@@ -256,6 +257,7 @@ class ExtensionRelease(BaseModel):
     min_lnbits_version: Optional[str] = None
     is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
+    pay_link: Optional[str] = None
     description: Optional[str] = None
     warning: Optional[str] = None
     repo: Optional[str] = None
@@ -291,12 +293,13 @@ class ExtensionRelease(BaseModel):
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
             html_url=e.html_url,
+            pay_link=e.pay_link,
             repo=e.repo,
             icon=e.icon,
         )
 
     @classmethod
-    async def all_releases(cls, org: str, repo: str) -> List["ExtensionRelease"]:
+    async def get_github_releases(cls, org: str, repo: str) -> List["ExtensionRelease"]:
         try:
             github_releases = await fetch_github_releases(org, repo)
             return [
@@ -320,6 +323,7 @@ class InstallableExtension(BaseModel):
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
     archive: Optional[str] = None
+    pay_link: Optional[str] = None
 
     @property
     def hash(self) -> str:
@@ -516,6 +520,7 @@ class InstallableExtension(BaseModel):
             short_description=e.short_description,
             icon=e.icon,
             dependencies=e.dependencies,
+            pay_link=e.pay_link,
         )
 
     @classmethod
@@ -571,7 +576,7 @@ class InstallableExtension(BaseModel):
                 manifest = await fetch_manifest(url)
                 for r in manifest.repos:
                     if r.id == ext_id:
-                        repo_releases = await ExtensionRelease.all_releases(
+                        repo_releases = await ExtensionRelease.get_github_releases(
                             r.organisation, r.repository
                         )
                         extension_releases += repo_releases
