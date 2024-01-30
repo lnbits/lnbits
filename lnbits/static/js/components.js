@@ -664,3 +664,58 @@ Vue.component('lnbits-dynamic-fields', {
     this.formData = this.buildData(this.options, this.value)
   }
 })
+
+Vue.component('lnbits-update-balance', {
+  mixins: [windowMixin],
+  props: ['wallet_id', 'callback'],
+  computed: {
+    denomination() {
+      return LNBITS_DENOMINATION
+    },
+    admin() {
+      return this.g.user.admin
+    }
+  },
+  data: function () {
+    return {
+      credit: 0
+    }
+  },
+  methods: {
+    updateBalance: function (credit) {
+      LNbits.api.updateBalance(credit, this.wallet_id).then(res => {
+        this.callback({value: res, wallet_id: this.wallet_id})
+      })
+    }
+  },
+  template: `
+      <q-btn
+        v-if="admin"
+        round
+        color="primary"
+        icon="add"
+        size="sm"
+      >
+        <q-popup-edit
+          class="bg-accent text-white"
+          v-slot="scope"
+          v-model="credit"
+        >
+          <q-input
+            filled
+            :label='$t("credit_label", { denomination: denomination })'
+            :hint="$t('credit_hint')"
+            v-model="scope.value"
+            dense
+            autofocus
+            @keyup.enter="updateBalance(scope.value)"
+          >
+            <template v-slot:append>
+              <q-icon name="edit" />
+            </template>
+          </q-input>
+        </q-popup-edit>
+        <q-tooltip>Topup Wallet</q-tooltip>
+      </q-btn>
+    `
+})

@@ -37,38 +37,13 @@
             <h3 class="q-my-none text-no-wrap">
               <strong v-text="formattedBalance"></strong>
               <small>{{LNBITS_DENOMINATION}}</small>
-              <q-btn
+              <lnbits-update-balance
                 v-if="'{{user.super_user}}' == 'True'"
+                :wallet_id="this.g.wallet.id"
                 flat
+                :callback="updateBalanceCallback"
                 round
-                color="primary"
-                icon="add"
-                size="md"
-              >
-                <q-popup-edit
-                  class="bg-accent text-white"
-                  v-slot="scope"
-                  v-model="credit"
-                >
-                  <q-input
-                    filled
-                    :label='$t("credit_label", { denomination: "{{LNBITS_DENOMINATION}}"})'
-                    :hint="$t('credit_hint')"
-                    v-model="scope.value"
-                    dense
-                    autofocus
-                    :mask="'{{LNBITS_DENOMINATION}}' != 'sats' ? '#.##' : '#'"
-                    fill-mask="0"
-                    reverse-fill-mask
-                    :step="'{{LNBITS_DENOMINATION}}' != 'sats' ? '0.01' : '1'"
-                    @keyup.enter="updateBalance(scope.value)"
-                  >
-                    <template v-slot:append>
-                      <q-icon name="edit" />
-                    </template>
-                  </q-input>
-                </q-popup-edit>
-              </q-btn>
+              />
             </h3>
             <div class="row">
               <div class="col">
