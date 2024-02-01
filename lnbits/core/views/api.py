@@ -59,6 +59,7 @@ from lnbits.decorators import (
 from lnbits.extension_manager import (
     CreateExtension,
     Extension,
+    ExtensionPaymentInfo,
     ExtensionRelease,
     InstallableExtension,
     _fetch_extension_payment_info,
@@ -973,21 +974,28 @@ async def get_extension_releases(ext_id: str):
         )
 
 
-@api_router.get(
-    "/api/v1/extension/{ext_id}/invoice", dependencies=[Depends(check_admin)]
-)
-async def get_extension_invoice(ext_id: str):
+@api_router.put("/api/v1/extension/invoice", dependencies=[Depends(check_admin)])
+async def get_extension_invoice(data: CreateExtension) -> ExtensionPaymentInfo:
     try:
-        extension_releases: List[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(ext_id)
-
-        return extension_releases
-
-    except Exception as ex:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
+        assert data.cost_sats, "A non-zero amount must be specified"
+        release = await InstallableExtension.get_extension_release(
+            data.ext_id, data.source_repo, data.archive
         )
+        assert release, "Release not found"
+        assert release.pay_link, "Pay link not found for release"
+
+        payment_info = await _fetch_extension_payment_info(
+            release.pay_link, data.cost_sats
+        )
+        assert payment_info and payment_info.payment_request, "Cannot request invoice"
+
+        return payment_info
+
+    except AssertionError as e:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
+    except Exception as ex:
+        logger.warning(ex)
+        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice")
 
 
 @api_router.get(

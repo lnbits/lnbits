@@ -309,9 +309,9 @@
   <q-dialog v-model="showUpgradeDialog">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
-        <div class="text-h6" v-text="selectedExtension?.name"></div>
+        <div class="text-h6" v-text="'Pay invoice then Install.'"></div>
       </q-card-section>
-      <q-card-section>
+      <q-card-section v-if="selectedRelease.wallet">
         <q-select
           filled
           dense
@@ -319,19 +319,22 @@
           v-model="selectedRelease.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
-          hint="Which wallet to use to pay for the extension."
         >
         </q-select>
-        <q-input
-          filled
-          dense
-          v-model.number="selectedRelease.paidAmount"
-          type="number"
-          :min="selectedRelease.cost_sats"
-          suffix="sat"
-          class="q-mt-sm"
-        >
-        </q-input>
+      </q-card-section>
+      <q-card-section v-else>
+        <div v-if="selectedRelease.paymentRequest">
+          <a :href="'lightning:' + selectedRelease.paymentRequest">
+            <q-responsive :ratio="1" class="q-mx-xl">
+              <lnbits-qrcode
+                :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
+              ></lnbits-qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div v-else>
+          <q-spinner color="primary" size="2.55em"></q-spinner>
+        </div>
       </q-card-section>
 
       <div class="row q-mt-lg">
@@ -341,9 +344,18 @@
           color="primary unelevated mt-lg pt-lg"
           :label="$t('install')"
         ></q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">
-          {%raw%}{{ $t('close') }}{%endraw%}</q-btn
-        >
+        <div class="q-ml-auto">
+          <q-btn
+            v-if="selectedRelease.paymentRequest"
+            outline
+            color="grey"
+            @click="copyText(selectedRelease.paymentRequest)"
+            >Copy invoice</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="float-right q-ml-lg">
+            {%raw%}{{ $t('close') }}{%endraw%}</q-btn
+          >
+        </div>
       </div>
     </q-card>
     <q-card v-else class="q-pa-lg lnbits__dialog-card">
@@ -439,13 +451,31 @@
                           :label="$t('install')"
                         ></q-btn>
                       </div>
+
                       <div v-if="release.requiresPayment && !release.paid_sats">
+                        <q-input
+                          filled
+                          dense
+                          v-model.number="release.paidAmount"
+                          type="number"
+                          :min="release.cost_sats"
+                          suffix="sat"
+                          class="q-mt-sm"
+                        >
+                        </q-input>
                         <q-btn
                           unelevated
                           color="primary"
                           @click="showPayment(release)"
                           class="q-mt-sm"
-                          >Make Payment</q-btn
+                          >Select Wallet</q-btn
+                        >
+                        <q-btn
+                          unelevated
+                          color="primary"
+                          @click="requestPayment(release)"
+                          class="q-mt-sm float-right"
+                          >Request Invoice</q-btn
                         >
                       </div>
 
@@ -729,7 +759,6 @@
             if (release.pay_link) {
               release.requiresPayment = true
               release.paidAmount = release.cost_sats
-              release.wallet = this.g.user.walletOptions[0]
             }
 
             repos[release.source_repo].releases.push(release)
@@ -743,7 +772,32 @@
 
       showPayment(release) {
         this.selectedRelease = release
-        console.log('### this.selectedRelease', this.selectedRelease)
+        this.selectedRelease.wallet = this.g.user.walletOptions[0]
+      },
+      async requestPayment(release) {
+        console.log('### this.requestPayment', release)
+        this.selectedRelease = _.clone(release)
+        this.selectedRelease.wallet = null
+
+        try {
+          const {data} = await LNbits.api.request(
+            'PUT',
+            `/api/v1/extension/invoice`,
+            this.g.user.wallets[0].adminkey,
+            {
+              ext_id: this.selectedExtension.id,
+              archive: release.archive,
+              source_repo: release.source_repo,
+              cost_sats: release.paidAmount
+            }
+          )
+
+          this.selectedRelease.paymentRequest = data.payment_request
+          this.selectedRelease = _.clone(this.selectedRelease)
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {
