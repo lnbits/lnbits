@@ -285,6 +285,7 @@ class ExtensionRelease(BaseModel):
 
     pay_link: Optional[str] = None
     cost_sats: Optional[int] = None
+    paid_sats: Optional[int] = 0
     payment_hash: Optional[str] = None
 
     @property

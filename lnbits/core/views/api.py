@@ -814,7 +814,7 @@ async def api_install_extension(
         release.payment_hash = await _get_extension_payment_hash(
             data.ext_id, data.wallet_id, release.pay_link, data.cost_sats
         )
-        assert release.payment_hash, "Cannot fetch invoice."
+        assert release.payment_hash, "Cannot pay invoice for extension."
 
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
@@ -861,7 +861,6 @@ async def api_install_extension(
 async def _get_extension_payment_hash(
     ext_id: str, wallet_id: Optional[str], pay_link: str, cost_sats: Optional[int]
 ) -> Optional[str]:
-    installed_ext = await get_installed_extension(ext_id)
     if wallet_id:
         # pay invoice with internal wallet
         assert cost_sats, "Extension paid amount not specified."
@@ -870,15 +869,15 @@ async def _get_extension_payment_hash(
         payment_hash = await pay_invoice(
             wallet_id=wallet_id,
             payment_request=payment_info.payment_request,
-            description=f"Paid for extensions '{ext_id}'",
+            description=f"Paid for extensions '{ext_id}'.",
+            extra={"pay_link": pay_link},
         )
         return payment_hash
 
-    if installed_ext:
+    installed_ext = await get_installed_extension(ext_id)
+    if installed_ext and installed_ext.installed_release:
         # see if payment hash can be re-used
-        installed_release = installed_ext.installed_release
-        if installed_release and installed_release.is_paid_for:
-            return installed_release.payment_hash
+        return installed_ext.installed_release.payment_hash
 
     return None
 
@@ -938,6 +937,31 @@ async def get_extension_releases(ext_id: str):
         extension_releases: List[
             ExtensionRelease
         ] = await InstallableExtension.get_extension_releases(ext_id)
+
+        installed_ext = await get_installed_extension(ext_id)
+        if (
+            not installed_ext
+            or not installed_ext.installed_release
+            or not installed_ext.installed_release.pay_link
+        ):
+            # todo: encapsulate in property
+            return extension_releases
+
+        paid_sats = 0
+        # todo: multiple paylinks
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.head(
+                    installed_ext.installed_release.archive_url, timeout=5
+                )
+                r.raise_for_status()
+                paid_sats = int(r.headers.get("paid_sats"))
+            except Exception as e:
+                logger.warning(e)
+
+        for release in extension_releases:
+            if release.pay_link == installed_ext.installed_release.pay_link:
+                release.paid_sats = paid_sats
 
         return extension_releases
 

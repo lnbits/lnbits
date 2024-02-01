@@ -419,30 +419,46 @@
                   </div>
                   <q-card v-else>
                     <q-card-section v-if="release.is_version_compatible">
-                      <div v-if="release.requiresPayment">
-                        <span
-                          v-text="$t('extension_cost', {cost: release.cost_sats})"
-                        ></span>
-
-                        <div class="col-6">
-                          <q-btn
-                            unelevated
-                            color="primary"
-                            @click="showPayment(release)"
-                            class="q-mt-sm"
-                            >Make Payment</q-btn
-                          >
-                        </div>
-                      </div>
-                      <q-btn
-                        v-else-if="!release.isInstalled"
-                        @click="installExtension(release)"
-                        color="primary unelevated mt-lg pt-lg"
-                        :label="$t('install')"
-                      ></q-btn>
-                      <q-btn v-else @click="showUninstall()" flat color="red">
-                        {%raw%}{{ $t('uninstall') }}{%endraw%}</q-btn
+                      <span
+                        v-if="release.requiresPayment &&!release.paid_sats"
+                        v-text="$t('extension_cost', {cost: release.cost_sats})"
+                        class="q-mb-md"
+                      ></span>
+                      <span
+                        v-if="release.requiresPayment && release.paid_sats"
+                        class="q-mb-md"
+                        v-text="$t('extension_paid_sats', {paid_sats: release.paid_sats})"
+                      ></span>
+                      <div
+                        v-if="!release.requiresPayment || (release.requiresPayment && release.paid_sats)"
                       >
+                        <q-btn
+                          v-if="!release.isInstalled"
+                          @click="installExtension(release)"
+                          color="primary unelevated mt-lg pt-lg"
+                          :label="$t('install')"
+                        ></q-btn>
+                      </div>
+                      <div v-if="release.requiresPayment && !release.paid_sats">
+                        <q-btn
+                          unelevated
+                          color="primary"
+                          @click="showPayment(release)"
+                          class="q-mt-sm"
+                          >Make Payment</q-btn
+                        >
+                      </div>
+
+                      <div>
+                        <q-btn
+                          v-if="release.isInstalled"
+                          @click="showUninstall()"
+                          :label="$t('uninstall')"
+                          flat
+                          color="red"
+                        ></q-btn>
+                      </div>
+
                       <a
                         v-if="release.html_url"
                         class="text-secondary float-right"
