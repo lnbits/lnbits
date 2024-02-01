@@ -618,7 +618,7 @@
               ext_id: extension.id,
               archive: release.archive,
               source_repo: release.source_repo,
-              wallet_id: release.wallet.value,
+              wallet_id: release.wallet?.value,
               cost_sats: release.paidAmount
             }
           )
@@ -776,7 +776,7 @@
       },
       async requestPayment(release) {
         console.log('### this.requestPayment', release)
-        this.selectedRelease = _.clone(release)
+        this.selectedRelease = release
         this.selectedRelease.wallet = null
 
         try {
