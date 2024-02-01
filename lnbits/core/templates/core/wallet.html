@@ -569,7 +569,10 @@
             ></q-spinner>
           </q-form>
         </q-card>
-        <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <q-card
+          v-else-if="receive.paymentReq && receive.lnurl == null"
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+        >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
               <q-responsive :ratio="1" class="q-mx-xl">
