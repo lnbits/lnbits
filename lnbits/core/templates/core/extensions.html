@@ -307,7 +307,7 @@
   </q-dialog>
 
   <q-dialog v-model="showUpgradeDialog">
-    <q-card v-if="showPayForExtension" class="q-pa-lg lnbits__dialog-card">
+    <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div class="text-h6" v-text="selectedExtension?.name"></div>
       </q-card-section>
@@ -333,15 +333,14 @@
         >
         </q-input>
       </q-card-section>
+
       <div class="row q-mt-lg">
         <q-btn
-          @click="showPayForExtension = false"
-          label="Back"
-          flat
-          color="grey"
-
-        >
-        </q-btn>
+          v-if="!selectedRelease.isInstalled"
+          @click="installExtension(selectedRelease)"
+          color="primary unelevated mt-lg pt-lg"
+          :label="$t('install')"
+        ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">
           {%raw%}{{ $t('close') }}{%endraw%}</q-btn
         >
@@ -516,7 +515,6 @@
         showUninstallDialog: false,
         showUpgradeDialog: false,
         showDropDbDialog: false,
-        showPayForExtension: false,
         dropDbExtensionId: '',
         selectedExtension: null,
         selectedExtensionRepos: null,
@@ -683,8 +681,11 @@
 
       showUpgrade: async function (extension) {
         this.selectedExtension = extension
-        this.showUpgradeDialog = true
+        this.selectedRelease = null
         this.selectedExtensionRepos = null
+
+        this.showUpgradeDialog = true
+
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -726,7 +727,7 @@
 
       showPayment(release) {
         this.selectedRelease = release
-        this.showPayForExtension = true
+        console.log('### this.selectedRelease', this.selectedRelease)
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {
