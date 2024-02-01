@@ -36,6 +36,7 @@
     "js/components.js",
     "js/components/lnbits-funding-sources.js",
     "js/components/extension-settings.js",
+    "js/components/event-reactions.js",
     "js/bolt11-decoder.js"
   ],
   "css": ["vendor/quasar.css", "vendor/Chart.css", "css/base.css"]
