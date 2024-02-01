@@ -130,8 +130,7 @@ window.LNbits = {
         }
       )
     },
-    getPayments: function (wallet, query) {
-      const params = new URLSearchParams(query)
+    getPayments: function (wallet, params) {
       return this.request(
         'get',
         '/api/v1/payments/paginated?' + params,
@@ -144,6 +143,24 @@ window.LNbits = {
         '/api/v1/payments/' + paymentHash,
         wallet.inkey
       )
+    },
+    updateBalance: function (credit, wallet_id) {
+      return LNbits.api
+        .request('PUT', '/admin/api/v1/topup/', null, {
+          amount: credit,
+          id: wallet_id
+        })
+        .then(_ => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'Success! Added ' + credit + ' sats to ' + wallet_id,
+            icon: null
+          })
+          return parseInt(credit)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
     }
   },
   events: {
@@ -347,6 +364,24 @@ window.LNbits = {
       } catch (err) {
         return data
       }
+    },
+    prepareFilterQuery(tableConfig, props) {
+      if (props) {
+        tableConfig.pagination = props.pagination
+      }
+      let pagination = tableConfig.pagination
+      tableConfig.loading = true
+      const query = {
+        limit: pagination.rowsPerPage,
+        offset: (pagination.page - 1) * pagination.rowsPerPage,
+        sortby: pagination.sortBy ?? '',
+        direction: pagination.descending ? 'desc' : 'asc',
+        ...tableConfig.filter
+      }
+      if (tableConfig.search) {
+        query.search = tableConfig.search
+      }
+      return new URLSearchParams(query)
     },
     exportCSV: function (columns, data, fileName) {
       var wrapCsvValue = function (val, formatFn) {

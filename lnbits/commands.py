@@ -18,10 +18,13 @@ from lnbits.settings import settings
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
+    delete_accounts_no_wallets,
+    delete_unused_wallets,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
+    remove_deleted_wallets,
 )
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -151,16 +154,41 @@ async def migrate_databases():
 
 
 @db.command("versions")
-def database_versions():
-    """Show current database versions"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(db_versions())
-
-
+@coro
 async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
-        return await get_dbversions(conn)
+        click.echo(await get_dbversions(conn))
+
+
+@db.command("cleanup-wallets")
+@click.argument("days", type=int, required=False)
+@coro
+async def database_cleanup_wallets(days: Optional[int] = None):
+    """Delete all wallets that never had any transaction"""
+    async with core_db.connect() as conn:
+        delta = days or settings.cleanup_wallets_days
+        delta = delta * 24 * 60 * 60
+        await delete_unused_wallets(delta, conn)
+
+
+@db.command("cleanup-deleted-wallets")
+@coro
+async def database_cleanup_deleted_wallets():
+    """Delete all wallets that has been marked deleted"""
+    async with core_db.connect() as conn:
+        await remove_deleted_wallets(conn)
+
+
+@db.command("cleanup-accounts")
+@click.argument("days", type=int, required=False)
+@coro
+async def database_cleanup_accounts(days: Optional[int] = None):
+    """Delete all accounts that have no wallets"""
+    async with core_db.connect() as conn:
+        delta = days or settings.cleanup_wallets_days
+        delta = delta * 24 * 60 * 60
+        await delete_accounts_no_wallets(delta, conn)
 
 
 async def load_disabled_extension_list() -> None:
