@@ -942,7 +942,7 @@ async def get_extension_releases(ext_id: str):
         if (
             not installed_ext
             or not installed_ext.installed_release
-            or not installed_ext.installed_release.pay_link
+            or not installed_ext.installed_release.payment_hash
         ):
             # todo: encapsulate in property
             return extension_releases
