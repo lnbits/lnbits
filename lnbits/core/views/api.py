@@ -810,7 +810,9 @@ async def api_install_extension(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
 
-    if release.pay_link:
+    if data.payment_hash:
+        release.payment_hash = data.payment_hash
+    elif release.pay_link:
         release.payment_hash = await _get_extension_payment_hash(
             data.ext_id, data.wallet_id, release.pay_link, data.cost_sats
         )
@@ -955,7 +957,7 @@ async def get_extension_releases(ext_id: str):
                     installed_ext.installed_release.archive_url, timeout=5
                 )
                 r.raise_for_status()
-                paid_sats = int(r.headers.get("paid_sats"))
+                paid_sats = int(r.headers.get("paid_sats", "0"))
             except Exception as e:
                 logger.warning(e)
 

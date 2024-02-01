@@ -260,7 +260,7 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{str(ext.zip_path)}" not in zip_files:
-        await ext.download_archive()
+        await ext.download_archive() #todo: test restore
     ext.extract_archive()
 
     return False

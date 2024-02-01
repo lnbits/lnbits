@@ -661,6 +661,7 @@ class CreateExtension(BaseModel):
     source_repo: str
     wallet_id: Optional[str] = None
     cost_sats: Optional[int] = 0
+    payment_hash: Optional[str] = None
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
