@@ -557,7 +557,6 @@ class InstallableExtension(BaseModel):
             short_description=e.short_description,
             icon=e.icon,
             dependencies=e.dependencies,
-            pay_link=e.pay_link,
         )
 
     @classmethod
@@ -623,7 +622,9 @@ class InstallableExtension(BaseModel):
                         explicit_release = ExtensionRelease.from_explicit_release(
                             url, e
                         )
-                        if explicit_release.pay_link:
+                        if (
+                            explicit_release.pay_link
+                        ):  # todo: use from `e`, do not store in expicit release?
                             payment_info = await _fetch_extension_payment_info(
                                 explicit_release.pay_link
                             )
@@ -657,7 +658,7 @@ class CreateExtension(BaseModel):
     ext_id: str
     archive: str
     source_repo: str
-    wallet_id: Optional[str]
+    wallet_id: Optional[str] = None
     cost_sats: Optional[int] = 0
 
 

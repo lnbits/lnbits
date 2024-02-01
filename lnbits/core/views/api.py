@@ -810,28 +810,11 @@ async def api_install_extension(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
 
-    if release.cost_sats:
-        installed_ext = await get_installed_extension(data.ext_id)
-        if installed_ext:
-            pass
-            # see if payment hash can be re-used
-            # installed_release = installed_ext.installed_release
-            # if installed_release and installed_release.is_paid_for:
-            #     release.payment_hash = installed_ext.installed_release.payment_hash
-        elif data.wallet_id:
-            # pay invoice
-            payment_info = await _fetch_extension_payment_info(
-                release.pay_link, data.cost_sats
-            )
-            payment_hash = await pay_invoice(
-                wallet_id=data.wallet_id,
-                payment_request=payment_info.payment_request,
-                description=f"Paid for extensions '{data.ext_id}'",
-            )
-            release.payment_hash = payment_hash
-        else:
-            pass
-            # get invoice and raise
+    if release.pay_link:
+        release.payment_hash = await _get_extension_payment_hash(
+            data.ext_id, data.wallet_id, release.pay_link, data.cost_sats
+        )
+        assert release.payment_hash, "Cannot fetch invoice."
 
     ext_info = InstallableExtension(
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
@@ -873,6 +856,31 @@ async def api_install_extension(
                 f"({ext_info.installed_version})."
             ),
         )
+
+
+async def _get_extension_payment_hash(
+    ext_id: str, wallet_id: Optional[str], pay_link: str, cost_sats: Optional[int]
+) -> Optional[str]:
+    installed_ext = await get_installed_extension(ext_id)
+    if wallet_id:
+        # pay invoice with internal wallet
+        assert cost_sats, "Extension paid amount not specified."
+        payment_info = await _fetch_extension_payment_info(pay_link, cost_sats)
+        assert payment_info and payment_info.payment_request, "Cannot fetch invoice."
+        payment_hash = await pay_invoice(
+            wallet_id=wallet_id,
+            payment_request=payment_info.payment_request,
+            description=f"Paid for extensions '{ext_id}'",
+        )
+        return payment_hash
+
+    if installed_ext:
+        # see if payment hash can be re-used
+        installed_release = installed_ext.installed_release
+        if installed_release and installed_release.is_paid_for:
+            return installed_release.payment_hash
+
+    return None
 
 
 @api_router.delete("/api/v1/extension/{ext_id}")
