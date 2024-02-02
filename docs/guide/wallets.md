@@ -87,6 +87,14 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `ALBY_API_ENDPOINT`: https://api.getalby.com/
 - `ALBY_ACCESS_TOKEN`: AlbyAccessToken
 
+### ZBD
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an ZBD API Key here: https://zbd.dev/docs/dashboard/projects/api
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **ZBDWallet**
+- `ZBD_API_ENDPOINT`: https://api.zebedee.io/v0/
+- `ZBD_API_KEY`: ZBDApiKey
+
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
