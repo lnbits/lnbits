@@ -210,6 +210,7 @@ class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: Optional[str] = Field(default=None)
 
+
 class AlbyFundingSource(LNbitsSettings):
     alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
     alby_access_token: Optional[str] = Field(default=None)
@@ -249,6 +250,7 @@ class FundingSourcesSettings(
     LndGrpcFundingSource,
     LnPayFundingSource,
     AlbyFundingSource,
+    ZBDFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -403,6 +405,7 @@ class SuperUserSettings(LNbitsSettings):
             "LnTipsWallet",
             "LNPayWallet",
             "AlbyWallet",
+            "ZBDWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
         ]
