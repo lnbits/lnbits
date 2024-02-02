@@ -862,7 +862,9 @@ new Vue({
     }
 
     // listen to incoming payments
-    this.connectWebocket(this.g.wallet.id)
+    if (this.reactionToggle) {
+      eventReactionWebocket(this.g.wallet.id, eventReactionBothSidesConfetti)
+    }
     LNbits.events.onInvoicePaid(this.g.wallet, payment =>
       this.onPaymentReceived(payment.payment_hash)
     )

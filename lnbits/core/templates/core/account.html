@@ -401,6 +401,23 @@
                     ></lnbits-notifications-btn>
                   </div>
                 </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">Toggle Payment Reactions</div>
+                  <div class="col-8">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      @click="toggleReactions"
+                      :icon="(reactionToggle) ? 'visibility' : 'visibility_off'"
+                      size="sm"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('toggle_reactions')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
               </q-tab-panel>
             </q-tab-panels>
           </div>
