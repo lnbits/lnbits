@@ -16,6 +16,7 @@ from loguru import logger
 from packaging import version
 from pydantic import BaseModel
 
+from lnbits.core.services import pay_invoice
 from lnbits.settings import settings
 
 
@@ -413,13 +414,22 @@ class InstallableExtension(BaseModel):
             return self.installed_release.version
         return ""
 
-    async def download_archive(self):
+    async def download_archive(
+        self,
+        wallet_id: Optional[str] = None,
+        cost_sats: Optional[int] = None,
+        payment_hash: Optional[str] = None,
+    ):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
             assert self.installed_release, "installed_release is none."
+
+            self.installed_release.payment_hash = await self._fetch_payment_hash(
+                wallet_id, cost_sats, payment_hash
+            )
 
             await asyncio.to_thread(
                 download_url, self.installed_release.archive_url, ext_zip_file
@@ -517,6 +527,85 @@ class InstallableExtension(BaseModel):
         if version_parse(self.latest_release.version) < version_parse(release.version):
             self.latest_release = release
 
+    def get_payment_info_for_pay_link(self) -> Optional[ExtensionPaymentInfo]:
+        if not self.payments:
+            return None
+        if not self.installed_release:
+            return None
+        pay_link = self.installed_release.pay_link
+        return next((p for p in self.payments if p.pay_link == pay_link), None)
+
+    async def pay_for_extension(
+        self, wallet_id: str, cost_sats: int
+    ) -> Optional[ExtensionPaymentInfo]:
+        """Pay invoice with internal wallet"""
+
+        assert self.installed_release, "Release not specified."
+        assert self.installed_release.pay_link, "Release does not have a payment link"
+        assert cost_sats, "Extension paid amount not specified."
+
+        pay_link = self.installed_release.pay_link
+        payment_info = await _fetch_extension_payment_info(pay_link, cost_sats)
+        assert (
+            payment_info and payment_info.payment_request
+        ), f"Cannot fetch invoice for extension {self.id}."
+
+        payment_hash = await pay_invoice(
+            wallet_id=wallet_id,
+            payment_request=payment_info.payment_request,
+            description=f"Paid for extensions '{self.id}'.",
+            extra={"pay_link": pay_link},
+        )
+
+        payment_info = ExtensionPaymentInfo(
+            amount=cost_sats,
+            pay_link=pay_link,
+            payment_hash=payment_hash,
+        )
+        self._remember_payment_info(payment_info)
+
+        return payment_info
+
+    def _remember_payment_info(self, payment_info: ExtensionPaymentInfo):
+        self.payments = [
+            p for p in self.payments if p.pay_link != payment_info.pay_link
+        ]
+        self.payments.append(payment_info)
+
+    async def _fetch_payment_hash(
+        self,
+        wallet_id: Optional[str],
+        cost_sats: Optional[int],
+        payment_hash: Optional[str],
+    ) -> Optional[str]:
+        if not self.installed_release:
+            return None
+        if not self.installed_release.pay_link:
+            return None
+
+        if payment_hash:
+            return payment_hash
+
+        release = self.installed_release
+        if wallet_id:
+            "Pay with internal wallet"
+            cost_sats = cost_sats or release.cost_sats
+            assert (
+                cost_sats
+            ), f"No amount specified for the extension install of {self.id}."
+            payment_info = await self.pay_for_extension(wallet_id, cost_sats)
+            assert (
+                payment_info and payment_info.payment_hash
+            ), f"Failed to make payment for extension  {self.id}."
+            return payment_info.payment_hash
+
+        payment_info = self.get_payment_info_for_pay_link()
+        assert (
+            payment_info and payment_info.payment_hash
+        ), f"The '{self.id}' extension requires payment"
+
+        return payment_info.payment_hash
+
     @classmethod
     def from_row(cls, data: dict) -> "InstallableExtension":
         meta = json.loads(data["meta"])
@@ -526,6 +615,10 @@ class InstallableExtension(BaseModel):
         if "payments" in meta:
             ext.payments = [ExtensionPaymentInfo(**p) for p in meta["payments"]]
         return ext
+
+    @classmethod
+    def from_rows(cls, rows: List[Any] = []) -> List["InstallableExtension"]:
+        return [InstallableExtension.from_row(row) for row in rows]
 
     @classmethod
     async def from_github_release(

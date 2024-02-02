@@ -810,40 +810,21 @@ async def api_install_extension(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
-
-    installed_ext = await get_installed_extension(data.ext_id)
-    if data.payment_hash:
-        release.payment_hash = data.payment_hash
-    elif release.pay_link:
-        release.payment_hash = await _get_extension_payment_hash(
-            data.ext_id, data.wallet_id, release.pay_link, data.cost_sats
-        )
-        assert release.payment_hash, "Cannot pay invoice for extension."
-
     ext_info = InstallableExtension(
-        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
+        id=data.ext_id,
+        name=data.ext_id,
+        installed_release=release,
+        icon=release.icon,
     )
 
-    await ext_info.download_archive()
-
-    if release.pay_link:
-        if (
-            installed_ext
-            and installed_ext.installed_release
-            and installed_ext.installed_release.payment_hash
-        ):
-            ext_info.payments = [
-                p for p in installed_ext.payments if p.pay_link != release.pay_link
-            ]
-            ext_info.payments.append(
-                ExtensionPaymentInfo(
-                    amount=release.cost_sats,
-                    pay_link=release.pay_link,
-                    payment_hash=release.payment_hash,
-                )
-            )
-
     try:
+        installed_ext = await get_installed_extension(data.ext_id)
+        ext_info.payments = installed_ext.payments if installed_ext else []
+
+        await ext_info.download_archive(
+            data.wallet_id, data.cost_sats, data.payment_hash
+        )
+
         ext_info.extract_archive()
 
         extension = Extension.from_installable_ext(ext_info)
@@ -866,7 +847,8 @@ async def api_install_extension(
             ext_info.nofiy_upgrade()
 
         return extension
-
+    except AssertionError as e:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
     except Exception as ex:
         logger.warning(ex)
         ext_info.clean_extension_files()
@@ -877,30 +859,6 @@ async def api_install_extension(
                 f"({ext_info.installed_version})."
             ),
         )
-
-
-async def _get_extension_payment_hash(
-    ext_id: str, wallet_id: Optional[str], pay_link: str, cost_sats: Optional[int]
-) -> Optional[str]:
-    if wallet_id:
-        # pay invoice with internal wallet
-        assert cost_sats, "Extension paid amount not specified."
-        payment_info = await _fetch_extension_payment_info(pay_link, cost_sats)
-        assert payment_info and payment_info.payment_request, "Cannot fetch invoice."
-        payment_hash = await pay_invoice(
-            wallet_id=wallet_id,
-            payment_request=payment_info.payment_request,
-            description=f"Paid for extensions '{ext_id}'.",
-            extra={"pay_link": pay_link},
-        )
-        return payment_hash
-
-    installed_ext = await get_installed_extension(ext_id)
-    if installed_ext and installed_ext.installed_release:
-        # see if payment hash can be re-used
-        return installed_ext.installed_release.payment_hash
-
-    return None
 
 
 @api_router.delete("/api/v1/extension/{ext_id}")
