@@ -206,6 +206,10 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_admin_key: Optional[str] = Field(default=None)
 
 
+class ZBDFundingSource(LNbitsSettings):
+    zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
+    zbd_api_key: Optional[str] = Field(default=None)
+
 class AlbyFundingSource(LNbitsSettings):
     alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
     alby_access_token: Optional[str] = Field(default=None)

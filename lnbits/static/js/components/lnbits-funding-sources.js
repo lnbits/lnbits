@@ -106,6 +106,14 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'ZBDWallet',
+          'ZBD',
+          {
+            zbd_api_endpoint: 'Endpoint',
+            zbd_access_token: 'Key'
+          }
+        ],
+        [
           'OpenNodeWallet',
           'OpenNode',
           {
