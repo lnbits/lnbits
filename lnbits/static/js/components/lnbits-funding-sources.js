@@ -110,7 +110,7 @@ Vue.component('lnbits-funding-sources', {
           'ZBD',
           {
             zbd_api_endpoint: 'Endpoint',
-            zbd_access_token: 'Key'
+            zbd_api_key: 'Key'
           }
         ],
         [
