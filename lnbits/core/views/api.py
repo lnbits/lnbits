@@ -811,6 +811,7 @@ async def api_install_extension(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
 
+    installed_ext = await get_installed_extension(data.ext_id)
     if data.payment_hash:
         release.payment_hash = data.payment_hash
     elif release.pay_link:
@@ -824,6 +825,23 @@ async def api_install_extension(
     )
 
     await ext_info.download_archive()
+
+    if release.pay_link:
+        if (
+            installed_ext
+            and installed_ext.installed_release
+            and installed_ext.installed_release.payment_hash
+        ):
+            ext_info.payments = [
+                p for p in installed_ext.payments if p.pay_link != release.pay_link
+            ]
+            ext_info.payments.append(
+                ExtensionPaymentInfo(
+                    amount=release.cost_sats,
+                    pay_link=release.pay_link,
+                    payment_hash=release.payment_hash,
+                )
+            )
 
     try:
         ext_info.extract_archive()

@@ -322,6 +322,7 @@ async def add_installed_extension(
             dict(ext.installed_release) if ext.installed_release else None
         ),
         "dependencies": ext.dependencies,
+        "payments": [dict(p) for p in ext.payments] if ext.payments else None,
     }
 
     version = ext.installed_release.version if ext.installed_release else ""

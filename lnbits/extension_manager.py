@@ -82,6 +82,7 @@ class ExtensionConfig(BaseModel):
 
 class ExtensionPaymentInfo(BaseModel):
     amount: Optional[int] = None
+    pay_link: Optional[str] = None
     payment_hash: Optional[str] = None
     payment_request: Optional[str] = None
 
@@ -361,6 +362,7 @@ class InstallableExtension(BaseModel):
     featured = False
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
+    payments: List[ExtensionPaymentInfo] = []
     archive: Optional[str] = None
 
     @property
@@ -521,6 +523,8 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
+        if "payments" in meta:
+            ext.payments = [ExtensionPaymentInfo(**p) for p in meta["payments"]]
         return ext
 
     @classmethod
