@@ -1,6 +1,6 @@
 // update cache version every time there is a new deployment
 // so the service worker reinitializes the cache
-const CACHE_VERSION = 105
+const CACHE_VERSION = 106
 const CURRENT_CACHE = `lnbits-${CACHE_VERSION}-`
 
 const getApiKey = request => {
