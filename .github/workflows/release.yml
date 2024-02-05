@@ -18,7 +18,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
-          gh release create "$tag" --generate-notes
+          gh release create "$tag" --generate-notes --draft
 
   docker:
     needs: [ release ]
