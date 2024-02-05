@@ -297,12 +297,6 @@ class ExtensionRelease(BaseModel):
             f"{self.archive}?version=v{self.version}&payment_hash={self.payment_hash}"
         )
 
-    @property
-    def is_paid_for(self) -> bool:
-        if not self.pay_link:
-            return True
-        return self.payment_hash is not None
-
     @classmethod
     def from_github_release(
         cls, source_repo: str, r: "GitHubRepoRelease"
