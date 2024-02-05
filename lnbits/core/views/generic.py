@@ -168,7 +168,7 @@ async def extensions_install(
         )
 
         # refresh user state. Eg: enabled extensions.
-        user = await get_user(user.id)
+        user = await get_user(user.id) or user
 
         return template_renderer().TemplateResponse(
             "core/extensions.html",
