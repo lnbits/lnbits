@@ -964,6 +964,15 @@ async def get_extension_invoice(data: CreateExtension) -> ExtensionPaymentInfo:
             release.pay_link, data.cost_sats
         )
         assert payment_info and payment_info.payment_request, "Cannot request invoice"
+        invoice = bolt11.decode(payment_info.payment_request)
+
+        invoice_amount = int(invoice.amount_msat / 1000)
+        assert (
+            invoice_amount == data.cost_sats
+        ), f"Wrong invoice amount: {invoice_amount}."
+        assert (
+            payment_info.payment_hash == invoice.payment_hash
+        ), "Wroong invoice payment hash"
 
         return payment_info
 

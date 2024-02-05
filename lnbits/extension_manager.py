@@ -16,7 +16,7 @@ from loguru import logger
 from packaging import version
 from pydantic import BaseModel
 
-from lnbits.core.services import pay_invoice
+# from lnbits.core.services import pay_invoice
 from lnbits.settings import settings
 
 
@@ -550,21 +550,21 @@ class InstallableExtension(BaseModel):
             payment_info and payment_info.payment_request
         ), f"Cannot fetch invoice for extension {self.id}."
 
-        payment_hash = await pay_invoice(
-            wallet_id=wallet_id,
-            payment_request=payment_info.payment_request,
-            description=f"Paid for extensions '{self.id}'.",
-            extra={"pay_link": pay_link},
-        )
+        # payment_hash = await pay_invoice(
+        #     wallet_id=wallet_id,
+        #     payment_request=payment_info.payment_request,
+        #     description=f"Paid for extensions '{self.id}'.",
+        #     extra={"pay_link": pay_link},
+        # )
 
-        payment_info = ExtensionPaymentInfo(
-            amount=cost_sats,
-            pay_link=pay_link,
-            payment_hash=payment_hash,
-        )
-        self._remember_payment_info(payment_info)
+        # payment_info = ExtensionPaymentInfo(
+        #     amount=cost_sats,
+        #     pay_link=pay_link,
+        #     payment_hash=payment_hash,
+        # )
+        # self._remember_payment_info(payment_info)
 
-        return payment_info
+        # return payment_info
 
     def _remember_payment_info(self, payment_info: ExtensionPaymentInfo):
         self.payments = [
@@ -612,7 +612,7 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
-        if "payments" in meta:
+        if meta.get("payments"):
             ext.payments = [ExtensionPaymentInfo(**p) for p in meta["payments"]]
         return ext
 

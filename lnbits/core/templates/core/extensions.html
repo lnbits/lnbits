@@ -312,15 +312,28 @@
         <div class="text-h6" v-text="'Pay invoice then Install.'"></div>
       </q-card-section>
       <q-card-section v-if="selectedRelease.wallet">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="selectedRelease.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        >
-        </q-select>
+        <div class="row">
+          <div class="col-10">
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="selectedRelease.wallet"
+              :options="g.user.walletOptions"
+              label="Wallet *"
+            >
+            </q-select>
+          </div>
+          <div class="col-2">
+            <q-btn
+              v-if="!selectedRelease.isInstalled"
+              @click="installExtension(selectedRelease)"
+              color="primary unelevated mt-lg pt-lg"
+              :label="'Pay'"
+              class="float-right"
+            ></q-btn>
+          </div>
+        </div>
       </q-card-section>
       <q-card-section v-else>
         <div v-if="selectedRelease.paymentRequest">
@@ -463,19 +476,29 @@
                           class="q-mt-sm"
                         >
                         </q-input>
+                        <q-select
+                          filled
+                          dense
+                          emit-value
+                          v-model="release.wallet"
+                          :options="g.user.walletOptions"
+                          label="Wallet *"
+                          class="q-mt-sm"
+                        >
+                        </q-select>
                         <q-btn
                           unelevated
                           color="primary"
                           @click="showPayment(release)"
                           class="q-mt-sm"
-                          >Select Wallet</q-btn
+                          >Pay from Wallet</q-btn
                         >
                         <q-btn
                           unelevated
                           color="primary"
-                          @click="requestPayment(release)"
+                          @click="showQRCode(release)"
                           class="q-mt-sm float-right"
-                          >Request Invoice</q-btn
+                          >Show QR</q-btn
                         >
                       </div>
 
@@ -618,8 +641,8 @@
               ext_id: extension.id,
               archive: release.archive,
               source_repo: release.source_repo,
-              wallet_id: release.wallet?.value,
-              cost_sats: release.paidAmount
+              payment_hash: release.payment_hash
+              // cost_sats: release.paidAmount
             }
           )
           .then(response => {
@@ -770,26 +793,36 @@
         }
       },
 
-      showPayment(release) {
-        this.selectedRelease = release
-        this.selectedRelease.wallet = this.g.user.walletOptions[0]
+      async showPayment(release) {
+        try {
+          console.log('#### showPayment', release)
+          const paymentInfo = await this.requestPayment(
+            this.selectedExtension.id,
+            release
+          )
+          const wallet = this.g.user.wallets.find(w => w.id === release.wallet)
+          const {data} = await LNbits.api.payInvoice(
+            wallet,
+            paymentInfo.payment_request
+          )
+          console.log('#### data', data)
+          // todo: store payment hash
+          release.payment_hash = data.payment_hash
+          await this.installExtension(release)
+          console.log('### done install')
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
       },
-      async requestPayment(release) {
-        console.log('### this.requestPayment', release)
+      async showQRCode(release) {
+        console.log('### this.showQRCode', release)
         this.selectedRelease = release
-        this.selectedRelease.wallet = null
 
         try {
-          const {data} = await LNbits.api.request(
-            'PUT',
-            `/api/v1/extension/invoice`,
-            this.g.user.wallets[0].adminkey,
-            {
-              ext_id: this.selectedExtension.id,
-              archive: release.archive,
-              source_repo: release.source_repo,
-              cost_sats: release.paidAmount
-            }
+          const data = await this.requestPayment(
+            this.selectedExtension.id,
+            release
           )
 
           this.selectedRelease.paymentRequest = data.payment_request
@@ -798,6 +831,20 @@
           console.warn(err)
           LNbits.utils.notifyApiError(err)
         }
+      },
+      async requestPayment(extId, release) {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/invoice`,
+          this.g.user.wallets[0].adminkey,
+          {
+            ext_id: extId,
+            archive: release.archive,
+            source_repo: release.source_repo,
+            cost_sats: release.paidAmount
+          }
+        )
+        return data
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {
