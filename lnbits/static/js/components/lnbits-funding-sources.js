@@ -44,6 +44,15 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'CLNRestWallet',
+          'CLNRest',
+          {
+            clnrest_url: 'Endpoint',
+            clnrest_cert: 'Certificate',
+            clnrest_rune: 'Rune'
+          }
+        ],
+        [
           'LndRestWallet',
           'Lightning Network Daemon (LND Rest)',
           {

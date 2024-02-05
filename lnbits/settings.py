@@ -152,6 +152,13 @@ class CoreLightningRestFundingSource(LNbitsSettings):
     corelightning_rest_cert: Optional[str] = Field(default=None)
 
 
+class CLNRestFundingSource(LNbitsSettings):
+    clnrest_url: Optional[str] = Field(default="https://127.0.0.1:3010")
+    clnrest_rune: Optional[str] = Field(default=None)
+    clnrest_cert: Optional[str] = Field(default=None)
+    clnrest_nodeid: Optional[str] = Field(default=None)
+    clnrest_enable_renepay: Optional[bool] = Field(default=None)
+
 class EclairFundingSource(LNbitsSettings):
     eclair_url: Optional[str] = Field(default=None)
     eclair_pass: Optional[str] = Field(default=None)
@@ -220,6 +227,7 @@ class FundingSourcesSettings(
     ClicheFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
+    CLNRestFundingSource,
     EclairFundingSource,
     LndRestFundingSource,
     LndGrpcFundingSource,
@@ -373,6 +381,7 @@ class SuperUserSettings(LNbitsSettings):
             "FakeWallet",
             "CoreLightningWallet",
             "CoreLightningRestWallet",
+            "CLNRestWallet",
             "LndRestWallet",
             "EclairWallet",
             "LndWallet",

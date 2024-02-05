@@ -15,6 +15,7 @@ from .corelightning import CoreLightningWallet
 # for old configs that called it CLightningWallet. Do not remove.
 from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
+from .clnrest import CLNRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
