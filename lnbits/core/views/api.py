@@ -810,6 +810,8 @@ async def api_install_extension(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
         )
+
+    release.payment_hash = data.payment_hash
     ext_info = InstallableExtension(
         id=data.ext_id,
         name=data.ext_id,
@@ -821,9 +823,7 @@ async def api_install_extension(
         installed_ext = await get_installed_extension(data.ext_id)
         ext_info.payments = installed_ext.payments if installed_ext else []
 
-        await ext_info.download_archive(
-            data.wallet_id, data.cost_sats, data.payment_hash
-        )
+        await ext_info.download_archive()
 
         ext_info.extract_archive()
 
@@ -918,29 +918,13 @@ async def get_extension_releases(ext_id: str):
         ] = await InstallableExtension.get_extension_releases(ext_id)
 
         installed_ext = await get_installed_extension(ext_id)
-        if (
-            not installed_ext
-            or not installed_ext.installed_release
-            or not installed_ext.installed_release.payment_hash
-        ):
-            # todo: encapsulate in property
+        if not installed_ext:
             return extension_releases
 
-        paid_sats = 0
-        # todo: multiple paylinks
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.head(
-                    installed_ext.installed_release.archive_url, timeout=5
-                )
-                r.raise_for_status()
-                paid_sats = int(r.headers.get("paid_sats", "0"))
-            except Exception as e:
-                logger.warning(e)
-
         for release in extension_releases:
-            if release.pay_link == installed_ext.installed_release.pay_link:
-                release.paid_sats = paid_sats
+            payment_info = installed_ext.find_pay_link_payment_info(release.pay_link)
+            if payment_info:
+                release.paid_sats = payment_info.amount
 
         return extension_releases
 
@@ -966,6 +950,7 @@ async def get_extension_invoice(data: CreateExtension) -> ExtensionPaymentInfo:
         assert payment_info and payment_info.payment_request, "Cannot request invoice"
         invoice = bolt11.decode(payment_info.payment_request)
 
+        assert invoice.amount_msat is not None, "Invoic amount is missing"
         invoice_amount = int(invoice.amount_msat / 1000)
         assert (
             invoice_amount == data.cost_sats
