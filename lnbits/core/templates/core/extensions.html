@@ -311,31 +311,8 @@
       <q-card-section>
         <div class="text-h6" v-text="'Pay invoice then Install.'"></div>
       </q-card-section>
-      <q-card-section v-if="selectedRelease.wallet">
-        <div class="row">
-          <div class="col-10">
-            <q-select
-              filled
-              dense
-              emit-value
-              v-model="selectedRelease.wallet"
-              :options="g.user.walletOptions"
-              label="Wallet *"
-            >
-            </q-select>
-          </div>
-          <div class="col-2">
-            <q-btn
-              v-if="!selectedRelease.isInstalled"
-              @click="installExtension(selectedRelease)"
-              color="primary unelevated mt-lg pt-lg"
-              :label="'Pay'"
-              class="float-right"
-            ></q-btn>
-          </div>
-        </div>
-      </q-card-section>
-      <q-card-section v-else>
+
+      <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
           <a :href="'lightning:' + selectedRelease.paymentRequest">
             <q-responsive :ratio="1" class="q-mx-xl">
@@ -351,13 +328,15 @@
       </q-card-section>
 
       <div class="row q-mt-lg">
-        <q-btn
-          v-if="!selectedRelease.isInstalled"
-          @click="installExtension(selectedRelease)"
-          color="primary unelevated mt-lg pt-lg"
-          :label="$t('install')"
-        ></q-btn>
-        <div class="q-ml-auto">
+        <div class="col">
+          <q-btn
+            v-if="!selectedRelease.isInstalled"
+            @click="installExtension(selectedRelease)"
+            color="primary unelevated mt-lg pt-lg"
+            :label="$t('install')"
+          ></q-btn>
+        </div>
+        <div class="col">
           <q-btn
             v-if="selectedRelease.paymentRequest"
             outline
@@ -365,6 +344,8 @@
             @click="copyText(selectedRelease.paymentRequest)"
             >Copy invoice</q-btn
           >
+        </div>
+        <div class="col">
           <q-btn v-close-popup flat color="grey" class="float-right q-ml-lg">
             {%raw%}{{ $t('close') }}{%endraw%}</q-btn
           >
@@ -447,11 +428,11 @@
                       <span
                         v-if="release.requiresPayment &&!release.paid_sats"
                         v-text="$t('extension_cost', {cost: release.cost_sats})"
-                        class="q-mb-md"
+                        class="q-mb-lg"
                       ></span>
                       <span
                         v-if="release.requiresPayment && release.paid_sats"
-                        class="q-mb-md"
+                        class="q-mb-lg"
                         v-text="$t('extension_paid_sats', {paid_sats: release.paid_sats})"
                       ></span>
                       <div
@@ -489,7 +470,8 @@
                         <q-btn
                           unelevated
                           color="primary"
-                          @click="showPayment(release)"
+                          @click="payAndInstall(release)"
+                          :disabled="!release.wallet"
                           class="q-mt-sm"
                           >Pay from Wallet</q-btn
                         >
@@ -793,9 +775,10 @@
         }
       },
 
-      async showPayment(release) {
+      async payAndInstall(release) {
         try {
-          console.log('#### showPayment', release)
+          this.selectedExtension.inProgress = true
+          this.showUpgradeDialog = false
           const paymentInfo = await this.requestPayment(
             this.selectedExtension.id,
             release
@@ -805,14 +788,15 @@
             wallet,
             paymentInfo.payment_request
           )
-          console.log('#### data', data)
           // todo: store payment hash
           release.payment_hash = data.payment_hash
+
           await this.installExtension(release)
-          console.log('### done install')
         } catch (err) {
           console.warn(err)
           LNbits.utils.notifyApiError(err)
+        } finally {
+          this.selectedExtension.inProgress = false
         }
       },
       async showQRCode(release) {
