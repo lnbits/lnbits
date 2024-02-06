@@ -188,7 +188,7 @@ class ExtensionsRedirectMiddleware:
 def add_ratelimit_middleware(app: FastAPI):
     core_app_extra.register_new_ratelimiter()
     # latest https://slowapi.readthedocs.io/en/latest/
-    # show this as a valid way to add the handler
+    # shows this as a valid way to add the handler
     app.add_exception_handler(
         RateLimitExceeded,
         _rate_limit_exceeded_handler,  # type: ignore
