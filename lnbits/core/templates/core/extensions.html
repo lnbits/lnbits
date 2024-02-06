@@ -811,6 +811,19 @@
 
           this.selectedRelease.paymentRequest = data.payment_request
           this.selectedRelease = _.clone(this.selectedRelease)
+
+          const url = new URL(`${this.selectedRelease.pay_link}/${data.payment_hash}`)
+          url.protocol = "ws"
+          console.log('#### url', url)
+          const ws = new WebSocket(url)
+          ws.addEventListener('message', async ({data}) => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Invoice Paid!'
+            })
+            this.installExtension(release)
+            ws.close()
+          })
         } catch (err) {
           console.warn(err)
           LNbits.utils.notifyApiError(err)
