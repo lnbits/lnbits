@@ -624,7 +624,6 @@
               archive: release.archive,
               source_repo: release.source_repo,
               payment_hash: release.payment_hash
-              // cost_sats: release.paidAmount
             }
           )
           .then(response => {
@@ -743,7 +742,6 @@
             `/api/v1/extension/${extension.id}/releases`,
             this.g.user.wallets[0].adminkey
           )
-          console.log('### releases', data)
 
           this.selectedExtensionRepos = data.reduce((repos, release) => {
             repos[release.source_repo] = repos[release.source_repo] || {
@@ -800,7 +798,6 @@
         }
       },
       async showQRCode(release) {
-        console.log('### this.showQRCode', release)
         this.selectedRelease = release
 
         try {
@@ -810,11 +807,13 @@
           )
 
           this.selectedRelease.paymentRequest = data.payment_request
+          this.selectedRelease.payment_hash = data.payment_hash
           this.selectedRelease = _.clone(this.selectedRelease)
 
-          const url = new URL(`${this.selectedRelease.pay_link}/${data.payment_hash}`)
-          url.protocol = "ws"
-          console.log('#### url', url)
+          const url = new URL(
+            `${this.selectedRelease.pay_link}/${data.payment_hash}`
+          )
+          url.protocol = url.protocol === 'https' ? 'wss' : 'ws'
           const ws = new WebSocket(url)
           ws.addEventListener('message', async ({data}) => {
             this.$q.notify({
