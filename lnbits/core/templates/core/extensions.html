@@ -597,6 +597,7 @@
         selectedRelease: null,
         uninstallAndDropDb: false,
         maxStars: 5,
+        paylinkWebsocket: null,
         user: null
       }
     },
@@ -635,21 +636,12 @@
           .filter(extensionNameContains(term))
         this.tab = tab
       },
-      setPaylinkHash(pay_link, payment_hash) {
-        this.$q.localStorage.set(
-          `lnbits.extensions.paylink.${this.selectedRelease.pay_link}`,
-          this.selectedRelease.payment_hash
-        )
-      },
-      getPaylinkHash(pay_link) {
-        return this.$q.localStorage.getItem(
-          `lnbits.extensions.paylink.${pay_link}`
-        )
-      },
-      removePaylinkHash(pay_link) {
-        this.$q.localStorage.remove(`lnbits.extensions.paylink.${pay_link}`)
-      },
+
       installExtension: async function (release) {
+        // no longer required to check if the invoice was paid
+        // the install logic has been triggered one way or another
+        this.unsubscribeFromPaylinkWs()
+
         const extension = this.selectedExtension
         extension.inProgress = true
         this.showUpgradeDialog = false
@@ -824,6 +816,7 @@
             this.selectedExtension.id,
             release
           )
+          this.rememberPaylinkHash(release.pay_link, paymentInfo.payment_hash)
           const wallet = this.g.user.wallets.find(w => w.id === release.wallet)
           const {data} = await LNbits.api.payInvoice(
             wallet,
@@ -852,29 +845,21 @@
           this.selectedRelease.paymentRequest = data.payment_request
           this.selectedRelease.payment_hash = data.payment_hash
           this.selectedRelease = _.clone(this.selectedRelease)
-          this.setPaylinkHash(
+          this.rememberPaylinkHash(
             this.selectedRelease.pay_link,
             this.selectedRelease.payment_hash
           )
 
-          const url = new URL(
-            `${this.selectedRelease.pay_link}/${data.payment_hash}`
+          this.subscribeToPaylinkWs(
+            this.selectedRelease.pay_link,
+            data.payment_hash
           )
-          url.protocol = url.protocol === 'https' ? 'wss' : 'ws'
-          const ws = new WebSocket(url)
-          ws.addEventListener('message', async ({data}) => {
-            this.$q.notify({
-              type: 'positive',
-              message: 'Invoice Paid!'
-            })
-            this.installExtension(release)
-            ws.close()
-          })
         } catch (err) {
           console.warn(err)
           LNbits.utils.notifyApiError(err)
         }
       },
+
       async requestPayment(extId, release) {
         const {data} = await LNbits.api.request(
           'PUT',
@@ -891,8 +876,50 @@
       },
 
       clearHangingInvoice(release) {
-        this.removePaylinkHash(release.pay_link)
+        this.forgetPaylinkHash(release.pay_link)
         release.payment_hash = null
+      },
+
+      rememberPaylinkHash(pay_link, payment_hash) {
+        this.$q.localStorage.set(
+          `lnbits.extensions.paylink.${this.selectedRelease.pay_link}`,
+          this.selectedRelease.payment_hash
+        )
+      },
+      getPaylinkHash(pay_link) {
+        return this.$q.localStorage.getItem(
+          `lnbits.extensions.paylink.${pay_link}`
+        )
+      },
+      forgetPaylinkHash(pay_link) {
+        this.$q.localStorage.remove(`lnbits.extensions.paylink.${pay_link}`)
+      },
+      subscribeToPaylinkWs(pay_link, payment_hash) {
+        const url = new URL(`${pay_link}/${payment_hash}`)
+        url.protocol = url.protocol === 'https' ? 'wss' : 'ws'
+        this.paylinkWebsocket = new WebSocket(url)
+        this.paylinkWebsocket.addEventListener('message', async ({data}) => {
+          const resp = JSON.parse(data)
+          if (resp.paid) {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Invoice Paid!'
+            })
+            this.installExtension(this.selectedRelease)
+          } else {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Invoice tracking lost!'
+            })
+          }
+        })
+      },
+      unsubscribeFromPaylinkWs() {
+        try {
+          this.paylinkWebsocket && this.paylinkWebsocket.close()
+        } catch (error) {
+          console.warn(error)
+        }
       },
 
       hasNewVersion: function (extension) {
