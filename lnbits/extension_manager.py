@@ -659,9 +659,7 @@ class InstallableExtension(BaseModel):
                         explicit_release = ExtensionRelease.from_explicit_release(
                             url, e
                         )
-                        if (
-                            explicit_release.pay_link
-                        ):  # todo: use from `e`, do not store in expicit release?
+                        if explicit_release.pay_link:
                             payment_info = await _fetch_extension_payment_info(
                                 explicit_release.pay_link
                             )
