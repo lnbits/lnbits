@@ -447,41 +447,66 @@
                       </div>
 
                       <div v-if="release.requiresPayment && !release.paid_sats">
-                        <q-input
-                          filled
-                          dense
-                          v-model.number="release.paidAmount"
-                          type="number"
-                          :min="release.cost_sats"
-                          suffix="sat"
-                          class="q-mt-sm"
-                        >
-                        </q-input>
-                        <q-select
-                          filled
-                          dense
-                          emit-value
-                          v-model="release.wallet"
-                          :options="g.user.walletOptions"
-                          label="Wallet *"
-                          class="q-mt-sm"
-                        >
-                        </q-select>
-                        <q-btn
-                          unelevated
-                          color="primary"
-                          @click="payAndInstall(release)"
-                          :disabled="!release.wallet"
-                          class="q-mt-sm"
-                          >Pay from Wallet</q-btn
-                        >
-                        <q-btn
-                          unelevated
-                          color="primary"
-                          @click="showQRCode(release)"
-                          class="q-mt-sm float-right"
-                          >Show QR</q-btn
-                        >
+                        <div v-if="!release.payment_hash">
+                          <q-input
+                            filled
+                            dense
+                            v-model.number="release.paidAmount"
+                            type="number"
+                            :min="release.cost_sats"
+                            suffix="sat"
+                            class="q-mt-sm"
+                          >
+                          </q-input>
+                          <q-select
+                            filled
+                            dense
+                            emit-value
+                            v-model="release.wallet"
+                            :options="g.user.walletOptions"
+                            label="Wallet *"
+                            class="q-mt-sm"
+                          >
+                          </q-select>
+                          <q-btn
+                            unelevated
+                            color="primary"
+                            @click="payAndInstall(release)"
+                            :disabled="!release.wallet"
+                            class="q-mt-sm"
+                            >Pay from Wallet</q-btn
+                          >
+
+                          <q-btn
+                            unelevated
+                            color="primary"
+                            @click="showQRCode(release)"
+                            class="q-mt-sm float-right"
+                            >Show QR</q-btn
+                          >
+                        </div>
+                        <div v-else>
+                          <br />
+                          <span
+                            class="q-mb-lg q-mt-lg"
+                            v-text="'There is a previous pending invoice for this release.'"
+                          ></span>
+                          <br />
+                          <q-btn
+                            unelevated
+                            @click="installExtension(release)"
+                            color="primary"
+                            class="q-mt-sm"
+                            >Retry Install</q-btn
+                          >
+                          <q-btn
+                            unelevated
+                            @click="clearHangingInvoice(release)"
+                            color="primary"
+                            class="q-mt-sm float-right"
+                            >Make New Payment</q-btn
+                          >
+                        </div>
                       </div>
 
                       <div>
@@ -614,6 +639,11 @@
         const extension = this.selectedExtension
         extension.inProgress = true
         this.showUpgradeDialog = false
+        release.payment_hash =
+          release.payment_hash ||
+          this.$q.localStorage.getItem(
+            `lnbits.extensions.paylink.${release.pay_link}`
+          )
         LNbits.api
           .request(
             'POST',
@@ -762,6 +792,9 @@
             if (release.pay_link) {
               release.requiresPayment = true
               release.paidAmount = release.cost_sats
+              release.payment_hash = this.$q.localStorage.getItem(
+                `lnbits.extensions.paylink.${release.pay_link}`
+              )
             }
 
             repos[release.source_repo].releases.push(release)
@@ -809,6 +842,10 @@
           this.selectedRelease.paymentRequest = data.payment_request
           this.selectedRelease.payment_hash = data.payment_hash
           this.selectedRelease = _.clone(this.selectedRelease)
+          this.$q.localStorage.set(
+            `lnbits.extensions.paylink.${this.selectedRelease.pay_link}`,
+            this.selectedRelease.payment_hash
+          )
 
           const url = new URL(
             `${this.selectedRelease.pay_link}/${data.payment_hash}`
@@ -841,6 +878,13 @@
           }
         )
         return data
+      },
+
+      clearHangingInvoice(release) {
+        this.$q.localStorage.remove(
+          `lnbits.extensions.paylink.${release.pay_link}`
+        )
+        release.payment_hash = null
       },
       hasNewVersion: function (extension) {
         if (extension.installedRelease && extension.latestRelease) {
