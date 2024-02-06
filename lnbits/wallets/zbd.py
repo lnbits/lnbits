@@ -5,7 +5,6 @@ import httpx
 from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.wallets.base import PaymentStatus
 
 from .base import (
     InvoiceResponse,
@@ -118,7 +117,7 @@ class ZBDWallet(Wallet):
         )
         if decoded_request.is_error:
             error_message = decoded_request.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         decoded_data = decoded_request.json()
 
