@@ -80,7 +80,7 @@ class ExtensionConfig(BaseModel):
         return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
-class ExtensionPaymentInfo(BaseModel):
+class ReleasePaymentInfo(BaseModel):
     amount: Optional[int] = None
     pay_link: Optional[str] = None
     payment_hash: Optional[str] = None
@@ -166,14 +166,14 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
 
 async def _fetch_extension_payment_info(
     url: str, amount: Optional[int] = None
-) -> Optional[ExtensionPaymentInfo]:
+) -> Optional[ReleasePaymentInfo]:
     if amount:
         url = f"{url}?amount={amount}"
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url)
             resp.raise_for_status()
-            return ExtensionPaymentInfo(**resp.json())
+            return ReleasePaymentInfo(**resp.json())
     except Exception as e:
         logger.warning(e)
         return None
@@ -356,7 +356,7 @@ class InstallableExtension(BaseModel):
     featured = False
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
-    payments: List[ExtensionPaymentInfo] = []
+    payments: List[ReleasePaymentInfo] = []
     archive: Optional[str] = None
 
     @property
@@ -524,7 +524,7 @@ class InstallableExtension(BaseModel):
 
     def find_pay_link_payment_info(
         self, pay_link: Optional[str]
-    ) -> Optional[ExtensionPaymentInfo]:
+    ) -> Optional[ReleasePaymentInfo]:
         if not pay_link:
             return None
         return next(
@@ -535,7 +535,7 @@ class InstallableExtension(BaseModel):
     def _remember_payment_info(self):
         if not self.installed_release or not self.installed_release.pay_link:
             return
-        payment_info = ExtensionPaymentInfo(
+        payment_info = ReleasePaymentInfo(
             amount=self.installed_release.cost_sats,
             pay_link=self.installed_release.pay_link,
             payment_hash=self.installed_release.payment_hash,
@@ -552,7 +552,7 @@ class InstallableExtension(BaseModel):
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
         if meta.get("payments"):
-            ext.payments = [ExtensionPaymentInfo(**p) for p in meta["payments"]]
+            ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]
         return ext
 
     @classmethod
