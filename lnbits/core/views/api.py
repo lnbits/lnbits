@@ -813,10 +813,7 @@ async def api_install_extension(
 
     release.payment_hash = data.payment_hash
     ext_info = InstallableExtension(
-        id=data.ext_id,
-        name=data.ext_id,
-        installed_release=release,
-        icon=release.icon,
+        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
 
     try:
