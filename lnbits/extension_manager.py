@@ -164,7 +164,7 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
         return resp.json()
 
 
-async def _fetch_extension_payment_info(
+async def _fetch_release_payment_info(
     url: str, amount: Optional[int] = None
 ) -> Optional[ReleasePaymentInfo]:
     if amount:
@@ -660,7 +660,7 @@ class InstallableExtension(BaseModel):
                             url, e
                         )
                         if explicit_release.pay_link:
-                            payment_info = await _fetch_extension_payment_info(
+                            payment_info = await _fetch_release_payment_info(
                                 explicit_release.pay_link
                             )
                             explicit_release.cost_sats = (
