@@ -180,6 +180,9 @@
             </div>
           </div>
         </div>
+
+
+
         <div class="col-12 col-md-12">
           <p v-text="$t('rate_limiter')"></p>
           <div class="row q-col-gutter-md">
@@ -201,6 +204,39 @@
             </div>
           </div>
         </div>
+
+
+        <div class="col-12 col-md-12">
+          <p v-text="$t('wallet_limiter')"></p>
+          <div class="row q-col-gutter-md">
+            <div class="col-4">
+              <q-input
+                filled
+                type="number"
+                v-model.number="formData.wallet_limit_max_balance"
+                :label="$t('wallet_max_ballance')"
+              ></q-input>
+            </div>
+            <div class="col-4">
+              <q-input
+                filled
+                type="number"
+                v-model.number="formData.wallet_limit_daily_max_withdraw"
+                :label="$t('wallet_limit_max_withdraw_per_day')"
+              ></q-input>
+            </div>
+            <div class="col-4">
+              <q-input
+                filled
+                type="number"
+                v-model.number="formData.wallet_limit_secs_between_trans"
+                :label="$t('wallet_limit_secs_between_trans')"
+              ></q-input>
+            </div>
+          </div>
+        </div>
+
+
       </div>
     </div>
     <br />
