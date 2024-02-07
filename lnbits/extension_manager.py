@@ -405,9 +405,7 @@ class InstallableExtension(BaseModel):
             return self.installed_release.version
         return ""
 
-    async def download_archive(
-        self,
-    ):
+    async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
         if ext_zip_file.is_file():
