@@ -1,12 +1,10 @@
 function eventReactionWebocket(event_id, event_function) {
   localUrl = ''
-  console.log(event_id)
   if (location.protocol !== 'http:') {
     localUrl = 'wss://' + location.host + '/api/v1/ws/' + event_id
   } else {
     localUrl = 'ws://' + location.host + '/api/v1/ws/' + event_id
   }
-  console.log(localUrl)
   connection = new WebSocket(localUrl)
   connection.onmessage = function (e) {
     event_function()
