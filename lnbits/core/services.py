@@ -144,8 +144,10 @@ async def create_invoice(
             f"{settings.lnbits_wallet_limit_max_balance} sat."
         )
     if settings.lnbits_wallet_limit_secs_between_trans > 0:
-        if await get_payments(since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans, wallet_id=wallet_id, conn=conn):
-            raise ValueError(f"Not enough time has passed since the last transaction, please wait {settings.lnbits_wallet_limit} seconds.")
+        payments = await get_payments(since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans, wallet_id=wallet_id, conn=conn)
+        if payments:
+            logger.debug(await get_payments(since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans, wallet_id=wallet_id, conn=conn))
+            raise ValueError(f"Not enough time has passed since the last transaction, please wait {round(settings.lnbits_wallet_limit_secs_between_trans - (time.time() - payments[0].time))} seconds.")
             
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount_sat,
@@ -203,7 +205,7 @@ async def pay_invoice(
         raise ValueError("Amount in invoice is too high.")
     if settings.lnbits_wallet_limit_secs_between_trans > 0:
         if await get_payments(since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans, wallet_id=wallet_id, conn=conn):
-            raise ValueError(f"Not enough time has passed since the last transaction, please wait {settings.lnbits_wallet_limit} seconds.")
+            raise ValueError(f"Not enough time has passed since the last transaction, please wait {round(settings.lnbits_wallet_limit_secs_between_trans - (time.time() - payments[0].time))} seconds.")
     if settings.lnbits_wallet_limit_daily_max_withdraw:
         payments = await get_payments({ "since":(int(time.time()) - 60 * 60 * 24)}, wallet_id=wallet_id, conn=conn)
         if payments is not None:
