@@ -188,7 +188,8 @@ window.localisation.en = {
   wallet_limiter: 'Wallet Limiter',
   wallet_limit_max_withdraw_per_day: 'Max withdraw per day per wallet (sats)',
   wallet_max_ballance: 'Wallet max balance (sats)',
-  wallet_limit_secs_between_trans: 'Min secs between transactions per wallet (secs)',
+  wallet_limit_secs_between_trans:
+    'Min secs between transactions per wallet (secs)',
   number_of_requests: 'Number of requests',
   time_unit: 'Time unit',
   minute: 'minute',
