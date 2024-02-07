@@ -97,10 +97,14 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 ### Breez SDK
 
+A Greenlight invite code or Greenlight partner certificate/key can be used to register a new node with Greenlight. If the Greenlight node already exists, neither are required.
+
 - `LNBITS_BACKEND_WALLET_CLASS`: **BreezSdkWallet**
 - `BREEZ_API_KEY`: ...
 - `BREEZ_GREENLIGHT_SEED`: ...
-- `BREEZ_GREENLIGHT_INVITE_CODE`: ... (a GreenLight certificate can be used directly instead of a Breez/GreenLight invite code)
+- `BREEZ_GREENLIGHT_INVITE_CODE`: ...
+- `BREEZ_GREENLIGHT_DEVICE_KEY`: /path/to/breezsdk/device.pem or Base64/Hex
+- `BREEZ_GREENLIGHT_DEVICE_CERT`: /path/to/breezsdk/device.crt or Base64/Hex
 
 ### Cliche Wallet
 
