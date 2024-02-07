@@ -62,8 +62,8 @@ from lnbits.extension_manager import (
     ExtensionRelease,
     InstallableExtension,
     ReleasePaymentInfo,
-    fetch_release_payment_info,
     fetch_github_release_config,
+    fetch_release_payment_info,
     get_valid_extensions,
 )
 from lnbits.helpers import generate_filter_params_openapi, url_for
