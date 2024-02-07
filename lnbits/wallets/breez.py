@@ -1,3 +1,5 @@
+import base64
+
 try:
     import breez_sdk  # type: ignore
 
@@ -35,6 +37,48 @@ else:
 
     breez_event_queue: asyncio.Queue = asyncio.Queue()
 
+    def load_bytes(source: str, extension: str) -> Optional[bytes]:
+        # first check if it can be read from a file
+        if source.split(".")[-1] == extension:
+            with open(source, "rb") as f:
+                source_bytes = f.read()
+                return source_bytes
+        else:
+            # else check the source string can be converted from hex
+            try:
+                return bytes.fromhex(source)
+            except ValueError:
+                pass
+            # else convert from base64
+            try:
+                return base64.b64decode(source)
+            except Exception:
+                pass
+        return None
+
+    def load_greenlight_credentials() -> (
+        Optional[
+            breez_sdk.GreenlightCredentials  # pyright: ignore[reportUnboundVariable]
+        ]
+    ):
+        if (
+            settings.breez_greenlight_device_key
+            and settings.breez_greenlight_device_cert
+        ):
+            device_key_bytes = load_bytes(settings.breez_greenlight_device_key, "pem")
+            device_cert_bytes = load_bytes(settings.breez_greenlight_device_cert, "crt")
+            if not device_key_bytes or not device_cert_bytes:
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: "
+                    "cannot decode breez_greenlight_device_key "
+                    "or breez_greenlight_device_cert"
+                )
+            return breez_sdk.GreenlightCredentials(
+                device_key=list(device_key_bytes),
+                device_cert=list(device_cert_bytes),
+            )
+        return None
+
     class SDKListener(
         breez_sdk.EventListener  # pyright: ignore[reportUnboundVariable]
     ):
@@ -52,10 +96,21 @@ else:
                 raise ValueError(
                     "cannot initialize BreezSdkWallet: missing breez_api_key"
                 )
-            if not settings.breez_greenlight_invite_code:
+            if (
+                settings.breez_greenlight_device_key
+                and not settings.breez_greenlight_device_cert
+            ):
                 raise ValueError(
                     "cannot initialize BreezSdkWallet: "
-                    "missing breez_greenlight_invite_code"
+                    "missing breez_greenlight_device_cert"
+                )
+            if (
+                settings.breez_greenlight_device_cert
+                and not settings.breez_greenlight_device_key
+            ):
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: "
+                    "missing breez_greenlight_device_key"
                 )
 
             self.config = breez_sdk.default_config(
@@ -63,7 +118,7 @@ else:
                 settings.breez_api_key,
                 breez_sdk.NodeConfig.GREENLIGHT(
                     config=breez_sdk.GreenlightNodeConfig(
-                        partner_credentials=None,
+                        partner_credentials=load_greenlight_credentials(),
                         invite_code=settings.breez_greenlight_invite_code,
                     )
                 ),
@@ -73,8 +128,16 @@ else:
             breez_sdk_working_dir.mkdir(parents=True, exist_ok=True)
             self.config.working_dir = breez_sdk_working_dir.absolute().as_posix()
 
-            seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
-            self.sdk_services = breez_sdk.connect(self.config, seed, SDKListener())
+            try:
+                seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
+                self.sdk_services = breez_sdk.connect(self.config, seed, SDKListener())
+            except Exception:
+                raise ValueError(
+                    "cannot initialize BreezSdkWallet: "
+                    "missing either breez_greenlight_invite_code or "
+                    "breez_greenlight_device_key and breez_greenlight_device_cert "
+                    "to register a node"
+                )
 
         async def cleanup(self):
             self.sdk_services.disconnect()
