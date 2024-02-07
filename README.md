@@ -30,6 +30,7 @@ LNbits can run on top of any Lightning funding source. It currently supports the
 - OpenNode
 - Alby
 - LightningTipBot
+- Breez SDK (Greenlight)
 
 See [LNbits manual](https://docs.lnbits.org/guide/wallets.html) for more detailed documentation about each funding source.
 

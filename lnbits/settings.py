@@ -234,6 +234,8 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_api_key: Optional[str] = Field(default=None)
     breez_greenlight_seed: Optional[str] = Field(default=None)
     breez_greenlight_invite_code: Optional[str] = Field(default=None)
+    breez_greenlight_device_key: Optional[str] = Field(default=None)
+    breez_greenlight_device_cert: Optional[str] = Field(default=None)
 
 
 class LightningSettings(LNbitsSettings):
