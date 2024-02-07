@@ -413,12 +413,7 @@ class InstallableExtension(BaseModel):
         try:
             assert self.installed_release, "installed_release is none."
 
-            if not self.installed_release.payment_hash:
-                payment_info = self.find_existing_payment(
-                    self.installed_release.pay_link
-                )
-                if payment_info:
-                    self.installed_release.payment_hash = payment_info.payment_hash
+            self._restore_payment_info()
 
             await asyncio.to_thread(
                 download_url, self.installed_release.archive_url, ext_zip_file
@@ -521,6 +516,17 @@ class InstallableExtension(BaseModel):
             (p for p in self.payments if p.pay_link == pay_link),
             None,
         )
+
+    def _restore_payment_info(self):
+        if not self.installed_release:
+            return
+        if not self.installed_release.pay_link:
+            return
+        if self.installed_release.payment_hash:
+            return
+        payment_info = self.find_existing_payment(self.installed_release.pay_link)
+        if payment_info:
+            self.installed_release.payment_hash = payment_info.payment_hash
 
     def _remember_payment_info(self):
         if not self.installed_release or not self.installed_release.pay_link:
