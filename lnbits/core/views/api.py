@@ -919,7 +919,7 @@ async def get_extension_releases(ext_id: str):
             return extension_releases
 
         for release in extension_releases:
-            payment_info = installed_ext.find_pay_link_payment_info(release.pay_link)
+            payment_info = installed_ext.find_existing_payment(release.pay_link)
             if payment_info:
                 release.paid_sats = payment_info.amount
 

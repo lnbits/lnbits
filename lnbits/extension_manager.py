@@ -414,7 +414,7 @@ class InstallableExtension(BaseModel):
             assert self.installed_release, "installed_release is none."
 
             if not self.installed_release.payment_hash:
-                payment_info = self.find_pay_link_payment_info(
+                payment_info = self.find_existing_payment(
                     self.installed_release.pay_link
                 )
                 if payment_info:
@@ -512,7 +512,7 @@ class InstallableExtension(BaseModel):
         if version_parse(self.latest_release.version) < version_parse(release.version):
             self.latest_release = release
 
-    def find_pay_link_payment_info(
+    def find_existing_payment(
         self, pay_link: Optional[str]
     ) -> Optional[ReleasePaymentInfo]:
         if not pay_link:
