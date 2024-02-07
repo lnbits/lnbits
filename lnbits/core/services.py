@@ -197,7 +197,10 @@ async def pay_invoice(
         raise ValueError("Amountless invoices not supported.")
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise ValueError("Amount in invoice is too high.")
-    if settings.lnbits_wallet_limit_secs_between_trans > 0:
+    if (
+        settings.lnbits_wallet_limit_secs_between_trans
+        and settings.lnbits_wallet_limit_secs_between_trans > 0
+    ):
         payments = await get_payments(
             since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans,
             wallet_id=wallet_id,
@@ -209,7 +212,10 @@ async def pay_invoice(
                 - (time.time() - payments[0].time)
             )
             raise ValueError(f"Please wait {secs} seconds.")
-    if settings.lnbits_wallet_limit_daily_max_withdraw:
+    if (
+        settings.lnbits_wallet_limit_daily_max_withdraw
+        and settings.lnbits_wallet_limit_daily_max_withdraw > 0
+    ):
         payments = await get_payments(
             since=int(time.time()) - 60 * 60 * 24,
             outgoing=True,
