@@ -62,7 +62,7 @@ from lnbits.extension_manager import (
     ExtensionRelease,
     InstallableExtension,
     ReleasePaymentInfo,
-    _fetch_release_payment_info,
+    fetch_release_payment_info,
     fetch_github_release_config,
     get_valid_extensions,
 )
@@ -941,7 +941,7 @@ async def get_extension_invoice(data: CreateExtension) -> ReleasePaymentInfo:
         assert release, "Release not found"
         assert release.pay_link, "Pay link not found for release"
 
-        payment_info = await _fetch_release_payment_info(
+        payment_info = await fetch_release_payment_info(
             release.pay_link, data.cost_sats
         )
         assert payment_info and payment_info.payment_request, "Cannot request invoice"

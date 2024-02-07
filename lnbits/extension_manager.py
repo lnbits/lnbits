@@ -162,7 +162,7 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
         return resp.json()
 
 
-async def _fetch_release_payment_info(
+async def fetch_release_payment_info(
     url: str, amount: Optional[int] = None
 ) -> Optional[ReleasePaymentInfo]:
     if amount:
@@ -299,7 +299,7 @@ class ExtensionRelease(BaseModel):
         if not self.pay_link:
             return
 
-        payment_info = await _fetch_release_payment_info(self.pay_link)
+        payment_info = await fetch_release_payment_info(self.pay_link)
         self.cost_sats = payment_info.amount if payment_info else None
 
     @classmethod
