@@ -295,6 +295,13 @@ class ExtensionRelease(BaseModel):
             f"{self.archive}?version=v{self.version}&payment_hash={self.payment_hash}"
         )
 
+    async def check_payment_requirements(self):
+        if not self.pay_link:
+            return
+
+        payment_info = await _fetch_release_payment_info(self.pay_link)
+        self.cost_sats = payment_info.amount if payment_info else None
+
     @classmethod
     def from_github_release(
         cls, source_repo: str, r: "GitHubRepoRelease"
@@ -644,25 +651,19 @@ class InstallableExtension(BaseModel):
             try:
                 manifest = await fetch_manifest(url)
                 for r in manifest.repos:
-                    if r.id == ext_id:
-                        repo_releases = await ExtensionRelease.get_github_releases(
-                            r.organisation, r.repository
-                        )
-                        extension_releases += repo_releases
+                    if r.id != ext_id:
+                        continue
+                    repo_releases = await ExtensionRelease.get_github_releases(
+                        r.organisation, r.repository
+                    )
+                    extension_releases += repo_releases
 
                 for e in manifest.extensions:
-                    if e.id == ext_id:
-                        explicit_release = ExtensionRelease.from_explicit_release(
-                            url, e
-                        )
-                        if explicit_release.pay_link:
-                            payment_info = await _fetch_release_payment_info(
-                                explicit_release.pay_link
-                            )
-                            explicit_release.cost_sats = (
-                                payment_info.amount if payment_info else None
-                            )
-                        extension_releases.append(explicit_release)
+                    if e.id != ext_id:
+                        continue
+                    explicit_release = ExtensionRelease.from_explicit_release(url, e)
+                    await explicit_release.check_payment_requirements()
+                    extension_releases.append(explicit_release)
 
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{str(e)}'")
