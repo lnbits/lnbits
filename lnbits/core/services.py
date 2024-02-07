@@ -119,9 +119,9 @@ async def create_invoice(
 ) -> Tuple[str, str]:
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
-    try:
-        user_wallet = await get_wallet(wallet_id, conn=conn)
-    except Exception:
+
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
         raise InvoiceFailure("Could not fetch wallet.")
 
     invoice_memo = None if description_hash else memo
