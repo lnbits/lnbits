@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
@@ -134,6 +135,7 @@ async def create_invoice(
 
     if (
         settings.lnbits_wallet_limit_max_balance
+        and settings.lnbits_wallet_limit_max_balance > 0
         and user_wallet.balance_msat / 1000 + amount_sat
         > settings.lnbits_wallet_limit_max_balance
     ):
@@ -197,14 +199,10 @@ async def pay_invoice(
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise ValueError("Amount in invoice is too high.")
     if settings.lnbits_wallet_limit_secs_between_trans > 0:
-        if await get_payments(wallet_id,
-                    since=(int(time.time()) + settings.lnbits_wallet_limit_secs_between_trans), conn=conn
-                ) is not None:
+        if await get_payments(since=int(time.time()) - settings.lnbits_wallet_limit_secs_between_trans, wallet_id=wallet_id, conn=conn):
             raise ValueError("Not enough time has passed since the last transaction.")
     if settings.lnbits_wallet_limit_daily_max_withdraw:
-        payments = await get_payments(wallet_id,
-                    since=(int(time.time()) - 60 * 60 * 24), conn=conn
-                )
+        payments = await get_payments({ "since":(int(time.time()) - 60 * 60 * 24)}, wallet_id=wallet_id, conn=conn)
         if payments is not None:
             total = 0
             for payment in payments:
