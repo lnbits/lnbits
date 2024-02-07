@@ -8,8 +8,8 @@ from starlette.templating import Jinja2Templates as SuperJinja2Templates
 
 class Jinja2Templates(SuperJinja2Templates):
     def __init__(self, loader: BaseLoader) -> None:
-        super().__init__("")
         self.env = self.get_environment(loader)
+        super().__init__(env=self.env)
 
     def get_environment(self, loader: BaseLoader) -> Environment:
         @pass_context
