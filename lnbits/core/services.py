@@ -218,8 +218,8 @@ async def pay_invoice(
         )
         if payments is not None:
             total = 0
-            for payment in payments:
-                total += payment.amount
+            for pay in payments:
+                total += pay.amount
             total = total - invoice.amount_msat
             if settings.lnbits_wallet_limit_daily_max_withdraw * 1000 + total < 0:
                 raise ValueError(
