@@ -657,7 +657,8 @@
               ext_id: extension.id,
               archive: release.archive,
               source_repo: release.source_repo,
-              payment_hash: release.payment_hash
+              payment_hash: release.payment_hash,
+              version: release.version
             }
           )
           .then(response => {
@@ -868,7 +869,8 @@
             ext_id: extId,
             archive: release.archive,
             source_repo: release.source_repo,
-            cost_sats: release.paidAmount
+            cost_sats: release.paidAmount,
+            version: release.version
           }
         )
         return data
@@ -881,8 +883,8 @@
 
       rememberPaylinkHash(pay_link, payment_hash) {
         this.$q.localStorage.set(
-          `lnbits.extensions.paylink.${this.selectedRelease.pay_link}`,
-          this.selectedRelease.payment_hash
+          `lnbits.extensions.paylink.${pay_link}`,
+          payment_hash
         )
       },
       getPaylinkHash(pay_link) {

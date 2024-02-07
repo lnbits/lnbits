@@ -799,7 +799,7 @@ async def api_install_extension(
     access_token: Optional[str] = Depends(check_access_token),
 ) -> Extension:
     release = await InstallableExtension.get_extension_release(
-        data.ext_id, data.source_repo, data.archive
+        data.ext_id, data.source_repo, data.archive, data.version
     )
     if not release:
         raise HTTPException(
@@ -936,7 +936,7 @@ async def get_extension_invoice(data: CreateExtension) -> ReleasePaymentInfo:
     try:
         assert data.cost_sats, "A non-zero amount must be specified"
         release = await InstallableExtension.get_extension_release(
-            data.ext_id, data.source_repo, data.archive
+            data.ext_id, data.source_repo, data.archive, data.version
         )
         assert release, "Release not found"
         assert release.pay_link, "Pay link not found for release"

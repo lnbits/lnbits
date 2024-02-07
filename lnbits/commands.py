@@ -397,7 +397,10 @@ async def install_extension(
             return False, "No release selected"
 
         data = CreateExtension(
-            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+            ext_id=extension,
+            archive=release.archive,
+            source_repo=release.source_repo,
+            version=release.version,
         )
         await _call_install_extension(data, url, admin_user)
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
@@ -445,7 +448,10 @@ async def update_extension(
         click.echo(f"Updating '{extension}' extension to version: {release.version }")
 
         data = CreateExtension(
-            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+            ext_id=extension,
+            archive=release.archive,
+            source_repo=release.source_repo,
+            version=release.version,
         )
 
         await _call_install_extension(data, url, admin_user)

@@ -5,13 +5,11 @@ import os
 import shutil
 import sys
 import zipfile
-from http import HTTPStatus
 from pathlib import Path
 from typing import Any, List, NamedTuple, Optional, Tuple
 from urllib import request
 
 import httpx
-from fastapi import HTTPException
 from loguru import logger
 from packaging import version
 from pydantic import BaseModel
@@ -432,20 +430,14 @@ class InstallableExtension(BaseModel):
 
         except Exception as ex:
             logger.warning(ex)
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Cannot fetch extension archive file",
-            )
+            raise AssertionError("Cannot fetch extension archive file")
 
         archive_hash = file_hash(ext_zip_file)
         if self.installed_release.hash and self.installed_release.hash != archive_hash:
             # remove downloaded archive
             if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="File hash missmatch. Will not install.",
-            )
+            raise AssertionError("File hash missmatch. Will not install.")
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
@@ -675,7 +667,7 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     async def get_extension_release(
-        cls, ext_id: str, source_repo: str, archive: str
+        cls, ext_id: str, source_repo: str, archive: str, version: str
     ) -> Optional["ExtensionRelease"]:
         all_releases: List[
             ExtensionRelease
@@ -683,7 +675,9 @@ class InstallableExtension(BaseModel):
         selected_release = [
             r
             for r in all_releases
-            if r.archive == archive and r.source_repo == source_repo
+            if r.archive == archive
+            and r.source_repo == source_repo
+            and r.version == version
         ]
 
         return selected_release[0] if len(selected_release) != 0 else None
@@ -693,6 +687,7 @@ class CreateExtension(BaseModel):
     ext_id: str
     archive: str
     source_repo: str
+    version: str
     cost_sats: Optional[int] = 0
     payment_hash: Optional[str] = None
 
