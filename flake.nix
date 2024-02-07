@@ -18,14 +18,6 @@
       projectName = "lnbits";
     in
     {
-      devShells = forAllSystems (system: pkgs: {
-        default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodePackages.prettier
-            poetry-core
-          ];
-        };
-      });
       overlays = {
         default = final: prev: {
           ${projectName} = self.packages.${prev.stdenv.hostPlatform.system}.${projectName};
@@ -36,6 +28,7 @@
         ${projectName} = pkgs.poetry2nix.mkPoetryApplication {
           projectDir = ./.;
           meta.rev = self.dirtyRev or self.rev;
+          meta.mainProgram = projectName;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };

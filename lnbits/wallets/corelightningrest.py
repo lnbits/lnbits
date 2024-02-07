@@ -23,23 +23,26 @@ from .macaroon import load_macaroon
 
 class CoreLightningRestWallet(Wallet):
     def __init__(self):
-        macaroon = settings.corelightning_rest_macaroon
-        assert macaroon, "missing cln-rest macaroon"
-
-        self.macaroon = load_macaroon(macaroon)
-
-        url = settings.corelightning_rest_url
-        if not url:
-            raise Exception("missing url for corelightning-rest")
+        if not settings.corelightning_rest_url:
+            raise ValueError(
+                "cannot initialize CoreLightningRestWallet: "
+                "missing corelightning_rest_url"
+            )
+        if not settings.corelightning_rest_macaroon:
+            raise ValueError(
+                "cannot initialize CoreLightningRestWallet: "
+                "missing corelightning_rest_macaroon"
+            )
+        macaroon = load_macaroon(settings.corelightning_rest_macaroon)
         if not macaroon:
-            raise Exception("missing macaroon for corelightning-rest")
+            raise ValueError(
+                "cannot initialize CoreLightningRestWallet: "
+                "invalid corelightning_rest_macaroon provided"
+            )
 
-        self.url = url[:-1] if url.endswith("/") else url
-        self.url = (
-            f"https://{self.url}" if not self.url.startswith("http") else self.url
-        )
+        self.url = self.normalize_endpoint(settings.corelightning_rest_url)
         headers = {
-            "macaroon": self.macaroon,
+            "macaroon": macaroon,
             "encodingtype": "hex",
             "accept": "application/json",
             "User-Agent": settings.user_agent,

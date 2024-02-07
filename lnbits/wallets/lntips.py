@@ -20,15 +20,23 @@ from .base import (
 
 class LnTipsWallet(Wallet):
     def __init__(self):
-        endpoint = settings.lntips_api_endpoint
+        if not settings.lntips_api_endpoint:
+            raise ValueError(
+                "cannot initialize LnTipsWallet: missing lntips_api_endpoint"
+            )
         key = (
             settings.lntips_api_key
             or settings.lntips_admin_key
             or settings.lntips_invoice_key
         )
-        if not endpoint or not key:
-            raise Exception("cannot initialize lntxbod")
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        if not key:
+            raise ValueError(
+                "cannot initialize LnTipsWallet: "
+                "missing lntips_api_key or lntips_admin_key or lntips_invoice_key"
+            )
+
+        self.endpoint = self.normalize_endpoint(settings.lntips_api_endpoint)
+
         headers = {
             "Authorization": f"Basic {key}",
             "User-Agent": settings.user_agent,

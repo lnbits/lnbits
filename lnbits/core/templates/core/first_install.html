@@ -1,0 +1,139 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center main">
+  <div class="col-10 col-md-8 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section class="grid">
+        <div>
+          <h6 class="q-my-none text-center">
+            <strong>Welcome to LNbits</strong>
+            <p>Set up the Superuser account below.</p>
+          </h6>
+          <br />
+          <q-form class="q-gutter-md">
+            <q-input
+              filled
+              v-model="loginData.username"
+              :label="$t('username')"
+            ></q-input>
+            <q-input
+              filled
+              v-model.trim="loginData.password"
+              :type="loginData.isPwd ? 'password' : 'text'"
+              autocomplete="off"
+              :label="$t('password')"
+              :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+              ><template v-slot:append>
+                <q-icon
+                  :name="loginData.isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="loginData.isPwd = !loginData.isPwd"
+                /> </template
+            ></q-input>
+            <q-input
+              filled
+              v-model.trim="loginData.passwordRepeat"
+              :type="loginData.isPwdRepeat ? 'password' : 'text'"
+              autocomplete="off"
+              :label="$t('password_repeat')"
+              :rules="[(val) => !val || val.length >= 8 || $t('invalid_password'), (val) => val === loginData.password || 'Passwords_dont_match']"
+              ><template v-slot:append>
+                <q-icon
+                  :name="loginData.isPwdRepeat ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="loginData.isPwdRepeat = !loginData.isPwdRepeat"
+                /> </template
+            ></q-input>
+            <q-btn
+              @click="setPassword()"
+              unelevated
+              color="primary"
+              :label="$t('login')"
+              :disable="checkPasswordsMatch || !loginData.username || !loginData.password || !loginData.passwordRepeat"
+            ></q-btn>
+          </q-form>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero q-mx-auto"></div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .grid {
+    display: block;
+  }
+  .hero-wrapper {
+    display: none;
+  }
+  .hero {
+    display: block;
+    height: 100%;
+    max-width: 250px;
+    background-image: url("{{ static_url_for('static', 'images/logos/lnbits.svg') }}");
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+
+  @media (min-width: 992px) {
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 1rem;
+    }
+    .hero-wrapper {
+      display: block;
+      position: relative;
+      height: 100%;
+      padding: 1rem;
+    }
+  }
+</style>
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        loginData: {
+          isPwd: true,
+          isPwdRepeat: true,
+          username: '',
+          password: '',
+          passwordRepeat: ''
+        }
+      }
+    },
+    created() {
+      this.hasAdminUI = '{{ LNBITS_ADMIN_UI | tojson}}'
+    },
+    computed: {
+      checkPasswordsMatch() {
+        return this.loginData.password !== this.loginData.passwordRepeat
+      }
+    },
+    methods: {
+      async setPassword() {
+        try {
+          await LNbits.api.request('PUT', '/api/v1/auth/first_install', null, {
+            username: this.loginData.username,
+            password: this.loginData.password,
+            password_repeat: this.loginData.passwordRepeat
+          })
+
+          window.location.href = '/admin'
+        } catch (e) {
+          LNbits.utils.notifyApiError(e)
+        }
+      }
+    }
+  })
+</script>
+{% endblock %}

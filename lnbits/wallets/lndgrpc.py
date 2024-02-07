@@ -12,6 +12,7 @@ import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
@@ -20,7 +21,7 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon
 
 
 def b64_to_bytes(checking_id: str) -> bytes:
@@ -57,7 +58,16 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 class LndWallet(Wallet):
     def __init__(self):
-        endpoint = settings.lnd_grpc_endpoint
+        if not settings.lnd_grpc_endpoint:
+            raise ValueError("cannot initialize LndWallet: missing lnd_grpc_endpoint")
+        if not settings.lnd_grpc_port:
+            raise ValueError("cannot initialize LndWallet: missing lnd_grpc_port")
+
+        cert_path = settings.lnd_grpc_cert or settings.lnd_cert
+        if not cert_path:
+            raise ValueError(
+                "cannot initialize LndWallet: missing lnd_grpc_cert or lnd_cert"
+            )
 
         macaroon = (
             settings.lnd_grpc_macaroon
@@ -66,24 +76,25 @@ class LndWallet(Wallet):
             or settings.lnd_grpc_invoice_macaroon
             or settings.lnd_invoice_macaroon
         )
-
         encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
         if encrypted_macaroon:
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
             )
+        if not macaroon:
+            raise ValueError(
+                "cannot initialize LndWallet: "
+                "missing lnd_grpc_macaroon or lnd_grpc_admin_macaroon or "
+                "lnd_admin_macaroon or lnd_grpc_invoice_macaroon or "
+                "lnd_invoice_macaroon or lnd_grpc_macaroon_encrypted"
+            )
 
-        cert_path = settings.lnd_grpc_cert or settings.lnd_cert
-        if not endpoint or not macaroon or not cert_path or not settings.lnd_grpc_port:
-            raise Exception("cannot initialize lndrest")
-
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(
+            settings.lnd_grpc_endpoint, add_proto=False
+        )
         self.port = int(settings.lnd_grpc_port)
-        self.cert_path = settings.lnd_grpc_cert or settings.lnd_cert
-
         self.macaroon = load_macaroon(macaroon)
-        self.cert_path = cert_path
-        cert = open(self.cert_path, "rb").read()
+        cert = open(cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
         auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
         composite_creds = grpc.composite_channel_credentials(creds, auth_creds)

@@ -20,12 +20,12 @@ class AlbyWallet(Wallet):
     """https://guides.getalby.com/alby-wallet-api/reference/api-reference"""
 
     def __init__(self):
-        endpoint = settings.alby_api_endpoint
+        if not settings.alby_api_endpoint:
+            raise ValueError("cannot initialize AlbyWallet: missing alby_api_endpoint")
+        if not settings.alby_access_token:
+            raise ValueError("cannot initialize AlbyWallet: missing alby_access_token")
 
-        if not endpoint or not settings.alby_access_token:
-            raise Exception("cannot initialize getalby")
-
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.alby_api_endpoint)
         self.auth = {
             "Authorization": "Bearer " + settings.alby_access_token,
             "User-Agent": settings.user_agent,
@@ -44,11 +44,14 @@ class AlbyWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["balance"]
         if r.is_error:
-            return StatusResponse(data["error"], 0)
+            error_message = r.json()["message"]
+            return StatusResponse(error_message, 0)
 
-        return StatusResponse(None, data)
+        data = r.json()
+        assert data["unit"] == "sat"
+        # multiply balance by 1000 to get msats balance
+        return StatusResponse(None, data["balance"] * 1000)
 
     async def create_invoice(
         self,

@@ -38,9 +38,6 @@ jobs:
     with:
       make: openapi
 
-  # docker:
-  #   uses: ./.github/workflows/docker.yml
-
   regtest:
     needs: [ lint ]
     uses: ./.github/workflows/regtest.yml

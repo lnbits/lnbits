@@ -30,15 +30,16 @@ class UnknownError(Exception):
 
 class EclairWallet(Wallet):
     def __init__(self):
-        url = settings.eclair_url
-        passw = settings.eclair_pass
-        if not url or not passw:
-            raise Exception("cannot initialize eclair")
+        if not settings.eclair_url:
+            raise ValueError("cannot initialize EclairWallet: missing eclair_url")
+        if not settings.eclair_pass:
+            raise ValueError("cannot initialize EclairWallet: missing eclair_pass")
 
-        self.url = url[:-1] if url.endswith("/") else url
+        self.url = self.normalize_endpoint(settings.eclair_url)
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
-        encodedAuth = base64.b64encode(f":{passw}".encode())
+        password = settings.eclair_pass
+        encodedAuth = base64.b64encode(f":{password}".encode())
         auth = str(encodedAuth, "utf-8")
         self.headers = {
             "Authorization": f"Basic {auth}",

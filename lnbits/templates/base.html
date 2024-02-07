@@ -64,7 +64,7 @@
             v-text="$t('voidwallet_active')"
             color="red"
             text-color="black"
-            class="q-mr-md"
+            class="q-mr-md gt-md"
           >
           </q-badge>
           {%endif%}
@@ -109,145 +109,54 @@
           >
             <span>OFFLINE</span>
           </q-badge>
-          <lnbits-notifications-btn
-            v-if="g.user"
-            pubkey="{{ WEBPUSH_PUBKEY }}"
-          ></lnbits-notifications-btn>
+
           <q-btn-dropdown
+            v-if="isUserAuthorized"
             dense
             flat
             round
             size="sm"
-            icon="language"
-            class="q-pl-md"
+            class="q-pl-sm"
           >
-            <q-list v-for="(lang, index) in g.langs" :key="index">
-              <q-item
-                clickable
-                v-close-popup
-                :active="activeLanguage(lang.value)"
-                @click="changeLanguage(lang.value)"
+            <template v-slot:label>
+              <div>
+                {%if user and user.config and user.config.picture%}
+                <img src="{{user.config.picture}}" style="max-width: 32px" />
+                {%else%}
+                <q-icon name="account_circle" />
+                {%endif%}
+              </div>
+            </template>
+            <q-list>
+              <q-item tag="a" href="/account" clickable v-close-popup
                 ><q-item-section>
-                  <q-item-label
-                    v-text="lang.display ?? lang.value.toUpperCase()"
-                  ></q-item-label>
-                  <q-tooltip><span v-text="lang.label"></span></q-tooltip>
+                  <q-icon name="person" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <span v-text="$t('my_account')"></span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator></q-separator>
+              <q-item clickable v-close-popup @click="logout"
+                ><q-item-section>
+                  <q-icon name="logout" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <span v-text="$t('logout')"></span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
           </q-btn-dropdown>
-          <q-btn-dropdown
-            v-if="g.allowedThemes && g.allowedThemes.length > 1"
-            dense
-            flat
-            round
-            size="sm"
-            icon="format_color_fill"
-            class="q-pl-md"
-          >
-            <div class="row no-wrap q-pa-md">
-              <q-btn
-                v-if="g.allowedThemes.includes('classic')"
-                dense
-                flat
-                @click="changeColor('classic')"
-                icon="circle"
-                color="deep-purple"
-                size="md"
-                ><q-tooltip>classic</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('bitcoin')"
-                dense
-                flat
-                @click="changeColor('bitcoin')"
-                icon="circle"
-                color="orange"
-                size="md"
-                ><q-tooltip>bitcoin</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('mint')"
-                dense
-                flat
-                @click="changeColor('mint')"
-                icon="circle"
-                color="green"
-                size="md"
-                ><q-tooltip>mint</q-tooltip> </q-btn
-              ><q-btn
-                v-if="g.allowedThemes.includes('autumn')"
-                dense
-                flat
-                @click="changeColor('autumn')"
-                icon="circle"
-                color="brown"
-                size="md"
-                ><q-tooltip>autumn</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('monochrome')"
-                dense
-                flat
-                @click="changeColor('monochrome')"
-                icon="circle"
-                color="grey"
-                size="md"
-                ><q-tooltip>monochrome</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('salvador')"
-                dense
-                flat
-                @click="changeColor('salvador')"
-                icon="circle"
-                color="blue-10"
-                size="md"
-                ><q-tooltip>elSalvador</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('freedom')"
-                dense
-                flat
-                @click="changeColor('freedom')"
-                icon="circle"
-                color="pink-13"
-                size="md"
-                ><q-tooltip>freedom</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('cyber')"
-                dense
-                flat
-                @click="changeColor('cyber')"
-                icon="circle"
-                color="light-green-9"
-                size="md"
-                ><q-tooltip>cyber</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('flamingo')"
-                dense
-                flat
-                @click="changeColor('flamingo')"
-                icon="circle"
-                color="pink-3"
-                size="md"
-                ><q-tooltip>flamingo</q-tooltip>
-              </q-btn>
-            </div>
-          </q-btn-dropdown>
-
-          <q-btn
-            dense
-            flat
-            round
-            @click="toggleDarkMode"
-            :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
-            size="sm"
-          >
-            <q-tooltip><span v-text="$t('toggle_darkmode')"></span></q-tooltip>
-          </q-btn>
         </q-toolbar>
       </q-header>
 
@@ -352,7 +261,8 @@
         { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
         { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
         { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
-        { value: 'kr', label: '한국어', display: '🇰🇷 KR' }
+        { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
+        { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
       ]
     </script>
     {% block scripts %}{% endblock %}

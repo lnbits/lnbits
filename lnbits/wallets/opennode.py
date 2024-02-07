@@ -20,16 +20,24 @@ class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
     def __init__(self):
-        endpoint = settings.opennode_api_endpoint
-        self.key = (
+        if not settings.opennode_api_endpoint:
+            raise ValueError(
+                "cannot initialize OpenNodeWallet: missing opennode_api_endpoint"
+            )
+        key = (
             settings.opennode_key
             or settings.opennode_admin_key
             or settings.opennode_invoice_key
         )
-        if not endpoint or not self.key:
-            raise Exception("cannot initialize opennode")
+        if not key:
+            raise ValueError(
+                "cannot initialize OpenNodeWallet: "
+                "missing opennode_key or opennode_admin_key or opennode_invoice_key"
+            )
+        self.key = key
 
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.endpoint = self.normalize_endpoint(settings.opennode_api_endpoint)
+
         headers = {
             "Authorization": self.key,
             "User-Agent": settings.user_agent,
@@ -48,10 +56,12 @@ class OpenNodeWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["data"]
         if r.is_error:
-            return StatusResponse(data["message"], 0)
+            error_message = r.json()["message"]
+            return StatusResponse(error_message, 0)
 
+        data = r.json()["data"]
+        # multiply balance by 1000 to get msats balance
         return StatusResponse(None, data["balance"]["BTC"] * 1000)
 
     async def create_invoice(

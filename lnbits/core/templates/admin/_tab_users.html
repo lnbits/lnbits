@@ -1,62 +1,64 @@
 <q-tab-panel name="users">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">User Management</h6>
-    <br />
-    <div>
-      <p>Admin Users</p>
-      <q-input
-        filled
-        v-model="formAddAdmin"
-        @keydown.enter="addAdminUser"
-        type="text"
-        label="User ID"
-        hint="Users with admin privileges"
-      >
-        <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
-      </q-input>
-      <div>
-        {%raw%}
-        <q-chip
-          v-for="user in formData.lnbits_admin_users"
-          :key="user"
-          removable
-          @remove="removeAdminUser(user)"
-          color="primary"
-          text-color="white"
+    <h6 class="q-my-none q-mb-sm">User Management</h6>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Admin Users</p>
+        <q-input
+          filled
+          v-model="formAddAdmin"
+          @keydown.enter="addAdminUser"
+          type="text"
+          label="User ID"
+          hint="Users with admin privileges"
         >
-          {{ user }}
-        </q-chip>
-        {%endraw%}
+          <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          {%raw%}
+          <q-chip
+            v-for="user in formData.lnbits_admin_users"
+            :key="user"
+            removable
+            @remove="removeAdminUser(user)"
+            color="primary"
+            text-color="white"
+          >
+            {{ user }}
+          </q-chip>
+          {%endraw%}
+        </div>
+        <br />
       </div>
-      <br />
-    </div>
-    <div>
-      <p>Allowed Users</p>
-      <q-input
-        filled
-        v-model="formAddUser"
-        @keydown.enter="addAllowedUser"
-        type="text"
-        label="User ID"
-        hint="Only these users can use LNbits"
-      >
-        <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
-      </q-input>
-      <div>
-        {% raw %}
-        <q-chip
-          v-for="user in formData.lnbits_allowed_users"
-          :key="user"
-          removable
-          @remove="removeAllowedUser(user)"
-          color="primary"
-          text-color="white"
+      <div class="col-md-6 col-sm-12">
+        <p>Allowed Users</p>
+        <q-input
+          filled
+          v-model="formAddUser"
+          @keydown.enter="addAllowedUser"
+          type="text"
+          label="User ID"
+          hint="Only these users can use LNbits"
         >
-          {{ user }}
-        </q-chip>
-        {% endraw %}
+          <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          {% raw %}
+          <q-chip
+            v-for="user in formData.lnbits_allowed_users"
+            :key="user"
+            removable
+            @remove="removeAllowedUser(user)"
+            color="primary"
+            text-color="white"
+          >
+            {{ user }}
+          </q-chip>
+          {% endraw %}
+        </div>
+        <br />
       </div>
-      <br />
     </div>
   </q-card-section>
 </q-tab-panel>

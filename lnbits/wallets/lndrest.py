@@ -9,6 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
@@ -17,7 +18,7 @@ from .base import (
     StatusResponse,
     Wallet,
 )
-from .macaroon import AESCipher, load_macaroon
+from .macaroon import load_macaroon
 
 
 class LndRestWallet(Wallet):
@@ -26,8 +27,10 @@ class LndRestWallet(Wallet):
     __node_cls__ = LndRestNode
 
     def __init__(self):
-        endpoint = settings.lnd_rest_endpoint
-        cert = settings.lnd_rest_cert
+        if not settings.lnd_rest_endpoint:
+            raise ValueError(
+                "cannot initialize LndRestWallet: missing lnd_rest_endpoint"
+            )
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -36,43 +39,39 @@ class LndRestWallet(Wallet):
             or settings.lnd_invoice_macaroon
             or settings.lnd_rest_invoice_macaroon
         )
-
         encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
         if encrypted_macaroon:
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
             )
-
-        if not endpoint:
-            raise Exception("cannot initialize lndrest: no endpoint")
-
         if not macaroon:
-            raise Exception("cannot initialize lndrest: no macaroon")
-
-        if not cert:
-            logger.warning(
-                "no certificate for lndrest provided, this only works if you have a"
-                " publicly issued certificate"
+            raise ValueError(
+                "cannot initialize LndRestWallet: "
+                "missing lnd_rest_macaroon or lnd_admin_macaroon or "
+                "lnd_rest_admin_macaroon or lnd_invoice_macaroon or "
+                "lnd_rest_invoice_macaroon or lnd_rest_macaroon_encrypted"
             )
 
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = (
-            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
-        )
-        self.endpoint = endpoint
-        self.macaroon = load_macaroon(macaroon)
+        if not settings.lnd_rest_cert:
+            logger.warning(
+                "No certificate for LndRestWallet provided! "
+                "This only works if you have a publicly issued certificate."
+            )
+
+        self.endpoint = self.normalize_endpoint(settings.lnd_rest_endpoint)
 
         # if no cert provided it should be public so we set verify to True
         # and it will still check for validity of certificate and fail if its not valid
         # even on startup
-        self.cert = cert or True
+        cert = settings.lnd_rest_cert or True
 
+        macaroon = load_macaroon(macaroon)
         headers = {
-            "Grpc-Metadata-macaroon": self.macaroon,
+            "Grpc-Metadata-macaroon": macaroon,
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(
-            base_url=self.endpoint, headers=headers, verify=self.cert
+            base_url=self.endpoint, headers=headers, verify=cert
         )
 
     async def cleanup(self):
@@ -139,14 +138,22 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit = dict()
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
-        r = await self.client.post(
-            url="/v1/channels/transactions",
-            json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                url="/v1/channels/transactions",
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                timeout=None,
+            )
+            r.raise_for_status()
+        except Exception as exc:
+            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
+            return PaymentResponse(None, None, None, None, str(exc))
 
-        if r.is_error or r.json().get("payment_error"):
+        data = r.json()
+
+        if data.get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
+            logger.warning(f"LndRestWallet pay_invoice payment_error: {error_message}.")
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()

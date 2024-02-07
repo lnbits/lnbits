@@ -49,14 +49,16 @@ window.LNbits = {
       description_hash,
       amount,
       description = '',
-      comment = ''
+      comment = '',
+      unit = ''
     ) {
       return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
         callback,
         description_hash,
         amount,
         comment,
-        description
+        description,
+        unit
       })
     },
     authLnurl: function (wallet, callback) {
@@ -69,6 +71,41 @@ window.LNbits = {
         name: name
       })
     },
+    register: function (username, email, password, password_repeat) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        data: {
+          username,
+          email,
+          password,
+          password_repeat
+        }
+      })
+    },
+    login: function (username, password) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/auth',
+        data: {username, password}
+      })
+    },
+    loginUsr: function (usr) {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/auth/usr',
+        data: {usr}
+      })
+    },
+    logout: function () {
+      return axios({
+        method: 'POST',
+        url: '/api/v1/auth/logout'
+      })
+    },
+    getAuthenticatedUser: function () {
+      return this.request('get', '/api/v1/auth')
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
@@ -76,7 +113,7 @@ window.LNbits = {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
         name: name
       }).then(res => {
-        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+        window.location = '/wallet?wal=' + res.data.id
       })
     },
     updateWallet: function (name, wallet) {
@@ -93,8 +130,7 @@ window.LNbits = {
         }
       )
     },
-    getPayments: function (wallet, query) {
-      const params = new URLSearchParams(query)
+    getPayments: function (wallet, params) {
       return this.request(
         'get',
         '/api/v1/payments/paginated?' + params,
@@ -107,6 +143,24 @@ window.LNbits = {
         '/api/v1/payments/' + paymentHash,
         wallet.inkey
       )
+    },
+    updateBalance: function (credit, wallet_id) {
+      return LNbits.api
+        .request('PUT', '/admin/api/v1/topup/', null, {
+          amount: credit,
+          id: wallet_id
+        })
+        .then(_ => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'Success! Added ' + credit + ' sats to ' + wallet_id,
+            icon: null
+          })
+          return parseInt(credit)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
     }
   },
   events: {
@@ -200,7 +254,7 @@ window.LNbits = {
       newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
         newWallet.sat
       )
-      newWallet.url = ['/wallet?usr=', data.user, '&wal=', data.id].join('')
+      newWallet.url = `/wallet?&wal=${data.id}`
       return newWallet
     },
     payment: function (data) {
@@ -311,6 +365,24 @@ window.LNbits = {
         return data
       }
     },
+    prepareFilterQuery(tableConfig, props) {
+      if (props) {
+        tableConfig.pagination = props.pagination
+      }
+      let pagination = tableConfig.pagination
+      tableConfig.loading = true
+      const query = {
+        limit: pagination.rowsPerPage,
+        offset: (pagination.page - 1) * pagination.rowsPerPage,
+        sortby: pagination.sortBy ?? '',
+        direction: pagination.descending ? 'desc' : 'asc',
+        ...tableConfig.filter
+      }
+      if (tableConfig.search) {
+        query.search = tableConfig.search
+      }
+      return new URLSearchParams(query)
+    },
     exportCSV: function (columns, data, fileName) {
       var wrapCsvValue = function (val, formatFn) {
         var formatted = formatFn !== void 0 ? formatFn(val) : val
@@ -372,6 +444,7 @@ window.windowMixin = {
   data: function () {
     return {
       toggleSubs: true,
+      isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
         visibleDrawer: false,
@@ -386,20 +459,9 @@ window.windowMixin = {
   },
 
   methods: {
-    activeLanguage: function (lang) {
-      return window.i18n.locale === lang
-    },
-    changeLanguage: function (newValue) {
-      window.i18n.locale = newValue
-      this.$q.localStorage.set('lnbits.lang', newValue)
-    },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
-    },
-    toggleDarkMode: function () {
-      this.$q.dark.toggle()
-      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
@@ -409,9 +471,50 @@ window.windowMixin = {
           position: position || 'bottom'
         })
       })
+    },
+    checkUsrInUrl: async function () {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const usr = params.get('usr')
+        if (!usr) {
+          return
+        }
+
+        if (!this.isUserAuthorized) {
+          await LNbits.api.loginUsr(usr)
+        }
+
+        params.delete('usr')
+        const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
+
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + cleanQueryPrams
+        )
+      } finally {
+        this.isUserAuthorized = !!this.$q.cookies.get(
+          'is_lnbits_user_authorized'
+        )
+      }
+    },
+    logout: async function () {
+      LNbits.utils
+        .confirmDialog(
+          'Do you really want to logout?' +
+            ' Please visit "My Account" page to check your credentials!'
+        )
+        .onOk(async () => {
+          try {
+            await LNbits.api.logout()
+            window.location = '/'
+          } catch (e) {
+            LNbits.utils.notifyApiError(e)
+          }
+        })
     }
   },
-  created: function () {
+  created: async function () {
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false
@@ -495,6 +598,7 @@ window.windowMixin = {
 
       this.g.extensions = extensions
     }
+    await this.checkUsrInUrl()
   }
 }
 

@@ -116,7 +116,7 @@ Vue.component('lnbits-extension-list', {
       <q-item v-for="extension in userExtensions" :key="extension.code"
         clickable
         :active="extension.isActive"
-        tag="a" :href="[extension.url, '?usr=', user.id].join('')">
+        tag="a" :href="extension.url">
         <q-item-section side>
           <q-avatar size="md">
             <q-img
@@ -181,7 +181,7 @@ Vue.component('lnbits-manage', {
     <q-list v-if="user" dense class="lnbits-drawer__q-list">
       <q-item-label header v-text="$t('manage')"></q-item-label>
       <div v-if="user.admin">
-        <q-item v-if='showAdmin' clickable tag="a" :href="['/admin?usr=', user.id].join('')">
+        <q-item v-if='showAdmin' clickable tag="a" href="/admin">
           <q-item-section side>
             <q-icon name="admin_panel_settings" color="grey-5" size="md"></q-icon>
           </q-item-section>
@@ -189,7 +189,7 @@ Vue.component('lnbits-manage', {
             <q-item-label lines="1" class="text-caption" v-text="$t('server')"></q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if='showNode' clickable tag="a" :href="['/node?usr=', user.id].join('')">
+        <q-item v-if='showNode' clickable tag="a" href="/node">
           <q-item-section side>
             <q-icon name="developer_board" color="grey-5" size="md"></q-icon>
           </q-item-section>
@@ -198,7 +198,7 @@ Vue.component('lnbits-manage', {
           </q-item-section>
         </q-item>
       </div>
-      <q-item clickable tag="a" :href="['/extensions?usr=', user.id].join('')">
+      <q-item clickable tag="a" href="/extensions">
         <q-item-section side>
           <q-icon name="extension" color="grey-5" size="md"></q-icon>
         </q-item-section>
@@ -663,4 +663,59 @@ Vue.component('lnbits-dynamic-fields', {
   created: function () {
     this.formData = this.buildData(this.options, this.value)
   }
+})
+
+Vue.component('lnbits-update-balance', {
+  mixins: [windowMixin],
+  props: ['wallet_id', 'callback'],
+  computed: {
+    denomination() {
+      return LNBITS_DENOMINATION
+    },
+    admin() {
+      return this.g.user.admin
+    }
+  },
+  data: function () {
+    return {
+      credit: 0
+    }
+  },
+  methods: {
+    updateBalance: function (credit) {
+      LNbits.api.updateBalance(credit, this.wallet_id).then(res => {
+        this.callback({value: res, wallet_id: this.wallet_id})
+      })
+    }
+  },
+  template: `
+      <q-btn
+        v-if="admin"
+        round
+        color="primary"
+        icon="add"
+        size="sm"
+      >
+        <q-popup-edit
+          class="bg-accent text-white"
+          v-slot="scope"
+          v-model="credit"
+        >
+          <q-input
+            filled
+            :label='$t("credit_label", { denomination: denomination })'
+            :hint="$t('credit_hint')"
+            v-model="scope.value"
+            dense
+            autofocus
+            @keyup.enter="updateBalance(scope.value)"
+          >
+            <template v-slot:append>
+              <q-icon name="edit" />
+            </template>
+          </q-input>
+        </q-popup-edit>
+        <q-tooltip>Topup Wallet</q-tooltip>
+      </q-btn>
+    `
 })

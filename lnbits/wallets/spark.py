@@ -28,12 +28,17 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        assert settings.spark_url, "spark url does not exist"
-        self.url = settings.spark_url.replace("/rpc", "")
+        if not settings.spark_url:
+            raise ValueError("cannot initialize SparkWallet: missing spark_url")
+        if not settings.spark_token:
+            raise ValueError("cannot initialize SparkWallet: missing spark_token")
+
+        url = self.normalize_endpoint(settings.spark_url)
+        url = url.replace("/rpc", "")
         self.token = settings.spark_token
-        assert self.token, "spark wallet token does not exist"
+
         headers = {"X-Access": self.token, "User-Agent": settings.user_agent}
-        self.client = httpx.AsyncClient(base_url=self.url, headers=headers)
+        self.client = httpx.AsyncClient(base_url=url, headers=headers)
 
     async def cleanup(self):
         try:
