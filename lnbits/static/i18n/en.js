@@ -229,5 +229,10 @@ window.localisation.en = {
   language: 'Language',
   color_scheme: 'Color Scheme',
   extension_cost: 'This release requires a payment of minimum %{cost} sats.',
-  extension_paid_sats: 'You have already paid %{paid_sats} sats.'
+  extension_paid_sats: 'You have already paid %{paid_sats} sats.',
+  release_details_error: 'Cannot get the release details.',
+  pay_from_wallet: 'Pay from Wallet',
+  show_qr: 'Show QR',
+  retry_install: 'Retry Install',
+  new_payment: 'Make New Payment'
 }

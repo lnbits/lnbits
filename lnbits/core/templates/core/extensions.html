@@ -342,8 +342,8 @@
             outline
             color="grey"
             @click="copyText(selectedRelease.paymentRequest)"
-            >Copy invoice</q-btn
-          >
+            :label="$t('copy_invoice')"
+          ></q-btn>
         </div>
         <div class="col">
           <q-btn v-close-popup flat color="grey" class="float-right q-ml-lg">
@@ -421,7 +421,7 @@
                       color="pink"
                       size="70px"
                     ></q-icon>
-                    Cannot get the release details.
+                    <span v-text="$t('release_details_error')"></span>
                   </div>
                   <q-card v-else>
                     <q-card-section v-if="release.is_version_compatible">
@@ -474,16 +474,16 @@
                             @click="payAndInstall(release)"
                             :disabled="!release.wallet"
                             class="q-mt-sm"
-                            >Pay from Wallet</q-btn
-                          >
+                            :label="$t('pay_from_wallet')"
+                          ></q-btn>
 
                           <q-btn
                             unelevated
                             color="primary"
                             @click="showQRCode(release)"
                             class="q-mt-sm float-right"
-                            >Show QR</q-btn
-                          >
+                            :label="$t('show_qr')"
+                          ></q-btn>
                         </div>
                         <div v-else>
                           <br />
@@ -497,15 +497,15 @@
                             @click="installExtension(release)"
                             color="primary"
                             class="q-mt-sm"
-                            >Retry Install</q-btn
-                          >
+                            :label="$t('retry_install')"
+                          ></q-btn>
                           <q-btn
                             unelevated
                             @click="clearHangingInvoice(release)"
                             color="primary"
                             class="q-mt-sm float-right"
-                            >Make New Payment</q-btn
-                          >
+                            :label="$t('new_payment')"
+                          ></q-btn>
                         </div>
                       </div>
 
