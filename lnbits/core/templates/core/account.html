@@ -403,21 +403,18 @@
                 </div>
                 <div class="row q-mb-md">
                   <div class="col-4">
-                    <span v-text="$t('toggle_reactions')"></span>
+                    <span v-text="$t('payment_reactions')"></span>
                   </div>
                   <div class="col-8">
-                    <q-btn
-                      dense
-                      flat
-                      round
-                      @click="toggleReactions"
-                      :icon="(reactionToggle) ? 'visibility' : 'visibility_off'"
-                      size="sm"
-                    >
-                      <q-tooltip
-                        ><span v-text="$t('toggle_reactions')"></span
+                    <q-select 
+                    v-model="reactionChoice" 
+                    :options="reactionOptions" 
+                    label="Reactions"
+                    @update:model-value="reactionChoiceFunc">
+                    <q-tooltip
+                        ><span v-text="$t('payment_reactions')"></span
                       ></q-tooltip>
-                    </q-btn>
+                    </q-select>
                   </div>
                 </div>
               </q-tab-panel>
