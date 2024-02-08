@@ -186,7 +186,7 @@ class Connection(Compat):
         clause = filters.where(where)
         parsed_values = filters.values(values)
 
-        group_by_string = None
+        group_by_string = ""
         if group_by:
             for field in group_by:
                 if not re.fullmatch(
@@ -199,7 +199,7 @@ class Connection(Compat):
             f"""
             {query}
             {clause}
-            {group_by_string or ""}
+            {group_by_string}
             {filters.order_by()}
             {filters.pagination()}
             """,
@@ -213,7 +213,7 @@ class Connection(Compat):
                     SELECT COUNT(*) FROM (
                         {query}
                         {clause}
-                        {group_by_string or ""}
+                        {group_by_string}
                     ) as count
                     """,
                     parsed_values,
