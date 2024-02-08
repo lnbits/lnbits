@@ -86,6 +86,7 @@
       "js/components.js",
       "js/components/lnbits-funding-sources.js",
       "js/components/extension-settings.js",
+      "js/event-reactions.js",
       "js/bolt11-decoder.js"
     ],
     "css": [

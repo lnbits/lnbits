@@ -59,6 +59,7 @@ window.localisation.en = {
   service_fee_tooltip:
     'Service fee charged by the LNbits server admin per outgoing transaction',
   toggle_darkmode: 'Toggle Dark Mode',
+  toggle_reactions: 'Toggle Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
   api_keys_api_docs: 'API keys and API docs',
