@@ -10,7 +10,7 @@ function eventReactionWebocket(event_id, event_function) {
     event_function()
   }
 }
-function eventReactionBothSidesConfetti() {
+function confettiBothSides() {
   document.getElementById('vue').disabled = true
   var end = Date.now() + 2 * 1000
   var colors = ['#FFD700', '#ffffff']
@@ -39,7 +39,7 @@ function eventReactionBothSidesConfetti() {
   }
   frame()
 }
-function eventReactionFireworksConfetti() {
+function confettiFireworks() {
   var duration = 15 * 1000
   var animationEnd = Date.now() + duration
   var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
@@ -69,7 +69,36 @@ function eventReactionFireworksConfetti() {
     })
   }, 250)
 }
+function confettiUp() {
+  var duration = 15 * 1000
+  var animationEnd = Date.now() + duration
+  var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
 
+  function randomInRange(min, max) {
+    return Math.random() * (max - min) + min
+  }
+
+  var interval = setInterval(function () {
+    var timeLeft = animationEnd - Date.now()
+
+    if (timeLeft <= 0) {
+      return clearInterval(interval)
+    }
+
+    var particleCount = 5 * (timeLeft / duration)
+    // since particles fall down, start a bit higher than random
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: {x: randomInRange(0.1, 0.3), y: Math.random() - 0.2}
+    })
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: {x: randomInRange(0.7, 0.9), y: Math.random() - 0.2}
+    })
+  }, 250)
+}
 !(function (t, e) {
   !(function t(e, n, a, i) {
     var o = !!(
