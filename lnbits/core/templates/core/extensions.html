@@ -309,10 +309,6 @@
   <q-dialog v-model="showUpgradeDialog">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
-        <div class="text-h6" v-text="'Pay invoice then Install.'"></div>
-      </q-card-section>
-
-      <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
           <a :href="'lightning:' + selectedRelease.paymentRequest">
             <q-responsive :ratio="1" class="q-mx-xl">
@@ -328,14 +324,6 @@
       </q-card-section>
 
       <div class="row q-mt-lg">
-        <div class="col">
-          <q-btn
-            v-if="!selectedRelease.isInstalled"
-            @click="installExtension(selectedRelease)"
-            color="primary unelevated mt-lg pt-lg"
-            :label="$t('install')"
-          ></q-btn>
-        </div>
         <div class="col">
           <q-btn
             v-if="selectedRelease.paymentRequest"
@@ -897,7 +885,7 @@
       },
       subscribeToPaylinkWs(pay_link, payment_hash) {
         const url = new URL(`${pay_link}/${payment_hash}`)
-        url.protocol = url.protocol === 'https' ? 'wss' : 'ws'
+        url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
         this.paylinkWebsocket = new WebSocket(url)
         this.paylinkWebsocket.addEventListener('message', async ({data}) => {
           const resp = JSON.parse(data)
