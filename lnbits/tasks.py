@@ -14,11 +14,9 @@ from pywebpush import WebPushException, webpush
 from lnbits.core.crud import (
     delete_expired_invoices,
     delete_webpush_subscriptions,
-    get_balance_checks,
     get_payments,
     get_standalone_payment,
 )
-from lnbits.core.services import redeem_lnurl_withdraw
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
@@ -184,14 +182,6 @@ async def check_pending_payments():
         incoming = False
 
         await asyncio.sleep(60 * 30)  # every 30 minutes
-
-
-async def perform_balance_checks():
-    while True:
-        for bc in await get_balance_checks():
-            await redeem_lnurl_withdraw(bc.wallet, bc.url)
-
-        await asyncio.sleep(60 * 60 * 6)  # every 6 hours
 
 
 async def invoice_callback_dispatcher(checking_id: str):
