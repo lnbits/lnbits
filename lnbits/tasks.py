@@ -86,6 +86,8 @@ class SseListenersDict(dict):
 invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
 
 
+# TODO: name should not be optional
+# some extensions still dont use a name, but they should
 def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
     """
     A method intended for extensions (and core/tasks.py) to call when they want to be
