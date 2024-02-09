@@ -17,7 +17,7 @@ function eventReactionWebocket(event_id) {
     } else {
       try {
         reaction = localStorage.getItem('lnbits.reactions')
-        eval(reaction.split('|')[1] + '()')
+        window[reaction.split('|')[1]]()
       } catch (e) {
         console.log(e)
       }
