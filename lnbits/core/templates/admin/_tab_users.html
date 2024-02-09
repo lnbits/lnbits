@@ -16,7 +16,6 @@
           <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
         </q-input>
         <div>
-          {%raw%}
           <q-chip
             v-for="user in formData.lnbits_admin_users"
             :key="user"
@@ -24,10 +23,9 @@
             @remove="removeAdminUser(user)"
             color="primary"
             text-color="white"
+            v-text="user"
           >
-            {{ user }}
           </q-chip>
-          {%endraw%}
         </div>
         <br />
       </div>
@@ -44,7 +42,6 @@
           <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
         </q-input>
         <div>
-          {% raw %}
           <q-chip
             v-for="user in formData.lnbits_allowed_users"
             :key="user"
@@ -52,11 +49,28 @@
             @remove="removeAllowedUser(user)"
             color="primary"
             text-color="white"
+            v-text="user"
           >
-            {{ user }}
           </q-chip>
-          {% endraw %}
         </div>
+        <br />
+        <q-item tag="label" v-ripple>
+          <q-item-section>
+            <q-item-label>Allow creation of new users</q-item-label>
+            <q-item-label caption
+              >Allow creation of new users on the index page</q-item-label
+            >
+          </q-item-section>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_allow_new_accounts"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+        </q-item>
         <br />
       </div>
     </div>
