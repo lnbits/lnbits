@@ -1,7 +1,7 @@
 function eventReactionWebocket(event_id) {
   localUrl = ''
   reaction = localStorage.getItem('lnbits.reactions')
-  if (reaction == null || reaction == 'None' || reaction == undefined) {
+  if (!reaction || reaction === 'None') {
     return
   }
   if (location.protocol !== 'http:') {
