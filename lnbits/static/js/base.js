@@ -168,7 +168,6 @@ window.LNbits = {
       let listener = ev => {
         cb(JSON.parse(ev.data))
       }
-
       this.listenersCount = this.listenersCount || {[wallet.inkey]: 0}
       this.listenersCount[wallet.inkey]++
 
@@ -444,7 +443,7 @@ window.windowMixin = {
   data: function () {
     return {
       toggleSubs: true,
-      reactionChoice: true,
+      reactionChoice: 'confettiBothSides',
       isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
@@ -524,12 +523,7 @@ window.windowMixin = {
     } else {
       this.$q.dark.set(true)
     }
-    let reactions = this.$q.localStorage.getItem('lnbits.reactions')
-    if (reactions == null || _.isString(reactions)  == false) {
-      this.$q.localStorage.set('lnbits.reactions', "confettiBothSides")
-      reactions = "confettiBothSides"
-    }
-    this.reactionChoice = reactions
+    this.reactionChoice = this.$q.localStorage.getItem('lnbits.reactions')
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 

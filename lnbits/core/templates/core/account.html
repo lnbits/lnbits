@@ -406,12 +406,13 @@
                     <span v-text="$t('payment_reactions')"></span>
                   </div>
                   <div class="col-8">
-                    <q-select 
-                    v-model="reactionChoice" 
-                    :options="reactionOptions" 
-                    label="Reactions"
-                    @input="reactionChoiceFunc">
-                    <q-tooltip
+                    <q-select
+                      v-model="reactionChoice"
+                      :options="reactionOptions"
+                      label="Reactions"
+                      @input="reactionChoiceFunc"
+                    >
+                      <q-tooltip
                         ><span v-text="$t('payment_reactions')"></span
                       ></q-tooltip>
                     </q-select>
