@@ -485,11 +485,16 @@
     </div>
   </div>
 </div>
-<div class="row gt-sm q-mt-xl">
+<div v-if="'{{SITE_TITLE}}' == 'LNbits'" class="row gt-sm q-mt-xl">
   <div class="col-1"></div>
   <div class="col-10 q-pl-xl">
     <span v-text="$t('lnbits_description')"></span>
   </div>
   <div class="col-1"></div>
+</div>
+<div v-else class="row gt-sm q-mt-xl">
+  <div class="col-2"></div>
+  <div class="col-6 q-pl-xl" v-html="formatDescription"></div>
+  <div class="col-4"></div>
 </div>
 {% endblock %}
