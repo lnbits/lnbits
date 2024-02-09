@@ -398,6 +398,7 @@ async def check_time_limit_between_transactions(conn, wallet_id):
     payments = await get_payments(
         since=int(time.time()) - limit,
         wallet_id=wallet_id,
+        limit=1,
         conn=conn,
     )
 
@@ -418,6 +419,7 @@ async def check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat):
         since=int(time.time()) - 60 * 60 * 24,
         outgoing=True,
         wallet_id=wallet_id,
+        limit=1,
         conn=conn,
     )
     if len(payments) == 0:
