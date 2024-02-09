@@ -27,6 +27,10 @@ new Vue({
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
     },
+    toggleReactions: function () {
+      this.reactionToggle = !this.reactionToggle
+      this.$q.localStorage.set('lnbits.reactions', this.reactionToggle)
+    },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)

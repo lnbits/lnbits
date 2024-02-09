@@ -444,6 +444,7 @@ window.windowMixin = {
   data: function () {
     return {
       toggleSubs: true,
+      reactionToggle: true,
       isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
@@ -523,6 +524,13 @@ window.windowMixin = {
     } else {
       this.$q.dark.set(true)
     }
+    let reactions = this.$q.localStorage.getItem('lnbits.reactions')
+    if (reactions == null) {
+      this.$q.localStorage.set('lnbits.reactions', true)
+      reactions = true
+    }
+    this.reactionToggle = reactions
+
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
     let locale = this.$q.localStorage.getItem('lnbits.lang')

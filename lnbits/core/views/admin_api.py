@@ -17,9 +17,11 @@ from lnbits.core.services import (
     update_cached_settings,
     update_wallet_balance,
 )
+from lnbits.core.tasks import api_invoice_listeners
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, UpdateSettings, settings
+from lnbits.tasks import invoice_listeners
 
 from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
@@ -46,6 +48,19 @@ async def api_auditor():
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Could not audit balance.",
         )
+
+
+@admin_router.get(
+    "/admin/api/v1/monitor",
+    name="Monitor",
+    description="show the current listeners and other monitoring data",
+    dependencies=[Depends(check_admin)],
+)
+async def api_monitor():
+    return {
+        "invoice_listeners": list(invoice_listeners.keys()),
+        "api_invoice_listeners": list(api_invoice_listeners.keys()),
+    }
 
 
 @admin_router.get("/admin/api/v1/settings/", response_model=Optional[AdminSettings])
