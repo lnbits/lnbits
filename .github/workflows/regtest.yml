@@ -33,8 +33,8 @@ jobs:
         with:
             context: .
             push: false
-            tags: lnbitsdocker/lnbits-legend:latest
-            cache-from: type=registry,ref=lnbitsdocker/lnbits-legend:latest
+            tags: lnbits/lnbits:latest
+            cache-from: type=registry,ref=lnbits/lnbits:latest
             cache-to: type=inline
 
       - name: Setup Regtest
@@ -51,7 +51,7 @@ jobs:
 
       - name: Create fake admin
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        run: docker exec lnbits-legend-lnbits-1 poetry run python tools/create_fake_admin.py
+        run: docker exec lnbits-lnbits-1 poetry run python tools/create_fake_admin.py
 
       - name: Run Tests
         env:
