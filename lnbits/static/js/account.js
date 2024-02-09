@@ -6,7 +6,12 @@ new Vue({
       user: null,
       hasUsername: false,
       showUserId: false,
-      reactionOptions: ['None', 'confettiBothSides', 'confettiFireworks'],
+      reactionOptions: [
+        'None',
+        'confettiBothSides',
+        'confettiFireworks',
+        'confettiStars'
+      ],
       tab: 'user',
       passwordData: {
         show: false,
