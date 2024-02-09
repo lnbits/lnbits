@@ -490,7 +490,14 @@
               ></q-img>
             </a>
           </div>
-          <div class="col q-pl-md"></div>
+          <div class="col q-pl-md">
+            <a href="https://zbd.gg" target="_blank" rel="noopener noreferrer">
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/zbd.png') }}' : '{{ static_url_for('static', 'images/zbdl.png') }}'"
+              ></q-img>
+            </a>
+          </div>
         </div>
       </div>
     </div>
