@@ -12,7 +12,9 @@ function eventReactionWebocket(event_id) {
   connection = new WebSocket(localUrl)
   connection.onmessage = function (e) {
     let parsedData = JSON.parse(e.data)
-    if (parsedData.payment.amount > 0) {
+    if (parsedData.payment.amount < 0) {
+      return
+    } else {
       try {
         reaction = localStorage.getItem('lnbits.reactions')
         eval(reaction.split('|')[1] + '()')
