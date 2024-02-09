@@ -523,7 +523,7 @@ window.windowMixin = {
     } else {
       this.$q.dark.set(true)
     }
-    this.reactionChoice = this.$q.localStorage.getItem('lnbits.reactions')
+    this.reactionChoice = this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
