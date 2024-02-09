@@ -11,16 +11,17 @@ function eventReactionWebocket(event_id) {
   }
   connection = new WebSocket(localUrl)
   connection.onmessage = function (e) {
-    let parsedData = JSON.parse(e.data)
-    if (parsedData.payment.amount < 0) {
-      return
-    } else {
-      try {
-        reaction = localStorage.getItem('lnbits.reactions')
-        window[reaction.split('|')[1]]()
-      } catch (e) {
-        console.log(e)
+    try {
+      const parsedData = JSON.parse(e.data)
+      if (parsedData.payment.amount < 0) {
+        return
       }
+      reaction = localStorage.getItem('lnbits.reactions')
+      if (reaction) {
+        window[reaction.split('|')[1]]()
+      }
+    } catch (e) {
+      console.log(e)
     }
   }
 }
