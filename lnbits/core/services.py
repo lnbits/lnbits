@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
@@ -41,6 +42,7 @@ from .crud import (
     create_wallet,
     delete_wallet_payment,
     get_account,
+    get_payments,
     get_standalone_payment,
     get_super_settings,
     get_total_balance,
@@ -118,8 +120,9 @@ async def create_invoice(
     if not amount > 0:
         raise InvoiceFailure("Amountless invoices not supported.")
 
-    if await get_wallet(wallet_id, conn=conn) is None:
-        raise InvoiceFailure("Wallet does not exist.")
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
+        raise InvoiceFailure(f"Could not fetch wallet '{wallet_id}'.")
 
     invoice_memo = None if description_hash else memo
 
@@ -129,6 +132,14 @@ async def create_invoice(
     amount_sat, extra = await calculate_fiat_amounts(
         amount, wallet_id, currency=currency, extra=extra, conn=conn
     )
+
+    if settings.is_wallet_max_balance_exceeded(
+        user_wallet.balance_msat / 1000 + amount_sat
+    ):
+        raise InvoiceFailure(
+            f"Wallet balance  cannot exceed "
+            f"{settings.lnbits_wallet_limit_max_balance} sats."
+        )
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount_sat,
@@ -184,6 +195,8 @@ async def pay_invoice(
         raise ValueError("Amountless invoices not supported.")
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise ValueError("Amount in invoice is too high.")
+
+    await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
@@ -370,6 +383,58 @@ async def pay_invoice(
             pending=False,
         )
     return invoice.payment_hash
+
+
+async def check_wallet_limits(wallet_id, conn, amount_msat):
+    await check_time_limit_between_transactions(conn, wallet_id)
+    await check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat)
+
+
+async def check_time_limit_between_transactions(conn, wallet_id):
+    limit = settings.lnbits_wallet_limit_secs_between_trans
+    if not limit or limit <= 0:
+        return
+
+    payments = await get_payments(
+        since=int(time.time()) - limit,
+        wallet_id=wallet_id,
+        limit=1,
+        conn=conn,
+    )
+
+    if len(payments) == 0:
+        return
+
+    raise ValueError(
+        f"The time limit of {limit} seconds between payments has been reached."
+    )
+
+
+async def check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat):
+    limit = settings.lnbits_wallet_limit_daily_max_withdraw
+    if not limit or limit <= 0:
+        return
+
+    payments = await get_payments(
+        since=int(time.time()) - 60 * 60 * 24,
+        outgoing=True,
+        wallet_id=wallet_id,
+        limit=1,
+        conn=conn,
+    )
+    if len(payments) == 0:
+        return
+
+    total = 0
+    for pay in payments:
+        total += pay.amount
+    total = total - amount_msat
+    if limit * 1000 + total < 0:
+        raise ValueError(
+            "Daily withdrawal limit of "
+            + str(settings.lnbits_wallet_limit_daily_max_withdraw)
+            + " sats reached."
+        )
 
 
 async def redeem_lnurl_withdraw(
