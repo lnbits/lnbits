@@ -1,5 +1,9 @@
-function eventReactionWebocket(event_id, event_function) {
+function eventReactionWebocket(event_id) {
   localUrl = ''
+  reaction = localStorage.getItem('lnbits.reactions')
+  if (reaction == null || reaction == 'None' || reaction == undefined) {
+    return
+  }
   if (location.protocol !== 'http:') {
     localUrl = 'wss://' + location.host + '/api/v1/ws/' + event_id
   } else {
@@ -7,7 +11,15 @@ function eventReactionWebocket(event_id, event_function) {
   }
   connection = new WebSocket(localUrl)
   connection.onmessage = function (e) {
-    event_function()
+    let parsedData = JSON.parse(e.data)
+    if (parsedData.payment.amount > 0) {
+      try {
+        reaction = localStorage.getItem('lnbits.reactions')
+        eval(reaction.split('|')[1] + '()')
+      } catch (e) {
+        console.log(e)
+      }
+    }
   }
 }
 function confettiBothSides() {
@@ -40,7 +52,7 @@ function confettiBothSides() {
   frame()
 }
 function confettiFireworks() {
-  var duration = 15 * 1000
+  var duration = 3 * 1000
   var animationEnd = Date.now() + duration
   var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
 
@@ -69,36 +81,7 @@ function confettiFireworks() {
     })
   }, 250)
 }
-function confettiUp() {
-  var duration = 15 * 1000
-  var animationEnd = Date.now() + duration
-  var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
 
-  function randomInRange(min, max) {
-    return Math.random() * (max - min) + min
-  }
-
-  var interval = setInterval(function () {
-    var timeLeft = animationEnd - Date.now()
-
-    if (timeLeft <= 0) {
-      return clearInterval(interval)
-    }
-
-    var particleCount = 5 * (timeLeft / duration)
-    // since particles fall down, start a bit higher than random
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: {x: randomInRange(0.1, 0.3), y: Math.random() - 0.2}
-    })
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: {x: randomInRange(0.7, 0.9), y: Math.random() - 0.2}
-    })
-  }, 250)
-}
 !(function (t, e) {
   !(function t(e, n, a, i) {
     var o = !!(
