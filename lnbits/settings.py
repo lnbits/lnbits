@@ -128,6 +128,13 @@ class SecuritySettings(LNbitsSettings):
         )
     )
 
+    def is_wallet_max_balance_exceeded(self, amount):
+        return (
+            self.lnbits_wallet_limit_max_balance
+            and self.lnbits_wallet_limit_max_balance > 0
+            and amount > self.lnbits_wallet_limit_max_balance
+        )
+
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
