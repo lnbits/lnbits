@@ -196,7 +196,7 @@ async def pay_invoice(
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise ValueError("Amount in invoice is too high.")
 
-    await _check_wallet_limits(wallet_id, conn, invoice.amount_msat)
+    await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
@@ -385,12 +385,12 @@ async def pay_invoice(
     return invoice.payment_hash
 
 
-async def _check_wallet_limits(wallet_id, conn, amount_msat):
-    await _check_time_limit_between_transactions(conn, wallet_id)
-    await _check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat)
+async def check_wallet_limits(wallet_id, conn, amount_msat):
+    await check_time_limit_between_transactions(conn, wallet_id)
+    await check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat)
 
 
-async def _check_time_limit_between_transactions(conn, wallet_id):
+async def check_time_limit_between_transactions(conn, wallet_id):
     limit = settings.lnbits_wallet_limit_secs_between_trans
     if not limit or limit <= 0:
         return
@@ -409,7 +409,7 @@ async def _check_time_limit_between_transactions(conn, wallet_id):
     )
 
 
-async def _check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat):
+async def check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat):
     limit = settings.lnbits_wallet_limit_daily_max_withdraw
     if not limit or limit <= 0:
         return
