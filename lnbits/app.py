@@ -23,7 +23,7 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 
-from lnbits.core.crud import get_installed_extensions
+from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
@@ -35,7 +35,7 @@ from lnbits.tasks import cancel_all_tasks, create_permanent_task
 from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
-from .commands import db_versions, migrate_databases
+from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
@@ -273,7 +273,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
     extension = Extension.from_installable_ext(ext)
     register_ext_routes(app, extension)
 
-    current_version = (await db_versions()).get(ext.id, 0)
+    current_version = (await get_dbversions()).get(ext.id, 0)
     await migrate_extension_database(extension, current_version)
 
     # mount routes for the new version
