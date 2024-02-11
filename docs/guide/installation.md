@@ -101,10 +101,10 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 
 use latest version from docker hub
 ```sh
-docker pull lnbitsdocker/lnbits-legend
+docker pull lnbits/lnbits
 wget https://raw.githubusercontent.com/lnbits/lnbits/main/.env.example -O .env
 mkdir data
-docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 build the image yourself
 ```sh
