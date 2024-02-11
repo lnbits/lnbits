@@ -21,7 +21,9 @@ class BlinkWallet(Wallet):
 
     def __init__(self):
         if not settings.blink_api_endpoint:
-            raise ValueError("cannot initialize BlinkWallet: missing blink_api_endpoint")
+            raise ValueError(
+                "cannot initialize BlinkWallet: missing blink_api_endpoint"
+            )
         if not settings.blink_token:
             raise ValueError("cannot initialize BlinkWallet: missing blink_token")
 
