@@ -110,10 +110,10 @@ build the image yourself
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbitsdocker/lnbits-legend .
+docker build -t lnbits/lnbits .
 cp .env.example .env
 mkdir data
-docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbitsdocker/lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
 ## Option 4: Fly.io
