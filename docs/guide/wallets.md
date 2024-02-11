@@ -79,6 +79,14 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
 
+### Blink
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an Blink.sv access token here: https://www.blink.sv/en/api
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BlinkWallet**
+- `BLINK_API_ENDPOINT`: https://api.blink.sv/graphql
+- `BLINK_TOKEN`: BlinkToken
+
 ### Alby
 
 For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an alby access token here: https://getalby.com/developer/access_tokens/new
