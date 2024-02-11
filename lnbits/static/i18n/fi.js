@@ -37,7 +37,7 @@ window.localisation.fi = {
   paste_invoice_label:
     'Liitä lasku, maksupyyntö, lnurl-koodi tai Lightning Address *',
   lnbits_description:
-    'Kevyt ja helppokäyttöinen LNbits voi käyttää rahoituslähteinään erilaisia palveluita, ja jopa LNbits itseään! Voit käyttää sitä itsenäisesti ja helposti tarjota erilaisia Lightning-palveluita. Pystyt luomaan sillä salamaverkkolompakoita eikä niiden määrää ole rajoitettu. Jokaiselle lompakolle saat yksilölliset API-avaimet. Varojen osittaminen tekee siitä erittäin kätevän varojen hallinnassa sekä myös ohjelmistokehityksen työkalun. Laajennukset lisäävät LNbits:in toiminnallisuuksia. Näinpä voit helposti testailla useita erilaisia ja viimeisimpiä salamaverkon teknologioita. Laajennuksien kehittämisen olemme pyrkineet tekemään mahdollisimman helpoksi pitämällä LNbits:in ilmaisena OpenSource-projektina. Kannustamme kaikkia kehittämään ja jakelemaan omia laajennuksia!',
+    'Kevyt ja helppokäyttöinen LNbits soveltuu minkä tahansa salamaverkon rahoituslähteeksi. Se tukee rahoituslähteinä LND, Core Lightning, OpenNode, Blink, Alby, LNPay ja jopa itseään! Voi käyttää itsenäisesti sitä ja helposti tarjota säilytyspalveluita. Pystyt luomaan sillä salamaverkko lompakoita ja niiden määrää ei ole rajoitettu. Jokaiselle lompakolle saat iksilölliset AP avaimet. Varojen osittaminen tekee siitä erittäin kätevän varojen hallinnassa sekä myös ohjelmistokehityksen työkaluja. Laajennukset lisäävät LNbits:in toiminnallisuuksia. Näinpä voit helposti testailla useita erilaisia ja viimeisimpiä salamaverkon-teknologioita. Laajennuksien kehittämisen olemme pyrkineet tekemään hmahdollisimman helpoksi, ilmaisena OpenSource-projektina. Kannustamme kaikkia kehittämään ja jakelemaan omia laajennuksia!',
   export_to_phone: 'Käytä puhelimessa lukemalla QR-koodi',
   export_to_phone_desc:
     'Tämä QR-koodi sisältää URL-osoitteen, jolla saa lompakkoosi täydet valtuudet. Voi lukea sen puhelimellasi ja avata sillä lompakkosi. Voit myös lisätä lompakkosi selaimella käytettäväksi PWA-sovellukseksi puhelimen aloitusruudulle. ',
@@ -67,7 +67,7 @@ window.localisation.fi = {
   toggle_reactions: 'Käytä tapahtuma efektejä',
   view_swagger_docs: 'Näytä LNbits Swagger API-dokumentit',
   api_docs: 'API-dokumentaatio',
-  api_keys_api_docs: 'Solmun URL, API-avaimet ja -dokumentaatio',
+  api_keys_api_docs: 'API-avaimet ja -dokumentaatio',
   lnbits_version: 'LNbits versio',
   runs_on: 'Mukana menossa',
   credit_hint: 'Hyväksy painamalla Enter',
@@ -191,12 +191,6 @@ window.localisation.fi = {
   allow_access_hint: 'Salli pääsy IP-osoitteen perusteella (ohittaa estot)',
   enter_ip: 'Anna IP ja paina +',
   rate_limiter: 'Toiston rajoitin',
-  wallet_limiter: 'Lompakon Rajoitin',
-  wallet_limit_max_withdraw_per_day:
-    'Maksimi päivittäinen lompakon nosto sateissa (0 poistaa käytöstä)',
-  wallet_max_ballance: 'Lompakon maksimisaldo satosheina (0 poistaa käytöstä)',
-  wallet_limit_secs_between_trans:
-    'Min sekuntia transaktioiden välillä lompakkoa kohden (0 poistaa käytöstä)',
   number_of_requests: 'Pyyntöjen lukumäärä',
   time_unit: 'aikayksikkö',
   minute: 'minuutti',
@@ -215,7 +209,6 @@ window.localisation.fi = {
   account_settings: 'Tilin asetukset',
   signin_with_google: 'Kirjaudu Google-tunnuksella',
   signin_with_github: 'Kirjaudu GitHub-tunnuksella',
-  signin_with_keycloak: 'Kirjaudu Keycloak-tunnuksella',
   username_or_email: 'Käyttäjänimi tai sähköposti',
   password: 'Anna uusi salasana',
   password_config: 'Salasanan määritys',

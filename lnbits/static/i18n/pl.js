@@ -35,7 +35,7 @@ window.localisation.pl = {
   name_your_wallet: 'Nazwij swój portfel %{name}',
   paste_invoice_label: 'Wklej fakturę, żądanie zapłaty lub kod lnurl *',
   lnbits_description:
-    'Łatwy i lekki w konfiguracji, LNbits może działać w oparciu o dowolne źródło finansowania w sieci lightning czy nawet inną instancję LNbits! Możesz uruchomić instancję LNbits dla siebie lub dla innych. Każdy portfel ma swoje klucze API i nie ma ograniczeń jeśli chodzi o ilość portfeli. LNbits umożliwia dzielenie środków w celu zarządzania nimi, jest również dobrym narzędziem deweloperskim. Rozszerzenia zwiększają funkcjonalność LNbits co umożliwia eksperymentowanie z nowym technologiami w sieci lightning. Tworzenie rozszerzeń jest proste dlatego zachęcamy innych deweloperów do tworzenia dodatkowych funkcjonalności i wysyłanie do nas PR',
+    'Łatwy i lekki w konfiguracji, LNbits może działać w oparciu o dowolne źródło finansowania w sieci lightning, obecnie wspiera LND, Core Lightning, OpenNode, Blink, Blink, Alby, LNPay czy nawet inną instancję LNbits! Możesz uruchomić instancję LNbits dla siebie lub dla innych. Każdy portfel ma swoje klucze API i nie ma ograniczeń jeśli chodzi o ilość portfeli. LNbits umożliwia dzielenie środków w celu zarządzania nimi, jest również dobrym narzędziem deweloperskim. Rozszerzenia zwiększają funkcjonalność LNbits co umożliwia eksperymentowanie z nowym technologiami w sieci lightning. Tworzenie rozszerzeń jest proste dlatego zachęcamy innych deweloperów do tworzenia dodatkowych funkcjonalności i wysyłanie do nas PR',
   export_to_phone: 'Eksport kodu QR na telefon',
   export_to_phone_desc:
     'Ten kod QR zawiera adres URL Twojego portfela z pełnym dostępem do niego. Możesz go zeskanować na swoim telefonie aby otworzyć na nim ten portfel.',
@@ -60,10 +60,9 @@ window.localisation.pl = {
   service_fee_tooltip:
     'Opłata serwisowa pobierana przez administratora serwera LNbits za każdą wychodzącą transakcję',
   toggle_darkmode: 'Tryb nocny',
-  payment_reactions: 'Reakcje na płatność',
   view_swagger_docs: 'Dokumentacja Swagger API',
   api_docs: 'Dokumentacja API',
-  api_keys_api_docs: 'Adres URL węzła, klucze API i dokumentacja API',
+  api_keys_api_docs: 'Klucze API i dokumentacja API',
   lnbits_version: 'Wersja LNbits',
   runs_on: 'Działa na',
   credit_hint: 'Naciśnij Enter aby doładować konto',
@@ -189,12 +188,6 @@ window.localisation.pl = {
     'Zezwól na dostęp przez IP (zignoruje zablokowane adresy IP)',
   enter_ip: 'Wpisz adres IP i naciśnij enter',
   rate_limiter: 'Ogranicznik Częstotliwości',
-  wallet_limiter: 'Ogranicznik Portfela',
-  wallet_limit_max_withdraw_per_day:
-    'Maksymalna dzienna wypłata z portfela w satoshi (0 aby wyłączyć)',
-  wallet_max_ballance: 'Maksymalny stan portfela w satoshi (0 aby wyłączyć)',
-  wallet_limit_secs_between_trans:
-    'Min sekund pomiędzy transakcjami na portfel (0 aby wyłączyć)',
   number_of_requests: 'Liczba żądań',
   time_unit: 'Jednostka czasu',
   minute: 'minuta',
@@ -213,7 +206,6 @@ window.localisation.pl = {
   account_settings: 'Ustawienia konta',
   signin_with_google: 'Zaloguj się przez Google',
   signin_with_github: 'Zaloguj się przez GitHub',
-  signin_with_keycloak: 'Zaloguj się przez Keycloak',
   username_or_email: 'Nazwa użytkownika lub Email',
   password: 'Hasło',
   password_config: 'Konfiguracja Hasła',
@@ -236,8 +228,5 @@ window.localisation.pl = {
   auth_provider: 'Dostawca uwierzytelniania',
   my_account: 'Moje Konto',
   back: 'Wstecz',
-  logout: 'Wyloguj',
-  look_and_feel: 'Wygląd i zachowanie',
-  language: 'Język',
-  color_scheme: 'Schemat kolorów'
+  logout: 'Wyloguj'
 }

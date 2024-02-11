@@ -35,7 +35,7 @@ window.localisation.cs = {
   name_your_wallet: 'Pojmenujte svou %{name} peněženku',
   paste_invoice_label: 'Vložte fakturu, platební požadavek nebo lnurl kód *',
   lnbits_description:
-    'Snadno nastavitelný a lehkotonážní, LNbits může běžet na jakémkoliv zdroji financování Lightning Network a dokonce LNbits samotné! LNbits můžete provozovat pro sebe, nebo snadno nabízet správu peněženek pro ostatní. Každá peněženka má své vlastní API klíče a není omezen počet peněženek, které můžete vytvořit. Možnost rozdělení prostředků dělá z LNbits užitečný nástroj pro správu peněz a jako vývojový nástroj. Rozšíření přidávají extra funkčnost k LNbits, takže můžete experimentovat s řadou špičkových technologií na lightning network. Vývoj rozšíření jsme učinili co nejjednodušší a jako svobodný a open-source projekt podporujeme lidi ve vývoji a zasílání vlastních rozšíření.',
+    'Snadno nastavitelný a lehkotonážní, LNbits může běžet na jakémkoliv zdroji financování lightning-network, v současné době podporuje LND, Core Lightning, OpenNode, Blink, Alby, LNPay a dokonce LNbits samotné! LNbits můžete provozovat pro sebe, nebo snadno nabízet správu peněženek pro ostatní. Každá peněženka má své vlastní API klíče a není omezen počet peněženek, které můžete vytvořit. Možnost rozdělení prostředků dělá z LNbits užitečný nástroj pro správu peněz a jako vývojový nástroj. Rozšíření přidávají extra funkčnost k LNbits, takže můžete experimentovat s řadou špičkových technologií na lightning network. Vývoj rozšíření jsme učinili co nejjednodušší a jako svobodný a open-source projekt podporujeme lidi ve vývoji a zasílání vlastních rozšíření.',
   export_to_phone: 'Exportovat do telefonu pomocí QR kódu',
   export_to_phone_desc:
     'Tento QR kód obsahuje URL vaší peněženky s plným přístupem. Můžete jej naskenovat z telefonu a otevřít peněženku odtamtud.',
@@ -61,10 +61,9 @@ window.localisation.cs = {
   service_fee_tooltip:
     'Servisní poplatek účtovaný správcem LNbits serveru za odchozí transakci',
   toggle_darkmode: 'Přepnout tmavý režim',
-  payment_reactions: 'Reakce na platby',
   view_swagger_docs: 'Zobrazit LNbits Swagger API dokumentaci',
   api_docs: 'API dokumentace',
-  api_keys_api_docs: 'Adresa uzlu, API klíče a API dokumentace',
+  api_keys_api_docs: 'API klíče a API dokumentace',
   lnbits_version: 'Verze LNbits',
   runs_on: 'Běží na',
   credit_hint: 'Stiskněte Enter pro připsání na účet',
@@ -188,12 +187,6 @@ window.localisation.cs = {
   allow_access_hint: 'Povolit přístup podle IP (přepíše blokované IP)',
   enter_ip: 'Zadejte IP a stiskněte enter',
   rate_limiter: 'Omezovač počtu požadavků',
-  wallet_limiter: 'Omezení peněženky',
-  wallet_limit_max_withdraw_per_day:
-    'Maximální denní limit pro výběr z peněženky v sats (0 pro deaktivaci)',
-  wallet_max_ballance: 'Maximální zůstatek v peněžence v sats (0 pro zakázání)',
-  wallet_limit_secs_between_trans:
-    'Minimální počet sekund mezi transakcemi na peněženku (0 pro vypnutí)',
   number_of_requests: 'Počet požadavků',
   time_unit: 'Časová jednotka',
   minute: 'minuta',
@@ -212,7 +205,6 @@ window.localisation.cs = {
   account_settings: 'Nastavení účtu',
   signin_with_google: 'Přihlásit se přes Google',
   signin_with_github: 'Přihlásit se přes GitHub',
-  signin_with_keycloak: 'Přihlásit se přes Keycloak',
   username_or_email: 'Uživatelské jméno nebo Email',
   password: 'Heslo',
   password_config: 'Konfigurace hesla',
@@ -235,8 +227,5 @@ window.localisation.cs = {
   auth_provider: 'Poskytovatel ověření',
   my_account: 'Můj účet',
   back: 'Zpět',
-  logout: 'Odhlásit se',
-  look_and_feel: 'Vzhled a chování',
-  language: 'Jazyk',
-  color_scheme: 'Barevné schéma'
+  logout: 'Odhlásit se'
 }

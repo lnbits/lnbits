@@ -36,7 +36,7 @@ window.localisation.kr = {
   name_your_wallet: '사용할 %{name}지갑의 이름을 정하세요',
   paste_invoice_label: '인보이스, 결제 요청, 혹은 lnurl 코드를 붙여넣으세요 *',
   lnbits_description:
-    '설정이 쉽고 가벼운 LNBits는 어떤 라이트닝 네트워크의 예산 자원 위에서든 돌아갈 수 있습니다, 그리고 다른 LNBits 지갑들입니다. 스스로 사용하기 위해, 또는 다른 사람들에게 수탁형 솔루션을 제공하기 위해 LNBits를 운영할 수 있습니다. 각 지갑들은 자신만의 API key를 가지며, 생성 가능한 지갑의 수에는 제한이 없습니다. 자금을 분할할 수 있는 기능으로 인해, LNBits는 자금 운영 도구로써뿐만 아니라 개발 도구로써도 유용합니다. 확장 기능들은 LNBits에 여러분들이 라이트닝 네트워크의 다양한 최신 기술들을 수행해볼 수 있게 하는 추가 기능을 제공합니다. LNBits 개발진들은 확장 기능들의 개발 또한 가능한 쉽게 만들었으며, 무료 오픈 소스 프로젝트답게 사람들이 자신만의 확장 기능들을 개발하고 제출하기를 응원합니다.',
+    '설정이 쉽고 가벼운 LNBits는 어떤 라이트닝 네트워크의 예산 자원 위에서든 돌아갈 수 있습니다. 현재 지원하는 예산 자원의 형태는 LND, Core Lightning, OpenNode, Blink, Alby, LNPay, 그리고 다른 LNBits 지갑들입니다. 스스로 사용하기 위해, 또는 다른 사람들에게 수탁형 솔루션을 제공하기 위해 LNBits를 운영할 수 있습니다. 각 지갑들은 자신만의 API key를 가지며, 생성 가능한 지갑의 수에는 제한이 없습니다. 자금을 분할할 수 있는 기능으로 인해, LNBits는 자금 운영 도구로써뿐만 아니라 개발 도구로써도 유용합니다. 확장 기능들은 LNBits에 여러분들이 라이트닝 네트워크의 다양한 최신 기술들을 수행해볼 수 있게 하는 추가 기능을 제공합니다. LNBits 개발진들은 확장 기능들의 개발 또한 가능한 쉽게 만들었으며, 무료 오픈 소스 프로젝트답게 사람들이 자신만의 확장 기능들을 개발하고 제출하기를 응원합니다.',
   export_to_phone: 'QR 코드를 이용해 모바일 기기로 내보내기',
   export_to_phone_desc:
     '이 QR 코드는 선택된 지갑의 최대 접근 권한을 가진 전체 URL을 담고 있습니다. 스캔 후, 모바일 기기에서 지갑을 열 수 있습니다.',
@@ -60,10 +60,9 @@ window.localisation.kr = {
   service_fee_tooltip:
     '지불 결제 시마다 LNBits 서버 관리자에게 납부되는 서비스 수수료',
   toggle_darkmode: '다크 모드 전환',
-  payment_reactions: '결제 반응',
   view_swagger_docs: 'LNbits Swagger API 문서를 봅니다',
   api_docs: 'API 문서',
-  api_keys_api_docs: '노드 URL, API 키와 API 문서',
+  api_keys_api_docs: 'API 키와 API 문서',
   lnbits_version: 'LNbits 버전',
   runs_on: 'Runs on',
   credit_hint: '계정에 자금을 넣으려면 Enter를 눌러주세요',
@@ -188,11 +187,6 @@ window.localisation.kr = {
   allow_access_hint: 'IP 기준으로 접속 허용하기 (차단한 IP들을 무시합니다)',
   enter_ip: 'IP 주소를 입력하고 Enter를 눌러주세요',
   rate_limiter: '횟수로 제한하기',
-  wallet_limiter: '지갑 제한기',
-  wallet_limit_max_withdraw_per_day:
-    '일일 최대 지갑 출금액(sats) (0은 비활성화)',
-  wallet_max_ballance: '지갑 최대 잔액(sats) (0은 비활성화)',
-  wallet_limit_secs_between_trans: '지갑 당 거래 사이 최소 초 (0은 비활성화)',
   number_of_requests: '요청 횟수',
   time_unit: '시간 단위',
   minute: '분',
@@ -211,7 +205,6 @@ window.localisation.kr = {
   account_settings: '계정 설정',
   signin_with_google: 'Google으로 로그인',
   signin_with_github: 'GitHub으로 로그인',
-  signin_with_keycloak: 'Keycloak으로 로그인',
   username_or_email: '사용자 이름 또는 이메일',
   password: '비밀번호',
   password_config: '비밀번호 설정',
@@ -234,8 +227,5 @@ window.localisation.kr = {
   auth_provider: '인증 제공자',
   my_account: '내 계정',
   back: '뒤로',
-  logout: '로그아웃',
-  look_and_feel: '외관과 느낌',
-  language: '언어',
-  color_scheme: '색상 구성'
+  logout: '로그아웃'
 }

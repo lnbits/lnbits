@@ -35,7 +35,7 @@ window.localisation.we = {
   name_your_wallet: 'Enwch eich waled %{name}',
   paste_invoice_label: 'Gludwch anfoneb, cais am daliad neu god lnurl *',
   lnbits_description:
-    'Yn hawdd iw sefydlu ac yn ysgafn, gall LNbits redeg ar unrhyw ffynhonnell ariannu rhwydwaith mellt a hyd yn oed LNbits ei hun! Gallwch redeg LNbits i chi`ch hun, neu gynnig datrysiad ceidwad i eraill yn hawdd. Mae gan bob waled ei allweddi API ei hun ac nid oes cyfyngiad ar nifer y waledi y gallwch eu gwneud. Mae gallu rhannu cronfeydd yn gwneud LNbits yn arf defnyddiol ar gyfer rheoli arian ac fel offeryn datblygu. Mae estyniadau yn ychwanegu ymarferoldeb ychwanegol at LNbits fel y gallwch arbrofi gydag ystod o dechnolegau blaengar ar y rhwydwaith mellt. Rydym wedi gwneud datblygu estyniadau mor hawdd â phosibl, ac fel prosiect ffynhonnell agored am ddim, rydym yn annog pobl i ddatblygu a chyflwyno eu rhai eu hunain.',
+    'Yn hawdd iw sefydlu ac yn ysgafn, gall LNbits redeg ar unrhyw ffynhonnell ariannu rhwydwaith mellt, ar hyn o bryd yn cefnogi LND, Core Lightning, OpenNode, Blink, Alby, LNPay a hyd yn oed LNbits ei hun! Gallwch redeg LNbits i chi`ch hun, neu gynnig datrysiad ceidwad i eraill yn hawdd. Mae gan bob waled ei allweddi API ei hun ac nid oes cyfyngiad ar nifer y waledi y gallwch eu gwneud. Mae gallu rhannu cronfeydd yn gwneud LNbits yn arf defnyddiol ar gyfer rheoli arian ac fel offeryn datblygu. Mae estyniadau yn ychwanegu ymarferoldeb ychwanegol at LNbits fel y gallwch arbrofi gydag ystod o dechnolegau blaengar ar y rhwydwaith mellt. Rydym wedi gwneud datblygu estyniadau mor hawdd â phosibl, ac fel prosiect ffynhonnell agored am ddim, rydym yn annog pobl i ddatblygu a chyflwyno eu rhai eu hunain.',
   export_to_phone: 'Allforio i Ffôn gyda chod QR',
   export_to_phone_desc:
     'Mae`r cod QR hwn yn cynnwys URL eich waled gyda mynediad llawn. Gallwch ei sganio o`ch ffôn i agor eich waled oddi yno.',
@@ -61,10 +61,9 @@ window.localisation.we = {
   service_fee_tooltip:
     "Ffi gwasanaeth a godir gan weinyddwr gweinydd LNbits ym mhob trafodiad sy'n mynd allan",
   toggle_darkmode: 'Toglo Modd Tywyll',
-  payment_reactions: 'Adweithiau Talu',
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
   api_docs: 'Dogfennau API',
-  api_keys_api_docs: 'URL y nod, allweddi API a dogfennau API',
+  api_keys_api_docs: 'Allweddi API a dogfennau API',
   lnbits_version: 'Fersiwn LNbits',
   runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',
@@ -189,12 +188,6 @@ window.localisation.we = {
     "Caniatáu mynediad gan IP (bydd yn diystyru IPs sydd wedi'u blocio)",
   enter_ip: 'Rhowch IP a gwasgwch enter',
   rate_limiter: 'Cyfyngydd Cyfradd',
-  wallet_limiter: 'Cyfyngwr Waled',
-  wallet_limit_max_withdraw_per_day:
-    'Uchafswm tynnu’n ôl waled dyddiol mewn sats (0 i analluogi)',
-  wallet_max_ballance: 'Uchafswm balans y waled mewn sats (0 i analluogi)',
-  wallet_limit_secs_between_trans:
-    'Eiliadau lleiaf rhwng trafodion fesul waled (0 i analluogi)',
   number_of_requests: 'Nifer y ceisiadau',
   time_unit: 'Uned amser',
   minute: 'munud',
@@ -213,7 +206,6 @@ window.localisation.we = {
   account_settings: 'Gosodiadau Cyfrif',
   signin_with_google: 'Mewngofnodi gyda Google',
   signin_with_github: 'Mewngofnodi gyda GitHub',
-  signin_with_keycloak: 'Mewngofnodi gyda Keycloak',
   username_or_email: 'Defnyddiwr neu E-bost',
   password: 'Cyfrinair',
   password_config: 'Ffurfweddiad Cyfrinair',
@@ -236,8 +228,5 @@ window.localisation.we = {
   auth_provider: 'Darparwr Dilysiad',
   my_account: 'Fy Nghyfrif',
   back: 'Yn ôl',
-  logout: 'Allgofnodi',
-  look_and_feel: 'Edrych a Theimlo',
-  language: 'Iaith',
-  color_scheme: 'Cynllun Lliw'
+  logout: 'Allgofnodi'
 }

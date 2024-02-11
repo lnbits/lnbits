@@ -35,7 +35,7 @@ window.localisation.cn = {
   name_your_wallet: '给你的 %{name}钱包起个名字',
   paste_invoice_label: '粘贴发票，付款请求或lnurl*',
   lnbits_description:
-    'LNbits 设置简单、轻量级，可以在任何闪电网络的资金来源上运行，甚至可以在LNbits自身上运行！您可以为自己运行LNbits，或者轻松为他人提供托管解决方案。每个钱包都有自己的 API 密钥，你可以创建的钱包数量没有限制。能够把资金分开管理使 LNbits 成为一款有用的资金管理和开发工具。扩展程序增加了 LNbits 的额外功能，所以你可以在闪电网络上尝试各种尖端技术。我们已经尽可能简化了开发扩展程序的过程，作为一个免费和开源的项目，我们鼓励人们开发并提交自己的扩展程序。',
+    'LNbits 设置简单、轻量级，可以运行在任何闪电网络的版本上，目前支持 LND、Core Lightning、OpenNode、Blink, Alby, LNPay，甚至 LNbits 本身！您可以为自己运行 LNbits，或者为他人轻松提供资金托管。每个钱包都有自己的 API 密钥，你可以创建的钱包数量没有限制。能够把资金分开管理使 LNbits 成为一款有用的资金管理和开发工具。扩展程序增加了 LNbits 的额外功能，所以你可以在闪电网络上尝试各种尖端技术。我们已经尽可能简化了开发扩展程序的过程，作为一个免费和开源的项目，我们鼓励人们开发并提交自己的扩展程序。',
   export_to_phone: '通过二维码导出到手机',
   export_to_phone_desc:
     '这个二维码包含您钱包的URL。您可以使用手机扫描的方式打开您的钱包。',
@@ -57,10 +57,9 @@ window.localisation.cn = {
   service_fee_max: '服务费：%{amount}% 每笔交易（最高 %{max} sats）',
   service_fee_tooltip: 'LNbits服务器管理员每笔外发交易收取的服务费',
   toggle_darkmode: '切换暗黑模式',
-  payment_reactions: '支付反应',
   view_swagger_docs: '查看 LNbits Swagger API 文档',
   api_docs: 'API文档',
-  api_keys_api_docs: '节点URL、API密钥和API文档',
+  api_keys_api_docs: 'API密钥和API文档',
   lnbits_version: 'LNbits版本',
   runs_on: '可运行在',
   credit_hint: '按 Enter 键充值账户',
@@ -180,11 +179,6 @@ window.localisation.cn = {
   allow_access_hint: '允许通过IP访问（将覆盖被屏蔽的IP）',
   enter_ip: '输入IP地址并按回车键',
   rate_limiter: '速率限制器',
-  wallet_limiter: '钱包限制器',
-  wallet_limit_max_withdraw_per_day:
-    '每日钱包最大提现额度（单位：sats）（设为0则禁用）',
-  wallet_max_ballance: '钱包最大余额（以sats计）（设为0则禁用）',
-  wallet_limit_secs_between_trans: '每个钱包交易间最少秒数（设为0则禁用）',
   number_of_requests: '请求次数',
   time_unit: '时间单位',
   minute: '分钟',
@@ -202,8 +196,7 @@ window.localisation.cn = {
   create_account: '创建账户',
   account_settings: '账户设置',
   signin_with_google: '使用谷歌账号登录',
-  signin_with_github: '使用GitHub登录',
-  signin_with_keycloak: '使用Keycloak登录',
+  signin_with_github: '使用 GitHub 登录',
   username_or_email: '用户名或电子邮箱',
   password: '密码',
   password_config: '密码配置',
@@ -226,8 +219,5 @@ window.localisation.cn = {
   auth_provider: '认证提供者',
   my_account: '我的账户',
   back: '返回',
-  logout: '注销',
-  look_and_feel: '外观和感觉',
-  language: '语言',
-  color_scheme: '配色方案'
+  logout: '注销'
 }

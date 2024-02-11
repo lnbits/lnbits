@@ -36,7 +36,7 @@ window.localisation.es = {
   name_your_wallet: 'Nombre de su billetera %{name}',
   paste_invoice_label: 'Pegue la factura aquí',
   lnbits_description:
-    'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
+    'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning, actualmente compatible con LND, Core Lightning, OpenNode, Blink, Alby, LNPay y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
   export_to_phone: 'Exportar a teléfono con código QR',
   export_to_phone_desc:
     'Este código QR contiene su URL de billetera con acceso completo. Puede escanearlo desde su teléfono para abrir su billetera allí.',
@@ -61,10 +61,9 @@ window.localisation.es = {
   service_fee_tooltip:
     'Comisión de servicio cobrada por el administrador del servidor LNbits por cada transacción saliente',
   toggle_darkmode: 'Cambiar modo oscuro',
-  payment_reactions: 'Reacciones de Pago',
   view_swagger_docs: 'Ver documentación de API de LNbits Swagger',
   api_docs: 'Documentación de API',
-  api_keys_api_docs: 'URL del nodo, claves de API y documentación de API',
+  api_keys_api_docs: 'Claves de API y documentación de API',
   lnbits_version: 'Versión de LNbits',
   runs_on: 'Corre en',
   credit_hint: 'Presione Enter para cargar la cuenta',
@@ -191,13 +190,6 @@ window.localisation.es = {
   allow_access_hint: 'Permitir acceso por IP (anulará las IPs bloqueadas)',
   enter_ip: 'Ingrese la IP y presione enter',
   rate_limiter: 'Limitador de tasa',
-  wallet_limiter: 'Limitador de Cartera',
-  wallet_limit_max_withdraw_per_day:
-    'Límite diario de retiro de la cartera en sats (0 para deshabilitar)',
-  wallet_max_ballance:
-    'Saldo máximo de la billetera en sats (0 para desactivar)',
-  wallet_limit_secs_between_trans:
-    'Mín. segs entre transacciones por cartera (0 para desactivar)',
   number_of_requests: 'Número de solicitudes',
   time_unit: 'Unidad de tiempo',
   minute: 'minuto',
@@ -217,7 +209,6 @@ window.localisation.es = {
   account_settings: 'Configuración de la cuenta',
   signin_with_google: 'Inicia sesión con Google',
   signin_with_github: 'Inicia sesión con GitHub',
-  signin_with_keycloak: 'Iniciar sesión con Keycloak',
   username_or_email: 'Nombre de usuario o correo electrónico',
   password: 'Contraseña',
   password_config: 'Configuración de Contraseña',
@@ -240,8 +231,5 @@ window.localisation.es = {
   auth_provider: 'Proveedor de Autenticación',
   my_account: 'Mi cuenta',
   back: 'Atrás',
-  logout: 'Cerrar sesión',
-  look_and_feel: 'Apariencia',
-  language: 'Idioma',
-  color_scheme: 'Esquema de colores'
+  logout: 'Cerrar sesión'
 }
