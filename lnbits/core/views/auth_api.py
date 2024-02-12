@@ -1,5 +1,5 @@
 import importlib
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -325,7 +325,7 @@ def _new_sso(provider: str) -> Optional[SSOBase]:
     return None
 
 
-def _find_auth_provider_class(provider: str) -> Optional[SSOBase]:
+def _find_auth_provider_class(provider: str) -> Callable:
     sso_modules = ["lnbits.core.sso", "fastapi_sso.sso"]
     for module in sso_modules:
         try:
