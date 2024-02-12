@@ -282,18 +282,10 @@ class GoogleAuthSettings(LNbitsSettings):
     google_client_id: str = Field(default="")
     google_client_secret: str = Field(default="")
 
-    @property
-    def is_google_auth_configured(self):
-        return self.google_client_id != "" and self.google_client_secret != ""
-
 
 class GitHubAuthSettings(LNbitsSettings):
     github_client_id: str = Field(default="")
     github_client_secret: str = Field(default="")
-
-    @property
-    def is_github_auth_configured(self):
-        return self.github_client_id != "" and self.github_client_secret != ""
 
 
 class EditableSettings(
