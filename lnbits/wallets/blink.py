@@ -105,52 +105,98 @@ class BlinkWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         # https://dev.blink.sv/api/btc-ln-receive
-        data: Dict = {"amount": f"{amount}"}
+
+        invoice_query = """mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
+        lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
+            invoice {
+            paymentRequest
+            paymentHash
+            paymentSecret
+            satoshis
+            }
+            errors {
+            message
+            }
+        }
+        }
+        """
+        invoice_variables = {
+            "input": {
+                "amount": amount,
+                "recipientWalletId": self.wallet_id,
+                "descriptionHash": '',
+                "memo": ''
+            }
+        }
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            invoice_variables['input']['descriptionHash'] = description_hash.hex()
         elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
+            invoice_variables['input']['descriptionHash']= hashlib.sha256(unhashed_description).hexdigest()
         else:
-            data["memo"] = memo or ""
+            invoice_variables['input']['memo'] = memo or ""
 
-        r = await self.client.post(
-            "/invoices",
-            json=data,
-            timeout=40,
-        )
+        data = {
+            "query": invoice_query,
+            "variables": invoice_variables
+        }
+        response = await self.graphql_query(data)
 
-        if r.is_error:
-            error_message = r.json()["message"]
+        errors = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('errors', {})
+        if len(errors) > 0:
+            error_message = errors[0].get('message')
             return InvoiceResponse(False, None, None, error_message)
+        
+        payment_request = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentRequest', {})
+        checking_id = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentHash', {})
 
-        data = r.json()
-        checking_id = data["payment_hash"]
-        payment_request = data["payment_request"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         #  https://dev.blink.sv/api/btc-ln-send
-        r = await self.client.post(
-            "/payments/bolt11",
-            json={"invoice": bolt11},  # assume never need amount in body
-            timeout=None,
-        )
+        payment_query = """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+            lnInvoicePaymentSend(input: $input) {
+            status
+                errors {
+                    message
+                    path
+                    code
+                    }
+                }
+            }
+        """
+        payment_variables =  {
+            "input": {
+                "paymentRequest": bolt11,
+                "walletId": self.wallet_id,
+                "memo": "Payment memo"
+            }
+        }
+        data = {
+            "query": payment_query,
+            "variables": payment_variables
+        }
+        response = await self.graphql_query(data)
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+        errors = response.get('data', {}).get('lnInvoicePaymentSend', {}).get('errors', {})
+        if len(errors) > 0:
+            error_message = errors[0].get('message')
+            return InvoiceResponse(False, None, None, error_message)
 
-        data = r.json()
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["payment_preimage"]
+        status = response['data']['lnInvoicePaymentSend']['status']
+        # if status == 'PAID' or 'ALREADY_PAID':
 
+        # TODO: get the paymentHash, fee and preimage
+        # checking_id = data['paymentHash']
+        # fee_msat = -data["fee"]
+        # preimage = data["payment_preimage"]
+        
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # TODO: needs to update to Blink graphQL version, in progress
         r = await self.client.get(f"/invoices/{checking_id}")
 
         if r.is_error:
@@ -159,8 +205,8 @@ class BlinkWallet(Wallet):
         data = r.json()
 
         statuses = {
-            "CREATED": None,
-            "SETTLED": True,
+            "PENDING": None,
+            "PAID": True,
         }
         return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
 

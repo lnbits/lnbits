@@ -70,12 +70,83 @@ query LnInvoicePaymentStatus($input: LnInvoicePaymentStatusInput!) {
 }
 """
 
+# fetch payments with proof
+proof_query = """
+    query PaymentsWithProof($first: Int) {
+      me {
+        defaultAccount {
+          transactions(first: $first) {
+            edges {
+              node {
+                initiationVia {
+                  ... on InitiationViaLn {
+                    paymentRequest
+                    paymentHash
+                  }
+                }
+                settlementVia {
+                  ... on SettlementViaIntraLedger {
+                    preImage
+                  }
+                  ... on SettlementViaLn {
+                    preImage
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+"""
+
+
 
 async def graphql_query(payload):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload, headers=headers) as response:
             data = await response.json()
             return data
+        
+
+async def get_payment_proof(checking_id):
+    # checking_id is the paymentHash
+    first = 2
+    variables = {"first": first}
+
+    data = {
+        "query": proof_query,
+        "variables": variables
+    }
+    response_data = await graphql_query(data)
+#    print(f"response_data: {response_data}")
+
+    # look for the paymentHash in the response
+
+    # Get transactions
+    transactions = response_data['data']['me']['defaultAccount']['transactions']['edges']
+    print(f"transactions: {transactions}\n\n")
+
+    # Find the transaction with the matching paymentHash
+    matching_transaction = None
+    for transaction in transactions:
+        payment_hash = transaction['node']['initiationVia']['paymentHash']
+        print(f'payment_hash: {payment_hash}\n')
+        if payment_hash == checking_id:
+            matching_transaction = transaction
+            break
+
+    # Extract paymentRequest and preImage if a matching transaction is found
+    if matching_transaction:
+        payment_request = matching_transaction['node']['initiationVia']['paymentRequest']
+        pre_image = matching_transaction['node']['settlementVia']['preImage']
+        print("Payment Request:", payment_request, "\n")
+        print("Pre Image:", pre_image, "\n")
+        return pre_image, payment_request
+    else:
+        print("No transaction found with the desired payment hash")
+        return False
+
 
 # {'data': {'lnInvoicePaymentSend': {'status': 'SUCCESS', 'errors': []}}}
 async def pay_invoice(invoice, wallet_id) -> json:
@@ -122,6 +193,7 @@ async def get_invoice(amount, wallet_id) -> str:
         "variables": invoice_variables
     }
     response = await graphql_query(data)
+    print(response)
     invoice = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentRequest', {})
     return invoice
 
@@ -182,32 +254,51 @@ async def main():
 
     # get fee estimate
     remote_invoice = "lnbc5u1pjunp9hpp5qtq6hh4udkhndkdsqf05t73j5etquvldv0wekhsgeqnpc6dhvgjsdpv2phhwetjv4jzqcneypqyc6t8dp6xu6twva2xjuzzda6qcqzzsxqrrsssp5c332ejvnvuk75ksh3vwks8tex8tp3lzlmgpmywjm8jpqus0d0l2s9qyyssqre2u2jcn7chtzqu3uarhyw82p5p5xayhjkpmfezep0jukt5wm99nq43chuwavrlst79e30jsxr0exwm0z0ycmtvw70dks9x4534narcp2l750l"
-    print("\nGet Fee Estimate")
-    response = await get_fee_estimate(remote_invoice, wallet_id)
-    print(f"remote_invoice {remote_invoice}")
-    print(response)
-    print("------")
+    # print("\nGet Fee Estimate")
+    # response = await get_fee_estimate(remote_invoice, wallet_id)
+    # print(f"remote_invoice {remote_invoice}")
+    # print(response)
+    # print("------")
 
     amount = 100
     print(f"\nGet a new Invoice, amount {amount} ")
-    new_invoice = await get_invoice(amount, wallet_id)
-    print(f'new invoice: {new_invoice}')
-    print("------")
+    # new_invoice = await get_invoice(amount, wallet_id)
+    # print(f'new invoice: {new_invoice}')
+    # print("------")
 
     # pay invoice (send payment)
-    remote_invoice ="lnbc1u1pjungqepp5elafqwka4eqlymx2vn5radkyma49ug6qzmy6snkcfyvqwae4t25qdpv2phhwetjv4jzqcneypqyc6t8dp6xu6twva2xjuzzda6qcqzzsxqrrsssp56qj4lssk3wxv2y5y3jxwfkectevdyrf340mm3xd0hn3wtj9rafzs9qyyssqu3zx6ceewal5mea5hs6smaaz3pelw5tce82w7pldfnh7fkx6wzyy384teyvywkccwp300zzx4yd3aupcttp2qwwnxk704a4y060ryjcpm0dayl"
-    response = await pay_invoice(remote_invoice, wallet_id)
-    print(f'pay invoice response: {response}')
+    # remote_invoice ="lnbc1u1pjungqepp5elafqwka4eqlymx2vn5radkyma49ug6qzmy6snkcfyvqwae4t25qdpv2phhwetjv4jzqcneypqyc6t8dp6xu6twva2xjuzzda6qcqzzsxqrrsssp56qj4lssk3wxv2y5y3jxwfkectevdyrf340mm3xd0hn3wtj9rafzs9qyyssqu3zx6ceewal5mea5hs6smaaz3pelw5tce82w7pldfnh7fkx6wzyy384teyvywkccwp300zzx4yd3aupcttp2qwwnxk704a4y060ryjcpm0dayl"
+    # response = await pay_invoice(remote_invoice, wallet_id)
+    # print(f'pay invoice response: {response}')
 
     # # get payment status
     response = await get_invoice_status(remote_invoice)
     print(f'payment status response: {response}')
+
+    ## get payment proof based on paymentHash
+    checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
+    response = await get_payment_proof(checking_id)
+    print(f'payment proof response: {response}')
 
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 
+
+# example error response for create invoice
+# {
+#   "data": {
+#     "lnInvoiceCreateOnBehalfOfRecipient": {
+#       "invoice": null,
+#       "errors": [
+#         {
+#           "message": "Invalid value for WalletId"
+#         }
+#       ]
+#     }
+#   }
+# }
 
 
 # Example response Probe fee
