@@ -18,16 +18,13 @@ from lnbits.core.services import (
 )
 from lnbits.settings import get_wallet_class, settings
 from lnbits.tasks import (
-    SseListenersDict,
     create_permanent_task,
     create_task,
     register_invoice_listener,
     send_push_notification,
 )
 
-api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
-    "api_invoice_listeners"
-)
+api_invoice_listeners: Dict[str, asyncio.Queue] = {}
 
 
 def register_killswitch():

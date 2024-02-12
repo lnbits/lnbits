@@ -58,32 +58,7 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-class SseListenersDict(dict):
-    """
-    A dict of sse listeners.
-    """
-
-    def __init__(self, name: Optional[str] = None):
-        self.name = name or f"sse_listener_{str(uuid.uuid4())[:8]}"
-
-    def __setitem__(self, key, value):
-        assert isinstance(key, str), f"{key} is not a string"
-        assert isinstance(value, asyncio.Queue), f"{value} is not an asyncio.Queue"
-        logger.trace(f"sse: adding listener {key} to {self.name}. len = {len(self)+1}")
-        return super().__setitem__(key, value)
-
-    def __delitem__(self, key):
-        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
-        return super().__delitem__(key)
-
-    _RaiseKeyError = object()  # singleton for no-default behavior
-
-    def pop(self, key, v=_RaiseKeyError) -> None:
-        logger.trace(f"sse: removing listener from {self.name}. len = {len(self)-1}")
-        return super().pop(key)
-
-
-invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
+invoice_listeners: Dict[str, asyncio.Queue] = {}
 
 
 def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
