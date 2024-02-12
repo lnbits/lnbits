@@ -307,19 +307,33 @@ def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
 
 def _new_sso(provider: str) -> Optional[SSOBase]:
     try:
-        # if not settings.is_auth_method_allowed(AuthMethods[f"{provider}-auth"]):
-        #     return None
-        # if not settings.is_github_auth_configured:
-        #     logger.warning(f"{provider} Auth allowed but not configured.")
-        #     return None
-        provider_module = importlib.import_module(f"fastapi_sso.sso.{provider}")
-        ProviderSSO = getattr(provider_module, f"{provider.title()}SSO")
-        # todo: custom providder
-        return ProviderSSO(
-            getattr(settings, f"{provider}_client_id"),
-            getattr(settings, f"{provider}_client_secret"),
-            None,
-            allow_insecure_http=True,
-        )
+        if not settings.is_auth_method_allowed(AuthMethods(f"{provider}-auth")):
+            return None
+
+        client_id = getattr(settings, f"{provider}_client_id")
+        client_secret = getattr(settings, f"{provider}_client_secret")
+
+        if not client_id or not client_secret:
+            logger.warning(f"{provider} auth allowed but not configured.")
+            return None
+
+        ProviderSSO = _find_auth_provider_class(provider)
+        return ProviderSSO(client_id, client_secret, None, allow_insecure_http=True)
     except Exception as e:
         logger.warning(e)
+
+    return None
+
+
+def _find_auth_provider_class(provider: str) -> Optional[SSOBase]:
+    sso_modules = ["lnbits.core.sso", "fastapi_sso.sso"]
+    for module in sso_modules:
+        try:
+            provider_module = importlib.import_module(f"{module}.{provider}")
+            ProviderClass = getattr(provider_module, f"{provider.title()}SSO")
+            if ProviderClass:
+                return ProviderClass
+        except Exception:
+            pass
+
+    raise ValueError(f"No SSO provider found for '{provider}'.")
