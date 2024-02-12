@@ -61,7 +61,6 @@ from lnbits.extension_manager import (
     Extension,
     ExtensionRelease,
     InstallableExtension,
-    ReleasePaymentInfo,
     fetch_github_release_config,
     fetch_release_payment_info,
     get_valid_extensions,
@@ -797,7 +796,7 @@ async def api_install_extension(
     data: CreateExtension,
     user: User = Depends(check_admin),
     access_token: Optional[str] = Depends(check_access_token),
-) -> Extension:
+):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive, data.version
     )
@@ -932,7 +931,7 @@ async def get_extension_releases(ext_id: str):
 
 
 @api_router.put("/api/v1/extension/invoice", dependencies=[Depends(check_admin)])
-async def get_extension_invoice(data: CreateExtension) -> ReleasePaymentInfo:
+async def get_extension_invoice(data: CreateExtension):
     try:
         assert data.cost_sats, "A non-zero amount must be specified"
         release = await InstallableExtension.get_extension_release(
