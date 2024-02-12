@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
@@ -15,7 +16,6 @@ from .base import (
     Wallet,
 )
 
-
 class BlinkWallet(Wallet):
     """https://dev.blink.sv/"""
 
@@ -29,10 +29,39 @@ class BlinkWallet(Wallet):
 
         self.endpoint = self.normalize_endpoint(settings.blink_api_endpoint)
         self.auth = {
-            "Authorization": "Bearer " + settings.blink_token,
+            "X-API-KEY" : settings.blink_token,
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        self.wallet_id = None
+
+
+    async def graphql_query(self, payload) -> json:
+        response = await self.client.post(self.endpoint, json=payload, timeout=10)
+        data = response.json()
+        return data
+
+    async def get_wallet_id(self) -> str:
+        """
+        Get the defaultAccount wallet id, required for payments.
+        """
+        try:
+            payload = {
+                "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",
+                "variables": {}
+            }
+            response = await self.graphql_query(payload)
+            wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
+            btc_wallet_ids = [wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"]
+            wallet_id = btc_wallet_ids[0]
+            if not btc_wallet_ids:
+                return StatusResponse("BTC Wallet not found", 0)
+            else: 
+                wallet_id = btc_wallet_ids[0]
+                return wallet_id
+        except (httpx.ConnectError, httpx.RequestError):
+            return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
+
 
     async def cleanup(self):
         try:
@@ -41,19 +70,31 @@ class BlinkWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        try:
-            r = await self.client.get("/balance", timeout=10)
-        except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
-
-        if r.is_error:
-            error_message = r.json()["message"]
-            return StatusResponse(error_message, 0)
-
-        data = r.json()
-        assert data["unit"] == "sat"
+        # is it possible to put this in the __init__ somehow?
+        if self.wallet_id is None:
+            self.wallet_id = await self.get_wallet_id()
+        
+        balance_query = """
+            query Me {
+            me {
+                defaultAccount {
+                wallets {
+                    walletCurrency
+                    balance
+                }
+                }
+            }
+        }
+        """
+        payload = {
+            "query": balance_query,
+            "variables": {}
+        }
+        response = await self.graphql_query(payload)        
+        wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
+        btc_balance = next((wallet['balance'] for wallet in wallets if wallet['walletCurrency'] == 'BTC'), None)
         # multiply balance by 1000 to get msats balance
-        return StatusResponse(None, data["balance"] * 1000)
+        return StatusResponse(None, btc_balance * 1000)
 
     async def create_invoice(
         self,
@@ -124,11 +165,13 @@ class BlinkWallet(Wallet):
         return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        # https://dev.blink.sv/api/websocket
         self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value = await self.queue.get()
             yield value
 
     async def webhook_listener(self):
+        # https://dev.blink.sv/api/webhooks#currently-available-webhook-events
         logger.error("Blink webhook listener disabled")
         return
