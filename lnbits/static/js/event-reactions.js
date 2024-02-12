@@ -1,5 +1,9 @@
-function eventReactionWebocket(event_id, event_function) {
+function eventReactionWebocket(event_id) {
   localUrl = ''
+  reaction = localStorage.getItem('lnbits.reactions')
+  if (!reaction || reaction === 'None') {
+    return
+  }
   if (location.protocol !== 'http:') {
     localUrl = 'wss://' + location.host + '/api/v1/ws/' + event_id
   } else {
@@ -7,10 +11,21 @@ function eventReactionWebocket(event_id, event_function) {
   }
   connection = new WebSocket(localUrl)
   connection.onmessage = function (e) {
-    event_function()
+    try {
+      const parsedData = JSON.parse(e.data)
+      if (parsedData.payment.amount < 0) {
+        return
+      }
+      reaction = localStorage.getItem('lnbits.reactions')
+      if (reaction) {
+        window[reaction.split('|')[1]]()
+      }
+    } catch (e) {
+      console.log(e)
+    }
   }
 }
-function eventReactionBothSidesConfetti() {
+function confettiBothSides() {
   document.getElementById('vue').disabled = true
   var end = Date.now() + 2 * 1000
   var colors = ['#FFD700', '#ffffff']
@@ -39,8 +54,8 @@ function eventReactionBothSidesConfetti() {
   }
   frame()
 }
-function eventReactionFireworksConfetti() {
-  var duration = 15 * 1000
+function confettiFireworks() {
+  var duration = 3 * 1000
   var animationEnd = Date.now() + duration
   var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
 
@@ -70,6 +85,39 @@ function eventReactionFireworksConfetti() {
   }, 250)
 }
 
+function confettiStars() {
+  var defaults = {
+    spread: 360,
+    ticks: 50,
+    gravity: 0,
+    decay: 0.94,
+    startVelocity: 30,
+    colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8']
+  }
+
+  function shoot() {
+    confetti({
+      ...defaults,
+      particleCount: 40,
+      scalar: 1.2,
+      shapes: ['star']
+    })
+
+    confetti({
+      ...defaults,
+      particleCount: 10,
+      scalar: 0.75,
+      shapes: ['circle']
+    })
+  }
+
+  setTimeout(shoot, 0)
+  setTimeout(shoot, 100)
+  setTimeout(shoot, 200)
+  setTimeout(shoot, 0)
+  setTimeout(shoot, 100)
+  setTimeout(shoot, 200)
+}
 !(function (t, e) {
   !(function t(e, n, a, i) {
     var o = !!(

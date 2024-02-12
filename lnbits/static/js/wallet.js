@@ -860,14 +860,11 @@ new Vue({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-
     // listen to incoming payments
-    if (this.reactionToggle) {
-      eventReactionWebocket(this.g.wallet.id, eventReactionBothSidesConfetti)
-    }
     LNbits.events.onInvoicePaid(this.g.wallet, payment =>
       this.onPaymentReceived(payment.payment_hash)
     )
+    eventReactionWebocket(wallet.id)
   }
 })
 
