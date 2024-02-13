@@ -101,6 +101,47 @@ proof_query = """
 """
 
 
+# Transactions by Payment Hash
+tx_query = """
+query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
+  me {
+    defaultAccount {
+      wallets {
+        ... on BTCWallet {
+          transactionsByPaymentHash(paymentHash: $paymentHash) {
+            createdAt
+            direction
+            id
+            memo
+            initiationVia {
+              ... on InitiationViaLn {
+                paymentHash
+                paymentRequest
+              }
+            }
+            status
+            settlementDisplayFee
+            settlementFee
+            settlementAmount
+            settlementCurrency
+            settlementDisplayAmount
+            settlementDisplayCurrency
+            settlementPrice {
+              offset
+              base
+            }
+            settlementVia {
+              ... on SettlementViaLn {
+                preImage
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
 
 async def graphql_query(payload):
     async with aiohttp.ClientSession() as session:
@@ -119,7 +160,6 @@ async def get_payment_proof(checking_id):
         "variables": variables
     }
     response_data = await graphql_query(data)
-#    print(f"response_data: {response_data}")
 
     # look for the paymentHash in the response
 
