@@ -78,6 +78,41 @@
       </div>
     </div>
   </q-card-section>
+  <q-card-section
+    v-if="formData.auth_allowed_methods?.includes('keycloak-auth')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">Keycloak Auth</strong>
+
+    <div class="row">
+      <div class="col-md-4 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.keycloak_discovery_url"
+          label="Keycloak Discovey URL"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-4 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.keycloak_client_id"
+          label="Keycloak Client ID"
+          hint="Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/keycloak/token"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-4 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.keycloak_client_secret"
+          type="password"
+          label="Keycloak Client Secret"
+        >
+        </q-input>
+      </div>
+    </div>
+  </q-card-section>
   <q-separator></q-separator>
   <q-card-section class="q-pa-none">
     <br />
