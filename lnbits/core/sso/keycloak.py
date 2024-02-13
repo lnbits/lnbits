@@ -10,7 +10,7 @@ from fastapi_sso.sso.base import DiscoveryDocument, OpenID, SSOBase
 class KeycloakSSO(SSOBase):
     """Class providing login via Keycloak OAuth"""
 
-    provider = "keycoak"
+    provider = "keycloak"
     scope = ["openid", "email", "profile"]
     discovery_url = ""
 
