@@ -526,6 +526,10 @@ video {
   word-break: break-word;
 }
 
+.whitespace-pre-line {
+  white-space: pre-line;
+}
+
 .q-card code {
   overflow-wrap: break-word;
 }
