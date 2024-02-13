@@ -310,15 +310,24 @@ def _new_sso(provider: str) -> Optional[SSOBase]:
         if not settings.is_auth_method_allowed(AuthMethods(f"{provider}-auth")):
             return None
 
-        client_id = getattr(settings, f"{provider}_client_id")
-        client_secret = getattr(settings, f"{provider}_client_secret")
+        client_id = getattr(settings, f"{provider}_client_id", None)
+        client_secret = getattr(settings, f"{provider}_client_secret", None)
+        discovery_url = getattr(settings, f"{provider}_discovery_url", None)
 
         if not client_id or not client_secret:
             logger.warning(f"{provider} auth allowed but not configured.")
             return None
 
-        ProviderSSO = _find_auth_provider_class(provider)
-        return ProviderSSO(client_id, client_secret, None, allow_insecure_http=True)
+        SSOProviderClass = _find_auth_provider_class(provider)
+        ssoProvider = SSOProviderClass(
+            client_id, client_secret, None, allow_insecure_http=True
+        )
+        if (
+            discovery_url
+            and getattr(ssoProvider, "discovery_url", discovery_url) != discovery_url
+        ):
+            ssoProvider.discovery_url = discovery_url
+        return ssoProvider
     except Exception as e:
         logger.warning(e)
 
