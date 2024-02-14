@@ -1,0 +1,14 @@
+action_id: trunk-single-player-auto-upgrade
+date: 2024-02-13 06:23:08
+run: trunk upgrade cli --single-player-only -n --no-progress --on-upgrade=false --allow-daemon-start=false
+run_from: ""
+trigger: schedule 24h+1h
+result:
+  exit_code: 1
+  out: "\x1b[1m\x1b[31m✖ Please run 'trunk init' to setup trunk in this repository.\x1b[0m\n"
+  err: ""
+timestamp: 1707805388
+full_timestamp:
+  nanos: 158009000
+  seconds: 1707805388
+trunk_version: 1.19.0
