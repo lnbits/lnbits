@@ -263,6 +263,25 @@
                   <div><span v-text="$t('signin_with_github')"></span></div>
                 </q-btn>
               </div>
+              {%endif%} {% if "keycloak-auth" in LNBITS_AUTH_METHODS %}
+              <div class="col-12 full-width q-pa-sm">
+                <q-btn
+                  href="/api/v1/auth/keycloak"
+                  type="a"
+                  outline
+                  no-caps
+                  color="grey"
+                  rounded
+                  class="full-width"
+                >
+                  <q-avatar size="32px" class="q-mr-md">
+                    <q-img
+                      :src="'{{ static_url_for('static', 'images/keycloak-logo.png') }}'"
+                    ></q-img>
+                  </q-avatar>
+                  <div><span v-text="$t('signin_with_keycloak')"></span></div>
+                </q-btn>
+              </div>
               {%endif%}
             </div>
           </q-card-section>

@@ -262,6 +262,7 @@ class AuthMethods(Enum):
     username_and_password = "username-password"
     google_auth = "google-auth"
     github_auth = "github-auth"
+    keycloak_auth = "keycloak-auth"
 
 
 class AuthSettings(LNbitsSettings):
@@ -288,6 +289,12 @@ class GitHubAuthSettings(LNbitsSettings):
     github_client_secret: str = Field(default="")
 
 
+class KeycloakAuthSettings(LNbitsSettings):
+    keycloak_discovery_url: str = Field(default="")
+    keycloak_client_id: str = Field(default="")
+    keycloak_client_secret: str = Field(default="")
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -301,6 +308,7 @@ class EditableSettings(
     AuthSettings,
     GoogleAuthSettings,
     GitHubAuthSettings,
+    KeycloakAuthSettings,
 ):
     @validator(
         "lnbits_admin_users",

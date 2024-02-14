@@ -209,6 +209,7 @@ window.localisation.en = {
   account_settings: 'Account Settings',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
+  signin_with_keycloak: 'Sign in with Keycloak',
   username_or_email: 'Username or Email',
   password: 'Password',
   password_config: 'Password Config',
