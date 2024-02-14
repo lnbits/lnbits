@@ -1097,6 +1097,8 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
         return None
     row_dict = dict(sets)
     row_dict.pop("super_user")
+    row_dict.pop("auth_all_methods")
+
     admin_settings = AdminSettings(
         is_super_user=is_super_user,
         lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
