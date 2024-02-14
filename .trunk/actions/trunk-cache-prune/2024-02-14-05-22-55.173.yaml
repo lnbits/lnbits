@@ -1,0 +1,14 @@
+action_id: trunk-cache-prune
+date: 2024-02-14 05:22:55
+run: trunk cache prune --allow-daemon-start=false
+run_from: ""
+trigger: schedule 24h
+result:
+  exit_code: 1
+  out: "\x1b[1m\x1b[31m✖ Please run 'trunk init' to setup trunk in this repository.\x1b[0m\n"
+  err: ""
+timestamp: 1707888175
+full_timestamp:
+  nanos: 173414000
+  seconds: 1707888175
+trunk_version: 1.19.0

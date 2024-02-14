@@ -1,0 +1,14 @@
+action_id: trunk-upgrade-available
+date: 2024-02-14 18:57:21
+run: trunk upgrade --notify --allow-daemon-start=false
+run_from: ""
+trigger: schedule 1h
+result:
+  exit_code: 1
+  out: "\x1b[1m\x1b[31m✖ Please run 'trunk init' to setup trunk in this repository.\x1b[0m\n"
+  err: ""
+timestamp: 1707937041
+full_timestamp:
+  nanos: 254512000
+  seconds: 1707937041
+trunk_version: 1.19.0
