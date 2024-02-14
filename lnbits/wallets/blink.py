@@ -153,6 +153,7 @@ class BlinkWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         #  https://dev.blink.sv/api/btc-ln-send
+        # TODO: add check fee estimate before paying invoice
         payment_query = """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
             lnInvoicePaymentSend(input: $input) {
             status
@@ -185,6 +186,11 @@ class BlinkWallet(Wallet):
         status = response['data']['lnInvoicePaymentSend']['status']
         # if status == 'PAID' or 'ALREADY_PAID':
 
+        # ALREADY_PAID
+        # FAILURE
+        # PENDING
+        # SUCCESS
+
         # TODO: get the paymentHash, fee and preimage
         # checking_id = data['paymentHash']
         # fee_msat = -data["fee"]
@@ -193,22 +199,64 @@ class BlinkWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)
+        return await self.get_payment_status(checking_id)    
+        # statuses = {
+        #     "EXPIRED": False,
+        #     "PENDING": None, 
+        #     "PAID": True
+        # }
+
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # TODO: needs to update to Blink graphQL version, in progress
-        r = await self.client.get(f"/invoices/{checking_id}")
-
-        if r.is_error:
-            return PaymentStatus(None)
-
-        data = r.json()
+        tx_query = """
+        query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
+        me {
+            defaultAccount {
+            wallets {
+                ... on BTCWallet {
+                transactionsByPaymentHash(paymentHash: $paymentHash) {
+                    createdAt
+                    direction
+                    id
+                    memo
+                    status
+                    settlementFee
+                    settlementVia {
+                    ... on SettlementViaLn {
+                        preImage
+                    }
+                    }
+                }
+                }
+            }
+            }
+        }
+        }
+        """
+        variables = {"paymentHash": checking_id}
+        data = {
+            "query": tx_query,
+            "variables": variables
+        }
+        response = await self.graphql_query(data)
+        txbyPaymentHash = response['data']['me']['defaultAccount']['wallets'][0]['transactionsByPaymentHash'][0]
 
         statuses = {
+            "FAILURE":  False,
             "PENDING": None,
             "PAID": True,
+            "SUCCESS": True
         }
-        return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
+
+        status = txbyPaymentHash['status']
+        print(f'status: {status}')
+        preimage = txbyPaymentHash['settlementVia'].get('preImage')
+        print('preimage: ', preimage)
+        fee = txbyPaymentHash['settlementFee']
+        print(f'fee: {fee}')
+
+        return PaymentStatus(statuses[status], fee_msat=fee*1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         # https://dev.blink.sv/api/websocket
