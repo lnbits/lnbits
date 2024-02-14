@@ -185,11 +185,7 @@ class BlinkWallet(Wallet):
 
         status = response['data']['lnInvoicePaymentSend']['status']
         # if status == 'PAID' or 'ALREADY_PAID':
-
-        # ALREADY_PAID
-        # FAILURE
-        # PENDING
-        # SUCCESS
+        # ALREADY_PAID # FAILURE # PENDING # SUCCESS
 
         # TODO: get the paymentHash, fee and preimage
         # checking_id = data['paymentHash']

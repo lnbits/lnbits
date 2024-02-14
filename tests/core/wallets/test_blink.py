@@ -69,6 +69,18 @@ query LnInvoicePaymentStatus($input: LnInvoicePaymentStatusInput!) {
     }
 }
 """
+# payment status based on bolt11 as input and error codes
+invoice_status = """query Query($input: LnInvoicePaymentStatusInput!) {
+  lnInvoicePaymentStatus(input: $input) {
+    errors {
+      code
+      message
+      path
+    }
+    status
+  }
+}
+"""
 
 # fetch payments with proof
 proof_query = """
@@ -99,7 +111,6 @@ proof_query = """
       }
     }
 """
-
 
 # Transactions by Payment Hash
 tx_query = """
