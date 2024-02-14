@@ -150,6 +150,16 @@ async def graphql_query(payload):
             return data
         
 
+async def get_tx_status(checking_id):
+    # checking_id is the paymentHash
+    variables = {"paymentHash": checking_id}
+    data = {
+        "query": tx_query,
+        "variables": variables
+    }
+    response_data = await graphql_query(data)
+    return response_data
+
 async def get_payment_proof(checking_id):
     # checking_id is the paymentHash
     first = 2
@@ -317,9 +327,12 @@ async def main():
 
     ## get payment proof based on paymentHash
     checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
-    response = await get_payment_proof(checking_id)
-    print(f'payment proof response: {response}')
+    # response = await get_payment_proof(checking_id)
+    # print(f'payment proof response: {response}')
 
+    # get payment status or invoice status based on paymentHash
+    response = await get_tx_status(checking_id)
+    print(f'tx status response: {response}')
 
 
 if __name__ == "__main__":
