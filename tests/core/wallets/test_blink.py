@@ -113,23 +113,8 @@ query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
             direction
             id
             memo
-            initiationVia {
-              ... on InitiationViaLn {
-                paymentHash
-                paymentRequest
-              }
-            }
             status
-            settlementDisplayFee
             settlementFee
-            settlementAmount
-            settlementCurrency
-            settlementDisplayAmount
-            settlementDisplayCurrency
-            settlementPrice {
-              offset
-              base
-            }
             settlementVia {
               ... on SettlementViaLn {
                 preImage
@@ -332,7 +317,19 @@ async def main():
 
     # get payment status or invoice status based on paymentHash
     response = await get_tx_status(checking_id)
-    print(f'tx status response: {response}')
+    print(f'\ntx status response: {response}\n\n')
+
+    txbyPaymentHash = response['data']['me']['defaultAccount']['wallets'][0]['transactionsByPaymentHash'][0]
+    print(txbyPaymentHash)
+
+    status = txbyPaymentHash['status']
+    print('status: ', status)
+
+    preimage = txbyPaymentHash['settlementVia'].get('preImage')
+    print('preimage: ', preimage)
+
+    fee = txbyPaymentHash['settlementFee']
+    print(f'fee: {fee}')
 
 
 if __name__ == "__main__":
