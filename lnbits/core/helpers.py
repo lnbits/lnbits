@@ -70,7 +70,15 @@ async def _stop_extension_background_work(ext_id) -> bool:
     try:
         logger.info(f"Stopping background work for extension '{ext.module_name}'.")
         old_module = importlib.import_module(ext.module_name)
-        await old_module.api_stop()
+
+        # Extensions must expose an `{ext_id}_stop()` function at the module level
+        # The `api_stop()` function is for backwards compatibility (will be deprecated)
+        stop_fns = [f"{ext_id}_stop", "api_stop"]
+        stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
+        assert stop_fn_name, "No stop function found for '{ext.module_name}'"
+
+        await getattr(old_module, stop_fn_name)()
+
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
     except Exception as ex:
         logger.warning(f"Failed to stop background work for '{ext.module_name}'.")
@@ -81,7 +89,9 @@ async def _stop_extension_background_work(ext_id) -> bool:
 
 
 async def _stop_extension_background_work_via_api(ext_id, user, access_token):
-    logger.info(f"Stoping background work for extension '{ext_id}' using the REST API.")
+    logger.info(
+        f"Stopping background work for extension '{ext_id}' using the REST API."
+    )
     async with httpx.AsyncClient() as client:
         try:
             url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
@@ -90,6 +100,7 @@ async def _stop_extension_background_work_via_api(ext_id, user, access_token):
             )
             resp = await client.delete(url=url, headers=headers)
             resp.raise_for_status()
+            logger.info(f"Stopped background work for extension '{ext_id}'.")
         except Exception as ex:
             logger.warning(
                 f"Failed to stop background work for '{ext_id}' using the REST API."
