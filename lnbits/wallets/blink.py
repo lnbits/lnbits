@@ -1,5 +1,7 @@
 import asyncio
 import hashlib
+import base64
+import re
 import json
 from typing import AsyncGenerator, Optional
 
@@ -179,6 +181,7 @@ class BlinkWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
+    
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         #  https://dev.blink.sv/api/btc-ln-send
         # TODO: add check fee estimate before paying invoice
@@ -210,17 +213,12 @@ class BlinkWallet(Wallet):
             error_message = errors[0].get("message")
             return PaymentResponse(False, None, None, None, error_message)
 
-        status = response["data"]["lnInvoicePaymentSend"]["status"]
-        # if status == 'PAID' or 'ALREADY_PAID':
-        # ALREADY_PAID # FAILURE # PENDING # SUCCESS
-        
-        # TODO: get paymentHash from bolt11
-        # TODO: get the paymentHash, fee and preimage from payment status
-        # checking_id = data['paymentHash']
-        # fee_msat = -data["fee"]
-        # preimage = data["payment_preimage"]
+        checking_id = get_payment_hash(bolt11) # todo
+        payment_status = await self.get_payment_status(checking_id)
+        fee_msat = payment_status.fee_msat
+        preimage = payment_status.preimage
+        return PaymentResponse(True, checking_id, fee_msat, preimage , None)
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
@@ -256,8 +254,6 @@ class BlinkWallet(Wallet):
         response = await self.graphql_query(data)
         wallets = response["data"]["me"]["defaultAccount"]["wallets"]
         txbyPaymentHash = wallets[0]["transactionsByPaymentHash"][0]
-        # txbyPaymentHash = response["data"]["me"]["defaultAccount"]["wallets"]
-        # [0]["transactionsByPaymentHash"][0]
 
         statuses = {"FAILURE": False, "EXPIRED": False, "PENDING": None, "PAID": True, "SUCCESS": True}
 
