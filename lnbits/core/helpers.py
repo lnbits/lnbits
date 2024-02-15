@@ -53,8 +53,36 @@ async def stop_extension_background_work(
 ):
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
-    Extensions SHOULD expose a DELETE enpoint at the root level of their API.
+    Extensions SHOULD expose a `api_stop()` function and/or a DELETE enpoint
+    at the root level of their API.
     """
+    stopped = await _stop_extension_background_work(ext_id)
+
+    if not stopped:
+        # fallback to REST API call
+        await _stop_extension_background_work_via_api(ext_id, user, access_token)
+
+
+async def _stop_extension_background_work(ext_id) -> bool:
+    try:
+        logger.info(f"Stopping background work for extension '{ext.module_name}'.")
+
+        upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
+        ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
+        old_module = importlib.import_module(ext.module_name)
+        await old_module.api_stop()
+
+        logger.info(f"Stopped background work for extension '{ext.module_name}'.")
+        return True
+    except Exception as ex:
+        logger.warning(f"Failed to stop background work for '{ext.module_name}'.")
+        logger.warning(ex)
+
+    return False
+
+
+async def _stop_extension_background_work_via_api(ext_id, user, access_token):
+    logger.info(f"Stoping background work for extension '{ext_id}' using the REST API.")
     async with httpx.AsyncClient() as client:
         try:
             url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
@@ -64,6 +92,9 @@ async def stop_extension_background_work(
             resp = await client.delete(url=url, headers=headers)
             resp.raise_for_status()
         except Exception as ex:
+            logger.warning(
+                f"Failed to stop background work for '{ext_id}' using the REST API."
+            )
             logger.warning(ex)
 
 
