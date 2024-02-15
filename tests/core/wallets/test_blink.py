@@ -1,12 +1,13 @@
-import aiohttp
 import asyncio
 import json
 import os
 
-url =  os.environ.get('BLINK_API_ENDPOINT')
+import aiohttp
+
+url = os.environ.get("BLINK_API_ENDPOINT")
 headers = {
     "Content-Type": "application/json",
-    "X-API-KEY": os.environ.get('BLINK_TOKEN')
+    "X-API-KEY": os.environ.get("BLINK_TOKEN"),
 }
 
 
@@ -139,53 +140,53 @@ query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
 }
 """
 
+
 async def graphql_query(payload):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload, headers=headers) as response:
             data = await response.json()
             return data
-        
+
 
 async def get_tx_status(checking_id):
     # checking_id is the paymentHash
     variables = {"paymentHash": checking_id}
-    data = {
-        "query": tx_query,
-        "variables": variables
-    }
+    data = {"query": tx_query, "variables": variables}
     response_data = await graphql_query(data)
     return response_data
+
 
 async def get_payment_proof(checking_id):
     # checking_id is the paymentHash
     first = 2
     variables = {"first": first}
 
-    data = {
-        "query": proof_query,
-        "variables": variables
-    }
+    data = {"query": proof_query, "variables": variables}
     response_data = await graphql_query(data)
 
     # look for the paymentHash in the response
 
     # Get transactions
-    transactions = response_data['data']['me']['defaultAccount']['transactions']['edges']
+    transactions = response_data["data"]["me"]["defaultAccount"]["transactions"][
+        "edges"
+    ]
     print(f"transactions: {transactions}\n\n")
 
     # Find the transaction with the matching paymentHash
     matching_transaction = None
     for transaction in transactions:
-        payment_hash = transaction['node']['initiationVia']['paymentHash']
-        print(f'payment_hash: {payment_hash}\n')
+        payment_hash = transaction["node"]["initiationVia"]["paymentHash"]
+        print(f"payment_hash: {payment_hash}\n")
         if payment_hash == checking_id:
             matching_transaction = transaction
             break
 
     # Extract paymentRequest and preImage if a matching transaction is found
     if matching_transaction:
-        payment_request = matching_transaction['node']['initiationVia']['paymentRequest']
-        pre_image = matching_transaction['node']['settlementVia']['preImage']
+        payment_request = matching_transaction["node"]["initiationVia"][
+            "paymentRequest"
+        ]
+        pre_image = matching_transaction["node"]["settlementVia"]["preImage"]
         print("Payment Request:", payment_request, "\n")
         print("Pre Image:", pre_image, "\n")
         return pre_image, payment_request
@@ -196,34 +197,24 @@ async def get_payment_proof(checking_id):
 
 # {'data': {'lnInvoicePaymentSend': {'status': 'SUCCESS', 'errors': []}}}
 async def pay_invoice(invoice, wallet_id) -> json:
-    payment_variables =  {
-         "input": {
+    payment_variables = {
+        "input": {
             "paymentRequest": invoice,
             "walletId": wallet_id,
-            "memo": "Payment memo"
+            "memo": "Payment memo",
         }
     }
-    data = {
-        "query": payment_query,
-        "variables": payment_variables
-    }
+    data = {"query": payment_query, "variables": payment_variables}
     response = await graphql_query(data)
     return response
 
 
 async def get_fee_estimate(remote_invoice, wallet_id) -> json:
-    fee_variables = {
-        "input": {
-            "paymentRequest": remote_invoice,
-            "walletId": wallet_id
-        }
-    }
-    data = {
-        "query": fee_query,
-        "variables": fee_variables
-    }
+    fee_variables = {"input": {"paymentRequest": remote_invoice, "walletId": wallet_id}}
+    data = {"query": fee_query, "variables": fee_variables}
     response = await graphql_query(data)
     return response
+
 
 async def get_invoice(amount, wallet_id) -> str:
     invoice_variables = {
@@ -234,46 +225,58 @@ async def get_invoice(amount, wallet_id) -> str:
             # "memo": "Example memo"
         }
     }
-    data = {
-        "query": invoice_query,
-        "variables": invoice_variables
-    }
+    data = {"query": invoice_query, "variables": invoice_variables}
     response = await graphql_query(data)
     print(response)
-    invoice = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentRequest', {})
+    invoice = (
+        response.get("data", {})
+        .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+        .get("invoice", {})
+        .get("paymentRequest", {})
+    )
     return invoice
 
 
 # {'data': {'lnInvoicePaymentStatus': {'status': 'PAID'}}}
 # {'data': {'lnInvoicePaymentStatus': {'status': 'PENDING'}}}
 async def get_invoice_status(bolt11) -> json:
-    status_variables = {"input": {"paymentRequest": bolt11 }}
-    data = {
-        "query": status_query,
-        "variables": status_variables
-    }
+    status_variables = {"input": {"paymentRequest": bolt11}}
+    data = {"query": status_query, "variables": status_variables}
     response = await graphql_query(data)
     return response
 
 
 async def get_balance() -> int:
-    data = {
-        "query": balance_query,
-        "variables": {}
-    }
+    data = {"query": balance_query, "variables": {}}
     response = await graphql_query(data)
-    wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
-    btc_balance = next((wallet['balance'] for wallet in wallets if wallet['walletCurrency'] == 'BTC'), None)
+    wallets = (
+        response.get("data", {})
+        .get("me", {})
+        .get("defaultAccount", {})
+        .get("wallets", [])
+    )
+    btc_balance = next(
+        (wallet["balance"] for wallet in wallets if wallet["walletCurrency"] == "BTC"),
+        None,
+    )
     return btc_balance
+
 
 async def get_wallet_id() -> str:
     wallet_payload = {
         "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",
-        "variables": {}
+        "variables": {},
     }
     response = await graphql_query(wallet_payload)
-    wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
-    btc_wallet_ids = [wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"]
+    wallets = (
+        response.get("data", {})
+        .get("me", {})
+        .get("defaultAccount", {})
+        .get("wallets", [])
+    )
+    btc_wallet_ids = [
+        wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"
+    ]
     wallet_id = btc_wallet_ids[0]
     return wallet_id
 
@@ -282,13 +285,13 @@ async def main():
     # get wallet id payload
     print("\nGet wallet id")
     wallet_id = await get_wallet_id()
-    print(f'wallet id: {wallet_id}')
+    print(f"wallet id: {wallet_id}")
     print("------")
 
     # get balance payload
     print("\nGet balance")
     btc_balance = await get_balance()
-    print(f'btc balance: {btc_balance}')
+    print(f"btc balance: {btc_balance}")
     print("------")
 
     print("\nGet Invoice status")
@@ -319,7 +322,7 @@ async def main():
 
     # # get payment status
     response = await get_invoice_status(remote_invoice)
-    print(f'payment status response: {response}')
+    print(f"payment status response: {response}")
 
     ## get payment proof based on paymentHash
     checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
@@ -328,19 +331,21 @@ async def main():
 
     # get payment status or invoice status based on paymentHash
     response = await get_tx_status(checking_id)
-    print(f'\ntx status response: {response}\n\n')
+    print(f"\ntx status response: {response}\n\n")
 
-    txbyPaymentHash = response['data']['me']['defaultAccount']['wallets'][0]['transactionsByPaymentHash'][0]
+    txbyPaymentHash = response["data"]["me"]["defaultAccount"]["wallets"][0][
+        "transactionsByPaymentHash"
+    ][0]
     print(txbyPaymentHash)
 
-    status = txbyPaymentHash['status']
-    print('status: ', status)
+    status = txbyPaymentHash["status"]
+    print("status: ", status)
 
-    preimage = txbyPaymentHash['settlementVia'].get('preImage')
-    print('preimage: ', preimage)
+    preimage = txbyPaymentHash["settlementVia"].get("preImage")
+    print("preimage: ", preimage)
 
-    fee = txbyPaymentHash['settlementFee']
-    print(f'fee: {fee}')
+    fee = txbyPaymentHash["settlementFee"]
+    print(f"fee: {fee}")
 
 
 if __name__ == "__main__":

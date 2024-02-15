@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
@@ -16,6 +16,7 @@ from .base import (
     Wallet,
 )
 
+
 class BlinkWallet(Wallet):
     """https://dev.blink.sv/"""
 
@@ -29,12 +30,11 @@ class BlinkWallet(Wallet):
 
         self.endpoint = self.normalize_endpoint(settings.blink_api_endpoint)
         self.auth = {
-            "X-API-KEY" : settings.blink_token,
+            "X-API-KEY": settings.blink_token,
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
         self.wallet_id = None
-
 
     async def graphql_query(self, payload) -> json:
         response = await self.client.post(self.endpoint, json=payload, timeout=10)
@@ -48,20 +48,26 @@ class BlinkWallet(Wallet):
         try:
             payload = {
                 "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",
-                "variables": {}
+                "variables": {},
             }
             response = await self.graphql_query(payload)
-            wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
-            btc_wallet_ids = [wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"]
+            wallets = (
+                response.get("data", {})
+                .get("me", {})
+                .get("defaultAccount", {})
+                .get("wallets", [])
+            )
+            btc_wallet_ids = [
+                wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"
+            ]
             wallet_id = btc_wallet_ids[0]
             if not btc_wallet_ids:
                 return StatusResponse("BTC Wallet not found", 0)
-            else: 
+            else:
                 wallet_id = btc_wallet_ids[0]
                 return wallet_id
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
-
 
     async def cleanup(self):
         try:
@@ -73,7 +79,7 @@ class BlinkWallet(Wallet):
         # is it possible to put this in the __init__ somehow?
         if self.wallet_id is None:
             self.wallet_id = await self.get_wallet_id()
-        
+
         balance_query = """
             query Me {
             me {
@@ -86,13 +92,22 @@ class BlinkWallet(Wallet):
             }
         }
         """
-        payload = {
-            "query": balance_query,
-            "variables": {}
-        }
-        response = await self.graphql_query(payload)        
-        wallets = response.get("data", {}).get("me", {}).get("defaultAccount", {}).get("wallets", [])
-        btc_balance = next((wallet['balance'] for wallet in wallets if wallet['walletCurrency'] == 'BTC'), None)
+        payload = {"query": balance_query, "variables": {}}
+        response = await self.graphql_query(payload)
+        wallets = (
+            response.get("data", {})
+            .get("me", {})
+            .get("defaultAccount", {})
+            .get("wallets", [])
+        )
+        btc_balance = next(
+            (
+                wallet["balance"]
+                for wallet in wallets
+                if wallet["walletCurrency"] == "BTC"
+            ),
+            None,
+        )
         # multiply balance by 1000 to get msats balance
         return StatusResponse(None, btc_balance * 1000)
 
@@ -124,30 +139,43 @@ class BlinkWallet(Wallet):
             "input": {
                 "amount": amount,
                 "recipientWalletId": self.wallet_id,
-                "descriptionHash": '',
-                "memo": ''
+                "descriptionHash": "",
+                "memo": "",
             }
         }
         if description_hash:
-            invoice_variables['input']['descriptionHash'] = description_hash.hex()
+            invoice_variables["input"]["descriptionHash"] = description_hash.hex()
         elif unhashed_description:
-            invoice_variables['input']['descriptionHash']= hashlib.sha256(unhashed_description).hexdigest()
+            invoice_variables["input"]["descriptionHash"] = hashlib.sha256(
+                unhashed_description
+            ).hexdigest()
         else:
-            invoice_variables['input']['memo'] = memo or ""
+            invoice_variables["input"]["memo"] = memo or ""
 
-        data = {
-            "query": invoice_query,
-            "variables": invoice_variables
-        }
+        data = {"query": invoice_query, "variables": invoice_variables}
         response = await self.graphql_query(data)
 
-        errors = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('errors', {})
+        errors = (
+            response.get("data", {})
+            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+            .get("errors", {})
+        )
         if len(errors) > 0:
-            error_message = errors[0].get('message')
+            error_message = errors[0].get("message")
             return InvoiceResponse(False, None, None, error_message)
-        
-        payment_request = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentRequest', {})
-        checking_id = response.get('data', {}).get('lnInvoiceCreateOnBehalfOfRecipient', {}).get('invoice', {}).get('paymentHash', {})
+
+        payment_request = (
+            response.get("data", {})
+            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+            .get("invoice", {})
+            .get("paymentRequest", {})
+        )
+        checking_id = (
+            response.get("data", {})
+            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+            .get("invoice", {})
+            .get("paymentHash", {})
+        )
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
@@ -165,46 +193,39 @@ class BlinkWallet(Wallet):
                 }
             }
         """
-        payment_variables =  {
+        payment_variables = {
             "input": {
                 "paymentRequest": bolt11,
                 "walletId": self.wallet_id,
-                "memo": "Payment memo"
+                "memo": "Payment memo",
             }
         }
-        data = {
-            "query": payment_query,
-            "variables": payment_variables
-        }
+        data = {"query": payment_query, "variables": payment_variables}
         response = await self.graphql_query(data)
 
-        errors = response.get('data', {}).get('lnInvoicePaymentSend', {}).get('errors', {})
+        errors = (
+            response.get("data", {}).get("lnInvoicePaymentSend", {}).get("errors", {})
+        )
         if len(errors) > 0:
-            error_message = errors[0].get('message')
+            error_message = errors[0].get("message")
             return InvoiceResponse(False, None, None, error_message)
 
-        status = response['data']['lnInvoicePaymentSend']['status']
+        status = response["data"]["lnInvoicePaymentSend"]["status"]
         # if status == 'PAID' or 'ALREADY_PAID':
         # ALREADY_PAID # FAILURE # PENDING # SUCCESS
-
-        # TODO: get the paymentHash, fee and preimage
+        
+        # TODO: get paymentHash from bolt11
+        # TODO: get the paymentHash, fee and preimage from payment status
         # checking_id = data['paymentHash']
         # fee_msat = -data["fee"]
         # preimage = data["payment_preimage"]
-        
+
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)    
-        # statuses = {
-        #     "EXPIRED": False,
-        #     "PENDING": None, 
-        #     "PAID": True
-        # }
-
+        return await self.get_payment_status(checking_id)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # TODO: needs to update to Blink graphQL version, in progress
         tx_query = """
         query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
         me {
@@ -231,28 +252,23 @@ class BlinkWallet(Wallet):
         }
         """
         variables = {"paymentHash": checking_id}
-        data = {
-            "query": tx_query,
-            "variables": variables
-        }
+        data = {"query": tx_query, "variables": variables}
         response = await self.graphql_query(data)
-        txbyPaymentHash = response['data']['me']['defaultAccount']['wallets'][0]['transactionsByPaymentHash'][0]
+        wallets = response["data"]["me"]["defaultAccount"]["wallets"]
+        txbyPaymentHash = wallets[0]["transactionsByPaymentHash"][0]
+        # txbyPaymentHash = response["data"]["me"]["defaultAccount"]["wallets"]
+        # [0]["transactionsByPaymentHash"][0]
 
-        statuses = {
-            "FAILURE":  False,
-            "PENDING": None,
-            "PAID": True,
-            "SUCCESS": True
-        }
+        statuses = {"FAILURE": False, "EXPIRED": False, "PENDING": None, "PAID": True, "SUCCESS": True}
 
-        status = txbyPaymentHash['status']
-        print(f'status: {status}')
-        preimage = txbyPaymentHash['settlementVia'].get('preImage')
-        print('preimage: ', preimage)
-        fee = txbyPaymentHash['settlementFee']
-        print(f'fee: {fee}')
+        status = txbyPaymentHash["status"]
+        print(f"status: {status}")
+        preimage = txbyPaymentHash["settlementVia"].get("preImage")
+        print("preimage: ", preimage)
+        fee = txbyPaymentHash["settlementFee"]
+        print(f"fee: {fee}")
 
-        return PaymentStatus(statuses[status], fee_msat=fee*1000, preimage=preimage)
+        return PaymentStatus(statuses[status], fee_msat=fee * 1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         # https://dev.blink.sv/api/websocket
