@@ -68,6 +68,16 @@ class InstalledExtensionsSettings(LNbitsSettings):
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: List[Any] = Field(default=[])
 
+    def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
+        return next(
+            (e for e in self.lnbits_upgraded_extensions if e.endswith(f"/{ext_id}")),
+            None,
+        )
+
+    def extension_upgrade_hash(self, ext_id: str) -> Optional[str]:
+        path = settings.extension_upgrade_path(ext_id)
+        return path.split("/")[0] if path else None
+
 
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
