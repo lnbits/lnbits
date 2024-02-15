@@ -4,6 +4,12 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
+<style>
+  .introjs-tooltip-custom .introjs-tooltiptext,
+  .introjs-tooltip-header {
+    color: #111;
+  }
+</style>
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
@@ -34,7 +40,7 @@
         } : ''"
         >
           <q-card-section>
-            <h3 class="q-my-none text-no-wrap">
+            <h3 class="q-my-none text-no-wrap" id="wallet-balance">
               <strong v-text="formattedBalance"></strong>
               <small>{{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
@@ -68,7 +74,10 @@
               </div>
             </div>
           </q-card-section>
-          <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
+          <div
+            class="row q-pb-md q-px-md q-col-gutter-md gt-sm"
+            id="wallet-buttons"
+          >
             <div class="col">
               <q-btn
                 unelevated
@@ -165,6 +174,7 @@
               :hide-header="mobileSimple"
               :hide-bottom="mobileSimple"
               @request="fetchPayments"
+              id="wallet-table"
             >
               <template v-slot:header="props">
                 <q-tr :props="props">
@@ -895,6 +905,7 @@
       </q-dialog>
 
       <q-tabs
+        id="mobile-wallet-buttons"
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
         active-class="px-0"
         indicator-color="transparent"

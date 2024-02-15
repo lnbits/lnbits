@@ -818,6 +818,105 @@ new Vue({
       navigator.clipboard.readText().then(text => {
         this.$refs.textArea.value = text
       })
+    },
+    checkFirstUse() {
+      const url = window.location.href
+      const queryString = url.split('?')[1]
+      const queryObject = {}
+
+      if (queryString) {
+        for (const param of queryString.split('&')) {
+          const [key, value] = param.split('=')
+          queryObject[key] = value
+        }
+      }
+
+      if (queryObject.hasOwnProperty('first_use')) {
+        const scriptTag = document.createElement('script')
+        scriptTag.src = 'https://unpkg.com/intro.js/intro.js'
+        const linkTag = document.createElement('link')
+        linkTag.rel = 'stylesheet'
+        linkTag.href = 'https://unpkg.com/intro.js/introjs.css'
+
+        document.body.appendChild(scriptTag)
+        document.head.appendChild(linkTag)
+        scriptTag.onload = () => {
+          if (!this.g.visibleDrawer) {
+            this.g.visibleDrawer = true
+          }
+          this.runOnboarding()
+        }
+      }
+    },
+    runOnboarding() {
+      introJs()
+        .onbeforechange(step => {
+          if (!step.id || !this.mobileSimple) return
+          if (step.id === 'wallet-list' || step.id === 'admin-manage') {
+            this.g.visibleDrawer = true
+          } else {
+            this.g.visibleDrawer = false
+          }
+        })
+        // .onbeforeexit(() => {
+        //   return window.history.replaceState(
+        //     null,
+        //     null,
+        //     window.location.pathname
+        //   )
+        // })
+        .setOptions({
+          disableInteraction: true,
+          tooltipClass: 'introjs-tooltip-custom',
+          dontShowAgain: true,
+          steps: [
+            {
+              title: 'Welcome to LNbits',
+              intro: 'Start your tour!'
+            },
+            {
+              title: 'Access your wallet',
+              element: document.getElementById('wallet-list'),
+              position: 'right',
+              intro:
+                'Wallets are the core of LNbits. They are the place where you can store your funds.'
+            },
+            {
+              title: 'Access extensions',
+              element: document.getElementById('admin-manage'),
+              position: 'right',
+              intro:
+                'Extensions are the way to add functionality to your LNbits. You view and access them here.'
+            },
+            {
+              title: 'Wallet balance',
+              element: document.getElementById('wallet-balance'),
+              position: 'right',
+              intro: 'Your wallet balance is displayed here.'
+            },
+            {
+              title: 'Send and receive payments',
+              element: document.getElementById(
+                this.mobileSimple ? 'mobile-wallet-buttons' : 'wallet-buttons'
+              ),
+              position: 'bottom',
+              intro:
+                'Use these buttons to send and receive payments or scan a QR code.'
+            },
+            {
+              title: 'Transaction details',
+              element: document.getElementById('wallet-table'),
+              position: 'bottom',
+              intro:
+                'Here you can see all the transactions made in your wallet. You can also export them as a CSV file.'
+            },
+            {
+              title: 'Farewell!',
+              intro: '<img src="static/images/logos/lnbits.svg" width=100%/>'
+            }
+          ]
+        })
+        .start()
     }
   },
   watch: {
@@ -865,6 +964,7 @@ new Vue({
       this.onPaymentReceived(payment.payment_hash)
     )
     eventReactionWebocket(wallet.id)
+    this.checkFirstUse()
   }
 })
 

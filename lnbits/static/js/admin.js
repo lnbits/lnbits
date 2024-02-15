@@ -56,7 +56,6 @@ new Vue({
     this.getSettings()
     this.getAudit()
     this.balance = +'{{ balance|safe }}'
-    // this.runOnboarding()
   },
   mounted() {
     const url = window.location.href
@@ -79,12 +78,10 @@ new Vue({
 
       document.body.appendChild(scriptTag)
       document.head.appendChild(linkTag)
-      console.log('onboarding')
       scriptTag.onload = () => {
         this.runOnboarding()
       }
     }
-    //this.runOnboarding()
   },
   computed: {
     lnbitsVersion() {
@@ -99,8 +96,14 @@ new Vue({
   },
   methods: {
     runOnboarding() {
-      console.log(this.$refs)
       introJs()
+        .onbeforeexit(() => {
+          return window.history.replaceState(
+            null,
+            null,
+            window.location.pathname
+          )
+        })
         .setOptions({
           disableInteraction: true,
           tooltipClass: 'introjs-tooltip-custom',
@@ -112,7 +115,7 @@ new Vue({
             },
             {
               title: 'Add a funding source',
-              element: this.$refs['funding-sources'],
+              element: document.getElementById('funding-sources'),
               intro:
                 'Select a Lightning Network funding source to add funds to your LNbits.'
             },

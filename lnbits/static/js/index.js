@@ -50,7 +50,7 @@ new Vue({
           this.password,
           this.passwordRepeat
         )
-        window.location.href = '/wallet'
+        window.location.href = '/wallet?first_use'
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
