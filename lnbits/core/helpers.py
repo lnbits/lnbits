@@ -64,21 +64,20 @@ async def stop_extension_background_work(
 
 
 async def _stop_extension_background_work(ext_id) -> bool:
+    upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
+    ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
+
     try:
         logger.info(f"Stopping background work for extension '{ext.module_name}'.")
-
-        upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
-        ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
         old_module = importlib.import_module(ext.module_name)
         await old_module.api_stop()
-
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
-        return True
     except Exception as ex:
         logger.warning(f"Failed to stop background work for '{ext.module_name}'.")
         logger.warning(ex)
+        return False
 
-    return False
+    return True
 
 
 async def _stop_extension_background_work_via_api(ext_id, user, access_token):
