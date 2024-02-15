@@ -208,7 +208,7 @@ class BlinkWallet(Wallet):
         )
         if len(errors) > 0:
             error_message = errors[0].get("message")
-            return InvoiceResponse(False, None, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         status = response["data"]["lnInvoicePaymentSend"]["status"]
         # if status == 'PAID' or 'ALREADY_PAID':
