@@ -90,6 +90,7 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      origin: window.location.origin,
       user: LNbits.map.user(window.user),
       receive: {
         show: false,

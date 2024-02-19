@@ -62,7 +62,7 @@ window.localisation.en = {
   payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
-  api_keys_api_docs: 'API keys and API docs',
+  api_keys_api_docs: 'Node URL, API keys and API docs',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
