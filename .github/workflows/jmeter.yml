@@ -41,7 +41,7 @@ jobs:
 
       - name: run LNbits
         env:
-          LNBITS_ADMIN_UI: true
+          # LNBITS_ADMIN_UI: true
           SUPER_USER: bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
