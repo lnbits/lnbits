@@ -61,9 +61,10 @@ window.localisation.we = {
   service_fee_tooltip:
     "Ffi gwasanaeth a godir gan weinyddwr gweinydd LNbits ym mhob trafodiad sy'n mynd allan",
   toggle_darkmode: 'Toglo Modd Tywyll',
+  payment_reactions: 'Adweithiau Talu',
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
   api_docs: 'Dogfennau API',
-  api_keys_api_docs: 'Allweddi API a dogfennau API',
+  api_keys_api_docs: 'URL y nod, allweddi API a dogfennau API',
   lnbits_version: 'Fersiwn LNbits',
   runs_on: 'Yn rhedeg ymlaen',
   credit_hint: 'Pwyswch Enter i gyfrif credyd',
@@ -188,6 +189,12 @@ window.localisation.we = {
     "Caniatáu mynediad gan IP (bydd yn diystyru IPs sydd wedi'u blocio)",
   enter_ip: 'Rhowch IP a gwasgwch enter',
   rate_limiter: 'Cyfyngydd Cyfradd',
+  wallet_limiter: 'Cyfyngwr Waled',
+  wallet_limit_max_withdraw_per_day:
+    'Uchafswm tynnu’n ôl waled dyddiol mewn sats (0 i analluogi)',
+  wallet_max_ballance: 'Uchafswm balans y waled mewn sats (0 i analluogi)',
+  wallet_limit_secs_between_trans:
+    'Eiliadau lleiaf rhwng trafodion fesul waled (0 i analluogi)',
   number_of_requests: 'Nifer y ceisiadau',
   time_unit: 'Uned amser',
   minute: 'munud',
@@ -206,6 +213,7 @@ window.localisation.we = {
   account_settings: 'Gosodiadau Cyfrif',
   signin_with_google: 'Mewngofnodi gyda Google',
   signin_with_github: 'Mewngofnodi gyda GitHub',
+  signin_with_keycloak: 'Mewngofnodi gyda Keycloak',
   username_or_email: 'Defnyddiwr neu E-bost',
   password: 'Cyfrinair',
   password_config: 'Ffurfweddiad Cyfrinair',
@@ -228,5 +236,8 @@ window.localisation.we = {
   auth_provider: 'Darparwr Dilysiad',
   my_account: 'Fy Nghyfrif',
   back: 'Yn ôl',
-  logout: 'Allgofnodi'
+  logout: 'Allgofnodi',
+  look_and_feel: 'Edrych a Theimlo',
+  language: 'Iaith',
+  color_scheme: 'Cynllun Lliw'
 }

@@ -61,9 +61,10 @@ window.localisation.pt = {
   service_fee_tooltip:
     'Taxa de serviço cobrada pelo administrador do servidor LNbits por transação de saída',
   toggle_darkmode: 'Alternar modo escuro',
+  payment_reactions: 'Reações de Pagamento',
   view_swagger_docs: 'Ver a documentação da API do LNbits Swagger',
   api_docs: 'Documentação da API',
-  api_keys_api_docs: 'Chaves de API e documentação de API',
+  api_keys_api_docs: 'URL do Nó, chaves de API e documentação de API',
   lnbits_version: 'Versão do LNbits',
   runs_on: 'Executa em',
   credit_hint: 'Pressione Enter para creditar a conta',
@@ -189,6 +190,12 @@ window.localisation.pt = {
   allow_access_hint: 'Permitir acesso por IP (substituirá IPs bloqueados)',
   enter_ip: 'Digite o IP e pressione enter.',
   rate_limiter: 'Limitador de Taxa',
+  wallet_limiter: 'Limitador de Carteira',
+  wallet_limit_max_withdraw_per_day:
+    'Limite diário máximo de saque da carteira em sats (0 para desativar)',
+  wallet_max_ballance: 'Saldo máximo da carteira em sats (0 para desativar)',
+  wallet_limit_secs_between_trans:
+    'Minutos seg. entre transações por carteira (0 para desativar)',
   number_of_requests: 'Número de solicitações',
   time_unit: 'Unidade de tempo',
   minute: 'minuto',
@@ -207,6 +214,7 @@ window.localisation.pt = {
   account_settings: 'Configurações da Conta',
   signin_with_google: 'Entrar com o Google',
   signin_with_github: 'Entrar com o GitHub',
+  signin_with_keycloak: 'Entrar com o Keycloak',
   username_or_email: 'Nome de usuário ou Email',
   password: 'Senha',
   password_config: 'Configuração de Senha',
@@ -229,5 +237,8 @@ window.localisation.pt = {
   auth_provider: 'Provedor de Autenticação',
   my_account: 'Minha Conta',
   back: 'Voltar',
-  logout: 'Sair'
+  logout: 'Sair',
+  look_and_feel: 'Aparência e Sensação',
+  language: 'Idioma',
+  color_scheme: 'Esquema de Cores'
 }
