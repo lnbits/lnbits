@@ -68,9 +68,15 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = No
     A method intended for extensions (and core/tasks.py) to call when they want to be
     notified about new invoice payments incoming. Will emit all incoming payments.
     """
-    name_unique = f"{name or 'no_name'}_{str(uuid.uuid4())[:8]}"
-    logger.trace(f"sse: registering invoice listener {name_unique}")
-    invoice_listeners[name_unique] = send_chan
+    if not name:
+        # fallback to a random name if extension didn't provide one
+        name = f"no_name_{str(uuid.uuid4())[:8]}"
+
+    if invoice_listeners.get(name):
+        logger.warning(f"invoice listener `{name}` already exists, replacing it")
+
+    logger.trace(f"registering invoice listener `{name}`")
+    invoice_listeners[name] = send_chan
 
 
 async def webhook_handler():
@@ -168,10 +174,12 @@ async def invoice_callback_dispatcher(checking_id: str):
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
-        logger.trace(f"sse sending invoice callback for payment {checking_id}")
+        logger.trace(
+            f"invoice listeners: sending invoice callback for payment {checking_id}"
+        )
         await payment.set_pending(False)
-        for chan_name, send_chan in invoice_listeners.items():
-            logger.trace(f"sse sending to chan: {chan_name}")
+        for name, send_chan in invoice_listeners.items():
+            logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)
 
 
