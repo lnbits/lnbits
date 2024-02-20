@@ -64,6 +64,7 @@ def translate_string(lang_from, lang_to, text):
         "cs": "Czech",
         "sk": "Slovak",
         "kr": "Korean",
+        "fi": "Finnish",
     }[lang_to]
     assert os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY env var not set"
     client = OpenAI()
