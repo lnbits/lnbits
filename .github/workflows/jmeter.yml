@@ -60,6 +60,7 @@ jobs:
           curl --location --request PUT 'http://localhost:5000/admin/api/v1/topup/?usr=${{env.super_user}}' --header 'Content-Type: application/json' --data '{ "id": "'$wallet_id'", "amount": 2100000000}'
 
           echo "adminkey=$adminkey" >> $GITHUB_ENV
+          echo "### adminkey=$adminkey"
 
       - name: install jmeter
         run: |
