@@ -97,8 +97,12 @@ window.localisation.en = {
     'This is an LNURL-withdraw QR code for slurping everything from this wallet. Do not share with anyone. It is compatible with balanceCheck and balanceNotify so your wallet may keep pulling the funds continuously from here after the first withdraw.',
   i_understand: 'I understand',
   copy_wallet_url: 'Copy wallet URL',
-  disclaimer_dialog:
-    'To ensure continuous access to your wallets, please remember to securely store your login credentials! Please visit the "My Account" page. This service is in BETA, and we hold no responsibility for people losing access to funds.',
+  disclaimer_dialog_title: 'Important!',
+  disclaimer_dialog: `You *must* save your  login credentials to be able to access your wallet again.If you lose them, you will lose access to your wallet and funds.
+
+Find your  login credentials on your account settings page.
+
+This service is in BETA. LNbits holds no responsibility for loss of access to funds.`,
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   extensions: 'Extensions',

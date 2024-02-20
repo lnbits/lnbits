@@ -922,8 +922,11 @@
 
       <q-dialog v-model="disclaimerDialog.show" position="top">
         <q-card class="q-pa-lg">
-          <h6 class="q-my-md text-primary">Warning</h6>
-          <p v-text="$t('disclaimer_dialog')"></p>
+          <h6
+            class="q-my-md text-primary"
+            v-text="$t('disclaimer_dialog_title')"
+          ></h6>
+          <p class="whitespace-pre-line" v-text="$t('disclaimer_dialog')"></p>
           <div class="row q-mt-lg">
             <q-btn
               outline
