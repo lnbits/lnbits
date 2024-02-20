@@ -14,7 +14,7 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="host" elementType="Argument">
             <stringProp name="Argument.name">host</stringProp>
-            <stringProp name="Argument.value">b8e7-2001-8a0-fa0a-8900-6e39-ed3f-b48-e79e.ngrok-free.app</stringProp>
+            <stringProp name="Argument.value">${__property(host,,127.0.0.1)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="scheme" elementType="Argument">
@@ -22,43 +22,46 @@
             <stringProp name="Argument.value">${__property(scheme,,http)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="port" elementType="Argument">
+            <stringProp name="Argument.name">port</stringProp>
+            <stringProp name="Argument.value">${__property(port,,5000)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="xpubNoFunds" elementType="Argument">
+            <stringProp name="Argument.name">xpubNoFunds</stringProp>
+            <stringProp name="Argument.value">zpub6roF3uF1YsrxvSK9cC7kpT7xt45i6aZffVg5SHWkqcEMTpA2fnB9eF45wgM7EXAmFDazxyWGsDbwCMUTiteYFhBJNLrgpkBjVet9S98UXor</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="xpubWithFunds" elementType="Argument">
+            <stringProp name="Argument.name">xpubWithFunds</stringProp>
+            <stringProp name="Argument.value">zpub6rsRjqj6BTbD9DjqrY4p14tUx5kdA8ZGCTJD99wZTxD5wfvCkyXKrK3s7M3B1eFN6NbRhmbDDRDC8LF3Bn5gmxxN9rF8mDpZsGC6isGrK1g</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
           <elementProp name="adminUserId" elementType="Argument">
             <stringProp name="Argument.name">adminUserId</stringProp>
-            <stringProp name="Argument.value">08752d249648434f9bd125e728851cfd</stringProp>
+            <stringProp name="Argument.value">${__property(adminUserId,,bbbbbbbbbbbb4bbbbbbbbbbbbbbbaaaa)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">admin user with some funds</stringProp>
           </elementProp>
           <elementProp name="adminWalletKey" elementType="Argument">
             <stringProp name="Argument.name">adminWalletKey</stringProp>
-            <stringProp name="Argument.value">9fdb75d4e4ab480d88b1cd1defd35903</stringProp>
+            <stringProp name="Argument.value">${__property(adminWalletKey,,8b1f7387f61f458096ad03166407215f)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">this wallet is going to make some payments</stringProp>
+          </elementProp>
+          <elementProp name="paidChargeCount" elementType="Argument">
+            <stringProp name="Argument.name">paidChargeCount</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="userTipCount" elementType="Argument">
+            <stringProp name="Argument.name">userTipCount</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="thinkTime" elementType="Argument">
             <stringProp name="Argument.name">thinkTime</stringProp>
             <stringProp name="Argument.value">3000</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="lnurlpCount" elementType="Argument">
-            <stringProp name="Argument.name">lnurlpCount</stringProp>
-            <stringProp name="Argument.value">5</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="paymentCountPerLnurlp" elementType="Argument">
-            <stringProp name="Argument.name">paymentCountPerLnurlp</stringProp>
-            <stringProp name="Argument.value">2</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="lnurlwCount" elementType="Argument">
-            <stringProp name="Argument.name">lnurlwCount</stringProp>
-            <stringProp name="Argument.value">3</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="withdrawCountPerLnurlw" elementType="Argument">
-            <stringProp name="Argument.name">withdrawCountPerLnurlw</stringProp>
-            <stringProp name="Argument.value">2</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="port" elementType="Argument">
-            <stringProp name="Argument.name">port</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
