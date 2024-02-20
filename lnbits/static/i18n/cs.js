@@ -61,9 +61,10 @@ window.localisation.cs = {
   service_fee_tooltip:
     'Servisní poplatek účtovaný správcem LNbits serveru za odchozí transakci',
   toggle_darkmode: 'Přepnout tmavý režim',
+  payment_reactions: 'Reakce na platby',
   view_swagger_docs: 'Zobrazit LNbits Swagger API dokumentaci',
   api_docs: 'API dokumentace',
-  api_keys_api_docs: 'API klíče a API dokumentace',
+  api_keys_api_docs: 'Adresa uzlu, API klíče a API dokumentace',
   lnbits_version: 'Verze LNbits',
   runs_on: 'Běží na',
   credit_hint: 'Stiskněte Enter pro připsání na účet',
@@ -187,6 +188,12 @@ window.localisation.cs = {
   allow_access_hint: 'Povolit přístup podle IP (přepíše blokované IP)',
   enter_ip: 'Zadejte IP a stiskněte enter',
   rate_limiter: 'Omezovač počtu požadavků',
+  wallet_limiter: 'Omezení peněženky',
+  wallet_limit_max_withdraw_per_day:
+    'Maximální denní limit pro výběr z peněženky v sats (0 pro deaktivaci)',
+  wallet_max_ballance: 'Maximální zůstatek v peněžence v sats (0 pro zakázání)',
+  wallet_limit_secs_between_trans:
+    'Minimální počet sekund mezi transakcemi na peněženku (0 pro vypnutí)',
   number_of_requests: 'Počet požadavků',
   time_unit: 'Časová jednotka',
   minute: 'minuta',
@@ -205,6 +212,7 @@ window.localisation.cs = {
   account_settings: 'Nastavení účtu',
   signin_with_google: 'Přihlásit se přes Google',
   signin_with_github: 'Přihlásit se přes GitHub',
+  signin_with_keycloak: 'Přihlásit se přes Keycloak',
   username_or_email: 'Uživatelské jméno nebo Email',
   password: 'Heslo',
   password_config: 'Konfigurace hesla',
@@ -227,5 +235,8 @@ window.localisation.cs = {
   auth_provider: 'Poskytovatel ověření',
   my_account: 'Můj účet',
   back: 'Zpět',
-  logout: 'Odhlásit se'
+  logout: 'Odhlásit se',
+  look_and_feel: 'Vzhled a chování',
+  language: 'Jazyk',
+  color_scheme: 'Barevné schéma'
 }
