@@ -478,7 +478,7 @@ def register_async_tasks(app):
         # core invoice listener
         invoice_queue = asyncio.Queue(5)
         register_invoice_listener(invoice_queue, "core")
-        create_permanent_task(wait_for_paid_invoices(invoice_queue))
+        create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
         # TODO: implement watchdog properly
         # create_permanent_task(watchdog_task)
