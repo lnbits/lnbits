@@ -189,23 +189,21 @@ async def pay_invoice(
     If the payment is still in flight, we hope that some other process
     will regularly check for the payment.
     """
-    invoice = bolt11_decode(payment_request)
+    try:
+        invoice = bolt11_decode(payment_request)
+    except Exception:
+        raise InvoiceFailure("Bolt11 decoding failed.")
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
-        raise ValueError("Amountless invoices not supported.")
+        raise InvoiceFailure("Amountless invoices not supported.")
     if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise ValueError("Amount in invoice is too high.")
+        raise InvoiceFailure("Amount in invoice is too high.")
 
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
-
-        if invoice.amount_msat == 0:
-            raise ValueError("Amountless invoices not supported.")
-        if max_sat and invoice.amount_msat > max_sat * 1000:
-            raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
