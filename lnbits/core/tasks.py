@@ -121,6 +121,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
             async with httpx.AsyncClient(headers=headers) as client:
                 try:
                     r = await client.post(url, timeout=4)
+                    r.raise_for_status()
                     await mark_webhook_sent(payment, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
