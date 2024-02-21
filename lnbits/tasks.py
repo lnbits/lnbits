@@ -87,7 +87,7 @@ async def internal_invoice_listener():
     while True:
         checking_id = await internal_invoice_queue.get()
         logger.info("> got internal payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def invoice_listener():
@@ -100,7 +100,7 @@ async def invoice_listener():
     WALLET = get_wallet_class()
     async for checking_id in WALLET.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def check_pending_payments():
