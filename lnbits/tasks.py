@@ -4,7 +4,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Dict, List, Optional
+from typing import Coroutine, Dict, List, Optional
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -21,6 +21,7 @@ from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
 tasks: List[asyncio.Task] = []
+unique_tasks: Dict[str, asyncio.Task] = {}
 
 
 def create_task(coro):
@@ -33,12 +34,33 @@ def create_permanent_task(func):
     return create_task(catch_everything_and_restart(func))
 
 
+def create_unique_task(name: str, coro: Coroutine):
+    if unique_tasks.get(name):
+        logger.warning(f"task `{name}` already exists, cancelling it")
+        try:
+            unique_tasks[name].cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+    task = asyncio.create_task(coro)
+    unique_tasks[name] = task
+    return task
+
+
+def create_permanent_unique_task(name: str, coro: Coroutine):
+    return create_unique_task(name, catch_everything_and_restart(coro))
+
+
 def cancel_all_tasks():
     for task in tasks:
         try:
             task.cancel()
         except Exception as exc:
             logger.warning(f"error while cancelling task: {str(exc)}")
+    for name, task in unique_tasks.items():
+        try:
+            task.cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
 
 
 async def catch_everything_and_restart(func):
