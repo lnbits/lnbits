@@ -78,6 +78,13 @@ class ExtensionConfig(BaseModel):
         return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
+class LoadExtension(BaseModel):
+    routers: Optional[List] = None
+    static_files: Optional[List[dict]] = None
+    redirects: Optional[List[dict]] = None
+    scheduled_tasks: Optional[List] = None
+
+
 def download_url(url, save_path):
     with request.urlopen(url) as dl_file:
         with open(save_path, "wb") as out_file:
