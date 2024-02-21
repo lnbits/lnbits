@@ -100,7 +100,7 @@ class ZBDWallet(Wallet):
                 "internalId": "",
                 "callbackUrl": "",
             },
-            timeout=None,
+            timeout=40,
         )
 
         if r.is_error:
