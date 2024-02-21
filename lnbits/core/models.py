@@ -94,6 +94,34 @@ class UserConfig(BaseModel):
     provider: Optional[str] = "lnbits"  # auth provider
 
 
+class Account(FromRowModel):
+    id: str
+    super_user: Optional[bool] = False
+    admin: Optional[bool] = False
+    username: Optional[str] = None
+    email: Optional[str] = None
+    balance_msat: Optional[int] = 0
+    transaction_count: Optional[int] = 0
+    last_payment: Optional[datetime.datetime] = None
+
+
+class AccountFilters(FilterModel):
+    __search_fields__ = ["id", "email", "username"]
+    __sort_fields__ = [
+        "balance_msat",
+        "email",
+        "username",
+        "transaction_count",
+        "last_payment",
+    ]
+
+    id: str
+    last_payment: Optional[datetime.datetime] = None
+    transaction_count: Optional[int] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None

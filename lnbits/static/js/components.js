@@ -206,6 +206,14 @@ Vue.component('lnbits-manage', {
           <q-item-label lines="1" class="text-caption" v-text="$t('extensions')"></q-item-label>
         </q-item-section>
       </q-item>
+      <q-item clickable tag="a" href="/users">
+        <q-item-section side>
+          <q-icon name="groups" color="grey-5" size="md"></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" class="text-caption" v-text="$t('users')"></q-item-label>
+        </q-item-section>
+      </q-item>
     </q-list>
   `,
 

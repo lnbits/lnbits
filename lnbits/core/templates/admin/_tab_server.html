@@ -169,6 +169,64 @@
         </div>
         <br />
       </div>
+      <h6 class="q-mt-xl q-mb-md">Service Fees</h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p>Service Fee</p>
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_service_fee"
+            label="Service fee (%)"
+            step="0.1"
+            hint="Fee charged per tx (%)"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Service fee max</p>
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_service_fee_max"
+            label="Service fee max (sats)"
+            hint="Max service fee to charge in (sats)"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Fee Wallet</p>
+          <q-input
+            filled
+            v-model="formData.lnbits_service_fee_wallet"
+            label="Fee wallet (wallet ID)"
+            hint="Wallet ID to send funds to"
+          ></q-input>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Disable Service Fee for Internal Payments</p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>Disable Fee</q-item-label>
+              <q-item-label caption
+                >Disable Service Fee for Internal Lightning
+                Payments</q-item-label
+              >
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_service_fee_ignore_internal"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+        </div>
+      </div>
     </div>
   </q-card-section>
 </q-tab-panel>

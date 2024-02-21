@@ -481,7 +481,7 @@ async def node_public(request: Request):
 
 
 @generic_router.get("/admin", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):
+async def admin_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
@@ -495,6 +495,22 @@ async def index(request: Request, user: User = Depends(check_admin)):
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
+            "currencies": list(currencies.keys()),
+        },
+    )
+
+
+@generic_router.get("/users", response_class=HTMLResponse)
+async def users_index(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+    return template_renderer().TemplateResponse(
+        "users/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
             "currencies": list(currencies.keys()),
         },
     )
