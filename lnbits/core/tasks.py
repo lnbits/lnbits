@@ -124,7 +124,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                     r.raise_for_status()
                     await mark_webhook_sent(payment, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
-                    pass
+                    logger.warning(f"Could not send balance_notify to {url}")
 
         await send_payment_push_notification(payment)
 
