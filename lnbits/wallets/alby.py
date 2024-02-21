@@ -126,7 +126,3 @@ class AlbyWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-    async def webhook_listener(self):
-        logger.error("Alby webhook listener disabled")
-        return

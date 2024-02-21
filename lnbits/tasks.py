@@ -6,7 +6,6 @@ import uuid
 from http import HTTPStatus
 from typing import Dict, List, Optional
 
-from fastapi.exceptions import HTTPException
 from loguru import logger
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
@@ -77,17 +76,6 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = No
 
     logger.trace(f"registering invoice listener `{name}`")
     invoice_listeners[name] = send_chan
-
-
-async def webhook_handler():
-    """
-    Returns the webhook_handler for the selected wallet if present. Used by API.
-    """
-    WALLET = get_wallet_class()
-    handler = getattr(WALLET, "webhook_listener", None)
-    if handler:
-        return await handler()
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
 internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
