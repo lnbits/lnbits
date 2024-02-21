@@ -106,10 +106,12 @@ async def dispatch_api_invoice_listeners(payment: Payment):
     """
     for chan_name, send_channel in api_invoice_listeners.items():
         try:
-            logger.debug(f"sending invoice paid event to {chan_name}")
+            logger.debug(f"api invoice listener: sending paid event to {chan_name}")
             send_channel.put_nowait(payment)
         except asyncio.QueueFull:
-            logger.error(f"QueueFull, removing sse listener {send_channel}:{chan_name}")
+            logger.error(
+                f"api invoice listener: QueueFull, removing {send_channel}:{chan_name}"
+            )
             api_invoice_listeners.pop(chan_name)
 
 
