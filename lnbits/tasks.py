@@ -54,10 +54,6 @@ async def catch_everything_and_restart(func):
         await catch_everything_and_restart(func)
 
 
-async def send_push_promise(a, b) -> None:
-    pass
-
-
 invoice_listeners: Dict[str, asyncio.Queue] = {}
 
 
