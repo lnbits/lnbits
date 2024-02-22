@@ -92,6 +92,10 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
 
 def get_current_extension_name() -> str:
     """
+    DEPRECATED: Use the repo name instead, will be removed in the future
+    before: `register_invoice_listener(invoice_queue, get_current_extension_name())`
+    after: `register_invoice_listener(invoice_queue, "my-extension")`
+
     Returns the name of the extension that calls this method.
     """
     import inspect

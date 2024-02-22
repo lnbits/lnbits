@@ -57,9 +57,10 @@ window.localisation.cn = {
   service_fee_max: '服务费：%{amount}% 每笔交易（最高 %{max} sats）',
   service_fee_tooltip: 'LNbits服务器管理员每笔外发交易收取的服务费',
   toggle_darkmode: '切换暗黑模式',
+  payment_reactions: '支付反应',
   view_swagger_docs: '查看 LNbits Swagger API 文档',
   api_docs: 'API文档',
-  api_keys_api_docs: 'API密钥和API文档',
+  api_keys_api_docs: '节点URL、API密钥和API文档',
   lnbits_version: 'LNbits版本',
   runs_on: '可运行在',
   credit_hint: '按 Enter 键充值账户',
@@ -179,6 +180,11 @@ window.localisation.cn = {
   allow_access_hint: '允许通过IP访问（将覆盖被屏蔽的IP）',
   enter_ip: '输入IP地址并按回车键',
   rate_limiter: '速率限制器',
+  wallet_limiter: '钱包限制器',
+  wallet_limit_max_withdraw_per_day:
+    '每日钱包最大提现额度（单位：sats）（设为0则禁用）',
+  wallet_max_ballance: '钱包最大余额（以sats计）（设为0则禁用）',
+  wallet_limit_secs_between_trans: '每个钱包交易间最少秒数（设为0则禁用）',
   number_of_requests: '请求次数',
   time_unit: '时间单位',
   minute: '分钟',
@@ -196,7 +202,8 @@ window.localisation.cn = {
   create_account: '创建账户',
   account_settings: '账户设置',
   signin_with_google: '使用谷歌账号登录',
-  signin_with_github: '使用 GitHub 登录',
+  signin_with_github: '使用GitHub登录',
+  signin_with_keycloak: '使用Keycloak登录',
   username_or_email: '用户名或电子邮箱',
   password: '密码',
   password_config: '密码配置',
@@ -219,5 +226,8 @@ window.localisation.cn = {
   auth_provider: '认证提供者',
   my_account: '我的账户',
   back: '返回',
-  logout: '注销'
+  logout: '注销',
+  look_and_feel: '外观和感觉',
+  language: '语言',
+  color_scheme: '配色方案'
 }

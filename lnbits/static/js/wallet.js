@@ -90,6 +90,7 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      origin: window.location.origin,
       user: LNbits.map.user(window.user),
       receive: {
         show: false,
@@ -860,11 +861,11 @@ new Vue({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-
     // listen to incoming payments
     LNbits.events.onInvoicePaid(this.g.wallet, payment =>
       this.onPaymentReceived(payment.payment_hash)
     )
+    eventReactionWebocket(wallet.id)
   }
 })
 

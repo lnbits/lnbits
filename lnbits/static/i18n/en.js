@@ -59,9 +59,10 @@ window.localisation.en = {
   service_fee_tooltip:
     'Service fee charged by the LNbits server admin per outgoing transaction',
   toggle_darkmode: 'Toggle Dark Mode',
+  payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
-  api_keys_api_docs: 'API keys and API docs',
+  api_keys_api_docs: 'Node URL, API keys and API docs',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
@@ -96,8 +97,12 @@ window.localisation.en = {
     'This is an LNURL-withdraw QR code for slurping everything from this wallet. Do not share with anyone. It is compatible with balanceCheck and balanceNotify so your wallet may keep pulling the funds continuously from here after the first withdraw.',
   i_understand: 'I understand',
   copy_wallet_url: 'Copy wallet URL',
-  disclaimer_dialog:
-    'To ensure continuous access to your wallets, please remember to securely store your login credentials! Please visit the "My Account" page. This service is in BETA, and we hold no responsibility for people losing access to funds.',
+  disclaimer_dialog_title: 'Important!',
+  disclaimer_dialog: `You *must* save your  login credentials to be able to access your wallet again.If you lose them, you will lose access to your wallet and funds.
+
+Find your  login credentials on your account settings page.
+
+This service is in BETA. LNbits holds no responsibility for loss of access to funds.`,
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   extensions: 'Extensions',
@@ -184,6 +189,12 @@ window.localisation.en = {
   allow_access_hint: 'Allow access by IP (will override blocked IPs)',
   enter_ip: 'Enter IP and hit enter',
   rate_limiter: 'Rate Limiter',
+  wallet_limiter: 'Wallet Limiter',
+  wallet_limit_max_withdraw_per_day:
+    'Max daily wallet withdrawal in sats (0 to disable)',
+  wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
+  wallet_limit_secs_between_trans:
+    'Min secs between transactions per wallet (0 to disable)',
   number_of_requests: 'Number of requests',
   time_unit: 'Time unit',
   minute: 'minute',
@@ -202,6 +213,7 @@ window.localisation.en = {
   account_settings: 'Account Settings',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
+  signin_with_keycloak: 'Sign in with Keycloak',
   username_or_email: 'Username or Email',
   password: 'Password',
   password_config: 'Password Config',

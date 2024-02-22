@@ -60,9 +60,10 @@ window.localisation.kr = {
   service_fee_tooltip:
     '지불 결제 시마다 LNBits 서버 관리자에게 납부되는 서비스 수수료',
   toggle_darkmode: '다크 모드 전환',
+  payment_reactions: '결제 반응',
   view_swagger_docs: 'LNbits Swagger API 문서를 봅니다',
   api_docs: 'API 문서',
-  api_keys_api_docs: 'API 키와 API 문서',
+  api_keys_api_docs: '노드 URL, API 키와 API 문서',
   lnbits_version: 'LNbits 버전',
   runs_on: 'Runs on',
   credit_hint: '계정에 자금을 넣으려면 Enter를 눌러주세요',
@@ -187,6 +188,11 @@ window.localisation.kr = {
   allow_access_hint: 'IP 기준으로 접속 허용하기 (차단한 IP들을 무시합니다)',
   enter_ip: 'IP 주소를 입력하고 Enter를 눌러주세요',
   rate_limiter: '횟수로 제한하기',
+  wallet_limiter: '지갑 제한기',
+  wallet_limit_max_withdraw_per_day:
+    '일일 최대 지갑 출금액(sats) (0은 비활성화)',
+  wallet_max_ballance: '지갑 최대 잔액(sats) (0은 비활성화)',
+  wallet_limit_secs_between_trans: '지갑 당 거래 사이 최소 초 (0은 비활성화)',
   number_of_requests: '요청 횟수',
   time_unit: '시간 단위',
   minute: '분',
@@ -205,6 +211,7 @@ window.localisation.kr = {
   account_settings: '계정 설정',
   signin_with_google: 'Google으로 로그인',
   signin_with_github: 'GitHub으로 로그인',
+  signin_with_keycloak: 'Keycloak으로 로그인',
   username_or_email: '사용자 이름 또는 이메일',
   password: '비밀번호',
   password_config: '비밀번호 설정',
@@ -227,5 +234,8 @@ window.localisation.kr = {
   auth_provider: '인증 제공자',
   my_account: '내 계정',
   back: '뒤로',
-  logout: '로그아웃'
+  logout: '로그아웃',
+  look_and_feel: '외관과 느낌',
+  language: '언어',
+  color_scheme: '색상 구성'
 }

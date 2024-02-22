@@ -36,7 +36,7 @@ is_regtest: bool = not is_fake
 docker_lightning_cli = [
     "docker",
     "exec",
-    "lnbits-legend-lnd-1-1",
+    "lnbits-lnd-1-1",
     "lncli",
     "--network",
     "regtest",
@@ -46,7 +46,7 @@ docker_lightning_cli = [
 docker_bitcoin_cli = [
     "docker",
     "exec",
-    "lnbits-legend-bitcoind-1-1" "bitcoin-cli",
+    "lnbits-bitcoind-1-1" "bitcoin-cli",
     "-rpcuser=lnbits",
     "-rpcpassword=lnbits",
     "-regtest",
@@ -56,7 +56,7 @@ docker_bitcoin_cli = [
 docker_lightning_unconnected_cli = [
     "docker",
     "exec",
-    "lnbits-legend-lnd-2-1",
+    "lnbits-lnd-2-1",
     "lncli",
     "--network",
     "regtest",

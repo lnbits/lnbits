@@ -830,8 +830,9 @@ async def api_install_extension(
 
         await add_installed_extension(ext_info)
 
-        # call stop while the old routes are still active
-        await stop_extension_background_work(data.ext_id, user.id, access_token)
+        if extension.is_upgrade_extension:
+            # call stop while the old routes are still active
+            await stop_extension_background_work(data.ext_id, user.id, access_token)
 
         if data.ext_id not in settings.lnbits_deactivated_extensions:
             settings.lnbits_deactivated_extensions += [data.ext_id]

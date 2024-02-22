@@ -369,7 +369,7 @@ class LndRestNode(Node):
                 memo=invoice["memo"],
                 pending=invoice["state"] == "OPEN",
                 paid_at=invoice["settle_date"],
-                expiry=invoice["creation_date"] + invoice["expiry"],
+                expiry=int(invoice["creation_date"]) + int(invoice["expiry"]),
                 preimage=_decode_bytes(invoice["r_preimage"]),
                 bolt11=invoice["payment_request"],
             )

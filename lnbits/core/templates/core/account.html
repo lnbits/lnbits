@@ -401,6 +401,23 @@
                     ></lnbits-notifications-btn>
                   </div>
                 </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('payment_reactions')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-select
+                      v-model="reactionChoice"
+                      :options="reactionOptions"
+                      label="Reactions"
+                      @input="reactionChoiceFunc"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('payment_reactions')"></span
+                      ></q-tooltip>
+                    </q-select>
+                  </div>
+                </div>
               </q-tab-panel>
             </q-tab-panels>
           </div>

@@ -68,6 +68,16 @@ class InstalledExtensionsSettings(LNbitsSettings):
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: List[Any] = Field(default=[])
 
+    def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
+        return next(
+            (e for e in self.lnbits_upgraded_extensions if e.endswith(f"/{ext_id}")),
+            None,
+        )
+
+    def extension_upgrade_hash(self, ext_id: str) -> Optional[str]:
+        path = settings.extension_upgrade_path(ext_id)
+        return path.split("/")[0] if path else None
+
 
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
@@ -116,6 +126,9 @@ class SecuritySettings(LNbitsSettings):
     lnbits_notifications: bool = Field(default=False)
     lnbits_killswitch: bool = Field(default=False)
     lnbits_killswitch_interval: int = Field(default=60)
+    lnbits_wallet_limit_max_balance: int = Field(default=0)
+    lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
+    lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
     lnbits_watchdog: bool = Field(default=False)
     lnbits_watchdog_interval: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
@@ -124,6 +137,13 @@ class SecuritySettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
         )
     )
+
+    def is_wallet_max_balance_exceeded(self, amount):
+        return (
+            self.lnbits_wallet_limit_max_balance
+            and self.lnbits_wallet_limit_max_balance > 0
+            and amount > self.lnbits_wallet_limit_max_balance
+        )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -252,6 +272,7 @@ class AuthMethods(Enum):
     username_and_password = "username-password"
     google_auth = "google-auth"
     github_auth = "github-auth"
+    keycloak_auth = "keycloak-auth"
 
 
 class AuthSettings(LNbitsSettings):
@@ -272,18 +293,16 @@ class GoogleAuthSettings(LNbitsSettings):
     google_client_id: str = Field(default="")
     google_client_secret: str = Field(default="")
 
-    @property
-    def is_google_auth_configured(self):
-        return self.google_client_id != "" and self.google_client_secret != ""
-
 
 class GitHubAuthSettings(LNbitsSettings):
     github_client_id: str = Field(default="")
     github_client_secret: str = Field(default="")
 
-    @property
-    def is_github_auth_configured(self):
-        return self.github_client_id != "" and self.github_client_secret != ""
+
+class KeycloakAuthSettings(LNbitsSettings):
+    keycloak_discovery_url: str = Field(default="")
+    keycloak_client_id: str = Field(default="")
+    keycloak_client_secret: str = Field(default="")
 
 
 class EditableSettings(
@@ -299,6 +318,7 @@ class EditableSettings(
     AuthSettings,
     GoogleAuthSettings,
     GitHubAuthSettings,
+    KeycloakAuthSettings,
 ):
     @validator(
         "lnbits_admin_users",
