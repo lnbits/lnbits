@@ -4,12 +4,16 @@
 <div class="row q-col-gutter-md justify-center">
   <div
     v-if="isUserAuthorized"
-    class="col-12 col-md-7 col-lg-6 q-gutter-y-md"
+    class="col-12 col-md-6 col-lg-6 q-gutter-y-md"
   ></div>
-  <div v-else class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+  <div v-else class="col-12 col-md-4 col-lg-4 q-gutter-y-md">
     <div class="gt-sm">
-      <h3 class="q-my-none">{{SITE_TITLE}}</h3>
-      <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
+      <h3 class="q-my-none" v-if="'{{SITE_TITLE}}' == 'LNbits'">
+        {{SITE_TITLE}}
+      </h3>
+      <h5 class="q-my-md" v-if="'{{SITE_TITLE}}' == 'LNbits'">
+        {{SITE_TAGLINE}}
+      </h5>
     </div>
     {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
     LNBITS_AUTH_METHODS)%}
@@ -33,7 +37,7 @@
     {%else%} {% endif %}
 
     <div class="row q-mt-md">
-      <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+      <div class="col-12 col-md-10 col-lg-10 q-gutter-y-md">
         <q-badge v-if="isAccessTokenExpired" color="primary" rounded>
           <div class="text-h5">
             <span v-text="$t('session_has_expired')"></span>
@@ -259,6 +263,25 @@
                   <div><span v-text="$t('signin_with_github')"></span></div>
                 </q-btn>
               </div>
+              {%endif%} {% if "keycloak-auth" in LNBITS_AUTH_METHODS %}
+              <div class="col-12 full-width q-pa-sm">
+                <q-btn
+                  href="/api/v1/auth/keycloak"
+                  type="a"
+                  outline
+                  no-caps
+                  color="grey"
+                  rounded
+                  class="full-width"
+                >
+                  <q-avatar size="32px" class="q-mr-md">
+                    <q-img
+                      :src="'{{ static_url_for('static', 'images/keycloak-logo.png') }}'"
+                    ></q-img>
+                  </q-avatar>
+                  <div><span v-text="$t('signin_with_keycloak')"></span></div>
+                </q-btn>
+              </div>
               {%endif%}
             </div>
           </q-card-section>
@@ -282,11 +305,16 @@
     </div>
   </div>
 
-  <!-- Ads -->
   <div
-    class="col-12 col-md-3 col-lg-3 gt-sm"
-    v-if="'{{SITE_TITLE}}' == 'LNbits'"
+    v-if="'{{SITE_TITLE}}' != 'LNbits'"
+    class="col-12 col-md-5 col-lg-5 q-pt-xl"
   >
+    <h3 class="q-my-none">{{SITE_TITLE}}</h3>
+    <h5 class="q-my-md">{{SITE_TAGLINE}}</h5>
+    <div v-html="formatDescription"></div>
+  </div>
+
+  <div class="col-12 col-md-3 col-lg-3 gt-sm" v-else>
     <div class="row q-col-gutter-lg justify-center">
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
         <q-btn
@@ -465,27 +493,22 @@
           <div class="col q-pl-md"></div>
         </div>
       </div>
-
-      {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-      <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-        <q-btn flat color="secondary" class="full-width q-mb-md"
-          >{{ AD_SPACE_TITLE }}</q-btn
-        >
-
-        <a href="{{ AD[0] }}" class="q-ma-md">
-          <img
-            v-if="($q.dark.isActive)"
-            src="{{ AD[1] }}"
-            style="max-width: 90%"
-          />
-          <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
-        </a>
-      </div>
-      {% endfor %} {% endif %}
     </div>
   </div>
+  {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+  <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
+    <q-btn flat color="secondary" class="full-width q-mb-md"
+      >{{ AD_SPACE_TITLE }}</q-btn
+    >
+
+    <a href="{{ AD[0] }}" class="q-ma-md">
+      <img v-if="($q.dark.isActive)" src="{{ AD[1] }}" style="max-width: 90%" />
+      <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
+    </a>
+  </div>
+  {% endfor %} {% endif %}
 </div>
-<div class="row gt-sm q-mt-xl">
+<div v-if="'{{SITE_TITLE}}' == 'LNbits'" class="row gt-sm q-mt-xl">
   <div class="col-1"></div>
   <div class="col-10 q-pl-xl">
     <span v-text="$t('lnbits_description')"></span>

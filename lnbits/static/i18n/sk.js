@@ -60,9 +60,10 @@ window.localisation.sk = {
   service_fee_tooltip:
     'Servisný poplatok účtovaný správcom LNbits servera za odchádzajúcu transakciu',
   toggle_darkmode: 'Prepnúť Tmavý režim',
+  payment_reactions: 'Reakcie na platbu',
   view_swagger_docs: 'Zobraziť LNbits Swagger API dokumentáciu',
   api_docs: 'API dokumentácia',
-  api_keys_api_docs: 'API kľúče a API dokumentácia',
+  api_keys_api_docs: 'Adresa uzla, API kľúče a API dokumentácia',
   lnbits_version: 'Verzia LNbits',
   runs_on: 'Beží na',
   credit_hint: 'Stlačte Enter pre pripísanie na účet',
@@ -187,6 +188,13 @@ window.localisation.sk = {
   allow_access_hint: 'Povoliť prístup podľa IP (prebije blokované IP)',
   enter_ip: 'Zadajte IP a stlačte enter',
   rate_limiter: 'Obmedzovač počtu požiadaviek',
+  wallet_limiter: 'Obmedzovač peňaženky',
+  wallet_limit_max_withdraw_per_day:
+    'Maximálny denný výber z peňaženky v satošiach (0 pre zrušenie)',
+  wallet_max_ballance:
+    'Maximálny zostatok v peňaženke v satošiach (0 pre deaktiváciu)',
+  wallet_limit_secs_between_trans:
+    'Minimálny počet sekúnd medzi transakciami na peňaženku (0 na deaktiváciu)',
   number_of_requests: 'Počet požiadaviek',
   time_unit: 'Časová jednotka',
   minute: 'minúta',
@@ -203,8 +211,9 @@ window.localisation.sk = {
   login_to_account: 'Prihláste sa do vášho účtu',
   create_account: 'Vytvoriť účet',
   account_settings: 'Nastavenia účtu',
-  signin_with_google: 'Prihlásiť sa cez Google',
-  signin_with_github: 'Prihláste sa pomocou GitHub',
+  signin_with_google: 'Prihlásiť sa pomocou Google',
+  signin_with_github: 'Prihlásiť sa pomocou GitHub',
+  signin_with_keycloak: 'Prihlásiť sa pomocou Keycloak',
   username_or_email: 'Používateľské meno alebo email',
   password: 'Heslo',
   password_config: 'Konfigurácia hesla',
@@ -227,5 +236,8 @@ window.localisation.sk = {
   auth_provider: 'Poskytovateľ autentifikácie',
   my_account: 'Môj účet',
   back: 'Späť',
-  logout: 'Odhlásiť sa'
+  logout: 'Odhlásiť sa',
+  look_and_feel: 'Vzhľad a dojem',
+  language: 'Jazyk',
+  color_scheme: 'Farebná schéma'
 }

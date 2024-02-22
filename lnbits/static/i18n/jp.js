@@ -59,9 +59,10 @@ window.localisation.jp = {
   service_fee_max: '取引手数料：%{amount}%（最大%{max}サトシ）',
   service_fee_tooltip: 'LNbitsサーバー管理者が発生する送金ごとの手数料',
   toggle_darkmode: 'ダークモードを切り替える',
+  payment_reactions: '支払いの反応',
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
-  api_keys_api_docs: 'APIキーとAPIドキュメント',
+  api_keys_api_docs: 'ノードURL、APIキー、APIドキュメント',
   lnbits_version: 'LNbits バージョン',
   runs_on: 'で実行',
   credit_hint:
@@ -188,6 +189,12 @@ window.localisation.jp = {
     'IPによるアクセスを許可する（ブロックされたIPを上書きします）',
   enter_ip: 'IPを入力してエンターキーを押してください',
   rate_limiter: 'レートリミッター',
+  wallet_limiter: 'ウォレットリミッター',
+  wallet_limit_max_withdraw_per_day:
+    '1日あたりの最大ウォレット出金額をsatsで入力してください（0 で無効）。',
+  wallet_max_ballance: 'ウォレットの最大残高（sats）（0は無効）',
+  wallet_limit_secs_between_trans:
+    'トランザクション間の最小秒数（ウォレットごと）（0は無効）',
   number_of_requests: 'リクエストの数',
   time_unit: '時間単位',
   minute: '分',
@@ -207,6 +214,7 @@ window.localisation.jp = {
   account_settings: 'アカウント設定',
   signin_with_google: 'Googleでサインイン',
   signin_with_github: 'GitHubでサインイン',
+  signin_with_keycloak: 'Keycloakでサインイン',
   username_or_email: 'ユーザー名またはメールアドレス',
   password: 'パスワード',
   password_config: 'パスワード設定',
@@ -229,5 +237,8 @@ window.localisation.jp = {
   auth_provider: '認証プロバイダ',
   my_account: 'マイアカウント',
   back: '戻る',
-  logout: 'ログアウト'
+  logout: 'ログアウト',
+  look_and_feel: 'ルック・アンド・フィール',
+  language: '言語',
+  color_scheme: 'カラースキーム'
 }

@@ -61,9 +61,10 @@ window.localisation.pi = {
   service_fee_tooltip:
     "Service fee charged by the LNbits server admin per goin' transaction",
   toggle_darkmode: 'Toggle Dark Mode, arr!',
+  payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs and learn the secrets',
   api_docs: 'API docs for the scallywags',
-  api_keys_api_docs: 'API keys and API docs',
+  api_keys_api_docs: 'Node URL, API keys and API docs',
   lnbits_version: 'LNbits version, arr!',
   runs_on: 'Runs on, matey',
   credit_hint: 'Press Enter to credit account and make it richer',
@@ -189,6 +190,12 @@ window.localisation.pi = {
   allow_access_hint: 'Grant permission by IP (will override barred IPs)',
   enter_ip: 'Enter IP and hit enter',
   rate_limiter: 'Rate Limiter',
+  wallet_limiter: 'Pouch Limitar',
+  wallet_limit_max_withdraw_per_day:
+    'Max daily wallet withdrawal in sats (0 ter disable)',
+  wallet_max_ballance: 'Purse max heaviness in sats (0 fer scuttle)',
+  wallet_limit_secs_between_trans:
+    "Min secs 'tween transactions per wallet (0 to disable)",
   number_of_requests: "Number o' requests",
   time_unit: "time bein'",
   minute: 'minnit',
@@ -207,6 +214,7 @@ window.localisation.pi = {
   account_settings: "Account Settin's",
   signin_with_google: "Sign in wit' Google",
   signin_with_github: "Sign in wit' GitHub",
+  signin_with_keycloak: "Sign in wit' Keycloak",
   username_or_email: 'Usarrrname or Email',
   password: 'Passwarrd',
   password_config: 'Passwarrd Config',
@@ -229,5 +237,8 @@ window.localisation.pi = {
   auth_provider: 'Auth Provider becometh Auth Provider, ye see?',
   my_account: 'Me Arrrccount',
   back: 'Return',
-  logout: 'Log out yer session'
+  logout: 'Log out yer session',
+  look_and_feel: 'Look and Feel',
+  language: 'Langwidge',
+  color_scheme: 'Colour Scheme'
 }

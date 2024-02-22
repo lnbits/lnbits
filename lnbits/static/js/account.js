@@ -6,6 +6,12 @@ new Vue({
       user: null,
       hasUsername: false,
       showUserId: false,
+      reactionOptions: [
+        'None',
+        'confettiBothSides',
+        'confettiFireworks',
+        'confettiStars'
+      ],
       tab: 'user',
       passwordData: {
         show: false,
@@ -26,6 +32,9 @@ new Vue({
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+    },
+    reactionChoiceFunc: function () {
+      this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
