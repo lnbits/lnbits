@@ -147,28 +147,3 @@ class LNPayWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-    async def webhook_listener(self):
-        logger.error("LNPay webhook listener disabled.")
-        return
-        # TODO: request.get_data is undefined, was it something with Flask or quart?
-        # probably issue introduced when refactoring?
-        # text: str = await request.get_data()
-        # try:
-        #     data = json.loads(text)
-        # except json.decoder.JSONDecodeError:
-        #     logger.error(f"error on lnpay webhook endpoint: {text[:200]}")
-        #     data = None
-        # if (
-        #     type(data) is not dict
-        #     or "event" not in data
-        #     or data["event"].get("name") != "wallet_receive"
-        # ):
-        #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-        # lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        # r = await self.client.get(f"/lntx/{lntx_id}?fields=settled")
-        # data = r.json()
-        # if data["settled"]:
-        #     await self.queue.put(lntx_id)
-        # raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
