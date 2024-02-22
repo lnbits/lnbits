@@ -1013,6 +1013,16 @@ async def check_internal_pending(
         return row["pending"]
 
 
+async def mark_webhook_sent(payment_hash: str, status: int) -> None:
+    await db.execute(
+        """
+        UPDATE apipayments SET webhook_status = ?
+        WHERE hash = ?
+        """,
+        (status, payment_hash),
+    )
+
+
 # balance_check
 # -------------
 

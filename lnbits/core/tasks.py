@@ -8,8 +8,8 @@ from lnbits.core.crud import (
     get_balance_notify,
     get_wallet,
     get_webpush_subscriptions_for_user,
+    mark_webhook_sent,
 )
-from lnbits.core.db import db
 from lnbits.core.models import Payment
 from lnbits.core.services import (
     get_balance_delta,
@@ -148,26 +148,16 @@ async def dispatch_webhook(payment: Payment):
     logger.debug("sending webhook", payment.webhook)
 
     if not payment.webhook:
-        return await mark_webhook_sent(payment, -1)
+        return await mark_webhook_sent(payment.payment_hash, -1)
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         data = payment.dict()
         try:
             r = await client.post(payment.webhook, json=data, timeout=40)
-            await mark_webhook_sent(payment, r.status_code)
+            await mark_webhook_sent(payment.payment_hash, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
-            await mark_webhook_sent(payment, -1)
-
-
-async def mark_webhook_sent(payment: Payment, status: int) -> None:
-    await db.execute(
-        """
-        UPDATE apipayments SET webhook_status = ?
-        WHERE hash = ?
-        """,
-        (status, payment.payment_hash),
-    )
+            await mark_webhook_sent(payment.payment_hash, -1)
 
 
 async def send_payment_push_notification(payment: Payment):

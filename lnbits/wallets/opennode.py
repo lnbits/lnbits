@@ -80,7 +80,6 @@ class OpenNodeWallet(Wallet):
             json={
                 "amount": amount,
                 "description": memo or "",
-                # "callback_url": url_for("/webhook_listener", _external=True),
             },
             timeout=40,
         )
@@ -144,22 +143,3 @@ class OpenNodeWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-    async def webhook_listener(self):
-        logger.error("webhook listener for opennode is disabled.")
-        return
-        # TODO: request.form is undefined, was it something with Flask or quart?
-        # probably issue introduced when refactoring?
-        # data = await request.form  # type: ignore
-        # if "status" not in data or data["status"] != "paid":
-        #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-        # charge_id = data["id"]
-        # x = hmac.new(self.key.encode("ascii"), digestmod="sha256")
-        # x.update(charge_id.encode("ascii"))
-        # if x.hexdigest() != data["hashed_order"]:
-        #     logger.error("invalid webhook, not from opennode")
-        #     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-        # await self.queue.put(charge_id)
-        # raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
