@@ -26,11 +26,11 @@ from lnbits.tasks import invoice_listeners
 from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
 
-admin_router = APIRouter()
+admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 
 
 @admin_router.get(
-    "/admin/api/v1/audit",
+    "/api/v1/audit",
     name="Audit",
     description="show the current balance of the node and the LNbits database",
     dependencies=[Depends(check_admin)],
@@ -51,7 +51,7 @@ async def api_auditor():
 
 
 @admin_router.get(
-    "/admin/api/v1/monitor",
+    "/api/v1/monitor",
     name="Monitor",
     description="show the current listeners and other monitoring data",
     dependencies=[Depends(check_admin)],
@@ -63,7 +63,7 @@ async def api_monitor():
     }
 
 
-@admin_router.get("/admin/api/v1/settings/", response_model=Optional[AdminSettings])
+@admin_router.get("/api/v1/settings", response_model=Optional[AdminSettings])
 async def api_get_settings(
     user: User = Depends(check_admin),
 ) -> Optional[AdminSettings]:
@@ -72,7 +72,7 @@ async def api_get_settings(
 
 
 @admin_router.put(
-    "/admin/api/v1/settings/",
+    "/api/v1/settings",
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
@@ -85,7 +85,7 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
 
 
 @admin_router.delete(
-    "/admin/api/v1/settings/",
+    "/api/v1/settings",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
@@ -95,7 +95,7 @@ async def api_delete_settings() -> None:
 
 
 @admin_router.get(
-    "/admin/api/v1/restart/",
+    "/api/v1/restart",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
@@ -105,7 +105,7 @@ async def api_restart_server() -> dict[str, str]:
 
 
 @admin_router.put(
-    "/admin/api/v1/topup/",
+    "/api/v1/topup",
     name="Topup",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
@@ -129,7 +129,7 @@ async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
 
 
 @admin_router.get(
-    "/admin/api/v1/backup/",
+    "/api/v1/backup",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
     response_class=FileResponse,

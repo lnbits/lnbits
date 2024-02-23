@@ -44,15 +44,15 @@ from ..models import (
     UserConfig,
 )
 
-auth_router = APIRouter()
+auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
 
-@auth_router.get("/api/v1/auth", description="Get the authenticated user")
+@auth_router.get("/", description="Get the authenticated user")
 async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
     return user
 
 
-@auth_router.post("/api/v1/auth", description="Login via the username and password")
+@auth_router.post("/", description="Login via the username and password")
 async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
@@ -75,7 +75,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
-@auth_router.post("/api/v1/auth/usr", description="Login via the User ID")
+@auth_router.post("/usr", description="Login via the User ID")
 async def login_usr(data: LoginUsr) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login by 'User ID' not allowed.")
@@ -93,7 +93,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
 
 
-@auth_router.get("/api/v1/auth/{provider}", description="SSO Provider")
+@auth_router.get("/{provider}", description="SSO Provider")
 async def login_with_sso_provider(
     request: Request, provider: str, user_id: Optional[str] = None
 ):
@@ -109,7 +109,7 @@ async def login_with_sso_provider(
         return await provider_sso.get_login_redirect(state=state)
 
 
-@auth_router.get("/api/v1/auth/{provider}/token", description="Handle OAuth callback")
+@auth_router.get("/{provider}/token", description="Handle OAuth callback")
 async def handle_oauth_token(request: Request, provider: str) -> RedirectResponse:
     provider_sso = _new_sso(provider)
     if not provider_sso:
@@ -136,7 +136,7 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
         )
 
 
-@auth_router.post("/api/v1/auth/logout")
+@auth_router.post("/logout")
 async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, status_code=status.HTTP_200_OK)
     response.delete_cookie("cookie_access_token")
@@ -147,7 +147,7 @@ async def logout() -> JSONResponse:
     return response
 
 
-@auth_router.post("/api/v1/auth/register")
+@auth_router.post("/register")
 async def register(data: CreateUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
@@ -176,7 +176,7 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
 
 
-@auth_router.put("/api/v1/auth/password")
+@auth_router.put("/password")
 async def update_password(
     data: UpdateUserPassword, user: User = Depends(check_user_exists)
 ) -> Optional[User]:
@@ -198,7 +198,7 @@ async def update_password(
         )
 
 
-@auth_router.put("/api/v1/auth/update")
+@auth_router.put("/update")
 async def update(
     data: UpdateUser, user: User = Depends(check_user_exists)
 ) -> Optional[User]:
@@ -218,7 +218,7 @@ async def update(
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
 
 
-@auth_router.put("/api/v1/auth/first_install")
+@auth_router.put("/first_install")
 async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     if not settings.first_install:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "This is not your first install")
