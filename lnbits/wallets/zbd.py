@@ -27,11 +27,11 @@ class ZBDWallet(Wallet):
             raise ValueError("cannot initialize ZBDWallet: missing zbd_api_key")
 
         self.endpoint = self.normalize_endpoint(settings.zbd_api_endpoint)
-        self.auth = {
+        headers = {
             "apikey": settings.zbd_api_key,
             "User-Agent": settings.user_agent,
         }
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
 
     async def cleanup(self):
         try:
