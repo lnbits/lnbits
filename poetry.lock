@@ -1084,6 +1084,20 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "json5"
+version = "0.9.17"
+description = "A Python implementation of the JSON5 data format."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "json5-0.9.17-py2.py3-none-any.whl", hash = "sha256:f8ec1ecf985951d70f780f6f877c4baca6a47b6e61e02c4cd190138d10a7805a"},
+    {file = "json5-0.9.17.tar.gz", hash = "sha256:717d99d657fa71b7094877b1d921b1cce40ab444389f6d770302563bb7dfd9ae"},
+]
+
+[package.extras]
+dev = ["hypothesis"]
+
+[[package]]
 name = "jsonschema"
 version = "4.20.0"
 description = "An implementation of JSON Schema validation for Python"
@@ -2916,4 +2930,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "5fd274e010758cb4a3b492cce42bfadc5d26de9f9c0257093b6b9d5324df8e89"
+content-hash = "e7e5228a2e8cac043065950b2c5e0df05a8e782adc74717c6247cdbe9abf8f77"

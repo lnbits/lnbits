@@ -1,11 +1,11 @@
 # 1. Always check the results of the procedure
 # 2. Always run "npx prettier -w lnbits/static/i18n/XX.js" to reformat the result
 
-import json
 import os
 import re
 import sys
 
+import json5
 from openai import OpenAI
 
 if len(sys.argv) < 2:
@@ -21,7 +21,9 @@ def load_language(lang: str) -> dict:
     prefix = "window.localisation.%s = {\n" % lang
     assert s.startswith(prefix)
     s = s[len(prefix) - 2 :]
-    return json.loads(s)
+    json = json5.loads(s)
+    assert isinstance(json, dict)
+    return json
 
 
 def save_language(lang: str, data) -> None:
