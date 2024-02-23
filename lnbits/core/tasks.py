@@ -51,7 +51,7 @@ async def killswitch_task():
                                 "Switching to VoidWallet. Killswitch triggered."
                             )
                             await switch_to_voidwallet()
-                except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError):
+                except (httpx.RequestError, httpx.HTTPStatusError):
                     logger.error(
                         "Cannot fetch lnbits status manifest."
                         f" {settings.lnbits_status_manifest}"
@@ -130,7 +130,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                         f"balance_notify returned a bad status_code: {status_code} "
                         f"while requesting {exc.request.url!r}."
                     )
-                except (httpx.ConnectError, httpx.RequestError):
+                except httpx.RequestError:
                     await mark_webhook_sent(payment.payment_hash, -1)
                     logger.warning(f"Could not send balance_notify to {url}")
 
@@ -172,7 +172,7 @@ async def dispatch_webhook(payment: Payment):
                 f"webhook returned a bad status_code: {exc.response.status_code} "
                 f"while requesting {exc.request.url!r}."
             )
-        except (httpx.ConnectError, httpx.RequestError):
+        except httpx.RequestError:
             await mark_webhook_sent(payment.payment_hash, -1)
             logger.warning(f"Could not send webhook to {payment.webhook}")
 
