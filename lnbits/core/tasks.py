@@ -121,9 +121,9 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
             async with httpx.AsyncClient(headers=headers) as client:
                 try:
                     r = await client.post(url, timeout=4)
-                    r.raise_for_status()
-                    await mark_webhook_sent(payment, r.status_code)
+                    await mark_webhook_sent(payment.payment_hash, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
+                    await mark_webhook_sent(payment.payment_hash, -1)
                     logger.warning(f"Could not send balance_notify to {url}")
 
         await send_payment_push_notification(payment)
@@ -159,6 +159,7 @@ async def dispatch_webhook(payment: Payment):
             await mark_webhook_sent(payment.payment_hash, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
             await mark_webhook_sent(payment.payment_hash, -1)
+            logger.warning(f"Could not send webhook to {payment.webhook}")
 
 
 async def send_payment_push_notification(payment: Payment):
