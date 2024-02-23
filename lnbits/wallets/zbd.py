@@ -4,8 +4,8 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
-from lnbits.settings import settings
 from lnbits import bolt11
+from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
@@ -90,7 +90,9 @@ class ZBDWallet(Wallet):
         payment_request = data["invoice"]["request"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11_invoice: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11_invoice: str, fee_limit_msat: int
+    ) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
         r = await self.client.post(
             "payments",
