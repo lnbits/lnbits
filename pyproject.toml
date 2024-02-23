@@ -80,7 +80,9 @@ lnbits-cli = "lnbits.commands:main"
 
 [tool.pyright]
 include = [
-  "lnbits"
+  "lnbits",
+  "tests",
+  "tools",
 ]
 exclude = [
   "lnbits/wallets/lnd_grpc_files",
@@ -89,7 +91,11 @@ exclude = [
 ]
 
 [tool.mypy]
-files = "lnbits"
+files = [
+  "lnbits",
+  "tests",
+  "tools",
+]
 exclude = [
   "^lnbits/wallets/lnd_grpc_files",
   "^lnbits/extensions",
