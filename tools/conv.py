@@ -48,7 +48,7 @@ def check_db_versions(sqdb):
 
     postgres = get_postgres_cursor()
     postgres.execute("SELECT * FROM public.dbversions;")
-    dbpost = postgres.fetchall()
+    dbpost = dict(postgres.fetchall())  # type: ignore
 
     for key, value in dblite.items():
         if key in dblite and key in dbpost:
