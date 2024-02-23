@@ -2,7 +2,6 @@ import datetime
 import json
 from time import time
 from typing import Any, Dict, List, Literal, Optional
-from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 import shortuuid
@@ -21,7 +20,6 @@ from lnbits.settings import (
 )
 
 from .models import (
-    BalanceCheck,
     CreateUser,
     Payment,
     PaymentFilters,
@@ -1038,73 +1036,6 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
         """,
         (status, payment_hash),
     )
-
-
-# balance_check
-# -------------
-
-
-async def save_balance_check(
-    wallet_id: str, url: str, conn: Optional[Connection] = None
-):
-    domain = urlparse(url).netloc
-
-    await (conn or db).execute(
-        """
-        INSERT INTO balance_check (wallet, service, url) VALUES (?, ?, ?)
-        ON CONFLICT (wallet, service) DO UPDATE SET url = ?
-        """,
-        (wallet_id, domain, url, url),
-    )
-
-
-async def get_balance_check(
-    wallet_id: str, domain: str, conn: Optional[Connection] = None
-) -> Optional[BalanceCheck]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT wallet, service, url
-        FROM balance_check
-        WHERE wallet = ? AND service = ?
-        """,
-        (wallet_id, domain),
-    )
-    return BalanceCheck.from_row(row) if row else None
-
-
-async def get_balance_checks(conn: Optional[Connection] = None) -> List[BalanceCheck]:
-    rows = await (conn or db).fetchall("SELECT wallet, service, url FROM balance_check")
-    return [BalanceCheck.from_row(row) for row in rows]
-
-
-# balance_notify
-# --------------
-
-
-async def save_balance_notify(
-    wallet_id: str, url: str, conn: Optional[Connection] = None
-):
-    await (conn or db).execute(
-        """
-        INSERT INTO balance_notify (wallet, url) VALUES (?, ?)
-        ON CONFLICT (wallet) DO UPDATE SET url = ?
-        """,
-        (wallet_id, url, url),
-    )
-
-
-async def get_balance_notify(
-    wallet_id: str, conn: Optional[Connection] = None
-) -> Optional[str]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT url
-        FROM balance_notify
-        WHERE wallet = ?
-        """,
-        (wallet_id,),
-    )
-    return row[0] if row else None
 
 
 # admin
