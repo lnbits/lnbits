@@ -109,6 +109,7 @@ async def test_channel_management(node_client):
         [channel for channel in data if channel.state == ChannelState.ACTIVE]
     )
     assert close, "No active channel found"
+    assert close.point, "No channel point found"
 
     response = await node_client.delete(
         "/node/api/v1/channels",
