@@ -128,7 +128,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
                     await mark_webhook_sent(payment.payment_hash, status_code)
                     logger.warning(
                         f"balance_notify returned a bad status_code: {status_code} "
-                        f" while requesting {exc.request.url!r}."
+                        f"while requesting {exc.request.url!r}."
                     )
                 except (httpx.ConnectError, httpx.RequestError):
                     await mark_webhook_sent(payment.payment_hash, -1)
