@@ -156,7 +156,3 @@ class ZBDWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-    async def webhook_listener(self):
-        logger.error("ZBD webhook listener disabled")
-        return
