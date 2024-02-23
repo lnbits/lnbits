@@ -51,7 +51,7 @@ async def killswitch_task():
                                 "Switching to VoidWallet. Killswitch triggered."
                             )
                             await switch_to_voidwallet()
-                except (httpx.ConnectError, httpx.RequestError):
+                except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError):
                     logger.error(
                         "Cannot fetch lnbits status manifest."
                         f" {settings.lnbits_status_manifest}"
@@ -121,7 +121,15 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
             async with httpx.AsyncClient(headers=headers) as client:
                 try:
                     r = await client.post(url, timeout=4)
+                    r.raise_for_status()
                     await mark_webhook_sent(payment.payment_hash, r.status_code)
+                except httpx.HTTPStatusError as exc:
+                    status_code = exc.response.status_code
+                    await mark_webhook_sent(payment.payment_hash, status_code)
+                    logger.warning(
+                        f"balance_notify returned a bad status_code: {status_code} "
+                        f" while requesting {exc.request.url!r}."
+                    )
                 except (httpx.ConnectError, httpx.RequestError):
                     await mark_webhook_sent(payment.payment_hash, -1)
                     logger.warning(f"Could not send balance_notify to {url}")
@@ -156,7 +164,14 @@ async def dispatch_webhook(payment: Payment):
         data = payment.dict()
         try:
             r = await client.post(payment.webhook, json=data, timeout=40)
+            r.raise_for_status()
             await mark_webhook_sent(payment.payment_hash, r.status_code)
+        except httpx.HTTPStatusError as exc:
+            await mark_webhook_sent(payment.payment_hash, exc.response.status_code)
+            logger.warning(
+                f"webhook returned a bad status_code: {exc.response.status_code} "
+                f"while requesting {exc.request.url!r}."
+            )
         except (httpx.ConnectError, httpx.RequestError):
             await mark_webhook_sent(payment.payment_hash, -1)
             logger.warning(f"Could not send webhook to {payment.webhook}")
