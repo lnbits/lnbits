@@ -127,7 +127,11 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
-@api_router.get("/api/v1/wallets")
+@api_router.get(
+    "/api/v1/wallets",
+    name="Wallets",
+    description="Get basic info for all of user's wallets.",
+)
 async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWallet]:
     return [BaseWallet(**w.dict()) for w in user.wallets]
 
