@@ -21,14 +21,17 @@ from lnbits.wallets import get_wallet_class
 from lnbits.wallets.base import PaymentStatus
 
 
-class Wallet(BaseModel):
+class BaseWallet(BaseModel):
     id: str
     name: str
-    user: str
     adminkey: str
     inkey: str
-    currency: Optional[str]
     balance_msat: int
+
+
+class Wallet(BaseWallet):
+    user: str
+    currency: Optional[str]
     deleted: bool
     created_at: Optional[int] = None
     updated_at: Optional[int] = None

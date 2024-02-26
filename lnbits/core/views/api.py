@@ -32,6 +32,7 @@ from lnbits.core.helpers import (
     stop_extension_background_work,
 )
 from lnbits.core.models import (
+    BaseWallet,
     ConversionData,
     CreateInvoice,
     CreateLnurl,
@@ -127,17 +128,8 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @api_router.get("/api/v1/wallets")
-async def api_wallets(user: User = Depends(check_user_exists)):
-    return [
-        {
-            "id": w.id,
-            "name": w.name,
-            "adminkey": w.adminkey,
-            "inkey": w.inkey,
-            "balance": w.balance_msat,
-        }
-        for w in user.wallets
-    ]
+async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWallet]:
+    return [BaseWallet(**w.dict()) for w in user.wallets]
 
 
 @api_router.put("/api/v1/wallet/{new_name}")
