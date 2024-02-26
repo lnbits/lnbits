@@ -141,8 +141,6 @@ class BlinkWallet(Wallet):
             "input": {
                 "amount": amount,
                 "recipientWalletId": self.wallet_id,
-                "descriptionHash": "",
-                "memo": "",
             }
         }
         if description_hash:
@@ -155,7 +153,10 @@ class BlinkWallet(Wallet):
             invoice_variables["input"]["memo"] = memo or ""
 
         data = {"query": invoice_query, "variables": invoice_variables}
+        logger.info(f'create_invoice complete data: {data}')
+
         response = await self.graphql_query(data)
+        logger.info(f'create_invoice complete response: {response}')
 
         errors = (
             response.get("data", {})
@@ -164,6 +165,7 @@ class BlinkWallet(Wallet):
         )
         if len(errors) > 0:
             error_message = errors[0].get("message")
+            logger.error(f"Error creating invoice: {error_message}")
             return InvoiceResponse(False, None, None, error_message)
 
         payment_request = (
@@ -179,6 +181,7 @@ class BlinkWallet(Wallet):
             .get("paymentHash", {})
         )
 
+        logger.info(f"Created invoice: {payment_request}, checking_id: {checking_id}")
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     
@@ -221,7 +224,51 @@ class BlinkWallet(Wallet):
 
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)
+        logger.info(f'inside get_invoice_status with checking_id: {checking_id}')
+        status_query  ="""
+                query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
+                me {
+                    defaultAccount {
+                    walletById(walletId: $walletId) {
+                        invoiceByPaymentHash(paymentHash: $paymentHash) {
+                        ... on LnInvoice {
+                            createdAt
+                            paymentHash
+                            paymentRequest
+                            paymentSecret
+                            paymentStatus
+                            satoshis
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+
+                """
+        statuses = {
+            "EXPIRED": False, 
+            "PENDING": None, 
+            "PAID": True, 
+        }
+
+        variables = {
+            "paymentHash": checking_id,
+            "walletId": self.wallet_id
+        }
+        data = {"query": status_query, "variables": variables}
+        logger.info(f'get invoice_status data: {data}')
+        response = await self.graphql_query(data)
+        print(f"get_invoice_status response: {response}")
+        if response.get('errors') is not None:
+            msg = response['errors'][0]['message']
+            print(msg)
+            # throw error
+        else: 
+            status = response['data']['me']['defaultAccount']['walletById']['invoiceByPaymentHash']['paymentStatus']
+            print(status)        
+            return PaymentStatus(statuses[status])
+        
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         tx_query = """
@@ -251,19 +298,26 @@ class BlinkWallet(Wallet):
         """
         variables = {"paymentHash": checking_id}
         data = {"query": tx_query, "variables": variables}
+        print(f"get_payment_status data: {data}\n\n")
         response = await self.graphql_query(data)
-        wallets = response["data"]["me"]["defaultAccount"]["wallets"]
-        txbyPaymentHash = wallets[0]["transactionsByPaymentHash"][0]
+        print(f"get_payment_status response: {response}")
+
+        # wallets = response["data"]["me"]["defaultAccount"]["wallets"]
+        # print(wallets)
+        # txbyPaymentHash = wallets[0]["transactionsByPaymentHash"][0]
 
         statuses = {"FAILURE": False, "EXPIRED": False, "PENDING": None, "PAID": True, "SUCCESS": True}
 
-        status = txbyPaymentHash["status"]
-        print(f"status: {status}")
-        preimage = txbyPaymentHash["settlementVia"].get("preImage")
-        print("preimage: ", preimage)
-        fee = txbyPaymentHash["settlementFee"]
-        print(f"fee: {fee}")
+        # status = txbyPaymentHash["status"]
+        # print(f"status: {status}")
+        # preimage = txbyPaymentHash["settlementVia"].get("preImage")
+        # print("preimage: ", preimage)
+        # fee = txbyPaymentHash["settlementFee"]
+        # print(f"fee: {fee}")
 
+        status = "PENDING"
+        fee = 1
+        preimage ="preimage"
         return PaymentStatus(statuses[status], fee_msat=fee * 1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
