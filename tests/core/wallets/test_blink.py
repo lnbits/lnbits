@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import hashlib
 
 import aiohttp
 
@@ -63,14 +64,38 @@ fee_query = """mutation lnInvoiceFeeProbe($input: LnInvoiceFeeProbeInput!) {
 """
 
 # payment status
-status_query = """
-query LnInvoicePaymentStatus($input: LnInvoicePaymentStatusInput!) {
-    lnInvoicePaymentStatus(input: $input) {
-    status
-    }
+# status_query = """
+# query LnInvoicePaymentStatus($input: LnInvoicePaymentStatusInput!) {
+#     lnInvoicePaymentStatus(input: $input) {
+#     status
+#     }
+# }
+# """
+
+status_query  ="""
+  query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
+  me {
+      defaultAccount {
+      walletById(walletId: $walletId) {
+          invoiceByPaymentHash(paymentHash: $paymentHash) {
+          ... on LnInvoice {
+              createdAt
+              paymentHash
+              paymentRequest
+              paymentSecret
+              paymentStatus
+              satoshis
+          }
+          }
+      }
+      }
+  }
 }
 """
+
+
 # payment status based on bolt11 as input and error codes
+
 invoice_status = """query Query($input: LnInvoicePaymentStatusInput!) {
   lnInvoicePaymentStatus(input: $input) {
     errors {
@@ -217,17 +242,19 @@ async def get_fee_estimate(remote_invoice, wallet_id) -> json:
 
 
 async def get_invoice(amount, wallet_id) -> str:
+    unhashed_description = "Example description".encode("utf-8")
     invoice_variables = {
         "input": {
             "amount": amount,
-            "recipientWalletId": wallet_id
-            # "descriptionHash": "Example description hash",
-            # "memo": "Example memo"
+            "recipientWalletId": wallet_id,
+            "descriptionHash": hashlib.sha256(unhashed_description).hexdigest(),
+            "memo": "Example memo"
         }
     }
     data = {"query": invoice_query, "variables": invoice_variables}
+    print(f'get_invoice data query: {data}')
     response = await graphql_query(data)
-    print(response)
+    print(f'get_invoice response: {response}')
     invoice = (
         response.get("data", {})
         .get("lnInvoiceCreateOnBehalfOfRecipient", {})
@@ -239,8 +266,9 @@ async def get_invoice(amount, wallet_id) -> str:
 
 # {'data': {'lnInvoicePaymentStatus': {'status': 'PAID'}}}
 # {'data': {'lnInvoicePaymentStatus': {'status': 'PENDING'}}}
-async def get_invoice_status(bolt11) -> json:
-    status_variables = {"input": {"paymentRequest": bolt11}}
+async def get_invoice_status(paymentHash, wallet_id) -> json:
+    # status_variables = {"input": {"paymentRequest": bolt11}}
+    status_variables = { "paymentHash": paymentHash, "walletId": wallet_id}
     data = {"query": status_query, "variables": status_variables}
     response = await graphql_query(data)
     return response
@@ -297,7 +325,7 @@ async def main():
     print("\nGet Invoice status")
     bolt11 = "lnbc10u1pjunp54pp5u638gnndjgezs8dar5raqpd3s9lkwmjd4ya78mhyrhgz5s3c0w9sdqqcqzpuxqyz5vqsp5k4hw5976p6wk44mzs3ykznwuyczf3zyrqmqjg4u4z0ndkk7m6z9q9qyyssqtvwqww3824293p5fvvuje2fznjt829dze77kexpx3lnay764jj6sa7eduyzcjnnjl930j0fqlg3n93dtjaxfklew6lxqt75jaklkmqgqfymxem"
     print(f"invoice: {bolt11}")
-    response = await get_invoice_status(bolt11)
+    response = await get_invoice_status(bolt11, wallet_id)
     print(response)
     print("------")
 
@@ -311,46 +339,40 @@ async def main():
 
     amount = 100
     print(f"\nGet a new Invoice, amount {amount} ")
-    # new_invoice = await get_invoice(amount, wallet_id)
-    # print(f'new invoice: {new_invoice}')
-    # print("------")
+    new_invoice = await get_invoice(amount, wallet_id)
+    print(f'new invoice: {new_invoice}')
+    print("------")
 
     # pay invoice (send payment)
     # remote_invoice ="lnbc1u1pjungqepp5elafqwka4eqlymx2vn5radkyma49ug6qzmy6snkcfyvqwae4t25qdpv2phhwetjv4jzqcneypqyc6t8dp6xu6twva2xjuzzda6qcqzzsxqrrsssp56qj4lssk3wxv2y5y3jxwfkectevdyrf340mm3xd0hn3wtj9rafzs9qyyssqu3zx6ceewal5mea5hs6smaaz3pelw5tce82w7pldfnh7fkx6wzyy384teyvywkccwp300zzx4yd3aupcttp2qwwnxk704a4y060ryjcpm0dayl"
     # response = await pay_invoice(remote_invoice, wallet_id)
     # print(f'pay invoice response: {response}')
 
-    # # get payment status
-    response = await get_invoice_status(remote_invoice)
-    print(f"payment status response: {response}")
-
     ## get payment proof based on paymentHash
-    checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
+#    checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
+    checking_id =  '7f57926489343e548f8fc0ab2b4ccbe3d5ae65dfe6789bac5f34b45c58df618b'
     # response = await get_payment_proof(checking_id)
     # print(f'payment proof response: {response}')
 
-    # get payment status or invoice status based on paymentHash
-    response = await get_tx_status(checking_id)
-    print(f"\ntx status response: {response}\n\n")
-
-    txbyPaymentHash = response["data"]["me"]["defaultAccount"]["wallets"][0][
-        "transactionsByPaymentHash"
-    ][0]
-    print(txbyPaymentHash)
-
-    status = txbyPaymentHash["status"]
-    print("status: ", status)
-
-    preimage = txbyPaymentHash["settlementVia"].get("preImage")
-    print("preimage: ", preimage)
-
-    fee = txbyPaymentHash["settlementFee"]
-    print(f"fee: {fee}")
-
+    # # get payment status
+    print('Get Invoice Status')
+    response = await get_invoice_status(checking_id, wallet_id)
+    print(f"payment status response: {response}")
+    if response.get('errors') is not None:
+          msg = response['errors'][0]['message']
+          print(msg)
+    else: 
+         status = response['data']['me']['defaultAccount']['walletById']['invoiceByPaymentHash']['paymentStatus']
+         print(status)        
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
 
+
+# for mockAPI
+    
+    
 
 # example error response for create invoice
 # {
