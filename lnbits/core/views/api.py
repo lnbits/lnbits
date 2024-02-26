@@ -51,6 +51,7 @@ from lnbits.decorators import (
     WalletTypeInfo,
     check_access_token,
     check_admin,
+    check_user_exists,
     get_key_type,
     parse_filters,
     require_admin_key,
@@ -123,6 +124,11 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         }
     else:
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
+
+
+@api_router.get("/api/v1/wallets")
+async def api_wallet(user: User = Depends(check_user_exists)):
+    return user.wallets
 
 
 @api_router.put("/api/v1/wallet/{new_name}")
