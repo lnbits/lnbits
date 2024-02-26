@@ -232,12 +232,7 @@ class BlinkWallet(Wallet):
                     walletById(walletId: $walletId) {
                         invoiceByPaymentHash(paymentHash: $paymentHash) {
                         ... on LnInvoice {
-                            createdAt
-                            paymentHash
-                            paymentRequest
-                            paymentSecret
                             paymentStatus
-                            satoshis
                         }
                         }
                     }
