@@ -1,6 +1,5 @@
-import asyncio
 import hashlib
-from typing import AsyncGenerator, Dict, Optional
+from typing import Dict, Optional
 
 import httpx
 from loguru import logger
@@ -141,9 +140,3 @@ class LNPayWallet(Wallet):
         fee_msat = data["fee_msat"]
         statuses = {0: None, 1: True, -1: False}
         return PaymentStatus(statuses[data["settled"]], fee_msat, preimage)
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value

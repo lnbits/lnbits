@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
 
+from loguru import logger
+
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
@@ -91,9 +93,12 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
-    @abstractmethod
-    def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        pass
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        logger.info(
+            f"Funding source '{self.__class__.__name__}' "
+            "does not support invoice stream"
+        )
+        yield ""
 
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
