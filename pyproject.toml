@@ -69,6 +69,8 @@ ruff = "^0.0.291"
 rpds-py = "0.10.3"
 types-passlib = "^1.7.7.13"
 types-python-jose = "^3.3.4.8"
+openai = "^1.12.0"
+json5 = "^0.9.17"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -80,7 +82,9 @@ lnbits-cli = "lnbits.commands:main"
 
 [tool.pyright]
 include = [
-  "lnbits"
+  "lnbits",
+  "tests",
+  "tools",
 ]
 exclude = [
   "lnbits/wallets/lnd_grpc_files",
@@ -89,7 +93,11 @@ exclude = [
 ]
 
 [tool.mypy]
-files = "lnbits"
+files = [
+  "lnbits",
+  "tests",
+  "tools",
+]
 exclude = [
   "^lnbits/wallets/lnd_grpc_files",
   "^lnbits/extensions",
@@ -118,6 +126,7 @@ module = [
   "py_vapid.*",
   "pywebpush.*",
   "fastapi_sso.sso.*",
+  "json5.*",
 ]
 ignore_missing_imports = "True"
 
