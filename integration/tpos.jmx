@@ -1591,7 +1591,7 @@ if (resp.balance !== 0) {
                 </elementProp>
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">http://localhost:5000/tpos/?usr=${adminUserId}</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/tpos/</stringProp>
                 </elementProp>
                 <elementProp name="Sec-Fetch-Site" elementType="Header">
                   <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
@@ -1660,7 +1660,7 @@ if (resp.balance !== 0) {
                 </elementProp>
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">http://localhost:5000/tpos/?usr=${adminUserId}</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/tpos/</stringProp>
                 </elementProp>
                 <elementProp name="Sec-Fetch-Site" elementType="Header">
                   <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
@@ -2091,7 +2091,7 @@ vars.put(&quot;ATMtposId&quot;, resp.id || &apos;no-tpos-id&apos;);</stringProp>
                 </elementProp>
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">http://localhost:5000/tpos/?usr=${adminUserId}</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/tpos/</stringProp>
                 </elementProp>
                 <elementProp name="Sec-Fetch-Site" elementType="Header">
                   <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
@@ -3031,7 +3031,7 @@ if (!resp.payment_hash) {
                 </elementProp>
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">http://localhost:5000/tpos/?usr=${adminUserId}</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/tpos/</stringProp>
                 </elementProp>
                 <elementProp name="Sec-Fetch-Site" elementType="Header">
                   <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
