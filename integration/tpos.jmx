@@ -83,7 +83,7 @@
         </TransactionController>
         <hashTree>
           <IncludeController guiclass="IncludeControllerGui" testclass="IncludeController" testname="Include Init Server" enabled="true">
-            <stringProp name="IncludeController.includepath">init-server.jmx</stringProp>
+            <stringProp name="IncludeController.includepath">fragments/init-server.jmx</stringProp>
           </IncludeController>
           <hashTree/>
         </hashTree>
