@@ -783,7 +783,7 @@ vars.put(&quot;tipadminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -852,7 +852,7 @@ vars.put(&quot;tipadminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -925,7 +925,7 @@ if (resp.balance !== 0) {
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -1289,7 +1289,7 @@ vars.put(&quot;tipadminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
                 <collectionProp name="HeaderManager.headers">
                   <elementProp name="Referer" elementType="Header">
                     <stringProp name="Header.name">Referer</stringProp>
-                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                   </elementProp>
                   <elementProp name="Accept-Language" elementType="Header">
                     <stringProp name="Header.name">Accept-Language</stringProp>
@@ -1358,7 +1358,7 @@ vars.put(&quot;tipadminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
                 <collectionProp name="HeaderManager.headers">
                   <elementProp name="Referer" elementType="Header">
                     <stringProp name="Header.name">Referer</stringProp>
-                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                   </elementProp>
                   <elementProp name="Accept-Language" elementType="Header">
                     <stringProp name="Header.name">Accept-Language</stringProp>
@@ -1431,7 +1431,7 @@ if (resp.balance !== 0) {
                 <collectionProp name="HeaderManager.headers">
                   <elementProp name="Referer" elementType="Header">
                     <stringProp name="Header.name">Referer</stringProp>
-                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                    <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                   </elementProp>
                   <elementProp name="Accept-Language" elementType="Header">
                     <stringProp name="Header.name">Accept-Language</stringProp>
@@ -3480,7 +3480,7 @@ if (!resp.payment_hash) {
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -3546,7 +3546,7 @@ if (!resp.payment_hash) {
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -4049,7 +4049,7 @@ if (!resp.payment_hash) {
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
@@ -4126,7 +4126,7 @@ if (resp.balance !== userBalance) {
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?usr=${userId}&amp;wal=${walletId}</stringProp>
+                  <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
                 </elementProp>
                 <elementProp name="Accept-Language" elementType="Header">
                   <stringProp name="Header.name">Accept-Language</stringProp>
