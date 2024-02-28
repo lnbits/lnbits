@@ -3807,7 +3807,7 @@ if (!resp.payment_hash) {
                 </elementProp>
                 <elementProp name="Referer" elementType="Header">
                   <stringProp name="Header.name">Referer</stringProp>
-                  <stringProp name="Header.value">http://localhost:5000/wallet?usr=c2108fb7f9e646cc89f1a72359bbff8c&amp;wal=c765b81174fa4144b21c64a9144181d2</stringProp>
+                  <stringProp name="Header.value">http://localhost:5000/wallet</stringProp>
                 </elementProp>
                 <elementProp name="Sec-Fetch-Site" elementType="Header">
                   <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
