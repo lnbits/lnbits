@@ -107,7 +107,11 @@ class LndRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"value": amount, "private": True, "memo": memo or ""}
+        data: Dict = {
+            "value": amount,
+            "private": settings.lnd_rest_route_hints,
+            "memo": memo or "",
+        }
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
         if description_hash:

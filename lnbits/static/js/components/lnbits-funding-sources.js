@@ -50,7 +50,8 @@ Vue.component('lnbits-funding-sources', {
             lnd_rest_endpoint: 'Endpoint',
             lnd_rest_cert: 'Certificate',
             lnd_rest_macaroon: 'Macaroon',
-            lnd_rest_macaroon_encrypted: 'Encrypted Macaroon'
+            lnd_rest_macaroon_encrypted: 'Encrypted Macaroon',
+            lnd_rest_route_hints: 'Enable Route Hints'
           }
         ],
         [

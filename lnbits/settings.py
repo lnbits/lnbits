@@ -182,6 +182,7 @@ class LndRestFundingSource(LNbitsSettings):
     lnd_rest_cert: Optional[str] = Field(default=None)
     lnd_rest_macaroon: Optional[str] = Field(default=None)
     lnd_rest_macaroon_encrypted: Optional[str] = Field(default=None)
+    lnd_rest_route_hints: bool = Field(default=True)
     lnd_cert: Optional[str] = Field(default=None)
     lnd_admin_macaroon: Optional[str] = Field(default=None)
     lnd_invoice_macaroon: Optional[str] = Field(default=None)
