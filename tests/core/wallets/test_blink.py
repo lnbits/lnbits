@@ -79,13 +79,8 @@ status_query  ="""
       walletById(walletId: $walletId) {
           invoiceByPaymentHash(paymentHash: $paymentHash) {
           ... on LnInvoice {
-              createdAt
-              paymentHash
-              paymentRequest
-              paymentSecret
               paymentStatus
-              satoshis
-          }
+            }
           }
       }
       }
@@ -139,31 +134,55 @@ proof_query = """
 """
 
 # Transactions by Payment Hash
-tx_query = """
-query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
-  me {
-    defaultAccount {
-      wallets {
-        ... on BTCWallet {
-          transactionsByPaymentHash(paymentHash: $paymentHash) {
-            createdAt
-            direction
-            id
-            memo
-            status
-            settlementFee
-            settlementVia {
-              ... on SettlementViaLn {
-                preImage
+tx_query="""
+query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
+        me {
+            defaultAccount {
+              walletById(walletId: $walletId) {
+                walletCurrency
+                ... on BTCWallet {
+                  transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
+                    settlementFee
+                    status
+                    settlementVia {
+                      ... on SettlementViaLn {
+                        preImage
+                      }
+                    }
+                  }
+                }
               }
             }
-          }
         }
-      }
-    }
-  }
-}
+ }
 """
+
+
+# tx_query = """
+# query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
+#   me {
+#     defaultAccount {
+#       wallets {
+#         ... on BTCWallet {
+#           transactionsByPaymentHash(paymentHash: $paymentHash) {
+#             createdAt
+#             direction
+#             id
+#             memo
+#             status
+#             settlementFee
+#             settlementVia {
+#               ... on SettlementViaLn {
+#                 preImage
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
+# """
 
 
 async def graphql_query(payload):
@@ -173,9 +192,9 @@ async def graphql_query(payload):
             return data
 
 
-async def get_tx_status(checking_id):
+async def get_tx_status(checking_id, wallet_id):
     # checking_id is the paymentHash
-    variables = {"paymentHash": checking_id}
+    variables = {"walletId": wallet_id, "transactionsByPaymentHash": checking_id}
     data = {"query": tx_query, "variables": variables}
     response_data = await graphql_query(data)
     return response_data
@@ -365,6 +384,9 @@ async def main():
          status = response['data']['me']['defaultAccount']['walletById']['invoiceByPaymentHash']['paymentStatus']
          print(status)        
     
+    checking_id = "9214604093138dab8b083d2022607ee33af6358e9411e36943238e4ee20c3ab7"
+    response = await get_tx_status(checking_id, wallet_id)
+    print(f"tx status response: {response}")
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -372,7 +394,7 @@ if __name__ == "__main__":
 
 # for mockAPI
     
-    
+
 
 # example error response for create invoice
 # {
