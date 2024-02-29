@@ -159,7 +159,7 @@ vars.put(&quot;adminkey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <stringProp name="HTTPSampler.path">//api/v1/auth/usr</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/auth/usr</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
