@@ -5,12 +5,15 @@ import hashlib
 
 import aiohttp
 
+from bolt11.decode import decode
+
 url = os.environ.get("BLINK_API_ENDPOINT")
 headers = {
     "Content-Type": "application/json",
     "X-API-KEY": os.environ.get("BLINK_TOKEN"),
 }
 
+## TODO: make this a proper unit test
 
 balance_query = """
         query Me {
@@ -342,9 +345,9 @@ async def main():
     print("------")
 
     print("\nGet Invoice status")
-    bolt11 = "lnbc10u1pjunp54pp5u638gnndjgezs8dar5raqpd3s9lkwmjd4ya78mhyrhgz5s3c0w9sdqqcqzpuxqyz5vqsp5k4hw5976p6wk44mzs3ykznwuyczf3zyrqmqjg4u4z0ndkk7m6z9q9qyyssqtvwqww3824293p5fvvuje2fznjt829dze77kexpx3lnay764jj6sa7eduyzcjnnjl930j0fqlg3n93dtjaxfklew6lxqt75jaklkmqgqfymxem"
-    print(f"invoice: {bolt11}")
-    response = await get_invoice_status(bolt11, wallet_id)
+    bolt11_invoice = "lnbc10u1pjunp54pp5u638gnndjgezs8dar5raqpd3s9lkwmjd4ya78mhyrhgz5s3c0w9sdqqcqzpuxqyz5vqsp5k4hw5976p6wk44mzs3ykznwuyczf3zyrqmqjg4u4z0ndkk7m6z9q9qyyssqtvwqww3824293p5fvvuje2fznjt829dze77kexpx3lnay764jj6sa7eduyzcjnnjl930j0fqlg3n93dtjaxfklew6lxqt75jaklkmqgqfymxem"
+    print(f"invoice: {bolt11_invoice}")
+    response = await get_invoice_status(bolt11_invoice, wallet_id)
     print(response)
     print("------")
 
@@ -368,10 +371,13 @@ async def main():
     # print(f'pay invoice response: {response}')
 
     ## get payment proof based on paymentHash
-#    checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
-    checking_id =  '7f57926489343e548f8fc0ab2b4ccbe3d5ae65dfe6789bac5f34b45c58df618b'
+    # checking_id = "c02edf02b3499527fea90739bd17304c16b20b5d30969fdfb2928181456bf5a0"
+    # checking_id =  '7f57926489343e548f8fc0ab2b4ccbe3d5ae65dfe6789bac5f34b45c58df618b'
     # response = await get_payment_proof(checking_id)
     # print(f'payment proof response: {response}')
+
+    checking_id = decode(new_invoice).payment_hash
+    print(f'new invoice decoded checking_id: {checking_id}')
 
     # # get payment status
     print('Get Invoice Status')
@@ -384,9 +390,9 @@ async def main():
          status = response['data']['me']['defaultAccount']['walletById']['invoiceByPaymentHash']['paymentStatus']
          print(status)        
     
-    checking_id = "9214604093138dab8b083d2022607ee33af6358e9411e36943238e4ee20c3ab7"
+    # checking_id = "9214604093138dab8b083d2022607ee33af6358e9411e36943238e4ee20c3ab7"
     response = await get_tx_status(checking_id, wallet_id)
-    print(f"tx status response: {response}")
+    print(f"\n\nTX status response: {response}")
 
 if __name__ == "__main__":
     asyncio.run(main())
