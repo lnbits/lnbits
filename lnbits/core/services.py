@@ -709,11 +709,14 @@ async def check_webpush_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if key not in readonly_variables:
-            try:
-                setattr(settings, key, value)
-            except Exception:
-                logger.warning(f"Failed overriding setting: {key}, value: {value}")
+        if key in readonly_variables:
+            continue
+        if key not in settings.dict().keys():
+            continue
+        try:
+            setattr(settings, key, value)
+        except Exception:
+            logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
 
