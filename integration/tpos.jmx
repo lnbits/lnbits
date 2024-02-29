@@ -424,22 +424,30 @@
               <intProp name="Assertion.test_type">8</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Check created TPoS" enabled="false">
+            <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Check created TPoS" enabled="true">
               <stringProp name="scriptLanguage">javascript</stringProp>
               <stringProp name="parameters"></stringProp>
               <stringProp name="filename"></stringProp>
               <stringProp name="cacheKey">true</stringProp>
-              <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString())
+              <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString());
 
-var walletId = vars.get(&quot;walletId&quot;)
-
+var walletId = vars.get(&quot;walletId&quot;);
+var userId = vars.get(&quot;userId&quot;);
 if (!resp.id) {
-	AssertionResult.setFailureMessage(&quot;TPoS not created&quot;);
-	AssertionResult.setFailure(true)
-} else if (resp.wallet !== walletId){
-	AssertionResult.setFailureMessage(&quot;TPoS description expected to be &apos;&quot;+walletId+&quot;&apos;, but was: &quot; + resp.wallet);
-	AssertionResult.setFailure(true)
-}</stringProp>
+  AssertionResult.setFailureMessage(&quot;TPoS not created&quot;);
+  AssertionResult.setFailure(true);
+} else if (resp.user !== userId) {
+  AssertionResult.setFailureMessage(
+    &quot;TPoS user id expected to be &apos;&quot; + userId + &quot;&apos;, but was: &quot; + resp.user
+  );
+  AssertionResult.setFailure(true);
+} else if (resp.name !== &quot;tips wallet&quot;) {
+  AssertionResult.setFailureMessage(
+    &quot;TPoS name expected to be &apos;tips wallet&apos;, but was: &quot; + resp.name
+  );
+  AssertionResult.setFailure(true);
+}
+</stringProp>
             </JSR223Assertion>
             <hashTree/>
             <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Extract user id and wallet" enabled="true">
