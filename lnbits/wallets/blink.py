@@ -8,6 +8,7 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 
+from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -185,7 +186,7 @@ class BlinkWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(self, bolt11_invoice: str, fee_limit_msat: int) -> PaymentResponse:
         #  https://dev.blink.sv/api/btc-ln-send
         # TODO: add check fee estimate before paying invoice
         payment_query = """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
@@ -201,7 +202,7 @@ class BlinkWallet(Wallet):
         """
         payment_variables = {
             "input": {
-                "paymentRequest": bolt11,
+                "paymentRequest": bolt11_invoice,
                 "walletId": self.wallet_id,
                 "memo": "Payment memo",
             }
@@ -216,7 +217,7 @@ class BlinkWallet(Wallet):
             error_message = errors[0].get("message")
             return PaymentResponse(False, None, None, None, error_message)
 
-        checking_id = get_payment_hash(bolt11) # todo
+        checking_id = bolt11.decode(bolt11_invoice).payment_hash
         payment_status = await self.get_payment_status(checking_id)
         fee_msat = payment_status.fee_msat
         preimage = payment_status.preimage
@@ -258,7 +259,7 @@ class BlinkWallet(Wallet):
         if response.get('errors') is not None:
             msg = response['errors'][0]['message']
             print(msg)
-            # throw error
+            return PaymentStatus(None)
         else: 
             status = response['data']['me']['defaultAccount']['walletById']['invoiceByPaymentHash']['paymentStatus']
             print(status)        
@@ -297,18 +298,7 @@ class BlinkWallet(Wallet):
         response = await self.graphql_query(data)
         print(f"get_payment_status response: {response}")
 
-        # wallets = response["data"]["me"]["defaultAccount"]["wallets"]
-        # print(wallets)
-        # txbyPaymentHash = wallets[0]["transactionsByPaymentHash"][0]
-
         statuses = {"FAILURE": False, "EXPIRED": False, "PENDING": None, "PAID": True, "SUCCESS": True}
-
-        # status = txbyPaymentHash["status"]
-        # print(f"status: {status}")
-        # preimage = txbyPaymentHash["settlementVia"].get("preImage")
-        # print("preimage: ", preimage)
-        # fee = txbyPaymentHash["settlementFee"]
-        # print(f"fee: {fee}")
 
         status = "PENDING"
         fee = 1
@@ -321,8 +311,3 @@ class BlinkWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-    async def webhook_listener(self):
-        # https://dev.blink.sv/api/webhooks#currently-available-webhook-events
-        logger.error("Blink webhook listener disabled")
-        return
