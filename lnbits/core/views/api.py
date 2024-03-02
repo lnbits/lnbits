@@ -921,9 +921,9 @@ async def api_uninstall_extension(
 )
 async def get_extension_releases(ext_id: str):
     try:
-        extension_releases: List[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(ext_id)
+        extension_releases: List[ExtensionRelease] = (
+            await InstallableExtension.get_extension_releases(ext_id)
+        )
 
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:

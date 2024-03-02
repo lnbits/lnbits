@@ -217,17 +217,21 @@ class CoreLightningNode(Node):
                 state=(
                     ChannelState.ACTIVE
                     if ch["state"] == "CHANNELD_NORMAL"
-                    else ChannelState.PENDING
-                    if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
-                    else ChannelState.CLOSED
-                    if ch["state"]
-                    in (
-                        "CHANNELD_CLOSING",
-                        "CLOSINGD_COMPLETE",
-                        "CLOSINGD_SIGEXCHANGE",
-                        "ONCHAIN",
+                    else (
+                        ChannelState.PENDING
+                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
+                        else (
+                            ChannelState.CLOSED
+                            if ch["state"]
+                            in (
+                                "CHANNELD_CLOSING",
+                                "CLOSINGD_COMPLETE",
+                                "CLOSINGD_SIGEXCHANGE",
+                                "ONCHAIN",
+                            )
+                            else ChannelState.INACTIVE
+                        )
                     )
-                    else ChannelState.INACTIVE
                 ),
             )
             for ch in funds["channels"]

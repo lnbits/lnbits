@@ -674,9 +674,9 @@ class InstallableExtension(BaseModel):
     async def get_extension_release(
         cls, ext_id: str, source_repo: str, archive: str, version: str
     ) -> Optional["ExtensionRelease"]:
-        all_releases: List[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(ext_id)
+        all_releases: List[ExtensionRelease] = (
+            await InstallableExtension.get_extension_releases(ext_id)
+        )
         selected_release = [
             r
             for r in all_releases

@@ -108,9 +108,11 @@ async def api_delete_channel(
 ) -> Optional[List[NodeChannel]]:
     return await node.close_channel(
         short_id,
-        ChannelPoint(funding_txid=funding_txid, output_index=output_index)
-        if funding_txid is not None and output_index is not None
-        else None,
+        (
+            ChannelPoint(funding_txid=funding_txid, output_index=output_index)
+            if funding_txid is not None and output_index is not None
+            else None
+        ),
         force,
     )
 
