@@ -142,6 +142,8 @@ async def logout() -> JSONResponse:
     response.delete_cookie("cookie_access_token")
     response.delete_cookie("is_lnbits_user_authorized")
     response.delete_cookie("is_access_token_expired")
+    response.delete_cookie("lnbits_last_active_wallet")
+
     return response
 
 
