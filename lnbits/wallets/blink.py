@@ -218,7 +218,9 @@ class BlinkWallet(Wallet):
             return PaymentResponse(False, None, None, None, error_message)
 
         checking_id = bolt11.decode(bolt11_invoice).payment_hash
+
         payment_status = await self.get_payment_status(checking_id)
+        # in above case, replace with bolt11 to check status get fee and preimage
         fee_msat = payment_status.fee_msat
         preimage = payment_status.preimage
         return PaymentResponse(True, checking_id, fee_msat, preimage , None)
@@ -267,6 +269,7 @@ class BlinkWallet(Wallet):
         
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # TODO FIX THIS  it is not working
         tx_query = """
         query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
         me {
