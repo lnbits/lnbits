@@ -136,6 +136,28 @@ proof_query = """
     }
 """
 
+tx_payreq = """
+query DefaultWallet($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
+  me {
+    defaultAccount {
+      displayCurrency
+      walletById(walletId: $walletId) {
+        id
+        transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
+          settlementFee
+          status
+          settlementVia {
+            ... on SettlementViaLn {
+              preImage
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 # Transactions by Payment Hash
 tx_query="""
 query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
@@ -187,6 +209,11 @@ query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash
 # }
 # """
 
+async def get_pay_status(payment_request, wallet_id):
+    variables = {"walletId": wallet_id, "paymentRequest": payment_request}
+    data = {"query": tx_payreq, "variables": variables}
+    response_data = await graphql_query(data)
+    return response_data
 
 async def graphql_query(payload):
     async with aiohttp.ClientSession() as session:
@@ -199,6 +226,8 @@ async def get_tx_status(checking_id, wallet_id):
     # checking_id is the paymentHash
     variables = {"walletId": wallet_id, "transactionsByPaymentHash": checking_id}
     data = {"query": tx_query, "variables": variables}
+    print("get TX Status \n")
+    print(data)
     response_data = await graphql_query(data)
     return response_data
 
@@ -347,7 +376,9 @@ async def main():
     print("\nGet Invoice status")
     bolt11_invoice = "lnbc10u1pjunp54pp5u638gnndjgezs8dar5raqpd3s9lkwmjd4ya78mhyrhgz5s3c0w9sdqqcqzpuxqyz5vqsp5k4hw5976p6wk44mzs3ykznwuyczf3zyrqmqjg4u4z0ndkk7m6z9q9qyyssqtvwqww3824293p5fvvuje2fznjt829dze77kexpx3lnay764jj6sa7eduyzcjnnjl930j0fqlg3n93dtjaxfklew6lxqt75jaklkmqgqfymxem"
     print(f"invoice: {bolt11_invoice}")
-    response = await get_invoice_status(bolt11_invoice, wallet_id)
+    # argument is supposed to be payment hash not bolt 11
+    check_id = decode(bolt11_invoice).payment_hash
+    response = await get_invoice_status(check_id, wallet_id)
     print(response)
     print("------")
 
@@ -393,6 +424,12 @@ async def main():
     # checking_id = "9214604093138dab8b083d2022607ee33af6358e9411e36943238e4ee20c3ab7"
     response = await get_tx_status(checking_id, wallet_id)
     print(f"\n\nTX status response: {response}")
+
+    this_invoice="lnbc1u1pj7svp0pp5wf955xnw4424qkdcwv7xeehyhz5hew8r9qr9lzxv0f2xwalekewqhp542rwn8r7g333r3cak63hm4sgzdprexhv6c8mk9w5zkcdzgrvhp8scqzpuxqyz5vqsp5acraz6u4as4u6sfmsxrv956yqyw558fdtkeq8hr37gsxz62x6kws9qyyssqua60702whup2ajc903mfzyqqn7fftlmp460vlspguc5xm85qlyrrwvcnce7kdwqkd34xee3jw3gtnawf8g4dcy9d6zvefkej5u0t8rgphe3ld0"
+
+    response = await get_pay_status(this_invoice, wallet_id)
+    print(f"\n\nPay status response: {response}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
