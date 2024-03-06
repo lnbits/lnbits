@@ -9,6 +9,46 @@ on:
 
 jobs:
 
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  tests:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+
+  migrations:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      make: test-migration
+      db-name: migration
+
+  openapi:
+    needs: [ lint ]
+    uses: ./.github/workflows/make.yml
+    with:
+      make: openapi
+
+  regtest:
+    needs: [ lint ]
+    uses: ./.github/workflows/regtest.yml
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        backend-wallet-class: ["LndRestWallet", "LndWallet", "CoreLightningWallet", "CoreLightningRestWallet", "LNbitsWallet", "EclairWallet"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      backend-wallet-class: ${{ matrix.backend-wallet-class }}
+
   jmeter:
     strategy:
       matrix:
@@ -18,43 +58,3 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       poetry-version: ${{ matrix.poetry-version }}
-
-  # lint:
-  #   uses: ./.github/workflows/lint.yml
-
-  # tests:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.9", "3.10"]
-  #       db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     python-version: ${{ matrix.python-version }}
-
-  # migrations:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.9"]
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     make: test-migration
-  #     db-name: migration
-
-  # openapi:
-  #   needs: [ lint ]
-  #   uses: ./.github/workflows/make.yml
-  #   with:
-  #     make: openapi
-
-  # regtest:
-  #   needs: [ lint ]
-  #   uses: ./.github/workflows/regtest.yml
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.9"]
-  #       backend-wallet-class: ["LndRestWallet", "LndWallet", "CoreLightningWallet", "CoreLightningRestWallet", "LNbitsWallet", "EclairWallet"]
-  #   with:
-  #     python-version: ${{ matrix.python-version }}
-  #     backend-wallet-class: ${{ matrix.backend-wallet-class }}

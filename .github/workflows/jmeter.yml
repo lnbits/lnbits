@@ -1,4 +1,4 @@
-name: Test2 JMeter Action
+name: JMeter Tests
 
 on:
   workflow_call:
