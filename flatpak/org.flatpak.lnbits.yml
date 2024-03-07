@@ -1,0 +1,34 @@
+app-id: org.example.myapp
+runtime: org.freedesktop.Platform
+runtime-version: '21.08'
+sdk: org.freedesktop.Sdk
+
+finish-args:
+  - '--socket=x11'
+  - '--share=network'
+
+modules:
+  - name: lnbits
+    buildsystem: simple
+    sources:
+      - type: git
+        url: https://github.com/lnbits/lnbits.git
+        branch: main
+    build-options:
+      build-args:
+        - '--socket=x11'
+        - '--share=network'
+    build-commands:
+      - cd lnbits
+      - mkdir /app/data
+      - pip3 install --upgrade pip
+      - pip3 install poetry
+      - pip3 install --only main
+    cleanup:
+      - /usr/share/man
+      - /usr/share/doc
+      - /usr/share/locale
+    run-commands:
+      - export LNBITS_PORT="5000"
+      - export LNBITS_HOST="0.0.0.0"
+      - poetry run lnbits --port $LNBITS_PORT --host $LNBITS_HOST
