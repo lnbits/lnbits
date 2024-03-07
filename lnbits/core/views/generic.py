@@ -221,9 +221,7 @@ async def wallet(
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
-    resp.set_cookie(
-        "lnbits_last_active_wallet", wallet_id, samesite="none", secure=True
-    )
+    resp.set_cookie("lnbits_last_active_wallet", wallet_id)
     return resp
 
 
