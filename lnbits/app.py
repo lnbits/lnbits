@@ -535,9 +535,7 @@ def register_exception_handlers(app: FastAPI):
                 response = RedirectResponse("/")
                 response.delete_cookie("cookie_access_token")
                 response.delete_cookie("is_lnbits_user_authorized")
-                response.set_cookie(
-                    "is_access_token_expired", "true", samesite="none", secure=True
-                )
+                response.set_cookie("is_access_token_expired", "true")
                 return response
 
             return template_renderer().TemplateResponse(
