@@ -602,6 +602,7 @@ async def get_standalone_payment(
         SELECT *
         FROM apipayments
         WHERE {clause}
+        ORDER BY amount
         LIMIT 1
         """,
         tuple(values),
