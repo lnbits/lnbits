@@ -62,7 +62,7 @@ class KeyChecker(SecurityBase):
             #        avoided here. Also, we should not return the wallet here - thats
             #        silly. Possibly store it in a Redis DB
             wallet = await get_wallet_for_key(key_value, self._key_type)
-            if not wallet or wallet.deleted:
+            if not wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
                     detail="Invalid key or wallet.",
