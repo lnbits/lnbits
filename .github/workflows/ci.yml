@@ -48,3 +48,13 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
+
+  jmeter:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.5.1"]
+    uses: ./.github/workflows/jmeter.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+      poetry-version: ${{ matrix.poetry-version }}
