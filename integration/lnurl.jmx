@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan x" enabled="true">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
@@ -932,8 +932,9 @@ vars.put(&quot;payLinkLnurl&quot;, resp.lnurl || &apos;no-pay-link-lnurl&apos;);
                     </JSONPostProcessor>
                     <hashTree/>
                   </hashTree>
-                  <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a sec" enabled="true">
-                    <stringProp name="ConstantTimer.delay">1100</stringProp>
+                  <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a bit" enabled="true">
+                    <stringProp name="ConstantTimer.delay">3000</stringProp>
+                    <stringProp name="TestPlan.comments">for the webhook to be called</stringProp>
                   </ConstantTimer>
                   <hashTree/>
                   <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[wallet] Get Payment" enabled="true">
@@ -2007,8 +2008,8 @@ if (!resp.id) {
                     </JSONPostProcessor>
                     <hashTree/>
                   </hashTree>
-                  <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a sec" enabled="true">
-                    <stringProp name="ConstantTimer.delay">1100</stringProp>
+                  <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a bit" enabled="true">
+                    <stringProp name="ConstantTimer.delay">3000</stringProp>
                     <stringProp name="TestPlan.comments">for the callback to be invoked</stringProp>
                   </ConstantTimer>
                   <hashTree/>
