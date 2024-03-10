@@ -269,43 +269,48 @@ class BlinkWallet(Wallet):
         
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # TODO FIX THIS  it is not working
-        tx_query = """
-        query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
-        me {
-            defaultAccount {
-            wallets {
-                ... on BTCWallet {
-                transactionsByPaymentHash(paymentHash: $paymentHash) {
-                    createdAt
-                    direction
-                    id
-                    memo
-                    status
-                    settlementFee
-                    settlementVia {
-                    ... on SettlementViaLn {
-                        preImage
+        tx_query="""
+            query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
+                    me {
+                        defaultAccount {
+                        walletById(walletId: $walletId) {
+                            walletCurrency
+                            ... on BTCWallet {
+                            transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
+                                settlementFee
+                                status
+                                settlementVia {
+                                ... on SettlementViaLn {
+                                    preImage
+                                }
+                                }
+                            }
+                            }
+                        }
+                        }
                     }
-                    }
-                }
-                }
             }
-            }
-        }
-        }
-        """
-        variables = {"paymentHash": checking_id}
+            """
+        variables = {"walletId": self.wallet_id, "transactionsByPaymentHash": checking_id}
         data = {"query": tx_query, "variables": variables}
+
+        # variables = {"paymentHash": checking_id}
+        # data = {"query": tx_query, "variables": variables}
         print(f"get_payment_status data: {data}\n\n")
         response = await self.graphql_query(data)
         print(f"get_payment_status response: {response}")
 
+        data = response.get('data').get('me').get('defaultAccount').get('walletById').get('transactionsByPaymentHash')
+        fee = data[0].get('settlementFee')
+        preimage = data[0].get('settlementVia').get('preImage')
+        status = data[0].get('status')
+        print(f'fee: {fee}, preimage: {preimage}, status: {status}')
+
         statuses = {"FAILURE": False, "EXPIRED": False, "PENDING": None, "PAID": True, "SUCCESS": True}
 
-        status = "PENDING"
-        fee = 1
-        preimage ="preimage"
+        # status = "PENDING"
+        # fee = 1
+        # preimage ="preimage"
         return PaymentStatus(statuses[status], fee_msat=fee * 1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
