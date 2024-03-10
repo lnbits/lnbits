@@ -422,13 +422,22 @@ async def main():
          print(status)        
     
     # checking_id = "9214604093138dab8b083d2022607ee33af6358e9411e36943238e4ee20c3ab7"
-    response = await get_tx_status(checking_id, wallet_id)
-    print(f"\n\nTX status response: {response}")
 
     this_invoice="lnbc1u1pj7svp0pp5wf955xnw4424qkdcwv7xeehyhz5hew8r9qr9lzxv0f2xwalekewqhp542rwn8r7g333r3cak63hm4sgzdprexhv6c8mk9w5zkcdzgrvhp8scqzpuxqyz5vqsp5acraz6u4as4u6sfmsxrv956yqyw558fdtkeq8hr37gsxz62x6kws9qyyssqua60702whup2ajc903mfzyqqn7fftlmp460vlspguc5xm85qlyrrwvcnce7kdwqkd34xee3jw3gtnawf8g4dcy9d6zvefkej5u0t8rgphe3ld0"
+    checking_id = decode(this_invoice).payment_hash
+
+    response = await get_tx_status(checking_id, wallet_id)
+    print(f"\n\nTX status response: {response}")
+    data = response.get('data').get('me').get('defaultAccount').get('walletById').get('transactionsByPaymentHash')
+    print(f"\n\nTX status data: {data}")
+    fee = data[0].get('settlementFee')
+    preimage = data[0].get('settlementVia').get('preImage')
+    status = data[0].get('status')
+    print(f'fee: {fee}, preimage: {preimage}, status: {status}')
 
     response = await get_pay_status(this_invoice, wallet_id)
     print(f"\n\nPay status response: {response}")
+
 
 
 if __name__ == "__main__":
