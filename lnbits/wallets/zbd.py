@@ -1,5 +1,4 @@
-import asyncio
-from typing import AsyncGenerator, Dict, Optional
+from typing import Dict, Optional
 
 import httpx
 from loguru import logger
@@ -150,9 +149,3 @@ class ZBDWallet(Wallet):
         }
 
         return PaymentStatus(statuses[data.get("status")], fee_msat=None, preimage=None)
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value

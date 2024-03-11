@@ -1,5 +1,4 @@
-import asyncio
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -137,9 +136,3 @@ class OpenNodeWallet(Wallet):
         }
         fee_msat = -data.get("fee") * 1000
         return PaymentStatus(statuses[data.get("status")], fee_msat)
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value
