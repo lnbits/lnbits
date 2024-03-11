@@ -84,7 +84,7 @@ jobs:
           job-summary: true
           emoji: false
           click-to-expand: false
-          custom-pytest: poetry run pytest
+          custom-pytest: poetry run pytest tests/regtest
           report-title: "regtest (${{ inputs.python-version }}, ${{ inputs.backend-wallet-class }}"
 
       - name: Upload coverage to Codecov

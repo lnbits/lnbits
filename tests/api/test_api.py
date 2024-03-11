@@ -11,8 +11,7 @@ from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.payment_api import api_payment
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
-
-from ...helpers import (
+from tests.helpers import (
     cancel_invoice,
     get_random_invoice_data,
     get_real_invoice,
@@ -291,7 +290,7 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 @pytest.mark.asyncio
 async def test_get_payments(client, adminkey_headers_from, fake_payments):
-    fake_data, filters = fake_payments
+    _, filters = fake_payments
 
     async def get_payments(params: dict):
         response = await client.get(

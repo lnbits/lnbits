@@ -1,4 +1,3 @@
-# ruff: noqa: E402
 import asyncio
 from time import time
 
@@ -9,6 +8,7 @@ uvloop.install()
 
 import pytest
 import pytest_asyncio
+import uvloop
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
@@ -33,8 +33,8 @@ from tests.helpers import (
 
 # override settings for tests
 settings.lnbits_admin_extensions = []
-settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
+settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_extensions_default_install = []
 settings.lnbits_extensions_deactivate_all = True
 

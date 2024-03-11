@@ -6,6 +6,8 @@ format: prettier black ruff
 
 check: mypy pyright checkblack checkruff checkprettier checkbundle
 
+test: test-unit test-api
+
 prettier:
 	poetry run ./node_modules/.bin/prettier --write lnbits
 
@@ -36,32 +38,30 @@ checkeditorconfig:
 dev:
 	poetry run lnbits --reload
 
-test:
+test-unit:
+	PYTHONUNBUFFERED=1 \
+	poetry run pytest tests/unit
+
+test-api:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
-	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
-	DEBUG=true \
 	poetry run pytest
 
-test-real-wallet:
-	LNBITS_DATA_FOLDER="./tests/data" \
+test-regtest:
 	PYTHONUNBUFFERED=1 \
-	DEBUG=true \
-	poetry run pytest
+	poetry run pytest tests/regtest
 
 test-migration:
 	LNBITS_ADMIN_UI=True \
 	make test
 	HOST=0.0.0.0 \
 	PORT=5002 \
-	LNBITS_DATA_FOLDER="./tests/data" \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
 	poetry run python tools/conv.py
 

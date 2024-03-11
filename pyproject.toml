@@ -137,7 +137,9 @@ ignore_missing_imports = "True"
 log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
-  "tests"
+  "tests/api",
+  "tests/unit",
+  "tests/regtest"
 ]
 
 [tool.black]
