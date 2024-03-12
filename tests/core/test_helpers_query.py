@@ -7,12 +7,12 @@ from lnbits.helpers import (
 )
 
 
-class TestModel(BaseModel):
+class DbTestModel(BaseModel):
     id: int
     name: str
 
 
-test = TestModel(id=1, name="test")
+test = DbTestModel(id=1, name="test")
 
 
 @pytest.mark.asyncio
