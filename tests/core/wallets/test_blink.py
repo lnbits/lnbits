@@ -1,16 +1,15 @@
+import pytest
+import httpx
 import os
 
-import httpx
-import pytest
+from lnbits.wallets import get_wallet_class
+from lnbits.settings import settings
 
-#from lnbits.wallets import get_wallet_class
+settings.blink_token = "mock"
+settings.blink_api_endpoint="https://api.blink.sv/graphql"
 
-# WALLET = get_wallet_class()
-
-url = "https://api.blink.sv/graphql"
 # Check if BLINK_TOKEN environment variable is set
-use_real_api = os.environ.get("BLINK_TOKEN") != ""
-
+use_real_api = os.environ.get("BLINK_TOKEN") is not None
 print(f'use_real_api: {use_real_api}')
 
 if use_real_api:
@@ -19,13 +18,21 @@ if use_real_api:
       "X-API-KEY": os.environ.get("BLINK_TOKEN"),
   }
 
+print(f'settings.blink_api_endpoint: {settings.blink_api_endpoint}')
+print(f'settings.blink_token: {settings.blink_token}')
+
+WALLET = get_wallet_class()
+
+
 @pytest.mark.asyncio
 async def test_environment_variables():
     if use_real_api:
       assert "X-API-KEY" in headers, "X-API-KEY is not present in headers"
       assert isinstance(headers["X-API-KEY"], str), "X-API-KEY is not a string"
     else: 
-      assert True, "BLINK_TOKEN is not set using mock api"
+      assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
+
+
 
 @pytest.mark.asyncio
 async def test_get_balance():
