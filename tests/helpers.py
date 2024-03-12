@@ -16,7 +16,7 @@ from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
 
-class TestModel(FromRowModel):
+class DbTestModel(FromRowModel):
     id: int
     name: str
     value: Optional[str] = None

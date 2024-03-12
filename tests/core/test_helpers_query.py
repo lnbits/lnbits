@@ -1,17 +1,10 @@
 import pytest
-from pydantic import BaseModel
 
 from lnbits.helpers import (
     insert_query,
     update_query,
 )
-
-
-class DbTestModel(BaseModel):
-    id: int
-    name: str
-    value: str
-
+from tests.helpers import DbTestModel
 
 test = DbTestModel(id=1, name="test", value="yes")
 

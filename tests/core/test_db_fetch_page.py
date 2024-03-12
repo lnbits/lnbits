@@ -1,7 +1,7 @@
 import pytest
 import pytest_asyncio
 
-from tests.helpers import TestModel
+from tests.helpers import DbTestModel
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -34,7 +34,7 @@ async def fetch_page(db):
 async def test_db_fetch_page_simple(fetch_page, db):
     row = await db.fetch_page(
         query="select * from test_db_fetch_page",
-        model=TestModel,
+        model=DbTestModel,
     )
 
     assert row
@@ -46,7 +46,7 @@ async def test_db_fetch_page_simple(fetch_page, db):
 async def test_db_fetch_page_group_by(fetch_page, db):
     row = await db.fetch_page(
         query="select max(id) as id, name from test_db_fetch_page",
-        model=TestModel,
+        model=DbTestModel,
         group_by=["name"],
     )
     assert row
@@ -57,7 +57,7 @@ async def test_db_fetch_page_group_by(fetch_page, db):
 async def test_db_fetch_page_group_by_multiple(fetch_page, db):
     row = await db.fetch_page(
         query="select max(id) as id, name, value from test_db_fetch_page",
-        model=TestModel,
+        model=DbTestModel,
         group_by=["value", "name"],
     )
     assert row
@@ -69,6 +69,6 @@ async def test_db_fetch_page_group_by_evil(fetch_page, db):
     with pytest.raises(ValueError, match="Value for GROUP BY is invalid"):
         await db.fetch_page(
             query="select * from test_db_fetch_page",
-            model=TestModel,
+            model=DbTestModel,
             group_by=["name;"],
         )
