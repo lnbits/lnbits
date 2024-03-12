@@ -189,7 +189,9 @@ class CoreLightningWallet(Wallet):
                     payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
                 )
 
-                return PaymentStatus(True, fee_msat, payment_resp["preimage"])
+                return PaymentSuccessStatus(
+                    fee_msat=fee_msat, preimage=payment_resp["preimage"]
+                )
             elif status == "failed":
                 return PaymentFailedStatus()
             else:

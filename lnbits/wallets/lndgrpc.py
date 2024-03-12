@@ -249,10 +249,9 @@ class LndWallet(Wallet):
         try:
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
-                    return PaymentStatus(
-                        True,
-                        -payment.htlcs[-1].route.total_fees_msat,
-                        bytes_to_hex(payment.htlcs[-1].preimage),
+                    return PaymentSuccessStatus(
+                        fee_msat=-payment.htlcs[-1].route.total_fees_msat,
+                        preimage=bytes_to_hex(payment.htlcs[-1].preimage),
                     )
                 return PaymentStatus(statuses[payment.status])
         except Exception:  # most likely the payment wasn't found

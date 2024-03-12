@@ -233,7 +233,9 @@ class SparkWallet(Wallet):
                     int(r["pays"][0]["amount_sent_msat"][0:-4])
                     - int(r["pays"][0]["amount_msat"][0:-4])
                 )
-                return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
+                return PaymentSuccessStatus(
+                    fee_msat=fee_msat, preimage=r["pays"][0]["preimage"]
+                )
             if status == "failed":
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
