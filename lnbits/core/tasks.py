@@ -71,7 +71,7 @@ async def watchdog_task():
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
     This task dispatches events to all api_invoice_listeners,
-    webhooks, push notifications and balance notifcations.
+    webhooks, push notifications and balance notifications.
     """
     while True:
         payment = await invoice_paid_queue.get()
