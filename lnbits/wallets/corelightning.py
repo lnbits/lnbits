@@ -139,8 +139,6 @@ class CoreLightningWallet(Wallet):
                     f" '{exc.error.get('message') or exc.error}'."  # type: ignore
                 )
             return PaymentResponse(False, None, None, None, error_message)
-        except Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
 
         fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
         return PaymentResponse(
@@ -173,11 +171,8 @@ class CoreLightningWallet(Wallet):
             r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
             return PaymentStatus(None)
-        if "pays" not in r:
+        if "pays" not in r or not r["pays"]:
             return PaymentStatus(None)
-        if not r["pays"]:
-            # no payment with this payment_hash is found
-            return PaymentStatus(False)
 
         payment_resp = r["pays"][-1]
 
