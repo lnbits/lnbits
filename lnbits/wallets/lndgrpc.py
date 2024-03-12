@@ -16,6 +16,7 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -203,15 +204,15 @@ class LndWallet(Wallet):
         except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         try:
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         except grpc.RpcError:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         if resp.settled:
             return PaymentStatus(True)
 
-        return PaymentStatus(None)
+        return NotPaidStatus.PENDING
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
@@ -224,7 +225,7 @@ class LndWallet(Wallet):
         except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         resp = self.routerpc.TrackPaymentV2(
             router.TrackPaymentRequest(payment_hash=r_hash)
@@ -254,9 +255,9 @@ class LndWallet(Wallet):
                     )
                 return PaymentStatus(statuses[payment.status])
         except Exception:  # most likely the payment wasn't found
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
-        return PaymentStatus(None)
+        return NotPaidStatus.PENDING
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

@@ -10,6 +10,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -139,7 +140,7 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(statuses[data["result"]["status"]])
@@ -152,7 +153,7 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         payment = data["result"]
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(

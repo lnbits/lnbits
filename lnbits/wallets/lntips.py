@@ -11,6 +11,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -132,7 +133,7 @@ class LnTipsWallet(Wallet):
             data = r.json()
             return PaymentStatus(data["paid"])
         except Exception:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -147,7 +148,7 @@ class LnTipsWallet(Wallet):
             paid_to_status = {False: None, True: True}
             return PaymentStatus(paid_to_status[data.get("paid")])
         except Exception:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None

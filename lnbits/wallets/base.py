@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
 
 if TYPE_CHECKING:
@@ -50,6 +51,11 @@ class PaymentStatus(NamedTuple):
             return "still pending"
         else:
             return "unknown (should never happen)"
+
+
+class NotPaidStatus(Enum):
+    PENDING = PaymentStatus(None)
+    FAILED = PaymentStatus(False)
 
 
 class Wallet(ABC):

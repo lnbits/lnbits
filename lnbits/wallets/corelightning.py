@@ -12,6 +12,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -151,9 +152,9 @@ class CoreLightningWallet(Wallet):
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
         except RpcError:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         if not r["invoices"]:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         invoice_resp = r["invoices"][-1]
 
@@ -161,23 +162,23 @@ class CoreLightningWallet(Wallet):
             if invoice_resp["status"] == "paid":
                 return PaymentStatus(True)
             elif invoice_resp["status"] == "unpaid":
-                return PaymentStatus(None)
+                return NotPaidStatus.PENDING
             elif invoice_resp["status"] == "expired":
-                return PaymentStatus(False)
+                return NotPaidStatus.FAILED
         else:
             logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentStatus(None)
+        return NotPaidStatus.PENDING
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         if "pays" not in r:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         if not r["pays"]:
             # no payment with this payment_hash is found
-            return PaymentStatus(False)
+            return NotPaidStatus.FAILED
 
         payment_resp = r["pays"][-1]
 
@@ -190,12 +191,12 @@ class CoreLightningWallet(Wallet):
 
                 return PaymentStatus(True, fee_msat, payment_resp["preimage"])
             elif status == "failed":
-                return PaymentStatus(False)
+                return NotPaidStatus.FAILED
             else:
-                return PaymentStatus(None)
+                return NotPaidStatus.PENDING
         else:
             logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentStatus(None)
+        return NotPaidStatus.PENDING
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

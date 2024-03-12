@@ -13,6 +13,7 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -168,7 +169,7 @@ class LndRestWallet(Wallet):
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
             # it will return an error and no "settled" attribute on the object
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         return PaymentStatus(True)
 
@@ -182,7 +183,7 @@ class LndRestWallet(Wallet):
                 "ascii"
             )
         except ValueError:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         url = f"/v2/router/track/{checking_id}"
 
@@ -210,8 +211,8 @@ class LndRestWallet(Wallet):
                             and line["error"].get("message")
                             == "payment isn't initiated"
                         ):
-                            return PaymentStatus(False)
-                        return PaymentStatus(None)
+                            return NotPaidStatus.FAILED
+                        return NotPaidStatus.PENDING
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
                         return PaymentStatus(
@@ -220,11 +221,11 @@ class LndRestWallet(Wallet):
                             preimage=payment.get("payment_preimage"),
                         )
                     else:
-                        return PaymentStatus(None)
+                        return NotPaidStatus.PENDING
                 except Exception:
                     continue
 
-        return PaymentStatus(None)
+        return NotPaidStatus.PENDING
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

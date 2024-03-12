@@ -11,6 +11,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    NotPaidStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -196,33 +197,33 @@ class SparkWallet(Wallet):
         try:
             r = await self.listinvoices(label=checking_id)
         except (SparkError, UnknownError):
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         if not r or not r.get("invoices"):
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         if r["invoices"][0]["status"] == "paid":
             return PaymentStatus(True)
         else:
-            return PaymentStatus(False)
+            return NotPaidStatus.FAILED
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex
         if len(checking_id) != 64:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
         try:
             int(checking_id, 16)
         except ValueError:
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         # ask sparko
         try:
             r = await self.listpays(payment_hash=checking_id)
         except (SparkError, UnknownError):
-            return PaymentStatus(None)
+            return NotPaidStatus.PENDING
 
         if not r["pays"]:
-            return PaymentStatus(False)
+            return NotPaidStatus.FAILED
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
@@ -232,8 +233,8 @@ class SparkWallet(Wallet):
                 )
                 return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
             if status == "failed":
-                return PaymentStatus(False)
-            return PaymentStatus(None)
+                return NotPaidStatus.FAILED
+            return NotPaidStatus.PENDING
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
