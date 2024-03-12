@@ -55,11 +55,14 @@ class PaymentStatus(NamedTuple):
 class PaymentSuccessStatus(PaymentStatus):
     paid = True
 
+
 class PaymentFailedStatus(PaymentStatus):
     paid = False
 
+
 class PaymentPendingStatus(PaymentStatus):
     paid = None
+
 
 class Wallet(ABC):
     async def cleanup(self):
