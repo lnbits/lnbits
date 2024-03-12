@@ -9,6 +9,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -111,7 +112,7 @@ class AlbyWallet(Wallet):
         r = await self.client.get(f"/invoices/{checking_id}")
 
         if r.is_error:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         data = r.json()
 

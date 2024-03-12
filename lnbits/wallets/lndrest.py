@@ -13,8 +13,11 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -168,9 +171,9 @@ class LndRestWallet(Wallet):
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
             # it will return an error and no "settled" attribute on the object
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
-        return PaymentStatus(True)
+        return PaymentSuccessStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
@@ -182,7 +185,7 @@ class LndRestWallet(Wallet):
                 "ascii"
             )
         except ValueError:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         url = f"/v2/router/track/{checking_id}"
 
@@ -210,8 +213,8 @@ class LndRestWallet(Wallet):
                             and line["error"].get("message")
                             == "payment isn't initiated"
                         ):
-                            return PaymentStatus(False)
-                        return PaymentStatus(None)
+                            return PaymentFailedStatus()
+                        return PaymentPendingStatus()
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
                         return PaymentStatus(
@@ -220,11 +223,11 @@ class LndRestWallet(Wallet):
                             preimage=payment.get("payment_preimage"),
                         )
                     else:
-                        return PaymentStatus(None)
+                        return PaymentPendingStatus()
                 except Exception:
                     continue
 
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
