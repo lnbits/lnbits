@@ -7,14 +7,14 @@
         <div class="col">
           <p>Server Info</p>
           <ul>
-            {%raw%}
-            <li v-if="settings.lnbits_data_folder">
-              SQlite: {{settings.lnbits_data_folder}}
-            </li>
-            <li v-if="settings.lnbits_database_url">
-              Postgres: {{settings.lnbits_database_url}}
-            </li>
-            {%endraw%}
+            <li
+              v-if="settings.lnbits_data_folder"
+              v-text="'SQlite: ' + settings.lnbits_data_folder"
+            ></li>
+            <li
+              v-if="settings.lnbits_database_url"
+              v-text="'Postgres: ' + settings.lnbits_database_url"
+            ></li>
           </ul>
           <br />
         </div>
@@ -154,7 +154,6 @@
           <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
         </q-input>
         <div>
-          {%raw%}
           <q-chip
             v-for="manifestUrl in formData.lnbits_extensions_manifests"
             :key="manifestUrl"
@@ -162,10 +161,8 @@
             @remove="removeExtensionsManifest(manifestUrl)"
             color="primary"
             text-color="white"
-          >
-            {{ manifestUrl }}
-          </q-chip>
-          {%endraw%}
+            v-text="manifestUrl"
+          ></q-chip>
         </div>
         <br />
       </div>
