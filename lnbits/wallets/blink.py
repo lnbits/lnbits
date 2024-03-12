@@ -291,8 +291,6 @@ class BlinkWallet(Wallet):
         }
         data = {"query": tx_query, "variables": variables}
 
-        # variables = {"paymentHash": checking_id}
-        # data = {"query": tx_query, "variables": variables}
         logger.info(f"get_payment_status data: {data}\n\n")
         response = await self.graphql_query(data)
         logger.info(f"get_payment_status response: {response}")
@@ -316,10 +314,6 @@ class BlinkWallet(Wallet):
             "PAID": True,
             "SUCCESS": True,
         }
-
-        # status = "PENDING"
-        # fee = 1
-        # preimage ="preimage"
         return PaymentStatus(statuses[status], fee_msat=fee * 1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
