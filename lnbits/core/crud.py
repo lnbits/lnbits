@@ -554,7 +554,8 @@ async def get_wallet_for_key(
     row = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE adminkey = ? OR inkey = ?
+        AS balance_msat FROM wallets
+        WHERE (adminkey = ? OR inkey = ?) AND deleted = false
         """,
         (key, key),
     )
@@ -602,6 +603,7 @@ async def get_standalone_payment(
         SELECT *
         FROM apipayments
         WHERE {clause}
+        ORDER BY amount
         LIMIT 1
         """,
         tuple(values),

@@ -539,10 +539,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
     wallet = await get_wallet_for_key(X_Api_Key) if isinstance(X_Api_Key, str) else None
-    wallet = wallet if wallet and not wallet.deleted else None
-    # we have to specify the wallet id here, because postgres and sqlite return
-    # internal payments in different order and get_standalone_payment otherwise
-    # just fetches the first one, causing unpredictable results
+
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )
