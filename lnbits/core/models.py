@@ -280,11 +280,18 @@ class Payment(FromRowModel):
                 f"expired {expiration_date}"
             )
             await self.delete(conn)
+        # wait at least 15 minutes before deleting failed outgoing payments
         elif self.is_out and status.failed:
-            logger.info(
-                f"Deleting outgoing failed payment {self.checking_id}: {status}"
-            )
-            await self.delete(conn)
+            if self.time + 900 < int(time.time()):
+                logger.warning(
+                    f"Deleting outgoing failed payment {self.checking_id}: {status}"
+                )
+                await self.delete(conn)
+            else:
+                logger.warning(
+                    f"Tried to delete outgoing payment {self.checking_id}: "
+                    "skipping because it's not old enough"
+                )
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' "
