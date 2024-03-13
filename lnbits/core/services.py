@@ -31,7 +31,12 @@ from lnbits.settings import (
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
-from lnbits.wallets.base import PaymentResponse, PaymentStatus
+from lnbits.wallets.base import (
+    PaymentPendingStatus,
+    PaymentResponse,
+    PaymentStatus,
+    PaymentSuccessStatus,
+)
 
 from .crud import (
     check_internal,
@@ -577,10 +582,10 @@ async def check_transaction_status(
         wallet_id, payment_hash, conn=conn
     )
     if not payment:
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
     if not payment.pending:
         # note: before, we still checked the status of the payment again
-        return PaymentStatus(True, fee_msat=payment.fee)
+        return PaymentSuccessStatus(fee_msat=payment.fee)
 
     status: PaymentStatus = await payment.check_status()
     return status

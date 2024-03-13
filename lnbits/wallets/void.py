@@ -4,6 +4,7 @@ from loguru import logger
 
 from .base import (
     InvoiceResponse,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
@@ -31,10 +32,10 @@ class VoidWallet(Wallet):
         )
 
     async def get_invoice_status(self, *_, **__) -> PaymentStatus:
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, *_, **__) -> PaymentStatus:
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         yield ""
