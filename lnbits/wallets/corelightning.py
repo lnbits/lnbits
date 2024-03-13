@@ -54,7 +54,11 @@ class CoreLightningWallet(Wallet):
 
     @property
     def payment_status_map(self) -> PaymentStatusMap:
-        return PaymentStatusMap([], [], [])
+        return PaymentStatusMap(
+            success=["paid"],
+            failed=["expired"],
+            pending=["unpaid"],
+        )
 
     async def status(self) -> StatusResponse:
         try:
@@ -164,14 +168,9 @@ class CoreLightningWallet(Wallet):
         invoice_resp = r["invoices"][-1]
 
         if invoice_resp["payment_hash"] == checking_id:
-            if invoice_resp["status"] == "paid":
-                return PaymentSuccessStatus()
-            elif invoice_resp["status"] == "unpaid":
-                return PaymentPendingStatus()
-            elif invoice_resp["status"] == "expired":
-                return PaymentFailedStatus()
-        else:
-            logger.warning(f"supplied an invalid checking_id: {checking_id}")
+            return self.payment_status(invoice_resp["status"])
+
+        logger.warning(f"supplied an invalid checking_id: {checking_id}")
         return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:

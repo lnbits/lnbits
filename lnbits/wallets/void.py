@@ -7,12 +7,18 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
 
 
 class VoidWallet(Wallet):
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap([], [], [])
+
     async def create_invoice(self, *_, **__) -> InvoiceResponse:
         return InvoiceResponse(
             ok=False, error_message="VoidWallet cannot create invoices."

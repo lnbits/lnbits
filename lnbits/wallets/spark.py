@@ -15,6 +15,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
@@ -42,6 +43,10 @@ class SparkWallet(Wallet):
 
         headers = {"X-Access": self.token, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=url, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap([], [], [])
 
     async def cleanup(self):
         try:
