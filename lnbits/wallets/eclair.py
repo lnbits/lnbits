@@ -17,6 +17,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -210,7 +211,7 @@ class EclairWallet(Wallet):
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
 
-            return PaymentPendingStatus(fee_msat=fee_msat, preimage=preimage)
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
 
         except Exception:
             return PaymentPendingStatus()
