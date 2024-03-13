@@ -17,6 +17,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
@@ -75,6 +76,16 @@ class LndRestWallet(Wallet):
         }
         self.client = httpx.AsyncClient(
             base_url=self.endpoint, headers=headers, verify=cert
+        )
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        # check payment.status:
+        # https://api.lightning.community/?python=#paymentpaymentstatus
+        return PaymentStatusMap(
+            success=["SUCCEEDED"],
+            failed=["FAILED"],
+            pending=["UNKNOWN", "IN_FLIGHT"],
         )
 
     async def cleanup(self):
@@ -189,15 +200,6 @@ class LndRestWallet(Wallet):
 
         url = f"/v2/router/track/{checking_id}"
 
-        # check payment.status:
-        # https://api.lightning.community/?python=#paymentpaymentstatus
-        statuses = {
-            "UNKNOWN": None,
-            "IN_FLIGHT": None,
-            "SUCCEEDED": True,
-            "FAILED": False,
-        }
-
         async with self.client.stream("GET", url, timeout=None) as r:
             async for json_line in r.aiter_lines():
                 try:
@@ -217,10 +219,10 @@ class LndRestWallet(Wallet):
                         return PaymentPendingStatus()
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
-                        return PaymentStatus(
-                            paid=statuses[payment["status"]],
-                            fee_msat=payment.get("fee_msat"),
-                            preimage=payment.get("payment_preimage"),
+                        return self.payment_status(
+                            payment["status"],
+                            payment.get("fee_msat"),
+                            payment.get("payment_preimage"),
                         )
                     else:
                         return PaymentPendingStatus()

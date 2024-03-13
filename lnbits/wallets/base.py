@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    Coroutine,
+    List,
+    NamedTuple,
+    Optional,
+    Type,
+)
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -64,11 +72,26 @@ class PaymentPendingStatus(PaymentStatus):
     paid = None
 
 
+class PaymentStatusMap(NamedTuple):
+    success: List[str | int | bool | None]
+    failed: List[str | int | bool | None]
+    pending: List[str | int | bool | None]
+
+
 class Wallet(ABC):
     async def cleanup(self):
         pass
 
     __node_cls__: Optional[Type[Node]] = None
+
+    @property
+    @abstractmethod
+    def payment_status_map(self) -> PaymentStatusMap:
+        """
+        Each funding source returns its own custom payment status values.
+        This method maps the custom statuses to a common format.
+        """
+        pass
 
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
@@ -106,6 +129,21 @@ class Wallet(ABC):
     @abstractmethod
     def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         pass
+
+    def payment_status(
+        self,
+        status: Optional[int] = None,
+        fee_msat: Optional[int] = None,
+        preimage: Optional[str] = None,
+    ) -> PaymentStatus:
+        status_map = self.payment_status_map
+        if status in status_map.success:
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+        if status in status_map.failed:
+            return PaymentFailedStatus(fee_msat=fee_msat, preimage=preimage)
+        if status in status_map.pending:
+            return PaymentPendingStatus(fee_msat=fee_msat, preimage=preimage)
+        return PaymentPendingStatus()
 
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint

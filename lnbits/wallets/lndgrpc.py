@@ -19,6 +19,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
@@ -108,6 +109,14 @@ class LndWallet(Wallet):
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[2],
+            failed=[3],
+            pending=[0, 1],  # NON_EXISTENT, IN_FLIGHT
+        )
 
     async def status(self) -> StatusResponse:
         try:
@@ -248,12 +257,13 @@ class LndWallet(Wallet):
 
         try:
             async for payment in resp:
+                # todo: remove statuses
                 if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentSuccessStatus(
                         fee_msat=-payment.htlcs[-1].route.total_fees_msat,
                         preimage=bytes_to_hex(payment.htlcs[-1].preimage),
                     )
-                return PaymentStatus(statuses[payment.status])
+                return self.payment_status(payment.status)
         except Exception:  # most likely the payment wasn't found
             return PaymentPendingStatus()
 

@@ -13,6 +13,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -26,6 +27,14 @@ class ClicheWallet(Wallet):
             raise ValueError("cannot initialize ClicheWallet: missing cliche_endpoint")
 
         self.endpoint = self.normalize_endpoint(settings.cliche_endpoint)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["complete"],
+            failed=["failed"],
+            pending=["pending"],
+        )
 
     async def status(self) -> StatusResponse:
         try:
@@ -142,8 +151,7 @@ class ClicheWallet(Wallet):
             logger.error(data["error"]["message"])
             return PaymentPendingStatus()
 
-        statuses = {"pending": None, "complete": True, "failed": False}
-        return PaymentStatus(statuses[data["result"]["status"]])
+        return self.payment_status(data["result"]["status"])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
@@ -155,11 +163,8 @@ class ClicheWallet(Wallet):
             logger.error(data["error"]["message"])
             return PaymentPendingStatus()
         payment = data["result"]
-        statuses = {"pending": None, "complete": True, "failed": False}
-        return PaymentStatus(
-            statuses[payment["status"]],
-            payment.get("fee_msatoshi"),
-            payment.get("preimage"),
+        return self.payment_status(
+            payment["status"], payment.get("fee_msatoshi"), payment.get("preimage")
         )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

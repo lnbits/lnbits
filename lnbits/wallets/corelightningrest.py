@@ -15,6 +15,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -58,6 +59,14 @@ class CoreLightningRestWallet(Wallet):
             "failed": False,
             "pending": None,
         }
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["paid", "complete"],
+            failed=["failed"],
+            pending=["pending"],
+        )
 
     async def cleanup(self):
         try:
@@ -182,7 +191,8 @@ class CoreLightningRestWallet(Wallet):
 
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in cln response")
-            return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
+
+            return self.payment_status(data["invoices"][0]["status"])
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
             return PaymentPendingStatus()
@@ -202,6 +212,7 @@ class CoreLightningRestWallet(Wallet):
             pay = data["pays"][0]
 
             fee_msat, preimage = None, None
+            # todo
             if self.statuses[pay["status"]]:
                 # cut off "msat" and convert to int
                 fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
@@ -209,7 +220,7 @@ class CoreLightningRestWallet(Wallet):
                 )
                 preimage = pay["preimage"]
 
-            return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
+            return self.payment_status(pay["status"], fee_msat, preimage)
         except Exception as e:
             logger.error(f"Error getting payment status: {e}")
             return PaymentPendingStatus()

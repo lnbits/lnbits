@@ -12,6 +12,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -33,6 +34,14 @@ class ZBDWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["completed", "paid"],
+            failed=["failed", "expired"],
+            pending=["initial", "pending", "error", "unpaid"],
+        )
 
     async def cleanup(self):
         try:
@@ -125,14 +134,7 @@ class ZBDWallet(Wallet):
             return PaymentPendingStatus()
         data = r.json()["data"]
 
-        statuses = {
-            "pending": None,
-            "paid": True,
-            "unpaid": None,
-            "expired": False,
-            "completed": True,
-        }
-        return PaymentStatus(statuses[data.get("status")])
+        return self.payment_status(data.get("status"))
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"payments/{checking_id}")
@@ -141,16 +143,7 @@ class ZBDWallet(Wallet):
 
         data = r.json()["data"]
 
-        statuses = {
-            "initial": None,
-            "pending": None,
-            "completed": True,
-            "error": None,
-            "expired": False,
-            "failed": False,
-        }
-
-        return PaymentStatus(statuses[data.get("status")], fee_msat=None, preimage=None)
+        return self.payment_status(data.get("status"))
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

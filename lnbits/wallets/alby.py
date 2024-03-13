@@ -12,6 +12,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -32,6 +33,14 @@ class AlbyWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["SETTLED"],
+            failed=[],
+            pending=["CREATED"],
+        )
 
     async def cleanup(self):
         try:
@@ -116,11 +125,7 @@ class AlbyWallet(Wallet):
 
         data = r.json()
 
-        statuses = {
-            "CREATED": None,
-            "SETTLED": True,
-        }
-        return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
+        return self.payment_status(data.get("state"))
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

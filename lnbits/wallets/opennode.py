@@ -11,6 +11,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -44,6 +45,14 @@ class OpenNodeWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["paid", "confirmed"],
+            failed=["failed"],
+            pending=["processing", "unpaid", "initial", "pending", "error"],
+        )
 
     async def cleanup(self):
         try:
@@ -119,8 +128,8 @@ class OpenNodeWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()["data"]
-        statuses = {"processing": None, "paid": True, "unpaid": None}
-        return PaymentStatus(statuses[data.get("status")])
+
+        return self.payment_status(data.get("status"))
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/withdrawal/{checking_id}")
@@ -129,15 +138,9 @@ class OpenNodeWallet(Wallet):
             return PaymentPendingStatus()
 
         data = r.json()["data"]
-        statuses = {
-            "initial": None,
-            "pending": None,
-            "confirmed": True,
-            "error": None,
-            "failed": False,
-        }
+
         fee_msat = -data.get("fee") * 1000
-        return PaymentStatus(statuses[data.get("status")], fee_msat)
+        return self.payment_status(data.get("status"), fee_msat)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

@@ -12,6 +12,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -43,6 +44,14 @@ class LNPayWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[1],
+            failed=[-1],
+            pending=[0],
+        )
 
     async def cleanup(self):
         try:
@@ -140,8 +149,8 @@ class LNPayWallet(Wallet):
         data = r.json()
         preimage = data["payment_preimage"]
         fee_msat = data["fee_msat"]
-        statuses = {0: None, 1: True, -1: False}
-        return PaymentStatus(statuses[data["settled"]], fee_msat, preimage)
+
+        return self.payment_status(data["settled"], fee_msat, preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

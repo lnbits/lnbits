@@ -23,6 +23,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     PaymentSuccessStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -40,6 +41,14 @@ class FakeWallet(Wallet):
         2048,
         32,
     ).hex()
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def status(self) -> StatusResponse:
         logger.info(

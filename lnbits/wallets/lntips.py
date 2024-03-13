@@ -14,6 +14,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -43,6 +44,14 @@ class LnTipsWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def cleanup(self):
         try:
@@ -131,7 +140,7 @@ class LnTipsWallet(Wallet):
                 raise Exception
 
             data = r.json()
-            return PaymentStatus(data["paid"])
+            return self.payment_status(data["paid"])
         except Exception:
             return PaymentPendingStatus()
 
@@ -144,9 +153,9 @@ class LnTipsWallet(Wallet):
             if r.is_error:
                 raise Exception
             data = r.json()
+            status = data.get("paid")
 
-            paid_to_status = {False: None, True: True}
-            return PaymentStatus(paid_to_status[data.get("paid")])
+            return self.payment_status(None if status is False else status)
         except Exception:
             return PaymentPendingStatus()
 

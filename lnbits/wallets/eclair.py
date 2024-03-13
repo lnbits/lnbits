@@ -16,6 +16,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     StatusResponse,
     Wallet,
 )
@@ -47,6 +48,14 @@ class EclairWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.url, headers=self.headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["sent", "received"],
+            failed=["failed", "expired"],
+            pending=["pending"],
+        )
 
     async def cleanup(self):
         try:
@@ -174,12 +183,7 @@ class EclairWallet(Wallet):
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")
 
-            statuses = {
-                "received": True,
-                "expired": False,
-                "pending": None,
-            }
-            return PaymentStatus(statuses.get(data["status"]["type"]))
+            return self.payment_status(data["status"]["type"])
         except Exception:
             return PaymentPendingStatus()
 
@@ -199,18 +203,13 @@ class EclairWallet(Wallet):
                 raise Exception("error in eclair response")
 
             fee_msat, preimage = None, None
+            # todo
             if data["status"]["type"] == "sent":
                 fee_msat = -data["status"]["feesPaid"]
                 preimage = data["status"]["paymentPreimage"]
 
-            statuses = {
-                "sent": True,
-                "failed": False,
-                "pending": None,
-            }
-            return PaymentStatus(
-                statuses.get(data["status"]["type"]), fee_msat, preimage
-            )
+            return self.payment_status(data["status"]["type"], fee_msat, preimage)
+
         except Exception:
             return PaymentPendingStatus()
 

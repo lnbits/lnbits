@@ -13,6 +13,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
@@ -38,6 +39,14 @@ class LNbitsWallet(Wallet):
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def cleanup(self):
         try:
