@@ -182,7 +182,7 @@
               color="primary"
               type="a"
               :href="extension.id + '/'"
-              v-text="$t('open')"
+              :label="$t('open')"
             ></q-btn>
             <q-btn
               v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
@@ -192,7 +192,7 @@
               :href="['{{
                 url_for('install.extensions')
               }}', '?disable=', extension.id].join('')"
-              v-text="$t('disable')"
+              :label="$t('disable')"
             ></q-btn>
             <q-badge
               v-if="extension.isAdminOnly && !user.admin"
@@ -207,7 +207,7 @@
               :href="['{{
                 url_for('install.extensions')
               }}', '?enable=', extension.id].join('')"
-              v-text="$t('enable')"
+              :label="$t('enable')"
             >
               <q-tooltip>
                 <span v-text="$t('enable_extension_details')">
@@ -219,8 +219,10 @@
               flat
               color="primary"
               v-if="g.user.admin"
-              v-text="$t('manage')"
-              ><q-tooltip v-text="$t('manage_extension_details')"></q-tooltip>
+              :label="$t('manage')"
+              ><q-tooltip
+                ><span v-text="$t('manage_extension_details')"></span
+              ></q-tooltip>
             </q-btn>
           </div>
           <div v-else>
