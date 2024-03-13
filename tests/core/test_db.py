@@ -34,5 +34,4 @@ async def test_create_wallet_and_delete_wallet(app, to_user):
     assert del_wallet.deleted is True
 
     del_wallet = await get_wallet_for_key(wallet.inkey)
-    assert del_wallet is not None
-    assert del_wallet.deleted is True
+    assert del_wallet is None

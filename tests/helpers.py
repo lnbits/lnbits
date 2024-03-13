@@ -5,15 +5,21 @@ import random
 import string
 import time
 from subprocess import PIPE, Popen, TimeoutExpired
-from typing import Tuple
+from typing import Optional, Tuple
 
 from loguru import logger
 from psycopg2 import connect
 from psycopg2.errors import InvalidCatalogName
 
 from lnbits import core
-from lnbits.db import DB_TYPE, POSTGRES
+from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
 from lnbits.wallets import get_wallet_class, set_wallet_class
+
+
+class DbTestModel(FromRowModel):
+    id: int
+    name: str
+    value: Optional[str] = None
 
 
 def get_random_string(N: int = 10):
