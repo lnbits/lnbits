@@ -154,6 +154,7 @@ class EclairWallet(Wallet):
                 error_message = r.text
             return PaymentResponse(None, checking_id, None, preimage, error_message)
 
+        # todo: remove statuses
         statuses = {
             "sent": True,
             "failed": False,
@@ -202,13 +203,14 @@ class EclairWallet(Wallet):
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")
 
-            fee_msat, preimage = None, None
-            # todo
-            if data["status"]["type"] == "sent":
-                fee_msat = -data["status"]["feesPaid"]
-                preimage = data["status"]["paymentPreimage"]
+            status = self.payment_status(data["status"]["type"])
+            if status.pending or status.failed:
+                return status
 
-            return self.payment_status(data["status"]["type"], fee_msat, preimage)
+            fee_msat = -data["status"]["feesPaid"]
+            preimage = data["status"]["paymentPreimage"]
+
+            return PaymentPendingStatus(fee_msat=fee_msat, preimage=preimage)
 
         except Exception:
             return PaymentPendingStatus()

@@ -16,6 +16,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentSuccessStatus,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -53,6 +54,8 @@ class CoreLightningRestWallet(Wallet):
         self.cert = settings.corelightning_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
+
+        # todo: remove statuses
         self.statuses = {
             "paid": True,
             "complete": True,
@@ -176,7 +179,6 @@ class CoreLightningRestWallet(Wallet):
         preimage = data["payment_preimage"]
         fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-        # todo
         return PaymentResponse(
             self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
@@ -213,14 +215,13 @@ class CoreLightningRestWallet(Wallet):
             pay = data["pays"][0]
 
             status = self.payment_status(pay["status"])
-            if status.success:
-                # cut off "msat" and convert to int
-                status.fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
-                    pay["amount_msat"][:-4]
-                )
-                status.preimage = pay["preimage"]
+            if status.pending or status.failed:
+                return status
 
-            return status
+            # cut off "msat" and convert to int
+            fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(pay["amount_msat"][:-4])
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
+
         except Exception as e:
             logger.error(f"Error getting payment status: {e}")
             return PaymentPendingStatus()

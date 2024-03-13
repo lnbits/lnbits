@@ -77,6 +77,11 @@ class PaymentPendingStatus(PaymentStatus):
 
 
 class PaymentStatusMap(NamedTuple):
+    """
+    LNbits has 3 possible statuses for a payment.
+    This class maps these 3 statuses to a particular funding source statuses.
+    """
+
     success: List[str | int | bool | None]
     failed: List[str | int | bool | None]
     pending: List[str | int | bool | None]
