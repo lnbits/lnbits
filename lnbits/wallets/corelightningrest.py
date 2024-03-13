@@ -176,6 +176,7 @@ class CoreLightningRestWallet(Wallet):
         preimage = data["payment_preimage"]
         fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
+        # todo
         return PaymentResponse(
             self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
@@ -211,16 +212,15 @@ class CoreLightningRestWallet(Wallet):
 
             pay = data["pays"][0]
 
-            fee_msat, preimage = None, None
-            # todo
-            if self.statuses[pay["status"]]:
+            status = self.payment_status(pay["status"])
+            if status.success:
                 # cut off "msat" and convert to int
-                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
+                status.fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
                     pay["amount_msat"][:-4]
                 )
-                preimage = pay["preimage"]
+                status.preimage = pay["preimage"]
 
-            return self.payment_status(pay["status"], fee_msat, preimage)
+            return status
         except Exception as e:
             logger.error(f"Error getting payment status: {e}")
             return PaymentPendingStatus()
@@ -255,9 +255,10 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
-                        assert self.statuses[
+                        status = self.payment_status(
                             paid_invoice["invoices"][0]["status"]
-                        ], "streamed invoice not paid"
+                        )
+                        assert status.success, "streamed invoice not paid"
                         assert "invoices" in paid_invoice, "no invoices in response"
                         assert len(paid_invoice["invoices"]), "no invoices in response"
                         yield paid_invoice["invoices"][0]["payment_hash"]
