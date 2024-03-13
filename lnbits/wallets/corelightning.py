@@ -16,6 +16,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentStatusMap,
     PaymentSuccessStatus,
     StatusResponse,
     Unsupported,
@@ -50,6 +51,10 @@ class CoreLightningWallet(Wallet):
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap([], [], [])
 
     async def status(self) -> StatusResponse:
         try:
