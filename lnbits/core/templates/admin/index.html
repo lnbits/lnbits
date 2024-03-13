@@ -8,7 +8,9 @@
       @click="updateSettings"
       :disabled="!checkChanges"
     >
-      <q-tooltip v-if="checkChanges" v-text="$t('save_tooltip')"></q-tooltip>
+      <q-tooltip v-if="checkChanges">
+        <span v-text="$t('save_tooltip')"></span>
+      </q-tooltip>
 
       <q-badge
         v-if="checkChanges"
@@ -25,7 +27,9 @@
       color="primary"
       @click="restartServer"
     >
-      <q-tooltip v-if="needsRestart" v-text="$t('restart_tooltip')"></q-tooltip>
+      <q-tooltip v-if="needsRestart">
+        <span v-text="$t('restart_tooltip')"></span>
+      </q-tooltip>
 
       <q-badge
         v-if="needsRestart"
@@ -42,7 +46,9 @@
       color="primary"
       @click="topUpDialog.show = true"
     >
-      <q-tooltip v-text="$t('add_funds_tooltip')"></q-tooltip>
+      <q-tooltip>
+        <span v-text="$t('add_funds_tooltip')"></span>
+      </q-tooltip>
     </q-btn>
 
     <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
@@ -54,9 +60,10 @@
       color="primary"
       @click="deleteSettings"
       class="float-right"
-      v-text="$t('reset_defaults_tooltip')"
     >
-      <q-tooltip></q-tooltip>
+      <q-tooltip>
+        <span v-text="$t('reset_defaults_tooltip')"></span>
+      </q-tooltip>
     </q-btn>
   </div>
 </div>

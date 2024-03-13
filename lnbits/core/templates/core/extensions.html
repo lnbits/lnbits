@@ -146,7 +146,8 @@
             size="1.5em"
             :max="5"
             color="primary"
-            ><q-tooltip v-text="$t('extension_rating_soon')"></q-tooltip
+            ><q-tooltip>
+              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
           ></q-rating>
           <q-rating
             v-model="maxStars"
@@ -154,7 +155,8 @@
             size="1.5em"
             :max="5"
             color="primary"
-            ><q-tooltip v-text="$t('extension_rating_soon')"></q-tooltip
+            ><q-tooltip>
+              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
           ></q-rating>
           <q-toggle
             v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
@@ -163,7 +165,10 @@
             style="max-height: 21px"
             v-model="extension.isActive"
             @input="toggleExtension(extension)"
-            ><q-tooltip v-text="$t('activate_extension_details')"></q-tooltip
+            ><q-tooltip>
+              <span
+                v-text="$t('activate_extension_details')"
+              ></span> </q-tooltip
           ></q-toggle>
         </div>
       </q-card-section>
@@ -252,12 +257,8 @@
           value="false"
           label="Cleanup database tables"
         >
-          <q-tooltip
-            class="bg-grey-8"
-            anchor="bottom left"
-            self="top left"
-            v-text="$t('extension_db_drop_info')"
-          >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            ><span v-text="$t('extension_db_drop_info')"></span>
           </q-tooltip>
         </q-checkbox>
       </div>

@@ -60,7 +60,8 @@
             v-text="formatDate(props.row.date)"
           >
           </q-td>
-          <q-td key="message" :props="props" v-text="props.row.message"
+          <q-td key="message" :props="props"
+            ><span v-text="props.row.message"></span
             ><a
               v-if="props.row.link"
               target="_blank"
