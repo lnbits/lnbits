@@ -12,6 +12,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -139,7 +140,9 @@ class LNbitsWallet(Wallet):
         if "details" not in data:
             return PaymentPendingStatus()
 
-        return PaymentStatus(True, data["details"]["fee"], data["preimage"])
+        return PaymentSuccessStatus(
+            fee_msat=data["details"]["fee"], preimage=data["preimage"]
+        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"
