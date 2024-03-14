@@ -13,6 +13,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -114,7 +116,7 @@ class LnTipsWallet(Wallet):
             timeout=None,
         )
         if r.is_error:
-            return PaymentResponse(False, None, 0, None, r.text)
+            return PaymentResponseFailed(error_message=r.text)
 
         if "error" in r.json():
             try:
@@ -122,13 +124,14 @@ class LnTipsWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponseFailed(fee_msat=0, error_message=error_message)
 
         data = r.json()["details"]
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["preimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(
+            checking_id=data["payment_hash"],
+            fee_msat=-data["fee"],
+            preimage=data["preimage"],
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

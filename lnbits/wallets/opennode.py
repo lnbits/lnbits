@@ -10,6 +10,9 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -112,16 +115,20 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
         fee_msat = -data["fee"] * 1000
 
         if data["status"] != "paid":
-            return PaymentResponse(None, checking_id, fee_msat, None, "payment failed")
+            return PaymentResponsePending(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                error_message="payment failed",
+            )
 
-        return PaymentResponse(True, checking_id, fee_msat, None, None)
+        return PaymentResponseSuccess(checking_id=checking_id, fee_msat=fee_msat)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/charge/{checking_id}")

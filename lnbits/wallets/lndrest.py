@@ -16,6 +16,9 @@ from .base import (
     PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -161,20 +164,21 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
         except Exception as exc:
             logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
-            return PaymentResponse(None, None, None, None, str(exc))
+            return PaymentResponsePending(error_message=str(exc))
 
         data = r.json()
 
         if data.get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
             logger.warning(f"LndRestWallet pay_invoice payment_error: {error_message}.")
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
-        checking_id = base64.b64decode(data["payment_hash"]).hex()
-        fee_msat = int(data["payment_route"]["total_fees_msat"])
-        preimage = base64.b64decode(data["payment_preimage"]).hex()
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(
+            checking_id=base64.b64decode(data["payment_hash"]).hex(),
+            fee_msat=int(data["payment_route"]["total_fees_msat"]),
+            preimage=base64.b64decode(data["payment_preimage"]).hex(),
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/v1/invoice/{checking_id}")

@@ -14,6 +14,7 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -148,11 +149,11 @@ class CoreLightningRestWallet(Wallet):
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             error_message = "0 amount invoices are not allowed"
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
         r = await self.client.post(
             f"{self.url}/v1/pay",
@@ -171,7 +172,7 @@ class CoreLightningRestWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
 

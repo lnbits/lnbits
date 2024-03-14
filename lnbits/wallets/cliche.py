@@ -127,7 +127,7 @@ class ClicheWallet(Wallet):
 
             if data.get("error") is not None:
                 error_message = data["error"].get("message")
-                return PaymentResponseFailed(None, None, None, error_message)
+                return PaymentResponseFailed(error_message=error_message)
 
             if data.get("method") == "payment_succeeded":
                 payment_ok = True

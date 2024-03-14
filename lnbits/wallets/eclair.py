@@ -15,6 +15,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -129,12 +131,12 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
 
         if data["type"] == "payment-failed":
-            return PaymentResponse(False, None, None, None, "payment failed")
+            return PaymentResponseFailed(error_message="payment failed")
 
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
@@ -153,7 +155,9 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(None, checking_id, None, preimage, error_message)
+            return PaymentResponsePending(
+                checking_id=checking_id, preimage=preimage, error_message=error_message
+            )
 
         # todo: remove statuses
         statuses = {

@@ -21,6 +21,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentSuccessStatus,
     PaymentStatusMap,
@@ -111,20 +113,19 @@ class FakeWallet(Wallet):
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(ok=False, error_message=str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         if invoice.payment_hash in self.payment_secrets:
             await self.queue.put(invoice)
             self.paid_invoices.add(invoice.payment_hash)
-            return PaymentResponse(
-                ok=True,
+            return PaymentResponseSuccess(
                 checking_id=invoice.payment_hash,
                 fee_msat=0,
                 preimage=self.payment_secrets.get(invoice.payment_hash) or "0" * 64,
             )
         else:
-            return PaymentResponse(
-                ok=False, error_message="Only internal invoices can be used!"
+            return PaymentResponseFailed(
+                error_message="Only internal invoices can be used!"
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

@@ -12,6 +12,7 @@ from .base import (
     PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -115,8 +116,7 @@ class LNbitsWallet(Wallet):
         ok = not r.is_error
 
         if r.is_error:
-            error_message = r.json()["detail"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=r.json()["detail"])
         else:
             data = r.json()
             checking_id = data["payment_hash"]

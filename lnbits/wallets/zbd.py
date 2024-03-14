@@ -11,6 +11,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -118,7 +120,7 @@ class ZBDWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
 
@@ -126,7 +128,9 @@ class ZBDWallet(Wallet):
         fee_msat = -int(data["data"]["fee"])
         preimage = data["data"]["preimage"]
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(
+            checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"charges/{checking_id}")

@@ -6,6 +6,7 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -33,9 +34,7 @@ class VoidWallet(Wallet):
         return StatusResponse(None, 0)
 
     async def pay_invoice(self, *_, **__) -> PaymentResponse:
-        return PaymentResponse(
-            ok=False, error_message="VoidWallet cannot pay invoices."
-        )
+        return PaymentResponseFailed(error_message="VoidWallet cannot pay invoices.")
 
     async def get_invoice_status(self, *_, **__) -> PaymentStatus:
         return PaymentPendingStatus()

@@ -18,6 +18,7 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -171,7 +172,7 @@ class LndWallet(Wallet):
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
         except Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {

@@ -14,6 +14,9 @@ from .base import (
     PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -157,17 +160,19 @@ class SparkWallet(Wallet):
             )
             fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
             preimage = r["payment_preimage"]
-            return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
+            return PaymentResponseSuccess(
+                checking_id=r["payment_hash"], fee_msat=fee_msat, preimage=preimage
+            )
 
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if not listpays:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             pays = listpays["pays"]
 
             if len(pays) == 0:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             pay = pays[0]
             payment_hash = pay["payment_hash"]
@@ -179,10 +184,10 @@ class SparkWallet(Wallet):
                 )
 
             if pay["status"] == "failed":
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             if pay["status"] == "pending":
-                return PaymentResponse(None, payment_hash, None, None, None)
+                return PaymentResponsePending(checking_id=payment_hash)
 
             if pay["status"] == "complete":
                 r = pay
@@ -194,11 +199,11 @@ class SparkWallet(Wallet):
                 # this is good
                 fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
                 preimage = r["payment_preimage"]
-                return PaymentResponse(
-                    True, r["payment_hash"], fee_msat, preimage, None
+                return PaymentResponseSuccess(
+                    checking_id=r["payment_hash"], fee_msat=fee_msat, preimage=preimage
                 )
             else:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

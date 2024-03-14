@@ -11,6 +11,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -123,17 +125,18 @@ class LNPayWallet(Wallet):
         try:
             data = r.json()
         except Exception:
-            return PaymentResponse(
-                False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
+            return PaymentResponseFailed(
+                fee_msat=0, error_message=f"Got invalid JSON: {r.text[:200]}"
             )
 
         if r.is_error:
-            return PaymentResponse(False, None, None, None, data["message"])
+            return PaymentResponseFailed(error_message=data["message"])
 
-        checking_id = data["lnTx"]["id"]
-        fee_msat = 0
-        preimage = data["lnTx"]["payment_preimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(
+            checking_id=data["lnTx"]["id"],
+            fee_msat=0,
+            preimage=data["lnTx"]["payment_preimage"],
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
