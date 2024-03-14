@@ -11,6 +11,7 @@ from .base import (
     InvoiceResponse,
     PaymentResponse,
     PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     PaymentStatusPending,
@@ -112,18 +113,21 @@ class LNbitsWallet(Wallet):
             json={"out": True, "bolt11": bolt11},
             timeout=None,
         )
-        ok = not r.is_error
 
         if r.is_error:
             return PaymentResponseFailed(error_message=r.json()["detail"])
-        else:
-            data = r.json()
-            checking_id = data["payment_hash"]
+
+        data = r.json()
+        checking_id = data["payment_hash"]
 
         # we do this to get the fee and preimage
         payment: PaymentStatus = await self.get_payment_status(checking_id)
 
-        return PaymentResponse(ok, checking_id, payment.fee_msat, payment.preimage)
+        return PaymentResponseSuccess(
+            checking_id=checking_id,
+            fee_msat=payment.fee_msat,
+            preimage=payment.preimage,
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

@@ -167,6 +167,39 @@ class Wallet(ABC):
 
         return PaymentStatusPending()
 
+    def payment_response(
+        self,
+        ok: Optional[bool] = None,
+        checking_id: Optional[str] = None,  # payment_hash, rcp_id
+        fee_msat: Optional[int] = None,
+        preimage: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> PaymentResponse:
+        status_map = self.payment_status_map
+        if ok in status_map.success:
+            return PaymentResponseSuccess(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+        if ok in status_map.failed:
+            return PaymentResponseFailed(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+        if ok in status_map.pending:
+            return PaymentResponsePending(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+
+        return PaymentResponsePending()
+
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         if add_proto:

@@ -159,21 +159,14 @@ class EclairWallet(Wallet):
                 checking_id=checking_id, preimage=preimage, error_message=error_message
             )
 
-        # todo: remove statuses
-        statuses = {
-            "sent": True,
-            "failed": False,
-            "pending": None,
-        }
-
         data = r.json()[-1]
         fee_msat = 0
         if data["status"]["type"] == "sent":
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
 
-        return PaymentResponse(
-            statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
+        return self.payment_response(
+            data["status"]["type"], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

@@ -56,14 +56,6 @@ class CoreLightningRestWallet(Wallet):
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
 
-        # todo: remove statuses
-        self.statuses = {
-            "paid": True,
-            "complete": True,
-            "failed": False,
-            "pending": None,
-        }
-
     @property
     def payment_status_map(self) -> PaymentStatusMap:
         return PaymentStatusMap(
@@ -180,8 +172,8 @@ class CoreLightningRestWallet(Wallet):
         preimage = data["payment_preimage"]
         fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-        return PaymentResponse(
-            self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
+        return self.payment_response(
+            data["status"], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

@@ -139,7 +139,7 @@ class ClicheWallet(Wallet):
             if data.get("result") is None:
                 return PaymentResponsePending()
 
-        return PaymentResponse(
+        return self.payment_response(
             payment_ok, checking_id, fee_msat, preimage, error_message
         )
 
