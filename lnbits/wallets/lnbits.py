@@ -13,6 +13,7 @@ from .base import (
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
+    PaymentStatusFailed,
     PaymentStatusMap,
     PaymentStatusPending,
     PaymentStatusSuccess,
@@ -140,10 +141,10 @@ class LNbitsWallet(Wallet):
             details = data.get("details", None)
 
             if details and details.get("pending", False) is True:
-                return PaymentPendingStatus()
+                return PaymentStatusPending()
             if data.get("paid", False) is True:
-                return PaymentSuccessStatus()
-            return PaymentFailedStatus()
+                return PaymentStatusSuccess()
+            return PaymentStatusFailed()
         except Exception:
             return PaymentStatusPending()
 

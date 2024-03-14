@@ -23,9 +23,10 @@ from .base import (
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
-    PaymentSuccessStatus,
+    PaymentStatusFailed,
     PaymentStatusMap,
     PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -130,10 +131,10 @@ class FakeWallet(Wallet):
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         if checking_id in self.paid_invoices:
-            return PaymentSuccessStatus()
+            return PaymentStatusSuccess()
         if checking_id in list(self.payment_secrets.keys()):
-            return PaymentPendingStatus()
-        return PaymentFailedStatus()
+            return PaymentStatusPending()
+        return PaymentStatusFailed()
 
     async def get_payment_status(self, _: str) -> PaymentStatus:
         return PaymentStatusPending()
