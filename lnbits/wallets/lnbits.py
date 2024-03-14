@@ -127,7 +127,7 @@ class LNbitsWallet(Wallet):
             data = r.json()
             details = data.get("details", None)
 
-            if details and details.get("pending", False):
+            if details and details.get("pending", False) is True:
                 return PaymentPendingStatus()
             if data.get("paid", False) is True:
                 return PaymentSuccessStatus()
