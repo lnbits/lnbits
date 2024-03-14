@@ -18,6 +18,8 @@ from .base import (
     InvoiceResponse,
     PaymentResponse,
     PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     PaymentStatusPending,
@@ -113,6 +115,10 @@ class LndWallet(Wallet):
 
     @property
     def payment_status_map(self) -> PaymentStatusMap:
+        # https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
+        # # HTLCAttempt.HTLCStatus:
+        # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+
         return PaymentStatusMap(
             success=[2],
             failed=[3],
@@ -174,14 +180,6 @@ class LndWallet(Wallet):
         except Exception as exc:
             return PaymentResponseFailed(error_message=str(exc))
 
-        # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
-        statuses = {
-            0: None,  # NON_EXISTENT
-            1: None,  # IN_FLIGHT
-            2: True,  # SUCCEEDED
-            3: False,  # FAILED
-        }
-
         failure_reasons = {
             0: "No error given.",
             1: "Payment timed out.",
@@ -191,21 +189,19 @@ class LndWallet(Wallet):
             5: "Insufficient balance.",
         }
 
-        fee_msat = None
-        preimage = None
-        error_message = None
-        checking_id = None
+        status = self.payment_response(resp.status)
+        if status.success:
+            return PaymentResponseSuccess(
+                fee_msat=-resp.htlcs[-1].route.total_fees_msat,
+                preimage=resp.payment_preimage,
+                checking_id=resp.payment_hash,
+            )
+        if status.failed:
+            return PaymentResponseFailed(
+                error_message=failure_reasons[resp.failure_reason]
+            )
 
-        if statuses[resp.status] is True:  # SUCCEEDED
-            fee_msat = -resp.htlcs[-1].route.total_fees_msat
-            preimage = resp.payment_preimage
-            checking_id = resp.payment_hash
-        elif statuses[resp.status] is False:
-            error_message = failure_reasons[resp.failure_reason]
-
-        return PaymentResponse(
-            statuses[resp.status], checking_id, fee_msat, preimage, error_message
-        )
+        return PaymentResponsePending()
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -242,29 +238,16 @@ class LndWallet(Wallet):
             router.TrackPaymentRequest(payment_hash=r_hash)
         )
 
-        # # HTLCAttempt.HTLCStatus:
-        # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
-        # htlc_statuses = {
-        #     0: None,  # IN_FLIGHT
-        #     1: True,  # "SUCCEEDED"
-        #     2: False,  # "FAILED"
-        # }
-        statuses = {
-            0: None,  # NON_EXISTENT
-            1: None,  # IN_FLIGHT
-            2: True,  # SUCCEEDED
-            3: False,  # FAILED
-        }
-
         try:
             async for payment in resp:
                 # todo: remove statuses
-                if len(payment.htlcs) and statuses[payment.status]:
+                status = self.payment_status(payment.status)
+                if len(payment.htlcs) and status.success:
                     return PaymentStatusSuccess(
                         fee_msat=-payment.htlcs[-1].route.total_fees_msat,
                         preimage=bytes_to_hex(payment.htlcs[-1].preimage),
                     )
-                return self.payment_status(payment.status)
+                return status
         except Exception:  # most likely the payment wasn't found
             return PaymentStatusPending()
 

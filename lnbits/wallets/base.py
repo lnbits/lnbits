@@ -35,6 +35,18 @@ class PaymentResponse(NamedTuple):
     preimage: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
 
 class PaymentResponseSuccess(PaymentResponse):
     ok = True
