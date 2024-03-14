@@ -19,13 +19,13 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
     PaymentSuccessStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -136,7 +136,7 @@ class FakeWallet(Wallet):
         return PaymentFailedStatus()
 
     async def get_payment_status(self, _: str) -> PaymentStatus:
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

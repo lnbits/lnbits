@@ -9,12 +9,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -147,7 +147,7 @@ class LNPayWallet(Wallet):
         )
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         data = r.json()
         preimage = data["payment_preimage"]

@@ -8,13 +8,13 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
     PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -133,7 +133,7 @@ class OpenNodeWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/charge/{checking_id}")
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         data = r.json()["data"]
 
         return self.payment_status(data.get("status"))
@@ -142,7 +142,7 @@ class OpenNodeWallet(Wallet):
         r = await self.client.get(f"/v1/withdrawal/{checking_id}")
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         data = r.json()["data"]
 

@@ -9,12 +9,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -135,7 +135,7 @@ class ZBDWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"charges/{checking_id}")
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         data = r.json()["data"]
 
         return self.payment_status(data.get("status"))
@@ -143,7 +143,7 @@ class ZBDWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"payments/{checking_id}")
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         data = r.json()["data"]
 

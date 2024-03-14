@@ -9,13 +9,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
-    PaymentSuccessStatus,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -142,22 +141,22 @@ class LNbitsWallet(Wallet):
                 return PaymentSuccessStatus()
             return PaymentFailedStatus()
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         data = r.json()
 
         if "paid" not in data or not data["paid"]:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         if "details" not in data:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
-        return PaymentSuccessStatus(
+        return PaymentStatusSuccess(
             fee_msat=data["details"]["fee"], preimage=data["preimage"]
         )
 

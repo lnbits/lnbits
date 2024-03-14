@@ -13,13 +13,13 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
     PaymentStatus,
     PaymentStatusMap,
-    PaymentSuccessStatus,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -191,7 +191,7 @@ class EclairWallet(Wallet):
 
             return self.payment_status(data["status"]["type"])
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -215,10 +215,10 @@ class EclairWallet(Wallet):
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
 
-            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=preimage)
 
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

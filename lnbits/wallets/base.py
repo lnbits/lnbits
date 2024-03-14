@@ -76,15 +76,15 @@ class PaymentStatus(NamedTuple):
             return "unknown (should never happen)"
 
 
-class PaymentSuccessStatus(PaymentStatus):
+class PaymentStatusSuccess(PaymentStatus):
     paid = True
 
 
-class PaymentFailedStatus(PaymentStatus):
+class PaymentStatusFailed(PaymentStatus):
     paid = False
 
 
-class PaymentPendingStatus(PaymentStatus):
+class PaymentStatusPending(PaymentStatus):
     paid = None
 
 
@@ -159,12 +159,13 @@ class Wallet(ABC):
     ) -> PaymentStatus:
         status_map = self.payment_status_map
         if status in status_map.success:
-            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=preimage)
         if status in status_map.failed:
-            return PaymentFailedStatus(fee_msat=fee_msat, preimage=preimage)
+            return PaymentStatusFailed(fee_msat=fee_msat, preimage=preimage)
         if status in status_map.pending:
-            return PaymentPendingStatus(fee_msat=fee_msat, preimage=preimage)
-        return PaymentPendingStatus()
+            return PaymentStatusPending(fee_msat=fee_msat, preimage=preimage)
+
+        return PaymentStatusPending()
 
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint

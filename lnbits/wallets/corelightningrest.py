@@ -12,12 +12,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
-    PaymentSuccessStatus,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -199,7 +199,7 @@ class CoreLightningRestWallet(Wallet):
             return self.payment_status(data["invoices"][0]["status"])
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
@@ -221,11 +221,11 @@ class CoreLightningRestWallet(Wallet):
 
             # cut off "msat" and convert to int
             fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(pay["amount_msat"][:-4])
-            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=pay["preimage"])
 
         except Exception as e:
             logger.error(f"Error getting payment status: {e}")
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

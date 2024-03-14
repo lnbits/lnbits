@@ -10,12 +10,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -151,7 +151,7 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         return self.payment_status(data["result"]["status"])
 
@@ -163,7 +163,7 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         payment = data["result"]
         return self.payment_status(
             payment["status"], payment.get("fee_msatoshi"), payment.get("preimage")

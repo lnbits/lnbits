@@ -13,15 +13,15 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
     PaymentResponseSuccess,
     PaymentStatus,
+    PaymentStatusFailed,
     PaymentStatusMap,
-    PaymentSuccessStatus,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -186,9 +186,9 @@ class LndRestWallet(Wallet):
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
             # it will return an error and no "settled" attribute on the object
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
-        return PaymentSuccessStatus()
+        return PaymentStatusSuccess()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
@@ -200,7 +200,7 @@ class LndRestWallet(Wallet):
                 "ascii"
             )
         except ValueError:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         url = f"/v2/router/track/{checking_id}"
 
@@ -219,8 +219,8 @@ class LndRestWallet(Wallet):
                             and line["error"].get("message")
                             == "payment isn't initiated"
                         ):
-                            return PaymentFailedStatus()
-                        return PaymentPendingStatus()
+                            return PaymentStatusFailed()
+                        return PaymentStatusPending()
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
                         return self.payment_status(
@@ -229,11 +229,11 @@ class LndRestWallet(Wallet):
                             payment.get("payment_preimage"),
                         )
                     else:
-                        return PaymentPendingStatus()
+                        return PaymentStatusPending()
                 except Exception:
                     continue
 
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

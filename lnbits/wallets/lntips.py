@@ -11,12 +11,12 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -145,7 +145,7 @@ class LnTipsWallet(Wallet):
             data = r.json()
             return self.payment_status(data["paid"])
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -160,7 +160,7 @@ class LnTipsWallet(Wallet):
 
             return self.payment_status(None if status is False else status)
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None

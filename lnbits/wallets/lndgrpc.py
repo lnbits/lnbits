@@ -16,12 +16,12 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentStatus,
     PaymentStatusMap,
-    PaymentSuccessStatus,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -215,15 +215,15 @@ class LndWallet(Wallet):
         except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         try:
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         except grpc.RpcError:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         if resp.settled:
-            return PaymentSuccessStatus()
+            return PaymentStatusSuccess()
 
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
@@ -236,7 +236,7 @@ class LndWallet(Wallet):
         except ValueError:
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         resp = self.routerpc.TrackPaymentV2(
             router.TrackPaymentRequest(payment_hash=r_hash)
@@ -260,15 +260,15 @@ class LndWallet(Wallet):
             async for payment in resp:
                 # todo: remove statuses
                 if len(payment.htlcs) and statuses[payment.status]:
-                    return PaymentSuccessStatus(
+                    return PaymentStatusSuccess(
                         fee_msat=-payment.htlcs[-1].route.total_fees_msat,
                         preimage=bytes_to_hex(payment.htlcs[-1].preimage),
                     )
                 return self.payment_status(payment.status)
         except Exception:  # most likely the payment wasn't found
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
