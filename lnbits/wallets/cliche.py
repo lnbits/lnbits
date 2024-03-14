@@ -12,6 +12,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -125,7 +127,7 @@ class ClicheWallet(Wallet):
 
             if data.get("error") is not None:
                 error_message = data["error"].get("message")
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponseFailed(None, None, None, error_message)
 
             if data.get("method") == "payment_succeeded":
                 payment_ok = True
@@ -135,7 +137,7 @@ class ClicheWallet(Wallet):
                 continue
 
             if data.get("result") is None:
-                return PaymentResponse(None)
+                return PaymentResponsePending()
 
         return PaymentResponse(
             payment_ok, checking_id, fee_msat, preimage, error_message

@@ -11,6 +11,8 @@ from .base import (
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     StatusResponse,
@@ -105,14 +107,14 @@ class AlbyWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(None, None, None, error_message)
 
         data = r.json()
         checking_id = data["payment_hash"]
         fee_msat = -data["fee"]
         preimage = data["payment_preimage"]
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)

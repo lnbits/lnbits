@@ -15,6 +15,8 @@ from .base import (
     PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
     PaymentStatusMap,
     PaymentSuccessStatus,
@@ -110,6 +112,7 @@ class CoreLightningWallet(Wallet):
                 f"CoreLightning method '{exc.method}' failed with"
                 f" '{exc.error.get('message') or exc.error}'."  # type: ignore
             )
+            # todo
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
@@ -118,15 +121,15 @@ class CoreLightningWallet(Wallet):
         try:
             invoice = bolt11_decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         previous_payment = await self.get_payment_status(invoice.payment_hash)
         if previous_payment.paid:
-            return PaymentResponse(False, None, None, None, "invoice already paid")
+            return PaymentResponseFailed(error_message="invoice already paid")
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
-            return PaymentResponse(
-                False, None, None, None, "CLN 0 amount invoice not supported"
+            return PaymentResponseFailed(
+                error_message="CLN 0 amount invoice not supported"
             )
 
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
@@ -150,11 +153,12 @@ class CoreLightningWallet(Wallet):
                     f"CoreLightning method '{exc.method}' failed with"
                     f" '{exc.error.get('message') or exc.error}'."  # type: ignore
                 )
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
-        fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
-        return PaymentResponse(
-            True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+        return PaymentResponseSuccess(
+            checking_id=r["payment_hash"],
+            fee_msat=-int(r["amount_sent_msat"] - r["amount_msat"]),
+            preimage=r["payment_preimage"],
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

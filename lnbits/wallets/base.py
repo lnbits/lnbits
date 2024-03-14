@@ -36,6 +36,18 @@ class PaymentResponse(NamedTuple):
     error_message: Optional[str] = None
 
 
+class PaymentResponseSuccess(PaymentResponse):
+    ok = True
+
+
+class PaymentResponseFailed(PaymentResponse):
+    ok = False
+
+
+class PaymentResponsePending(PaymentResponse):
+    ok = None
+
+
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
     fee_msat: Optional[int] = None
