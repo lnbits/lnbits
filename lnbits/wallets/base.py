@@ -21,10 +21,31 @@ class StatusResponse(NamedTuple):
 
 
 class InvoiceResponse(NamedTuple):
-    ok: bool
+    ok: Optional[bool] = None
     checking_id: Optional[str] = None  # payment_hash, rpc_id
     payment_request: Optional[str] = None
     error_message: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
+
+
+class InvoiceResponseSuccess(InvoiceResponse):
+    ok = True
+
+
+class InvoiceResponseFailed(InvoiceResponse):
+    ok = False
 
 
 class PaymentResponse(NamedTuple):

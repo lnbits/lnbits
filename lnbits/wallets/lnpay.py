@@ -9,6 +9,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
@@ -102,18 +104,14 @@ class LNPayWallet(Wallet):
             json=data,
             timeout=60,
         )
-        ok, checking_id, payment_request, error_message = (
-            r.status_code == 201,
-            None,
-            None,
-            r.text,
-        )
 
-        if ok:
+        if r.status_code == 201:
             data = r.json()
-            checking_id, payment_request = data["id"], data["payment_request"]
+            return InvoiceResponseSuccess(
+                checking_id=data["id"], payment_request=data["payment_request"]
+            )
 
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+        return InvoiceResponseFailed(error_message=r.text)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(

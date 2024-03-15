@@ -10,6 +10,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
@@ -84,25 +86,20 @@ class ClicheWallet(Wallet):
             ws = create_connection(self.endpoint)
             ws.send(f"create-invoice --msatoshi {amount*1000} --description {memo}")
             r = ws.recv()
+
         data = json.loads(r)
-        checking_id = None
-        payment_request = None
-        error_message = None
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            error_message = data["error"]["message"]
-            return InvoiceResponse(False, checking_id, payment_request, error_message)
+            return InvoiceResponseFailed(error_message=data["error"]["message"])
 
-        if data.get("result") is not None:
-            checking_id, payment_request = (
-                data["result"]["payment_hash"],
-                data["result"]["invoice"],
-            )
-        else:
-            return InvoiceResponse(False, None, None, "Could not get payment hash")
+        if data.get("result") is None:
+            return InvoiceResponseFailed(error_message="Could not get payment hash")
 
-        return InvoiceResponse(True, checking_id, payment_request, error_message)
+        return InvoiceResponseSuccess(
+            checking_id=data["result"]["payment_hash"],
+            payment_request=data["result"]["invoice"],
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         ws = create_connection(self.endpoint)

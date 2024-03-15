@@ -16,6 +16,8 @@ from lnbits.utils.crypto import AESCipher
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
@@ -159,13 +161,13 @@ class LndWallet(Wallet):
         try:
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
+            return InvoiceResponseSuccess(
+                checking_id=bytes_to_hex(resp.r_hash),
+                payment_request=str(resp.payment_request),
+            )
         except Exception as exc:
             error_message = str(exc)
-            return InvoiceResponse(False, None, None, error_message)
-
-        checking_id = bytes_to_hex(resp.r_hash)
-        payment_request = str(resp.payment_request)
-        return InvoiceResponse(True, checking_id, payment_request, None)
+            return InvoiceResponseFailed(error_message=error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)

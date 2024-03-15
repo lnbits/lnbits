@@ -11,6 +11,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
@@ -102,11 +104,11 @@ class LnTipsWallet(Wallet):
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()
-        return InvoiceResponse(
-            True, data["payment_hash"], data["payment_request"], None
+        return InvoiceResponseSuccess(
+            checking_id=data["payment_hash"], payment_request=data["payment_request"]
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:

@@ -13,6 +13,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
@@ -113,10 +115,12 @@ class EclairWallet(Wallet):
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()
-        return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+        return InvoiceResponseSuccess(
+            checking_id=data["paymentHash"], payment_request=data["serialized"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(

@@ -8,6 +8,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
@@ -99,12 +101,12 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()["data"]
-        checking_id = data["id"]
-        payment_request = data["lightning_invoice"]["payreq"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponseSuccess(
+            checking_id=data["id"], payment_request=data["lightning_invoice"]["payreq"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(

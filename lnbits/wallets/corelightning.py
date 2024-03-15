@@ -12,6 +12,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponseSuccess,
@@ -106,16 +108,18 @@ class CoreLightningWallet(Wallet):
             if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
-            return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
+            return InvoiceResponseSuccess(
+                checking_id=r["payment_hash"], payment_request=r["bolt11"]
+            )
         except RpcError as exc:
             error_message = (
                 f"CoreLightning method '{exc.method}' failed with"
                 f" '{exc.error.get('message') or exc.error}'."  # type: ignore
             )
-            # todo
-            return InvoiceResponse(False, None, None, error_message)
+
+            return InvoiceResponseFailed(error_message=error_message)
         except Exception as e:
-            return InvoiceResponse(False, None, None, str(e))
+            return InvoiceResponseFailed(error_message=str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:

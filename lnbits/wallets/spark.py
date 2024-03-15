@@ -11,6 +11,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentResponsePending,
@@ -146,11 +148,12 @@ class SparkWallet(Wallet):
                     exposeprivatechannels=True,
                     expiry=kwargs.get("expiry"),
                 )
-            ok, payment_request, error_message = True, r["bolt11"], ""
-        except (SparkError, UnknownError) as e:
-            ok, payment_request, error_message = False, None, str(e)
 
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+            return InvoiceResponseSuccess(
+                checking_id=checking_id, payment_request=r["bolt11"]
+            )
+        except (SparkError, UnknownError) as e:
+            return InvoiceResponseFailed(error_message=str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:

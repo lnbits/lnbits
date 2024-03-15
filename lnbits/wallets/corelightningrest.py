@@ -12,6 +12,8 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentStatus,
@@ -123,19 +125,20 @@ class CoreLightningRestWallet(Wallet):
             data=data,
         )
 
-        if r.is_error or "error" in r.json():
+        data = r.json()
+        if r.is_error or "error" in data:
             try:
-                data = r.json()
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
-        data = r.json()
         assert "payment_hash" in data
         assert "bolt11" in data
-        return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
+        return InvoiceResponseSuccess(
+            checking_id=data["payment_hash"], payment_request=data["bolt11"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:

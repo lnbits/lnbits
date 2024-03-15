@@ -4,6 +4,7 @@ from loguru import logger
 
 from .base import (
     InvoiceResponse,
+    InvoiceResponseFailed,
     PaymentResponse,
     PaymentResponseFailed,
     PaymentStatus,
@@ -21,9 +22,7 @@ class VoidWallet(Wallet):
         return PaymentStatusMap([], [], [])
 
     async def create_invoice(self, *_, **__) -> InvoiceResponse:
-        return InvoiceResponse(
-            ok=False, error_message="VoidWallet cannot create invoices."
-        )
+        return InvoiceResponseFailed(error_message="VoidWallet cannot create invoices.")
 
     async def status(self) -> StatusResponse:
         logger.warning(
