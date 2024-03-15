@@ -235,7 +235,8 @@
             v-if="extension.isInstalled && extension.installedRelease"
             class="float-right"
           >
-            <q-badge v-text="extension.installedRelease.version">
+            <q-badge>
+              <span v-text="extension.installedRelease.version"></span>
               <q-tooltip>
                 <span v-text="$t('extension_installed_version')"></span>
               </q-tooltip>
@@ -285,7 +286,7 @@
   <q-dialog v-model="showDropDbDialog">
     <q-card v-if="selectedExtension" class="q-pa-lg">
       <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
-      <p v-text="$t('extension_db_drop_warning')"><br /></p>
+      <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
       <q-input
         v-model="dropDbExtensionId"
         :label="selectedExtension.id"
