@@ -19,11 +19,11 @@ def httpserver_listen_address():
 
 @pytest.mark.asyncio
 async def test_status_no_balance(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPONT
+    settings.corelightning_rest_macaroon = MCAROON
 
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_json({})
 
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
     wallet = CoreLightningRestWallet()
 
     status = await wallet.status()
@@ -149,3 +149,27 @@ async def test_status_for_missing_config():
 
     wallet = CoreLightningRestWallet()
     assert wallet.url == ENDPONT
+
+
+@pytest.mark.asyncio
+async def test_cleanup(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPONT
+    settings.corelightning_rest_macaroon = MCAROON
+
+    resp = {"localBalance": 55}
+    httpserver.expect_request("/v1/channel/localremotebal").respond_with_json(resp)
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.status()
+    assert status.error_message is None
+    assert status.balance_msat == 55000
+
+    # all calls should fail after this method is called
+    await wallet.cleanup()
+
+    with pytest.raises(RuntimeError) as e_info:
+        # expected to fail
+        await wallet.status()
+
+    assert str(e_info.value) == "Cannot send a request, as the client has been closed."
