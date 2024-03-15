@@ -39,7 +39,6 @@ class InvoiceResponse(NamedTuple):
         return self.ok is False
 
 
-
 class InvoiceResponseSuccess(InvoiceResponse):
     ok = True
 
