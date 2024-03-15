@@ -146,23 +146,24 @@ async def create_invoice(
             f"{settings.lnbits_wallet_limit_max_balance} sats."
         )
 
-    ok, checking_id, payment_request, error_message = await wallet.create_invoice(
+    # do not use deconstructor, it does not work with NamedTuple
+    r = await wallet.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok or not payment_request or not checking_id:
-        raise InvoiceFailure(error_message or "unexpected backend error.")
+    if not r.ok or not r.payment_request or not r.checking_id:
+        raise InvoiceFailure(r.error_message or "unexpected backend error.")
 
-    invoice = bolt11_decode(payment_request)
+    invoice = bolt11_decode(r.payment_request)
 
     amount_msat = 1000 * amount_sat
     await create_payment(
         wallet_id=wallet_id,
-        checking_id=checking_id,
-        payment_request=payment_request,
+        checking_id=r.checking_id,
+        payment_request=r.payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
         expiry=get_bolt11_expiry(invoice),
@@ -172,7 +173,7 @@ async def create_invoice(
         conn=conn,
     )
 
-    return invoice.payment_hash, payment_request
+    return invoice.payment_hash, r.payment_request
 
 
 async def pay_invoice(
