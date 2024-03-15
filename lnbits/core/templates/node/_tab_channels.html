@@ -150,7 +150,6 @@
                 Open channel
               </q-btn>
             </div>
-            {% raw %}
             <div>
               <div class="text-subtitle1 col-grow">Total</div>
               <lnbits-channel-balance
@@ -172,11 +171,12 @@
                 <q-tr :props="props">
                   <div class="q-pb-sm">
                     <div class="row items-center q-gutter-sm">
-                      <div class="text-subtitle1 col-grow">
-                        {{props.row.name}}
-                      </div>
+                      <div
+                        class="text-subtitle1 col-grow"
+                        v-text="props.row.name"
+                      ></div>
                       <div class="text-caption" v-if="props.row.short_id">
-                        {{ props.row.short_id }}
+                        <span v-text="props.row.short_id"></span>
                         <q-btn
                           size="xs"
                           flat
@@ -188,9 +188,8 @@
                       <q-badge
                         rounded
                         :color="states.find(s => s.value == props.row.state)?.color"
+                        v-text="states.find(s => s.value == props.row.state)?.label"
                       >
-                        {{ states.find(s => s.value == props.row.state)?.label
-                        }}
                       </q-badge>
                       <q-btn
                         :disable='props.row.state !== "active"'
@@ -210,15 +209,12 @@
                 </q-tr>
               </template>
             </q-table>
-
-            {% endraw %}
           </q-card-section>
         </q-card>
       </div>
       <div class="col-12 col-xl-6">
         <q-card class="full-height">
           <q-card-section class="column q-gutter-y-sm">
-            {% raw %}
             <div
               class="row items-center q-mt-none justify-between q-gutter-x-md no-wrap"
             >
@@ -254,19 +250,21 @@
                 <q-tr :props="props">
                   <div class="row no-wrap items-center q-gutter-sm">
                     <div class="q-my-sm col-grow">
-                      <div class="text-subtitle1 text-bold">
-                        {{ props.row.alias }}
-                      </div>
+                      <div
+                        class="text-subtitle1 text-bold"
+                        v-text="props.row.alias"
+                      ></div>
                       <div class="row items-center q-gutter-sm">
                         <q-badge
                           :style="`background-color: #${props.row.color}`"
                           class="text-bold"
+                          v-text="'#'+props.row.color"
                         >
-                          #{{ props.row.color }}
                         </q-badge>
-                        <div class="text-bold">
-                          {{ shortenNodeId(props.row.id) }}
-                        </div>
+                        <div
+                          class="text-bold"
+                          v-text="shortenNodeId(props.row.id)"
+                        ></div>
                         <q-btn
                           size="xs"
                           flat
@@ -302,8 +300,6 @@
                 </q-tr>
               </template>
             </q-table>
-
-            {% endraw %}
           </q-card-section>
         </q-card>
       </div>

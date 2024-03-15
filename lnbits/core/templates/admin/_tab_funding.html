@@ -7,21 +7,21 @@
         <div class="col">
           <p>Funding Source Info</p>
           <ul>
-            {%raw%}
-            <li>Funding Source: {{settings.lnbits_backend_wallet_class}}</li>
-            <li>
-              Node Balance: {{(auditData.node_balance_msats /
-              1000).toLocaleString()}} sats
-            </li>
-            <li>
-              LNbits Balance: {{(auditData.lnbits_balance_msats /
-              1000).toLocaleString()}} sats
-            </li>
-            <li>
-              Reserve Percent: {{(auditData.node_balance_msats /
-              auditData.lnbits_balance_msats * 100).toFixed(2)}} %
-            </li>
-            {%endraw%}
+            <li
+              v-text="'Funding Source: '+ settings.lnbits_backend_wallet_class"
+            ></li>
+            <li
+              v-text="'Node Balance: ' + (auditData.node_balance_msats /
+              1000).toLocaleString() + ' sats'"
+            ></li>
+            <li
+              v-text="'LNbits Balance: ' + (auditData.lnbits_balance_msats /
+              1000).toLocaleString() + ' sats'"
+            ></li>
+            <li
+              v-text="'Reserve Percent: ' + (auditData.node_balance_msats /
+              auditData.lnbits_balance_msats * 100).toFixed(2) + ' %'"
+            ></li>
           </ul>
           <br />
         </div>

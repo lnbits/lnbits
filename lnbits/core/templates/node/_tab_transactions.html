@@ -3,7 +3,6 @@
     <q-dialog v-model="transactionDetailsDialog.show">
       <q-card class="my-card">
         <q-card-section>
-          {% raw %}
           <div class="text-center q-mb-lg">
             <div
               v-if="transactionDetailsDialog.data.isIn && transactionDetailsDialog.data.pending"
@@ -18,7 +17,9 @@
             <div class="row q-my-md">
               <div class="col-3"><b v-text="$t('payment_hash')"></b>:</div>
               <div class="col-9 text-wrap mono">
-                {{ transactionDetailsDialog.data.payment_hash }}
+                <span
+                  v-text="transactionDetailsDialog.data.payment_hash"
+                ></span>
                 <q-icon
                   name="content_copy"
                   @click="copyText(transactionDetailsDialog.data.payment_hash)"
@@ -33,7 +34,7 @@
               >
                 <div class="col-3"><b v-text="$t('payment_proof')"></b>:</div>
                 <div class="col-9 text-wrap mono">
-                  {{ transactionDetailsDialog.data.preimage }}
+                  <span v-text="transactionDetailsDialog.data.preimage"></span>
                   <q-icon
                     name="content_copy"
                     @click="copyText(transactionDetailsDialog.data.preimage)"
@@ -66,7 +67,6 @@
               ></q-btn>
             </div>
           </div>
-          {% endraw %}
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -102,7 +102,6 @@
               :filter="paymentsTable.filter"
               @request="getPayments"
             >
-              {% raw %}
               <template v-slot:body-cell-pending="props">
                 <q-td auto-width class="text-center">
                   <q-icon
@@ -211,9 +210,8 @@
                     <q-badge
                       :style="`background-color: #${props.row.destination?.color}`"
                       class="text-bold"
-                    >
-                      {{ props.row.destination?.alias }}
-                    </q-badge>
+                      v-text="props.row.destination?.alias"
+                    ></q-badge>
                     <div>
                       <q-btn
                         size="xs"
@@ -233,7 +231,6 @@
                   </div>
                 </q-td>
               </template>
-              {% endraw %}
             </q-table>
           </q-card-section>
         </q-card>
@@ -266,7 +263,6 @@
               :filter="invoiceTable.filter"
               @request="getInvoices"
             >
-              {% raw %}
               <template v-slot:body-cell-pending="props">
                 <q-td auto-width class="text-center">
                   <q-icon
@@ -305,8 +301,6 @@
                   ></lnbits-date>
                 </q-td>
               </template>
-
-              {% endraw %}
             </q-table>
           </q-card-section>
         </q-card>

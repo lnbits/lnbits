@@ -131,7 +131,7 @@
               style="padding: 10px; color: #fafafa; height: 320px"
             >
               <small v-for="log in logs"
-                >{% raw %}{{ log }}{% endraw %}<br
+                ><span v-text="log"></span><br
               /></small>
             </q-scroll-area>
           </div>
@@ -166,7 +166,6 @@
                 ></q-btn>
               </q-input>
               <div>
-                {%raw%}
                 <q-chip
                   v-for="blocked_ip in formData.lnbits_blocked_ips"
                   :key="blocked_ip"
@@ -174,10 +173,8 @@
                   @remove="removeBlockedIPs(blocked_ip)"
                   color="primary"
                   text-color="white"
-                >
-                  {{ blocked_ip }}
-                </q-chip>
-                {%endraw%}
+                  v-text="blocked_ip"
+                ></q-chip>
               </div>
               <br />
             </div>
@@ -198,7 +195,6 @@
                 ></q-btn>
               </q-input>
               <div>
-                {%raw%}
                 <q-chip
                   v-for="allowed_ip in formData.lnbits_allowed_ips"
                   :key="allowed_ip"
@@ -206,10 +202,8 @@
                   @remove="removeAllowedIPs(allowed_ip)"
                   color="primary"
                   text-color="white"
-                >
-                  {{ allowed_ip }}
-                </q-chip>
-                {%endraw%}
+                  v-text="allowed_ip"
+                ></q-chip>
               </div>
               <br />
             </div>
