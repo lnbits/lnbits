@@ -51,7 +51,7 @@ python-crontab = "3.0.0"
 # needed for liquid support boltz
 wallycore = {version = "^1.0.0", optional = true}
 # needed for breez funding source
-breez-sdk = {version = "0.2.15", optional = true}
+breez-sdk = {version = "0.3.6", optional = true}
 
 [tool.poetry.extras]
 breez = ["breez-sdk"]
