@@ -4,6 +4,7 @@ from loguru import logger
 
 from lnbits.wallets import get_wallet_class
 from lnbits.settings import settings
+from lnbits.core.models import CreateInvoice, Payment
 
 settings.blink_token = "mock"
 settings.blink_api_endpoint="https://api.blink.sv/graphql"
@@ -19,10 +20,24 @@ if use_real_api:
   }
   settings.blink_token = os.environ.get("BLINK_TOKEN")
 
+
 logger.info(f'settings.blink_api_endpoint: {settings.blink_api_endpoint}')
 logger.info(f'settings.blink_token: {settings.blink_token}')
 
 WALLET = get_wallet_class()
+
+
+@pytest.fixture(scope="session")
+def payhash():
+    # put your external payment hash here
+    payment_hash = "14d7899c3456bcd78f7f18a70d782b8eadb2de974e80dc5120e133032423dcda"
+    return payment_hash
+
+@pytest.fixture(scope="session")
+def outbound_bolt11():
+  # put your outbound bolt11 here
+  bolt11 = "lnbc1u1pjl0uhypp5yxvdqq923atm9ywkpgtu3yxv9w2n44ensrkwfyagvmzqhml2x9gqdpv2phhwetjv4jzqcneypqyc6t8dp6xu6twva2xjuzzda6qcqzzsxqrrsssp5h3qlnnlfqekquacwwj9yu7fhujyzxhzqegpxenscw45pgv6xakfq9qyyssqqjruygw0jrcg3365jksxn6yhsxx7c5pdjrjdlyvuhs7xh8r409h4e3kucc54kgh34pscaq3mg7hn55l8a0qszgzex80amwrp4gkdgqcpkse88y"
+  return bolt11
 
 @pytest.mark.asyncio
 async def test_environment_variables():
@@ -73,7 +88,35 @@ async def test_create_invoice():
    else:
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
-# @pytest.mark.asyncio
-# async def test_pay_invoice():
-#    if use_real_api:
+@pytest.mark.asyncio
+async def test_pay_invoice_self_payment():
+   if use_real_api:
+      invoice_response = await WALLET.create_invoice(amount=100,
+                                                       memo="test")
+      assert invoice_response.ok is True
+      bolt11 = invoice_response.payment_request
 
+      payment_response = await WALLET.pay_invoice(bolt11, fee_limit_msat=100)
+      assert payment_response.ok is False # can't pay self
+      assert payment_response.error_message
+
+   else:
+        assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
+
+@pytest.mark.asyncio
+async def test_outbound_invoice_payment(outbound_bolt11):
+   if use_real_api:
+      payment_response = await WALLET.pay_invoice(outbound_bolt11, fee_limit_msat=100)
+      assert payment_response.ok is True
+      assert payment_response.checking_id
+      logger.info(f'test_outbound_invoice_payment: ok: {payment_response.ok}')
+      logger.info(f'test_outbound_invoice_payment: checking_id: {payment_response.checking_id}')
+   else:
+        assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
+
+
+@pytest.mark.asyncio
+async def test_get_payment_status(payhash):
+  payment_status = await WALLET.get_payment_status(payhash)
+  assert payment_status.paid
+  logger.info(f'test_get_payment_status: payment_status: {payment_status.paid}')
