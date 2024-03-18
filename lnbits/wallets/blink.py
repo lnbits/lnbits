@@ -152,10 +152,10 @@ class BlinkWallet(Wallet):
             invoice_variables["input"]["memo"] = memo or ""
 
         data = {"query": invoice_query, "variables": invoice_variables}
-        logger.info(f"create_invoice complete data: {data}")
+        # logger.info(f"create_invoice complete data: {data}")
 
         response = await self.graphql_query(data)
-        logger.info(f"create_invoice complete response: {response}")
+        # logger.info(f"create_invoice complete response: {response}")
 
         errors = (
             response.get("data", {})
@@ -180,7 +180,7 @@ class BlinkWallet(Wallet):
             .get("paymentHash", {})
         )
 
-        logger.info(f"Created invoice: {payment_request}, checking_id: {checking_id}")
+        # logger.info(f"Created invoice: {payment_request}, checking_id: {checking_id}")
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(
@@ -208,7 +208,7 @@ class BlinkWallet(Wallet):
         }
         data = {"query": payment_query, "variables": payment_variables}
         response = await self.graphql_query(data)
-
+        logger.info(f'pay_invoice complete response: {response}')
         errors = (
             response.get("data", {}).get("lnInvoicePaymentSend", {}).get("errors", {})
         )
@@ -217,7 +217,7 @@ class BlinkWallet(Wallet):
             return PaymentResponse(False, None, None, None, error_message)
 
         checking_id = bolt11.decode(bolt11_invoice).payment_hash
-
+        logger.info(f'pay_invoice complete checking_id: {checking_id}')
         payment_status = await self.get_payment_status(checking_id)
         fee_msat = payment_status.fee_msat
         preimage = payment_status.preimage
@@ -249,14 +249,14 @@ class BlinkWallet(Wallet):
         variables = {"paymentHash": checking_id, "walletId": self.wallet_id}
         data = {"query": status_query, "variables": variables}
         response = await self.graphql_query(data)
-        logger.info(f"get_invoice_status response: {response}")
+        # logger.info(f"get_invoice_status response: {response}")
         if response.get("errors") is not None:
-            msg = response["errors"][0]["message"]
-            logger.info(msg)
+            # msg = response["errors"][0]["message"]
+            # logger.info(msg)
             return PaymentStatus(None)
         else:
             status = response["data"]["me"]["defaultAccount"]["walletById"]["invoiceByPaymentHash"]["paymentStatus"]
-            logger.info(status)
+            # logger.info(status)
             return PaymentStatus(statuses[status])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -288,9 +288,9 @@ class BlinkWallet(Wallet):
         }
         data = {"query": tx_query, "variables": variables}
 
-        logger.info(f"get_payment_status data: {data}\n\n")
+        #logger.info(f"get_payment_status data: {data}\n\n")
         response = await self.graphql_query(data)
-        logger.info(f"get_payment_status response: {response}")
+        #logger.info(f"get_payment_status response: {response}")
 
         data = (
             response.get("data")
