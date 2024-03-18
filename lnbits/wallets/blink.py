@@ -187,7 +187,7 @@ class BlinkWallet(Wallet):
         self, bolt11_invoice: str, fee_limit_msat: int
     ) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
-        # TODO: add check fee estimate is < fee_limit_msat before paying invoice
+        # Future: add check fee estimate is < fee_limit_msat before paying invoice
         payment_query = """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
             lnInvoicePaymentSend(input: $input) {
             status
@@ -219,13 +219,11 @@ class BlinkWallet(Wallet):
         checking_id = bolt11.decode(bolt11_invoice).payment_hash
 
         payment_status = await self.get_payment_status(checking_id)
-        # in above case, replace with bolt11 to check status get fee and preimage
         fee_msat = payment_status.fee_msat
         preimage = payment_status.preimage
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        # logger.info(f"inside get_invoice_status with checking_id: {checking_id}")
         status_query = """
                 query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
                 me {
@@ -250,7 +248,6 @@ class BlinkWallet(Wallet):
 
         variables = {"paymentHash": checking_id, "walletId": self.wallet_id}
         data = {"query": status_query, "variables": variables}
-        # logger.info(f"get invoice_status data: {data}")
         response = await self.graphql_query(data)
         logger.info(f"get_invoice_status response: {response}")
         if response.get("errors") is not None:
