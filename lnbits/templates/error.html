@@ -47,7 +47,8 @@
         }
       },
       created: function () {
-        if (this.err == 'Missing user ID or access token.') {
+        console.log(this.err)
+        if (this.err == 'HTTP Error 401: Missing user ID or access token.') {
           setTimeout(() => {
             window.location.href = '/'
           }, 2000)
