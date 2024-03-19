@@ -1,4 +1,5 @@
 from json.decoder import JSONDecodeError
+from urllib.parse import urlencode
 
 import pytest
 from httpx import HTTPStatusError
@@ -9,6 +10,13 @@ from lnbits.wallets.corelightningrest import CoreLightningRestWallet, settings
 
 ENDPONT = "http://127.0.0.1:8555"
 MCAROON = "eNcRyPtEdMaCaRoOn"
+
+headers = {
+    "macaroon": MCAROON,
+    "encodingtype": "hex",
+    "accept": "application/json",
+    "User-Agent": settings.user_agent,
+}
 
 
 # specify where the server should bind to
@@ -22,7 +30,9 @@ async def test_status_no_balance(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPONT
     settings.corelightning_rest_macaroon = MCAROON
 
-    httpserver.expect_request("/v1/channel/localremotebal").respond_with_json({})
+    httpserver.expect_request(
+        uri="/v1/channel/localremotebal", headers=headers, method="GET"
+    ).respond_with_json({})
 
     wallet = CoreLightningRestWallet()
 
@@ -35,12 +45,12 @@ async def test_status_no_balance(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_with_balance(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPONT
+    settings.corelightning_rest_macaroon = MCAROON
 
     resp = {"localBalance": 55}
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_json(resp)
 
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
     wallet = CoreLightningRestWallet()
 
     status = await wallet.status()
@@ -173,3 +183,51 @@ async def test_cleanup(httpserver: HTTPServer):
         await wallet.status()
 
     assert str(e_info.value) == "Cannot send a request, as the client has been closed."
+
+
+@pytest.mark.asyncio
+async def test_create_invoice(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPONT
+    settings.corelightning_rest_macaroon = MCAROON
+
+    server_resp = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96",
+        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltum"
+        + "djyukhys0z2rw6grgm8me9k4w9vn05zt"
+        + "9svzzjspp5ud2jdfpaqn5c2k2vphatsj"
+        + "ypfafyk8rcvkvwexnrhmwm94ex4jtqdq"
+        + "u24hxjapq23jhxapqf9h8vmmfvdjscqp"
+        + "jrzjqta942048v7qxh5x7pxwplhmtwfl"
+        + "0f25cq23jh87rhx7lgrwwvv86r90guqq"
+        + "nwgqqqqqqqqqqqqqqpsqyg9qxpqysgqy"
+        + "lngsyg960lltngzy90e8n22v4j2hvjs4"
+        + "l4ttuy79qqefjv8q87q9ft7uhwdjakvn"
+        + "sgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+    }
+    amount = 555
+    data = {
+        "amount": amount * 1000,
+        "description": "Test Invoice",
+        "label": "test-label",
+    }
+    print("### expect data", data)
+    httpserver.expect_request(
+        uri="/v1/invoice/genInvoice",
+        headers=headers,
+        method="POST",
+        data=urlencode(data),
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    invoice_resp = await wallet.create_invoice(
+        amount=amount, memo="Test Invoice", label="test-label"
+    )
+
+    assert invoice_resp.success is True
+    assert invoice_resp.checking_id == server_resp["payment_hash"]
+    assert invoice_resp.payment_request == server_resp["bolt11"]
+    assert invoice_resp.error_message is None
+
+    httpserver.check_assertions()
