@@ -13,18 +13,28 @@
           ></q-icon>
 
           <h5 class="q-my-none">{{ err }}</h5>
-          <h4>
-            If you believe this shouldn't be an error please bring it up on
-            https://t.me/lnbits
-          </h4>
+
           <br />
-          <q-btn
-            @click="goBack"
-            color="grey"
-            outline
-            label="Back"
-            class="full-width"
-          ></q-btn>
+          <div class="row">
+            <div class="col">
+              <q-btn
+                @click="goBack"
+                color="grey"
+                outline
+                label="Back"
+                class="full-width"
+              ></q-btn>
+            </div>
+            <div class="col">
+              <q-btn
+                @click="goHome"
+                color="grey"
+                outline
+                label="Home"
+                class="full-width"
+              ></q-btn>
+            </div>
+          </div>
         </center>
       </q-card-section>
     </q-card>
@@ -37,21 +47,14 @@
       el: '#vue',
       mixins: [windowMixin],
       data: function () {
-        return {
-          err: '{{ err }}'
-        }
+        return {}
       },
       methods: {
         goBack: function () {
           window.history.back()
-        }
-      },
-      created: function () {
-        console.log(this.err)
-        if (this.err == 'HTTP Error 401: Missing user ID or access token.') {
-          setTimeout(() => {
-            window.location.href = '/'
-          }, 2000)
+        },
+        goHome: function () {
+          window.location.href = '/'
         }
       }
     })
