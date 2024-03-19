@@ -37,11 +37,20 @@
       el: '#vue',
       mixins: [windowMixin],
       data: function () {
-        return {}
+        return {
+          err: '{{ err }}'
+        }
       },
       methods: {
         goBack: function () {
           window.history.back()
+        }
+      },
+      created: function () {
+        if (this.err == 'Missing user ID or access token.') {
+          setTimeout(() => {
+            window.location.href = '/'
+          }, 2000)
         }
       }
     })
