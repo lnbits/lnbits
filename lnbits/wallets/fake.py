@@ -107,10 +107,9 @@ class FakeWallet(Wallet):
 
         payment_request = encode(bolt11, self.privkey)
 
-        x = InvoiceResponseSuccess(
+        return InvoiceResponseSuccess(
             checking_id=payment_hash, payment_request=payment_request
         )
-        return x
 
     async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
         try:
