@@ -125,7 +125,7 @@ class CoreLightningRestWallet(Wallet):
             data=data,
         )
 
-        data = r.json()
+        data = r.json()  # todo: check error first, body might not be JSON
         if r.is_error or "error" in data:
             try:
                 error_message = data["error"]
