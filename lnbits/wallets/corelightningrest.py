@@ -190,6 +190,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or data.get("invoices") is None:
+                # todo: this should not return "pending", but "error"
                 raise Exception("error in cln response")
 
             return self.payment_status(data["invoices"][0]["status"])
