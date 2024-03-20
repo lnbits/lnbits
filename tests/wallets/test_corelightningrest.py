@@ -6,6 +6,7 @@ from httpx import HTTPStatusError
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
+from lnbits.wallets.base import Unsupported
 from lnbits.wallets.corelightningrest import CoreLightningRestWallet, settings
 
 ENDPOINT = "http://127.0.0.1:8555"
@@ -252,3 +253,62 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
         if key:
             del data[key]
         httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_create_invoice_unhashed_description(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    amount = 555
+    server_resp = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96",
+        "bolt11": bolt11_sample,
+    }
+
+    data = {
+        "amount": amount * 1000,
+        "description": "hhh",
+        "label": "test-label",
+    }
+
+    print("### respond", data)
+
+    httpserver.expect_request(
+        uri="/v1/invoice/genInvoice",
+        headers=headers,
+        method="POST",
+        data=urlencode(data),
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    with pytest.raises(Unsupported) as e_info:
+        invoice_resp = await wallet.create_invoice(
+            amount=amount,
+            memo="Test Invoice",
+            label="test-label",
+            description_hash="24d166cd6c8b826c779040b49d5b6708d649b236558e8744339dfee6afe11999".encode(),
+            unhashed_description=None,
+        )
+
+    assert e_info.match(
+        "'description_hash' unsupported by CoreLightningRest, "
+        + "provide 'unhashed_description'"
+    )
+
+    invoice_resp = await wallet.create_invoice(
+        amount=amount,
+        memo="Test Invoice",
+        label="test-label",
+        description_hash="24d166cd6c8b826c779040b49d5b6708d649b236558e8744339dfee6afe11999".encode(),
+        unhashed_description="hhh".encode(),
+    )
+
+    assert invoice_resp.success is True
+    assert invoice_resp.checking_id == server_resp["payment_hash"]
+    assert invoice_resp.payment_request == server_resp["bolt11"]
+    assert invoice_resp.error_message is None
+
+    httpserver.check_assertions()
