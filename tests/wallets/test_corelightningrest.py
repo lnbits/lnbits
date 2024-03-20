@@ -8,11 +8,11 @@ from werkzeug.wrappers import Response
 
 from lnbits.wallets.corelightningrest import CoreLightningRestWallet, settings
 
-ENDPONT = "http://127.0.0.1:8555"
-MCAROON = "eNcRyPtEdMaCaRoOn"
+ENDPOINT = "http://127.0.0.1:8555"
+MACAROON = "eNcRyPtEdMaCaRoOn"
 
 headers = {
-    "macaroon": MCAROON,
+    "macaroon": MACAROON,
     "encodingtype": "hex",
     "accept": "application/json",
     "User-Agent": settings.user_agent,
@@ -27,8 +27,8 @@ def httpserver_listen_address():
 
 @pytest.mark.asyncio
 async def test_status_no_balance(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     httpserver.expect_request(
         uri="/v1/channel/localremotebal", headers=headers, method="GET"
@@ -45,8 +45,8 @@ async def test_status_no_balance(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_with_balance(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     resp = {"localBalance": 55}
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_json(resp)
@@ -62,8 +62,8 @@ async def test_status_with_balance(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_with_error(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     resp = {"error": "test-error"}
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_json(resp)
@@ -72,7 +72,7 @@ async def test_status_with_error(httpserver: HTTPServer):
 
     status = await wallet.status()
     assert (
-        status.error_message == f"Failed to connect to {ENDPONT}, got: 'test-error...'"
+        status.error_message == f"Failed to connect to {ENDPOINT}, got: 'test-error...'"
     )
     assert status.balance_msat == 0
 
@@ -81,8 +81,8 @@ async def test_status_with_error(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_with_error_body(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_data(
         "test-text-error"
@@ -100,8 +100,8 @@ async def test_status_with_error_body(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_for_http_404(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_response(
         Response("Not Found", status=404)
@@ -119,8 +119,8 @@ async def test_status_for_http_404(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_for_server_down():
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     wallet = CoreLightningRestWallet()
 
@@ -144,7 +144,7 @@ async def test_status_for_missing_config():
         + "missing corelightning_rest_url"
     )
 
-    settings.corelightning_rest_url = ENDPONT
+    settings.corelightning_rest_url = ENDPOINT
 
     with pytest.raises(ValueError) as e_info:
         CoreLightningRestWallet()
@@ -155,16 +155,16 @@ async def test_status_for_missing_config():
         + "missing corelightning_rest_macaroon"
     )
 
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_macaroon = MACAROON
 
     wallet = CoreLightningRestWallet()
-    assert wallet.url == ENDPONT
+    assert wallet.url == ENDPOINT
 
 
 @pytest.mark.asyncio
 async def test_cleanup(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     resp = {"localBalance": 55}
     httpserver.expect_request("/v1/channel/localremotebal").respond_with_json(resp)
@@ -186,9 +186,9 @@ async def test_cleanup(httpserver: HTTPServer):
 
 
 @pytest.mark.asyncio
-async def test_create_invoice(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPONT
-    settings.corelightning_rest_macaroon = MCAROON
+async def test_create_invoice_ok(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
 
     server_resp = {
         "payment_hash": "e35526a43d04e985594c0dfab848814f"
@@ -211,7 +211,6 @@ async def test_create_invoice(httpserver: HTTPServer):
         "description": "Test Invoice",
         "label": "test-label",
     }
-    print("### expect data", data)
     httpserver.expect_request(
         uri="/v1/invoice/genInvoice",
         headers=headers,
@@ -229,5 +228,6 @@ async def test_create_invoice(httpserver: HTTPServer):
     assert invoice_resp.checking_id == server_resp["payment_hash"]
     assert invoice_resp.payment_request == server_resp["bolt11"]
     assert invoice_resp.error_message is None
+
 
     httpserver.check_assertions()
