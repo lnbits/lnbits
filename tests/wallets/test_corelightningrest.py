@@ -382,3 +382,19 @@ async def test_create_invoice_for_http_404(httpserver: HTTPServer):
     assert str(e_info.value) == "Expecting value: line 1 column 1 (char 0)"
 
     httpserver.check_assertions()
+
+
+
+@pytest.mark.asyncio
+async def test_pay_invoice_bad_bolt11(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.pay_invoice("bad_bolt11", 5)
+    assert status.ok is False
+    assert status.error_message == "Bech32 string is not valid."
+
+    httpserver.check_assertions()
+
