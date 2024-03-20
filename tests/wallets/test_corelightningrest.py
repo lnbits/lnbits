@@ -384,9 +384,8 @@ async def test_create_invoice_for_http_404(httpserver: HTTPServer):
     httpserver.check_assertions()
 
 
-
 @pytest.mark.asyncio
-async def test_pay_invoice_bad_bolt11(httpserver: HTTPServer):
+async def test_pay_invoice_validation():
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
 
@@ -396,5 +395,18 @@ async def test_pay_invoice_bad_bolt11(httpserver: HTTPServer):
     assert status.ok is False
     assert status.error_message == "Bech32 string is not valid."
 
-    httpserver.check_assertions()
+    bolt11_zero_sats = str(
+        "lnbc1pjl4cvppp5n2ekurjn0t0lfjrls"
+        + "5vtja3hl5vq0xp4eelxyrv3ej4snekcq"
+        + "9jqdqlf38xy6t5wvs9getnwssyjmnkda"
+        + "5kxegcqzzsxqyz5vqsp5pl0surycfpw9"
+        + "vmxw25fnlvsnq39ngmrg8ztsv8fu9y8c"
+        + "myq2t8vs9qyyssqfwahs65kvvmusamrg"
+        + "yh32r2zycam3sfzngjfk8g0yrk77hxdh"
+        + "wehu0l5v5a7r4mw45s3zay72tnaxvwzn"
+        + "mfrzw3pnrafmdxyqhr898sp6k5v0r"
+    )
 
+    status = await wallet.pay_invoice(bolt11_zero_sats, 5)
+    assert status.ok is False
+    assert status.error_message == "0 amount invoices are not allowed"
