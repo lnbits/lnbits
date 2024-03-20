@@ -521,8 +521,6 @@ async def test_invoice_status_ok(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
 
-
-
     server_resp = {"invoices": [{"status": "paid"}]}
 
     params = {
