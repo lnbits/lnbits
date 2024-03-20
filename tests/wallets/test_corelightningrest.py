@@ -18,6 +18,20 @@ headers = {
     "User-Agent": settings.user_agent,
 }
 
+bolt11_sample = str(
+    "lnbc210n1pjlgal5sp5xr3uwlfm7ltum"
+    + "djyukhys0z2rw6grgm8me9k4w9vn05zt"
+    + "9svzzjspp5ud2jdfpaqn5c2k2vphatsj"
+    + "ypfafyk8rcvkvwexnrhmwm94ex4jtqdq"
+    + "u24hxjapq23jhxapqf9h8vmmfvdjscqp"
+    + "jrzjqta942048v7qxh5x7pxwplhmtwfl"
+    + "0f25cq23jh87rhx7lgrwwvv86r90guqq"
+    + "nwgqqqqqqqqqqqqqqpsqyg9qxpqysgqy"
+    + "lngsyg960lltngzy90e8n22v4j2hvjs4"
+    + "l4ttuy79qqefjv8q87q9ft7uhwdjakvn"
+    + "sgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+)
+
 
 # specify where the server should bind to
 @pytest.fixture(scope="session")
@@ -190,22 +204,13 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
 
+    amount = 555
     server_resp = {
         "payment_hash": "e35526a43d04e985594c0dfab848814f"
         + "524b1c786598ec9a63beddb2d726ac96",
-        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltum"
-        + "djyukhys0z2rw6grgm8me9k4w9vn05zt"
-        + "9svzzjspp5ud2jdfpaqn5c2k2vphatsj"
-        + "ypfafyk8rcvkvwexnrhmwm94ex4jtqdq"
-        + "u24hxjapq23jhxapqf9h8vmmfvdjscqp"
-        + "jrzjqta942048v7qxh5x7pxwplhmtwfl"
-        + "0f25cq23jh87rhx7lgrwwvv86r90guqq"
-        + "nwgqqqqqqqqqqqqqqpsqyg9qxpqysgqy"
-        + "lngsyg960lltngzy90e8n22v4j2hvjs4"
-        + "l4ttuy79qqefjv8q87q9ft7uhwdjakvn"
-        + "sgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+        "bolt11": bolt11_sample,
     }
-    amount = 555
+
     data = {
         "amount": amount * 1000,
         "description": "Test Invoice",
@@ -228,6 +233,5 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
     assert invoice_resp.checking_id == server_resp["payment_hash"]
     assert invoice_resp.payment_request == server_resp["bolt11"]
     assert invoice_resp.error_message is None
-
 
     httpserver.check_assertions()
