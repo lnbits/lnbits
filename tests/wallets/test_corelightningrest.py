@@ -542,3 +542,29 @@ async def test_invoice_status_ok(httpserver: HTTPServer):
     assert status.pending is False
 
     httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_invoice_status_http_404(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri="/v1/invoice/listInvoices",
+        headers=headers,
+        query_string=params,
+        method="GET",
+    ).respond_with_response(Response("Not Found", status=404))
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.get_invoice_status(params["payment_hash"])
+    assert status.success is False
+    assert status.failed is False
+    assert status.pending is True
+
+    httpserver.check_assertions()
