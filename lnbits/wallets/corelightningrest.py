@@ -224,6 +224,7 @@ class CoreLightningRestWallet(Wallet):
             return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        # todo: this loop should be ended when cleanup() is called
         while True:
             try:
                 url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
