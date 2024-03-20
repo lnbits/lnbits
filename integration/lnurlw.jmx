@@ -28,13 +28,13 @@
             <stringProp name="Argument.value">${__property(port,,5000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="paidChargeCount" elementType="Argument">
-            <stringProp name="Argument.name">paidChargeCount</stringProp>
+          <elementProp name="paidChargeCountXXX" elementType="Argument">
+            <stringProp name="Argument.name">paidChargeCountXXX</stringProp>
             <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="userTipCount" elementType="Argument">
-            <stringProp name="Argument.name">userTipCount</stringProp>
+          <elementProp name="userTipCountXXX" elementType="Argument">
+            <stringProp name="Argument.name">userTipCountXXX</stringProp>
             <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
@@ -51,6 +51,16 @@
           <elementProp name="withdrawCountPerLnurlw" elementType="Argument">
             <stringProp name="Argument.name">withdrawCountPerLnurlw</stringProp>
             <stringProp name="Argument.value">1</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="parallelWithdrawUsers" elementType="Argument">
+            <stringProp name="Argument.name">parallelWithdrawUsers</stringProp>
+            <stringProp name="Argument.value">25</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="maxWithdrawsPerLink" elementType="Argument">
+            <stringProp name="Argument.name">maxWithdrawsPerLink</stringProp>
+            <stringProp name="Argument.value">2</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -1233,7 +1243,8 @@ vars.put(&quot;payLinkLnurl&quot;, resp.lnurl || &apos;no-pay-link-lnurl&apos;);
               <stringProp name="cacheKey">true</stringProp>
               <stringProp name="script">var receiveInkey = vars.get(&quot;receiveInkey&quot;)
 
-props.put(&quot;receiveInkey&quot;, receiveInkey)</stringProp>
+props.put(&quot;receiveInkey&quot;, receiveInkey)
+</stringProp>
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
@@ -1268,7 +1279,7 @@ props.put(&quot;receiveInkey&quot;, receiveInkey)</stringProp>
     &quot;title&quot;: &quot;withdraw ${lnurlwCounter}&quot;,&#xd;
     &quot;min_withdrawable&quot;: 10,&#xd;
     &quot;max_withdrawable&quot;:${lnurlwCounter}0,&#xd;
-    &quot;uses&quot;: 1,&#xd;
+    &quot;uses&quot;: ${maxWithdrawsPerLink},&#xd;
     &quot;wait_time&quot;: 1,&#xd;
     &quot;webhook_url&quot;: &quot;http://localhost:8081&quot;,&#xd;
     &quot;webhook_headers&quot;: &quot;{\&quot;h1\&quot;: \&quot;1\&quot;}&quot;,&#xd;
@@ -1905,7 +1916,7 @@ props.put(&quot;withdrawLinkCallback&quot;, withdrawLinkCallback)</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">20</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${parallelWithdrawUsers}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
@@ -1994,15 +2005,6 @@ props.put(&quot;withdrawLinkCallback&quot;, withdrawLinkCallback)</stringProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
           <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Check lnurl response" enabled="true">
-            <stringProp name="JSON_PATH">lnurl_response</stringProp>
-            <stringProp name="EXPECTED_VALUE">true</stringProp>
-            <boolProp name="JSONVALIDATION">true</boolProp>
-            <boolProp name="EXPECT_NULL">false</boolProp>
-            <boolProp name="INVERT">false</boolProp>
-            <boolProp name="ISREGEX">true</boolProp>
-          </JSONPathAssertion>
-          <hashTree/>
           <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract payment hash" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">paymenHash</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">payment_hash</stringProp>
@@ -2023,6 +2025,121 @@ vars.put(&quot;receiveInkey&quot;, receiveInkey)
 
 </stringProp>
           </JSR223PreProcessor>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="tearDown Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </PostThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[wallet] Get payments" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">${port}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/payments</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Referer" elementType="Header">
+                <stringProp name="Header.name">Referer</stringProp>
+                <stringProp name="Header.value">${scheme}://${host}:${port}/wallet?wal=${walletId}</stringProp>
+              </elementProp>
+              <elementProp name="Accept-Language" elementType="Header">
+                <stringProp name="Header.name">Accept-Language</stringProp>
+                <stringProp name="Header.value">en-US,en;q=0.5</stringProp>
+              </elementProp>
+              <elementProp name="X-Api-Key" elementType="Header">
+                <stringProp name="Header.name">X-Api-Key</stringProp>
+                <stringProp name="Header.value">${receiveInkey}</stringProp>
+              </elementProp>
+              <elementProp name="Accept-Encoding" elementType="Header">
+                <stringProp name="Header.name">Accept-Encoding</stringProp>
+                <stringProp name="Header.value">gzip, deflate</stringProp>
+              </elementProp>
+              <elementProp name="User-Agent" elementType="Header">
+                <stringProp name="Header.name">User-Agent</stringProp>
+                <stringProp name="Header.value">Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0) Gecko/20100101 Firefox/105.0</stringProp>
+              </elementProp>
+              <elementProp name="Accept" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">application/json, text/plain, */*</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">var receiveInkey = props.get(&quot;receiveInkey&quot;)
+
+vars.put(&quot;receiveInkey&quot;, receiveInkey)
+</stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Check Executed Withdraws" enabled="true">
+            <stringProp name="scriptLanguage">javascript</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString());
+
+var parallelWithdrawUsers = +vars.get(&quot;parallelWithdrawUsers&quot;);
+var maxWithdrawsPerLink = +vars.get(&quot;maxWithdrawsPerLink&quot;);
+
+if (resp.length !== parallelWithdrawUsers) {
+  AssertionResult.setFailureMessage(
+    &quot;Expected &quot; +
+      parallelWithdrawUsers +
+      &quot; parallel withdraw attempts, but got &quot; +
+      resp.length
+  );
+  AssertionResult.setFailure(true);
+} else {
+  var withdrawOkCount = 0;
+
+  for (var i = 0; i &lt; resp.length; i++) {
+    if (resp[i].pending === false) {
+      withdrawOkCount++;
+    }
+  }
+
+  if (withdrawOkCount !== maxWithdrawsPerLink) {
+    AssertionResult.setFailureMessage(
+      &quot;Expected &quot; +
+        maxWithdrawsPerLink +
+        &quot; successfull wihdraws, but got &quot; +
+        withdrawOkCount
+    );
+    AssertionResult.setFailure(true);
+  }
+}
+</stringProp>
+          </JSR223Assertion>
           <hashTree/>
         </hashTree>
       </hashTree>
