@@ -239,6 +239,8 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
             amount=amount,
             memo="Test Invoice",
             label="test-label",
+            description_hash=None,
+            unhashed_description=None,
             **extra_server_resquest,
         )
 
