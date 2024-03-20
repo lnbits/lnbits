@@ -410,3 +410,44 @@ async def test_pay_invoice_validation():
     status = await wallet.pay_invoice(bolt11_zero_sats, 5)
     assert status.ok is False
     assert status.error_message == "0 amount invoices are not allowed"
+
+
+@pytest.mark.asyncio
+async def test_pay_invoice_ok(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    fee_limit_msat = 25_000
+    server_resp = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96",
+        "payment_preimage": "00000000000000000000000000000000",
+        "msatoshi": 21_000,
+        "msatoshi_sent": 21_050,
+        "status": "paid",
+    }
+
+    data = {
+        "invoice": bolt11_sample,
+        "maxfeepercent": f"{(fee_limit_msat / 21_000 * 100):.11}",
+        "exemptfee": 0,
+    }
+
+    httpserver.expect_request(
+        uri="/v1/pay",
+        headers=headers,
+        method="POST",
+        data=urlencode(data),
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    invoice_resp = await wallet.pay_invoice(bolt11_sample, fee_limit_msat)
+
+    assert invoice_resp.success is True
+    assert invoice_resp.checking_id == server_resp["payment_hash"]
+    assert invoice_resp.fee_msat == 50
+    assert invoice_resp.preimage == "00000000000000000000000000000000"
+    assert invoice_resp.error_message is None
+
+    httpserver.check_assertions()
