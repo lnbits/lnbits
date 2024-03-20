@@ -216,22 +216,37 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
         "description": "Test Invoice",
         "label": "test-label",
     }
-    httpserver.expect_request(
-        uri="/v1/invoice/genInvoice",
-        headers=headers,
-        method="POST",
-        data=urlencode(data),
-    ).respond_with_json(server_resp)
 
-    wallet = CoreLightningRestWallet()
+    extra_data = {None: None, "expiry": 123, "preimage": "xxx"}
 
-    invoice_resp = await wallet.create_invoice(
-        amount=amount, memo="Test Invoice", label="test-label"
-    )
+    for key in extra_data:
+        extra_server_resquest = {}
+        if key:
+            data[key] = extra_data[key]
+            extra_server_resquest[key] = extra_data[key]
 
-    assert invoice_resp.success is True
-    assert invoice_resp.checking_id == server_resp["payment_hash"]
-    assert invoice_resp.payment_request == server_resp["bolt11"]
-    assert invoice_resp.error_message is None
+        httpserver.clear_all_handlers()
+        httpserver.expect_request(
+            uri="/v1/invoice/genInvoice",
+            headers=headers,
+            method="POST",
+            data=urlencode(data),
+        ).respond_with_json(server_resp)
 
-    httpserver.check_assertions()
+        wallet = CoreLightningRestWallet()
+
+        invoice_resp = await wallet.create_invoice(
+            amount=amount,
+            memo="Test Invoice",
+            label="test-label",
+            **extra_server_resquest,
+        )
+
+        assert invoice_resp.success is True
+        assert invoice_resp.checking_id == server_resp["payment_hash"]
+        assert invoice_resp.payment_request == server_resp["bolt11"]
+        assert invoice_resp.error_message is None
+
+        if key:
+            del data[key]
+        httpserver.check_assertions()
