@@ -161,6 +161,7 @@ class CoreLightningRestWallet(Wallet):
             timeout=None,
         )
 
+        # todo: fix inconsistency with create_invoice()
         if r.is_error or "error" in r.json():
             try:
                 data = r.json()
