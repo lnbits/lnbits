@@ -95,7 +95,7 @@ async def test_status_with_error(httpserver: HTTPServer):
 
 
 @pytest.mark.asyncio
-async def test_status_with_error_body(httpserver: HTTPServer):
+async def test_status_with_bad_json(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
 
@@ -105,6 +105,7 @@ async def test_status_with_error_body(httpserver: HTTPServer):
 
     wallet = CoreLightningRestWallet()
 
+    # todo: inconsistent
     with pytest.raises(JSONDecodeError) as e_info:
         await wallet.status()
 

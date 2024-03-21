@@ -1,3 +1,4 @@
+
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -70,5 +71,28 @@ async def test_status_ok(httpserver: HTTPServer):
     status = await wallet.status()
     assert status.balance_msat == 21_000
     assert status.error_message is None
+
+    httpserver.check_assertions()
+
+
+# @pytest.mark.asyncio
+# async def test_status_with_error(httpserver: HTTPServer):
+# todo: unify
+
+
+@pytest.mark.asyncio
+async def test_status_with_bad_json(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    httpserver.expect_request(
+        uri="/v1/balance/channels", headers=headers, method="GET"
+    ).respond_with_data("test-text-error")
+
+    wallet = LndRestWallet()
+
+    status = await wallet.status()
+    assert status.balance_msat == 0
+    assert status.error_message == "test-text-error"
 
     httpserver.check_assertions()
