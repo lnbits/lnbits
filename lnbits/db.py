@@ -254,7 +254,9 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+        self.engine = create_engine(
+            database_uri, strategy=ASYNCIO_STRATEGY, echo=settings.debug_database
+        )
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")

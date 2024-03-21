@@ -358,6 +358,7 @@ class UpdateSettings(EditableSettings):
 
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
+    debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
