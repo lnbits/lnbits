@@ -1,3 +1,5 @@
+from json import JSONDecodeError
+
 import pytest
 from httpx import HTTPStatusError
 from pytest_httpserver import HTTPServer
@@ -267,5 +269,40 @@ async def test_create_invoice_error(httpserver: HTTPServer):
     assert invoice_resp.checking_id is None
     assert invoice_resp.payment_request is None
     assert invoice_resp.error_message == "Test Error"
+
+    httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_create_invoice_for_http_404(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    amount = 555
+
+    data = {
+        "amount": amount * 1000,
+        "description": "Test Invoice",
+        "label": "test-label",
+    }
+
+    data = {"value": amount, "memo": "Test Invoice", "private": True}
+
+    httpserver.expect_request(
+        uri="/v1/invoices", headers=headers, method="POST", json=data
+    ).respond_with_response(Response("Not Found", status=404))
+
+    wallet = LndRestWallet()
+
+    with pytest.raises(JSONDecodeError) as e_info:
+        await wallet.create_invoice(
+            amount=amount,
+            memo="Test Invoice",
+            label="test-label",
+        )
+
+    # todo: fix class, it should not throw on 404
+    assert str(e_info.value) == "Expecting value: line 1 column 1 (char 0)"
 
     httpserver.check_assertions()
