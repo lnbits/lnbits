@@ -158,6 +158,9 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:
+            print(
+                "### POST json", {"payment_request": bolt11, "fee_limit": lnrpcFeeLimit}
+            )
             r = await self.client.post(
                 url="/v1/channels/transactions",
                 json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
