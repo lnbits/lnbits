@@ -1,4 +1,3 @@
-
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -41,10 +40,9 @@ async def test_status_no_balance(httpserver: HTTPServer):
     settings.lnd_rest_macaroon = MACAROON
     settings.lnd_rest_cert = ""
 
-    server_response = {}
     httpserver.expect_request(
         uri="/v1/balance/channels", headers=headers, method="GET"
-    ).respond_with_json(server_response)
+    ).respond_with_json({})
 
     wallet = LndRestWallet()
 
