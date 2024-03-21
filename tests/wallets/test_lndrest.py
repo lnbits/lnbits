@@ -1,4 +1,3 @@
-
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -33,6 +32,26 @@ bolt11_sample = str(
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
     return ("127.0.0.1", 8555)
+
+
+@pytest.mark.asyncio
+async def test_status_no_balance(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    server_response = {}
+    httpserver.expect_request(
+        uri="/v1/balance/channels", headers=headers, method="GET"
+    ).respond_with_json(server_response)
+
+    wallet = LndRestWallet()
+
+    status = await wallet.status()
+    assert status.balance_msat == 0
+    assert status.error_message == "{}"
+
+    httpserver.check_assertions()
 
 
 @pytest.mark.asyncio
