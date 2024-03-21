@@ -285,17 +285,6 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
         ext.nofiy_upgrade()
 
 
-def register_routes(app: FastAPI) -> None:
-    """Register FastAPI routes / LNbits extensions."""
-    init_core_routers(app)
-
-    for ext in get_valid_extensions(False):
-        try:
-            register_ext_routes(app, ext)
-        except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
-
-
 def register_custom_extensions_path():
     if settings.has_default_extension_path:
         return
@@ -396,11 +385,16 @@ def register_startup(app: FastAPI):
             # initialize funding source
             await check_funding_source()
 
-            # check extensions after restart
-            await check_installed_extensions(app)
+            init_core_routers(app)
 
-            # register core and extension routes
-            register_routes(app)
+            # check extensions after restart
+            if not settings.lnbits_extensions_deactivate_all:
+                await check_installed_extensions(app)
+                for ext in get_valid_extensions(False):
+                    try:
+                        register_ext_routes(app, ext)
+                    except Exception as e:
+                        logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()

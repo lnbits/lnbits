@@ -62,6 +62,21 @@
           <p>Miscellaneous</p>
           <q-item tag="label" v-ripple>
             <q-item-section>
+              <q-item-label>Disable Extensions</q-item-label>
+              <q-item-label caption>Disables all extensions</q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_extensions_deactivate_all"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
               <q-item-label>Hide API</q-item-label>
               <q-item-label caption
                 >Hides wallet api, extensions can choose to honor</q-item-label
