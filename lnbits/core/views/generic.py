@@ -21,7 +21,7 @@ from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
-from ...utils.exchange_rates import currencies
+from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
     create_wallet,
@@ -216,6 +216,7 @@ async def wallet(
             "request": request,
             "user": user.dict(),
             "wallet": user_wallet.dict(),
+            "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",

@@ -126,6 +126,7 @@ new Vue({
           camera: 'auto'
         }
       },
+      initial_fetch: true,
       payments: [],
       paymentsTable: {
         columns: [
@@ -819,7 +820,12 @@ new Vue({
   },
   watch: {
     payments: function () {
-      this.fetchBalance()
+      if (this.initial_fetch === false) {
+        this.fetchBalance()
+      } else {
+        this.initial_fetch = false
+        this.balance = Math.floor(window.wallet.balance_msat / 1000)
+      }
     },
     'paymentsChart.group': function () {
       this.showChart()
@@ -840,15 +846,7 @@ new Vue({
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
-
-    LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(response => {
-        this.receive.units = ['sat', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
+    this.receive.units = ['sat', ...window.currencies]
   },
   mounted: function () {
     // show disclaimer
