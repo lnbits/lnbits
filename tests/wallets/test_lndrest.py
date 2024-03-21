@@ -171,8 +171,9 @@ async def test_cleanup(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_create_invoice_ok(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
 
     amount = 555
     server_resp = {
@@ -211,7 +212,6 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
             **extra_server_resquest,
         )
 
-        print("### invoice_resp", invoice_resp)
         assert invoice_resp.success is True
         assert (
             invoice_resp.checking_id
@@ -225,3 +225,47 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
         if key:
             del data[key]
         httpserver.check_assertions()
+
+
+# todo
+# @pytest.mark.asyncio
+# async def test_create_invoice_unhashed_description(httpserver: HTTPServer):
+#     settings.lnd_rest_endpoint = ENDPOINT
+#     settings.lnd_rest_macaroon = MACAROON
+#     settings.lnd_rest_cert = ""
+
+
+@pytest.mark.asyncio
+async def test_create_invoice_error(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    amount = 555
+    server_resp = {"error": "Test Error"}
+
+    data = {"value": amount, "memo": "Test Invoice", "private": True}
+
+    httpserver.expect_request(
+        uri="/v1/invoices",
+        headers=headers,
+        method="POST",
+        json=data,
+    ).respond_with_json(
+        server_resp, 400
+    )  # todo: extra HTTP status
+
+    wallet = LndRestWallet()
+
+    invoice_resp = await wallet.create_invoice(
+        amount=amount,
+        memo="Test Invoice",
+        label="test-label",
+    )
+
+    assert invoice_resp.success is False
+    assert invoice_resp.checking_id is None
+    assert invoice_resp.payment_request is None
+    assert invoice_resp.error_message == "Test Error"
+
+    httpserver.check_assertions()
