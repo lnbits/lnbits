@@ -167,3 +167,61 @@ async def test_cleanup(httpserver: HTTPServer):
         await wallet.status()
 
     assert str(e_info.value) == "Cannot send a request, as the client has been closed."
+
+
+@pytest.mark.asyncio
+async def test_create_invoice_ok(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    amount = 555
+    server_resp = {
+        "r_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96",
+        "payment_request": bolt11_sample,
+    }
+
+    # todo: data is different
+    data = {"value": amount, "memo": "Test Invoice", "private": True}
+
+    extra_data = {None: None, "expiry": 123}
+
+    for key in extra_data:
+        extra_server_resquest = {}
+        if key:
+            data[key] = extra_data[key]
+            extra_server_resquest[key] = extra_data[key]
+
+        httpserver.clear_all_handlers()
+        httpserver.expect_request(
+            uri="/v1/invoices",
+            headers=headers,
+            method="POST",
+            json=data,  # todo: different
+        ).respond_with_json(server_resp)
+
+        wallet = LndRestWallet()
+
+        invoice_resp = await wallet.create_invoice(
+            amount=amount,
+            memo="Test Invoice",
+            label="test-label",
+            description_hash=None,
+            unhashed_description=None,
+            **extra_server_resquest,
+        )
+
+        print("### invoice_resp", invoice_resp)
+        assert invoice_resp.success is True
+        assert (
+            invoice_resp.checking_id
+            == "7b7e79dba6b8dddd387bdf39e7de1cd1"
+            + "d7da6fce3cf35e1fe76e1bd5cefceb9f"
+            + "7c79cf5aeb76de75d6f677bdba69cf7a"
+        )  # todo: different
+        assert invoice_resp.payment_request == server_resp["payment_request"]
+        assert invoice_resp.error_message is None
+
+        if key:
+            del data[key]
+        httpserver.check_assertions()
