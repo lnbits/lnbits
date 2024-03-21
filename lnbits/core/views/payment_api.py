@@ -26,11 +26,11 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
     DecodePayment,
+    KeyType,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
     Wallet,
-    WalletType,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -252,7 +252,7 @@ async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     invoice_data: CreateInvoice = Body(...),
 ):
-    if invoice_data.out is True and wallet.wallet_type == WalletType.admin:
+    if invoice_data.out is True and wallet.key_type == KeyType.admin:
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
