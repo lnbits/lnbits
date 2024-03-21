@@ -107,13 +107,14 @@ class LndRestWallet(Wallet):
             return StatusResponse(f"Unable to connect to {self.endpoint}. {exc}", 0)
 
         try:
-            data = r.json()
             if r.is_error:
                 raise Exception
+            data = r.json()
+            balance_msat = int(data["balance"]) * 1000
         except Exception:
             return StatusResponse(r.text[:200], 0)
 
-        return StatusResponse(None, int(data["balance"]) * 1000)
+        return StatusResponse(None, balance_msat)
 
     async def create_invoice(
         self,
