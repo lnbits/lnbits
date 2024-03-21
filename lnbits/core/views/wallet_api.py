@@ -8,8 +8,8 @@ from fastapi import (
 
 from lnbits.core.models import (
     CreateWallet,
+    KeyType,
     Wallet,
-    WalletType,
 )
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -28,7 +28,7 @@ wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 
 @wallet_router.get("")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet_type == WalletType.admin:
+    if wallet.key_type == KeyType.admin:
         return {
             "id": wallet.wallet.id,
             "name": wallet.wallet.name,

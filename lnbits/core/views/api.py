@@ -25,8 +25,8 @@ from lnbits.core.models import (
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
-    get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
@@ -75,7 +75,9 @@ async def api_create_account(data: CreateWallet) -> Wallet:
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurlscan(
+    code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
+):
     try:
         url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
