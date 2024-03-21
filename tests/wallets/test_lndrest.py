@@ -1,5 +1,7 @@
 import pytest
+from httpx import HTTPStatusError
 from pytest_httpserver import HTTPServer
+from werkzeug.wrappers import Response
 
 from lnbits.wallets.corelightningrest import settings
 from lnbits.wallets.lndrest import LndRestWallet
@@ -54,7 +56,7 @@ async def test_status_no_balance(httpserver: HTTPServer):
 
 
 @pytest.mark.asyncio
-async def test_status_ok(httpserver: HTTPServer):
+async def test_status_with_balance(httpserver: HTTPServer):
     settings.lnd_rest_endpoint = ENDPOINT
     settings.lnd_rest_macaroon = MACAROON
     settings.lnd_rest_cert = ""
@@ -80,8 +82,9 @@ async def test_status_ok(httpserver: HTTPServer):
 
 @pytest.mark.asyncio
 async def test_status_with_bad_json(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
 
     httpserver.expect_request(
         uri="/v1/balance/channels", headers=headers, method="GET"
@@ -94,3 +97,73 @@ async def test_status_with_bad_json(httpserver: HTTPServer):
     assert status.error_message == "test-text-error"
 
     httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_status_for_http_404(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    httpserver.expect_request(
+        uri="/v1/balance/channels", headers=headers, method="GET"
+    ).respond_with_response(Response("Not Found", status=404))
+
+    wallet = LndRestWallet()
+
+    with pytest.raises(HTTPStatusError) as e_info:
+        await wallet.status()
+
+    assert e_info.match("Client error '404 NOT FOUND'")
+
+    httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_status_for_server_down():
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    wallet = LndRestWallet()
+
+    with pytest.raises(HTTPStatusError) as e_info:
+        await wallet.status()
+
+    assert e_info.match("Server error '500 INTERNAL SERVER ERROR'")
+
+
+@pytest.mark.asyncio
+async def test_status_for_missing_config():
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    # todo
+
+
+@pytest.mark.asyncio
+async def test_cleanup(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    server_response = {"balance": 21}
+    httpserver.expect_request(
+        uri="/v1/balance/channels", headers=headers, method="GET"
+    ).respond_with_json(server_response)
+
+    wallet = LndRestWallet()
+
+    status = await wallet.status()
+    assert status.error_message is None
+    assert status.balance_msat == 21_000
+
+    # all calls should fail after this method is called
+    await wallet.cleanup()
+
+    with pytest.raises(RuntimeError) as e_info:
+        # expected to fail
+        await wallet.status()
+
+    assert str(e_info.value) == "Cannot send a request, as the client has been closed."
