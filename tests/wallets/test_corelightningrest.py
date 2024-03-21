@@ -421,7 +421,8 @@ async def test_pay_invoice_ok(httpserver: HTTPServer):
     server_resp = {
         "payment_hash": "e35526a43d04e985594c0dfab848814f"
         + "524b1c786598ec9a63beddb2d726ac96",
-        "payment_preimage": "00000000000000000000000000000000",
+        "payment_preimage": "00000000000000000000000000000000"
+        + "00000000000000000000000000000000",
         "msatoshi": 21_000,
         "msatoshi_sent": 21_050,
         "status": "paid",
@@ -447,7 +448,10 @@ async def test_pay_invoice_ok(httpserver: HTTPServer):
     assert invoice_resp.success is True
     assert invoice_resp.checking_id == server_resp["payment_hash"]
     assert invoice_resp.fee_msat == 50
-    assert invoice_resp.preimage == "00000000000000000000000000000000"
+    assert (
+        invoice_resp.preimage
+        == "00000000000000000000000000000000" + "00000000000000000000000000000000"
+    )
     assert invoice_resp.error_message is None
 
     httpserver.check_assertions()
@@ -622,5 +626,102 @@ async def test_invoice_status_http_404(httpserver: HTTPServer):
     assert status.success is False
     assert status.failed is False
     assert status.pending is True
+
+    httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_payment_status_suscess(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    server_resp = {
+        "pays": [
+            {
+                "status": "complete",
+                "amount_sent_msat": "5000msat",
+                "amount_msat": "21000msat",
+                "payment_preimage": "00000000000000000000000000000000"
+                + "00000000000000000000000000000000",
+            }
+        ]
+    }
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri="/v1/pay/listPays",
+        headers=headers,
+        query_string=params,
+        method="GET",
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.get_payment_status(params["payment_hash"])
+
+    assert status.success is False
+    assert status.failed is False
+    assert status.pending is True
+
+    httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_payment_status_pending(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    server_resp = {"pays": [{"status": "pending"}]}
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri="/v1/pay/listPays",
+        headers=headers,
+        query_string=params,
+        method="GET",
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.get_payment_status(params["payment_hash"])
+
+    assert status.success is False
+    assert status.failed is False
+    assert status.pending is True
+
+    httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_payment_status_failed(httpserver: HTTPServer):
+    settings.corelightning_rest_url = ENDPOINT
+    settings.corelightning_rest_macaroon = MACAROON
+
+    server_resp = {"pays": [{"status": "failed"}]}
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri="/v1/pay/listPays",
+        headers=headers,
+        query_string=params,
+        method="GET",
+    ).respond_with_json(server_resp)
+
+    wallet = CoreLightningRestWallet()
+
+    status = await wallet.get_payment_status(params["payment_hash"])
+
+    assert status.success is False
+    assert status.failed is True
+    assert status.pending is False
 
     httpserver.check_assertions()
