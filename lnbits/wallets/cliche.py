@@ -10,9 +10,14 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -26,6 +31,14 @@ class ClicheWallet(Wallet):
             raise ValueError("cannot initialize ClicheWallet: missing cliche_endpoint")
 
         self.endpoint = self.normalize_endpoint(settings.cliche_endpoint)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["complete"],
+            failed=["failed"],
+            pending=["pending"],
+        )
 
     async def status(self) -> StatusResponse:
         try:
@@ -73,25 +86,20 @@ class ClicheWallet(Wallet):
             ws = create_connection(self.endpoint)
             ws.send(f"create-invoice --msatoshi {amount*1000} --description {memo}")
             r = ws.recv()
+
         data = json.loads(r)
-        checking_id = None
-        payment_request = None
-        error_message = None
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            error_message = data["error"]["message"]
-            return InvoiceResponse(False, checking_id, payment_request, error_message)
+            return InvoiceResponseFailed(error_message=data["error"]["message"])
 
-        if data.get("result") is not None:
-            checking_id, payment_request = (
-                data["result"]["payment_hash"],
-                data["result"]["invoice"],
-            )
-        else:
-            return InvoiceResponse(False, None, None, "Could not get payment hash")
+        if data.get("result") is None:
+            return InvoiceResponseFailed(error_message="Could not get payment hash")
 
-        return InvoiceResponse(True, checking_id, payment_request, error_message)
+        return InvoiceResponseSuccess(
+            checking_id=data["result"]["payment_hash"],
+            payment_request=data["result"]["invoice"],
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         ws = create_connection(self.endpoint)
@@ -116,7 +124,7 @@ class ClicheWallet(Wallet):
 
             if data.get("error") is not None:
                 error_message = data["error"].get("message")
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponseFailed(error_message=error_message)
 
             if data.get("method") == "payment_succeeded":
                 payment_ok = True
@@ -126,9 +134,9 @@ class ClicheWallet(Wallet):
                 continue
 
             if data.get("result") is None:
-                return PaymentResponse(None)
+                return PaymentResponsePending()
 
-        return PaymentResponse(
+        return self.payment_response(
             payment_ok, checking_id, fee_msat, preimage, error_message
         )
 
@@ -140,10 +148,9 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
-        statuses = {"pending": None, "complete": True, "failed": False}
-        return PaymentStatus(statuses[data["result"]["status"]])
+        return self.payment_status(data["result"]["status"])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
@@ -153,13 +160,10 @@ class ClicheWallet(Wallet):
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         payment = data["result"]
-        statuses = {"pending": None, "complete": True, "failed": False}
-        return PaymentStatus(
-            statuses[payment["status"]],
-            payment.get("fee_msatoshi"),
-            payment.get("preimage"),
+        return self.payment_status(
+            payment["status"], payment.get("fee_msatoshi"), payment.get("preimage")
         )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

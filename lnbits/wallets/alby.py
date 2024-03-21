@@ -9,9 +9,14 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -32,6 +37,14 @@ class AlbyWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["SETTLED"],
+            failed=[],
+            pending=["CREATED"],
+        )
 
     async def cleanup(self):
         try:
@@ -78,13 +91,12 @@ class AlbyWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=r.json()["message"])
 
         data = r.json()
-        checking_id = data["payment_hash"]
-        payment_request = data["payment_request"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponseSuccess(
+            checking_id=data["payment_hash"], payment_request=data["payment_request"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.getalby.com/payments/bolt11
@@ -96,14 +108,14 @@ class AlbyWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
         checking_id = data["payment_hash"]
         fee_msat = -data["fee"]
         preimage = data["payment_preimage"]
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
@@ -112,15 +124,11 @@ class AlbyWallet(Wallet):
         r = await self.client.get(f"/invoices/{checking_id}")
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         data = r.json()
 
-        statuses = {
-            "CREATED": None,
-            "SETTLED": True,
-        }
-        return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
+        return self.payment_status(data.get("state"))
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

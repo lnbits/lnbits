@@ -11,11 +11,17 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
-    PaymentSuccessStatus,
+    PaymentStatusFailed,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -42,6 +48,10 @@ class SparkWallet(Wallet):
 
         headers = {"X-Access": self.token, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=url, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap([], [], [])
 
     async def cleanup(self):
         try:
@@ -138,11 +148,12 @@ class SparkWallet(Wallet):
                     exposeprivatechannels=True,
                     expiry=kwargs.get("expiry"),
                 )
-            ok, payment_request, error_message = True, r["bolt11"], ""
-        except (SparkError, UnknownError) as e:
-            ok, payment_request, error_message = False, None, str(e)
 
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+            return InvoiceResponseSuccess(
+                checking_id=checking_id, payment_request=r["bolt11"]
+            )
+        except (SparkError, UnknownError) as e:
+            return InvoiceResponseFailed(error_message=str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
@@ -152,17 +163,19 @@ class SparkWallet(Wallet):
             )
             fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
             preimage = r["payment_preimage"]
-            return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
+            return PaymentResponseSuccess(
+                checking_id=r["payment_hash"], fee_msat=fee_msat, preimage=preimage
+            )
 
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if not listpays:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             pays = listpays["pays"]
 
             if len(pays) == 0:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             pay = pays[0]
             payment_hash = pay["payment_hash"]
@@ -174,10 +187,10 @@ class SparkWallet(Wallet):
                 )
 
             if pay["status"] == "failed":
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
             if pay["status"] == "pending":
-                return PaymentResponse(None, payment_hash, None, None, None)
+                return PaymentResponsePending(checking_id=payment_hash)
 
             if pay["status"] == "complete":
                 r = pay
@@ -189,43 +202,43 @@ class SparkWallet(Wallet):
                 # this is good
                 fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
                 preimage = r["payment_preimage"]
-                return PaymentResponse(
-                    True, r["payment_hash"], fee_msat, preimage, None
+                return PaymentResponseSuccess(
+                    checking_id=r["payment_hash"], fee_msat=fee_msat, preimage=preimage
                 )
             else:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponseFailed(error_message=str(exc))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.listinvoices(label=checking_id)
         except (SparkError, UnknownError):
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         if not r or not r.get("invoices"):
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         if r["invoices"][0]["status"] == "paid":
-            return PaymentSuccessStatus()
+            return PaymentStatusSuccess()
         else:
-            return PaymentFailedStatus()
+            return PaymentStatusFailed()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex
         if len(checking_id) != 64:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         try:
             int(checking_id, 16)
         except ValueError:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         # ask sparko
         try:
             r = await self.listpays(payment_hash=checking_id)
         except (SparkError, UnknownError):
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         if not r["pays"]:
-            return PaymentFailedStatus()
+            return PaymentStatusFailed()
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
@@ -233,12 +246,12 @@ class SparkWallet(Wallet):
                     int(r["pays"][0]["amount_sent_msat"][0:-4])
                     - int(r["pays"][0]["amount_msat"][0:-4])
                 )
-                return PaymentSuccessStatus(
+                return PaymentStatusSuccess(
                     fee_msat=fee_msat, preimage=r["pays"][0]["preimage"]
                 )
             if status == "failed":
-                return PaymentFailedStatus()
-            return PaymentPendingStatus()
+                return PaymentStatusFailed()
+            return PaymentStatusPending()
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

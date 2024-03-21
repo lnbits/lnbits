@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    Coroutine,
+    List,
+    NamedTuple,
+    Optional,
+    Type,
+)
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -13,10 +21,30 @@ class StatusResponse(NamedTuple):
 
 
 class InvoiceResponse(NamedTuple):
-    ok: bool
+    ok: Optional[bool] = None
     checking_id: Optional[str] = None  # payment_hash, rpc_id
     payment_request: Optional[str] = None
     error_message: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
+
+class InvoiceResponseSuccess(InvoiceResponse):
+    ok = True
+
+
+class InvoiceResponseFailed(InvoiceResponse):
+    ok = False
 
 
 class PaymentResponse(NamedTuple):
@@ -27,11 +55,39 @@ class PaymentResponse(NamedTuple):
     preimage: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
+
+class PaymentResponseSuccess(PaymentResponse):
+    ok = True
+
+
+class PaymentResponseFailed(PaymentResponse):
+    ok = False
+
+
+class PaymentResponsePending(PaymentResponse):
+    ok = None
+
 
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
     fee_msat: Optional[int] = None
     preimage: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
 
     @property
     def pending(self) -> bool:
@@ -52,16 +108,27 @@ class PaymentStatus(NamedTuple):
             return "unknown (should never happen)"
 
 
-class PaymentSuccessStatus(PaymentStatus):
+class PaymentStatusSuccess(PaymentStatus):
     paid = True
 
 
-class PaymentFailedStatus(PaymentStatus):
+class PaymentStatusFailed(PaymentStatus):
     paid = False
 
 
-class PaymentPendingStatus(PaymentStatus):
+class PaymentStatusPending(PaymentStatus):
     paid = None
+
+
+class PaymentStatusMap(NamedTuple):
+    """
+    LNbits has 3 possible statuses for a payment.
+    This class maps these 3 statuses to a particular funding source statuses.
+    """
+
+    success: List[str | int | bool | None]
+    failed: List[str | int | bool | None]
+    pending: List[str | int | bool | None]
 
 
 class Wallet(ABC):
@@ -69,6 +136,15 @@ class Wallet(ABC):
         pass
 
     __node_cls__: Optional[Type[Node]] = None
+
+    @property
+    @abstractmethod
+    def payment_status_map(self) -> PaymentStatusMap:
+        """
+        Each funding source returns its own custom payment status values.
+        This method maps the custom statuses to a common format.
+        """
+        pass
 
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
@@ -106,6 +182,55 @@ class Wallet(ABC):
     @abstractmethod
     def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         pass
+
+    def payment_status(
+        self,
+        status: Optional[int] = None,
+        fee_msat: Optional[int] = None,
+        preimage: Optional[str] = None,
+    ) -> PaymentStatus:
+        status_map = self.payment_status_map
+        if status in status_map.success:
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=preimage)
+        if status in status_map.failed:
+            return PaymentStatusFailed(fee_msat=fee_msat, preimage=preimage)
+        if status in status_map.pending:
+            return PaymentStatusPending(fee_msat=fee_msat, preimage=preimage)
+
+        return PaymentStatusPending()
+
+    def payment_response(
+        self,
+        ok: Optional[bool] = None,
+        checking_id: Optional[str] = None,  # payment_hash, rcp_id
+        fee_msat: Optional[int] = None,
+        preimage: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> PaymentResponse:
+        status_map = self.payment_status_map
+        if ok in status_map.success:
+            return PaymentResponseSuccess(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+        if ok in status_map.failed:
+            return PaymentResponseFailed(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+        if ok in status_map.pending:
+            return PaymentResponsePending(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=error_message,
+            )
+
+        return PaymentResponsePending()
 
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint

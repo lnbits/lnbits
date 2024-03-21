@@ -4,19 +4,25 @@ from loguru import logger
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
 
 
 class VoidWallet(Wallet):
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap([], [], [])
+
     async def create_invoice(self, *_, **__) -> InvoiceResponse:
-        return InvoiceResponse(
-            ok=False, error_message="VoidWallet cannot create invoices."
-        )
+        return InvoiceResponseFailed(error_message="VoidWallet cannot create invoices.")
 
     async def status(self) -> StatusResponse:
         logger.warning(
@@ -27,15 +33,13 @@ class VoidWallet(Wallet):
         return StatusResponse(None, 0)
 
     async def pay_invoice(self, *_, **__) -> PaymentResponse:
-        return PaymentResponse(
-            ok=False, error_message="VoidWallet cannot pay invoices."
-        )
+        return PaymentResponseFailed(error_message="VoidWallet cannot pay invoices.")
 
     async def get_invoice_status(self, *_, **__) -> PaymentStatus:
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def get_payment_status(self, *_, **__) -> PaymentStatus:
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         yield ""

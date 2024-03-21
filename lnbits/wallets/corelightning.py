@@ -12,11 +12,16 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
-    PaymentSuccessStatus,
+    PaymentStatusFailed,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -50,6 +55,14 @@ class CoreLightningWallet(Wallet):
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["paid"],
+            failed=["expired"],
+            pending=["unpaid"],
+        )
 
     async def status(self) -> StatusResponse:
         try:
@@ -95,29 +108,32 @@ class CoreLightningWallet(Wallet):
             if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
-            return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
+            return InvoiceResponseSuccess(
+                checking_id=r["payment_hash"], payment_request=r["bolt11"]
+            )
         except RpcError as exc:
             error_message = (
                 f"CoreLightning method '{exc.method}' failed with"
                 f" '{exc.error.get('message') or exc.error}'."  # type: ignore
             )
-            return InvoiceResponse(False, None, None, error_message)
+
+            return InvoiceResponseFailed(error_message=error_message)
         except Exception as e:
-            return InvoiceResponse(False, None, None, str(e))
+            return InvoiceResponseFailed(error_message=str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             invoice = bolt11_decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         previous_payment = await self.get_payment_status(invoice.payment_hash)
         if previous_payment.paid:
-            return PaymentResponse(False, None, None, None, "invoice already paid")
+            return PaymentResponseFailed(error_message="invoice already paid")
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
-            return PaymentResponse(
-                False, None, None, None, "CLN 0 amount invoice not supported"
+            return PaymentResponseFailed(
+                error_message="CLN 0 amount invoice not supported"
             )
 
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
@@ -141,44 +157,40 @@ class CoreLightningWallet(Wallet):
                     f"CoreLightning method '{exc.method}' failed with"
                     f" '{exc.error.get('message') or exc.error}'."  # type: ignore
                 )
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
-        fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
-        return PaymentResponse(
-            True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+        return PaymentResponseSuccess(
+            checking_id=r["payment_hash"],
+            fee_msat=-int(r["amount_sent_msat"] - r["amount_msat"]),
+            preimage=r["payment_preimage"],
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
         except RpcError:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         if not r["invoices"]:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         invoice_resp = r["invoices"][-1]
 
         if invoice_resp["payment_hash"] == checking_id:
-            if invoice_resp["status"] == "paid":
-                return PaymentSuccessStatus()
-            elif invoice_resp["status"] == "unpaid":
-                return PaymentPendingStatus()
-            elif invoice_resp["status"] == "expired":
-                return PaymentFailedStatus()
-        else:
-            logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentPendingStatus()
+            return self.payment_status(invoice_resp["status"])
+
+        logger.warning(f"supplied an invalid checking_id: {checking_id}")
+        return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         if "pays" not in r:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         if not r["pays"]:
             # no payment with this payment_hash is found
-            return PaymentFailedStatus()
+            return PaymentStatusFailed()
 
         payment_resp = r["pays"][-1]
 
@@ -189,16 +201,16 @@ class CoreLightningWallet(Wallet):
                     payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
                 )
 
-                return PaymentSuccessStatus(
+                return PaymentStatusSuccess(
                     fee_msat=fee_msat, preimage=payment_resp["preimage"]
                 )
             elif status == "failed":
-                return PaymentFailedStatus()
+                return PaymentStatusFailed()
             else:
-                return PaymentPendingStatus()
+                return PaymentStatusPending()
         else:
             logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

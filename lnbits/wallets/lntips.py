@@ -11,9 +11,14 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Wallet,
 )
@@ -43,6 +48,14 @@ class LnTipsWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def cleanup(self):
         try:
@@ -91,11 +104,11 @@ class LnTipsWallet(Wallet):
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()
-        return InvoiceResponse(
-            True, data["payment_hash"], data["payment_request"], None
+        return InvoiceResponseSuccess(
+            checking_id=data["payment_hash"], payment_request=data["payment_request"]
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -105,7 +118,7 @@ class LnTipsWallet(Wallet):
             timeout=None,
         )
         if r.is_error:
-            return PaymentResponse(False, None, 0, None, r.text)
+            return PaymentResponseFailed(error_message=r.text)
 
         if "error" in r.json():
             try:
@@ -113,13 +126,14 @@ class LnTipsWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponseFailed(fee_msat=0, error_message=error_message)
 
         data = r.json()["details"]
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["preimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponseSuccess(
+            checking_id=data["payment_hash"],
+            fee_msat=-data["fee"],
+            preimage=data["preimage"],
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -131,9 +145,9 @@ class LnTipsWallet(Wallet):
                 raise Exception
 
             data = r.json()
-            return PaymentStatus(data["paid"])
+            return self.payment_status(data["paid"])
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -144,11 +158,11 @@ class LnTipsWallet(Wallet):
             if r.is_error:
                 raise Exception
             data = r.json()
+            status = data.get("paid")
 
-            paid_to_status = {False: None, True: True}
-            return PaymentStatus(paid_to_status[data.get("paid")])
+            return self.payment_status(None if status is False else status)
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None

@@ -19,11 +19,15 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
-    PaymentSuccessStatus,
+    PaymentStatusFailed,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -41,6 +45,14 @@ class FakeWallet(Wallet):
         2048,
         32,
     ).hex()
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def status(self) -> StatusResponse:
         logger.info(
@@ -95,39 +107,38 @@ class FakeWallet(Wallet):
 
         payment_request = encode(bolt11, self.privkey)
 
-        return InvoiceResponse(
-            ok=True, checking_id=payment_hash, payment_request=payment_request
+        return InvoiceResponseSuccess(
+            checking_id=payment_hash, payment_request=payment_request
         )
 
     async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(ok=False, error_message=str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         if invoice.payment_hash in self.payment_secrets:
             await self.queue.put(invoice)
             self.paid_invoices.add(invoice.payment_hash)
-            return PaymentResponse(
-                ok=True,
+            return PaymentResponseSuccess(
                 checking_id=invoice.payment_hash,
                 fee_msat=0,
                 preimage=self.payment_secrets.get(invoice.payment_hash) or "0" * 64,
             )
         else:
-            return PaymentResponse(
-                ok=False, error_message="Only internal invoices can be used!"
+            return PaymentResponseFailed(
+                error_message="Only internal invoices can be used!"
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         if checking_id in self.paid_invoices:
-            return PaymentSuccessStatus()
+            return PaymentStatusSuccess()
         if checking_id in list(self.payment_secrets.keys()):
-            return PaymentPendingStatus()
-        return PaymentFailedStatus()
+            return PaymentStatusPending()
+        return PaymentStatusFailed()
 
     async def get_payment_status(self, _: str) -> PaymentStatus:
-        return PaymentPendingStatus()
+        return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

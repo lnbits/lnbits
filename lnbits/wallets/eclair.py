@@ -13,9 +13,15 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -47,6 +53,14 @@ class EclairWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.url, headers=self.headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["sent", "received"],
+            failed=["failed", "expired"],
+            pending=["pending"],
+        )
 
     async def cleanup(self):
         try:
@@ -101,10 +115,12 @@ class EclairWallet(Wallet):
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()
-        return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+        return InvoiceResponseSuccess(
+            checking_id=data["paymentHash"], payment_request=data["serialized"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
@@ -119,12 +135,12 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
 
         if data["type"] == "payment-failed":
-            return PaymentResponse(False, None, None, None, "payment failed")
+            return PaymentResponseFailed(error_message="payment failed")
 
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
@@ -143,13 +159,9 @@ class EclairWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(None, checking_id, None, preimage, error_message)
-
-        statuses = {
-            "sent": True,
-            "failed": False,
-            "pending": None,
-        }
+            return PaymentResponsePending(
+                checking_id=checking_id, preimage=preimage, error_message=error_message
+            )
 
         data = r.json()[-1]
         fee_msat = 0
@@ -157,8 +169,8 @@ class EclairWallet(Wallet):
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
 
-        return PaymentResponse(
-            statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
+        return self.payment_response(
+            data["status"]["type"], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -174,14 +186,9 @@ class EclairWallet(Wallet):
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")
 
-            statuses = {
-                "received": True,
-                "expired": False,
-                "pending": None,
-            }
-            return PaymentStatus(statuses.get(data["status"]["type"]))
+            return self.payment_status(data["status"]["type"])
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -198,21 +205,17 @@ class EclairWallet(Wallet):
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")
 
-            fee_msat, preimage = None, None
-            if data["status"]["type"] == "sent":
-                fee_msat = -data["status"]["feesPaid"]
-                preimage = data["status"]["paymentPreimage"]
+            status = self.payment_status(data["status"]["type"])
+            if status.pending or status.failed:
+                return status
 
-            statuses = {
-                "sent": True,
-                "failed": False,
-                "pending": None,
-            }
-            return PaymentStatus(
-                statuses.get(data["status"]["type"]), fee_msat, preimage
-            )
+            fee_msat = -data["status"]["feesPaid"]
+            preimage = data["status"]["paymentPreimage"]
+
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=preimage)
+
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

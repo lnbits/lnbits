@@ -8,9 +8,15 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponsePending,
+    PaymentResponseSuccess,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -44,6 +50,14 @@ class OpenNodeWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["paid", "confirmed"],
+            failed=["failed"],
+            pending=["processing", "unpaid", "initial", "pending", "error"],
+        )
 
     async def cleanup(self):
         try:
@@ -87,12 +101,12 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
         data = r.json()["data"]
-        checking_id = data["id"]
-        payment_request = data["lightning_invoice"]["payreq"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponseSuccess(
+            checking_id=data["id"], payment_request=data["lightning_invoice"]["payreq"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
@@ -103,41 +117,39 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
         fee_msat = -data["fee"] * 1000
 
         if data["status"] != "paid":
-            return PaymentResponse(None, checking_id, fee_msat, None, "payment failed")
+            return PaymentResponsePending(
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                error_message="payment failed",
+            )
 
-        return PaymentResponse(True, checking_id, fee_msat, None, None)
+        return PaymentResponseSuccess(checking_id=checking_id, fee_msat=fee_msat)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/charge/{checking_id}")
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         data = r.json()["data"]
-        statuses = {"processing": None, "paid": True, "unpaid": None}
-        return PaymentStatus(statuses[data.get("status")])
+
+        return self.payment_status(data.get("status"))
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/withdrawal/{checking_id}")
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         data = r.json()["data"]
-        statuses = {
-            "initial": None,
-            "pending": None,
-            "confirmed": True,
-            "error": None,
-            "failed": False,
-        }
+
         fee_msat = -data.get("fee") * 1000
-        return PaymentStatus(statuses[data.get("status")], fee_msat)
+        return self.payment_status(data.get("status"), fee_msat)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

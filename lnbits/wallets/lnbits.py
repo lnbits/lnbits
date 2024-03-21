@@ -9,11 +9,16 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
+    PaymentResponseSuccess,
     PaymentStatus,
-    PaymentSuccessStatus,
+    PaymentStatusFailed,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Wallet,
 )
@@ -38,6 +43,14 @@ class LNbitsWallet(Wallet):
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=[True],
+            failed=[False],
+            pending=[None],
+        )
 
     async def cleanup(self):
         try:
@@ -82,20 +95,14 @@ class LNbitsWallet(Wallet):
             data["unhashed_description"] = unhashed_description.hex()
 
         r = await self.client.post(url="/api/v1/payments", json=data)
-        ok, checking_id, payment_request, error_message = (
-            not r.is_error,
-            None,
-            None,
-            None,
-        )
 
+        data = r.json()
         if r.is_error:
-            error_message = r.json()["detail"]
-        else:
-            data = r.json()
-            checking_id, payment_request = data["checking_id"], data["payment_request"]
+            return InvoiceResponseFailed(error_message=data["detail"])
 
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+        return InvoiceResponseSuccess(
+            checking_id=data["checking_id"], payment_request=data["payment_request"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
@@ -103,19 +110,21 @@ class LNbitsWallet(Wallet):
             json={"out": True, "bolt11": bolt11},
             timeout=None,
         )
-        ok = not r.is_error
 
         if r.is_error:
-            error_message = r.json()["detail"]
-            return PaymentResponse(False, None, None, None, error_message)
-        else:
-            data = r.json()
-            checking_id = data["payment_hash"]
+            return PaymentResponseFailed(error_message=r.json()["detail"])
+
+        data = r.json()
+        checking_id = data["payment_hash"]
 
         # we do this to get the fee and preimage
         payment: PaymentStatus = await self.get_payment_status(checking_id)
 
-        return PaymentResponse(ok, checking_id, payment.fee_msat, payment.preimage)
+        return PaymentResponseSuccess(
+            checking_id=checking_id,
+            fee_msat=payment.fee_msat,
+            preimage=payment.preimage,
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -128,27 +137,27 @@ class LNbitsWallet(Wallet):
             details = data.get("details", None)
 
             if details and details.get("pending", False) is True:
-                return PaymentPendingStatus()
+                return PaymentStatusPending()
             if data.get("paid", False) is True:
-                return PaymentSuccessStatus()
-            return PaymentFailedStatus()
+                return PaymentStatusSuccess()
+            return PaymentStatusFailed()
         except Exception:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
         data = r.json()
 
         if "paid" not in data or not data["paid"]:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
         if "details" not in data:
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
-        return PaymentSuccessStatus(
+        return PaymentStatusSuccess(
             fee_msat=data["details"]["fee"], preimage=data["preimage"]
         )
 

@@ -12,9 +12,14 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentPendingStatus,
+    InvoiceResponseFailed,
+    InvoiceResponseSuccess,
     PaymentResponse,
+    PaymentResponseFailed,
     PaymentStatus,
+    PaymentStatusMap,
+    PaymentStatusPending,
+    PaymentStatusSuccess,
     StatusResponse,
     Unsupported,
     Wallet,
@@ -52,12 +57,14 @@ class CoreLightningRestWallet(Wallet):
         self.cert = settings.corelightning_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
-        self.statuses = {
-            "paid": True,
-            "complete": True,
-            "failed": False,
-            "pending": None,
-        }
+
+    @property
+    def payment_status_map(self) -> PaymentStatusMap:
+        return PaymentStatusMap(
+            success=["paid", "complete"],
+            failed=["failed"],
+            pending=["pending"],
+        )
 
     async def cleanup(self):
         try:
@@ -92,7 +99,7 @@ class CoreLightningRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbl{random.random()}"
+        label = kwargs.get("label", f"lbl{random.random()}")
         data: Dict = {
             "amount": amount * 1000,
             "description": memo,
@@ -118,29 +125,30 @@ class CoreLightningRestWallet(Wallet):
             data=data,
         )
 
-        if r.is_error or "error" in r.json():
+        data = r.json()  # todo: check error first, body might not be JSON
+        if r.is_error or "error" in data:
             try:
-                data = r.json()
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponseFailed(error_message=error_message)
 
-        data = r.json()
         assert "payment_hash" in data
         assert "bolt11" in data
-        return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
+        return InvoiceResponseSuccess(
+            checking_id=data["payment_hash"], payment_request=data["bolt11"]
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponseFailed(error_message=str(exc))
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             error_message = "0 amount invoices are not allowed"
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
         r = await self.client.post(
             f"{self.url}/v1/pay",
@@ -153,13 +161,14 @@ class CoreLightningRestWallet(Wallet):
             timeout=None,
         )
 
+        # todo: fix inconsistency with create_invoice()
         if r.is_error or "error" in r.json():
             try:
                 data = r.json()
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponseFailed(error_message=error_message)
 
         data = r.json()
 
@@ -167,8 +176,8 @@ class CoreLightningRestWallet(Wallet):
         preimage = data["payment_preimage"]
         fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-        return PaymentResponse(
-            self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
+        return self.payment_response(
+            data["status"], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -182,10 +191,11 @@ class CoreLightningRestWallet(Wallet):
 
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in cln response")
-            return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
+
+            return self.payment_status(data["invoices"][0]["status"])
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
@@ -201,20 +211,20 @@ class CoreLightningRestWallet(Wallet):
 
             pay = data["pays"][0]
 
-            fee_msat, preimage = None, None
-            if self.statuses[pay["status"]]:
-                # cut off "msat" and convert to int
-                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
-                    pay["amount_msat"][:-4]
-                )
-                preimage = pay["preimage"]
+            status = self.payment_status(pay["status"])
+            if status.pending or status.failed:
+                return status
 
-            return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
+            # cut off "msat" and convert to int
+            fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(pay["amount_msat"][:-4])
+            return PaymentStatusSuccess(fee_msat=fee_msat, preimage=pay["preimage"])
+
         except Exception as e:
             logger.error(f"Error getting payment status: {e}")
-            return PaymentPendingStatus()
+            return PaymentStatusPending()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        # todo: this loop should be ended when cleanup() is called
         while True:
             try:
                 url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
@@ -244,9 +254,10 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
-                        assert self.statuses[
+                        status = self.payment_status(
                             paid_invoice["invoices"][0]["status"]
-                        ], "streamed invoice not paid"
+                        )
+                        assert status.success, "streamed invoice not paid"
                         assert "invoices" in paid_invoice, "no invoices in response"
                         assert len(paid_invoice["invoices"]), "no invoices in response"
                         yield paid_invoice["invoices"][0]["payment_hash"]
