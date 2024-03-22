@@ -238,7 +238,7 @@ Vue.component('lnbits-payment-details', {
     {{ payment.date }} ({{ payment.dateFrom }})
   </div>
 
-  <div class="row">
+  <div class="row" v-if="hasExpiry">
    <b v-text="$t('expiry')"></b>:
    {{ payment.expirydate }} ({{ payment.expirydateFrom }})
   </div>
@@ -297,6 +297,9 @@ Vue.component('lnbits-payment-details', {
         this.payment.preimage !==
           '0000000000000000000000000000000000000000000000000000000000000000'
       )
+    },
+    hasExpiry() {
+      return !!this.payment.expiry
     },
     hasSuccessAction() {
       return (
