@@ -818,10 +818,8 @@ new Vue({
     }
   },
   watch: {
-    payments: function (_, oldVal) {
-      if (oldVal && oldVal.length !== 0) {
-        this.fetchBalance()
-      }
+    payments: function () {
+      this.fetchBalance()
     },
     'paymentsChart.group': function () {
       this.showChart()
