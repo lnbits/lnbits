@@ -26,12 +26,16 @@ from starlette.responses import JSONResponse
 from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
-from lnbits.core.tasks import (  # register_watchdog,; unregister_watchdog,
-    register_killswitch,
-    register_task_listeners,
+from lnbits.core.tasks import (  # watchdog_task
+    killswitch_task,
+    wait_for_paid_invoices,
 )
 from lnbits.settings import settings
-from lnbits.tasks import cancel_all_tasks, create_permanent_task
+from lnbits.tasks import (
+    cancel_all_tasks,
+    create_permanent_task,
+    register_invoice_listener,
+)
 from lnbits.utils.cache import cache
 from lnbits.wallets import get_wallet_class, set_wallet_class
 
@@ -470,9 +474,15 @@ def register_async_tasks(app):
         create_permanent_task(invoice_listener)
         create_permanent_task(internal_invoice_listener)
         create_permanent_task(cache.invalidate_forever)
-        register_task_listeners()
-        register_killswitch()
-        # await run_deferred_async() # calle: doesn't do anyting?
+
+        # core invoice listener
+        invoice_queue = asyncio.Queue(5)
+        register_invoice_listener(invoice_queue, "core")
+        create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+
+        # TODO: implement watchdog properly
+        # create_permanent_task(watchdog_task)
+        create_permanent_task(killswitch_task)
 
 
 def register_exception_handlers(app: FastAPI):
