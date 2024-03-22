@@ -625,9 +625,7 @@ async def test_get_payment_status_pending(httpserver: HTTPServer):
         + "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",  # todo: changed
         headers=headers,
         method="GET",
-    ).respond_with_response(
-        response=Response(iter(json.dumps(server_resp).splitlines()))
-    )
+    ).respond_with_response(Response(iter(json.dumps(server_resp).splitlines())))
 
     wallet = LndRestWallet()
 
@@ -638,3 +636,38 @@ async def test_get_payment_status_pending(httpserver: HTTPServer):
     assert status.pending is True
 
     httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_get_payment_status_failed(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    server_responses = [
+        {"result": {"status": "FAILED"}},
+        {"error": {"code": 5, "message": "payment isn't initiated"}},
+    ]
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    for server_resp in server_responses:
+        httpserver.clear_all_handlers()
+        httpserver.expect_request(
+            uri="/v2/router/track/"
+            + "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",  # todo: changed
+            headers=headers,
+            method="GET",
+        ).respond_with_response(Response(iter(json.dumps(server_resp).splitlines())))
+
+        wallet = LndRestWallet()
+
+        status = await wallet.get_payment_status(params["payment_hash"])
+
+        assert status.success is False
+        assert status.failed is True
+        assert status.pending is False
+
+        httpserver.check_assertions()
