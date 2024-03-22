@@ -20,7 +20,7 @@ COPY . .
 
 RUN mkdir data
 
-RUN poetry install --only main
+RUN poetry install --only main -E all
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
