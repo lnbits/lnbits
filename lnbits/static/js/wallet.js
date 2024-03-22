@@ -126,7 +126,6 @@ new Vue({
           camera: 'auto'
         }
       },
-      skip_balance_check: true,
       payments: [],
       paymentsTable: {
         columns: [
@@ -819,13 +818,8 @@ new Vue({
     }
   },
   watch: {
-    payments: function (newVal, oldVal) {
-      console.log('payments', newVal)
-      console.log('oldVal', oldVal)
-      if (this.skip_balance_check === true) {
-        this.skip_balance_check = false
-        this.balance = Math.floor(window.wallet.balance_msat / 1000)
-      } else {
+    payments: function (_, oldVal) {
+      if (oldVal && oldVal.length !== 0) {
         this.fetchBalance()
       }
     },
@@ -845,6 +839,7 @@ new Vue({
       this.mobileSimple = true
     }
     this.fetchPayments()
+    this.balance = Math.floor(window.wallet.balance_msat / 1000)
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
