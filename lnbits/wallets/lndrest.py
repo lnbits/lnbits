@@ -158,9 +158,6 @@ class LndRestWallet(Wallet):
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:
-            print(
-                "### POST json", {"payment_request": bolt11, "fee_limit": lnrpcFeeLimit}
-            )
             r = await self.client.post(
                 url="/v1/channels/transactions",
                 json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
@@ -237,7 +234,7 @@ class LndRestWallet(Wallet):
                         # todo: redunant return
                         return PaymentStatusPending()
                 except Exception:
-                    # todo: move up, right after json.loads
+                    # todo: move up, right after json.loads()
                     continue
 
         return PaymentStatusPending()
