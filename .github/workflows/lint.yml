@@ -47,9 +47,3 @@ jobs:
     with:
       make: checkprettier
       npm: true
-
-  bundle:
-    uses: ./.github/workflows/make.yml
-    with:
-      make: checkbundle
-      npm: true

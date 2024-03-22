@@ -33,6 +33,10 @@ __bundle__
 
 coverage.xml
 node_modules
+lnbits/static/vendor/*
+lnbits/static/vendor.json
+lnbits/static/bundle.min.js
+lnbits/static/bundle.min.css
 lnbits/static/bundle.js
 lnbits/static/bundle.css
 lnbits/static/bundle.min.js.old
