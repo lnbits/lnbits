@@ -234,8 +234,10 @@ class LndRestWallet(Wallet):
                             payment.get("payment_preimage"),
                         )
                     else:
+                        # todo: redunant return
                         return PaymentStatusPending()
                 except Exception:
+                    # todo: move up, right after json.loads
                     continue
 
         return PaymentStatusPending()
