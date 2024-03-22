@@ -447,3 +447,66 @@ async def test_pay_invoice_http_404(httpserver: HTTPServer):
     )
 
     httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_get_invoice_status_success(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    server_resp = {"settled": True}
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri=f"""/v1/invoice/{params["payment_hash"]}""",  # todo: changed
+        headers=headers,
+        method="GET",
+    ).respond_with_json(server_resp)
+
+    wallet = LndRestWallet()
+
+    status = await wallet.get_invoice_status(params["payment_hash"])
+    assert status.success is True
+    assert status.failed is False
+    assert status.pending is False
+
+    httpserver.check_assertions()
+
+
+# todo: no fail on LND
+# @pytest.mark.asyncio
+# async def test_get_invoice_status_failed(httpserver: HTTPServer):
+#     settings.corelightning_rest_url = ENDPOINT
+#     settings.corelightning_rest_macaroon = MACAROON
+
+
+@pytest.mark.asyncio
+async def test_get_invoice_status_pending(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    server_resp = {"settled": False}
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri=f"""/v1/invoice/{params["payment_hash"]}""",  # todo: changed
+        headers=headers,
+        method="GET",
+    ).respond_with_json(server_resp)
+
+    wallet = LndRestWallet()
+
+    status = await wallet.get_invoice_status(params["payment_hash"])
+    assert status.success is False
+    assert status.failed is False
+    assert status.pending is True
+
+    httpserver.check_assertions()
