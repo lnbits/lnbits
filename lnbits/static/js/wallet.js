@@ -818,8 +818,10 @@ new Vue({
     }
   },
   watch: {
-    payments: function () {
-      this.fetchBalance()
+    payments: function (_, oldVal) {
+      if (oldVal && oldVal.length !== 0) {
+        this.fetchBalance()
+      }
     },
     'paymentsChart.group': function () {
       this.showChart()
@@ -837,18 +839,11 @@ new Vue({
       this.mobileSimple = true
     }
     this.fetchPayments()
+    this.balance = Math.floor(window.wallet.balance_msat / 1000)
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
-
-    LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(response => {
-        this.receive.units = ['sat', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
+    this.receive.units = ['sat', ...window.currencies]
   },
   mounted: function () {
     // show disclaimer

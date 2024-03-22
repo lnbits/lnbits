@@ -71,7 +71,7 @@ from lnbits.helpers import generate_filter_params_openapi, url_for
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
-    currencies,
+    allowed_currencies,
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
@@ -722,14 +722,8 @@ async def api_perform_lnurlauth(
 
 
 @api_router.get("/api/v1/currencies")
-async def api_list_currencies_available():
-    if len(settings.lnbits_allowed_currencies) > 0:
-        return [
-            item
-            for item in currencies.keys()
-            if item.upper() in settings.lnbits_allowed_currencies
-        ]
-    return list(currencies.keys())
+async def api_list_currencies_available() -> List[str]:
+    return allowed_currencies()
 
 
 @api_router.post("/api/v1/conversion")

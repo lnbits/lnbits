@@ -176,6 +176,16 @@ currencies = {
 }
 
 
+def allowed_currencies():
+    if len(settings.lnbits_allowed_currencies) > 0:
+        return [
+            item
+            for item in currencies.keys()
+            if item.upper() in settings.lnbits_allowed_currencies
+        ]
+    return list(currencies.keys())
+
+
 class Provider(NamedTuple):
     name: str
     domain: str
