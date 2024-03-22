@@ -671,3 +671,30 @@ async def test_get_payment_status_failed(httpserver: HTTPServer):
         assert status.pending is False
 
         httpserver.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_get_payment_status_http_404(httpserver: HTTPServer):
+    settings.lnd_rest_endpoint = ENDPOINT
+    settings.lnd_rest_macaroon = MACAROON
+    settings.lnd_rest_cert = ""
+
+    params = {
+        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+        + "524b1c786598ec9a63beddb2d726ac96"
+    }
+    httpserver.expect_request(
+        uri="/v2/router/track/"
+        + "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",  # todo: changed
+        headers=headers,
+        method="GET",
+    ).respond_with_response(Response("Not Found", status=404))
+
+    wallet = LndRestWallet()
+
+    status = await wallet.get_payment_status(params["payment_hash"])
+    assert status.success is False
+    assert status.failed is False
+    assert status.pending is True
+
+    httpserver.check_assertions()
