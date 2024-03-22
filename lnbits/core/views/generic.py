@@ -352,9 +352,16 @@ async def lnurlwallet(request: Request):
     )
 
 
-@generic_router.get("/service-worker.js", response_class=FileResponse)
-async def service_worker():
-    return FileResponse(Path("lnbits", "static", "js", "service-worker.js"))
+@generic_router.get("/service-worker.js")
+async def service_worker(request: Request):
+    return template_renderer().TemplateResponse(
+        "service-worker.js",
+        {
+            "request": request,
+            "cache_version": settings.server_startup_time,
+        },
+        media_type="text/javascript",
+    )
 
 
 @generic_router.get("/manifest/{usr}.webmanifest")
