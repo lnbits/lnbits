@@ -234,9 +234,7 @@ async def database_cleanup_accounts(days: Optional[int] = None):
 @click.option("-d", "--days", help="Maximum age of payments in days.")
 @click.option("-l", "--limit", help="Maximum number of payments to be checked.")
 @click.option("-w", "--wallet", help="Only check for this wallet.")
-@click.option(
-    "-a", "--auto-fix", is_flag=True, help="Set invalid payments to pending."
-)
+@click.option("-a", "--auto-fix", is_flag=True, help="Set invalid payments to pending.")
 @click.option("-v", "--verbose", is_flag=True, help="Detailed log.")
 @coro
 async def check_invalid_payments(
