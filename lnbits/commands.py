@@ -23,6 +23,8 @@ from .core import migrations as core_migrations
 from .core.crud import (
     delete_accounts_no_wallets,
     delete_unused_wallets,
+    delete_wallet_by_id,
+    delete_wallet_payment,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -184,6 +186,28 @@ async def database_cleanup_deleted_wallets():
         await remove_deleted_wallets(conn)
 
 
+@db.command("delete-wallet")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@coro
+async def database_delete_wallet(wallet: str):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        count = await delete_wallet_by_id(wallet_id=wallet, conn=conn)
+        click.echo(f"Marked as deleted '{count}' rows.")
+
+
+@db.command("delete-wallet-payment")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@click.option("-h", "--checking_id", required=True, help="Checking Id.")
+@coro
+async def database_delete_wallet_payment(wallet: str, checking_id: str):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        await delete_wallet_payment(
+            wallet_id=wallet, checking_id=checking_id, conn=conn
+        )
+
+
 @db.command("cleanup-accounts")
 @click.argument("days", type=int, required=False)
 @coro
@@ -199,19 +223,25 @@ async def database_cleanup_accounts(days: Optional[int] = None):
 @click.option("-d", "--days", help="Maximum age of payments in days.")
 @click.option("-l", "--limit", help="Maximum number of payments to be checked.")
 @click.option("-w", "--wallet", help="Only check for this wallet.")
+@click.option("-v", "--verbose", is_flag=True, help="Detailed log.")
 @coro
 async def check_invalid_payments(
     days: Optional[int] = None,
     limit: Optional[int] = None,
     wallet: Optional[str] = None,
+    verbose: Optional[bool] = False,
 ):
     """Check payments that are settled in the DB but pending on the Funding Source"""
     await check_admin_settings()
     settled_db_payments = []
+
+    if verbose:
+        click.echo(f"Get Payments: days={days}, limit={limit}, wallet={wallet}")
     async with core_db.connect() as conn:
         delta = int(days) if days else 3  # default to 3 days
         limit = int(limit) if limit else 1000
         since = int(time.time()) - delta * 24 * 60 * 60
+
         settled_db_payments = await get_payments(
             complete=True,
             incoming=True,
@@ -221,6 +251,8 @@ async def check_invalid_payments(
             wallet_id=wallet,
             conn=conn,
         )
+
+    click.echo("Settled Payments: " + str(len(settled_db_payments)))
 
     wallets_module = importlib.import_module("lnbits.wallets")
     wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
@@ -232,6 +264,11 @@ async def check_invalid_payments(
     invalid_wallets = {}
     for db_payment in settled_db_payments:
         payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
+        if verbose:
+            click.echo(
+                f"Checking Payment: '{db_payment.checking_id}' for wallet"
+                + f" '{db_payment.wallet_id}'. Pending: '{payment_status.pending}'"
+            )
         if payment_status.pending:
             invalid_payments.append(
                 " ".join(
