@@ -209,7 +209,8 @@ async def check_invalid_payments(
     await check_admin_settings()
     settled_db_payments = []
     async with core_db.connect() as conn:
-        delta = days or 3  # default to 3 days
+        delta = int(days) if days else 3  # default to 3 days
+        limit = int(limit) if limit else 1000
         since = int(time.time()) - delta * 24 * 60 * 60
         settled_db_payments = await get_payments(
             complete=True,
