@@ -1,4 +1,6 @@
 import asyncio
+import importlib
+import time
 from functools import wraps
 from pathlib import Path
 from typing import Optional, Tuple
@@ -14,6 +16,7 @@ from lnbits.core.models import User
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.api import api_install_extension, api_uninstall_extension
 from lnbits.settings import settings
+from lnbits.wallets.base import Wallet
 
 from .core import db as core_db
 from .core import migrations as core_migrations
@@ -24,6 +27,7 @@ from .core.crud import (
     get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
+    get_payments,
     remove_deleted_wallets,
 )
 from .core.helpers import migrate_extension_database, run_migration
@@ -189,6 +193,67 @@ async def database_cleanup_accounts(days: Optional[int] = None):
         delta = days or settings.cleanup_wallets_days
         delta = delta * 24 * 60 * 60
         await delete_accounts_no_wallets(delta, conn)
+
+
+@db.command("check-payments")
+@click.option("-d", "--days", help="Maximum age of payments in days.")
+@click.option("-l", "--limit", help="Maximum number of payments to be checked.")
+@click.option("-w", "--wallet", help="Only check for this wallet.")
+@coro
+async def check_invalid_payments(
+    days: Optional[int] = None,
+    limit: Optional[int] = None,
+    wallet: Optional[str] = None,
+):
+    """Check payments that are settled in the DB but pending on the Funding Source"""
+    await check_admin_settings()
+    settled_db_payments = []
+    async with core_db.connect() as conn:
+        delta = int(days) if days else 3  # default to 3 days
+        limit = int(limit) if limit else 1000
+        since = int(time.time()) - delta * 24 * 60 * 60
+        settled_db_payments = await get_payments(
+            complete=True,
+            incoming=True,
+            exclude_uncheckable=True,
+            since=since,
+            limit=limit,
+            wallet_id=wallet,
+            conn=conn,
+        )
+
+    wallets_module = importlib.import_module("lnbits.wallets")
+    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+
+    funding_source: Wallet = wallet_class()
+
+    # payments that are settled in the DB, but not at the Funding source level
+    invalid_payments = []
+    invalid_wallets = {}
+    for db_payment in settled_db_payments:
+        payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
+        if payment_status.pending:
+            invalid_payments.append(
+                " ".join(
+                    [
+                        db_payment.checking_id,
+                        db_payment.wallet_id,
+                        str(db_payment.amount / 1000).ljust(10),
+                        db_payment.memo or "",
+                    ]
+                )
+            )
+            if db_payment.wallet_id not in invalid_wallets:
+                invalid_wallets[f"{db_payment.wallet_id}"] = [0, 0]
+            invalid_wallets[f"{db_payment.wallet_id}"][0] += 1
+            invalid_wallets[f"{db_payment.wallet_id}"][1] += db_payment.amount
+
+    click.echo("Invalid Payments: " + str(len(invalid_payments)))
+    click.echo("\n".join(invalid_payments))
+    click.echo("\nInvalid Wallets: " + str(len(invalid_wallets)))
+    for w in invalid_wallets:
+        data = invalid_wallets[f"{w}"]
+        click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
 
 
 async def load_disabled_extension_list() -> None:
