@@ -516,7 +516,6 @@ async def delete_wallet(
 async def delete_wallet_by_id(
     *, wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[int]:
-    print("### wallet_id", wallet_id)
     now = int(time())
     result = await (conn or db).execute(
         f"""

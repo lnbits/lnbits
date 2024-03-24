@@ -24,6 +24,7 @@ from .core.crud import (
     delete_accounts_no_wallets,
     delete_unused_wallets,
     delete_wallet_by_id,
+    delete_wallet_payment,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -188,11 +189,23 @@ async def database_cleanup_deleted_wallets():
 @db.command("delete-wallet")
 @click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
 @coro
-async def database_delete_wallet(wallet: Optional[str] = None):
+async def database_delete_wallet(wallet: str):
     """Mark wallet as deleted"""
     async with core_db.connect() as conn:
         count = await delete_wallet_by_id(wallet_id=wallet, conn=conn)
         click.echo(f"Marked as deleted '{count}' rows.")
+
+
+@db.command("delete-wallet-payment")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@click.option("-h", "--checking_id", required=True, help="Checking Id.")
+@coro
+async def database_delete_wallet_payment(wallet: str, checking_id: str):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        await delete_wallet_payment(
+            wallet_id=wallet, checking_id=checking_id, conn=conn
+        )
 
 
 @db.command("cleanup-accounts")
