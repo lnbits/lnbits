@@ -23,6 +23,7 @@ from .core import migrations as core_migrations
 from .core.crud import (
     delete_accounts_no_wallets,
     delete_unused_wallets,
+    delete_wallet_by_id,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
@@ -182,6 +183,16 @@ async def database_cleanup_deleted_wallets():
     """Delete all wallets that has been marked deleted"""
     async with core_db.connect() as conn:
         await remove_deleted_wallets(conn)
+
+
+@db.command("delete-wallet")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@coro
+async def database_delete_wallet(wallet: Optional[str] = None):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        count = await delete_wallet_by_id(wallet_id=wallet, conn=conn)
+        click.echo(f"Marked as deleted '{count}' rows.")
 
 
 @db.command("cleanup-accounts")
