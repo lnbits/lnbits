@@ -214,7 +214,6 @@ async def database_delete_wallet_payment(wallet: str, checking_id: str):
 @coro
 async def database_revert_payment(checking_id: str, pending: Optional[bool] = True):
     """Mark wallet as deleted"""
-    print("### pending", pending)
     async with core_db.connect() as conn:
         await update_payment_status(pending=True, checking_id=checking_id, conn=conn)
 
