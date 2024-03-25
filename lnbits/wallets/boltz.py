@@ -11,6 +11,7 @@ from lnbits.wallets.macaroon.macaroon import load_macaroon
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -111,8 +112,8 @@ class BoltzWallet(Wallet):
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
+            info: boltzrpc_pb2.GetSwapInfoResponse
             async for info in self.rpc.GetSwapInfoStream(info_request):
-                info: boltzrpc_pb2.GetSwapInfoResponse
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     return PaymentResponse(
                         ok=True,
@@ -137,7 +138,10 @@ class BoltzWallet(Wallet):
             return PaymentPendingStatus()
         if response.reverse_swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
-        return PaymentPendingStatus()
+        elif response.reverse_swap.state == boltzrpc_pb2.SwapState.PENDING:
+            return PaymentPendingStatus()
+
+        return PaymentFailedStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -149,20 +153,23 @@ class BoltzWallet(Wallet):
 
         if response.swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
-        return PaymentPendingStatus()
+        elif response.swap.state == boltzrpc_pb2.SwapState.PENDING:
+            return PaymentPendingStatus()
+
+        return PaymentFailedStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
             try:
                 request = boltzrpc_pb2.GetSwapInfoRequest()
+                info: boltzrpc_pb2.GetSwapInfoResponse
                 async for info in self.rpc.GetSwapInfoStream(request):
-                    info: boltzrpc_pb2.GetSwapInfoResponse
                     reverse = info.reverse_swap
                     if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
-                        yield reverse.invoice
+                        yield reverse.id
             except Exception as exc:
                 logger.error(
-                    f"lost connection to boltz client swap stream: '{exc}', retrying in 5"
-                    " seconds"
+                    f"lost connection to boltz client swap stream: '{exc}', retrying in"
+                    " 5 seconds"
                 )
                 await asyncio.sleep(5)
