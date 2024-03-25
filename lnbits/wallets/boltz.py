@@ -2,6 +2,7 @@ import asyncio
 from typing import AsyncGenerator, Optional
 
 from grpc.aio import AioRpcError
+from loguru import logger
 
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
@@ -13,6 +14,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -75,53 +77,59 @@ class BoltzWallet(Wallet):
     ) -> InvoiceResponse:
         pair = boltzrpc_pb2.Pair(to=boltzrpc_pb2.LBTC)
         request = boltzrpc_pb2.CreateReverseSwapRequest(
-            amount=amount, pair=pair, wallet=settings.boltz_client_wallet
+            amount=amount,
+            pair=pair,
+            wallet=settings.boltz_client_wallet,
+            accept_zero_conf=True,
+            external_pay=True,
         )
+        response: boltzrpc_pb2.CreateReverseSwapResponse
         try:
-            response: boltzrpc_pb2.CreateReverseSwapResponse
             response = await self.rpc.CreateReverseSwap(request)
         except AioRpcError as exc:
             return InvoiceResponse(ok=False, error_message=exc.details())
-
+        except Exception as exc:
+            logger.error(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))
         return InvoiceResponse(
             ok=True, checking_id=response.id, payment_request=response.invoice
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
-        request = boltzrpc_pb2.CreateSwapRequest(
-            invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
-        )
+        # pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
+        # request = boltzrpc_pb2.CreateSwapRequest(
+        #     invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
+        # )
 
-        try:
-            response: boltzrpc_pb2.CreateSwapResponse
-            response = await self.rpc.CreateSwap(request)
-        except AioRpcError as exc:
-            return PaymentResponse(ok=False, error_message=exc.details())
+        # try:
+        #     response: boltzrpc_pb2.CreateSwapResponse
+        #     response = await self.rpc.CreateSwap(request)
+        # except AioRpcError as exc:
+        #     return PaymentResponse(ok=False, error_message=exc.details())
 
+        return PaymentResponse(ok=False)
         # data = r.json()
         # checking_id = data["payment_hash"]
         # fee_msat = -data["fee"]
         # preimage = data["payment_preimage"]
 
-        return PaymentResponse(True, response.id, response, response.preimage, None)
+        # return PaymentResponse(True, response.id, response, response.preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)
+        response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
+            boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+        )
+        if response.reverse_swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            return PaymentSuccessStatus()
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/invoices/{checking_id}")
-
-        if r.is_error:
-            return PaymentPendingStatus()
-
-        data = r.json()
-
-        statuses = {
-            "CREATED": None,
-            "SETTLED": True,
-        }
-        return PaymentStatus(statuses[data.get("state")], fee_msat=None, preimage=None)
+        response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
+            boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+        )
+        if response.swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            return PaymentSuccessStatus()
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
