@@ -26,6 +26,7 @@ from .opennode import OpenNodeWallet
 from .spark import SparkWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
+from .phoenixd import PhoenixdWallet
 
 
 def set_funding_source(class_name: Optional[str] = None):
