@@ -11,6 +11,7 @@ from lnbits.wallets.macaroon.macaroon import load_macaroon
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -134,7 +135,10 @@ class BoltzWallet(Wallet):
             return PaymentPendingStatus()
         if response.reverse_swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
-        return PaymentPendingStatus()
+        elif response.reverse_swap.state == boltzrpc_pb2.SwapState.PENDING:
+            return PaymentPendingStatus()
+
+        return PaymentFailedStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -146,7 +150,10 @@ class BoltzWallet(Wallet):
 
         if response.swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
-        return PaymentPendingStatus()
+        elif response.swap.state == boltzrpc_pb2.SwapState.PENDING:
+            return PaymentPendingStatus()
+
+        return PaymentFailedStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
