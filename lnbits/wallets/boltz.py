@@ -2,7 +2,6 @@ import asyncio
 from typing import AsyncGenerator, Optional
 
 from grpc.aio import AioRpcError
-from loguru import logger
 
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
@@ -88,9 +87,6 @@ class BoltzWallet(Wallet):
             response = await self.rpc.CreateReverseSwap(request)
         except AioRpcError as exc:
             return InvoiceResponse(ok=False, error_message=exc.details())
-        except Exception as exc:
-            logger.error(exc)
-            return InvoiceResponse(ok=False, error_message=str(exc))
         return InvoiceResponse(
             ok=True, checking_id=response.id, payment_request=response.invoice
         )
