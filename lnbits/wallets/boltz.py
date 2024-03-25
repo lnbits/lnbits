@@ -109,8 +109,8 @@ class BoltzWallet(Wallet):
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
+            info: boltzrpc_pb2.GetSwapInfoResponse
             async for info in self.rpc.GetSwapInfoStream(info_request):
-                info: boltzrpc_pb2.GetSwapInfoResponse
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     return PaymentResponse(
                         ok=True,
