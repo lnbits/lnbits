@@ -87,6 +87,7 @@ include = [
   "tools",
 ]
 exclude = [
+  "lnbits/wallets/boltz_grpc_files",
   "lnbits/wallets/lnd_grpc_files",
   "lnbits/extensions",
   "lnbits/upgrades",
@@ -99,6 +100,7 @@ files = [
   "tools",
 ]
 exclude = [
+  "^lnbits/wallets/boltz_grpc_files",
   "^lnbits/wallets/lnd_grpc_files",
   "^lnbits/extensions",
   "^lnbits/upgrades",
@@ -146,6 +148,7 @@ extend-exclude = """(
     | lnbits/extensions
     | lnbits/upgrades
     | lnbits/wallets/lnd_grpc_files
+    | lnbits/wallets/boltz_grpc_files
 )"""
 
 [tool.ruff]
@@ -154,7 +157,8 @@ line-length = 88
 
 # Exclude generated files.
 extend-exclude = [
-    "lnbits/wallets/lnd_grpc_files"
+    "lnbits/wallets/lnd_grpc_files",
+    "lnbits/wallets/boltz_grpc_files"
 ]
 
 [tool.ruff.lint]
