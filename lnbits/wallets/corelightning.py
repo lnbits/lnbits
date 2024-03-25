@@ -45,11 +45,13 @@ class CoreLightningWallet(Wallet):
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
-        invoices: dict = self.ln.listinvoices()  # type: ignore
-        for inv in invoices["invoices"][::-1]:
-            if "pay_index" in inv:
-                self.last_pay_index = inv["pay_index"]
-                break
+
+        ########### Performance issue
+        # invoices: dict = self.ln.listinvoices()  # type: ignore
+        # for inv in invoices["invoices"][::-1]:
+        #     if "pay_index" in inv:
+        #         self.last_pay_index = inv["pay_index"]
+        #         break
 
     async def status(self) -> StatusResponse:
         try:
