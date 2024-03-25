@@ -30,6 +30,7 @@ from .core.crud import (
     get_installed_extension,
     get_installed_extensions,
     get_payments,
+    get_standalone_payment,
     remove_deleted_wallets,
     update_payment_status,
 )
@@ -275,6 +276,14 @@ async def check_invalid_payments(
     invalid_payments: List[Payment] = []
     invalid_wallets = {}
     for db_payment in settled_db_payments:
+        if db_payment.memo == "Admin top up":
+            continue
+
+        internal_payment = await get_standalone_payment(
+            checking_id_or_hash=f"internal_{db_payment.checking_id}"
+        )
+        if internal_payment:
+            continue
         payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
         if verbose:
             click.echo(
