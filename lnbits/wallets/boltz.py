@@ -159,14 +159,14 @@ class BoltzWallet(Wallet):
         while True:
             try:
                 request = boltzrpc_pb2.GetSwapInfoRequest()
+                info: boltzrpc_pb2.GetSwapInfoResponse
                 async for info in self.rpc.GetSwapInfoStream(request):
-                    info: boltzrpc_pb2.GetSwapInfoResponse
                     reverse = info.reverse_swap
                     if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
                         yield reverse.invoice
             except Exception as exc:
                 logger.error(
-                    f"lost connection to boltz client swap stream: '{exc}', retrying in 5"
-                    " seconds"
+                    f"lost connection to boltz client swap stream: '{exc}', retrying in"
+                    " 5 seconds"
                 )
                 await asyncio.sleep(5)
