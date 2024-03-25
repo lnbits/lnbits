@@ -23,7 +23,11 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 
-from lnbits.core.crud import get_dbversions, get_installed_extensions
+from lnbits.core.crud import (
+    get_dbversions,
+    get_installed_extensions,
+    get_last_incomming_payment,
+)
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # watchdog_task
@@ -383,6 +387,7 @@ def register_startup(app: FastAPI):
             await check_webpush_settings()
 
             log_server_info()
+            await init_latest_payment_hash()
 
             # initialize WALLET
             try:
@@ -452,6 +457,16 @@ def log_server_info():
     logger.info(f"Service fee: {settings.lnbits_service_fee}")
     logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
     logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
+
+
+async def init_latest_payment_hash():
+    try:
+        last_payment = await get_last_incomming_payment()
+        if last_payment:
+            settings.last_payment_hash_on_start = last_payment.checking_id
+    except Exception as e:
+        logger.error(str(e))
+        raise ImportError("Failed to fetch latest incomming payment.")
 
 
 def get_db_vendor_name():

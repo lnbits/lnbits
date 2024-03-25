@@ -422,6 +422,10 @@ class TransientSettings(InstalledExtensionsSettings):
     #  - are cleared on server restart
     first_install: bool = Field(default=False)
 
+    # the last payment hash found at the server init time
+    # helps the funding sources know where they left off
+    last_payment_hash_on_start: Optional[str] = ""
+
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
