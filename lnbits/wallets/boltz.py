@@ -94,9 +94,11 @@ class BoltzWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         request = boltzrpc_pb2.CreateSwapRequest(
-            invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
+            invoice=bolt11,
+            pair=pair,
+            wallet=settings.boltz_client_wallet,
+            send_from_internal=True,
         )
-
         try:
             response: boltzrpc_pb2.CreateSwapResponse
             response = await self.rpc.CreateSwap(request)
@@ -104,8 +106,8 @@ class BoltzWallet(Wallet):
             return PaymentResponse(ok=False, error_message=exc.details())
 
         try:
-            request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
-            async for info in self.rpc.GetSwapInfoStream(request):
+            info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
+            async for info in self.rpc.GetSwapInfoStream(info_request):
                 info: boltzrpc_pb2.GetSwapInfoResponse
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     return PaymentResponse(
@@ -123,17 +125,24 @@ class BoltzWallet(Wallet):
             return PaymentResponse(ok=False, error_message=exc.details())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-            boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
-        )
+        try:
+            response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
+                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+            )
+        except AioRpcError:
+            return PaymentPendingStatus()
         if response.reverse_swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
         return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-            boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
-        )
+        try:
+            response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
+                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+            )
+        except AioRpcError:
+            return PaymentPendingStatus()
+
         if response.swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus()
         return PaymentPendingStatus()
