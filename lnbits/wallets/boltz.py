@@ -163,7 +163,7 @@ class BoltzWallet(Wallet):
                 async for info in self.rpc.GetSwapInfoStream(request):
                     reverse = info.reverse_swap
                     if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
-                        yield reverse.invoice
+                        yield reverse.id
             except Exception as exc:
                 logger.error(
                     f"lost connection to boltz client swap stream: '{exc}', retrying in"
