@@ -92,24 +92,35 @@ class BoltzWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        # pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
-        # request = boltzrpc_pb2.CreateSwapRequest(
-        #     invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
-        # )
+        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
+        request = boltzrpc_pb2.CreateSwapRequest(
+            invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
+        )
 
-        # try:
-        #     response: boltzrpc_pb2.CreateSwapResponse
-        #     response = await self.rpc.CreateSwap(request)
-        # except AioRpcError as exc:
-        #     return PaymentResponse(ok=False, error_message=exc.details())
+        try:
+            response: boltzrpc_pb2.CreateSwapResponse
+            response = await self.rpc.CreateSwap(request)
+        except AioRpcError as exc:
+            return PaymentResponse(ok=False, error_message=exc.details())
 
-        return PaymentResponse(ok=False)
-        # data = r.json()
-        # checking_id = data["payment_hash"]
-        # fee_msat = -data["fee"]
-        # preimage = data["payment_preimage"]
-
-        # return PaymentResponse(True, response.id, response, response.preimage, None)
+        try:
+            request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
+            async for info in self.rpc.GetSwapInfoStream(request):
+                info: boltzrpc_pb2.GetSwapInfoResponse
+                if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
+                    return PaymentResponse(
+                        ok=True,
+                        checking_id=response.id,
+                        fee_msat=(info.swap.onchain_fee + info.swap.service_fee) * 1000,
+                        preimage=info.swap.preimage,
+                    )
+                elif info.swap.error != "":
+                    return PaymentResponse(ok=False, error_message=info.swap.error)
+            return PaymentResponse(
+                ok=False, error_message="stream stopped unexpectedly"
+            )
+        except AioRpcError as exc:
+            return PaymentResponse(ok=False, error_message=exc.details())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
