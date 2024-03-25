@@ -116,6 +116,14 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'PhoenixdWallet',
+          'Phoenixd',
+          {
+            phoenixd_api_endpoint: 'Endpoint',
+            phoenixd_api_password: 'Key'
+          }
+        ],
+        [
           'OpenNodeWallet',
           'OpenNode',
           {
