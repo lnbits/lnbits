@@ -2,6 +2,7 @@ import asyncio
 from typing import AsyncGenerator, Optional
 
 from grpc.aio import AioRpcError
+from loguru import logger
 
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
@@ -151,7 +152,17 @@ class BoltzWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
-            value = await self.queue.get()
-            yield value
+            try:
+                request = boltzrpc_pb2.GetSwapInfoRequest()
+                async for info in self.rpc.GetSwapInfoStream(request):
+                    info: boltzrpc_pb2.GetSwapInfoResponse
+                    reverse = info.reverse_swap
+                    if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
+                        yield reverse.invoice
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to boltz client swap stream: '{exc}', retrying in 5"
+                    " seconds"
+                )
+                await asyncio.sleep(5)
