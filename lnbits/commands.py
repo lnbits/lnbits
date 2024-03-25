@@ -233,14 +233,12 @@ async def database_cleanup_accounts(days: Optional[int] = None):
 @click.option("-d", "--days", help="Maximum age of payments in days.")
 @click.option("-l", "--limit", help="Maximum number of payments to be checked.")
 @click.option("-w", "--wallet", help="Only check for this wallet.")
-@click.option("-a", "--auto-fix", is_flag=True, help="Set invalid payments to pending.")
 @click.option("-v", "--verbose", is_flag=True, help="Detailed log.")
 @coro
 async def check_invalid_payments(
     days: Optional[int] = None,
     limit: Optional[int] = None,
     wallet: Optional[str] = None,
-    auto_fix: Optional[bool] = False,
     verbose: Optional[bool] = False,
 ):
     """Check payments that are settled in the DB but pending on the Funding Source"""
@@ -271,16 +269,19 @@ async def check_invalid_payments(
 
     funding_source: Wallet = wallet_class()
 
+    click.echo("Funding source: " + str(funding_source))
+
     # payments that are settled in the DB, but not at the Funding source level
     invalid_payments: List[Payment] = []
     invalid_wallets = {}
     for db_payment in settled_db_payments:
-        payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
         if verbose:
             click.echo(
                 f"Checking Payment: '{db_payment.checking_id}' for wallet"
-                + f" '{db_payment.wallet_id}'. Pending: '{payment_status.pending}'"
+                + f" '{db_payment.wallet_id}'."
             )
+        payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
+
         if payment_status.pending:
             invalid_payments.append(db_payment)
             if db_payment.wallet_id not in invalid_wallets:
@@ -288,39 +289,24 @@ async def check_invalid_payments(
             invalid_wallets[f"{db_payment.wallet_id}"][0] += 1
             invalid_wallets[f"{db_payment.wallet_id}"][1] += db_payment.amount
 
-    invalid_payments_rows = [
-        " ".join(
-            [
-                i_p.checking_id,
-                i_p.wallet_id,
-                str(i_p.amount / 1000).ljust(10),
-                i_p.memo or "",
-            ]
-        )
-        for i_p in invalid_payments
-    ]
+            click.echo(
+                "Invalid Payment:  '"
+                + " ".join(
+                    [
+                        db_payment.checking_id,
+                        db_payment.wallet_id,
+                        str(db_payment.amount / 1000).ljust(10),
+                        db_payment.memo or "",
+                    ]
+                )
+                + "'"
+            )
+
     click.echo("Invalid Payments: " + str(len(invalid_payments)))
-    click.echo("\n".join(invalid_payments_rows))
     click.echo("\nInvalid Wallets: " + str(len(invalid_wallets)))
     for w in invalid_wallets:
         data = invalid_wallets[f"{w}"]
         click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
-
-    if auto_fix:
-        click.echo(f"Auto fixing '{str(len(invalid_payments))}' Payments.")
-        for i_p in invalid_payments:
-            if verbose:
-                click.echo(f"  payment: {i_p.checking_id}")
-            if i_p.amount < 0 or i_p.checking_id.startswith("service_fee"):
-                click.echo(
-                    f"  payment skipped: {i_p.checking_id}, amoumt: {i_p.amount}"
-                )
-                continue
-
-            async with core_db.connect() as conn:
-                await update_payment_status(
-                    pending=True, checking_id=i_p.checking_id, conn=conn
-                )
 
 
 async def load_disabled_extension_list() -> None:
