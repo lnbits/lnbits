@@ -255,6 +255,7 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: Optional[str] = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: Optional[str] = Field(default=None)
     boltz_client_wallet: Optional[str] = Field(default="lnbits")
+    boltz_client_cert: Optional[str] = Field(default=None)
 
 
 class LightningSettings(LNbitsSettings):

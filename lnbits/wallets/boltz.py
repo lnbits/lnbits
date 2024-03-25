@@ -2,10 +2,13 @@ import asyncio
 import hashlib
 from typing import AsyncGenerator, Dict, Optional
 
-import httpx
-from loguru import logger
+from grpc.aio import AioRpcError
 
 from lnbits.settings import settings
+from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
+from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2_grpc
+from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
+from lnbits.wallets.macaroon.macaroon import load_macaroon
 
 from .base import (
     InvoiceResponse,
@@ -34,29 +37,35 @@ class BoltzWallet(Wallet):
                 "cannot initialize BoltzWallet: missing boltz_client_wallet"
             )
 
-        self.endpoint = self.normalize_endpoint(settings.boltz_client_endpoint)
-        self.client = httpx.AsyncClient(base_url=self.endpoint)
+        self.endpoint = self.normalize_endpoint(
+            settings.boltz_client_endpoint, add_proto=True
+        )
 
-    async def cleanup(self):
-        try:
-            await self.client.aclose()
-        except RuntimeError as e:
-            logger.warning(f"Error closing wallet connection: {e}")
+        self.macaroon = load_macaroon(settings.boltz_client_macaroon)
+        if settings.boltz_client_cert:
+            cert = open(settings.boltz_client_cert, "rb").read()
+            grpc.aio.insecure_channel(settings.boltz_client_endpoint)
+            creds = grpc.ssl_channel_credentials(cert)
+            auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
+            composite_creds = grpc.composite_channel_credentials(creds, auth_creds)
+            channel = grpc.aio.secure_channel(
+                settings.boltz_client_endpoint, composite_creds
+            )
+        else:
+            channel = grpc.aio.insecure_channel(settings.boltz_client_endpoint)
+        self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
+
+    def metadata_callback(self, _, callback):
+        callback([("macaroon", self.macaroon)], None)
 
     async def status(self) -> StatusResponse:
         try:
-            r = await self.client.get("/balance", timeout=10)
-        except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
+            request = boltzrpc_pb2.GetWalletRequest(name=settings.boltz_client_wallet)
+            response: boltzrpc_pb2.Wallet = await self.rpc.GetWallet(request)
+        except AioRpcError as exc:
+            return StatusResponse(exc.details(), 0)
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            return StatusResponse(error_message, 0)
-
-        data = r.json()
-        assert data["unit"] == "sat"
-        # multiply balance by 1000 to get msats balance
-        return StatusResponse(None, data["balance"] * 1000)
+        return StatusResponse(None, response.balance.total * 1000)
 
     async def create_invoice(
         self,
