@@ -1,12 +1,10 @@
 import asyncio
-import hashlib
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 from grpc.aio import AioRpcError
 
 from lnbits.settings import settings
-from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
-from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2_grpc
+from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
 from lnbits.wallets.macaroon.macaroon import load_macaroon
 
@@ -73,49 +71,40 @@ class BoltzWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
-        # https://api.getalby.com/invoices
-        data: Dict = {"amount": f"{amount}"}
-        if description_hash:
-            data["description_hash"] = description_hash.hex()
-        elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["memo"] = memo or ""
-
-        r = await self.client.post(
-            "/invoices",
-            json=data,
-            timeout=40,
+        pair = boltzrpc_pb2.Pair(to=boltzrpc_pb2.LBTC)
+        request = boltzrpc_pb2.CreateReverseSwapRequest(
+            amount=amount, pair=pair, wallet=settings.boltz_client_wallet
         )
+        try:
+            response: boltzrpc_pb2.CreateReverseSwapResponse
+            response = await self.rpc.CreateReverseSwap(request)
+        except AioRpcError as exc:
+            return InvoiceResponse(ok=False, error_message=exc.details())
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
-
-        data = r.json()
-        checking_id = data["payment_hash"]
-        payment_request = data["payment_request"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponse(
+            ok=True, checking_id=response.id, payment_request=response.invoice
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/payments/bolt11",
-            json={"invoice": bolt11},  # assume never need amount in body
-            timeout=None,
+        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
+        request = boltzrpc_pb2.CreateSwapRequest(
+            invoice=bolt11, pair=pair, wallet=settings.boltz_client_wallet
         )
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+        try:
+            response: boltzrpc_pb2.CreateSwapResponse
+            response = await self.rpc.CreateSwap(request)
+        except AioRpcError as exc:
+            return PaymentResponse(ok=False, error_message=exc.details())
 
-        data = r.json()
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["payment_preimage"]
+        # data = r.json()
+        # checking_id = data["payment_hash"]
+        # fee_msat = -data["fee"]
+        # preimage = data["payment_preimage"]
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponse(True, response.id, response, response.preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
