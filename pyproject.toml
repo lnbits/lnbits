@@ -54,7 +54,7 @@ protobuf = { version = "4.24.3", optional = true }
 python-crontab = { version = "3.0.0", optional = true }
 
 [tool.poetry.extras]
-all = ["pyln-client", "wallycore", "grpcio", "protobuf", "postgres", "scheduler"]
+all = ["pyln-client", "grpcio", "protobuf", "wallycore", "psycopg2-binary", "python-crontab"]
 corelightning = ["pyln-client"]
 grpc = ["grpcio", "protobuf"]
 liquid = ["wallycore"]
