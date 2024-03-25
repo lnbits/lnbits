@@ -269,6 +269,8 @@ async def check_invalid_payments(
 
     funding_source: Wallet = wallet_class()
 
+    click.echo("Funding source: " + str(funding_source))
+
     # payments that are settled in the DB, but not at the Funding source level
     invalid_payments: List[Payment] = []
     invalid_wallets = {}
