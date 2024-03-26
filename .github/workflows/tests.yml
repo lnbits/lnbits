@@ -58,5 +58,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-          token: input.codecov-token
+          token: ${{ inputs.codecov-token }}
           verbose: true
