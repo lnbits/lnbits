@@ -1,7 +1,12 @@
-# LNbits BETA
 
-[![license-badge]](LICENSE)
-[![docs-badge]][docs]
+<picture >
+  <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png"  style="width:300px">
+  <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
+</picture>
+
+<b>(BETA)</b> 
+
+[![license-badge]](LICENSE) [![docs-badge]][docs]
 
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
