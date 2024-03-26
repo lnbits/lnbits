@@ -71,6 +71,7 @@ types-passlib = "^1.7.7.13"
 types-python-jose = "^3.3.4.8"
 openai = "^1.12.0"
 json5 = "^0.9.17"
+pytest-trio = "^0.8.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -134,7 +135,9 @@ ignore_missing_imports = "True"
 log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
-  "tests"
+  "tests/api",
+  "tests/unit",
+  "tests/regtest"
 ]
 
 [tool.black]

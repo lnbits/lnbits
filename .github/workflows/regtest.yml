@@ -75,7 +75,7 @@ jobs:
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
           ECLAIR_PASS: lnbits
-        run: make test-real-wallet
+        run: make test-regtest
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
