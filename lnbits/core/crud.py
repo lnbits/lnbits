@@ -645,7 +645,6 @@ async def get_wallet_payment(
 async def get_last_incoming_payment(
     conn: Optional[Connection] = None,
 ) -> Optional[Payment]:
-    # todo: check SQLite time
     row = await (conn or db).fetchone(
         """
         SELECT *
