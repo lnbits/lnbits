@@ -642,7 +642,7 @@ async def get_wallet_payment(
     return Payment.from_row(row) if row else None
 
 
-async def get_last_incomming_payment(
+async def get_last_incoming_payment(
     conn: Optional[Connection] = None,
 ) -> Optional[Payment]:
     # todo: check SQLite time

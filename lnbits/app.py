@@ -26,7 +26,7 @@ from starlette.responses import JSONResponse
 from lnbits.core.crud import (
     get_dbversions,
     get_installed_extensions,
-    get_last_incomming_payment,
+    get_last_incoming_payment,
 )
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services import websocketUpdater
@@ -461,7 +461,7 @@ def log_server_info():
 
 async def init_latest_payment_hash():
     try:
-        last_payment = await get_last_incomming_payment()
+        last_payment = await get_last_incoming_payment()
         if last_payment:
             settings.last_payment_hash_on_start = last_payment.checking_id
     except Exception as e:
