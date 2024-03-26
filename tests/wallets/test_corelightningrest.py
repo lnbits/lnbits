@@ -13,7 +13,6 @@ ENDPOINT = "http://127.0.0.1:8555"
 MACAROON = "eNcRyPtEdMaCaRoOn"
 
 
-
 headers = {
     "macaroon": MACAROON,
     "encodingtype": "hex",
