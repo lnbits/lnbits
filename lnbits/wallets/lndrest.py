@@ -92,7 +92,7 @@ class LndRestWallet(Wallet):
 
         try:
             data = r.json()
-            if r.is_error:
+            if r.is_error or "balance" not in data:
                 raise Exception
         except Exception:
             return StatusResponse(r.text[:200], 0)
