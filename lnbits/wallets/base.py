@@ -18,6 +18,18 @@ class InvoiceResponse(NamedTuple):
     payment_request: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
 
 class PaymentResponse(NamedTuple):
     # when ok is None it means we don't know if this succeeded
@@ -27,11 +39,27 @@ class PaymentResponse(NamedTuple):
     preimage: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
 
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
     fee_msat: Optional[int] = None
     preimage: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
 
     @property
     def pending(self) -> bool:
