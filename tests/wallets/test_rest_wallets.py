@@ -3,6 +3,7 @@ import json
 
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug.wrappers import Response
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
@@ -53,16 +54,30 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
     server = test_data["server"]
     test = test_data["test"]
     respond_with = f"""respond_with_{test["response_type"]}"""
+    server_response = test["server_response"]
 
     req = httpserver.expect_request(
         uri=server["uri"], headers=server["headers"], method=server["method"]
     )
-    getattr(req, respond_with)(test["server_response"])
+
+    if test["response_type"] == "response":
+        server_response = Response(**server_response)
+
+    getattr(req, respond_with)(server_response)
 
     wallet = test_data["wallet_class"]()
 
-    resp = await getattr(wallet, test_data["function"])()
+    if "expect" in test:
+        resp = await getattr(wallet, test_data["function"])()
+        for key in test["expect"]:
+            assert getattr(resp, key) == test["expect"][key]
 
-    print("### resp", test_data["function"], test["description"], resp)
-    for key in test["expect"]:
-        assert getattr(resp, key) == test["expect"][key]
+    elif "expect_error" in test:
+        error_module = importlib.import_module(test["expect_error"]["module"])
+        error_class = getattr(error_module, test["expect_error"]["class"])
+        with pytest.raises(error_class) as e_info:
+            await getattr(wallet, test_data["function"])()
+
+        assert e_info.match(test["expect_error"]["message"])
+    else:
+        assert False, "Expected outcome not specified"
