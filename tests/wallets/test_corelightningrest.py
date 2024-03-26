@@ -373,15 +373,16 @@ async def test_create_invoice_for_http_404(httpserver: HTTPServer):
 
     wallet = CoreLightningRestWallet()
 
-    with pytest.raises(JSONDecodeError) as e_info:
-        await wallet.create_invoice(
-            amount=amount,
-            memo="Test Invoice",
-            label="test-label",
-        )
+    invoice_resp = await wallet.create_invoice(
+        amount=amount,
+        memo="Test Invoice",
+        label="test-label",
+    )
 
-    # todo: fix class, it should not throw on 404
-    assert str(e_info.value) == "Expecting value: line 1 column 1 (char 0)"
+    assert invoice_resp.success is False
+    assert invoice_resp.checking_id is None
+    assert invoice_resp.payment_request is None
+    assert invoice_resp.error_message == "Not Found"
 
     httpserver.check_assertions()
 
