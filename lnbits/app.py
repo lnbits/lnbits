@@ -466,7 +466,7 @@ async def init_latest_payment_hash():
             settings.last_payment_hash_on_start = last_payment.checking_id
     except Exception as e:
         logger.error(str(e))
-        raise ImportError("Failed to fetch latest incomming payment.")
+        raise ImportError("Failed to fetch latest incoming payment.")
 
 
 def get_db_vendor_name():
