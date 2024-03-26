@@ -10,7 +10,7 @@ inputs:
     default: "1.7.0"
   node-version:
     description: "Node Version"
-    default: "18.x"
+    default: "20.x"
   npm:
     description: "use npm"
     default: false
