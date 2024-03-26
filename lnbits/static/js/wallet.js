@@ -818,10 +818,8 @@ new Vue({
     }
   },
   watch: {
-    payments: function (_, oldVal) {
-      if (oldVal && oldVal.length !== 0) {
-        this.fetchBalance()
-      }
+    payments: function () {
+      this.fetchBalance()
     },
     'paymentsChart.group': function () {
       this.showChart()
@@ -839,7 +837,6 @@ new Vue({
       this.mobileSimple = true
     }
     this.fetchPayments()
-    this.balance = Math.floor(window.wallet.balance_msat / 1000)
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
