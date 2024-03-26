@@ -92,19 +92,20 @@ class PhoenixdWallet(Wallet):
     ) -> PaymentResponse:
         r = await self.client.post(
             "/payinvoice",
-            json={
+            data={
                 "invoice": bolt11_invoice,
-                "amountSat": '1',
+               # "amountSat": '1',
             },
             timeout=40,
         )
 
         if r.is_error:
+            logger.info(f'pay_invoice error: {r.json()}')
             error_message = r.json()["message"]
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
-        logger.info(f'data: {data}')
+        logger.info(f'pay_invoice data: {data}')
 
         checking_id = data['paymentHash']
         fee_msat = -int(data['routingFeeSat'])
@@ -117,7 +118,7 @@ class PhoenixdWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()
-        logger.info(f'data: {data}')
+        logger.info(f'get_invoice_status data: {data}')
 
         fee_msat = data['fees']
         preimage= data["preimage"]
