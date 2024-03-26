@@ -47,6 +47,7 @@ class UsersSettings(LNbitsSettings):
 
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
+    lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_manifests: List[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
@@ -375,7 +376,6 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
-    lnbits_extensions_deactivate_all: bool = Field(default=False)
     cleanup_wallets_days: int = Field(default=90)
 
     @property

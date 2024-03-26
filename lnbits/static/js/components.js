@@ -170,7 +170,7 @@ Vue.component('lnbits-extension-list', {
 })
 
 Vue.component('lnbits-manage', {
-  props: ['showAdmin', 'showNode'],
+  props: ['showAdmin', 'showNode', 'showExtensions'],
   data: function () {
     return {
       extensions: [],
@@ -198,7 +198,7 @@ Vue.component('lnbits-manage', {
           </q-item-section>
         </q-item>
       </div>
-      <q-item clickable tag="a" href="/extensions">
+      <q-item v-if="showExtensions" clickable tag="a" href="/extensions">
         <q-item-section side>
           <q-icon name="extension" color="grey-5" size="md"></q-icon>
         </q-item-section>
