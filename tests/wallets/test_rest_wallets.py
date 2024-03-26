@@ -1,5 +1,6 @@
 import importlib
 import json
+from urllib.parse import urlencode
 
 import pytest
 from pytest_httpserver import HTTPServer
@@ -56,8 +57,17 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
     respond_with = f"""respond_with_{test["response_type"]}"""
     server_response = test["server_response"]
 
+    request_data = {}
+    if "data" in test:
+        request_data["data"] = urlencode(test["data"])
+    elif "json" in test:
+        request_data["json"] = test["json"]
+
     req = httpserver.expect_request(
-        uri=server["uri"], headers=server["headers"], method=server["method"]
+        uri=server["uri"],
+        headers=server["headers"],
+        method=server["method"],
+        **request_data,
     )
 
     if test["response_type"] == "response":
@@ -65,10 +75,11 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
 
     getattr(req, respond_with)(server_response)
 
+    parameters = test["params"] if "params" in test else {}
     wallet = test_data["wallet_class"]()
 
     if "expect" in test:
-        resp = await getattr(wallet, test_data["function"])()
+        resp = await getattr(wallet, test_data["function"])(**parameters)
         for key in test["expect"]:
             assert getattr(resp, key) == test["expect"][key]
 
@@ -76,7 +87,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
         error_module = importlib.import_module(test["expect_error"]["module"])
         error_class = getattr(error_module, test["expect_error"]["class"])
         with pytest.raises(error_class) as e_info:
-            await getattr(wallet, test_data["function"])()
+            await getattr(wallet, test_data["function"])(**parameters)
 
         assert e_info.match(test["expect_error"]["message"])
     else:
