@@ -21,6 +21,7 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       python-version: ${{ matrix.python-version }}
+    secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
   migrations:
@@ -32,6 +33,7 @@ jobs:
     with:
       make: test-migration
       db-name: migration
+    secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
   openapi:
@@ -50,6 +52,7 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
+    secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
   jmeter:
