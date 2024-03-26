@@ -49,7 +49,9 @@ class CoreLightningWallet(Wallet):
         payment_hash = settings.last_payment_hash_on_start
         data: dict = self.ln.listinvoices(payment_hash=payment_hash)  # type: ignore
         if len(data["invoices"]) == 0:
-            logger.warning("Last payment hash was not found on the Core Lightning Node.")
+            logger.warning(
+                "Last payment hash was not found on the Core Lightning Node."
+            )
             logger.warning("Listing all invoices, this can take some minutes...")
 
             data = self.ln.listinvoices()  # type: ignore
