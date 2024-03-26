@@ -223,6 +223,7 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
         "label": "test-label",
     }
 
+    # todo: extract extra
     extra_data = {None: None, "expiry": 123, "preimage": "xxx"}
 
     for key in extra_data:
@@ -260,6 +261,7 @@ async def test_create_invoice_ok(httpserver: HTTPServer):
         httpserver.check_assertions()
 
 
+# todo: extract
 @pytest.mark.asyncio
 async def test_create_invoice_unhashed_description(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT

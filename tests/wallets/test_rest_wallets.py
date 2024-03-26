@@ -67,7 +67,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
         uri=server["uri"],
         headers=server["headers"],
         method=server["method"],
-        **request_data,
+        **request_data, # type: ignore
     )
 
     if test["response_type"] == "response":
@@ -77,6 +77,8 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
 
     parameters = test["params"] if "params" in test else {}
     wallet = test_data["wallet_class"]()
+
+    print("### test", test)
 
     if "expect" in test:
         resp = await getattr(wallet, test_data["function"])(**parameters)
