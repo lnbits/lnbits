@@ -35,6 +35,24 @@
                             "error_message": null,
                             "balance_msat": 55000
                         }
+                    },
+                    {
+                        "description": "with error",
+                        "server_response": {
+                            "error": "test-error"
+                        },
+                        "expect": {
+                            "error_message": "Failed to connect to http://127.0.0.1:8555, got: 'test-error...'",
+                            "balance_msat": 0
+                        }
+                    },
+                    {
+                        "description": "with bad json",
+                        "server_response": "test-text-error",
+                        "expect": {
+                            "error_message": "Failed to connect to http://127.0.0.1:8555, got: '\"test-text-error\"...'",
+                            "balance_msat": 0
+                        }
                     }
                 ]
             }
@@ -63,6 +81,34 @@
                         "server_response": {},
                         "expect": {
                             "error_message": "{}",
+                            "balance_msat": 0
+                        }
+                    },
+                    {
+                        "description": "with balance",
+                        "server_response": {
+                            "balance": 55
+                        },
+                        "expect": {
+                            "error_message": null,
+                            "balance_msat": 55000
+                        }
+                    },
+                    {
+                        "description": "with error",
+                        "server_response": {
+                            "error": "no balance key"
+                        },
+                        "expect": {
+                            "error_message": "{\n    \"error\": \"no balance key\"\n}",
+                            "balance_msat": 0
+                        }
+                    },
+                    {
+                        "description": "with bad json",
+                        "server_response": "test-text-error",
+                        "expect": {
+                            "error_message": "\"test-text-error\"",
                             "balance_msat": 0
                         }
                     }

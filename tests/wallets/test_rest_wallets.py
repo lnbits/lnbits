@@ -6,6 +6,9 @@ from pytest_httpserver import HTTPServer
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
+# todo:
+#  - fix user agent
+
 
 def load_tests_from_json(path):
     with open(path) as f:
@@ -46,22 +49,18 @@ def test_data(request):
 
 
 @pytest.mark.asyncio
-async def test_status_no_balance(httpserver: HTTPServer, test_data):
-    print("### test_status_no_balance: ", test_data)
-
+async def test_rest_wallet(httpserver: HTTPServer, test_data):
     server = test_data["server"]
-    print("### server", server)
+    test = test_data["test"]
+
     httpserver.expect_request(
         uri=server["uri"], headers=server["headers"], method=server["method"]
-    ).respond_with_json(test_data["test"]["server_response"])
-
+    ).respond_with_json(test["server_response"])
 
     wallet = test_data["wallet_class"]()
 
-
     resp = await getattr(wallet, test_data["function"])()
-    print("### resp", resp)
-    for key in test_data["test"]["expect"]:
-        assert getattr(resp, key) == test_data["test"]["expect"][key]
-    # assert status.error_message == "no data"
-    # assert status.balance_msat == 0
+
+    print("### resp", test_data["function"], test["description"], resp)
+    for key in test["expect"]:
+        assert getattr(resp, key) == test["expect"][key]
