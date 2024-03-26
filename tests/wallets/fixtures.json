@@ -57,6 +57,19 @@
                             "error_message": "Failed to connect to http://127.0.0.1:8555, got: '\"test-text-error\"...'",
                             "balance_msat": 0
                         }
+                    },
+                    {
+                        "description": "http 404",
+                        "response_type": "response",
+                        "server_response": {
+                            "response": "Not Found",
+                            "status": 404
+                        },
+                        "expect_error": {
+                            "module": "httpx",
+                            "class": "HTTPStatusError",
+                            "message": "Client error '404 NOT FOUND'"
+                        }
                     }
                 ]
             }
@@ -118,6 +131,19 @@
                         "expect": {
                             "error_message": "\"test-text-error\"",
                             "balance_msat": 0
+                        }
+                    },
+                    {
+                        "description": "http 404",
+                        "response_type": "response",
+                        "server_response": {
+                            "response": "Not Found",
+                            "status": 404
+                        },
+                        "expect_error": {
+                            "module": "httpx",
+                            "class": "HTTPStatusError",
+                            "message": "Client error '404 NOT FOUND'"
                         }
                     }
                 ]
