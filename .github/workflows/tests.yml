@@ -18,6 +18,9 @@ on:
       db-name:
         default: "lnbits"
         type: string
+      codecov-token:
+        required: true
+        type: string
 
 jobs:
   tests:
@@ -55,5 +58,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ input.codecov_token }}
+          verbose: true

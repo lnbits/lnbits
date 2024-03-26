@@ -15,6 +15,9 @@ on:
       backend-wallet-class:
         required: true
         type: string
+      codecov-token:
+        required: true
+        type: string
 
 jobs:
   regtest:
@@ -78,5 +81,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ input.codecov_token }}
+          verbose: true
