@@ -16,7 +16,7 @@ on:
         required: true
         type: string
     secrets:
-      codecov-token:
+      CODECOV_TOKEN:
         required: true
 
 jobs:
@@ -81,5 +81,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-          token: ${{ secrets.codecov-token }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
