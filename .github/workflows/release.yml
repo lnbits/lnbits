@@ -26,3 +26,6 @@ jobs:
     uses: ./.github/workflows/docker.yml
     with:
       tag: ${{ github.ref_name }}
+    secrets:
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_PASSWORD }}
