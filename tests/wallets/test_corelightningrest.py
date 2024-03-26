@@ -134,6 +134,7 @@ async def test_status_for_http_404(httpserver: HTTPServer):
     httpserver.check_assertions()
 
 
+# todo: extract
 @pytest.mark.asyncio
 async def test_status_for_server_down():
     settings.corelightning_rest_url = ENDPOINT
@@ -147,6 +148,7 @@ async def test_status_for_server_down():
     assert e_info.match("Server error '500 INTERNAL SERVER ERROR'")
 
 
+# todo: extract
 @pytest.mark.asyncio
 async def test_status_for_missing_config():
     settings.corelightning_rest_url = None
@@ -178,6 +180,7 @@ async def test_status_for_missing_config():
     assert wallet.url == ENDPOINT
 
 
+# todo: extract
 @pytest.mark.asyncio
 async def test_cleanup(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
