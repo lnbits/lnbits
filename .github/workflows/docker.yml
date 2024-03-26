@@ -11,6 +11,11 @@ on:
       tag:
         default: latest
         type: string
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
 
 jobs:
   push_to_dockerhub:
@@ -43,16 +48,6 @@ jobs:
             context: .
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits:${{ inputs.tag }}
-            platforms: linux/amd64,linux/arm64
-            cache-from: type=local,src=/tmp/.buildx-cache
-            cache-to: type=local,dest=/tmp/.buildx-cache
-
-      - name: Build and push latest tag
-        uses: docker/build-push-action@v5
-        with:
-            context: .
-            push: true
-            tags: ${{ secrets.DOCKER_USERNAME }}/lnbits:latest
             platforms: linux/amd64,linux/arm64
             cache-from: type=local,src=/tmp/.buildx-cache
             cache-to: type=local,dest=/tmp/.buildx-cache
