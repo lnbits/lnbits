@@ -79,6 +79,7 @@ class InstalledExtensionMiddleware:
         )
 
         if "text/html" in [a for a in accept_header.split(",")]:
+            # TODO: figure that out where is `request` here?
             return HTMLResponse(
                 status_code=status_code,
                 content=template_renderer()
