@@ -360,6 +360,14 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     app.include_router(router=ext_route, prefix=prefix)
 
 
+def register_all_ext_routes(app: FastAPI):
+    for ext in get_valid_extensions(False):
+        try:
+            register_ext_routes(app, ext)
+        except Exception as e:
+            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+
+
 def register_startup(app: FastAPI):
     @app.on_event("startup")
     async def lnbits_startup():
@@ -390,11 +398,7 @@ def register_startup(app: FastAPI):
             # check extensions after restart
             if not settings.lnbits_extensions_deactivate_all:
                 await check_installed_extensions(app)
-                for ext in get_valid_extensions(False):
-                    try:
-                        register_ext_routes(app, ext)
-                    except Exception as e:
-                        logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+                register_all_ext_routes(app)
 
             if settings.lnbits_admin_ui:
                 initialize_server_logger()
