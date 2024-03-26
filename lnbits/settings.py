@@ -424,7 +424,7 @@ class TransientSettings(InstalledExtensionsSettings):
 
     # the last payment hash found at the server init time
     # helps the funding sources know where they left off
-    last_payment_hash_on_start: Optional[str] = ""
+    last_payment_hash_on_start: Optional[str] = None
 
     @classmethod
     def readonly_fields(cls):
