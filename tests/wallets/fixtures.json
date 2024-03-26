@@ -1,0 +1,73 @@
+{
+    "corelightningrest": {
+        "class": "CoreLightningRestWallet",
+        "settings": {
+            "corelightning_rest_url": "http://127.0.0.1:8555",
+            "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn"
+        },
+        "api": {
+            "status": {
+                "server": {
+                    "uri": "/v1/channel/localremotebal",
+                    "headers": {
+                        "macaroon": "eNcRyPtEdMaCaRoOn",
+                        "encodingtype": "hex",
+                        "accept": "application/json",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "GET"
+                },
+                "tests": [
+                    {
+                        "description": "no balance",
+                        "server_response": {},
+                        "expect": {
+                            "error_message": "no data",
+                            "balance_msat": 0
+                        }
+                    },
+                    {
+                        "description": "with balance",
+                        "server_response": {
+                            "localBalance": 55
+                        },
+                        "expect": {
+                            "error_message": null,
+                            "balance_msat": 55000
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "lnrest": {
+        "class": "LndRestWallet",
+        "settings": {
+            "lnd_rest_endpoint": "http://127.0.0.1:8555",
+            "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+            "lnd_rest_cert": ""
+        },
+        "api": {
+            "status": {
+                "server": {
+                    "uri": "/v1/balance/channels",
+                    "headers": {
+                        "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "GET"
+                },
+                "tests": [
+                    {
+                        "description": "no balance",
+                        "server_response": {},
+                        "expect": {
+                            "error_message": "{}",
+                            "balance_msat": 0
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
