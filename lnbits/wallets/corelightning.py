@@ -45,8 +45,17 @@ class CoreLightningWallet(Wallet):
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
-        invoices: dict = self.ln.listinvoices()  # type: ignore
-        for inv in invoices["invoices"][::-1]:
+
+        payment_hash = settings.last_payment_hash_on_start
+        data: dict = self.ln.listinvoices(payment_hash=payment_hash)  # type: ignore
+        if len(data["invoices"]) == 0:
+            logger.warning(
+                "Last payment hash was not found on the Core Lightning Node."
+            )
+            logger.warning("Listing all invoices, this can take some minutes...")
+
+            data = self.ln.listinvoices()  # type: ignore
+        for inv in data["invoices"][::-1]:
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break

@@ -642,6 +642,23 @@ async def get_wallet_payment(
     return Payment.from_row(row) if row else None
 
 
+async def get_last_incoming_payment(
+    conn: Optional[Connection] = None,
+) -> Optional[Payment]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT *
+        FROM apipayments
+        WHERE amount > 0
+        ORDER BY time DESC
+        LIMIT 1
+        """,
+        (),
+    )
+
+    return Payment.from_row(row) if row else None
+
+
 async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
     rows = await db.fetchall(
         f"""
