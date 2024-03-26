@@ -18,6 +18,9 @@ on:
       db-name:
         default: "lnbits"
         type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 jobs:
   tests:
@@ -39,7 +42,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: ./.github/actions/prepare
         with:
@@ -52,7 +55,8 @@ jobs:
         run: make ${{ inputs.make }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

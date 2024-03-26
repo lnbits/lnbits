@@ -21,6 +21,8 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       python-version: ${{ matrix.python-version }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   migrations:
     needs: [ lint ]
@@ -31,6 +33,8 @@ jobs:
     with:
       make: test-migration
       db-name: migration
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   openapi:
     needs: [ lint ]
@@ -48,6 +52,8 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   jmeter:
     strategy:

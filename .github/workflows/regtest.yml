@@ -15,21 +15,24 @@ on:
       backend-wallet-class:
         required: true
         type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 jobs:
   regtest:
     runs-on: ${{ inputs.os-version }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and push
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
             context: .
             push: false
@@ -75,7 +78,8 @@ jobs:
         run: make test-real-wallet
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
