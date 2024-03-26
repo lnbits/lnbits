@@ -20,6 +20,7 @@
                 "tests": [
                     {
                         "description": "no balance",
+                        "response_type": "json",
                         "server_response": {},
                         "expect": {
                             "error_message": "no data",
@@ -28,6 +29,7 @@
                     },
                     {
                         "description": "with balance",
+                        "response_type": "json",
                         "server_response": {
                             "localBalance": 55
                         },
@@ -38,6 +40,7 @@
                     },
                     {
                         "description": "with error",
+                        "response_type": "json",
                         "server_response": {
                             "error": "test-error"
                         },
@@ -48,6 +51,7 @@
                     },
                     {
                         "description": "with bad json",
+                        "response_type": "json",
                         "server_response": "test-text-error",
                         "expect": {
                             "error_message": "Failed to connect to http://127.0.0.1:8555, got: '\"test-text-error\"...'",
@@ -78,6 +82,7 @@
                 "tests": [
                     {
                         "description": "no balance",
+                        "response_type": "json",
                         "server_response": {},
                         "expect": {
                             "error_message": "{}",
@@ -86,6 +91,7 @@
                     },
                     {
                         "description": "with balance",
+                        "response_type": "json",
                         "server_response": {
                             "balance": 55
                         },
@@ -96,6 +102,7 @@
                     },
                     {
                         "description": "with error",
+                        "response_type": "json",
                         "server_response": {
                             "error": "no balance key"
                         },
@@ -105,7 +112,8 @@
                         }
                     },
                     {
-                        "description": "with bad json",
+                        "description": "with bad json #todo: respond with data",
+                        "response_type": "json",
                         "server_response": "test-text-error",
                         "expect": {
                             "error_message": "\"test-text-error\"",

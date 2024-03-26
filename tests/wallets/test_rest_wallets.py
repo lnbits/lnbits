@@ -52,10 +52,12 @@ def test_data(request):
 async def test_rest_wallet(httpserver: HTTPServer, test_data):
     server = test_data["server"]
     test = test_data["test"]
+    respond_with = f"""respond_with_{test["response_type"]}"""
 
-    httpserver.expect_request(
+    req = httpserver.expect_request(
         uri=server["uri"], headers=server["headers"], method=server["method"]
-    ).respond_with_json(test["server_response"])
+    )
+    getattr(req, respond_with)(test["server_response"])
 
     wallet = test_data["wallet_class"]()
 
