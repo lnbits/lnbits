@@ -217,13 +217,13 @@ vars.put(&quot;extensionsLength&quot;, extensionList.length);
           <boolProp name="displaySystemProperties">false</boolProp>
         </DebugSampler>
         <hashTree/>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Extension List: ${extensionsLength}" enabled="true">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop enable extensions: ${extensionsLength}" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <stringProp name="LoopController.loops">${extensionsLength}</stringProp>
         </LoopController>
         <hashTree>
           <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Extension Counter" enabled="true">
-            <stringProp name="CounterConfig.start">1</stringProp>
+            <stringProp name="CounterConfig.start">0</stringProp>
             <stringProp name="CounterConfig.end">${extensionsLength}</stringProp>
             <stringProp name="CounterConfig.incr">1</stringProp>
             <stringProp name="CounterConfig.name">extensionIndex</stringProp>
@@ -231,7 +231,7 @@ vars.put(&quot;extensionsLength&quot;, extensionList.length);
             <boolProp name="CounterConfig.per_user">true</boolProp>
           </CounterConfig>
           <hashTree/>
-          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Extract extension data" enabled="true">
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Extract extension data  [${extensionIndex}/${extensionsLength}]" enabled="true">
             <stringProp name="scriptLanguage">javascript</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename"></stringProp>
@@ -249,7 +249,7 @@ vars.put(&quot;extension&quot;, extensions.split(&quot;,&quot;)[extensionIndex])
             <stringProp name="TestPlan.comments">by admin</stringProp>
           </TransactionController>
           <hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[ext] Get Releases for ${extension}" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Get releases" enabled="true">
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
               </elementProp>
@@ -320,7 +320,7 @@ vars.put(&quot;extension&quot;, extensions.split(&quot;,&quot;)[extensionIndex])
               </ResponseAssertion>
               <hashTree/>
             </hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Install extension ${extension}" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Install extension" enabled="true">
               <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
                 <collectionProp name="Arguments.arguments">
@@ -424,19 +424,98 @@ vars.put(&quot;version&quot;, latestRelease.version)
               </JSR223PreProcessor>
               <hashTree/>
             </hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Activate extension" enabled="true">
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="activate" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">${extension}</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">activate</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+              <stringProp name="HTTPSampler.domain">${host}</stringProp>
+              <stringProp name="HTTPSampler.port">${port}</stringProp>
+              <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
+              <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+              <stringProp name="HTTPSampler.path">extensions</stringProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+              <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+              <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+              <stringProp name="HTTPSampler.response_timeout"></stringProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                  <elementProp name="Sec-Fetch-Mode" elementType="Header">
+                    <stringProp name="Header.name">Sec-Fetch-Mode</stringProp>
+                    <stringProp name="Header.value">same-origin</stringProp>
+                  </elementProp>
+                  <elementProp name="Sec-Fetch-Site" elementType="Header">
+                    <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
+                    <stringProp name="Header.value">same-origin</stringProp>
+                  </elementProp>
+                  <elementProp name="Accept-Language" elementType="Header">
+                    <stringProp name="Header.name">Accept-Language</stringProp>
+                    <stringProp name="Header.value">en-US,en;q=0.</stringProp>
+                  </elementProp>
+                  <elementProp name="Upgrade-Insecure-Requests" elementType="Header">
+                    <stringProp name="Header.name">Upgrade-Insecure-Requests</stringProp>
+                    <stringProp name="Header.value">1</stringProp>
+                  </elementProp>
+                  <elementProp name="Accept-Encoding" elementType="Header">
+                    <stringProp name="Header.name">Accept-Encoding</stringProp>
+                    <stringProp name="Header.value">gzip, deflate, br</stringProp>
+                  </elementProp>
+                  <elementProp name="User-Agent" elementType="Header">
+                    <stringProp name="Header.name">User-Agent</stringProp>
+                    <stringProp name="Header.value">Mozilla.0 (Macintosh; Intel Mac OS X 10.15; rv:106.0) Gecko/20100101 Firefox/106.0</stringProp>
+                  </elementProp>
+                  <elementProp name="Accept" elementType="Header">
+                    <stringProp name="Header.name">Accept</stringProp>
+                    <stringProp name="Header.value">text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8</stringProp>
+                  </elementProp>
+                  <elementProp name="Sec-Fetch-Dest" elementType="Header">
+                    <stringProp name="Header.name">Sec-Fetch-Dest</stringProp>
+                    <stringProp name="Header.value">empty</stringProp>
+                  </elementProp>
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">X-Api-Key</stringProp>
+                    <stringProp name="Header.value">${adminWalletKey}</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </HeaderManager>
+              <hashTree/>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Check Status Code 200" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49586">200</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
           </hashTree>
-          <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Check Extension" enabled="false">
+          <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Check extension ${extension}" enabled="true">
             <boolProp name="TransactionController.includeTimers">false</boolProp>
             <boolProp name="TransactionController.parent">true</boolProp>
           </TransactionController>
           <hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos] Enable &quot;tpos&quot;" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Enable extension" enabled="true">
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments">
                   <elementProp name="enable" elementType="HTTPArgument">
                     <boolProp name="HTTPArgument.always_encode">false</boolProp>
                     <stringProp name="Argument.name">enable</stringProp>
-                    <stringProp name="Argument.value">tpos</stringProp>
+                    <stringProp name="Argument.value">${extension}</stringProp>
                     <stringProp name="Argument.metadata">=</stringProp>
                     <boolProp name="HTTPArgument.use_equals">true</boolProp>
                   </elementProp>
@@ -504,8 +583,18 @@ vars.put(&quot;version&quot;, latestRelease.version)
                 <intProp name="Assertion.test_type">8</intProp>
               </ResponseAssertion>
               <hashTree/>
+              <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a bit" enabled="true">
+                <stringProp name="ConstantTimer.delay">3000</stringProp>
+                <stringProp name="TestPlan.comments">for the callback to be invoked</stringProp>
+              </ConstantTimer>
+              <hashTree/>
             </hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos ] Go to &quot;tpos&quot; page" enabled="true">
+            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a bit" enabled="false">
+              <stringProp name="ConstantTimer.delay">2000</stringProp>
+              <stringProp name="TestPlan.comments">for the callback to be invoked</stringProp>
+            </ConstantTimer>
+            <hashTree/>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Go to extension page" enabled="true">
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
               </elementProp>
@@ -513,7 +602,7 @@ vars.put(&quot;version&quot;, latestRelease.version)
               <stringProp name="HTTPSampler.port">${port}</stringProp>
               <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
               <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-              <stringProp name="HTTPSampler.path">/tpos/</stringProp>
+              <stringProp name="HTTPSampler.path">/${extension}</stringProp>
               <stringProp name="HTTPSampler.method">GET</stringProp>
               <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
               <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -565,74 +654,15 @@ vars.put(&quot;version&quot;, latestRelease.version)
                 </collectionProp>
               </HeaderManager>
               <hashTree/>
-            </hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[tpos] Get tpos " enabled="true">
-              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-                <collectionProp name="Arguments.arguments">
-                  <elementProp name="all_wallets" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                    <stringProp name="Argument.name">all_wallets</stringProp>
-                    <stringProp name="Argument.value">true</stringProp>
-                    <stringProp name="Argument.metadata">=</stringProp>
-                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                  </elementProp>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Check Status Code 200" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49586">200</stringProp>
                 </collectionProp>
-              </elementProp>
-              <stringProp name="HTTPSampler.domain">${host}</stringProp>
-              <stringProp name="HTTPSampler.port">${port}</stringProp>
-              <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
-              <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-              <stringProp name="HTTPSampler.path">/tpos/api/v1/tposs</stringProp>
-              <stringProp name="HTTPSampler.method">GET</stringProp>
-              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-              <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-              <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
-              <stringProp name="HTTPSampler.connect_timeout"></stringProp>
-              <stringProp name="HTTPSampler.response_timeout"></stringProp>
-            </HTTPSamplerProxy>
-            <hashTree>
-              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
-                <collectionProp name="HeaderManager.headers">
-                  <elementProp name="Sec-Fetch-Mode" elementType="Header">
-                    <stringProp name="Header.name">Sec-Fetch-Mode</stringProp>
-                    <stringProp name="Header.value">cors</stringProp>
-                  </elementProp>
-                  <elementProp name="Referer" elementType="Header">
-                    <stringProp name="Header.name">Referer</stringProp>
-                    <stringProp name="Header.value">${scheme}://${host}:${port}/tpos/</stringProp>
-                  </elementProp>
-                  <elementProp name="Sec-Fetch-Site" elementType="Header">
-                    <stringProp name="Header.name">Sec-Fetch-Site</stringProp>
-                    <stringProp name="Header.value">same-origin</stringProp>
-                  </elementProp>
-                  <elementProp name="Accept-Language" elementType="Header">
-                    <stringProp name="Header.name">Accept-Language</stringProp>
-                    <stringProp name="Header.value">en-US,en;q=0.${lnurlpCount}</stringProp>
-                  </elementProp>
-                  <elementProp name="X-Api-Key" elementType="Header">
-                    <stringProp name="Header.name">X-Api-Key</stringProp>
-                    <stringProp name="Header.value">${adminkey}</stringProp>
-                  </elementProp>
-                  <elementProp name="Accept-Encoding" elementType="Header">
-                    <stringProp name="Header.name">Accept-Encoding</stringProp>
-                    <stringProp name="Header.value">gzip, deflate, br</stringProp>
-                  </elementProp>
-                  <elementProp name="User-Agent" elementType="Header">
-                    <stringProp name="Header.name">User-Agent</stringProp>
-                    <stringProp name="Header.value">Mozilla/${lnurlpCount}.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0</stringProp>
-                  </elementProp>
-                  <elementProp name="Accept" elementType="Header">
-                    <stringProp name="Header.name">Accept</stringProp>
-                    <stringProp name="Header.value">application/json, text/plain, */*</stringProp>
-                  </elementProp>
-                  <elementProp name="Sec-Fetch-Dest" elementType="Header">
-                    <stringProp name="Header.name">Sec-Fetch-Dest</stringProp>
-                    <stringProp name="Header.value">empty</stringProp>
-                  </elementProp>
-                </collectionProp>
-              </HeaderManager>
+                <stringProp name="Assertion.custom_message"></stringProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+              </ResponseAssertion>
               <hashTree/>
             </hashTree>
           </hashTree>
