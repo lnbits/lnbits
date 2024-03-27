@@ -70,7 +70,7 @@ jobs:
             echo "##########"
             echo "$error_count" == "0"
             echo "###########$error_count ###########"
-            if [[ "$error_count" == "0" ]]; then
+            if ["$error_count" == "0"]; then
               echo "Test $filename OK."
               rm -r reports/*
             else
