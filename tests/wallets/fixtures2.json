@@ -1,0 +1,179 @@
+{
+    "funding_sources": {
+        "corelightningrest": {
+            "class": "CoreLightningRestWallet",
+            "settings": {
+                "corelightning_rest_url": "http://127.0.0.1:8555",
+                "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn"
+            }
+        },
+        "lndrest": {
+            "class": "LndRestWallet",
+            "settings": {
+                "lnd_rest_endpoint": "http://127.0.0.1:8555",
+                "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+                "lnd_rest_cert": ""
+            }
+        }
+    },
+    "mocked_endpoints": {
+        "status": {
+            "corelightningrest": [
+                {
+                    "name": "status",
+                    "uri": "/v1/channel/localremotebal",
+                    "headers": {
+                        "macaroon": "eNcRyPtEdMaCaRoOn",
+                        "encodingtype": "hex",
+                        "accept": "application/json",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "GET"
+                }
+            ],
+            "lndrest": [
+                {
+                    "name": "status",
+                    "uri": "/v1/balance/channels",
+                    "headers": {
+                        "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "GET"
+                }
+            ]
+        },
+        "create_invoice": {
+            "corelightningrest": [
+                {
+                    "name": "create_invoice",
+                    "uri": "/v1/invoice/genInvoice",
+                    "headers": {
+                        "macaroon": "eNcRyPtEdMaCaRoOn",
+                        "encodingtype": "hex",
+                        "accept": "application/json",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "POST"
+                }
+            ],
+            "lndrest": [
+                {
+                    "name": "create_invoice",
+                    "uri": "/v1/invoices",
+                    "headers": {
+                        "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                        "User-Agent": "LNbits/0.12.2"
+                    },
+                    "method": "POST"
+                }
+            ]
+        }
+    },
+    "tests": {
+        "status": [
+            {
+                "description": "no balance",
+                "call_params": {},
+                "expect": {
+                    "error_message": "no data",
+                    "balance_msat": 0
+                },
+                "mock_endpoint": {
+                    "corelightningrest": [
+                        {
+                            "name": "status",
+                            "response_type": "json",
+                            "response": {}
+                        }
+                    ],
+                    "lndrest": [
+                        {
+                            "name": "status",
+                            "response_type": "json",
+                            "response": {}
+                        }
+                    ]
+                }
+            },
+            {
+                "description": "with balance",
+                "call_params": {},
+                "expect": {
+                    "error_message": null,
+                    "balance_msat": 55000
+                },
+                "mock_endpoint": {
+                    "corelightningrest": [
+                        {
+                            "name": "status",
+                            "response_type": "json",
+                            "response": {
+                                "balance": 55
+                            }
+                        }
+                    ],
+                    "lndrest": [
+                        {
+                            "name": "status",
+                            "response_type": "json",
+                            "response": {
+                                "localBalance": 55
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "create_invoice": [
+            {
+                "description": "create ok",
+                "call_params": {
+                    "amount": 555,
+                    "memo": "Test Invoice",
+                    "label": "test-label"
+                },
+                "expect": {
+                    "success": true,
+                    "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n",
+                    "error_message": null
+                },
+                "mock_endpoint": {
+                    "corelightningrest": [
+                        {
+                            "name": "create_invoice",
+                            "request_type": "data",
+                            "request_body": {
+                                "amount": 555000,
+                                "description": "Test Invoice",
+                                "label": "test-label"
+                            },
+                            "response_type": "json",
+                            "response": {
+                                "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                "bolt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                            }
+                        }
+                    ],
+                    "lndrest": [
+                        {
+                            "name": "create_invoice",
+                            "request_type": "json",
+                            "request_body": {
+                                "value": 555,
+                                "memo": "Test Invoice",
+                                "private": true
+                            },
+                            "response_type": "json",
+                            "response": {
+                                "r_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}

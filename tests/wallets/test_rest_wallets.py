@@ -16,28 +16,41 @@ def load_tests_from_json(path):
     with open(path) as f:
         data = json.load(f)
 
-        tests = []
-        for funding_source in data:
-            wallet = data[funding_source]
+        funding_sources = _load_funding_sources(data["funding_sources"])
 
-            wallet_class = getattr(wallets_module, wallet["class"])
-            settings = getattr(wallets_module, "settings")
-            for s in wallet["settings"]:
-                setattr(settings, s, wallet["settings"][s])
+        tests = {}
+        for fn_name in data["functions"]:
+            fn_mocks = data["functions"][fn_name]["mocks"]
 
-            for func in wallet["api"]:
-                for test in wallet["api"][func]["tests"]:
-                    tests.append(
-                        {
-                            "wallet_class": wallet_class,
-                            "function": func,
-                            "server": wallet["api"][func]["server"],
-                            "test": test,
-                        }
-                    )
+            for test in data["functions"][tests]:
+                """create an unit test for each funding source"""
 
+                for fs in funding_sources:
+                    tests[fs] = []
+                    for mock_name in fn_mocks[fs]:
+                        tests[fs].append(
+                            {
+                                "wallet_class": fs["wallet_class"],
+                                "function": fn_name,
+                                "mocks": fn_mocks[fs],
+                                "test": test,
+                            }
+                        )
         return tests
 
+
+def _load_funding_sources(data: dict) -> dict:
+    funding_sources = {}
+    for funding_source in data:
+        funding_sources[funding_source] = getattr(
+            wallets_module, funding_source["class"]
+        )
+
+        settings = getattr(wallets_module, "settings")
+        for s in funding_source["settings"]:
+            setattr(settings, s, funding_source["settings"][s])
+
+    return funding_sources
 
 # specify where the server should bind to
 @pytest.fixture(scope="session")
@@ -94,3 +107,27 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data):
         assert e_info.match(test["expect_error"]["message"])
     else:
         assert False, "Expected outcome not specified"
+
+
+### Test Sample
+# "my_func_01": [
+#     {
+#         "description": "create ok",
+#         "call_params": {},
+#         "expect": {},
+#         "mock_server": {
+#             "corelightningrest": {
+#                 "request_type": "data",
+#                 "request_body": {},
+#                 "response_type": "json",
+#                 "response": {}
+#             },
+#             "lndrest": {
+#                 "request_type": "json",
+#                 "request_body": {},
+#                 "response_type": "json",
+#                 "response": {}
+#             }
+#         }
+#     }
+# ],
