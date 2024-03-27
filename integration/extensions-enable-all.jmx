@@ -30,7 +30,7 @@
           </elementProp>
           <elementProp name="excludedExtensions" elementType="Argument">
             <stringProp name="Argument.name">excludedExtensions</stringProp>
-            <stringProp name="Argument.value">discordbot</stringProp>
+            <stringProp name="Argument.value">discordbot,cashu</stringProp>
             <stringProp name="Argument.desc">Comma separated values, no spaces.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
