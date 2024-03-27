@@ -69,7 +69,7 @@ jobs:
             echo "Error count: '$error_count'"
             echo "##########"
             echo "$error_count" == "0"
-            echo "###########""
+            echo "###########$error_count ###########"
             if [[ "$error_count" == "0" ]]; then
               echo "Test $filename OK."
               rm -r reports/*
