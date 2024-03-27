@@ -47,12 +47,12 @@ from ..models import (
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
 
-@auth_router.get("/", description="Get the authenticated user")
+@auth_router.get("", description="Get the authenticated user")
 async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
     return user
 
 
-@auth_router.post("/", description="Login via the username and password")
+@auth_router.post("", description="Login via the username and password")
 async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
