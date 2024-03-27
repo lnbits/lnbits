@@ -223,7 +223,7 @@ vars.put(&quot;extensionsLength&quot;, extensionList.length);
         </LoopController>
         <hashTree>
           <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Extension Counter" enabled="true">
-            <stringProp name="CounterConfig.start">0</stringProp>
+            <stringProp name="CounterConfig.start">1</stringProp>
             <stringProp name="CounterConfig.end">${extensionsLength}</stringProp>
             <stringProp name="CounterConfig.incr">1</stringProp>
             <stringProp name="CounterConfig.name">extensionIndex</stringProp>
@@ -239,7 +239,7 @@ vars.put(&quot;extensionsLength&quot;, extensionList.length);
             <stringProp name="script">var extensions = vars.get(&quot;extensions&quot;)
 var extensionIndex = vars.get(&quot;extensionIndex&quot;)
 
-vars.put(&quot;extension&quot;, extensions.split(&quot;,&quot;)[extensionIndex])
+vars.put(&quot;extension&quot;, extensions.split(&quot;,&quot;)[extensionIndex - 1])
 </stringProp>
           </JSR223Sampler>
           <hashTree/>
