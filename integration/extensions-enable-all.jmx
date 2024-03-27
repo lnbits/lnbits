@@ -589,11 +589,6 @@ vars.put(&quot;version&quot;, latestRelease.version)
               </ConstantTimer>
               <hashTree/>
             </hashTree>
-            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Wait a bit" enabled="false">
-              <stringProp name="ConstantTimer.delay">2000</stringProp>
-              <stringProp name="TestPlan.comments">for the callback to be invoked</stringProp>
-            </ConstantTimer>
-            <hashTree/>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="[${extension}] Go to extension page" enabled="true">
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
                 <collectionProp name="Arguments.arguments"/>
