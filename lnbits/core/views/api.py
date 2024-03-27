@@ -42,7 +42,11 @@ from ..crud import (
 )
 from ..services import perform_lnurlauth
 
-api_router = APIRouter()
+# backwards compatibility for extension
+# TODO: remove api_payment and pay_invoice imports from extensions
+from .payment_api import api_payment, pay_invoice  # noqa: F401
+
+api_router = APIRouter(tags=["Core"])
 
 
 @api_router.get("/api/v1/health", status_code=HTTPStatus.OK)
