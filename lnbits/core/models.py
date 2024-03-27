@@ -331,16 +331,6 @@ class PaymentHistoryPoint(BaseModel):
     balance: int
 
 
-class BalanceCheck(BaseModel):
-    wallet: str
-    service: str
-    url: str
-
-    @classmethod
-    def from_row(cls, row: Row):
-        return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
-
-
 def _do_nothing(*_):
     pass
 
@@ -394,8 +384,6 @@ class CreateInvoice(BaseModel):
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
     expiry: Optional[int] = None
-    lnurl_callback: Optional[str] = None
-    lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
