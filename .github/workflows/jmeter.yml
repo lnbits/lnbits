@@ -66,12 +66,12 @@ jobs:
             filename=$(basename "$file" ".jmx")
             $GITHUB_WORKSPACE/apache-jmeter-5.6.2/bin/jmeter -n -t $file -l logs/$filename.log -e -o reports ;
             error_count=$(cat jmeter.log | grep "summary =" | awk '{print $19}')
-            echo "Error count: $error_count"
+            echo "Error count: [$error_count]"
             if [[ "$error_count" == "0" ]]; then
               echo "Test $filename OK."
               rm -r reports/*
             else
-              echo "Test $filename failed. Error count: $error_count."
+              echo "Test $filename failed. Error count: [$error_count]."
               exit 1
             fi
           done
