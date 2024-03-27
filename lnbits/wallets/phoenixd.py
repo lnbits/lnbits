@@ -1,13 +1,13 @@
 import asyncio
 import base64
-
+import json
+import urllib.parse
 from typing import AsyncGenerator, Dict, Optional
-from websockets.client import connect
 
 import httpx
 from loguru import logger
+from websockets.client import connect
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -31,6 +31,16 @@ class PhoenixdWallet(Wallet):
             raise ValueError("cannot initialize PhoenixdWallet: missing phoenixd_api_password")
 
         self.endpoint = self.normalize_endpoint(settings.phoenixd_api_endpoint)
+
+        self.ws_url = f"ws://{urllib.parse.urlsplit(self.endpoint).netloc}/websocket"
+        password = settings.phoenixd_api_password
+        encoded_auth = base64.b64encode(f":{password}".encode())
+        auth = str(encoded_auth, "utf-8")
+        self.headers = {
+            "Authorization": f"Basic {auth}",
+            "User-Agent": settings.user_agent,
+        }
+
         self.client = httpx.AsyncClient(base_url=self.endpoint, auth=('', settings.phoenixd_api_password))
 
     async def cleanup(self):
@@ -94,13 +104,12 @@ class PhoenixdWallet(Wallet):
             "/payinvoice",
             data={
                 "invoice": bolt11_invoice,
-               # "amountSat": '1',
             },
             timeout=40,
         )
 
         if r.is_error:
-            logger.info(f'pay_invoice error: {r.json()}')
+            logger.error(f'pay_invoice error: {r.json()}')
             error_message = r.json()["message"]
             return PaymentResponse(False, None, None, None, error_message)
 
@@ -118,7 +127,7 @@ class PhoenixdWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()
-        logger.info(f'get_invoice_status data: {data}')
+        #logger.info(f'get_invoice_status data: {data}')
 
         fee_msat = data['fees']
         preimage= data["preimage"]
@@ -126,37 +135,28 @@ class PhoenixdWallet(Wallet):
 
         return PaymentStatus(paid=is_paid, fee_msat=fee_msat, preimage=preimage)
 
-
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_invoice_status(checking_id)
 
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
-            value = await self.queue.get()
-            yield value
+            try:
+                async with connect(
+                    self.ws_url,
+                    extra_headers=[("Authorization", self.headers["Authorization"])],
+                ) as ws:
+                    logger.info('connected to phoenixd invoices stream')
+                    while True:
+                        message = await ws.recv()
+                        message_json = json.loads(message)
+                        if message_json and message_json["type"] == "payment-received":
+                            logger.info(f'payment-received: {message_json["paymentHash"]}')
+                            yield message_json["paymentHash"]
 
-    # async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-    #     while True:
-    #         try:
-    #             async with connect(
-    #                 "ws://127.0.0.1:9740/websocket",
-    #                 # TODO: fix this, not connecting
-    #                 # extra_headers=[("", settings.phoenixd_api_password)],
-    #             ) as ws:
-    #                 while True:
-    #                     message = await ws.recv()
-    #                     logger.info(f'message: {message}')
-    #                     # message_json = json.loads(message)
-    #                     # if message_json and message_json["type"] == "payment-received":
-    #                     #     yield message_json["paymentHash"]
-    #                     if message:
-    #                         yield message
-
-    #         except Exception as exc:
-    #             logger.error(
-    #                 f"lost connection to phoenixd invoices stream: '{exc}'"
-    #                 "retrying in 5 seconds"
-    #             )
-    #             await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to phoenixd invoices stream: '{exc}'"
+                    "retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
