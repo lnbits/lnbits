@@ -28,10 +28,10 @@
             <stringProp name="Argument.value">${__property(port,,5000)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="exclude_extensions" elementType="Argument">
-            <stringProp name="Argument.name">exclude_extensions</stringProp>
-            <stringProp name="Argument.value"></stringProp>
-            <stringProp name="Argument.desc">Comma separated values.</stringProp>
+          <elementProp name="excludedExtensions" elementType="Argument">
+            <stringProp name="Argument.name">excludedExtensions</stringProp>
+            <stringProp name="Argument.value">discordbot</stringProp>
+            <stringProp name="Argument.desc">Comma separated values, no spaces.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -193,33 +193,24 @@
             <stringProp name="filename"></stringProp>
             <stringProp name="cacheKey">true</stringProp>
             <stringProp name="script">var resp = JSON.parse(prev.getResponseDataAsString());
+var excludedExtensions = (vars.get(&quot;excludedExtensions&quot;) || &quot;&quot;).split(&quot;,&quot;);
 
 var extensions = {};
 
 for (var i = 0; i &lt; resp.extensions.length; i++) {
   var ext = resp.extensions[i];
-  extensions[ext.id] = true;
+  if (excludedExtensions.indexOf(ext.id) === -1) {
+    extensions[ext.id] = true;
+  }
 }
 
 extensionList = Object.keys(extensions);
-extensionList.push(&quot;xxxx&quot;);
 vars.put(&quot;extensions&quot;, extensionList);
 vars.put(&quot;extensionsLength&quot;, extensionList.length);
 </stringProp>
           </JSR223PostProcessor>
           <hashTree/>
         </hashTree>
-        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Extract extensions" enabled="false">
-          <stringProp name="cacheKey">true</stringProp>
-          <stringProp name="filename"></stringProp>
-          <stringProp name="parameters"></stringProp>
-          <stringProp name="script">var extensions = vars.get(&quot;extensions&quot;) || &quot;&quot;
-extensionList = extensions.split(&quot;,&quot;)
-vars.put(&quot;extensionList&quot;, extensionList)
-vars.put(&quot;extensionsLength&quot;, extensionList.length)</stringProp>
-          <stringProp name="scriptLanguage">javascript</stringProp>
-        </JSR223Sampler>
-        <hashTree/>
         <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
           <boolProp name="displayJMeterProperties">false</boolProp>
           <boolProp name="displayJMeterVariables">true</boolProp>
@@ -327,14 +318,6 @@ vars.put(&quot;extension&quot;, extensions.split(&quot;,&quot;)[extensionIndex])
                 <boolProp name="Assertion.assume_success">false</boolProp>
                 <intProp name="Assertion.test_type">8</intProp>
               </ResponseAssertion>
-              <hashTree/>
-              <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Extract latest release" enabled="true">
-                <stringProp name="scriptLanguage">groovy</stringProp>
-                <stringProp name="parameters"></stringProp>
-                <stringProp name="filename"></stringProp>
-                <stringProp name="cacheKey">true</stringProp>
-                <stringProp name="script"></stringProp>
-              </JSR223PostProcessor>
               <hashTree/>
             </hashTree>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Install extension ${extension}" enabled="true">
