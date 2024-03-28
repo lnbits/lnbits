@@ -26,7 +26,7 @@
                             "macaroon": "eNcRyPtEdMaCaRoOn",
                             "encodingtype": "hex",
                             "accept": "application/json",
-                            "User-Agent": "LNbits/0.12.2"
+                            "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
                     }
@@ -36,7 +36,7 @@
                         "uri": "/v1/balance/channels",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
-                            "User-Agent": "LNbits/0.12.2"
+                            "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
                     }
@@ -102,7 +102,7 @@
                             "macaroon": "eNcRyPtEdMaCaRoOn",
                             "encodingtype": "hex",
                             "accept": "application/json",
-                            "User-Agent": "LNbits/0.12.2"
+                            "User-Agent": "LNbits/Tests"
                         },
                         "method": "POST"
                     }
@@ -112,7 +112,7 @@
                         "uri": "/v1/invoices",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
-                            "User-Agent": "LNbits/0.12.2"
+                            "User-Agent": "LNbits/Tests"
                         },
                         "method": "POST"
                     }
