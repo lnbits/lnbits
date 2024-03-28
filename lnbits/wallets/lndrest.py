@@ -89,10 +89,8 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
 
             data = r.json()
-
             if len(data) == 0:
                 return StatusResponse("no data", 0)
-
             if r.is_error or "balance" not in data:
                 return StatusResponse(f"Server error: '{r.text}'", 0)
 
