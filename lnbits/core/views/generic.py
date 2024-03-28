@@ -49,7 +49,7 @@ async def favicon():
 @generic_router.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
-        "core/index.html", {"request": request, "lnurl": lightning}
+        request, "core/index.html", {"lnurl": lightning}
     )
 
 
@@ -57,15 +57,15 @@ async def home(request: Request, lightning: str = ""):
 async def first_install(request: Request):
     if not settings.first_install:
         return template_renderer().TemplateResponse(
+            request,
             "error.html",
             {
-                "request": request,
                 "err": "Super user account has already been configured.",
             },
         )
     return template_renderer().TemplateResponse(
+        request,
         "core/first_install.html",
-        {"request": request},
     )
 
 
@@ -170,9 +170,9 @@ async def extensions_install(
         user = await get_user(user.id) or user
 
         return template_renderer().TemplateResponse(
+            request,
             "core/extensions.html",
             {
-                "request": request,
                 "user": user.dict(),
                 "extensions": extensions,
             },
@@ -207,13 +207,13 @@ async def wallet(
     user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "Wallet not found"}
+            request, "error.html", {"err": "Wallet not found"}
         )
 
     resp = template_renderer().TemplateResponse(
+        request,
         "core/wallet.html",
         {
-            "request": request,
             "user": user.dict(),
             "wallet": user_wallet.dict(),
             "currencies": allowed_currencies(),
@@ -236,9 +236,9 @@ async def account(
     user: User = Depends(check_user_exists),
 ):
     return template_renderer().TemplateResponse(
+        request,
         "core/account.html",
         {
-            "request": request,
             "user": user.dict(),
         },
     )
@@ -356,9 +356,9 @@ async def lnurlwallet(request: Request):
 @generic_router.get("/service-worker.js")
 async def service_worker(request: Request):
     return template_renderer().TemplateResponse(
+        request,
         "service-worker.js",
         {
-            "request": request,
             "cache_version": settings.server_startup_time,
         },
         media_type="text/javascript",
@@ -457,9 +457,9 @@ async def node(request: Request, user: User = Depends(check_admin)):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "node/index.html",
         {
-            "request": request,
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
@@ -477,9 +477,9 @@ async def node_public(request: Request):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "node/public.html",
         {
-            "request": request,
             "settings": settings.dict(),
             "balance": balance,
         },
@@ -495,9 +495,9 @@ async def index(request: Request, user: User = Depends(check_admin)):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "admin/index.html",
         {
-            "request": request,
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
