@@ -43,7 +43,6 @@ def load_tests_from_json(path):
 
                     tests[fs_name].append(t)
 
-        print("### tests", sum([tests[fs_name] for fs_name in tests], []))
         return sum([tests[fs_name] for fs_name in tests], [])
 
 
@@ -58,7 +57,6 @@ def _load_funding_sources(data: dict) -> dict:
         for s in funding_source["settings"]:
             setattr(settings, s, funding_source["settings"][s])
 
-    print("### funding_sources", funding_sources)
     return funding_sources
 
 
@@ -82,7 +80,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     await _check_assertions(wallet, test_data)
 
 
-def _apply_mock(httpserver: HTTPServer, mock: dict) -> dict:
+def _apply_mock(httpserver: HTTPServer, mock: dict):
     request_data = {}
     request_type = getattr(mock, "request_type", None)
 
@@ -125,11 +123,9 @@ async def _assert_data(wallet, tested_func, call_params, expect):
 
 
 async def _assert_error(wallet, tested_func, call_params, expect_error):
-    error_module = importlib.import_module(["module"])
+    error_module = importlib.import_module(expect_error["module"])
     error_class = getattr(error_module, expect_error["class"])
     with pytest.raises(error_class) as e_info:
         await getattr(wallet, tested_func)(**call_params)
 
     assert e_info.match(expect_error["message"])
-
-
