@@ -43,8 +43,8 @@ def load_tests_from_json(path):
 
                     tests[fs_name].append(t)
 
-        print("### tests", tests)
-        return tests
+        print("### tests", sum([tests[fs_name] for fs_name in tests], []))
+        return sum([tests[fs_name] for fs_name in tests], [])
 
 
 def _load_funding_sources(data: dict) -> dict:
@@ -75,69 +75,50 @@ def test_data(request):
 
 @pytest.mark.asyncio
 async def test_rest_wallet(httpserver: HTTPServer, test_data):
-    server = test_data["server"]
-    test = test_data["test"]
-    respond_with = f"""respond_with_{test["response_type"]}"""
-    server_response = test["server_response"]
+    print("### test_data", test_data)
+    # server = test_data["server"]
+    # test = test_data["test"]
+    # respond_with = f"""respond_with_{test["response_type"]}"""
+    # server_response = test["server_response"]
 
     request_data = {}
-    if "data" in test:
-        request_data["data"] = urlencode(test["data"])
-    elif "json" in test:
-        request_data["json"] = test["json"]
+    for mock in test_data["mocks"]:
+        request_type = getattr(mock, "request_type", None)
+        if request_type == "data":
+            request_data["data"] = urlencode(mock["response"])
+        elif request_type == "json":
+            request_data["json"] = mock["response"]
 
-    req = httpserver.expect_request(
-        uri=server["uri"],
-        headers=server["headers"],
-        method=server["method"],
-        **request_data,  # type: ignore
-    )
+        req = httpserver.expect_request(
+            uri=mock["uri"],
+            headers=mock["headers"],
+            method=mock["method"],
+            **request_data,  # type: ignore
+        )
 
-    if test["response_type"] == "response":
-        server_response = Response(**server_response)
+        server_response = mock["response"]
+        if mock["response_type"] == "response":
+            server_response = Response(**server_response)
 
-    getattr(req, respond_with)(server_response)
 
-    parameters = test["params"] if "params" in test else {}
+        respond_with = f"""respond_with_{mock["response_type"]}"""
+        getattr(req, respond_with)(server_response)
+
+    call_params = test_data["call_params"]
     wallet = test_data["wallet_class"]()
 
-    print("### test", test)
 
-    if "expect" in test:
-        resp = await getattr(wallet, test_data["function"])(**parameters)
-        for key in test["expect"]:
-            assert getattr(resp, key) == test["expect"][key]
+    if "expect" in test_data:
+        resp = await getattr(wallet, test_data["function"])(**call_params)
+        for key in test_data["expect"]:
+            assert getattr(resp, key) == test_data["expect"][key]
 
-    elif "expect_error" in test:
-        error_module = importlib.import_module(test["expect_error"]["module"])
-        error_class = getattr(error_module, test["expect_error"]["class"])
+    elif "expect_error" in test_data:
+        error_module = importlib.import_module(test_data["expect_error"]["module"])
+        error_class = getattr(error_module, test_data["expect_error"]["class"])
         with pytest.raises(error_class) as e_info:
-            await getattr(wallet, test_data["function"])(**parameters)
+            await getattr(wallet, test_data["function"])(**call_params)
 
-        assert e_info.match(test["expect_error"]["message"])
+        assert e_info.match(test_data["expect_error"]["message"])
     else:
         assert False, "Expected outcome not specified"
-
-
-### Test Sample
-# "my_func_01": [
-#     {
-#         "description": "create ok",
-#         "call_params": {},
-#         "expect": {},
-#         "mock_server": {
-#             "corelightningrest": {
-#                 "request_type": "data",
-#                 "request_body": {},
-#                 "response_type": "json",
-#                 "response": {}
-#             },
-#             "lndrest": {
-#                 "request_type": "json",
-#                 "request_body": {},
-#                 "response_type": "json",
-#                 "response": {}
-#             }
-#         }
-#     }
-# ],
