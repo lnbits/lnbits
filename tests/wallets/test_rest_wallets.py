@@ -74,51 +74,62 @@ def test_data(request):
 
 
 @pytest.mark.asyncio
-async def test_rest_wallet(httpserver: HTTPServer, test_data):
-    print("### test_data", test_data)
-    # server = test_data["server"]
-    # test = test_data["test"]
-    # respond_with = f"""respond_with_{test["response_type"]}"""
-    # server_response = test["server_response"]
-
-    request_data = {}
+async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     for mock in test_data["mocks"]:
-        request_type = getattr(mock, "request_type", None)
-        if request_type == "data":
-            request_data["data"] = urlencode(mock["response"])
-        elif request_type == "json":
-            request_data["json"] = mock["response"]
+        _apply_mock(httpserver, mock)
 
-        req = httpserver.expect_request(
-            uri=mock["uri"],
-            headers=mock["headers"],
-            method=mock["method"],
-            **request_data,  # type: ignore
-        )
-
-        server_response = mock["response"]
-        if mock["response_type"] == "response":
-            server_response = Response(**server_response)
-
-
-        respond_with = f"""respond_with_{mock["response_type"]}"""
-        getattr(req, respond_with)(server_response)
-
-    call_params = test_data["call_params"]
     wallet = test_data["wallet_class"]()
+    await _check_assertions(wallet, test_data)
 
+
+def _apply_mock(httpserver: HTTPServer, mock: dict) -> dict:
+    request_data = {}
+    request_type = getattr(mock, "request_type", None)
+
+    if request_type == "data":
+        request_data["data"] = urlencode(mock["response"])
+    elif request_type == "json":
+        request_data["json"] = mock["response"]
+
+    req = httpserver.expect_request(
+        uri=mock["uri"],
+        headers=mock["headers"],
+        method=mock["method"],
+        **request_data,  # type: ignore
+    )
+
+    server_response = mock["response"]
+    if mock["response_type"] == "response":
+        server_response = Response(**server_response)
+
+    respond_with = f"""respond_with_{mock["response_type"]}"""
+    getattr(req, respond_with)(server_response)
+
+
+async def _check_assertions(wallet, test_data):
+    tested_func = test_data["function"]
+    call_params = test_data["call_params"]
 
     if "expect" in test_data:
-        resp = await getattr(wallet, test_data["function"])(**call_params)
-        for key in test_data["expect"]:
-            assert getattr(resp, key) == test_data["expect"][key]
-
+        await _assert_data(wallet, tested_func, call_params, test_data["expect"])
     elif "expect_error" in test_data:
-        error_module = importlib.import_module(test_data["expect_error"]["module"])
-        error_class = getattr(error_module, test_data["expect_error"]["class"])
-        with pytest.raises(error_class) as e_info:
-            await getattr(wallet, test_data["function"])(**call_params)
-
-        assert e_info.match(test_data["expect_error"]["message"])
+        await _assert_error(wallet, tested_func, call_params, test_data["expect_error"])
     else:
         assert False, "Expected outcome not specified"
+
+
+async def _assert_data(wallet, tested_func, call_params, expect):
+    resp = await getattr(wallet, tested_func)(**call_params)
+    for key in expect:
+        assert getattr(resp, key) == expect[key]
+
+
+async def _assert_error(wallet, tested_func, call_params, expect_error):
+    error_module = importlib.import_module(["module"])
+    error_class = getattr(error_module, expect_error["class"])
+    with pytest.raises(error_class) as e_info:
+        await getattr(wallet, tested_func)(**call_params)
+
+    assert e_info.match(expect_error["message"])
+
+
