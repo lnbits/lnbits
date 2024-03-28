@@ -17,7 +17,7 @@ headers = {
     "macaroon": MACAROON,
     "encodingtype": "hex",
     "accept": "application/json",
-    "User-Agent": settings.user_agent,
+    "User-Agent": "LNbits/Tests",
 }
 
 bolt11_sample = str(
