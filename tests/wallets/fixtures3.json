@@ -90,6 +90,30 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "with error",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Failed to connect to http://127.0.0.1:8555, got: 'test-error...'",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": {
+                                "response_type": "json",
+                                "response": {
+                                    "error": "test-error"
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "status_endpoint": {
+                                "response_type": "data",
+                                "response": "test-error"
+                            }
+                        }
+                    }
                 }
             ]
         },
