@@ -13,7 +13,7 @@ MACAROON = "eNcRyPtEdMaCaRoOn"
 
 headers = {
     "Grpc-Metadata-macaroon": MACAROON,
-    "User-Agent": settings.user_agent,
+    "User-Agent": "LNbits/Tests",
 }
 
 
