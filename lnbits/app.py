@@ -43,7 +43,7 @@ from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.views.api import add_installed_extension
+from .core.views.extension_api import add_installed_extension
 from .core.views.generic import update_installed_extension_state
 from .extension_manager import (
     Extension,

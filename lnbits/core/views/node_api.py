@@ -49,12 +49,20 @@ def check_public():
         )
 
 
-node_router = APIRouter(prefix="/node/api/v1", dependencies=[Depends(check_admin)])
+node_router = APIRouter(
+    tags=["Node Managment"],
+    prefix="/node/api/v1",
+    dependencies=[Depends(check_admin)],
+)
 super_node_router = APIRouter(
-    prefix="/node/api/v1", dependencies=[Depends(check_super_user)]
+    tags=["Node Managment"],
+    prefix="/node/api/v1",
+    dependencies=[Depends(check_super_user)],
 )
 public_node_router = APIRouter(
-    prefix="/node/public/api/v1", dependencies=[Depends(check_public)]
+    tags=["Node Managment"],
+    prefix="/node/public/api/v1",
+    dependencies=[Depends(check_public)],
 )
 
 

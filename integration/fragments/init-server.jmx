@@ -363,7 +363,7 @@ vars.put(&quot;adminWalletKey&quot;, resp.adminkey || &apos;no-adminkey&apos;);
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.protocol">${scheme}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <stringProp name="HTTPSampler.path">/admin/api/v1/topup/</stringProp>
+          <stringProp name="HTTPSampler.path">/admin/api/v1/topup</stringProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
