@@ -52,7 +52,7 @@ async def test_status_no_balance(httpserver: HTTPServer):
 
     status = await wallet.status()
     assert status.balance_msat == 0
-    assert status.error_message == "{}"
+    assert status.error_message == "no data"
 
     httpserver.check_assertions()
 
