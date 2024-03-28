@@ -27,21 +27,20 @@ def load_tests_from_json(path):
                 """create an unit test for each funding source"""
 
                 for fs_name in funding_sources:
-                    t = {**test}
-                    t["mocks"] = []
-                    for mock_name in fn["mocks"][fs_name]:
-                        print("### mock_name", mock_name)
-                        t["mocks"].append(
-                            fn["mocks"][fs_name][mock_name]
-                            | t["mock_endpoint"][fs_name][mock_name]
-                        )
+                    fs_mocks = fn["mocks"][fs_name]
+                    test_mocks = test["mocks"][fs_name]
+                    t = (
+                        {
+                            "wallet_class": funding_sources[fs_name],
+                            "function": fn_name,
+                        }
+                        | {**test}
+                        | {"mocks": []}
+                    )
 
-                    del t["mock_endpoint"]
+                    for mock_name in fs_mocks:
+                        t["mocks"].append(fs_mocks[mock_name] | test_mocks[mock_name])
 
-                    t = t | {
-                        "wallet_class": funding_sources[fs_name],
-                        "function": fn_name,
-                    }
                     tests[fs_name].append(t)
 
         print("### tests", tests)
