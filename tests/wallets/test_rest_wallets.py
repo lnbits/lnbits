@@ -18,39 +18,50 @@ def load_tests_from_json(path):
 
         funding_sources = _load_funding_sources(data["funding_sources"])
 
-        tests = {}
-        for fn_name in data["functions"]:
-            fn_mocks = data["functions"][fn_name]["mocks"]
+        tests = {fs_name: [] for fs_name in funding_sources}
 
-            for test in data["functions"][tests]:
+        for fn_name in data["functions"]:
+            fn = data["functions"][fn_name]
+
+            for test in fn["tests"]:
                 """create an unit test for each funding source"""
 
-                for fs in funding_sources:
-                    tests[fs] = []
-                    for mock_name in fn_mocks[fs]:
-                        tests[fs].append(
-                            {
-                                "wallet_class": fs["wallet_class"],
-                                "function": fn_name,
-                                "mocks": fn_mocks[fs],
-                                "test": test,
-                            }
+                for fs_name in funding_sources:
+                    t = {**test}
+                    t["mocks"] = []
+                    for mock_name in fn["mocks"][fs_name]:
+                        print("### mock_name", mock_name)
+                        t["mocks"].append(
+                            fn["mocks"][fs_name][mock_name]
+                            | t["mock_endpoint"][fs_name][mock_name]
                         )
+
+                    del t["mock_endpoint"]
+
+                    t = t | {
+                        "wallet_class": funding_sources[fs_name],
+                        "function": fn_name,
+                    }
+                    tests[fs_name].append(t)
+
+        print("### tests", tests)
         return tests
 
 
 def _load_funding_sources(data: dict) -> dict:
     funding_sources = {}
-    for funding_source in data:
-        funding_sources[funding_source] = getattr(
-            wallets_module, funding_source["class"]
-        )
+    for fs_name in data:
+        funding_source = data[fs_name]
+
+        funding_sources[fs_name] = getattr(wallets_module, funding_source["class"])
 
         settings = getattr(wallets_module, "settings")
         for s in funding_source["settings"]:
             setattr(settings, s, funding_source["settings"][s])
 
+    print("### funding_sources", funding_sources)
     return funding_sources
+
 
 # specify where the server should bind to
 @pytest.fixture(scope="session")
@@ -58,7 +69,7 @@ def httpserver_listen_address():
     return ("127.0.0.1", 8555)
 
 
-@pytest.fixture(params=load_tests_from_json("tests/wallets/fixtures.json"))
+@pytest.fixture(params=load_tests_from_json("tests/wallets/fixtures3.json"))
 def test_data(request):
     return request.param
 

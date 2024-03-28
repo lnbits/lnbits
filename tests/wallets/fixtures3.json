@@ -21,7 +21,6 @@
             "mocks": {
                 "corelightningrest": {
                     "status_endpoint": {
-                        "name": "status",
                         "uri": "/v1/channel/localremotebal",
                         "headers": {
                             "macaroon": "eNcRyPtEdMaCaRoOn",
@@ -34,7 +33,6 @@
                 },
                 "lndrest": {
                     "status_endpoint": {
-                        "name": "status",
                         "uri": "/v1/balance/channels",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
@@ -61,7 +59,6 @@
                         },
                         "lndrest": {
                             "status_endpoint": {
-                                "name": "status",
                                 "response_type": "json",
                                 "response": {}
                             }
@@ -78,7 +75,6 @@
                     "mock_endpoint": {
                         "corelightningrest": {
                             "status_endpoint": {
-                                "name": "status",
                                 "response_type": "json",
                                 "response": {
                                     "balance": 55
@@ -87,7 +83,6 @@
                         },
                         "lndrest": {
                             "status_endpoint": {
-                                "name": "status",
                                 "response_type": "json",
                                 "response": {
                                     "localBalance": 55
@@ -114,7 +109,6 @@
                 },
                 "lndrest": {
                     "create_invoice_endpoint": {
-                        "name": "create_invoice",
                         "uri": "/v1/invoices",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
@@ -141,7 +135,6 @@
                     "mock_endpoint": {
                         "corelightningrest": {
                             "create_invoice_endpoint": {
-                                "name": "create_invoice",
                                 "request_type": "data",
                                 "request_body": {
                                     "amount": 555000,
@@ -157,7 +150,6 @@
                         },
                         "lndrest": {
                             "create_invoice_endpoint": {
-                                "name": "create_invoice",
                                 "request_type": "json",
                                 "request_body": {
                                     "value": 555,
