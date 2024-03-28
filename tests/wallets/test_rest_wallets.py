@@ -54,6 +54,7 @@ def _load_funding_sources(data: dict) -> dict:
         funding_sources[fs_name] = getattr(wallets_module, funding_source["class"])
 
         settings = getattr(wallets_module, "settings")
+        settings["user_agent"] = "LNbits/Tests"
         for s in funding_source["settings"]:
             setattr(settings, s, funding_source["settings"][s])
 
