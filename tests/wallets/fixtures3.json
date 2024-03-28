@@ -77,7 +77,7 @@
                             "status_endpoint": {
                                 "response_type": "json",
                                 "response": {
-                                    "balance": 55
+                                    "localBalance": 55
                                 }
                             }
                         },
@@ -85,7 +85,7 @@
                             "status_endpoint": {
                                 "response_type": "json",
                                 "response": {
-                                    "localBalance": 55
+                                    "balance": 55
                                 }
                             }
                         }
