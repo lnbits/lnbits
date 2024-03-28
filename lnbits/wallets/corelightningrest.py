@@ -92,7 +92,7 @@ class CoreLightningRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbl{random.random()}"
+        label = kwargs.get("label", f"lbl{random.random()}")
         data: Dict = {
             "amount": amount * 1000,
             "description": memo,
