@@ -20,6 +20,8 @@ headers = {
     "User-Agent": "LNbits/Tests",
 }
 
+settings.user_agent = "LNbits/Tests"
+
 bolt11_sample = str(
     "lnbc210n1pjlgal5sp5xr3uwlfm7ltum"
     + "djyukhys0z2rw6grgm8me9k4w9vn05zt"
