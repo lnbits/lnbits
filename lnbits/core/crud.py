@@ -9,7 +9,6 @@ import shortuuid
 from passlib.context import CryptContext
 
 from lnbits.core.db import db
-from lnbits.core.models import WalletType
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
 from lnbits.extension_manager import InstallableExtension
 from lnbits.settings import (
@@ -563,7 +562,6 @@ async def get_wallet(
 
 async def get_wallet_for_key(
     key: str,
-    key_type: WalletType = WalletType.invoice,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
@@ -576,9 +574,6 @@ async def get_wallet_for_key(
     )
 
     if not row:
-        return None
-
-    if key_type == WalletType.admin and row["adminkey"] != key:
         return None
 
     return Wallet(**row)

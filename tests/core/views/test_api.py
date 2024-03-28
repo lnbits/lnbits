@@ -65,11 +65,11 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
     response = await client.get(
         "/api/v1/wallet",
         headers={
-            "X-Api-Key": result["adminkey"],
+            "X-API-KEY": result["adminkey"],
             "Content-type": "application/json",
         },
     )
-    assert response.status_code == 404
+    assert response.status_code == 401
 
 
 # check GET /api/v1/wallet with inkey: wallet info, no balance
@@ -98,14 +98,14 @@ async def test_get_wallet_adminkey(client, adminkey_headers_to):
 @pytest.mark.asyncio
 async def test_put_empty_request_expected_admin_keys(client):
     response = await client.put("/api/v1/wallet/newwallet")
-    assert response.status_code == 401
+    assert response.status_code == 400
 
 
 # check POST /api/v1/payments: empty request where invoice key is needed
 @pytest.mark.asyncio
 async def test_post_empty_request_expected_invoice_keys(client):
     response = await client.post("/api/v1/payments")
-    assert response.status_code == 401
+    assert response.status_code == 400
 
 
 # check POST /api/v1/payments: invoice creation

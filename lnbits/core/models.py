@@ -68,7 +68,7 @@ class Wallet(BaseWallet):
         return await get_standalone_payment(payment_hash)
 
 
-class WalletType(Enum):
+class KeyType(Enum):
     admin = 0
     invoice = 1
     invalid = 2
@@ -80,7 +80,7 @@ class WalletType(Enum):
 
 @dataclass
 class WalletTypeInfo:
-    wallet_type: WalletType
+    key_type: KeyType
     wallet: Wallet
 
 
