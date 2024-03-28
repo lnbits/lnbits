@@ -35,7 +35,7 @@ window.localisation.pl = {
   name_your_wallet: 'Nazwij swój portfel %{name}',
   paste_invoice_label: 'Wklej fakturę, żądanie zapłaty lub kod lnurl *',
   lnbits_description:
-    'Łatwy i lekki w konfiguracji, LNbits może działać w oparciu o dowolne źródło finansowania w sieci lightning, obecnie wspiera LND, Core Lightning, OpenNode, Alby, ZBD, LNPay czy nawet inną instancję LNbits! Możesz uruchomić instancję LNbits dla siebie lub dla innych. Każdy portfel ma swoje klucze API i nie ma ograniczeń jeśli chodzi o ilość portfeli. LNbits umożliwia dzielenie środków w celu zarządzania nimi, jest również dobrym narzędziem deweloperskim. Rozszerzenia zwiększają funkcjonalność LNbits co umożliwia eksperymentowanie z nowym technologiami w sieci lightning. Tworzenie rozszerzeń jest proste dlatego zachęcamy innych deweloperów do tworzenia dodatkowych funkcjonalności i wysyłanie do nas PR',
+    'Łatwy i lekki w konfiguracji, LNbits może działać w oparciu o dowolne źródło finansowania w sieci lightning czy nawet inną instancję LNbits! Możesz uruchomić instancję LNbits dla siebie lub dla innych. Każdy portfel ma swoje klucze API i nie ma ograniczeń jeśli chodzi o ilość portfeli. LNbits umożliwia dzielenie środków w celu zarządzania nimi, jest również dobrym narzędziem deweloperskim. Rozszerzenia zwiększają funkcjonalność LNbits co umożliwia eksperymentowanie z nowym technologiami w sieci lightning. Tworzenie rozszerzeń jest proste dlatego zachęcamy innych deweloperów do tworzenia dodatkowych funkcjonalności i wysyłanie do nas PR',
   export_to_phone: 'Eksport kodu QR na telefon',
   export_to_phone_desc:
     'Ten kod QR zawiera adres URL Twojego portfela z pełnym dostępem do niego. Możesz go zeskanować na swoim telefonie aby otworzyć na nim ten portfel.',
