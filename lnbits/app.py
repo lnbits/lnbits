@@ -497,7 +497,7 @@ def register_exception_handlers(app: FastAPI):
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                "error.html", {"request": request, "err": f"Error: {str(exc)}"}
+                request, "error.html", {"err": f"Error: {str(exc)}"}
             )
 
         return JSONResponse(
@@ -519,8 +519,9 @@ def register_exception_handlers(app: FastAPI):
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
+                request,
                 "error.html",
-                {"request": request, "err": f"Error: {str(exc)}"},
+                {"err": f"Error: {str(exc)}"},
             )
 
         return JSONResponse(
@@ -547,6 +548,7 @@ def register_exception_handlers(app: FastAPI):
                 return response
 
             return template_renderer().TemplateResponse(
+                request,
                 "error.html",
                 {
                     "request": request,
