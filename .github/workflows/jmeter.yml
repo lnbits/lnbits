@@ -30,30 +30,18 @@ jobs:
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
-          poetry run lnbits > logs/lnbits.log &
+          poetry run lnbits &
           sleep 5
 
-      - name: clone lnbits-extensions
+      - name: clone lnbits-extensions, install jmeter and run tests
         run: |
           git clone https://github.com/lnbits/lnbits-extensions
           cd lnbits-extensions
           git checkout jmeter
-
-      - name: create logs and reports dir
-        run: |
           mkdir logs
           mkdir reports
-
-      - name: install jmeter
-        run: |
           make install-jmeter
-
-      - name: start mirror server
-        run: |
           make start-mirror-server
-
-      - name: run jmx scripts
-        run: |
           make test
 
       - name: upload jmeter test results
