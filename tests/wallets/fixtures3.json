@@ -116,7 +116,7 @@
                     }
                 },
                 {
-                    "description": "with bad json",
+                    "description": "bad json",
                     "call_params": {},
                     "expect": {
                         "error_message": "Server error: 'invalid json response'",
@@ -126,17 +126,13 @@
                         "corelightningrest": {
                             "status_endpoint": {
                                 "response_type": "data",
-                                "response": {
-                                    "error": "test-error"
-                                }
+                                "response": "data-not-json"
                             }
                         },
                         "lndrest": {
                             "status_endpoint": {
                                 "response_type": "data",
-                                "response": {
-                                    "error": "test-error"
-                                }
+                                "response": "data-not-json"
                             }
                         }
                     }
@@ -335,6 +331,46 @@
                                 "response": {
                                     "some_field": "but the required fields are mising"
                                 }
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "bad json",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'invalid json response'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "data",
+                                "request_body": {
+                                    "amount": 555000,
+                                    "description": "Test Invoice",
+                                    "label": "test-label"
+                                },
+                                "response_type": "data",
+                                "response": "data-not-json"
+                            }
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "json",
+                                "request_body": {
+                                    "value": 555,
+                                    "memo": "Test Invoice",
+                                    "private": true
+                                },
+                                "response_type": "data",
+                                "response": "data-not-json"
                             }
                         }
                     }
