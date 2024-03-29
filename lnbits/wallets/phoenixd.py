@@ -26,9 +26,13 @@ class PhoenixdWallet(Wallet):
 
     def __init__(self):
         if not settings.phoenixd_api_endpoint:
-            raise ValueError("cannot initialize PhoenixdWallet: missing phoenixd_api_endpoint")
+            raise ValueError(
+                "cannot initialize PhoenixdWallet: missing phoenixd_api_endpoint"
+            )
         if not settings.phoenixd_api_password:
-            raise ValueError("cannot initialize PhoenixdWallet: missing phoenixd_api_password")
+            raise ValueError(
+                "cannot initialize PhoenixdWallet: missing phoenixd_api_password"
+            )
 
         self.endpoint = self.normalize_endpoint(settings.phoenixd_api_endpoint)
 
@@ -41,7 +45,9 @@ class PhoenixdWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
 
-        self.client = httpx.AsyncClient(base_url=self.endpoint, auth=('', settings.phoenixd_api_password))
+        self.client = httpx.AsyncClient(
+            base_url=self.endpoint, auth=("", settings.phoenixd_api_password)
+        )
 
     async def cleanup(self):
         try:
@@ -59,7 +65,7 @@ class PhoenixdWallet(Wallet):
             error_message = r.json()["message"]
             return StatusResponse(error_message, 0)
 
-        data = int(r.json()['channels'][0]['balanceSat'])*1000
+        data = int(r.json()["channels"][0]["balanceSat"]) * 1000
         return StatusResponse(None, data)
 
     async def create_invoice(
@@ -109,15 +115,15 @@ class PhoenixdWallet(Wallet):
         )
 
         if r.is_error:
-            logger.error(f'pay_invoice error: {r.json()}')
+            logger.error(f"pay_invoice error: {r.json()}")
             error_message = r.json()["message"]
             return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
-        logger.info(f'pay_invoice data: {data}')
+        logger.info(f"pay_invoice data: {data}")
 
-        checking_id = data['paymentHash']
-        fee_msat = -int(data['routingFeeSat'])
+        checking_id = data["paymentHash"]
+        fee_msat = -int(data["routingFeeSat"])
         preimage = data["paymentPreimage"]
 
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
@@ -127,17 +133,16 @@ class PhoenixdWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()
-        #logger.info(f'get_invoice_status data: {data}')
+        # logger.info(f'get_invoice_status data: {data}')
 
-        fee_msat = data['fees']
-        preimage= data["preimage"]
-        is_paid = data['isPaid']
+        fee_msat = data["fees"]
+        preimage = data["preimage"]
+        is_paid = data["isPaid"]
 
         return PaymentStatus(paid=is_paid, fee_msat=fee_msat, preimage=preimage)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_invoice_status(checking_id)
-
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
@@ -146,12 +151,14 @@ class PhoenixdWallet(Wallet):
                     self.ws_url,
                     extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
-                    logger.info('connected to phoenixd invoices stream')
+                    logger.info("connected to phoenixd invoices stream")
                     while True:
                         message = await ws.recv()
                         message_json = json.loads(message)
                         if message_json and message_json["type"] == "payment-received":
-                            logger.info(f'payment-received: {message_json["paymentHash"]}')
+                            logger.info(
+                                f'payment-received: {message_json["paymentHash"]}'
+                            )
                             yield message_json["paymentHash"]
 
             except Exception as exc:
