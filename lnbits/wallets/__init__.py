@@ -23,10 +23,10 @@ from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
 from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
+from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
-from .phoenixd import PhoenixdWallet
 
 
 def set_funding_source(class_name: Optional[str] = None):
