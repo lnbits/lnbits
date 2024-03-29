@@ -1,8 +1,6 @@
-from json.decoder import JSONDecodeError
 from urllib.parse import urlencode
 
 import pytest
-from httpx import HTTPStatusError
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
