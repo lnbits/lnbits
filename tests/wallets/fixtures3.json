@@ -296,6 +296,50 @@
                     }
                 },
                 {
+                    "description": "missing data",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'missing required fields'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "data",
+                                "request_body": {
+                                    "amount": 555000,
+                                    "description": "Test Invoice",
+                                    "label": "test-label"
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "some_field": "but the required fields are mising"
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "json",
+                                "request_body": {
+                                    "value": 555,
+                                    "memo": "Test Invoice",
+                                    "private": true
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "some_field": "but the required fields are mising"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
                     "description": "http 404",
                     "call_params": {
                         "amount": 555,
