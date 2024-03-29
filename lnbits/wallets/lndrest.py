@@ -161,7 +161,7 @@ class LndRestWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.url}."
+                False, None, None, f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
