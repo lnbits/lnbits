@@ -140,6 +140,34 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "http 404",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": {
+                                "response_type": "response",
+                                "response": {
+                                    "response": "Not Found",
+                                    "status": 404
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "status_endpoint": {
+                                "response_type": "response",
+                                "response": {
+                                    "response": "Not Found",
+                                    "status": 404
+                                }
+                            }
+                        }
+                    }
                 }
             ]
         },

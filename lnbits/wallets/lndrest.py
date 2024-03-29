@@ -87,8 +87,9 @@ class LndRestWallet(Wallet):
         try:
             r = await self.client.get("/v1/balance/channels")
             r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError) as exc:
-            return StatusResponse(f"Unable to connect to {self.endpoint}. {exc}", 0)
+        except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
         try:
             data = r.json()
@@ -100,7 +101,7 @@ class LndRestWallet(Wallet):
                 return StatusResponse(f"Server error: '{r.text}'", 0)
 
         except json.JSONDecodeError:
-            return StatusResponse(f"Server error: 'invalid json response'", 0)
+            return StatusResponse("Server error: 'invalid json response'", 0)
         except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r.text}...'", 0

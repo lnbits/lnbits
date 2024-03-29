@@ -66,8 +66,14 @@ class CoreLightningRestWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        r = await self.client.get(f"{self.url}/v1/channel/localremotebal", timeout=5)
-        r.raise_for_status()
+        try:
+            r = await self.client.get(
+                f"{self.url}/v1/channel/localremotebal", timeout=5
+            )
+            r.raise_for_status()
+        except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.url}.", 0)
 
         try:
             data = r.json()
@@ -83,7 +89,7 @@ class CoreLightningRestWallet(Wallet):
 
             return StatusResponse(None, int(data.get("localBalance") * 1000))
         except json.JSONDecodeError:
-            return StatusResponse(f"Server error: 'invalid json response'", 0)
+            return StatusResponse("Server error: 'invalid json response'", 0)
         except Exception as e:
             return StatusResponse(
                 f"Failed to connect to {self.url}, got: '{str(e)}...'", 0
