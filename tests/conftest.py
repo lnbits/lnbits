@@ -219,10 +219,3 @@ async def hold_invoice():
     invoice = get_hold_invoice(100)
     yield invoice
     del invoice
-
-
-# todo: change test name based on fixures
-# def pytest_collection_modifyitems(items):
-#     for item in items:
-#         if item.originalname == 'test_rest_wallet':
-#             print("##### item.originalname", item.nodeid, item._fixtureinfo)
