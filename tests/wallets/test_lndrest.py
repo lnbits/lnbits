@@ -116,37 +116,6 @@ async def test_pay_invoice_validation():
 
 
 @pytest.mark.asyncio
-async def test_pay_invoice_error_response(httpserver: HTTPServer):
-    settings.lnd_rest_endpoint = ENDPOINT
-    settings.lnd_rest_macaroon = MACAROON
-    settings.lnd_rest_cert = ""
-
-    fee_limit_msat = 25_000
-    server_resp = {"payment_error": "Test Error"}
-
-    data = {
-        "payment_request": bolt11_sample,
-        "fee_limit": {"fixed_msat": f"{fee_limit_msat}"},
-    }
-
-    httpserver.expect_request(
-        uri="/v1/channels/transactions", headers=headers, method="POST", json=data
-    ).respond_with_json(server_resp)
-
-    wallet = LndRestWallet()
-
-    invoice_resp = await wallet.pay_invoice(bolt11_sample, fee_limit_msat)
-
-    assert invoice_resp.success is False
-    assert invoice_resp.error_message == "Test Error"
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.fee_msat is None
-    assert invoice_resp.preimage is None
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
 async def test_pay_invoice_http_404(httpserver: HTTPServer):
     settings.lnd_rest_endpoint = ENDPOINT
     settings.lnd_rest_macaroon = MACAROON

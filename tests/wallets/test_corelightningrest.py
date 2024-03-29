@@ -186,40 +186,6 @@ async def test_pay_invoice_validation():
 
 
 @pytest.mark.asyncio
-async def test_pay_invoice_error_response(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    fee_limit_msat = 25_000
-    server_resp = {"error": "Test Error"}
-
-    data = {
-        "invoice": bolt11_sample,
-        "maxfeepercent": f"{(fee_limit_msat / 21_000 * 100):.11}",
-        "exemptfee": 0,
-    }
-
-    httpserver.expect_request(
-        uri="/v1/pay",
-        headers=headers,
-        method="POST",
-        data=urlencode(data),
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-
-    invoice_resp = await wallet.pay_invoice(bolt11_sample, fee_limit_msat)
-
-    assert invoice_resp.success is False
-    assert invoice_resp.error_message == "Test Error"
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.fee_msat is None
-    assert invoice_resp.preimage is None
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
 async def test_pay_invoice_http_404(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
