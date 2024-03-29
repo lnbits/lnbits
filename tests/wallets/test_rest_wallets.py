@@ -27,8 +27,7 @@ def load_tests_from_json(path):
                 """create an unit test for each funding source"""
 
                 for fs_name in funding_sources:
-                    fs_mocks = fn["mocks"][fs_name]
-                    test_mocks = test["mocks"][fs_name]
+
                     t = (
                         {
                             "funding_source": fs_name,
@@ -38,9 +37,13 @@ def load_tests_from_json(path):
                         | {**test}
                         | {"mocks": []}
                     )
-
-                    for mock_name in fs_mocks:
-                        t["mocks"].append(fs_mocks[mock_name] | test_mocks[mock_name])
+                    if "mocks" in test:
+                        test_mocks = test["mocks"][fs_name]
+                        fs_mocks = fn["mocks"][fs_name]
+                        for mock_name in fs_mocks:
+                            t["mocks"].append(
+                                fs_mocks[mock_name] | test_mocks[mock_name]
+                            )
 
                     tests[fs_name].append(t)
 
@@ -68,13 +71,13 @@ def httpserver_listen_address():
     return ("127.0.0.1", 8555)
 
 
-def idfn(test):
+def build_test_id(test):
     return f"""{test["funding_source"]}.{test["function"]}({test["description"]})"""
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "test_data", load_tests_from_json("tests/wallets/fixtures3.json"), ids=idfn
+    "test_data", load_tests_from_json("tests/wallets/fixtures3.json"), ids=build_test_id
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     for mock in test_data["mocks"]:
