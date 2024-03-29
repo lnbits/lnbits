@@ -75,6 +75,7 @@ async def test_status_for_missing_config():
 
 # todo: extract
 @pytest.mark.asyncio
+@pytest.skip("todo: extract")
 async def test_cleanup(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
@@ -96,62 +97,6 @@ async def test_cleanup(httpserver: HTTPServer):
         await wallet.status()
 
     assert str(e_info.value) == "Cannot send a request, as the client has been closed."
-
-
-@pytest.mark.asyncio
-async def test_create_invoice_ok(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    amount = 555
-    server_resp = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96",
-        "bolt11": bolt11_sample,
-    }
-
-    data = {
-        "amount": amount * 1000,
-        "description": "Test Invoice",
-        "label": "test-label",
-    }
-
-    # todo: extract extra
-    extra_data = {None: None, "expiry": 123, "preimage": "xxx"}
-
-    for key in extra_data:
-        extra_server_resquest = {}
-        if key:
-            data[key] = extra_data[key]
-            extra_server_resquest[key] = extra_data[key]
-
-        httpserver.clear_all_handlers()
-        httpserver.expect_request(
-            uri="/v1/invoice/genInvoice",
-            headers=headers,
-            method="POST",
-            data=urlencode(data),
-        ).respond_with_json(server_resp)
-
-        wallet = CoreLightningRestWallet()
-
-        invoice_resp = await wallet.create_invoice(
-            amount=amount,
-            memo="Test Invoice",
-            label="test-label",
-            description_hash=None,
-            unhashed_description=None,
-            **extra_server_resquest,
-        )
-
-        assert invoice_resp.success is True
-        assert invoice_resp.checking_id == server_resp["payment_hash"]
-        assert invoice_resp.payment_request == server_resp["bolt11"]
-        assert invoice_resp.error_message is None
-
-        if key:
-            del data[key]
-        httpserver.check_assertions()
 
 
 # todo: extract

@@ -9,7 +9,7 @@ from werkzeug.wrappers import Response
 wallets_module = importlib.import_module("lnbits.wallets")
 
 # todo:
-#  - fix user agent
+# - tests for extra fields
 
 
 def load_tests_from_json(path):
