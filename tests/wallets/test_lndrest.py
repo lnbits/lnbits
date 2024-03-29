@@ -1,7 +1,6 @@
 import json
 
 import pytest
-from httpx import HTTPStatusError
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
@@ -38,7 +37,6 @@ bolt11_sample = str(
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
     return ("127.0.0.1", 8555)
-
 
 
 @pytest.mark.asyncio
