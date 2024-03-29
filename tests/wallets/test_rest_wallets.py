@@ -31,6 +31,7 @@ def load_tests_from_json(path):
                     test_mocks = test["mocks"][fs_name]
                     t = (
                         {
+                            "funding_source": fs_name,
                             "wallet_class": funding_sources[fs_name],
                             "function": fn_name,
                         }
@@ -67,12 +68,14 @@ def httpserver_listen_address():
     return ("127.0.0.1", 8555)
 
 
-@pytest.fixture(params=load_tests_from_json("tests/wallets/fixtures3.json"))
-def test_data(request):
-    return request.param
+def idfn(test):
+    return f"""{test["funding_source"]}.{test["function"]}({test["description"]})"""
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "test_data", load_tests_from_json("tests/wallets/fixtures3.json"), ids=idfn
+)
 async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     for mock in test_data["mocks"]:
         _apply_mock(httpserver, mock)
