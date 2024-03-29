@@ -37,7 +37,6 @@ jobs:
         run: |
           git clone https://github.com/lnbits/lnbits-extensions
           cd lnbits-extensions
-          git checkout jmeter
           mkdir logs
           mkdir reports
           make install-jmeter
