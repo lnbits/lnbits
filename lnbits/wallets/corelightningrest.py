@@ -68,21 +68,26 @@ class CoreLightningRestWallet(Wallet):
     async def status(self) -> StatusResponse:
         r = await self.client.get(f"{self.url}/v1/channel/localremotebal", timeout=5)
         r.raise_for_status()
-        if r.is_error or "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
+
+        try:
+            data = r.json()
+
+            if len(data) == 0:
+                return StatusResponse("no data", 0)
+
+            if "error" in data:
+                return StatusResponse(f"""Server error: '{data["error"]}'""", 0)
+
+            if r.is_error or "localBalance" not in data:
+                return StatusResponse(f"Server error: '{r.text}'", 0)
+
+            return StatusResponse(None, int(data.get("localBalance") * 1000))
+        except json.JSONDecodeError:
+            return StatusResponse(f"Server error: 'invalid json response'", 0)
+        except Exception as e:
             return StatusResponse(
-                f"Failed to connect to {self.url}, got: '{error_message}...'", 0
+                f"Failed to connect to {self.url}, got: '{str(e)}...'", 0
             )
-
-        data = r.json()
-        if len(data) == 0:
-            return StatusResponse("no data", 0)
-
-        return StatusResponse(None, int(data.get("localBalance") * 1000))
 
     async def create_invoice(
         self,

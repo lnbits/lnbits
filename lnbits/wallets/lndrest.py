@@ -92,10 +92,15 @@ class LndRestWallet(Wallet):
 
         try:
             data = r.json()
+
             if len(data) == 0:
                 return StatusResponse("no data", 0)
+
             if r.is_error or "balance" not in data:
-                raise Exception
+                return StatusResponse(f"Server error: '{r.text}'", 0)
+
+        except json.JSONDecodeError:
+            return StatusResponse(f"Server error: 'invalid json response'", 0)
         except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r.text}...'", 0

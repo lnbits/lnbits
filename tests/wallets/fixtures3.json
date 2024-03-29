@@ -95,13 +95,37 @@
                     "description": "with error",
                     "call_params": {},
                     "expect": {
-                        "error_message": "Failed to connect to http://127.0.0.1:8555, got: 'test-error...'",
+                        "error_message": "Server error: '\"test-error\"'",
                         "balance_msat": 0
                     },
                     "mocks": {
                         "corelightningrest": {
                             "status_endpoint": {
                                 "response_type": "json",
+                                "response": {
+                                    "error": "\"test-error\""
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "status_endpoint": {
+                                "response_type": "json",
+                                "response": "test-error"
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "with bad json",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Server error: 'invalid json response'",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": {
+                                "response_type": "data",
                                 "response": {
                                     "error": "test-error"
                                 }
@@ -110,7 +134,9 @@
                         "lndrest": {
                             "status_endpoint": {
                                 "response_type": "data",
-                                "response": "test-error"
+                                "response": {
+                                    "error": "test-error"
+                                }
                             }
                         }
                     }
