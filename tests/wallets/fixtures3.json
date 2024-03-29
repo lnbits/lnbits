@@ -168,6 +168,14 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
+                        "balance_msat": 0
+                    }
                 }
             ]
         },
