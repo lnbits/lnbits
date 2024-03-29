@@ -36,8 +36,8 @@ jobs:
       - name: clone lnbits-extensions
         run: |
           git clone https://github.com/lnbits/lnbits-extensions
-          git checkout jmeter
           cd lnbits-extensions
+          git checkout jmeter
 
       - name: create logs and reports dir
         run: |
