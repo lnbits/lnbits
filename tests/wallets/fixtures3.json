@@ -420,6 +420,20 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                    }
                 }
             ]
         },
