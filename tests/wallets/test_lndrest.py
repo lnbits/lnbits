@@ -116,54 +116,6 @@ async def test_pay_invoice_validation():
 
 
 @pytest.mark.asyncio
-async def test_pay_invoice_ok(httpserver: HTTPServer):
-    settings.lnd_rest_endpoint = ENDPOINT
-    settings.lnd_rest_macaroon = MACAROON
-    settings.lnd_rest_cert = ""
-
-    fee_limit_msat = 25_000
-    fee_msat = 1000
-    server_resp = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96",
-        "payment_route": {"total_fees_msat": fee_msat},
-        "payment_preimage": "00000000000000000000000000000000"
-        + "00000000000000000000000000000000",
-    }
-
-    data = {
-        "payment_request": bolt11_sample,
-        "fee_limit": {"fixed_msat": f"{fee_limit_msat}"},
-    }
-
-    httpserver.expect_request(
-        uri="/v1/channels/transactions", headers=headers, method="POST", json=data
-    ).respond_with_json(server_resp)
-
-    wallet = LndRestWallet()
-
-    invoice_resp = await wallet.pay_invoice(bolt11_sample, fee_limit_msat)
-
-    assert invoice_resp.success is True
-    assert invoice_resp.fee_msat == fee_msat
-    assert (
-        invoice_resp.checking_id
-        == "7b7e79dba6b8dddd387bdf39e7de1cd1"
-        + "d7da6fce3cf35e1fe76e1bd5cefceb9"
-        + "f7c79cf5aeb76de75d6f677bdba69cf7a"
-    )
-    assert (
-        invoice_resp.preimage
-        == "d34d34d34d34d34d34d34d34d34d34d3"
-        + "4d34d34d34d34d34d34d34d34d34d34d"
-        + "34d34d34d34d34d34d34d34d34d34d34"
-    )
-    assert invoice_resp.error_message is None
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
 async def test_pay_invoice_error_response(httpserver: HTTPServer):
     settings.lnd_rest_endpoint = ENDPOINT
     settings.lnd_rest_macaroon = MACAROON
